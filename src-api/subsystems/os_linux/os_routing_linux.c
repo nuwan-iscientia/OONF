@@ -198,7 +198,7 @@ os_routing_set(struct os_route *route, bool set, bool del_similar) {
 }
 
 /**
- * Request all routing dataof a certain address family
+ * Request all routing data of a certain address family
  * @param route pointer to routing filter
  * @return -1 if an error happened, 0 otherwise
  */
