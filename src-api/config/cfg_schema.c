@@ -104,6 +104,11 @@ cfg_schema_add_section(struct cfg_schema *schema,
 //  struct cfg_schema_entry *entry, *entry_it;
   size_t i;
 
+  /* make sure definitions in compiled code are correct */
+  assert (cfg_is_allowed_key(section->type));
+  assert (section->def_name == NULL
+      || cfg_is_allowed_section_name(section->def_name));
+
   /* hook section into global section tree */
   section->_section_node.key = section->type;
   avl_insert(&schema->sections, &section->_section_node);
@@ -115,6 +120,9 @@ cfg_schema_add_section(struct cfg_schema *schema,
   }
 
   for (i=0; i<section->entry_count; i++) {
+    /* make sure key name in compiled code is correct */
+    assert (cfg_is_allowed_key(section->entries[i].key.type));
+
     section->entries[i]._parent = section;
     section->entries[i].key.type = section->type;
     section->entries[i]._node.key = &section->entries[i].key;
@@ -234,7 +242,7 @@ cfg_schema_validate(struct cfg_db *db,
           }
         }
 
-        if (hasName && !cfg_is_allowed_key(named->name, true)) {
+        if (hasName && !cfg_is_allowed_section_name(named->name)) {
           cfg_append_printable_line(out, "The section name '%s' for"
               " type '%s' contains illegal characters",
               named->name, section->type);
