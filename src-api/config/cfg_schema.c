@@ -121,7 +121,7 @@ cfg_schema_add_section(struct cfg_schema *schema,
 
   for (i=0; i<section->entry_count; i++) {
     /* make sure key name in compiled code is correct */
-    assert (cfg_is_allowed_key(section->entries[i].key.type));
+    assert (cfg_is_allowed_key(section->entries[i].key.entry));
 
     section->entries[i]._parent = section;
     section->entries[i].key.type = section->type;
