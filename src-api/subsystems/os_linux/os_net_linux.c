@@ -169,7 +169,7 @@ os_net_update_interface(struct oonf_interface_data *ifdata,
     return -1;
   }
 
-  ifdata->up = (ifr.ifr_flags & (IFF_UP | IFF_RUNNING)) == (IFF_UP|IFF_RUNNING);
+  ifdata->up = (ifr.ifr_flags & IFF_UP) == IFF_UP;
   ifdata->loopback = (ifr.ifr_flags & IFF_LOOPBACK) != 0;
 
   memset(&ifr, 0, sizeof(ifr));
