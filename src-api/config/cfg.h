@@ -79,7 +79,7 @@ EXPORT void cfg_remove(struct cfg_instance *);
 
 EXPORT int cfg_append_printable_line(struct autobuf *autobuf, const char *fmt, ...)
   __attribute__ ((format(printf, 2, 3)));
-EXPORT bool cfg_is_allowed_key(const char *key, bool section_name);
+EXPORT bool cfg_is_allowed_key(const char *key);
 EXPORT int cfg_get_choice_index(const char *value, const char **array, size_t array_size);
 
 EXPORT int cfg_avlcmp_keys(const void *p1, const void *p2);
@@ -104,6 +104,16 @@ cfg_cmp_keys(const char *str1, const char *str2) {
 static INLINE bool
 cfg_get_bool(const char *value) {
   return cfg_get_choice_index(value, CFGLIST_BOOL_TRUE, ARRAYSIZE(CFGLIST_BOOL_TRUE)) >= 0;
+}
+
+/**
+ * Checks if a section name is valid
+ * @param name name of a configuration section
+ * @return true if name contains no space, false otherwise
+ */
+static INLINE bool
+cfg_is_allowed_section_name(const char *name) {
+  return strchr(name, ' ') == NULL;
 }
 
 #endif /* CFG_H_ */

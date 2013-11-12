@@ -271,6 +271,19 @@ _parse_line(struct cfg_db *db, char *line,
       *name = 0;
     }
 
+    /* validity of section type (and name) */
+    if (!cfg_is_allowed_key(section)) {
+      cfg_append_printable_line(log,
+          "Illegal section type: '%s'", section);
+      return -1;
+    }
+
+    if (*name != 0 && !cfg_is_allowed_section_name(name)) {
+      cfg_append_printable_line(log,
+          "Illegal section name: '%s'", name);
+      return -1;
+    }
+
     /* add section to db */
     if (_cfg_db_add_section(db, section, *name ? name : NULL, &dummy) == NULL) {
       return -1;
@@ -299,6 +312,12 @@ _parse_line(struct cfg_db *db, char *line,
   if (*ptr == 0) {
     cfg_append_printable_line(log,
         "No second token found in line '%s'",  line);
+    return -1;
+  }
+
+  if (!cfg_is_allowed_key(first)) {
+    cfg_append_printable_line(log,
+        "Illegal key type: '%s'", first);
     return -1;
   }
 

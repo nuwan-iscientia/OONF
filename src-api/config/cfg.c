@@ -123,19 +123,17 @@ cfg_append_printable_line(struct autobuf *autobuf, const char *fmt, ...) {
 
 /**
  * Tests on the pattern [a-zA-Z_][a-zA-Z0-9_]*
- * @param key section_type/name or entry name
- * @param section_name true if testing a section name, false if testing
- *   a section type or a key
+ * @param key section_type or entry name
  * @return true if input string is valid for this parser,
  *   false otherwise
  */
 bool
-cfg_is_allowed_key(const char *key, bool section_name) {
+cfg_is_allowed_key(const char *key) {
   static const char *valid = "_0123456789"
       "abcdefghijklmnopqrstuvwxyz"
       "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
   /* test for [a-zA-Z_][a-zA-Z0-9_]* */
-  if (!section_name && *key >= '0' && *key <= '9') {
+  if (*key >= '0' && *key <= '9') {
     return false;
   }
 
