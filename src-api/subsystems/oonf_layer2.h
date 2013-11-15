@@ -151,12 +151,14 @@ EXPORT void oonf_layer2_cleanup_origin(uint32_t);
 EXPORT struct oonf_layer2_net *oonf_layer2_net_add(struct netaddr *);
 EXPORT void oonf_layer2_net_remove(
     struct oonf_layer2_net *, uint32_t origin);
+EXPORT void oonf_layer2_net_cleanup(
+    struct oonf_layer2_net *l2net, uint32_t origin, bool commit);
 EXPORT bool oonf_layer2_net_commit(struct oonf_layer2_net *);
 
 EXPORT struct oonf_layer2_neigh *oonf_layer2_neigh_add(
     struct oonf_layer2_net *, struct netaddr *l2neigh);
 EXPORT void oonf_layer2_neigh_remove(
-    struct oonf_layer2_neigh *l2neigh, uint32_t origin);
+    struct oonf_layer2_neigh *l2neigh, uint32_t origin, bool commit);
 EXPORT bool oonf_layer2_neigh_commit(struct oonf_layer2_neigh *l2neigh);
 
 EXPORT const struct oonf_layer2_data *oonf_layer2_neigh_query(

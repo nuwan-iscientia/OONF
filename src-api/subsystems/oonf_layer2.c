@@ -179,6 +179,29 @@ oonf_layer2_net_add(struct netaddr *network) {
 
 /**
  * Remove all information of a certain originator from a layer-2 addr
+ * object.
+ * @param l2net layer-2 addr object
+ * @param origin originator number
+ * @param commit true if event should be triggered by cleanup
+ */
+void
+oonf_layer2_net_cleanup(struct oonf_layer2_net *l2net, uint32_t origin, bool commit) {
+  int i;
+
+  for (i=0; i<OONF_LAYER2_NET_COUNT; i++) {
+    if (l2net->data[i]._origin == origin) {
+      oonf_layer2_reset_value(&l2net->data[i]);
+    }
+  }
+
+  if (commit) {
+	_commit(l2net, false);
+  }
+}
+
+
+/**
+ * Remove all information of a certain originator from a layer-2 addr
  * object. Remove the object if its empty and has no neighbors anymore.
  * @param l2net layer-2 addr object
  * @param origin originator number
@@ -186,18 +209,12 @@ oonf_layer2_net_add(struct netaddr *network) {
 void
 oonf_layer2_net_remove(struct oonf_layer2_net *l2net, uint32_t origin) {
   struct oonf_layer2_neigh *l2neigh, *l2neigh_it;
-  int i;
 
   avl_for_each_element_safe(&l2net->neighbors, l2neigh, _node, l2neigh_it) {
-    oonf_layer2_neigh_remove(l2neigh, origin);
+    oonf_layer2_neigh_remove(l2neigh, origin, true);
   }
 
-  for (i=0; i<OONF_LAYER2_NET_COUNT; i++) {
-    if (l2net->data[i]._origin == origin) {
-      oonf_layer2_reset_value(&l2net->data[i]);
-    }
-  }
-  _commit(l2net, false);
+  oonf_layer2_net_cleanup(l2net, origin, true);
 }
 
 /**
@@ -259,9 +276,10 @@ oonf_layer2_neigh_add(struct oonf_layer2_net *l2net,
  * object. Remove the object if its empty.
  * @param l2neigh layer-2 neighbor object
  * @param origin originator number
+ * @param commit true if the node should be removed if empty and an event should be triggered
  */
 void
-oonf_layer2_neigh_remove(struct oonf_layer2_neigh *l2neigh, uint32_t origin) {
+oonf_layer2_neigh_remove(struct oonf_layer2_neigh *l2neigh, uint32_t origin, bool commit) {
   int i;
 
   for (i=0; i<OONF_LAYER2_NEIGH_COUNT; i++) {
@@ -269,7 +287,10 @@ oonf_layer2_neigh_remove(struct oonf_layer2_neigh *l2neigh, uint32_t origin) {
       oonf_layer2_reset_value(&l2neigh->data[i]);
     }
   }
-  oonf_layer2_neigh_commit(l2neigh);
+
+  if (commit) {
+	oonf_layer2_neigh_commit(l2neigh);
+  }
 }
 
 /**

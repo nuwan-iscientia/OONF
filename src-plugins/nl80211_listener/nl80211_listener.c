@@ -508,7 +508,7 @@ _parse_cmd_del_station(struct nlmsghdr *hdr) {
 
   neigh = oonf_layer2_neigh_get(net, &mac);
   if (neigh != NULL) {
-    oonf_layer2_neigh_remove(neigh, _l2_origin);
+    oonf_layer2_neigh_remove(neigh, _l2_origin, true);
   }
 }
 
