@@ -43,9 +43,10 @@
 #define DAEMONIZE_H_
 
 #include "common/common_types.h"
+#include "time.h"
 
 #ifndef WIN32
-EXPORT int daemonize_prepare(void);
+EXPORT int daemonize_prepare(time_t timeout);
 EXPORT int daemonize_finish(int pipe_fd, int exitcode, const char *pidfile);
 #else
 
