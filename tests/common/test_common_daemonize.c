@@ -49,7 +49,7 @@ int
 main(int argc __attribute__((unused)), char **argv __attribute__((unused))) {
   int fd;
 
-  fd = daemonize_prepare();
+  fd = daemonize_prepare(5);
   if (fd == -1) {
     fprintf(stdout, "Error while forking into background\n");
     return 2;

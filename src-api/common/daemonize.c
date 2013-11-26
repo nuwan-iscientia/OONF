@@ -44,6 +44,7 @@
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/select.h>
 
 #include "common/common_types.h"
 #include "common/daemonize.h"
@@ -54,10 +55,14 @@
  * but keep stdin/out/err open and a pipe connected to
  * the parent. Parent will wait for the exit_code
  * send by the child.
+ * @param timeout number of seconds the parent process will wait until
+ *   giving up and throwing an error.
  * @return filedescriptor of pipe, -1 if an error happened
  */
 int
-daemonize_prepare(void) {
+daemonize_prepare(time_t timeout) {
+  struct timeval tv;
+  fd_set readset;
   int fork_pipe[2];
   int ret;
   int exit_code = -1;
@@ -75,11 +80,22 @@ daemonize_prepare(void) {
 
   if (ret != 0) {
     /* parent of first fork() */
+    FD_ZERO(&readset);
+    FD_SET(fork_pipe[0], &readset);
+
+    tv.tv_sec = timeout;
+    tv.tv_usec = 0;
 
     /* wait for exit_code from daemonized part */
-    if (read(fork_pipe[0], &exit_code, sizeof(exit_code)) != sizeof(exit_code)) {
-      exit_code = -1;
+    ret = select(fork_pipe[0]+1, &readset, NULL, NULL, &tv);
+    if (ret > 0) {
+      /*
+       * read return code, doesn't matter if it fails or not,
+       * exit_code is already initialized
+       */
+      read(fork_pipe[0], &exit_code, sizeof(exit_code));
     }
+
     close (fork_pipe[1]);
     close (fork_pipe[0]);
     exit(exit_code);
