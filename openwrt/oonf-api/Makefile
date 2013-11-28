@@ -96,7 +96,7 @@ endef
 define Package/oonf-plugin-git-nl80211-listener
 	$(call Package/oonf-api-git/template) 
 	TITLE:=Probing plugin for nl80211
-	DEPENDS:=+oonf-api-git-core +oonf-api-git-subsystems +ldconfig +libnl-tiny
+	DEPENDS:=+oonf-api-git-core +oonf-api-git-subsystems +libnl-tiny +ldconfig
 endef
 
 define Package/oonf-plugin-git-plugin-controller
