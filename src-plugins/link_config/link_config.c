@@ -45,7 +45,7 @@
 #include "config/cfg_schema.h"
 #include "config/cfg_validate.h"
 #include "core/oonf_logging.h"
-#include "core/oonf_subsystem.h"
+#include "core/oonf_plugins.h"
 #include "subsystems/oonf_class.h"
 #include "subsystems/oonf_interface.h"
 #include "subsystems/oonf_layer2.h"
@@ -92,7 +92,7 @@ static struct cfg_schema_section _linkconfig_section = {
 };
 
 struct oonf_subsystem oonf_linkconfig_subsystem = {
-  .name = "linkconfig",
+  .name = OONF_PLUGIN_GET_NAME(),
   .init = _init,
   .cleanup = _cleanup,
 
