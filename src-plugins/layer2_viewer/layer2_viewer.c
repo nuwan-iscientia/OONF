@@ -143,7 +143,7 @@ static struct abuf_template_data _template_neigh_data[5 + OONF_LAYER2_NEIGH_COUN
   { .key = KEY_lastseen, .value = _template_buf.lastseen.buf },
 };
 
-static struct abuf_template_data _template_net_data[5 + OONF_LAYER2_NET_COUNT] = {
+static struct abuf_template_data _template_net_data[6 + OONF_LAYER2_NET_COUNT] = {
   { .key = KEY_radio, .value = _template_buf.radio_addr.buf, .string = true},
   { .key = KEY_ifindex, .value = _template_buf.ifindex },
   { .key = KEY_iftype, .value = _template_buf.iftype },
