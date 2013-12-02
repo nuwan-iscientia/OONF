@@ -973,6 +973,7 @@ _cb_config_changed(void) {
 	strarray_for_each_element(array, str) {
 	  _if_listener[i].name = strdup(str);
 	  oonf_interface_add_listener(&_if_listener[i]);
+	  i++;
 	}
   }
 }
