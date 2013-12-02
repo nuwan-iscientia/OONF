@@ -128,6 +128,11 @@ void
 oonf_timer_remove(struct oonf_timer_info *info) {
   struct oonf_timer_entry *timer, *iterator;
 
+  if (!list_is_node_added(&info->_node)) {
+	  /* only free node if its hooked to the timer core */
+	return;
+  }
+
   avl_for_each_element_safe(&_timer_tree, timer, _node, iterator) {
     if (timer->info == info) {
       oonf_timer_stop(timer);
