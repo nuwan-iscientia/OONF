@@ -57,7 +57,7 @@
  * Configuration settings for interface section
  */
 #define CFG_INTERFACE_SECTION      "interface"
-#define CFG_INTERFACE_SECTION_MODE CFG_SSMODE_NAMED_MANDATORY
+#define CFG_INTERFACE_SECTION_MODE CFG_SSMODE_NAMED
 
 /* wildcard name for interfaces */
 #define OONF_INTERFACE_WILDCARD "any"
