@@ -392,7 +392,7 @@ _parse_cmd_new_station(struct nlmsghdr *hdr) {
   OONF_DEBUG(LOG_NL80211, "Add neighbor %s for network %s",
       netaddr_to_string(&buf1, &mac), netaddr_to_string(&buf2, &if_data->mac));
 
-  net = _create_l2net(&mac, if_data->index, if_name);
+  net = _create_l2net(&if_data->mac, if_data->index, if_name);
   if (net == NULL) {
     return;
   }
