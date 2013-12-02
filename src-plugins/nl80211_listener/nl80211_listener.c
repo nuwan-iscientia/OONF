@@ -79,6 +79,11 @@ struct _nl80211_config {
   uint64_t interval;
 };
 
+enum _nl80211_cfg_idx {
+  IDX_INTERVAL,
+  IDX_INTERFACES,
+};
+
 enum query_type {
   QUERY_FIRST = 0,
   QUERY_STATION_DUMP = 0,
@@ -104,8 +109,11 @@ static void _cb_transmission_event(void *);
 
 /* configuration */
 static struct cfg_schema_entry _nl80211_entries[] = {
-  CFG_MAP_CLOCK_MIN(_nl80211_config, interval, "interval", "1.0",
+  [IDX_INTERVAL] = CFG_MAP_CLOCK_MIN(_nl80211_config, interval, "interval", "1.0",
       "Interval between two linklayer information updates", 100),
+  [IDX_INTERFACES] = CFG_VALIDATE_PRINTABLE_LEN("if", "",
+      "List of additional interfaces to read nl80211 data from",
+      IF_NAMESIZE, .list=true),
 };
 
 static struct cfg_schema_section _nl80211_section = {
@@ -159,6 +167,10 @@ struct oonf_timer_entry _transmission_timer = {
   .info = &_transmission_timer_info
 };
 
+/* interface allocation */
+size_t _if_listener_count;
+struct oonf_interface_listener *_if_listener;
+
 /**
  * Constructor of plugin
  * @return 0 if initialization was successful, -1 otherwise
@@ -192,6 +204,14 @@ _init(void) {
  */
 static void
 _cleanup(void) {
+  /* free interface listeners */
+  for (size_t i=0; i<_if_listener_count; i++) {
+	  oonf_interface_remove_listener(&_if_listener[i]);
+      free ((char *)_if_listener[i].name);
+  }
+  free (_if_listener);
+  _if_listener = NULL;
+
   oonf_layer2_cleanup_origin(_l2_origin);
 
   oonf_timer_stop(&_transmission_timer);
@@ -915,6 +935,10 @@ _cb_nl_done(uint32_t seq __attribute((unused))) {
  */
 static void
 _cb_config_changed(void) {
+  const struct const_strarray *array;
+  const char *str;
+  size_t i;
+
   if (cfg_schema_tobin(&_config, _nl80211_section.post,
       _nl80211_entries, ARRAYSIZE(_nl80211_entries))) {
     OONF_WARN(LOG_NL80211, "Could not convert %s config to bin",
@@ -922,5 +946,33 @@ _cb_config_changed(void) {
     return;
   }
 
+  /* set transmission timer */
   oonf_timer_set_ext(&_transmission_timer, 1, _config.interval);
+
+  array = cfg_schema_tovalue(_nl80211_section.pre, &_nl80211_entries[IDX_INTERFACES]);
+  if (array && strarray_get_count_c(array) > 0) {
+	for (i=0; i<_if_listener_count; i++) {
+      oonf_interface_remove_listener(&_if_listener[i]);
+      free ((char *)_if_listener[i].name);
+	}
+	free(_if_listener);
+	_if_listener = NULL;
+	_if_listener_count = 0;
+  }
+
+  array = cfg_schema_tovalue(_nl80211_section.post, &_nl80211_entries[IDX_INTERFACES]);
+  if (array && strarray_get_count_c(array) > 0) {
+	_if_listener = calloc(strarray_get_count_c(array), sizeof(struct oonf_interface_listener));
+	if (_if_listener == NULL) {
+		OONF_WARN(LOG_NL80211, "Out of memory for interface listeners");
+		return;
+	}
+	_if_listener_count = strarray_get_count_c(array);
+
+	i = 0;
+	strarray_for_each_element(array, str) {
+	  _if_listener[i].name = strdup(str);
+	  oonf_interface_add_listener(&_if_listener[i]);
+	}
+  }
 }
