@@ -77,6 +77,16 @@ os_net_configsocket(int sock, const union netaddr_socket *bind_to, int recvbuf,
     return -1;
   }
 
+#if defined(IPV6_V6ONLY)
+  if (bind_to->std.sa_family == AF_INET6) {
+	int no = 1;
+	if (setsockopt(sock, IPPROTO_IPV6, IPV6_V6ONLY, (void *)&no, sizeof(no)) < 0) {
+      OONF_WARN(log_src, "Could not force socket to IPv6 only, continue: %s (%d)\n",
+    		  strerror(errno), errno);
+	}
+  }
+#endif
+
 #if defined(SO_BINDTODEVICE)
   /* this is no multicast */
   if (interf != NULL && setsockopt(sock, SOL_SOCKET, SO_BINDTODEVICE,
