@@ -82,6 +82,8 @@ enum oonf_layer2_network_type {
   OONF_LAYER2_TYPE_WIRELESS,
   OONF_LAYER2_TYPE_ETHERNET,
   OONF_LAYER2_TYPE_TUNNEL,
+
+  OONF_LAYER2_TYPE_COUNT,
 };
 
 enum oonf_layer2_neighbor_index {
@@ -142,6 +144,8 @@ EXPORT extern struct oonf_subsystem oonf_layer2_subsystem;
 
 EXPORT extern const struct oonf_layer2_metadata oonf_layer2_metadata_neigh[OONF_LAYER2_NEIGH_COUNT];
 EXPORT extern const struct oonf_layer2_metadata oonf_layer2_metadata_net[OONF_LAYER2_NET_COUNT];
+
+EXPORT extern const char *oonf_layer2_network_type[OONF_LAYER2_TYPE_COUNT];
 
 EXPORT extern struct avl_tree oonf_layer2_net_tree;
 

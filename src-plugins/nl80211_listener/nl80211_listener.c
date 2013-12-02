@@ -621,6 +621,7 @@ _parse_cmd_new_scan_result(struct nlmsghdr *msg) {
   if (net == NULL) {
     return;
   }
+  net->if_type = OONF_LAYER2_TYPE_WIRELESS;
 
   /* remove old data */
   for (i=0; i<OONF_LAYER2_NET_COUNT; i++) {

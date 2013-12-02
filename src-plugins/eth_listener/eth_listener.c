@@ -136,9 +136,6 @@ _cb_transmission_event(void *ptr __attribute((unused))) {
   int err;
 
   avl_for_each_element(&oonf_interface_tree, interf, _node) {
-    /* layer-2 object for this interface */
-    l2net = oonf_layer2_net_get(&interf->data.mac);
-
     /* initialize ethtool command */
     memset(&cmd, 0, sizeof(cmd));
     cmd.cmd = ETHTOOL_GSET;
@@ -146,17 +143,16 @@ _cb_transmission_event(void *ptr __attribute((unused))) {
     /* initialize interface request */
     memset(&req, 0, sizeof(req));
     req.ifr_data = (void *)&cmd;
-    strscpy(req.ifr_name, "eth0", IF_NAMESIZE);
+    strscpy(req.ifr_name, interf->data.name, IF_NAMESIZE);
 
     /* request ethernet information from kernel */
     err = ioctl(os_net_linux_get_ioctl_fd(AF_INET), SIOCETHTOOL, &req);
     if (err != 0) {
-      if (l2net != NULL) {
-        oonf_layer2_net_remove(l2net, _l2_origin);
-      }
       continue;
     }
 
+    /* layer-2 object for this interface */
+    l2net = oonf_layer2_net_get(&interf->data.mac);
     if (l2net == NULL) {
       l2net = oonf_layer2_net_add(&interf->data.mac);
       if (l2net == NULL) {

@@ -62,6 +62,7 @@
 #define KEY_neighbor "neighbor"
 #define KEY_radio "radio"
 #define KEY_ifindex "ifindex"
+#define KEY_iftype "iftype"
 #define KEY_ifid    "ifid"
 #define KEY_interface "interface"
 #define KEY_lastseen "lastseen"
@@ -126,6 +127,7 @@ static struct {
   struct netaddr_str neigh_addr;
   struct netaddr_str radio_addr;
   char ifindex[10];
+  char iftype[16];
   char interface[IF_NAMESIZE];
   struct isonumber_str lastseen;
   char if_id[33];
@@ -144,6 +146,7 @@ static struct abuf_template_data _template_neigh_data[5 + OONF_LAYER2_NEIGH_COUN
 static struct abuf_template_data _template_net_data[5 + OONF_LAYER2_NET_COUNT] = {
   { .key = KEY_radio, .value = _template_buf.radio_addr.buf, .string = true},
   { .key = KEY_ifindex, .value = _template_buf.ifindex },
+  { .key = KEY_iftype, .value = _template_buf.iftype },
   { .key = KEY_interface, .value = _template_buf.interface, .string = true },
   { .key = KEY_lastseen, .value = _template_buf.lastseen.buf },
   { .key = KEY_ifid, .value = _template_buf.if_id, .string = true},
@@ -165,6 +168,7 @@ struct _command_params _net_params = {
   .tmpl_full =
       "Radio MAC:    %" KEY_radio     "%\n"
       "If-Index:     %" KEY_ifindex   "%\n"
+      "If-Type:      %" KEY_iftype    "%\n"
       "Interface:    %" KEY_interface "%\n"
       "Interf. ID:   %" KEY_ifid      "%\n"
       "Last seen:    %" KEY_lastseen  "% seconds ago\n"
@@ -266,6 +270,9 @@ _init_network_template_value(struct oonf_layer2_net *net, bool raw) {
     sprintf(_template_buf.ifindex, "%u", net->if_index);
     if_indextoname(net->if_index, _template_buf.interface);
   }
+
+  strscpy(_template_buf.iftype, oonf_layer2_network_type[net->if_type],
+		  sizeof(_template_buf.iftype));
 
   if (net->if_ident[0]) {
     strscpy(_template_buf.if_id, net->if_ident, sizeof(_template_buf.if_id));

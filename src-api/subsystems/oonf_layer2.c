@@ -81,6 +81,13 @@ const struct oonf_layer2_metadata oonf_layer2_metadata_net[OONF_LAYER2_NET_COUNT
   [OONF_LAYER2_NET_MAX_BITRATE]  = { .key = OONF_LAYER2_NET_MAX_BITRATE_KEY, .unit = "bit/s", .binary = true },
 };
 
+const char *oonf_layer2_network_type[OONF_LAYER2_TYPE_COUNT] = {
+  [OONF_LAYER2_TYPE_UNDEFINED] = "undefined",
+  [OONF_LAYER2_TYPE_WIRELESS]  = "wireless",
+  [OONF_LAYER2_TYPE_ETHERNET]  = "ethernet",
+  [OONF_LAYER2_TYPE_TUNNEL]    = "tunnel",
+};
+
 /* infrastructure for l2net/l2neigh tree */
 static struct oonf_class _l2network_class = {
   .name = LAYER2_CLASS_NETWORK,
