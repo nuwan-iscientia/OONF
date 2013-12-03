@@ -397,6 +397,8 @@ _parse_cmd_new_station(struct nlmsghdr *hdr) {
     return;
   }
 
+  net->if_type = OONF_LAYER2_TYPE_WIRELESS;
+
   neigh = oonf_layer2_neigh_add(net, &mac);
   if (neigh == NULL) {
     return;
@@ -614,7 +616,7 @@ _parse_cmd_new_scan_result(struct nlmsghdr *msg) {
   }
   net->if_type = OONF_LAYER2_TYPE_WIRELESS;
 
-  if (!bss[NL80211_BSS_BSSID]) {
+  if (bss[NL80211_BSS_BSSID]) {
     memcpy(&net->if_idaddr, &bssid, sizeof(bssid));
   }
 
