@@ -109,6 +109,7 @@ struct oonf_layer2_net {
   char if_name[IF_NAMESIZE];
   char if_ident[64];
   enum oonf_layer2_network_type if_type;
+  struct netaddr if_idaddr;
 
   struct avl_tree neighbors;
   struct avl_tree _ip_defaults;

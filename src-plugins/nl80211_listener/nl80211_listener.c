@@ -571,7 +571,7 @@ _parse_cmd_new_scan_result(struct nlmsghdr *msg) {
 
   struct oonf_interface_data *if_data;
   struct oonf_layer2_net *net;
-  struct netaddr mac;
+  struct netaddr bssid;
   unsigned if_index;
   char if_name[IF_NAMESIZE];
   int i;
@@ -596,16 +596,7 @@ _parse_cmd_new_scan_result(struct nlmsghdr *msg) {
     return;
   }
 
-  if (!bss[NL80211_BSS_BSSID]) {
-    OONF_WARN(LOG_NL80211, "No BSSID found");
-    return;
-  }
-
-  if (!bss[NL80211_BSS_STATUS]) {
-    /* ignore different networks for the moment */
-    return;
-  }
-  netaddr_from_binary(&mac, nla_data(bss[NL80211_BSS_BSSID]), 6, AF_MAC48);
+  netaddr_from_binary(&bssid, nla_data(bss[NL80211_BSS_BSSID]), 6, AF_MAC48);
   if_index = nla_get_u32(tb[NL80211_ATTR_IFINDEX]);
 
   if (if_indextoname(if_index, if_name) == NULL) {
@@ -617,11 +608,15 @@ _parse_cmd_new_scan_result(struct nlmsghdr *msg) {
     return;
   }
 
-  net = _create_l2net(&mac, if_data->index, if_name);
+  net = _create_l2net(&if_data->mac, if_data->index, if_name);
   if (net == NULL) {
     return;
   }
   net->if_type = OONF_LAYER2_TYPE_WIRELESS;
+
+  if (!bss[NL80211_BSS_BSSID]) {
+    memcpy(&net->if_idaddr, &bssid, sizeof(bssid));
+  }
 
   /* remove old data */
   for (i=0; i<OONF_LAYER2_NET_COUNT; i++) {
@@ -629,7 +624,7 @@ _parse_cmd_new_scan_result(struct nlmsghdr *msg) {
   }
   net->last_seen = 0;
 
-  OONF_DEBUG(LOG_NL80211, "Add network %s", netaddr_to_string(&buf, &if_data->mac));
+  OONF_DEBUG(LOG_NL80211, "Add radio %s", netaddr_to_string(&buf, &if_data->mac));
 #if 0
   if (bss[NL80211_BSS_STATUS]) {
     switch (nla_get_u32(bss[NL80211_BSS_STATUS])) {

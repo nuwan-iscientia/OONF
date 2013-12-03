@@ -59,13 +59,14 @@
 #include "layer2_viewer/layer2_viewer.h"
 
 /* keys for template engine */
-#define KEY_neighbor "neighbor"
-#define KEY_radio "radio"
-#define KEY_ifindex "ifindex"
-#define KEY_iftype "iftype"
-#define KEY_ifid    "ifid"
+#define KEY_neighbor  "neighbor"
+#define KEY_radio     "radio"
+#define KEY_ifindex   "ifindex"
+#define KEY_iftype    "iftype"
+#define KEY_ifid      "ifid"
+#define KEY_ifidaddr  "ifidaddr"
 #define KEY_interface "interface"
-#define KEY_lastseen "lastseen"
+#define KEY_lastseen  "lastseen"
 
 /* definitions */
 struct _l2viewer_config {
@@ -126,6 +127,7 @@ static struct oonf_telnet_command _telnet_cmd =
 static struct {
   struct netaddr_str neigh_addr;
   struct netaddr_str radio_addr;
+  struct netaddr_str if_idaddr;
   char ifindex[10];
   char iftype[16];
   char interface[IF_NAMESIZE];
@@ -143,9 +145,10 @@ static struct abuf_template_data _template_neigh_data[5 + OONF_LAYER2_NEIGH_COUN
   { .key = KEY_lastseen, .value = _template_buf.lastseen.buf },
 };
 
-static struct abuf_template_data _template_net_data[6 + OONF_LAYER2_NET_COUNT] = {
+static struct abuf_template_data _template_net_data[7 + OONF_LAYER2_NET_COUNT] = {
   { .key = KEY_radio, .value = _template_buf.radio_addr.buf, .string = true},
   { .key = KEY_ifindex, .value = _template_buf.ifindex },
+  { .key = KEY_ifidaddr, .value = _template_buf.if_idaddr.buf, .string = true },
   { .key = KEY_iftype, .value = _template_buf.iftype },
   { .key = KEY_interface, .value = _template_buf.interface, .string = true },
   { .key = KEY_lastseen, .value = _template_buf.lastseen.buf },
@@ -168,6 +171,7 @@ struct _command_params _net_params = {
   .tmpl_full =
       "Radio MAC:    %" KEY_radio     "%\n"
       "If-Index:     %" KEY_ifindex   "%\n"
+      "If-ID addr:   %" KEY_ifidaddr  "%\n"
       "If-Type:      %" KEY_iftype    "%\n"
       "Interface:    %" KEY_interface "%\n"
       "Interf. ID:   %" KEY_ifid      "%\n"
@@ -218,9 +222,9 @@ _init(void) {
 
   /* initialize templates */
   for (i=0; i<OONF_LAYER2_NET_COUNT; i++) {
-    _template_net_data[5+i].key = oonf_layer2_metadata_net[i].key;
-    _template_net_data[5+i].string = false;
-    _template_net_data[5+i].value = _template_buf.network[i].buf;
+    _template_net_data[7+i].key = oonf_layer2_metadata_net[i].key;
+    _template_net_data[7+i].string = false;
+    _template_net_data[7+i].value = _template_buf.network[i].buf;
   }
   for (i=0; i<OONF_LAYER2_NEIGH_COUNT; i++) {
     _template_neigh_data[5+i].key = oonf_layer2_metadata_neigh[i].key;
@@ -269,6 +273,10 @@ _init_network_template_value(struct oonf_layer2_net *net, bool raw) {
   if (net->if_index) {
     sprintf(_template_buf.ifindex, "%u", net->if_index);
     if_indextoname(net->if_index, _template_buf.interface);
+  }
+
+  if (netaddr_get_address_family(&net->if_idaddr) != AF_UNSPEC) {
+    netaddr_to_string(&_template_buf.if_idaddr, &net->if_idaddr);
   }
 
   strscpy(_template_buf.iftype, oonf_layer2_network_type[net->if_type],
