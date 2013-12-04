@@ -640,7 +640,7 @@ str_from_isonumber_u64(uint64_t *dst, const char *iso, int fraction, bool binary
  * @param binary true if prefixes should use factor 1024, false if they should
  *   use a factor of 1000
  * @param raw true to suppress iso prefixes, false otherwise
- * @return pointer to output buffer
+ * @return pointer to output buffer, NULL if an error happened
  */
 static const char *
 _isonumber_u64_to_string(char *out, size_t out_len,
@@ -681,11 +681,14 @@ _isonumber_u64_to_string(char *out, size_t out_len,
       break;
     }
     fraction--;
-    multiplier /= 10;
+    n *= 10;
 
     print = n / multiplier;
 
-    assert (print < 10);
+    if (print >= 10) {
+      return NULL;
+    }
+
     out[len++] = (char)'0' + (char)(print);
     if (print) {
       idx = len;
