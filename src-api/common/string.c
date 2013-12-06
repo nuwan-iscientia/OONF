@@ -488,18 +488,23 @@ str_to_isonumber_s64(struct isonumber_str *out,
   len = sizeof(*out);
   if (number == INT64_MIN) {
     *outbuf++ = '-';
-    num = 1ull<<63;
     len--;
+    num = 1ull<<63;
   }
   else if (number < 0) {
+    *outbuf++ = '-';
+    len--;
     num = (uint64_t)(-number);
   }
   else {
     num = (uint64_t)number;
   }
 
-  return _isonumber_u64_to_string(
-      outbuf, len, num, unit, fraction, binary, raw);
+  if (_isonumber_u64_to_string(
+      outbuf, len, num, unit, fraction, binary, raw)) {
+	return out->buf;
+  }
+  return NULL;
 }
 
 /**
