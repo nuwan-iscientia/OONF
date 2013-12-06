@@ -194,7 +194,7 @@ struct _command_params _neigh_params = {
       "If-Index:     %" KEY_ifindex   "%\n"
       "Interface:    %" KEY_interface "%\n"
       "Last seen:    %" KEY_lastseen  "% seconds ago\n"
-      "Signal:       %" OONF_LAYER2_NEIGH_SIGNAL_KEY    "% dBm\n"
+      "Signal:       %" OONF_LAYER2_NEIGH_SIGNAL_KEY    "%\n"
       "Rx bitrate:   %" OONF_LAYER2_NEIGH_RX_BITRATE_KEY "%\n"
       "Rx bytes:     %" OONF_LAYER2_NEIGH_RX_BYTES_KEY   "%\n"
       "Rx frames:    %" OONF_LAYER2_NEIGH_RX_FRAMES_KEY "%\n"

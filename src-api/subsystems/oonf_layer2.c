@@ -65,7 +65,7 @@ struct oonf_subsystem oonf_layer2_subsystem = {
 
 /* l2neigh string keys */
 const struct oonf_layer2_metadata oonf_layer2_metadata_neigh[OONF_LAYER2_NEIGH_COUNT] = {
-  [OONF_LAYER2_NEIGH_SIGNAL]     = { .key = OONF_LAYER2_NEIGH_SIGNAL_KEY, .unit = "dBm", .fraction = 1 },
+  [OONF_LAYER2_NEIGH_SIGNAL]     = { .key = OONF_LAYER2_NEIGH_SIGNAL_KEY, .unit = "dBm", .fraction = 3 },
   [OONF_LAYER2_NEIGH_TX_BITRATE] = { .key = OONF_LAYER2_NEIGH_TX_BITRATE_KEY, .unit = "bit/s", .binary = true },
   [OONF_LAYER2_NEIGH_RX_BITRATE] = { .key = OONF_LAYER2_NEIGH_RX_BITRATE_KEY, .unit = "bit/s", .binary = true },
   [OONF_LAYER2_NEIGH_TX_BYTES]   = { .key = OONF_LAYER2_NEIGH_TX_BYTES_KEY, .unit = "byte", .binary = true },
