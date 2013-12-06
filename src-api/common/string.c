@@ -644,7 +644,7 @@ str_from_isonumber_u64(uint64_t *dst, const char *iso, int fraction, bool binary
  * @param fraction number of fractional digits
  * @param binary true if prefixes should use factor 1024, false if they should
  *   use a factor of 1000
- * @param raw true to suppress iso prefixes, false otherwise
+ * @param raw true to suppress iso prefixes and unit, false otherwise
  * @return pointer to output buffer, NULL if an error happened
  */
 static const char *
@@ -700,11 +700,13 @@ _isonumber_u64_to_string(char *out, size_t out_len,
     }
   }
 
-  out[idx++] = ' ';
-  out[idx++] = *unit_modifier;
+  if (!raw) {
+    out[idx++] = ' ';
+    out[idx++] = *unit_modifier;
+  }
   out[idx++] = 0;
 
-  if (unit) {
+  if (!raw && unit != NULL) {
     strscat(out, unit, out_len);
   }
 
