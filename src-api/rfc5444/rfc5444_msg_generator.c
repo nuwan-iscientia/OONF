@@ -1180,7 +1180,7 @@ _write_addresses(struct rfc5444_writer *writer, struct rfc5444_writer_message *m
     tlvblock_length[0] = (ptr - tlvblock_length - 2) >> 8;
     tlvblock_length[1] = (ptr - tlvblock_length - 2) & 255;
     addr_start = list_next_element(addr_end, _addr_node);
-  } while (addr_end != last_addr);
+  } while (addr_end != last_addr && addr_start->_block_end != NULL);
 
   /* store size of address(tlv) data */
   msg->_bin_addr_size = ptr - start;
