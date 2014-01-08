@@ -897,11 +897,11 @@ _cb_transmission_event(void *ptr __attribute__((unused))) {
     return;
   }
   else {
-    strscpy(_last_queried_if, interf->data.name, sizeof(_last_queried_if));
+    strscpy(_last_queried_if, interf->data.name, IF_NAMESIZE);
   }
 
-  OONF_DEBUG(LOG_NL80211, "Send Query %d to NL80211 interface %s",
-      _next_query_type, interf->data.name);
+  OONF_DEBUG(LOG_NL80211, "Send Query %d to NL80211 interface '%s' (%u)",
+      _next_query_type, interf->data.name, interf->data.index);
   if (_next_query_type == QUERY_STATION_DUMP) {
     _send_nl80211_get_station_dump(interf->data.index);
   }
@@ -949,29 +949,29 @@ _cb_config_changed(void) {
 
   array = cfg_schema_tovalue(_nl80211_section.pre, &_nl80211_entries[IDX_INTERFACES]);
   if (array && strarray_get_count_c(array) > 0) {
-	for (i=0; i<_if_listener_count; i++) {
+    for (i=0; i<_if_listener_count; i++) {
       oonf_interface_remove_listener(&_if_listener[i]);
       free ((char *)_if_listener[i].name);
-	}
-	free(_if_listener);
-	_if_listener = NULL;
-	_if_listener_count = 0;
+    }
+    free(_if_listener);
+    _if_listener = NULL;
+    _if_listener_count = 0;
   }
 
   array = cfg_schema_tovalue(_nl80211_section.post, &_nl80211_entries[IDX_INTERFACES]);
   if (array && strarray_get_count_c(array) > 0) {
-	_if_listener = calloc(strarray_get_count_c(array), sizeof(struct oonf_interface_listener));
-	if (_if_listener == NULL) {
-		OONF_WARN(LOG_NL80211, "Out of memory for interface listeners");
-		return;
-	}
-	_if_listener_count = strarray_get_count_c(array);
+    _if_listener = calloc(strarray_get_count_c(array), sizeof(struct oonf_interface_listener));
+    if (_if_listener == NULL) {
+      OONF_WARN(LOG_NL80211, "Out of memory for interface listeners");
+      return;
+    }
+    _if_listener_count = strarray_get_count_c(array);
 
-	i = 0;
-	strarray_for_each_element(array, str) {
-	  _if_listener[i].name = strdup(str);
-	  oonf_interface_add_listener(&_if_listener[i]);
-	  i++;
-	}
+    i = 0;
+    strarray_for_each_element(array, str) {
+      _if_listener[i].name = strdup(str);
+      oonf_interface_add_listener(&_if_listener[i]);
+      i++;
+    }
   }
 }

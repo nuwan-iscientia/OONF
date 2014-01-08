@@ -267,6 +267,8 @@ _interface_add(const char *name, bool mesh) {
     interf->mesh_counter++;
   }
 
+  OONF_INFO(LOG_INTERFACE, "interface '%s' has reference count %u", name, interf->usage_counter);
+
   /* trigger update */
   if (interf->usage_counter == 1) {
     /* new interface */
@@ -298,6 +300,8 @@ _interface_remove(struct oonf_interface *interf, bool mesh) {
   }
 
   interf->usage_counter--;
+  OONF_INFO(LOG_INTERFACE, "Interface '%s' has reference count %u", interf->data.name, interf->usage_counter);
+
   if (interf->usage_counter > 0) {
     return;
   }

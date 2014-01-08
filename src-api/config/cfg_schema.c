@@ -101,7 +101,7 @@ cfg_schema_add(struct cfg_schema *schema) {
 void
 cfg_schema_add_section(struct cfg_schema *schema,
     struct cfg_schema_section *section) {
-//  struct cfg_schema_entry *entry, *entry_it;
+  struct cfg_schema_entry *entry;
   size_t i;
 
   /* make sure definitions in compiled code are correct */
@@ -120,12 +120,20 @@ cfg_schema_add_section(struct cfg_schema *schema,
   }
 
   for (i=0; i<section->entry_count; i++) {
-    /* make sure key name in compiled code is correct */
-    assert (cfg_is_allowed_key(section->entries[i].key.entry));
+    entry = &section->entries[i];
 
-    section->entries[i]._parent = section;
-    section->entries[i].key.type = section->type;
-    section->entries[i]._node.key = &section->entries[i].key;
+    /* make sure key name in compiled code is correct */
+    assert (cfg_is_allowed_key(entry->key.entry));
+
+    entry->_parent = section;
+    entry->key.type = section->type;
+    entry->_node.key = &entry->key;
+
+    if (entry->list && entry->def.length == 1) {
+      /* empty list, set length to zero */
+      entry->def.length = 0;
+    }
+
 #if 0
     /* make sure all defaults are the same */
     avl_for_each_elements_with_key(&schema->entries, entry_it, _node, entry,
