@@ -188,42 +188,59 @@ oonf_plugins_hook(struct oonf_subsystem *plugin) {
     return;
   }
 
-  /* hook static plugin into avl tree */
+  /* hook plugin into avl tree */
   plugin->_node.key = plugin->name;
   avl_insert(&oonf_plugin_tree, &plugin->_node);
 }
 
 /**
- * Query for a certain plugin name
- * @param libname name of plugin
- * @return pointer to plugin db entry, NULL if not found
+ * Extracts the plugin name from a library name, including optional path,
+ * prefix and/or postfix
+ * @param libname library name
+ * @return pointer to buffer with plugin name, must be freed later
  */
-struct oonf_subsystem *
-oonf_plugins_get(const char *libname) {
-  struct oonf_subsystem *plugin;
-  char *ptr, memorize = 0;
+void
+oonf_plugins_extract_name(
+    struct oonf_plugin_namebuf *pluginname, const char *libname) {
+  size_t start, end;
+  char *ptr;
 
-  /* extract only the filename, without path, prefix or suffix */
+  memset(pluginname, 0, sizeof(*pluginname));
+
+  start = 0;
+  end = strlen(libname);
+
+  /* remove path */
   if ((ptr = strrchr(libname, '/')) != NULL) {
-    libname = ptr + 1;
+    start += (ptr - libname);
+  }
+  else if ((ptr = strrchr(libname, '\\')) != NULL) {
+    start += (ptr - libname);
   }
 
-  if ((ptr = strstr(libname, "olsrd_")) != NULL) {
-    libname = ptr + strlen("olsrd_");
+  /* remove (oonf/app) lib prefix */
+  if (str_startswith_nocase(&libname[start],
+      oonf_log_get_libdata()->sharedlibrary_prefix)) {
+    start += strlen(oonf_log_get_libdata()->sharedlibrary_prefix);
+  }
+  else if (str_startswith_nocase(&libname[start],
+      oonf_log_get_appdata()->sharedlibrary_prefix)) {
+    start += strlen(oonf_log_get_appdata()->sharedlibrary_prefix);
   }
 
-  if ((ptr = strrchr(libname, '.')) != NULL) {
-    memorize = *ptr;
-    *ptr = 0;
+  /* remove (oonf/app) lib postfix */
+  if (str_endswith_nocase(&libname[start],
+      oonf_log_get_libdata()->sharedlibrary_postfix)) {
+    end -= strlen(oonf_log_get_libdata()->sharedlibrary_prefix);
+  }
+  else if (str_endswith_nocase(&libname[start],
+      oonf_log_get_appdata()->sharedlibrary_postfix)) {
+    end -= strlen(oonf_log_get_appdata()->sharedlibrary_prefix);
   }
 
-  plugin = avl_find_element(&oonf_plugin_tree, libname, plugin, _node);
-
-  if (ptr) {
-    /* restore path */
-    *ptr = memorize;
+  if (end-start+1 <= sizeof(*pluginname)) {
+    memcpy(pluginname->name, &libname[start], end-start);
   }
-  return plugin;
 }
 
 /**
@@ -255,10 +272,6 @@ oonf_plugins_load(const char *libname)
     }
 
     plugin->_dlhandle = dlhandle;
-
-    /* hook into tree */
-    plugin->_node.key = plugin->name;
-    avl_insert(&oonf_plugin_tree, &plugin->_node);
   }
   return plugin;
 }
@@ -315,6 +328,7 @@ _init_plugin_tree(void) {
   if (_plugin_tree_initialized) {
     return;
   }
+
   avl_init(&oonf_plugin_tree, avl_comp_strcasecmp, false);
   _plugin_tree_initialized = true;
 }

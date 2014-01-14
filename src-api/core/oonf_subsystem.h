@@ -51,6 +51,8 @@
 
 #include "core/oonf_logging.h"
 
+#define OONF_SUBSYSTEM_NAMESIZE 32
+
 /*
  * description of a subsystem of the OONF-API.
  * In theory, ALL fields except for name are optional.

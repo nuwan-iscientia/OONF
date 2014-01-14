@@ -121,6 +121,60 @@ str_char_is_printable(char c) {
 }
 
 /**
+ * @param string string
+ * @param pattern pattern that might be in the string
+ * @return true if string starts with the pattern, false otherwise
+ */
+static INLINE bool
+str_startswith(const char *string, const char *pattern) {
+  return strncmp(string, pattern, strlen(pattern)) == 0;
+}
+
+/**
+ * This function tests if a string starts with a pattern,
+ * ignoring upper/lowercase
+ * @param string string
+ * @param pattern pattern that might be in the string
+ * @return true if string starts with the pattern, false otherwise
+ */
+static INLINE bool
+str_startswith_nocase(const char *string, const char *pattern) {
+  return strncasecmp(string, pattern, strlen(pattern)) == 0;
+}
+
+/**
+ * @param string string
+ * @param pattern pattern that might be in the string
+ * @return true if string ends with the pattern, false otherwise
+ */
+static INLINE bool
+str_endswith(const char *string, const char *pattern) {
+  size_t s_len, p_len;
+
+  s_len = strlen(string);
+  p_len = strlen(pattern);
+
+  return s_len > p_len && strcmp(&string[s_len-p_len], pattern) == 0;
+}
+
+/**
+ * This function tests if a string ends with a pattern,
+ * ignoring upper/lowercase
+ * @param string string
+ * @param pattern pattern that might be in the string
+ * @return true if string ends with the pattern, false otherwise
+ */
+static INLINE bool
+str_endswith_nocase(const char *string, const char *pattern) {
+  size_t s_len, p_len;
+
+  s_len = strlen(string);
+  p_len = strlen(pattern);
+
+  return s_len > p_len && strcasecmp(&string[s_len-p_len], pattern) == 0;
+}
+
+/**
  * Copy a constant string array into a second array
  * @param dst target array
  * @param src constant source array

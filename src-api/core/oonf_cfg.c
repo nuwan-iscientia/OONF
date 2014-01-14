@@ -73,7 +73,7 @@ static struct cfg_schema_entry _global_entries[] = {
   CFG_MAP_BOOL(oonf_config_global, fork, "fork", "no",
       "Set to true to fork daemon into background."),
   CFG_MAP_BOOL(oonf_config_global, failfast, "failfast", "no",
-      "Set to true to stop daemon statup if at least one plugin doesn't load."),
+      "Set to true to stop daemon startup if at least one plugin doesn't load."),
   CFG_MAP_STRING(oonf_config_global, pidfile, "pidfile", "",
       "Write the process id of the forced child into a file"),
 
@@ -155,6 +155,7 @@ void
 oonf_cfg_cleanup(void) {
   free(config_global.plugin.value);
   free(config_global.pidfile);
+  free(config_global.lockfile);
 
   cfg_db_remove(_oonf_raw_db);
   cfg_db_remove(_oonf_work_db);
@@ -222,6 +223,7 @@ oonf_cfg_is_running(void) {
 int
 oonf_cfg_loadplugins(void) {
   struct oonf_subsystem *plugin, *plugin_it;
+  struct oonf_plugin_namebuf nbuf;
   char *ptr;
   bool found;
 
@@ -231,7 +233,10 @@ oonf_cfg_loadplugins(void) {
     if (*ptr == 0) {
       continue;
     }
-    if (oonf_cfg_load_plugin(ptr) == NULL&& config_global.failfast) {
+
+    oonf_plugins_extract_name(&nbuf, ptr);
+
+    if (oonf_cfg_load_plugin(nbuf.name) == NULL && config_global.failfast) {
       return -1;
     }
   }
@@ -247,7 +252,9 @@ oonf_cfg_loadplugins(void) {
 
     /* search if plugin should still be active */
     strarray_for_each_element(&config_global.plugin, ptr) {
-      if (oonf_plugins_get(ptr) == plugin) {
+      oonf_plugins_extract_name(&nbuf, ptr);
+
+      if (oonf_plugins_get(nbuf.name) == plugin) {
         found = true;
         break;
       }

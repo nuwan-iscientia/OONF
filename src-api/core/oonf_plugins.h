@@ -48,6 +48,10 @@
 
 #include "core/oonf_subsystem.h"
 
+struct oonf_plugin_namebuf {
+  char name[OONF_SUBSYSTEM_NAMESIZE];
+};
+
 #define DECLARE_OONF_PLUGIN(subsystem) _OONF_PLUGIN_DEF(PLUGIN_FULLNAME, subsystem)
 
 #define _OONF_PLUGIN_DEF(plg_name, subsystem) _OONF_PLUGIN_DEF2(plg_name, subsystem)
@@ -67,10 +71,23 @@ EXPORT void oonf_plugins_hook(struct oonf_subsystem *subsystem);
 EXPORT int oonf_plugins_call_init(struct oonf_subsystem *plugin);
 EXPORT void oonf_plugins_call_cleanup(struct oonf_subsystem *plugin);
 
-EXPORT struct oonf_subsystem *oonf_plugins_get(const char *libname);
+EXPORT void oonf_plugins_extract_name(
+    struct oonf_plugin_namebuf *buf, const char *libname);
 
 EXPORT struct oonf_subsystem *oonf_plugins_load(const char *);
 EXPORT void oonf_plugins_initiate_unload(struct oonf_subsystem *);
 EXPORT int oonf_plugins_unload(struct oonf_subsystem *);
+
+/**
+ * Query for a certain plugin name
+ * @param libname name of plugin
+ * @return pointer to plugin db entry, NULL if not found
+ */
+static INLINE struct oonf_subsystem *
+oonf_plugins_get(const char *libname) {
+  struct oonf_subsystem *plugin;
+
+  return avl_find_element(&oonf_plugin_tree, libname, plugin, _node);
+}
 
 #endif
