@@ -124,8 +124,6 @@ struct oonf_layer2_neigh {
   struct avl_node _node;
   struct netaddr addr;
 
-  struct list_entity _neigh_ring;
-
   struct oonf_layer2_net *network;
 
   uint64_t last_seen;

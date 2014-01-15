@@ -267,12 +267,6 @@ oonf_layer2_neigh_add(struct oonf_layer2_net *l2net,
 
   avl_insert(&l2net->neighbors, &l2neigh->_node);
 
-  if (netaddr_get_address_family(neigh) == AF_MAC48
-      || netaddr_get_address_family(neigh) == AF_EUI64) {
-    /* initialize ring for IP addresses of neighbor */
-    list_init_head(&l2neigh->_neigh_ring);
-  }
-
   oonf_class_event(&_l2neighbor_class, l2neigh, OONF_OBJECT_ADDED);
 
   return l2neigh;
@@ -296,7 +290,7 @@ oonf_layer2_neigh_remove(struct oonf_layer2_neigh *l2neigh, uint32_t origin, boo
   }
 
   if (commit) {
-	oonf_layer2_neigh_commit(l2neigh);
+	  oonf_layer2_neigh_commit(l2neigh);
   }
 }
 
@@ -310,7 +304,7 @@ bool
 oonf_layer2_neigh_commit(struct oonf_layer2_neigh *l2neigh) {
   size_t i;
 
-  for (i=0; i<OONF_LAYER2_NET_COUNT; i++) {
+  for (i=0; i<OONF_LAYER2_NEIGH_COUNT; i++) {
     if (oonf_layer2_has_value(&l2neigh->data[i])) {
       oonf_class_event(&_l2neighbor_class, l2neigh, OONF_OBJECT_CHANGED);
       return false;
@@ -413,15 +407,8 @@ _net_remove(struct oonf_layer2_net *l2net) {
  */
 static void
 _neigh_remove(struct oonf_layer2_neigh *l2neigh) {
-  struct oonf_layer2_neigh *neigh, *n_it;
-
   /* inform user that mac entry will be removed */
   oonf_class_event(&_l2neighbor_class, l2neigh, OONF_OBJECT_REMOVED);
-
-  /* remove all connected IP defaults */
-  list_for_each_element_safe(&l2neigh->_neigh_ring, neigh, _neigh_ring, n_it) {
-    list_remove(&neigh->_neigh_ring);
-  }
 
   /* free resources for mac entry */
   avl_remove(&l2neigh->network->neighbors, &l2neigh->_node);
