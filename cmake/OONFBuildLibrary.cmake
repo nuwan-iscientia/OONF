@@ -55,18 +55,18 @@ function (oonf_create_library libname source include linkto_internal linkto_exte
 #            FILE "${PROJECT_BINARY_DIR}/OONFLibraryDepends_${libname}.cmake")
 endfunction (oonf_create_library)
 
-function (oonf_create_plugin libname source include linkto_external)
+function (oonf_create_plugin libname source linkto_external)
     SET (linkto_internal oonf_subsystems oonf_core oonf_config oonf_rfc5444 oonf_common)
     
-    oonf_create_library("${libname}" "${source}" "${include}" "${linkto_internal}" "${linkto_external}" "${OONF_VERSION}")
+    oonf_create_library("${libname}" "${source}" "" "${linkto_internal}" "${linkto_external}" "${OONF_VERSION}")
     
     set_source_files_properties(${source} PROPERTIES COMPILE_FLAGS "-DPLUGIN_FULLNAME=${libname}")
 endfunction (oonf_create_plugin)
 
-function (oonf_create_app_plugin libname source include linkto_external)
+function (oonf_create_app_plugin libname source linkto_external)
     SET (linkto_internal oonf_subsystems oonf_core oonf_config oonf_rfc5444 oonf_common)
     
-    oonf_internal_create_plugin("${OONF_APP_LIBPREFIX}" "${libname}" "${source}" "${include}" "${linkto_internal}" "${linkto_external}" "${OONF_APP_VERSION}")
+    oonf_internal_create_plugin("${OONF_APP_LIBPREFIX}" "${libname}" "${source}" "" "${linkto_internal}" "${linkto_external}" "${OONF_APP_VERSION}")
     
     set_source_files_properties(${source} PROPERTIES COMPILE_FLAGS "-DPLUGIN_FULLNAME=${libname}")
     
