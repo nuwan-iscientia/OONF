@@ -177,7 +177,6 @@ oonf_layer2_net_add(struct netaddr *network) {
   avl_insert(&oonf_layer2_net_tree, &l2net->_node);
 
   avl_init(&l2net->neighbors, avl_comp_netaddr, false);
-  avl_init(&l2net->_ip_defaults, avl_comp_netaddr, false);
 
   oonf_class_event(&_l2network_class, l2net, OONF_OBJECT_ADDED);
 

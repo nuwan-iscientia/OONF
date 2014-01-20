@@ -112,7 +112,6 @@ struct oonf_layer2_net {
   struct netaddr if_idaddr;
 
   struct avl_tree neighbors;
-  struct avl_tree _ip_defaults;
 
   uint64_t last_seen;
 
