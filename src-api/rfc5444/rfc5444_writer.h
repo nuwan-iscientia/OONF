@@ -114,6 +114,13 @@ struct rfc5444_writer_addrtlv {
    */
   bool same_length;
   bool same_value;
+  
+  /*
+   * true if this TLV starts a new TLV in the serialized code,
+   * either because its the first TLV of its kind or if the
+   * last usage was more than one address ago.
+   */
+  bool new_tlv;
 };
 
 /**

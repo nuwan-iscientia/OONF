@@ -19,6 +19,7 @@ function(compile_rfc5444_test executable source)
 endfunction(compile_rfc5444_test)
 
 set(TESTS test_nhdp_1
+          test_nhdp_2
 )
 
 foreach(TEST ${TESTS})

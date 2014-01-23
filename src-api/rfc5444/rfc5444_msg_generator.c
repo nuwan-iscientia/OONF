@@ -292,6 +292,7 @@ rfc5444_writer_create_message(struct rfc5444_writer *writer, uint8_t msgid,
       not_fragmented = false;
 
       /* close all address blocks */
+      assert(last_processed);
       _close_addrblock(acs, msg, last_processed, 0);
 
       /* write message fragment */
@@ -338,6 +339,7 @@ rfc5444_writer_create_message(struct rfc5444_writer *writer, uint8_t msgid,
   addr = list_last_element(&msg->_addr_head, addr, _addr_node);
 
   /* close all address blocks */
+  assert(addr);
   _close_addrblock(acs, msg, addr, 0);
 
   /* write message fragment */
@@ -767,21 +769,17 @@ static void
 _calculate_tlv_flags(struct rfc5444_writer_address *addr, bool first) {
   struct rfc5444_writer_addrtlv *tlv;
 
-  if (first) {
-    avl_for_each_element(&addr->_addrtlv_tree, tlv, addrtlv_node) {
-      tlv->same_length = false;
-      tlv->same_value = false;
-    }
-    return;
-  }
-
   avl_for_each_element(&addr->_addrtlv_tree, tlv, addrtlv_node) {
     struct rfc5444_writer_addrtlv *prev = NULL;
 
-    /* check if this is the first tlv of this type */
-    if (avl_is_first(&tlv->tlvtype->_tlv_tree, &tlv->tlv_node)) {
+    /* 
+     * check if this is the first tlv of this type 
+     * or if its the first address in the message
+     */
+    if (first || avl_is_first(&tlv->tlvtype->_tlv_tree, &tlv->tlv_node)) {
       tlv->same_length = false;
       tlv->same_value = false;
+      tlv->new_tlv = true;
       continue;
     }
 
@@ -790,6 +788,7 @@ _calculate_tlv_flags(struct rfc5444_writer_address *addr, bool first) {
     if (tlv->address->index > prev->address->index + 1) {
       tlv->same_length = false;
       tlv->same_value = false;
+      tlv->new_tlv = true;
       continue;
     }
 
@@ -798,6 +797,7 @@ _calculate_tlv_flags(struct rfc5444_writer_address *addr, bool first) {
     tlv->same_value = tlv->same_length &&
         (tlv->length == 0 || tlv->value == prev->value
             || memcmp(tlv->value, prev->value, tlv->length) == 0);
+    tlv->new_tlv = false;
   }
 }
 
@@ -889,30 +889,40 @@ _compress_address(struct _rfc5444_internal_addr_compress_session *acs,
       }
     }
 
+    /* mandatory TLV block */
+    new_cost += 2;
+
     /* calculate costs for breaking/continuing tlv sequences */
     avl_for_each_element(&addr->_addrtlv_tree, tlv, addrtlv_node) {
       struct rfc5444_writer_tlvtype *tlvtype = tlv->tlvtype;
       int cost;
 
-      cost = 2 + (tlv->tlvtype->exttype ? 1 : 0) + 2 + tlv->length;
+      cost = 2 + (tlv->tlvtype->exttype ? 1 : 0) + tlv->length;
       if (tlv->length > 255) {
+	/* 2 byte length field */
         cost++;
       }
       if (tlv->length > 0) {
-          cost++;
+	/* 1 or 2 byte length field */
+        cost++;
       }
 
       new_cost += cost;
-      if (!tlv->same_length || closed) {
-        /* this TLV does not continue over the border of an address block */
+      if (closed || tlv->new_tlv || !tlv->same_length) {
+        /* 
+	 * this TLV does not continue, either because address block is endling or because
+	 * value length changed
+	 */
         continue_cost += cost;
         continue;
       }
 
       if (tlvtype->_tlvblock_multi[i]) {
+	/* we are already within a TLV with multiple values, so add another one */
         continue_cost += tlv->length;
       }
       else if (!tlv->same_value) {
+	/* ups, value changed. Change cost estimate to multivalue TLV */
         continue_cost += tlv->length * tlvtype->_tlvblock_count[i];
       }
     }
@@ -935,13 +945,15 @@ _compress_address(struct _rfc5444_internal_addr_compress_session *acs,
     /* update internal tlv calculation */
     avl_for_each_element(&addr->_addrtlv_tree, tlv, addrtlv_node) {
       struct rfc5444_writer_tlvtype *tlvtype = tlv->tlvtype;
-      if (closed) {
+      if (closed || tlv->new_tlv) {
         tlvtype->_tlvblock_count[i] = 1;
         tlvtype->_tlvblock_multi[i] = false;
       }
       else {
         tlvtype->_tlvblock_count[i]++;
-        tlvtype->_tlvblock_multi[i] |= (!tlv->same_value);
+	if (!tlv->same_value) {
+	  tlvtype->_tlvblock_multi[i] = true;
+	}
       }
     }
   }
@@ -1180,7 +1192,7 @@ _write_addresses(struct rfc5444_writer *writer, struct rfc5444_writer_message *m
     tlvblock_length[0] = (ptr - tlvblock_length - 2) >> 8;
     tlvblock_length[1] = (ptr - tlvblock_length - 2) & 255;
     addr_start = list_next_element(addr_end, _addr_node);
-  } while (addr_end != last_addr && addr_start->_block_end != NULL);
+  } while (addr_end != last_addr);
 
   /* store size of address(tlv) data */
   msg->_bin_addr_size = ptr - start;
