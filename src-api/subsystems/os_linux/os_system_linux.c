@@ -329,7 +329,11 @@ os_system_netlink_remove(struct os_system_netlink *nl) {
 int
 os_system_netlink_send(struct os_system_netlink *nl,
     struct nlmsghdr *nl_hdr) {
-  OONF_DEBUG(LOG_OS_SYSTEM, "Prepare to send netlink message (%u bytes)",
+#if defined(OONF_LOG_DEBUG_INFO)
+  struct autobuf hexbuf;
+#endif
+
+  OONF_INFO(LOG_OS_SYSTEM, "Prepare to send netlink message (%u bytes)",
       nl_hdr->nlmsg_len);
   _seq_used = (_seq_used + 1) & INT32_MAX;
 
@@ -338,6 +342,14 @@ os_system_netlink_send(struct os_system_netlink *nl,
 
   abuf_memcpy(&nl->out, nl_hdr, nl_hdr->nlmsg_len);
 
+#if defined(OONF_LOG_DEBUG_INFO)
+  abuf_init(&hexbuf);
+  abuf_hexdump(&hexbuf, "", nl_hdr, nl_hdr->nlmsg_len);
+  
+  OONF_DEBUG(LOG_OS_SYSTEM, "Content of netlink message:\n%s", abuf_getptr(&hexbuf));
+  abuf_free(&hexbuf);
+#endif
+  
   /* trigger write */
   oonf_socket_set_write(&nl->socket, true);
   return _seq_used;
@@ -522,7 +534,7 @@ _flush_netlink_buffer(struct os_system_netlink *nl) {
         errno, strerror(errno));
   }
   else {
-    OONF_DEBUG(LOG_OS_SYSTEM, "Sent %zd/%zu bytes for netlink seqno: %d",
+    OONF_INFO(LOG_OS_SYSTEM, "Sent %zd/%zu bytes for netlink seqno: %d",
         ret, abuf_getlen(&nl->out), _seq_used);
     abuf_clear(&nl->out);
 
@@ -561,6 +573,10 @@ _netlink_handler(int fd, void *data, bool event_read, bool event_write) {
   ssize_t ret;
   size_t len;
   int flags;
+
+#if defined(OONF_LOG_DEBUG_INFO)
+  struct autobuf hexbuf;
+#endif
 
   nl = data;
   if (event_write) {
@@ -611,13 +627,22 @@ netlink_rcv_retry:
     goto netlink_rcv_retry;
   }
 
-  OONF_DEBUG(LOG_OS_SYSTEM, "Got netlink message of %"
+  OONF_INFO(LOG_OS_SYSTEM, "Got netlink message of %"
       PRINTF_SSIZE_T_SPECIFIER" bytes", ret);
+
+#if defined(OONF_LOG_DEBUG_INFO)
+  abuf_init(&hexbuf);
+  abuf_hexdump(&hexbuf, "", nl->in, ret);
+  
+  OONF_DEBUG(LOG_OS_SYSTEM, "Content of netlink message:\n%s", abuf_getptr(&hexbuf));
+  abuf_free(&hexbuf);
+#endif
+  
 
   /* loop through netlink headers */
   len = (size_t) ret;
   for (nh = nl->in; NLMSG_OK (nh, len); nh = NLMSG_NEXT (nh, len)) {
-    OONF_DEBUG(LOG_OS_SYSTEM,
+    OONF_INFO(LOG_OS_SYSTEM,
         "Netlink message received: type %d\n", nh->nlmsg_type);
 
     switch (nh->nlmsg_type) {
@@ -625,7 +650,7 @@ netlink_rcv_retry:
         break;
 
       case NLMSG_DONE:
-        OONF_DEBUG(LOG_OS_SYSTEM, "Netlink message done: %d", nh->nlmsg_seq);
+        OONF_INFO(LOG_OS_SYSTEM, "Netlink message done: %d", nh->nlmsg_seq);
         if (nl->cb_done) {
           nl->cb_done(nh->nlmsg_seq);
         }
@@ -699,7 +724,7 @@ static void
 _cb_rtnetlink_error(uint32_t seq, int error) {
   struct os_system_address *addr;
 
-  OONF_DEBUG(LOG_OS_SYSTEM, "Got feedback: %d %d", seq, error);
+  OONF_INFO(LOG_OS_SYSTEM, "Netlink socket provided feedback: %d %d", seq, error);
 
   /* transform into errno number */
   error = -error;
@@ -719,7 +744,7 @@ static void
 _cb_rtnetlink_timeout(void) {
   struct os_system_address *addr;
 
-  OONF_DEBUG(LOG_OS_SYSTEM, "Got timeout");
+  OONF_INFO(LOG_OS_SYSTEM, "Netlink socket timed out");
 
   list_for_each_element(&_rtnetlink_feedback, addr, _internal._node) {
     _address_finished(addr, -1);
@@ -734,7 +759,7 @@ static void
 _cb_rtnetlink_done(uint32_t seq) {
   struct os_system_address *addr;
 
-  OONF_DEBUG(LOG_OS_SYSTEM, "Got done: %u", seq);
+  OONF_INFO(LOG_OS_SYSTEM, "Netlink operation finished: %u", seq);
 
   list_for_each_element(&_rtnetlink_feedback, addr, _internal._node) {
     if (seq == addr->_internal.nl_seq) {
@@ -773,7 +798,7 @@ _handle_nl_err(struct os_system_netlink *nl, struct nlmsghdr *nh) {
 
   err = (struct nlmsgerr *) NLMSG_DATA(nh);
 
-  OONF_DEBUG(LOG_OS_SYSTEM, "Received netlink feedback (%u bytes): %s (%d)",
+  OONF_INFO(LOG_OS_SYSTEM, "Received netlink feedback (%u bytes): %s (%d)",
       nh->nlmsg_len, strerror(-err->error), err->error);
 
   if (nl->cb_error) {
