@@ -269,6 +269,7 @@ rfc5444_writer_add_address(struct rfc5444_writer *writer __attribute__ ((unused)
  * @param msgtype messagetype for this tlv, -1 to registere a generic
  *   (not message specific) address TLV type
  * @param type pointer to tlvtype structure, type and exttype must be already initialized
+ * @param msgtype message type this TLV belongs too, -1 for address TLV
  * @return 0 if addresstlvtype was registered, -1 otherwise
  */
 int
