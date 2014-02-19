@@ -15,6 +15,7 @@ ADD_CUSTOM_COMMAND (
         -DCMAKE_SYSTEM=${CMAKE_SYSTEM}
         -DCMAKE_SHARED_LIBRARY_PREFIX=${CMAKE_SHARED_LIBRARY_PREFIX}
         -DCMAKE_SHARED_LIBRARY_SUFFIX=${CMAKE_SHARED_LIBRARY_SUFFIX}
+        -DOONF_LIB_GIT=${OONF_LIB_GIT}
         -P ${CMAKE_SOURCE_DIR}/cmake/generate_builddata.cmake
     DEPENDS LibCleanData
     WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
@@ -51,3 +52,6 @@ ENDIF(LINUX)
 SET(linkto_internal oonf_common oonf_config)
 
 oonf_create_library("core" "${OONF_CORE_SRCS}" "${OONF_CORE_INCLUDES}" "${linkto_internal}" "rt")
+
+# remove git commit cache entry
+UNSET (OONF_LIB_GIT CACHE)
