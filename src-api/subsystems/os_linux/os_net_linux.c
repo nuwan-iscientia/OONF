@@ -258,6 +258,11 @@ os_net_init_mesh_if(struct oonf_interface *interf) {
   char procfile[FILENAME_MAX];
   char old_redirect = 0, old_spoof = 0;
 
+  if (interf->data.loopback) {
+    /* ignore loopback */
+    return 0;
+  }
+
   /* handle global ip_forward setting */
   _mesh_count++;
   if (_mesh_count == 1) {
@@ -292,6 +297,11 @@ void
 os_net_cleanup_mesh_if(struct oonf_interface *interf) {
   char restore_redirect, restore_spoof;
   char procfile[FILENAME_MAX];
+
+  if (interf->data.loopback) {
+    /* ignore loopback */
+    return;
+  }
 
   restore_redirect = (interf->_original_state >> 8) & 255;
   restore_spoof = (interf->_original_state & 255);
