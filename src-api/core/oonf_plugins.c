@@ -288,7 +288,11 @@ oonf_plugins_call_init(struct oonf_subsystem *plugin) {
       OONF_WARN(LOG_PLUGINS, "Init callback failed for plugin %s\n", plugin->name);
       return -1;
     }
-    OONF_DEBUG(LOG_PLUGINS, "Load callback of plugin %s successful\n", plugin->name);
+    OONF_INFO(LOG_PLUGINS, "Loaded plugin %s successful\n", plugin->name);
+
+    if (!plugin->no_logging) {
+      OONF_INFO(plugin->logging, "Plugin %s started", plugin->name);
+    }
   }
   plugin->_initialized = true;
   return 0;
@@ -350,6 +354,9 @@ _unload_plugin(struct oonf_subsystem *plugin, bool cleanup) {
 
   if (plugin->_initialized) {
     OONF_INFO(LOG_PLUGINS, "Unloading plugin %s\n", plugin->name);
+    if (!plugin->no_logging) {
+      OONF_INFO(plugin->logging, "Plugin %s stopped", plugin->name);
+    }
 
     /* remove first from tree */
     avl_delete(&oonf_plugin_tree, &plugin->_node);
