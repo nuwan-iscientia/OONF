@@ -869,25 +869,27 @@ _send_nl80211_get_scan_dump(int if_idx) {
  */
 static void
 _cb_transmission_event(void *ptr __attribute__((unused))) {
-  struct oonf_interface *interf;
+  struct oonf_interface *interf = NULL;
 
-  if (_last_queried_if[0] == 0) {
-    /* get first interface */
-    interf = avl_first_element(&oonf_interface_tree, interf, _node);
-  }
-  else {
-    /* get next interface */
-    interf = avl_find_ge_element(&oonf_interface_tree, _last_queried_if, interf, _node);
-
-    if (interf != NULL && strcmp(_last_queried_if, interf->data.name) == 0) {
-      interf = avl_next_element_safe(&oonf_interface_tree, interf, _node);
+  if (!avl_is_empty(&oonf_interface_tree)) {
+    if (_last_queried_if[0] == 0) {
+      /* get first interface */
+      interf = avl_first_element(&oonf_interface_tree, interf, _node);
     }
-  }
+    else {
+      /* get next interface */
+      interf = avl_find_ge_element(&oonf_interface_tree, _last_queried_if, interf, _node);
 
-  if (!interf && _next_query_type < QUERY_COUNT-1) {
-    /* begin next query type */
-    _next_query_type++;
-    interf = avl_first_element(&oonf_interface_tree, interf, _node);
+      if (interf != NULL && strcmp(_last_queried_if, interf->data.name) == 0) {
+        interf = avl_next_element_safe(&oonf_interface_tree, interf, _node);
+      }
+    }
+
+    if (!interf && _next_query_type < QUERY_COUNT-1) {
+      /* begin next query type */
+      _next_query_type++;
+      interf = avl_first_element(&oonf_interface_tree, interf, _node);
+    }
   }
 
   if (!interf) {
@@ -896,9 +898,8 @@ _cb_transmission_event(void *ptr __attribute__((unused))) {
     _next_query_type = QUERY_FIRST;
     return;
   }
-  else {
-    strscpy(_last_queried_if, interf->data.name, IF_NAMESIZE);
-  }
+
+  strscpy(_last_queried_if, interf->data.name, IF_NAMESIZE);
 
   OONF_DEBUG(LOG_NL80211, "Send Query %d to NL80211 interface '%s' (%u)",
       _next_query_type, interf->data.name, interf->data.index);
