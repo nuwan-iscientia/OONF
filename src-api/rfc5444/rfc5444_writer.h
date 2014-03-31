@@ -143,10 +143,15 @@ struct rfc5444_writer_address {
   /* tree to connect all TLVs of this address */
   struct avl_tree _addrtlv_tree;
 
-  /* address block with same prefix/prefixlen until certain address */
-  struct rfc5444_writer_address *_block_end;
+  /* address block with same prefix/prefixlen */
   uint8_t _block_headlen;
   bool _block_multiple_prefixlen;
+
+  /* pointer to end of the block, NULL if this is not the start address */
+  struct rfc5444_writer_address *_block_end;
+
+  /* pointer to start of the block, NULL if this is not the end address */
+  struct rfc5444_writer_address *_block_start;
 
   /* original index of the address when it was added to the output list */
   int _orig_index;

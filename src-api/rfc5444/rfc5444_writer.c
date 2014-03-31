@@ -42,7 +42,7 @@
 #include <assert.h>
 #include <stdlib.h>
 #include <string.h>
-#include <stdio.h>
+// #include <stdio.h>
 
 #include "common/avl.h"
 #include "common/avl_comp.h"

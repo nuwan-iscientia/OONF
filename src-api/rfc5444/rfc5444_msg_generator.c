@@ -293,6 +293,7 @@ rfc5444_writer_create_message(struct rfc5444_writer *writer, uint8_t msgid,
 
       /* close all address blocks */
       assert(last_processed);
+
       _close_addrblock(acs, msg, last_processed, 0);
 
       /* write message fragment */
@@ -340,6 +341,7 @@ rfc5444_writer_create_message(struct rfc5444_writer *writer, uint8_t msgid,
 
   /* close all address blocks */
   assert(addr);
+
   _close_addrblock(acs, msg, addr, 0);
 
   /* write message fragment */
@@ -723,7 +725,7 @@ rfc5444_writer_set_msg_seqno(struct rfc5444_writer *writer __attribute__ ((unuse
  */
 static void
 _close_addrblock(struct _rfc5444_internal_addr_compress_session *acs,
-    struct rfc5444_writer_message *msg __attribute__ ((unused)),
+    struct rfc5444_writer_message *msg,
     struct rfc5444_writer_address *last_addr, int common_head) {
   int best;
 #if DO_ADDR_COMPRESSION == true
@@ -732,6 +734,7 @@ _close_addrblock(struct _rfc5444_internal_addr_compress_session *acs,
     /* nothing to do */
     return;
   }
+
 #else
   assert(common_head == 0);
 #endif
@@ -746,11 +749,17 @@ _close_addrblock(struct _rfc5444_internal_addr_compress_session *acs,
     }
   }
 #endif
+
   /* store address block for later binary generation */
+  last_addr->_block_start = acs[best].ptr;
+  last_addr->_block_multiple_prefixlen = acs[best].multiplen;
+  last_addr->_block_headlen = best;
+
+  /*
   acs[best].ptr->_block_end = last_addr;
   acs[best].ptr->_block_multiple_prefixlen = acs[best].multiplen;
   acs[best].ptr->_block_headlen = best;
-
+  */
 #if DO_ADDR_COMPRESSION == true
   for (i = common_head + 1; i < msg->addr_len; i++) {
     /* remember best block compression */
@@ -897,38 +906,51 @@ _compress_address(struct _rfc5444_internal_addr_compress_session *acs,
       struct rfc5444_writer_tlvtype *tlvtype = tlv->tlvtype;
       int cost;
 
-      cost = 2 + (tlv->tlvtype->exttype ? 1 : 0) + tlv->length;
-      if (tlv->length > 255) {
-	/* 2 byte length field */
-        cost++;
-      }
-      if (tlv->length > 0) {
-	/* 1 or 2 byte length field */
+      cost = 2;
+
+      if (tlv->tlvtype->exttype > 0) {
         cost++;
       }
 
+      // TODO: index fields?
+
+      if (tlv->length > 255) {
+        /* 2 byte length field */
+        cost++;
+      }
+      if (tlv->length > 0) {
+        /* 1 or 2 byte length field */
+        cost++;
+      }
+
+      /* value */
+      cost += tlv->length;
+
+      /* add to cost for a new TLV block */
       new_cost += cost;
+
+      /* check if we are forced to do a new tlv block anyways */
       if (closed || tlv->new_tlv || !tlv->same_length) {
         /* 
-	 * this TLV does not continue, either because address block is endling or because
-	 * value length changed
-	 */
+         * this TLV does not continue, either because address block is ending or because
+         * value length changed
+         */
         continue_cost += cost;
         continue;
       }
 
       if (tlvtype->_tlvblock_multi[i]) {
-	/* we are already within a TLV with multiple values, so add another one */
+        /* we are already within a TLV with multiple values, so add another one */
         continue_cost += tlv->length;
       }
       else if (!tlv->same_value) {
-	/* ups, value changed. Change cost estimate to multivalue TLV */
+        /* ups, value changed. Change cost estimate to multivalue TLV */
         continue_cost += tlv->length * tlvtype->_tlvblock_count[i];
       }
     }
 
     if (closed || acs[i].total + continue_cost > acs[addrlen-1].total + new_cost) {
-      /* new address block */
+      /* forget the last addresses, longer prefix is better. Create a new address block */
       acs[i].ptr = addr;
       acs[i].multiplen = false;
 
@@ -939,7 +961,6 @@ _compress_address(struct _rfc5444_internal_addr_compress_session *acs,
     }
     else {
       acs[i].current = continue_cost;
-      closed = false;
     }
 
     /* update internal tlv calculation */
@@ -951,9 +972,9 @@ _compress_address(struct _rfc5444_internal_addr_compress_session *acs,
       }
       else {
         tlvtype->_tlvblock_count[i]++;
-	if (!tlv->same_value) {
-	  tlvtype->_tlvblock_multi[i] = true;
-	}
+        if (!tlv->same_value) {
+          tlvtype->_tlvblock_multi[i] = true;
+        }
       }
     }
   }
@@ -1262,6 +1283,7 @@ _finalize_message_fragment(struct rfc5444_writer *writer, struct rfc5444_writer_
     rfc5444_writer_targetselector useIf, void *param) {
   struct rfc5444_writer_content_provider *prv;
   struct rfc5444_writer_target *interface;
+  struct rfc5444_writer_address *addr;
   uint8_t *ptr;
   size_t len;
 
@@ -1280,6 +1302,22 @@ _finalize_message_fragment(struct rfc5444_writer *writer, struct rfc5444_writer_
   }
 
   if (first != NULL && last != NULL) {
+    addr = last;
+
+    /* generate forward pointers */
+    while (true) {
+      addr->_block_start->_block_end = addr;
+
+      if (addr->_block_start == first) {
+        break;
+      }
+
+      /* consistency check */
+      assert (addr->_block_start->index > first->index);
+
+      /* get address block before this one */
+      addr = list_prev_element(addr->_block_start, _addr_node);
+    }
     _write_addresses(writer, msg, first, last);
   }
 
