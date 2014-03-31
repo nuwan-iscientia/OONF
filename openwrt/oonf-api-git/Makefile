@@ -1,6 +1,6 @@
 include $(TOPDIR)/rules.mk
 
-PKG_NAME:=oonf-api
+PKG_NAME:=oonf-api-git
 PKG_VERSION:=2013.05-17
 #PKG_REV:=ec2bca8f28b4d14df049fc81e177160ca0e3c3a3
 #PKG_RELEASE:=$(PKG_REV)
@@ -17,14 +17,12 @@ include $(INCLUDE_DIR)/package.mk
 include $(INCLUDE_DIR)/cmake.mk
 
 CMAKE_SOURCE_DIR=$(CURDIR)/../../
-CMAKE_OPTIONS=-DOONF_DO_NOT_REGISTER_PACKAGE:Bool=true \
-              -DOONF_LOGGING_LEVEL:String=warn \
-              -DCMAKE_BUILD_TYPE:String=MinSizeRel \
-              -DOONF_NO_TESTING:Bool=true \
-              -DINSTALL_LIB_DIR:Path=lib/oonf \
-              -DINSTALL_INCLUDE_DIR:Path=include/oonf \
-              -DINSTALL_CMAKE_DIR:Path=lib/oonf \
-              -DCMAKE_PREFIX_PATH=$(STAGING_DIR)/usr
+CMAKE_OPTIONS=-D OONF_DO_NOT_REGISTER_PACKAGE:Bool=true \
+              -D OONF_LOGGING_LEVEL:String=debug \
+              -D OONF_NO_TESTING:Bool=true \
+              -D INSTALL_LIB_DIR:Path=lib/oonf \
+              -D INSTALL_INCLUDE_DIR:Path=include/oonf \
+              -D INSTALL_CMAKE_DIR:Path=lib/oonf \
 
 define Package/oonf-api-git/template
 	SECTION:=net
@@ -36,78 +34,78 @@ endef
 
 define Package/oonf-api-git
 	$(call Package/oonf-api-git/template) 
-	TITLE:= Build OONF-API static libraries
+	TITLE:= Build OONF-API static libraries (git)
 	BUILDONLY:=1
 endef
 
 define Package/oonf-api-git-common
 	$(call Package/oonf-api-git/template) 
-	TITLE:=Common-API (generic helpers functions) 
+	TITLE:=Common-API (generic helpers functions)  (git)
 endef
 
 define Package/oonf-api-git-config
 	$(call Package/oonf-api-git/template) 
-	TITLE:=Config-API (generic configuration library)
+	TITLE:=Config-API (generic configuration library) (git)
 	DEPENDS:=+oonf-api-git-common
 endef
 
 define Package/oonf-api-git-rfc5444
 	$(call Package/oonf-api-git/template) 
-	TITLE:=RFC5444-API (generic parser/generator for RFC5444)
+	TITLE:=RFC5444-API (generic parser/generator for RFC5444) (git)
 	DEPENDS:=+oonf-api-git-common
 endef
 
 define Package/oonf-api-git-core
 	$(call Package/oonf-api-git/template) 
-	TITLE:=Core-API (basic infrastructure/scheduler code)
+	TITLE:=Core-API (basic infrastructure/scheduler code) (git)
 	DEPENDS:=+oonf-api-git-common +oonf-api-git-config +librt
 endef
 
 define Package/oonf-api-git-subsystems
 	$(call Package/oonf-api-git/template) 
-	TITLE:=OONF subsystems (high level infrastructure)
+	TITLE:=OONF subsystems (high level infrastructure) (git)
 	DEPENDS:=+oonf-api-git-common +oonf-api-git-config +oonf-api-git-rfc5444 +oonf-api-git-core
 endef
 
 define Package/oonf-plugin-git-cfgio-file
 	$(call Package/oonf-api-git/template) 
-	TITLE:=File input/output configuration plugin
+	TITLE:=File input/output configuration plugin (git)
 	DEPENDS:=+oonf-api-git-core +oonf-api-git-subsystems +ldconfig
 endef
 
 define Package/oonf-plugin-git-cfgparser-compact
 	$(call Package/oonf-api-git/template) 
-	TITLE:=Compact configurationf format plugin
+	TITLE:=Compact configurationf format plugin (git)
 	DEPENDS:=+oonf-api-git-core +oonf-api-git-subsystems +ldconfig
 endef
 
 define Package/oonf-plugin-git-httptelnet
 	$(call Package/oonf-api-git/template) 
-	TITLE:=HTTP to Telnet bridge plugin
+	TITLE:=HTTP to Telnet bridge plugin (git)
 	DEPENDS:=+oonf-api-git-core +oonf-api-git-subsystems +ldconfig
 endef
 
 define Package/oonf-plugin-git-layer2-viewer
 	$(call Package/oonf-api-git/template) 
-	TITLE:=Telnet viewer for layer2 data
+	TITLE:=Telnet viewer for layer2 data (git)
 	DEPENDS:=+oonf-api-git-core +oonf-api-git-subsystems +ldconfig
 endef
 
 define Package/oonf-plugin-git-nl80211-listener
 	$(call Package/oonf-api-git/template) 
-	TITLE:=Probing plugin for nl80211
+	TITLE:=Probing plugin for nl80211 (git)
 	DEPENDS:=+oonf-api-git-core +oonf-api-git-subsystems +libnl-tiny +ldconfig
 endef
 
 define Package/oonf-plugin-git-plugin-controller
 	$(call Package/oonf-api-git/template) 
-	TITLE:=Remote loading and unloading of plugins
+	TITLE:=Remote loading and unloading of plugins (git)
 	DEPENDS:=+oonf-api-git-core +oonf-api-git-subsystems +ldconfig
 endef
 
 define Package/oonf-plugin-git-remotecontrol
 	$(call Package/oonf-api-git/template) 
-	TITLE:=Remote debugging and configuration plugin
+	TITLE:=Remote debugging and configuration plugin (git)
 	DEPENDS:=+oonf-api-git-core +oonf-api-git-subsystems +ldconfig
 endef
 
