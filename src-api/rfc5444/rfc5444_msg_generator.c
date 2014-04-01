@@ -755,11 +755,6 @@ _close_addrblock(struct _rfc5444_internal_addr_compress_session *acs,
   last_addr->_block_multiple_prefixlen = acs[best].multiplen;
   last_addr->_block_headlen = best;
 
-  /*
-  acs[best].ptr->_block_end = last_addr;
-  acs[best].ptr->_block_multiple_prefixlen = acs[best].multiplen;
-  acs[best].ptr->_block_headlen = best;
-  */
 #if DO_ADDR_COMPRESSION == true
   for (i = common_head + 1; i < msg->addr_len; i++) {
     /* remember best block compression */
@@ -1307,7 +1302,8 @@ _finalize_message_fragment(struct rfc5444_writer *writer, struct rfc5444_writer_
     /* generate forward pointers */
     while (true) {
       addr->_block_start->_block_end = addr;
-
+      addr->_block_start->_block_multiple_prefixlen = addr->_block_multiple_prefixlen;
+      addr->_block_start->_block_headlen = addr->_block_headlen;
       if (addr->_block_start == first) {
         break;
       }
