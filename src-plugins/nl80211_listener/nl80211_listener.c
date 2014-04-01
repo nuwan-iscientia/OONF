@@ -276,11 +276,17 @@ _parse_cmd_newfamily(struct nlmsghdr *hdr) {
     OONF_WARN(LOG_NL80211, "Missing Family Name in CTRL_CMD_NEWFAMILY");
     return;
   }
+
+  OONF_DEBUG(LOG_NL80211, "Found Netlink family '%s'\n",
+      nla_get_string(attrs[CTRL_ATTR_FAMILY_NAME]));
+
   if (strcmp(nla_get_string(attrs[CTRL_ATTR_FAMILY_NAME]), "nl80211") != 0) {
     /* not interested in this one */
     return;
   }
-  _nl80211_id = nla_get_u32(attrs[CTRL_ATTR_FAMILY_ID]);
+
+  _nl80211_id = nla_get_u16(attrs[CTRL_ATTR_FAMILY_ID]);
+  OONF_DEBUG(LOG_NL80211, "Received nl80211 family id: %d\n", _nl80211_id);
 
   if (_nl80211_mc_set || !attrs[CTRL_ATTR_MCAST_GROUPS]) {
     /* no multicast groups */
@@ -298,13 +304,13 @@ _parse_cmd_newfamily(struct nlmsghdr *hdr) {
         !tb_mcgrp[CTRL_ATTR_MCAST_GRP_ID])
       continue;
 
-    if (strcmp(nla_data(tb_mcgrp[CTRL_ATTR_MCAST_GRP_NAME]), "mlme"))
-      continue;
-
     group = nla_get_u32(tb_mcgrp[CTRL_ATTR_MCAST_GRP_ID]);
     OONF_DEBUG(LOG_NL80211, "Found multicast group %s: %d",
         (char *)nla_data(tb_mcgrp[CTRL_ATTR_MCAST_GRP_NAME]),
         group);
+
+    if (strcmp(nla_data(tb_mcgrp[CTRL_ATTR_MCAST_GRP_NAME]), "mlme"))
+      continue;
 
     if (os_system_netlink_add_mc(&_netlink_handler, &group, 1)) {
       OONF_WARN(LOG_NL80211,
