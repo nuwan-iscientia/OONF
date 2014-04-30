@@ -43,6 +43,7 @@
 #define _OONF_CLOCK
 
 #include "common/common_types.h"
+#include "common/isonumber.h"
 #include "config/cfg.h"
 #include "config/cfg_schema.h"
 
@@ -88,7 +89,7 @@ EXPORT void  oonf_clock_help(
  */
 static INLINE const char *
 oonf_clock_toIntervalString(struct isonumber_str *buf, int64_t i) {
-  return str_to_isonumber_s64(buf, i, "", 3, false, true);
+  return isonumber_from_s64(buf, i, "", 3, false, true);
 }
 
 /**
@@ -103,7 +104,7 @@ oonf_clock_fromIntervalString(uint64_t *result, const char *string) {
   int64_t t;
   int r;
 
-  r = str_from_isonumber_s64(&t, string, 3, false);
+  r = isonumber_to_s64(&t, string, 3, false);
   if (r == 0) {
     *result = t;
   }

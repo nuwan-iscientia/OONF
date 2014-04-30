@@ -40,6 +40,7 @@
 
 #include "common/autobuf.h"
 #include "common/common_types.h"
+#include "common/isonumber.h"
 #include "common/netaddr.h"
 #include "common/netaddr_acl.h"
 
@@ -139,7 +140,7 @@ cfg_validate_int(struct autobuf *out, const char *section_name,
   int64_t i, min64, max64;
   struct isonumber_str hbuf;
 
-  if (str_from_isonumber_s64(&i, value, fraction, base2)) {
+  if (isonumber_to_s64(&i, value, fraction, base2)) {
     cfg_append_printable_line(out, "Value '%s' for entry '%s'"
         " in section %s is not a fractional %d-byte integer"
         " with a maximum of %d fractional digits",
@@ -162,14 +163,14 @@ cfg_validate_int(struct autobuf *out, const char *section_name,
     cfg_append_printable_line(out, "Value '%s' for entry '%s' in section %s is "
         "smaller than %s",
         value, entry_name, section_name,
-        str_to_isonumber_s64(&hbuf, min, "", fraction, base2, true));
+        isonumber_from_s64(&hbuf, min, "", fraction, base2, true));
     return -1;
   }
   if (i > max) {
     cfg_append_printable_line(out, "Value '%s' for entry '%s' in section %s is "
         "larger than %s",
         value, entry_name, section_name,
-        str_to_isonumber_s64(&hbuf, min, "", fraction, base2, true));
+        isonumber_from_s64(&hbuf, min, "", fraction, base2, true));
     return -1;
   }
   return 0;

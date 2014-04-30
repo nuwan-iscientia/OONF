@@ -215,7 +215,7 @@ _parse_strarray(struct strarray *array, const char *ifname,
 
   strarray_for_each_element(array, entry) {
     ptr = str_cpynextword(hbuf.buf, entry, sizeof(hbuf));
-    if (str_from_isonumber_s64(&value, hbuf.buf,
+    if (isonumber_to_s64(&value, hbuf.buf,
         oonf_layer2_metadata_neigh[idx].fraction,
         oonf_layer2_metadata_neigh[idx].binary)) {
       continue;

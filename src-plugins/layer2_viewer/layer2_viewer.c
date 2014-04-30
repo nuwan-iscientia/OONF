@@ -248,7 +248,7 @@ _print_value(struct isonumber_str *dst, struct oonf_layer2_data *data,
   int64_t value;
 
   value = oonf_layer2_get_value(data);
-  if (str_to_isonumber_s64(dst, value,
+  if (isonumber_from_s64(dst, value,
       meta->unit, meta->fraction, meta->binary, raw)) {
     return 0;
   }

@@ -75,28 +75,11 @@ struct const_strarray {
   size_t length;
 };
 
-/*
- * buffer for the string representation of a fractional
- * number with iso prefix.
- */
-struct isonumber_str {
-    char buf[48];
-};
-
 EXPORT char *strscpy (char *dest, const char *src, size_t size);
 EXPORT char *strscat (char *dest, const char *src, size_t size);
 EXPORT char *str_trim (char *ptr);
 EXPORT const char *str_hasnextword (const char *buffer, const char *word);
 EXPORT const char *str_cpynextword (char *dst, const char *buffer, size_t len);
-
-EXPORT const char *str_to_isonumber_u64(struct isonumber_str *out,
-    uint64_t number, const char *unit, int fraction, bool binary, bool raw);
-EXPORT const char *str_to_isonumber_s64(struct isonumber_str *out,
-    int64_t number, const char *unit, int fraction, bool binary, bool raw);
-EXPORT int str_from_isonumber_u64(
-    uint64_t *dst, const char *iso, int fractions, bool binary);
-EXPORT int str_from_isonumber_s64(
-    int64_t *dst, const char *iso, int fractions, bool binary);
 
 EXPORT bool str_is_printable(const char *value);
 

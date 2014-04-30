@@ -45,6 +45,9 @@
 #include <stdio.h>
 #include <time.h>
 
+#include "common/common_types.h"
+#include "common/isonumber.h"
+
 #include "config/cfg_schema.h"
 #include "config/cfg.h"
 

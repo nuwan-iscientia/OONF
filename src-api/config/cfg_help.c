@@ -40,6 +40,7 @@
 
 #include "common/autobuf.h"
 #include "common/common_types.h"
+#include "common/isonumber.h"
 #include "common/netaddr.h"
 #include "common/netaddr_acl.h"
 
@@ -87,8 +88,8 @@ cfg_help_int(struct autobuf *out,
   max64 = INT64_MAX >> (8 * (8 - bytelen));
 
   /* get string representation of min/max */
-  str_to_isonumber_s64(&hbuf1, min, "", fraction, base2, true);
-  str_to_isonumber_s64(&hbuf2, max, "", fraction, base2, true);
+  isonumber_from_s64(&hbuf1, min, "", fraction, base2, true);
+  isonumber_from_s64(&hbuf2, max, "", fraction, base2, true);
 
   if (min > min64) {
     if (max < max64) {

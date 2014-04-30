@@ -43,6 +43,7 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "common/isonumber.h"
 #include "common/string.h"
 
 #include "cunit/cunit.h"
@@ -710,7 +711,7 @@ test_str_to_isonumber_u64(void) {
   for (binary=0; binary < 2; binary++) {
     for (diff=0; diff < 3; diff++) {
       for (i=0; i<ARRAYSIZE(tests); i++) {
-    	tmp = str_to_isonumber_u64(&buf, tests[i]+diff-1, NULL, 0, binary==1, false);
+    	tmp = isonumber_from_u64(&buf, tests[i]+diff-1, NULL, 0, binary==1, false);
     	correct = tmp != NULL && strcmp(tmp, results[binary][diff][i]) == 0;
 
     	CHECK_TRUE(tmp != NULL, "str_to_isonumber_u64(%"PRIu64", %s) is not null",
@@ -753,7 +754,7 @@ test_str_to_isonumber_s64(void) {
   for (binary=0; binary < 2; binary++) {
     for (diff=0; diff < 3; diff++) {
       for (i=0; i<ARRAYSIZE(tests); i++) {
-    	tmp = str_to_isonumber_s64(&buf, tests[i]-diff+1, NULL, 0, binary==1, false);
+    	tmp = isonumber_from_s64(&buf, tests[i]-diff+1, NULL, 0, binary==1, false);
     	correct = tmp != NULL && strcmp(tmp, results[binary][diff][i]) == 0;
 
     	CHECK_TRUE(tmp != NULL, "str_to_isonumber_s64(%"PRId64", %s) is not null",

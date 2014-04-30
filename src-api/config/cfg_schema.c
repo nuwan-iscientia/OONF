@@ -47,6 +47,7 @@
 
 #include "common/avl.h"
 #include "common/avl_comp.h"
+#include "common/isonumber.h"
 #include "common/netaddr.h"
 #include "common/netaddr_acl.h"
 #include "common/string.h"
@@ -700,7 +701,7 @@ cfg_schema_tobin_int(const struct cfg_schema_entry *s_entry,
   int64_t i;
   int result;
 
-  result = str_from_isonumber_s64(&i, strarray_get_first_c(value),
+  result = isonumber_to_s64(&i, strarray_get_first_c(value),
       s_entry->validate_param[2].i16[1], s_entry->validate_param[2].i16[2] == 2);
   if (result == 0) {
     switch (s_entry->validate_param[2].i16[0]) {
