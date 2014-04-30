@@ -296,12 +296,17 @@ _cleanup(void) {
   avl_for_each_element_safe(&_protocol_tree, protocol, _node, p_it) {
     avl_for_each_element_safe(&protocol->_interface_tree, interf, _node, i_it) {
       avl_for_each_element_safe(&interf->_target_tree, target, _node, t_it) {
+        /* always remove target but never remove interface */
         target->_refcount = 1;
+        interf->_refcount = 2;
         oonf_rfc5444_remove_target(target);
       }
+      /* always remove interface but never remove protocol */
       interf->_refcount = 1;
+      protocol->_refcount = 2;
       oonf_rfc5444_remove_interface(interf, NULL);
     }
+    /* always remove protocol */
     protocol->_refcount = 1;
     oonf_rfc5444_remove_protocol(protocol);
   }
@@ -495,6 +500,9 @@ oonf_rfc5444_add_interface(struct oonf_rfc5444_protocol *protocol,
     struct oonf_rfc5444_interface_listener *listener, const char *name) {
   struct oonf_rfc5444_interface *interf;
 
+  OONF_DEBUG(LOG_RFC5444, "Add interface %s to protocol %s",
+      name, protocol->name);
+
   interf = avl_find_element(&protocol->_interface_tree,
       name, interf, _node);
   if (interf == NULL) {
@@ -552,6 +560,9 @@ void
 oonf_rfc5444_remove_interface(struct oonf_rfc5444_interface *interf,
     struct oonf_rfc5444_interface_listener *listener) {
   struct oonf_rfc5444_target *target, *t_it;
+
+  OONF_DEBUG(LOG_RFC5444, "Remove interface %s from protocol %s",
+      interf->name, interf->protocol->name);
 
   if (listener != NULL && listener->interface != NULL) {
     list_remove(&listener->_node);
