@@ -66,6 +66,7 @@ static void _cb_rtnetlink_timeout(void);
 
 /* netlink socket for route set/get commands */
 struct os_system_netlink _rtnetlink_socket = {
+  .used_by = &oonf_os_routing_subsystem,
   .cb_message = _cb_rtnetlink_message,
   .cb_error = _cb_rtnetlink_error,
   .cb_done = _cb_rtnetlink_done,

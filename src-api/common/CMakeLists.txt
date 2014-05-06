@@ -1,7 +1,6 @@
 SET(OONF_COMMON_SRCS  autobuf.c
                       avl_comp.c
                       avl.c
-                      daemonize.c
                       isonumber.c
                       netaddr.c
                       netaddr_acl.c
@@ -13,7 +12,6 @@ SET(OONF_COMMON_INCLUDES autobuf.h
                          avl.h
                          common_types.h
                          container_of.h
-                         daemonize.h
                          isonumber.h
                          list.h
                          netaddr.h

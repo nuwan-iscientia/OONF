@@ -19,7 +19,6 @@ endfunction(compile_common_test)
 
 # just run all of these tests
 set(TESTS test_common_avl
-          test_common_daemonize
           test_common_list
           test_common_netaddr
           test_common_string

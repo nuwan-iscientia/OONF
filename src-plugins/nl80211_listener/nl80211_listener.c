@@ -140,6 +140,7 @@ DECLARE_OONF_PLUGIN(nl80211_listener_subsystem);
 
 /* netlink specific data */
 static struct os_system_netlink _netlink_handler = {
+  .used_by = &nl80211_listener_subsystem,
   .cb_message = _cb_nl_message,
   .cb_error = _cb_nl_error,
   .cb_done = _cb_nl_done,

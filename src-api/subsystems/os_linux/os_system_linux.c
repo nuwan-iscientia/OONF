@@ -129,6 +129,7 @@ static struct oonf_timer_info _netlink_timer= {
 
 /* built in rtnetlink receiver */
 static struct os_system_netlink _rtnetlink_receiver = {
+  .used_by = &oonf_os_system_subsystem,
   .cb_message = _cb_rtnetlink_message,
   .cb_error = _cb_rtnetlink_error,
   .cb_done = _cb_rtnetlink_done,
@@ -259,19 +260,19 @@ os_system_netlink_add(struct os_system_netlink *nl, int protocol) {
 
   nl->socket.fd = socket(PF_NETLINK, SOCK_RAW, protocol);
   if (nl->socket.fd < 0) {
-    OONF_WARN(LOG_OS_SYSTEM, "Cannot open sync rtnetlink socket: %s (%d)",
+    OONF_WARN(nl->used_by->logging, "Cannot open sync rtnetlink socket: %s (%d)",
         strerror(errno), errno);
     goto os_add_netlink_fail;
   }
 
   if (abuf_init(&nl->out)) {
-    OONF_WARN(LOG_OS_SYSTEM, "Not enough memory for netlink output buffer");
+    OONF_WARN(nl->used_by->logging, "Not enough memory for netlink output buffer");
     goto os_add_netlink_fail;
   }
 
   nl->in = calloc(1, getpagesize());
   if (nl->in == NULL) {
-    OONF_WARN(LOG_OS_SYSTEM, "Not enough memory for netlink input buffer");
+    OONF_WARN(nl->used_by->logging, "Not enough memory for netlink input buffer");
     goto os_add_netlink_fail;
   }
   nl->in_len = getpagesize();
@@ -283,7 +284,7 @@ os_system_netlink_add(struct os_system_netlink *nl, int protocol) {
   /* addr.nl_pid = 0; */
 
   if (bind(nl->socket.fd, (struct sockaddr *)&addr, sizeof(addr))<0) {
-    OONF_WARN(LOG_OS_SYSTEM, "Could not bind netlink socket: %s (%d)",
+    OONF_WARN(nl->used_by->logging, "Could not bind netlink socket: %s (%d)",
         strerror(errno), errno);
     goto os_add_netlink_fail;
   }
@@ -333,7 +334,7 @@ os_system_netlink_send(struct os_system_netlink *nl,
   struct autobuf hexbuf;
 #endif
 
-  OONF_INFO(LOG_OS_SYSTEM, "Prepare to send netlink message (%u bytes)",
+  OONF_INFO(nl->used_by->logging, "Prepare to send netlink message (%u bytes)",
       nl_hdr->nlmsg_len);
   _seq_used = (_seq_used + 1) & INT32_MAX;
 
@@ -346,7 +347,7 @@ os_system_netlink_send(struct os_system_netlink *nl,
   abuf_init(&hexbuf);
   abuf_hexdump(&hexbuf, "", nl_hdr, nl_hdr->nlmsg_len);
   
-  OONF_DEBUG(LOG_OS_SYSTEM, "Content of netlink message:\n%s", abuf_getptr(&hexbuf));
+  OONF_DEBUG(nl->used_by->logging, "Content of netlink message:\n%s", abuf_getptr(&hexbuf));
   abuf_free(&hexbuf);
 #endif
   
@@ -370,7 +371,7 @@ os_system_netlink_add_mc(struct os_system_netlink *nl,
   for (i=0; i<groupcount; i++) {
     if (setsockopt(nl->socket.fd, SOL_NETLINK, NETLINK_ADD_MEMBERSHIP,
              &groups[i], sizeof(groups[i]))) {
-      OONF_WARN(LOG_OS_SYSTEM,
+      OONF_WARN(nl->used_by->logging,
           "Could not join netlink mc group: %x", groups[i]);
       return -1;
     }
@@ -393,7 +394,7 @@ os_system_netlink_drop_mc(struct os_system_netlink *nl,
   for (i=0; i<groupcount; i++) {
     if (setsockopt(nl->socket.fd, SOL_NETLINK, NETLINK_DROP_MEMBERSHIP,
              &groups[i], sizeof(groups[i]))) {
-      OONF_WARN(LOG_OS_SYSTEM,
+      OONF_WARN(nl->used_by->logging,
           "Could not drop netlink mc group: %x", groups[i]);
       return -1;
     }
@@ -529,12 +530,12 @@ _flush_netlink_buffer(struct os_system_netlink *nl) {
   _netlink_send_iov[0].iov_len = abuf_getlen(&nl->out);
 
   if ((ret = sendmsg(nl->socket.fd, &_netlink_send_msg, 0)) <= 0) {
-    OONF_WARN(LOG_OS_SYSTEM,
+    OONF_WARN(nl->used_by->logging,
         "Cannot send data to netlink socket (%d: %s)",
         errno, strerror(errno));
   }
   else {
-    OONF_INFO(LOG_OS_SYSTEM, "Sent %zd/%zu bytes for netlink seqno: %d",
+    OONF_INFO(nl->used_by->logging, "Sent %zd/%zu bytes for netlink seqno: %d",
         ret, abuf_getlen(&nl->out), _seq_used);
     abuf_clear(&nl->out);
 
@@ -597,7 +598,7 @@ netlink_rcv_retry:
 
   if ((ret = recvmsg(fd, &_netlink_rcv_msg, MSG_DONTWAIT | flags)) < 0) {
     if (errno != EAGAIN) {
-      OONF_WARN(LOG_OS_SYSTEM,"netlink recvmsg error: %s (%d)\n",
+      OONF_WARN(nl->used_by->logging,"netlink recvmsg error: %s (%d)\n",
           strerror(errno), errno);
     }
     return;
@@ -614,7 +615,7 @@ netlink_rcv_retry:
     }
     ptr = realloc(nl->in, size);
     if (!ptr) {
-      OONF_WARN(LOG_OS_SYSTEM, "Not enough memory to increase netlink input buffer");
+      OONF_WARN(nl->used_by->logging, "Not enough memory to increase netlink input buffer");
       return;
     }
     nl->in = ptr;
@@ -627,14 +628,14 @@ netlink_rcv_retry:
     goto netlink_rcv_retry;
   }
 
-  OONF_INFO(LOG_OS_SYSTEM, "Got netlink message of %"
+  OONF_INFO(nl->used_by->logging, "Got netlink message of %"
       PRINTF_SSIZE_T_SPECIFIER" bytes", ret);
 
 #if defined(OONF_LOG_DEBUG_INFO)
   abuf_init(&hexbuf);
   abuf_hexdump(&hexbuf, "", nl->in, ret);
   
-  OONF_DEBUG(LOG_OS_SYSTEM, "Content of netlink message:\n%s", abuf_getptr(&hexbuf));
+  OONF_DEBUG(nl->used_by->logging, "Content of netlink message:\n%s", abuf_getptr(&hexbuf));
   abuf_free(&hexbuf);
 #endif
   
@@ -642,7 +643,7 @@ netlink_rcv_retry:
   /* loop through netlink headers */
   len = (size_t) ret;
   for (nh = nl->in; NLMSG_OK (nh, len); nh = NLMSG_NEXT (nh, len)) {
-    OONF_INFO(LOG_OS_SYSTEM,
+    OONF_INFO(nl->used_by->logging,
         "Netlink message received: type %d\n", nh->nlmsg_type);
 
     switch (nh->nlmsg_type) {
@@ -650,7 +651,7 @@ netlink_rcv_retry:
         break;
 
       case NLMSG_DONE:
-        OONF_INFO(LOG_OS_SYSTEM, "Netlink message done: %d", nh->nlmsg_seq);
+        OONF_INFO(nl->used_by->logging, "Netlink message done: %d", nh->nlmsg_seq);
         if (nl->cb_done) {
           nl->cb_done(nh->nlmsg_seq);
         }
@@ -798,7 +799,7 @@ _handle_nl_err(struct os_system_netlink *nl, struct nlmsghdr *nh) {
 
   err = (struct nlmsgerr *) NLMSG_DATA(nh);
 
-  OONF_INFO(LOG_OS_SYSTEM, "Received netlink feedback (%u bytes): %s (%d)",
+  OONF_INFO(nl->used_by->logging, "Received netlink feedback (%u bytes): %s (%d)",
       nh->nlmsg_len, strerror(-err->error), err->error);
 
   if (nl->cb_error) {

@@ -46,6 +46,7 @@
 #include <linux/rtnetlink.h>
 
 #include "common/netaddr.h"
+#include "core/oonf_subsystem.h"
 #include "subsystems/oonf_socket.h"
 #include "subsystems/oonf_timer.h"
 
@@ -57,6 +58,8 @@ enum os_addr_scope {
 struct os_system_netlink {
   struct oonf_socket_entry socket;
   struct autobuf out;
+
+  struct oonf_subsystem *used_by;
 
   struct nlmsghdr *in;
   size_t in_len;
