@@ -53,7 +53,7 @@
 #define USEC_PER_MSEC 1000
 
 struct os_system_if_listener {
-  void (*if_changed)(const char *ifname, bool up);
+  void (*if_changed)(unsigned if_index, bool up);
 
   struct list_entity _node;
 };

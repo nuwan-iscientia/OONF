@@ -173,16 +173,26 @@ oonf_interface_remove_listener(
  * @param down true if interface is going down
  */
 void
-oonf_interface_trigger_change(const char *name, bool down) {
-  struct oonf_interface *interf;
+oonf_interface_trigger_change(unsigned if_index, bool down) {
+  char if_name[IF_NAMESIZE];
+  struct oonf_interface *interf = NULL, *if_ptr;
 
-  OONF_DEBUG(LOG_INTERFACE, "Change of interface %s was triggered", name);
-
-  interf = avl_find_element(&oonf_interface_tree, name, interf, _node);
-  if (interf == NULL) {
-    return;
+  if (if_indextoname(if_index, if_name) != NULL) {
+    interf = avl_find_element(&oonf_interface_tree, if_name, interf, _node);
   }
 
+  if (interf == NULL) {
+    avl_for_each_element(&oonf_interface_tree, if_ptr, _node) {
+      if (if_ptr->data.index == if_index) {
+        interf = if_ptr;
+      }
+    }
+  }
+
+  if (interf == NULL) {
+    OONF_INFO(LOG_INTERFACE, "Unknown interface update: %d", if_index);
+    return;
+  }
   if (down) {
     interf->data.up = false;
   }
@@ -198,6 +208,8 @@ oonf_interface_trigger_change(const char *name, bool down) {
 void
 oonf_interface_trigger_handler(struct oonf_interface *interf) {
   /* trigger interface reload in 100 ms */
+  OONF_DEBUG(LOG_INTERFACE, "Change of interface %s was triggered", interf->data.name);
+
   _trigger_change_timer(interf);
 }
 

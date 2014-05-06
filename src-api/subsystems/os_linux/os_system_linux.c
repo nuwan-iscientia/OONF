@@ -630,6 +630,7 @@ netlink_rcv_retry:
   if (flags) {
     /* it worked, not remove the message from the queue */
     flags = 0;
+    OONF_DEBUG(nl->used_by->logging, "Got estimate of netlink message size, retrieve it");
     goto netlink_rcv_retry;
   }
 
@@ -657,10 +658,6 @@ netlink_rcv_retry:
 
       case NLMSG_DONE:
         OONF_INFO(nl->used_by->logging, "Netlink message done: %d", nh->nlmsg_seq);
-        if (nl->cb_done) {
-          nl->cb_done(nh->nlmsg_seq);
-        }
-        _netlink_job_finished(nl);
         /* End of a multipart netlink message reached */
         break;
 
@@ -688,35 +685,22 @@ _cb_rtnetlink_message(struct nlmsghdr *hdr) {
   struct ifaddrmsg *ifa;
 
   struct os_system_if_listener *listener;
-  char if_name[IF_NAMESIZE];
 
   if (hdr->nlmsg_type == RTM_NEWLINK || hdr->nlmsg_type == RTM_DELLINK) {
     ifi = (struct ifinfomsg *) NLMSG_DATA(hdr);
 
-    if (if_indextoname(ifi->ifi_index, if_name) == NULL) {
-      OONF_WARN(LOG_OS_SYSTEM,
-          "Failed to convert if-index to name: %d", ifi->ifi_index);
-      return;
-    }
-
-    OONF_DEBUG(LOG_OS_SYSTEM, "Linkstatus of interface '%s' changed", if_name);
+    OONF_DEBUG(LOG_OS_SYSTEM, "Linkstatus of interface %d changed", ifi->ifi_index);
     list_for_each_element(&_ifchange_listener, listener, _node) {
-      listener->if_changed(if_name, (ifi->ifi_flags & IFF_UP) == 0);
+      listener->if_changed(ifi->ifi_index, (ifi->ifi_flags & IFF_UP) == 0);
     }
   }
 
   else if (hdr->nlmsg_type == RTM_NEWADDR || hdr->nlmsg_type == RTM_DELADDR) {
     ifa = (struct ifaddrmsg *) NLMSG_DATA(hdr);
 
-    if (if_indextoname(ifa->ifa_index, if_name) == NULL) {
-      OONF_WARN(LOG_OS_SYSTEM,
-          "Failed to convert if-index to name: %d", ifa->ifa_index);
-      return;
-    }
-
-    OONF_DEBUG(LOG_OS_SYSTEM, "Address of interface '%s' changed", if_name);
+    OONF_DEBUG(LOG_OS_SYSTEM, "Address of interface %u changed", ifa->ifa_index);
     list_for_each_element(&_ifchange_listener, listener, _node) {
-      listener->if_changed(if_name, false);
+      listener->if_changed(ifa->ifa_index, (ifa->ifa_flags & IFF_UP) == 0);
     }
   }
 }
@@ -807,8 +791,16 @@ _handle_nl_err(struct os_system_netlink *nl, struct nlmsghdr *nh) {
   OONF_INFO(nl->used_by->logging, "Received netlink feedback (%u bytes): %s (%d)",
       nh->nlmsg_len, strerror(-err->error), err->error);
 
-  if (nl->cb_error) {
-    nl->cb_error(err->msg.nlmsg_seq, err->error);
+  if (err->error) {
+    if (nl->cb_error) {
+      nl->cb_error(err->msg.nlmsg_seq, err->error);
+    }
   }
+  else {
+    if (nl->cb_done) {
+      nl->cb_done(err->msg.nlmsg_seq);
+    }
+  }
+
   _netlink_job_finished(nl);
 }
