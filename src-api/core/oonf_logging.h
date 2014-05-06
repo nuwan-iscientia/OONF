@@ -139,7 +139,11 @@ struct oonf_appdata {
  * OONF_WARN should be used for all error messages.
  */
 
-#define _OONF_LOG(severity, source, no_header, format, args...) do { if (oonf_log_mask_test(log_global_mask, source, severity)) oonf_log(severity, source, no_header, __FILE__, __LINE__, format, ##args); } while(0)
+#ifndef BASEPATH_LENGTH
+#define BASEPATH_LENGTH 0
+#endif
+
+#define _OONF_LOG(severity, source, no_header, format, args...) do { if (oonf_log_mask_test(log_global_mask, source, severity)) oonf_log(severity, source, no_header, &__FILE__[BASEPATH_LENGTH], __LINE__, format, ##args); } while(0)
 
 #ifdef OONF_LOG_DEBUG_INFO
 #define OONF_DEBUG(source, format, args...) _OONF_LOG(LOG_SEVERITY_DEBUG, source, false, format, ##args)

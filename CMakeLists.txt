@@ -13,7 +13,7 @@ include (./cmake/cc_flags.cmake)
 
 # set library version
 SET(OONF_VERSION 0.4.1)
- 
+
 ########################
 #### Doxygen target ####
 ########################
@@ -35,6 +35,10 @@ endif(DOXYGEN_FOUND)
 
 # initialize target list
 set_property(GLOBAL PROPERTY OONF_TARGETS "") 
+
+# add define for length of base path
+string(LENGTH "${CMAKE_SOURCE_DIR}/" BASELENGTH)
+add_definitions(-DBASEPATH_LENGTH=${BASELENGTH})
 
 # include build helper
 include (cmake/OONFBuildLibrary.cmake)

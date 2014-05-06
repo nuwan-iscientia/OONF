@@ -521,28 +521,33 @@ _cb_handle_netlink_timeout(void *ptr) {
 static void
 _flush_netlink_buffer(struct os_system_netlink *nl) {
   ssize_t ret;
-
-  /* start feedback timer */
-  oonf_timer_set(&nl->timeout, OS_SYSTEM_NETLINK_TIMEOUT);
+  int error;
 
   /* send outgoing message */
   _netlink_send_iov[0].iov_base = abuf_getptr(&nl->out);
   _netlink_send_iov[0].iov_len = abuf_getlen(&nl->out);
 
   if ((ret = sendmsg(nl->socket.fd, &_netlink_send_msg, 0)) <= 0) {
+    error = errno;
     OONF_WARN(nl->used_by->logging,
         "Cannot send data to netlink socket (%d: %s)",
-        errno, strerror(errno));
-  }
-  else {
-    OONF_INFO(nl->used_by->logging, "Sent %zd/%zu bytes for netlink seqno: %d",
-        ret, abuf_getlen(&nl->out), _seq_used);
-    abuf_clear(&nl->out);
+        error, strerror(error));
 
-    oonf_socket_set_write(&nl->socket, false);
-
-    nl->msg_in_transit++;
+    /* remove netlink message from internal queue */
+    nl->cb_error(nl->in->nlmsg_seq, error);
+    return;
   }
+
+  OONF_INFO(nl->used_by->logging, "Sent %zd/%zu bytes for netlink seqno: %d",
+      ret, abuf_getlen(&nl->out), _seq_used);
+  abuf_clear(&nl->out);
+
+  oonf_socket_set_write(&nl->socket, false);
+
+  nl->msg_in_transit++;
+
+  /* start feedback timer */
+  oonf_timer_set(&nl->timeout, OS_SYSTEM_NETLINK_TIMEOUT);
 }
 
 /**
