@@ -64,6 +64,9 @@ const struct netaddr NETADDR_UNSPEC = { {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}, AF_UN
 const struct netaddr NETADDR_IPV4_ANY = { {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}, AF_INET, 0 };
 const struct netaddr NETADDR_IPV6_ANY = { {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}, AF_INET6, 0 };
 
+const struct netaddr NETADDR_IPV4_BINDTO_ANY = { {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}, AF_INET, 32 };
+const struct netaddr NETADDR_IPV6_BINDTO_ANY = { {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}, AF_INET6, 128 };
+
 const struct netaddr NETADDR_IPV4_MULTICAST = { { 224,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}, AF_INET, 4 };
 const struct netaddr NETADDR_IPV6_MULTICAST = { { 0xff,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}, AF_INET6, 8 };
 
@@ -365,8 +368,13 @@ netaddr_socket_get_port(const union netaddr_socket *sock) {
 const char *
 netaddr_to_prefixstring(struct netaddr_str *dst,
     const struct netaddr *src, bool forceprefix) {
+  static const char * NONE = "-";
   const char *result = NULL;
   int maxprefix;
+
+  if (!src) {
+    return NONE;
+  }
 
   maxprefix = netaddr_get_maxprefix(src);
   switch (src->_type) {

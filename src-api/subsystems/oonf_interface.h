@@ -46,6 +46,7 @@
 #include "common/avl.h"
 #include "common/list.h"
 #include "common/netaddr.h"
+#include "common/netaddr_acl.h"
 
 #include "subsystems/oonf_timer.h"
 #include "subsystems/os_net.h"
@@ -102,5 +103,8 @@ EXPORT struct oonf_interface_data *oonf_interface_get_data(
     const char *name, struct oonf_interface_data *buffer);
 EXPORT void oonf_interface_trigger_change(unsigned if_index, bool down);
 EXPORT void oonf_interface_trigger_handler(struct oonf_interface *interf);
+
+EXPORT const struct netaddr *oonf_interface_get_bindaddress(int af_type,
+    struct netaddr_acl *filter, struct oonf_interface_data *ifdata);
 
 #endif /* INTERFACE_H_ */

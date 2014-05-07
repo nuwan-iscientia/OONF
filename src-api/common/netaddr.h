@@ -129,11 +129,13 @@ struct netaddr_str {
 EXPORT extern const struct netaddr NETADDR_UNSPEC;
 
 EXPORT extern const struct netaddr NETADDR_IPV4_ANY;
+EXPORT extern const struct netaddr NETADDR_IPV4_BINDTO_ANY;
 EXPORT extern const struct netaddr NETADDR_IPV4_MULTICAST;
 EXPORT extern const struct netaddr NETADDR_IPV4_LINKLOCAL;
 EXPORT extern const struct netaddr NETADDR_IPV4_LOOPBACK_NET;
 
 EXPORT extern const struct netaddr NETADDR_IPV6_ANY;
+EXPORT extern const struct netaddr NETADDR_IPV6_BINDTO_ANY;
 EXPORT extern const struct netaddr NETADDR_IPV6_MULTICAST;
 EXPORT extern const struct netaddr NETADDR_IPV6_LINKLOCAL;
 EXPORT extern const struct netaddr NETADDR_IPV6_ULA;

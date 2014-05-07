@@ -188,8 +188,8 @@ struct oonf_stream_managed {
 
 struct oonf_stream_managed_config {
   struct netaddr_acl acl;
-  struct netaddr bindto_v4;
-  struct netaddr bindto_v6;
+  char interface[IF_NAMESIZE];
+  struct netaddr_acl bindto;
   int32_t port;
 };
 

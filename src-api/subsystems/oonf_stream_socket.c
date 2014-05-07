@@ -49,6 +49,7 @@
 #include "core/oonf_logging.h"
 #include "core/oonf_subsystem.h"
 #include "subsystems/oonf_class.h"
+#include "subsystems/oonf_interface.h"
 #include "subsystems/oonf_socket.h"
 #include "subsystems/oonf_timer.h"
 #include "subsystems/os_net.h"
@@ -58,8 +59,8 @@
 static int _init(void);
 static void _cleanup(void);
 
-static int _apply_managed_socket(struct oonf_stream_managed *managed,
-    struct oonf_stream_socket *stream, struct netaddr *bindto, uint16_t port);
+static int _apply_managed_socket(int af_type, struct oonf_stream_managed *managed,
+    struct oonf_stream_socket *stream, struct netaddr_acl *bindto, uint16_t port);
 static void _cb_parse_request(int fd, void *data, bool, bool);
 static struct oonf_stream_session *_create_session(
     struct oonf_stream_socket *stream_socket, int sock, struct netaddr *remote_addr);
@@ -349,14 +350,14 @@ oonf_stream_apply_managed(struct oonf_stream_managed *managed,
     struct oonf_stream_managed_config *config) {
   netaddr_acl_copy(&managed->acl, &config->acl);
 
-  if (_apply_managed_socket(managed,
-      &managed->socket_v4, &config->bindto_v4, config->port)) {
+  if (_apply_managed_socket(AF_INET, managed,
+      &managed->socket_v4, &config->bindto, config->port)) {
     return -1;
   }
 
   if (os_net_is_ipv6_supported()) {
-    if (_apply_managed_socket(managed,
-        &managed->socket_v6, &config->bindto_v6, config->port)) {
+    if (_apply_managed_socket(AF_INET6, managed,
+        &managed->socket_v6, &config->bindto, config->port)) {
       return -1;
     }
   }
@@ -379,20 +380,23 @@ oonf_stream_remove_managed(struct oonf_stream_managed *managed, bool force) {
 
 /**
  * Apply new configuration to a managed stream socket
+ * @param af_type address type to bind socket to
  * @param managed pointer to managed stream
  * @param stream pointer to TCP stream to configure
- * @param bindto local address to bind socket to
+ * @param bindto_acl allowed address to bind socket to
  * @param port local port number
  * @return -1 if an error happened, 0 otherwise.
  */
 static int
-_apply_managed_socket(struct oonf_stream_managed *managed,
+_apply_managed_socket(int af_type, struct oonf_stream_managed *managed,
     struct oonf_stream_socket *stream,
-    struct netaddr *bindto, uint16_t port) {
+    struct netaddr_acl *bind_ip_acl, uint16_t port) {
   union netaddr_socket sock;
+  const struct netaddr *bindto;
   struct netaddr_str buf;
 
-  if (netaddr_get_address_family(bindto) == AF_UNSPEC) {
+  bindto = oonf_interface_get_bindaddress(af_type, bind_ip_acl, NULL);
+  if (!bindto) {
     oonf_stream_remove(stream, true);
     return 0;
   }

@@ -46,6 +46,7 @@
 #include "common/avl_comp.h"
 #include "common/list.h"
 #include "common/netaddr.h"
+#include "common/netaddr_acl.h"
 #include "common/string.h"
 
 #include "core/oonf_logging.h"
@@ -62,6 +63,13 @@
 /* prototypes */
 static int _init(void);
 static void _cleanup(void);
+
+static const struct netaddr *_get_fixed_prefix(
+    int af_type, struct netaddr_acl *filter);
+static const struct netaddr *_get_exact_match_bindaddress(
+    int af_type, struct netaddr_acl *filter, struct oonf_interface_data *ifdata);
+static const struct netaddr *_get_matching_bindaddress(
+    int af_type, struct netaddr_acl *filter, struct oonf_interface_data *ifdata);
 
 static struct oonf_interface *_interface_add(const char *, bool mesh);
 static void _interface_remove(struct oonf_interface *interf, bool mesh);
@@ -236,6 +244,177 @@ oonf_interface_get_data(const char *name, struct oonf_interface_data *buf) {
   }
 
   return &interf->data;
+}
+
+/**
+ * Calculate the IP address a socket should bind to
+ * @param filter filter for IP address to bind on
+ * @param ifdata interface to bind to socket on, NULL if not
+ *   bound to an interface.
+ * @return 0 if an IP was calculated, -1 otherwise
+ */
+const struct netaddr *
+oonf_interface_get_bindaddress(int af_type,
+    struct netaddr_acl *filter, struct oonf_interface_data *ifdata) {
+  const struct netaddr *result;
+  size_t i;
+  struct netaddr_str nbuf;
+
+  OONF_DEBUG(LOG_INTERFACE, "Find bindto for acl:");
+  for (i=0; i<filter->accept_count; i++) {
+    OONF_DEBUG_NH(LOG_INTERFACE, "\taccept: %s", netaddr_to_string(&nbuf, &filter->accept[i]));
+  }
+  for (i=0; i<filter->reject_count; i++) {
+    OONF_DEBUG_NH(LOG_INTERFACE, "\treject: %s", netaddr_to_string(&nbuf, &filter->reject[i]));
+  }
+  OONF_DEBUG_NH(LOG_INTERFACE, "\t%s_first, %s_default",
+      filter->reject_first ? "reject" : "accept",
+      filter->accept_default ? "accept" : "reject");
+
+  result = NULL;
+  if (ifdata == NULL) {
+    OONF_DEBUG(LOG_INTERFACE, "Look for fixed prefix");
+    result = _get_fixed_prefix(af_type, filter);
+  }
+  if (!result) {
+    OONF_DEBUG(LOG_INTERFACE, "Look for exact match");
+    result = _get_exact_match_bindaddress(af_type, filter, ifdata);
+  }
+  if (!result) {
+    OONF_DEBUG(LOG_INTERFACE, "Look for prefix match");
+    result = _get_matching_bindaddress(af_type, filter, ifdata);
+  }
+  OONF_DEBUG_NH(LOG_INTERFACE, "Bind to '%s'", netaddr_to_string(&nbuf, result));
+  return result;
+}
+
+/**
+ * Checks if the whole ACL is one maximum length address
+ * (or two, one for each possible address type).
+ * @param af_type requested address family
+ * @param filter filter to parse
+ * @return pointer to address to bind socket to, NULL if no match
+ */
+static const struct netaddr *
+_get_fixed_prefix(int af_type, struct netaddr_acl *filter) {
+  const struct netaddr *first, *second;
+  if (filter->reject_count > 0) {
+    return NULL;
+  }
+
+  if (filter->accept_count == 0 || filter->accept_count > 2) {
+    return NULL;
+  }
+
+  first = &filter->accept[0];
+  if (netaddr_get_prefix_length(first) != netaddr_get_maxprefix(first)) {
+    return NULL;
+  }
+
+  if (filter->accept_count == 2) {
+    second = &filter->accept[1];
+
+    if (netaddr_get_address_family(first) ==
+        netaddr_get_address_family(second)) {
+      /* must be two different address families */
+      return NULL;
+    }
+
+    if (netaddr_get_prefix_length(second) != netaddr_get_maxprefix(second)) {
+      return NULL;
+    }
+    if (netaddr_get_address_family(second) == af_type) {
+      return second;
+    }
+  }
+
+  if (netaddr_get_address_family(first) == af_type) {
+    return first;
+  }
+  return NULL;
+}
+
+/**
+ * Finds an IP on an/all interfaces that matches an exact (maximum length)
+ * filter rule
+ *
+ * @param af_type address family type to look for
+ * @param filter filter that must be matched
+ * @param ifdata interface to look through, NULL for all interfaces
+ * @return pointer to address to bind socket to, NULL if no match
+ */
+static const struct netaddr *
+_get_exact_match_bindaddress(int af_type, struct netaddr_acl *filter,
+    struct oonf_interface_data *ifdata) {
+  struct oonf_interface *interf;
+  const struct netaddr *result;
+  size_t i,j;
+
+  /* handle the 'all interfaces' case */
+  if (ifdata == NULL) {
+    avl_for_each_element(&oonf_interface_tree, interf, _node) {
+      if ((result = _get_exact_match_bindaddress(af_type, filter, &interf->data)) != NULL) {
+        return result;
+      }
+    }
+    return NULL;
+  }
+
+  /* run through all filters */
+  for (i=0; i<filter->accept_count; i++) {
+    /* look for maximum prefix length filters */
+    if (netaddr_get_prefix_length(&filter->accept[i]) != netaddr_get_af_maxprefix(af_type)) {
+      continue;
+    }
+
+    /* run through all interface addresses and look for match */
+    for (j=0; j<ifdata->addrcount; j++) {
+      if (netaddr_cmp(&ifdata->addresses[j], &filter->accept[i]) == 0) {
+        return &filter->accept[i];
+      }
+    }
+  }
+
+  /* no exact match found */
+  return NULL;
+}
+
+/**
+ * Finds an IP on an/all interfaces that matches a filter rule
+ *
+ * @param af_type address family type to look for
+ * @param filter filter that must be matched
+ * @param ifdata interface to look through, NULL for all interfaces
+ * @return pointer to address to bind socket to, NULL if no match
+ */
+static const struct netaddr *
+_get_matching_bindaddress(int af_type, struct netaddr_acl *filter,
+    struct oonf_interface_data *ifdata) {
+  struct oonf_interface *interf;
+  const struct netaddr *result;
+  size_t i;
+
+  /* handle the 'all interfaces' case */
+  if (ifdata == NULL) {
+    avl_for_each_element(&oonf_interface_tree, interf, _node) {
+      if ((result = _get_matching_bindaddress(af_type, filter, &interf->data)) != NULL) {
+        return result;
+      }
+    }
+    return NULL;
+  }
+
+  /* run through interface address list looking for filter match */
+  for (i=0; i<ifdata->addrcount; i++) {
+    if (netaddr_get_address_family(&ifdata->addresses[i]) != af_type) {
+      continue;
+    }
+
+    if (netaddr_acl_check_accept(filter, &ifdata->addresses[i])) {
+      return &ifdata->addresses[i];
+    }
+  }
+  return NULL;
 }
 
 /**

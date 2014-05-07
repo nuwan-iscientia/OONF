@@ -45,6 +45,8 @@
 #include "common/common_types.h"
 #include "common/list.h"
 #include "common/avl.h"
+#include "common/netaddr_acl.h"
+#include "subsystems/os_net.h"
 
 /* prototype for socket handler */
 typedef void (*socket_handler_func) (int fd, void *data,
@@ -76,6 +78,9 @@ EXPORT int oonf_socket_handle(bool (*stop_scheduler)(void), uint64_t) __attribut
 
 EXPORT void oonf_socket_add(struct oonf_socket_entry *);
 EXPORT void oonf_socket_remove(struct oonf_socket_entry *);
+
+EXPORT const struct netaddr *oonf_socket_get_bindaddress(int af_type,
+    struct netaddr_acl *filter, struct oonf_interface_data *ifdata);
 
 /**
  * Enable one or both flags of a socket handler
