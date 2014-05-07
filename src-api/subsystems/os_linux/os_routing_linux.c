@@ -60,7 +60,7 @@ static int _routing_set(struct nlmsghdr *msg, struct os_route *route,
 
 static void _routing_finished(struct os_route *route, int error);
 static void _cb_rtnetlink_message(struct nlmsghdr *);
-static void _cb_rtnetlink_error(uint32_t seq, int error);
+static void _cb_rtnetlink_error(uint32_t seq, int err);
 static void _cb_rtnetlink_done(uint32_t seq);
 static void _cb_rtnetlink_timeout(void);
 
@@ -482,26 +482,26 @@ _cb_rtnetlink_message(struct nlmsghdr *msg) {
  * @param error
  */
 static void
-_cb_rtnetlink_error(uint32_t seq, int error) {
+_cb_rtnetlink_error(uint32_t seq, int err) {
   struct os_route *route;
   struct os_route_str rbuf;
 
   /* transform into errno number */
-  error = -error;
+  err = -err;
 
   list_for_each_element(&_rtnetlink_feedback, route, _internal._node) {
     if (seq == route->_internal.nl_seq) {
       OONF_DEBUG(LOG_OS_ROUTING, "Route seqno %u failed: %s (%d) %s",
-          seq, strerror(error), error,
+          seq, strerror(err), err,
           os_routing_to_string(&rbuf, route));
 
-      _routing_finished(route, error);
+      _routing_finished(route, err);
       return;
     }
   }
 
   OONF_DEBUG(LOG_OS_ROUTING, "Unknown route with seqno %u failed: %s (%d)",
-      seq, strerror(error), error);
+      seq, strerror(err), err);
 }
 
 /**

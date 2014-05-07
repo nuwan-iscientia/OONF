@@ -65,8 +65,6 @@
 #define SOL_NETLINK 270
 #endif
 
-#define OS_SYSTEM_NETLINK_TIMEOUT 100
-
 /* prototypes */
 static int _init(void);
 static void _cleanup(void);
@@ -521,24 +519,25 @@ _cb_handle_netlink_timeout(void *ptr) {
 static void
 _flush_netlink_buffer(struct os_system_netlink *nl) {
   ssize_t ret;
-  int error;
+  int err;
 
   /* send outgoing message */
   _netlink_send_iov[0].iov_base = abuf_getptr(&nl->out);
   _netlink_send_iov[0].iov_len = abuf_getlen(&nl->out);
 
   if ((ret = sendmsg(nl->socket.fd, &_netlink_send_msg, 0)) <= 0) {
-    error = errno;
+    err = errno;
     OONF_WARN(nl->used_by->logging,
-        "Cannot send data to netlink socket (%d: %s)",
-        error, strerror(error));
+        "Cannot send data to netlink socket: %s (%d)",
+        strerror(err), err);
 
     /* remove netlink message from internal queue */
-    nl->cb_error(nl->in->nlmsg_seq, error);
+    nl->cb_error(nl->in->nlmsg_seq, err);
     return;
   }
 
-  OONF_INFO(nl->used_by->logging, "Sent %zd/%zu bytes for netlink seqno: %d",
+  OONF_INFO(nl->used_by->logging, "Sent %"PRINTF_SSIZE_T_SPECIFIER
+      "/%"PRINTF_SIZE_T_SPECIFIER" bytes for netlink seqno: %d",
       ret, abuf_getlen(&nl->out), _seq_used);
   abuf_clear(&nl->out);
 
@@ -563,6 +562,8 @@ _netlink_job_finished(struct os_system_netlink *nl) {
   if (nl->msg_in_transit == 0) {
     oonf_timer_stop(&nl->timeout);
   }
+  OONF_DEBUG(nl->used_by->logging, "netlink finished: %d still in transit",
+      nl->msg_in_transit);
 }
 
 /**
@@ -601,6 +602,8 @@ netlink_rcv_retry:
   _netlink_rcv_iov.iov_base = nl->in;
   _netlink_rcv_iov.iov_len = nl->in_len;
 
+  OONF_DEBUG(nl->used_by->logging, "Read netlink message with %"PRINTF_SIZE_T_SPECIFIER" bytes buffer",
+      nl->in_len);
   if ((ret = recvmsg(fd, &_netlink_rcv_msg, MSG_DONTWAIT | flags)) < 0) {
     if (errno != EAGAIN) {
       OONF_WARN(nl->used_by->logging,"netlink recvmsg error: %s (%d)\n",
@@ -612,19 +615,14 @@ netlink_rcv_retry:
   /* not enough buffer space ? */
   if (nl->in_len < (size_t)ret || (_netlink_rcv_msg.msg_flags & MSG_TRUNC) != 0) {
     void *ptr;
-    size_t size;
 
-    size = nl->in_len;
-    while (size < (size_t)ret) {
-      size += getpagesize();
-    }
-    ptr = realloc(nl->in, size);
+    ptr = realloc(nl->in, nl->in_len + getpagesize());
     if (!ptr) {
       OONF_WARN(nl->used_by->logging, "Not enough memory to increase netlink input buffer");
       return;
     }
     nl->in = ptr;
-    nl->in_len = size;
+    nl->in_len += getpagesize();
     goto netlink_rcv_retry;
   }
   if (flags) {
@@ -657,7 +655,6 @@ netlink_rcv_retry:
         break;
 
       case NLMSG_DONE:
-        OONF_INFO(nl->used_by->logging, "Netlink message done: %d", nh->nlmsg_seq);
         /* End of a multipart netlink message reached */
         break;
 
@@ -788,12 +785,13 @@ _handle_nl_err(struct os_system_netlink *nl, struct nlmsghdr *nh) {
 
   err = (struct nlmsgerr *) NLMSG_DATA(nh);
 
-  OONF_INFO(nl->used_by->logging, "Received netlink feedback (%u bytes): %s (%d)",
-      nh->nlmsg_len, strerror(-err->error), err->error);
+  OONF_INFO(nl->used_by->logging,
+      "Received netlink seq %u feedback (%u bytes): %s (%d)",
+      nh->nlmsg_seq, nh->nlmsg_len, strerror(-err->error), err->error);
 
   if (err->error) {
     if (nl->cb_error) {
-      nl->cb_error(err->msg.nlmsg_seq, err->error);
+      nl->cb_error(err->msg.nlmsg_seq, -err->error);
     }
   }
   else {

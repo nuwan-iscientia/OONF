@@ -50,6 +50,8 @@
 #include "subsystems/oonf_socket.h"
 #include "subsystems/oonf_timer.h"
 
+#define OS_SYSTEM_NETLINK_TIMEOUT 500
+
 enum os_addr_scope {
   OS_ADDR_SCOPE_LINK = RT_SCOPE_LINK,
   OS_ADDR_SCOPE_GLOBAL = RT_SCOPE_UNIVERSE,
