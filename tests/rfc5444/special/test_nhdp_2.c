@@ -140,10 +140,10 @@ static struct rfc5444_writer_content_provider cpr = {
 };
 
 static struct rfc5444_writer_tlvtype addrtlvs[] = {
-  [IDX_LOCAL_IF]   = { .type = RFC5444_ADDRTLV_LOCAL_IF },
-  [IDX_OTHERNEIGH] = { .type = RFC5444_ADDRTLV_OTHER_NEIGHB },
-  [IDX_METRIC1]    = { .type = RFC5444_ADDRTLV_LINK_METRIC },
-  [IDX_METRIC2]    = { .type = RFC5444_ADDRTLV_LINK_METRIC },
+  [IDX_LOCAL_IF]   = { .type = RFC6130_ADDRTLV_LOCAL_IF },
+  [IDX_OTHERNEIGH] = { .type = RFC6130_ADDRTLV_OTHER_NEIGHB },
+  [IDX_METRIC1]    = { .type = RFC7181_ADDRTLV_LINK_METRIC },
+  [IDX_METRIC2]    = { .type = RFC7181_ADDRTLV_LINK_METRIC },
 };
 
 static uint8_t packet_buffer_if[256];

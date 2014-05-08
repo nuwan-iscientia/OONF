@@ -45,31 +45,31 @@
 
 enum {
   /* timetlv_max = 14 * 2^28 * 1000 / 1024 = 14000 << 18 = 3 670 016 000 ms */
-  RFC5444_TIMETLV_MAX = 0xdac00000,
+  RFC5497_TIMETLV_MAX = 0xdac00000,
 
   /* timetlv_min = 1000/1024 ms */
-  RFC5444_TIMETLV_MIN = 0x00000001,
+  RFC5497_TIMETLV_MIN = 0x00000001,
 
   /* metric_max = 1<<24 - 256 */
-  RFC5444_METRIC_MAX = 0xffff00,
+  RFC7181_METRIC_MAX = 0xffff00,
 
   /* metric_min = 1 */
-  RFC5444_METRIC_MIN = 0x000001,
+  RFC7181_METRIC_MIN = 0x000001,
 
   /* larger than possible metric value */
-  RFC5444_METRIC_INFINITE = 0xffffff,
+  RFC7181_METRIC_INFINITE = 0xffffff,
 
   /* infinite path cost */
-  RFC5444_METRIC_INFINITE_PATH = 0xffffffff,
+  RFC7181_METRIC_INFINITE_PATH = 0xffffffff,
 };
 
-EXPORT uint8_t rfc5444_timetlv_get_from_vector(
+EXPORT uint8_t rfc5497_timetlv_get_from_vector(
     uint8_t *vector, size_t vector_length, uint8_t hopcount);
-EXPORT uint8_t rfc5444_timetlv_encode(uint64_t);
-EXPORT uint64_t rfc5444_timetlv_decode(uint8_t);
+EXPORT uint8_t rfc5497_timetlv_encode(uint64_t);
+EXPORT uint64_t rfc5497_timetlv_decode(uint8_t);
 
-EXPORT uint16_t rfc5444_metric_encode(uint32_t);
-EXPORT uint32_t rfc5444_metric_decode(uint16_t);
+EXPORT uint16_t rfc7181_metric_encode(uint32_t);
+EXPORT uint32_t rfc7181_metric_decode(uint16_t);
 
 EXPORT int rfc5444_seqno_difference(uint16_t, uint16_t);
 

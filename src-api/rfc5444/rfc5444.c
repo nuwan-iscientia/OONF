@@ -52,7 +52,7 @@
  * @return timetlv value, 255 (infinite) if an error happened.
  */
 uint8_t
-rfc5444_timetlv_get_from_vector(
+rfc5497_timetlv_get_from_vector(
     uint8_t *vector, size_t vector_length, uint8_t hopcount) {
   size_t i;
 
@@ -84,7 +84,7 @@ rfc5444_timetlv_get_from_vector(
  * @return RFC 5497 encoded time
  */
 uint8_t
-rfc5444_timetlv_encode(uint64_t decoded) {
+rfc5497_timetlv_encode(uint64_t decoded) {
   uint32_t a, b;
   /*
    * t = (1 + a/8) * 2^b * 1000 / 1024
@@ -92,10 +92,10 @@ rfc5444_timetlv_encode(uint64_t decoded) {
    *   = (1000 + 125 * a) * 2 ^ (b-10)
    */
 
-  if (decoded < RFC5444_TIMETLV_MIN) {
+  if (decoded < RFC5497_TIMETLV_MIN) {
     return 0;
   }
-  if (decoded > RFC5444_TIMETLV_MAX) {
+  if (decoded > RFC5497_TIMETLV_MAX) {
     return 255;
   }
 
@@ -130,7 +130,7 @@ rfc5444_timetlv_encode(uint64_t decoded) {
  * @return relative time in milliseconds
  */
 uint64_t
-rfc5444_timetlv_decode(uint8_t encoded) {
+rfc5497_timetlv_decode(uint8_t encoded) {
   /*
    * time-value := (1 + a/8) * 2^b * C
    * time-code := 8 * b + a
@@ -170,7 +170,7 @@ rfc5444_timetlv_decode(uint8_t encoded) {
 }
 
 /**
- * Encode a metric value in OLSRv2 specified format.
+ * Encode a metric value in RFC7181 (OLSRv2) specified format.
  * A metric value larger than the maximum will be encoded to 4095.
  * Encoding for metric value 0 is not specified.
  * A metric value larger or equal to RFC5444_METRIC infinite is encoded as 0.
@@ -178,17 +178,17 @@ rfc5444_timetlv_decode(uint8_t encoded) {
  * @return encoded metric value.
  */
 uint16_t
-rfc5444_metric_encode(uint32_t decoded) {
+rfc7181_metric_encode(uint32_t decoded) {
   uint8_t a,b;
   /*
    * metric-value := (257+b)2^a - 256
    * metric-code := 256 * a + b
    */
 
-  if (decoded < RFC5444_METRIC_MIN || decoded >= RFC5444_METRIC_INFINITE) {
+  if (decoded < RFC7181_METRIC_MIN || decoded >= RFC7181_METRIC_INFINITE) {
     return 0;
   }
-  if (decoded > RFC5444_METRIC_MAX) {
+  if (decoded > RFC7181_METRIC_MAX) {
     return 0x0fff;
   }
 
@@ -210,12 +210,12 @@ rfc5444_metric_encode(uint32_t decoded) {
 }
 
 /**
- * Decode an OLSRv2 encoded metric value.
+ * Decode a RFC7181 (OLSRv2) encoded metric value.
  * @param encoded encoded metric
  * @return decoded metric value
  */
 uint32_t
-rfc5444_metric_decode(uint16_t encoded) {
+rfc7181_metric_decode(uint16_t encoded) {
   uint8_t a,b;
   /*
    * metric-value := (257+b)2^a - 256

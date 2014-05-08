@@ -600,7 +600,7 @@ test_timetlv_decoding(void) {
   START_TEST();
 
   for (encoded = 0; encoded < 256; encoded++) {
-    decoded = rfc5444_timetlv_decode(encoded);
+    decoded = rfc5497_timetlv_decode(encoded);
     CHECK_TRUE(decoded == _timetlv_table[encoded],
         "decode(%"PRIu64") != %"PRIu64" (was %"PRIu64" instead)",
         encoded, _timetlv_table[encoded], decoded);
@@ -621,7 +621,7 @@ test_timetlv_encoding_exact(void) {
     }
 
     decoded = _timetlv_table[i];
-    encoded = rfc5444_timetlv_encode(decoded);
+    encoded = rfc5497_timetlv_encode(decoded);
 
     CHECK_TRUE(encoded == i, "encode(%"PRIu64") != %"PRIu64, decoded, i);
   }
@@ -633,7 +633,7 @@ static void
 _do_timetlv_average_test(uint64_t decoded) {
   uint64_t encoded;
 
-  encoded = rfc5444_timetlv_encode(decoded);
+  encoded = rfc5497_timetlv_encode(decoded);
 
   CHECK_TRUE(_timetlv_table[encoded] > decoded,
       "encode(%"PRIu64")=%"PRIu64", decode(%"PRIu64")=%"PRIu64", %"PRIu64" <= %"PRIu64,
@@ -690,7 +690,7 @@ test_metric_decoding(void) {
   START_TEST();
 
   for (encoded = 0; encoded < 4096; encoded++) {
-    decoded = rfc5444_metric_decode(encoded);
+    decoded = rfc7181_metric_decode(encoded);
     CHECK_TRUE(decoded == _metric_table[encoded], "decode(%u) != %u", encoded, decoded);
   }
 
@@ -705,7 +705,7 @@ test_metric_encoding_exact(void) {
 
   for (i=0; i<4096; i++) {
     decoded = _metric_table[i];
-    encoded = rfc5444_metric_encode(decoded);
+    encoded = rfc7181_metric_encode(decoded);
 
     CHECK_TRUE(encoded == i, "encode(%u) != %u", decoded, i);
   }
@@ -717,7 +717,7 @@ static void
 _do_metric_average_test(uint32_t decoded) {
   uint32_t encoded;
 
-  encoded = rfc5444_metric_encode(decoded);
+  encoded = rfc7181_metric_encode(decoded);
 
   CHECK_TRUE(_metric_table[encoded] > decoded, "encode(%u)=%u, decode(%u)=%u, %u <= %u",
       decoded, encoded,
