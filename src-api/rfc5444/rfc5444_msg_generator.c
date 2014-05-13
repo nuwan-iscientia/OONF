@@ -869,7 +869,10 @@ _compress_address(struct _rfc5444_internal_addr_compress_session *acs,
     bool closed = false;
 
 #if DO_ADDR_COMPRESSION == true
-    closed = first || (i > common_head);
+    closed = first;
+    if (i > common_head) {
+      closed = true;
+    }
 #else
     closed = true;
 #endif
