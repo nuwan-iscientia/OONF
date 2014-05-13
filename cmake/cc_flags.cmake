@@ -91,8 +91,12 @@ set(CMAKE_C_FLAGS_RELEASE "-O4 -g0 -DNDEBUG")
 set(CMAKE_C_FLAGS_MINSIZEREL "-Os -g0 -DNDEBUG")
 set(CMAKE_C_FLAGS_RELWITHDEBINFO "-DNDEBUG")
 
-# always add -Werror compiler options
-ADD_DEFINITIONS(-Werror)
+# add -Werror compiler options
+IF (OONF_NO_WERROR)
+	message ("Skip -Werror")
+ELSE (OONF_NO_WERROR)
+	ADD_DEFINITIONS(-Werror)
+ENDIF (OONF_NO_WERROR)
 
 # set compiler flags that are supported
 add_compiler_flag(-finline-functions-called-once)
