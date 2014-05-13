@@ -1,7 +1,7 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=oonf-api-git
-PKG_VERSION:=2014-04-01
+PKG_VERSION:=2014-05-13
 #PKG_REV:=ec2bca8f28b4d14df049fc81e177160ca0e3c3a3
 #PKG_RELEASE:=$(PKG_REV)
 
