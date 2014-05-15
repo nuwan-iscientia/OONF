@@ -361,7 +361,6 @@ _parse_cmd_new_station(struct nlmsghdr *hdr) {
   struct oonf_layer2_neigh *neigh;
   struct netaddr mac;
   unsigned if_index;
-  char if_name[IF_NAMESIZE];
   int i;
 
 #ifdef OONF_LOG_DEBUG_INFO
@@ -387,11 +386,7 @@ _parse_cmd_new_station(struct nlmsghdr *hdr) {
   netaddr_from_binary(&mac, nla_data(tb[NL80211_ATTR_MAC]), 6, AF_MAC48);
   if_index = nla_get_u32(tb[NL80211_ATTR_IFINDEX]);
 
-  if (if_indextoname(if_index, if_name) == NULL) {
-    return;
-  }
-
-  if_data = oonf_interface_get_data(if_name, NULL);
+  if_data = oonf_interface_get_data_by_ifbaseindex(if_index);
   if (if_data == NULL || netaddr_get_address_family(&if_data->mac) == AF_UNSPEC) {
     return;
   }
@@ -399,7 +394,7 @@ _parse_cmd_new_station(struct nlmsghdr *hdr) {
   OONF_DEBUG(LOG_NL80211, "Add neighbor %s for network %s",
       netaddr_to_string(&buf1, &mac), netaddr_to_string(&buf2, &if_data->mac));
 
-  net = _create_l2net(&if_data->mac, if_data->index, if_name);
+  net = _create_l2net(&if_data->mac, if_data->index, if_data->name);
   if (net == NULL) {
     return;
   }
@@ -505,7 +500,6 @@ _parse_cmd_del_station(struct nlmsghdr *hdr) {
   struct oonf_layer2_net *net;
   struct netaddr mac;
   unsigned if_index;
-  char if_name[IF_NAMESIZE];
 #ifdef OONF_LOG_DEBUG_INFO
   struct netaddr_str buf1, buf2;
 #endif
@@ -519,10 +513,7 @@ _parse_cmd_del_station(struct nlmsghdr *hdr) {
   netaddr_from_binary(&mac, nla_data(tb[NL80211_ATTR_MAC]), 6, AF_MAC48);
   if_index = nla_get_u32(tb[NL80211_ATTR_IFINDEX]);
 
-  if (if_indextoname(if_index, if_name) == NULL) {
-    return;
-  }
-  if_data = oonf_interface_get_data(if_name, NULL);
+  if_data = oonf_interface_get_data_by_ifbaseindex(if_index);
   if (if_data == NULL || netaddr_get_address_family(&if_data->mac) == AF_UNSPEC) {
     return;
   }
@@ -582,7 +573,6 @@ _parse_cmd_new_scan_result(struct nlmsghdr *msg) {
   struct oonf_layer2_net *net;
   struct netaddr bssid;
   unsigned if_index;
-  char if_name[IF_NAMESIZE];
   int i;
 #ifdef OONF_LOG_DEBUG_INFO
   struct netaddr_str buf;
@@ -608,16 +598,12 @@ _parse_cmd_new_scan_result(struct nlmsghdr *msg) {
   netaddr_from_binary(&bssid, nla_data(bss[NL80211_BSS_BSSID]), 6, AF_MAC48);
   if_index = nla_get_u32(tb[NL80211_ATTR_IFINDEX]);
 
-  if (if_indextoname(if_index, if_name) == NULL) {
-    return;
-  }
-
-  if_data = oonf_interface_get_data(if_name, NULL);
+  if_data = oonf_interface_get_data_by_ifbaseindex(if_index);
   if (if_data == NULL || netaddr_get_address_family(&if_data->mac) == AF_UNSPEC) {
     return;
   }
 
-  net = _create_l2net(&if_data->mac, if_data->index, if_name);
+  net = _create_l2net(&if_data->mac, if_data->index, if_data->name);
   if (net == NULL) {
     return;
   }
@@ -911,10 +897,10 @@ _cb_transmission_event(void *ptr __attribute__((unused))) {
   OONF_DEBUG(LOG_NL80211, "Send Query %d to NL80211 interface '%s' (%u)",
       _next_query_type, interf->data.name, interf->data.index);
   if (_next_query_type == QUERY_STATION_DUMP) {
-    _send_nl80211_get_station_dump(interf->data.index);
+    _send_nl80211_get_station_dump(interf->data.base_index);
   }
   else if (_next_query_type == QUERY_SCAN_DUMP){
-    _send_nl80211_get_scan_dump(interf->data.index);
+    _send_nl80211_get_scan_dump(interf->data.base_index);
   }
 }
 

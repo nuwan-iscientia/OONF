@@ -101,6 +101,11 @@ EXPORT void oonf_interface_remove_listener(struct oonf_interface_listener *);
 
 EXPORT struct oonf_interface_data *oonf_interface_get_data(
     const char *name, struct oonf_interface_data *buffer);
+EXPORT struct oonf_interface_data *oonf_interface_get_data_by_ifindex(
+    unsigned ifindex);
+EXPORT struct oonf_interface_data *oonf_interface_get_data_by_ifbaseindex(
+		unsigned ifindex);
+
 EXPORT void oonf_interface_trigger_change(unsigned if_index, bool down);
 EXPORT void oonf_interface_trigger_handler(struct oonf_interface *interf);
 

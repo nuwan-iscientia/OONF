@@ -65,13 +65,17 @@
 #define PROC_IF_SPOOF "/proc/sys/net/ipv4/conf/%s/rp_filter"
 #define PROC_ALL_SPOOF "/proc/sys/net/ipv4/conf/all/rp_filter"
 
+/* Interface base index */
+#define SYSFS_BASE_IFINDEX "/sys/class/net/%s/iflink"
+
 /* prototypes */
 static int _init(void);
 static void _cleanup(void);
 static void _activate_if_routing(void);
 static void _deactivate_if_routing(void);
 static bool _is_at_least_linuxkernel_2_6_31(void);
-static int _os_linux_writeToProc(const char *file, char *old, char value);
+static int _os_linux_writeToFile(const char *file, char *old, char value);
+static unsigned _os_linux_get_base_ifindex(const char *interf);
 
 /* global ioctl sockets for ipv4 and ipv6 */
 static int _ioctl_v4, _ioctl_v6;
@@ -158,6 +162,8 @@ os_net_update_interface(struct oonf_interface_data *ifdata,
     /* interface is not there at the moment */
     return 0;
   }
+
+  ifdata->base_index = _os_linux_get_base_ifindex(name);
 
   memset(&ifr, 0, sizeof(ifr));
   strscpy(ifr.ifr_name, ifdata->name, IF_NAMESIZE);
@@ -272,7 +278,7 @@ os_net_init_mesh_if(struct oonf_interface *interf) {
   /* Generate the procfile name */
   snprintf(procfile, sizeof(procfile), PROC_IF_REDIRECT, interf->data.name);
 
-  if (_os_linux_writeToProc(procfile, &old_redirect, '0')) {
+  if (_os_linux_writeToFile(procfile, &old_redirect, '0')) {
     OONF_WARN(LOG_OS_NET, "WARNING! Could not disable ICMP redirects! "
         "You should manually ensure that ICMP redirects are disabled!");
   }
@@ -280,7 +286,7 @@ os_net_init_mesh_if(struct oonf_interface *interf) {
   /* Generate the procfile name */
   snprintf(procfile, sizeof(procfile), PROC_IF_SPOOF, interf->data.name);
 
-  if (_os_linux_writeToProc(procfile, &old_spoof, '0')) {
+  if (_os_linux_writeToFile(procfile, &old_spoof, '0')) {
     OONF_WARN(LOG_OS_NET, "WARNING! Could not disable the IP spoof filter! "
         "You should mannually ensure that IP spoof filtering is disabled!");
   }
@@ -309,7 +315,7 @@ os_net_cleanup_mesh_if(struct oonf_interface *interf) {
   /* Generate the procfile name */
   snprintf(procfile, sizeof(procfile), PROC_IF_REDIRECT, interf->data.name);
 
-  if (_os_linux_writeToProc(procfile, NULL, restore_redirect) != 0) {
+  if (_os_linux_writeToFile(procfile, NULL, restore_redirect) != 0) {
     OONF_WARN(LOG_OS_NET, "Could not restore ICMP redirect flag %s to %c",
         procfile, restore_redirect);
   }
@@ -317,7 +323,7 @@ os_net_cleanup_mesh_if(struct oonf_interface *interf) {
   /* Generate the procfile name */
   snprintf(procfile, sizeof(procfile), PROC_IF_SPOOF, interf->data.name);
 
-  if (_os_linux_writeToProc(procfile, NULL, restore_spoof) != 0) {
+  if (_os_linux_writeToFile(procfile, NULL, restore_spoof) != 0) {
     OONF_WARN(LOG_OS_NET, "Could not restore IP spoof flag %s to %c",
         procfile, restore_spoof);
   }
@@ -357,30 +363,63 @@ os_net_linux_get_ioctl_fd(int af_type) {
   }
 }
 
+static unsigned
+_os_linux_get_base_ifindex(const char *interf) {
+  char sysfile[FILENAME_MAX];
+  char ifnumber[11];
+  int fd;
+  ssize_t len;
+
+  /* Generate the sysfs name */
+  snprintf(sysfile, sizeof(sysfile), SYSFS_BASE_IFINDEX, interf);
+
+  if ((fd = open(sysfile, O_RDONLY)) < 0) {
+    OONF_WARN(LOG_OS_NET,
+      "Error, cannot open sysfs entry %s: %s (%d)\n",
+      sysfile, strerror(errno), errno);
+    return 0;
+  }
+
+  if ((len = read(fd, &ifnumber, sizeof(ifnumber))) < 0) {
+    OONF_WARN(LOG_OS_NET,
+      "Error, cannot read proc entry %s: %s (%d)\n",
+      sysfile, strerror(errno), errno);
+    return 0;
+  }
+
+  if (len >= (ssize_t)sizeof(ifnumber)) {
+	  OONF_WARN(LOG_OS_NET, "Content of %s too long", sysfile);
+	  return 0;
+  }
+
+  ifnumber[len] = 0;
+  return atoi(ifnumber);
+}
+
 /**
  * Set the required settings to allow multihop mesh routing
  */
 static void
 _activate_if_routing(void) {
-  if (_os_linux_writeToProc(PROC_IPFORWARD_V4, &_original_ipv4_forward, '1')) {
+  if (_os_linux_writeToFile(PROC_IPFORWARD_V4, &_original_ipv4_forward, '1')) {
     OONF_WARN(LOG_OS_NET, "WARNING! Could not activate ip_forward for ipv4! "
         "You should manually ensure that ip_forward for ipv4 is activated!");
   }
   if (os_net_is_ipv6_supported()) {
-    if(_os_linux_writeToProc(PROC_IPFORWARD_V6, &_original_ipv6_forward, '1')) {
+    if(_os_linux_writeToFile(PROC_IPFORWARD_V6, &_original_ipv6_forward, '1')) {
       OONF_WARN(LOG_OS_NET, "WARNING! Could not activate ip_forward for ipv6! "
           "You should manually ensure that ip_forward for ipv6 is activated!");
     }
   }
 
-  if (_os_linux_writeToProc(PROC_ALL_REDIRECT, &_original_icmp_redirect, '0')) {
+  if (_os_linux_writeToFile(PROC_ALL_REDIRECT, &_original_icmp_redirect, '0')) {
     OONF_WARN(LOG_OS_NET, "WARNING! Could not disable ICMP redirects! "
         "You should manually ensure that ICMP redirects are disabled!");
   }
 
   /* check kernel version and disable global rp_filter */
   if (_is_at_least_linuxkernel_2_6_31()) {
-    if (_os_linux_writeToProc(PROC_ALL_SPOOF, &_original_rp_filter, '0')) {
+    if (_os_linux_writeToFile(PROC_ALL_SPOOF, &_original_rp_filter, '0')) {
       OONF_WARN(LOG_OS_NET, "WARNING! Could not disable global rp_filter "
           "(necessary for kernel 2.6.31 and newer)! You should manually "
           "ensure that rp_filter is disabled!");
@@ -393,24 +432,24 @@ _activate_if_routing(void) {
  */
 static void
 _deactivate_if_routing(void) {
-  if (_os_linux_writeToProc(PROC_ALL_REDIRECT, NULL, _original_icmp_redirect) != 0) {
+  if (_os_linux_writeToFile(PROC_ALL_REDIRECT, NULL, _original_icmp_redirect) != 0) {
     OONF_WARN(LOG_OS_NET,
         "WARNING! Could not restore ICMP redirect flag %s to %c!",
         PROC_ALL_REDIRECT, _original_icmp_redirect);
   }
 
-  if (_os_linux_writeToProc(PROC_ALL_SPOOF, NULL, _original_rp_filter)) {
+  if (_os_linux_writeToFile(PROC_ALL_SPOOF, NULL, _original_rp_filter)) {
     OONF_WARN(LOG_OS_NET,
         "WARNING! Could not restore global rp_filter flag %s to %c!",
         PROC_ALL_SPOOF, _original_rp_filter);
   }
 
-  if (_os_linux_writeToProc(PROC_IPFORWARD_V4, NULL, _original_ipv4_forward)) {
+  if (_os_linux_writeToFile(PROC_IPFORWARD_V4, NULL, _original_ipv4_forward)) {
     OONF_WARN(LOG_OS_NET, "WARNING! Could not restore %s to %c!",
         PROC_IPFORWARD_V4, _original_ipv4_forward);
   }
   if (os_net_is_ipv6_supported()) {
-    if (_os_linux_writeToProc(PROC_IPFORWARD_V6, NULL, _original_ipv6_forward)) {
+    if (_os_linux_writeToFile(PROC_IPFORWARD_V6, NULL, _original_ipv6_forward)) {
       OONF_WARN(LOG_OS_NET, "WARNING! Could not restore %s to %c",
           PROC_IPFORWARD_V6, _original_ipv6_forward);
     }
@@ -427,7 +466,7 @@ _deactivate_if_routing(void) {
  * @return -1 if an error happened, 0 otherwise
  */
 static int
-_os_linux_writeToProc(const char *file, char *old, char value) {
+_os_linux_writeToFile(const char *file, char *old, char value) {
   int fd;
   char rv;
 
