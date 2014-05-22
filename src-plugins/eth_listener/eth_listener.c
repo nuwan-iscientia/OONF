@@ -134,6 +134,7 @@ _cb_transmission_event(void *ptr __attribute((unused))) {
   struct ifreq req;
   int64_t ethspeed;
   int err;
+  struct isonumber_str ibuf;
 
   avl_for_each_element(&oonf_interface_tree, interf, _node) {
     /* initialize ethtool command */
@@ -170,6 +171,9 @@ _cb_transmission_event(void *ptr __attribute((unused))) {
     ethspeed *= 1000 * 1000;
 
     /* set corresponding database entries */
+    OONF_DEBUG(LOG_ETH, "Set default link speed of interface %s to %s",
+        interf->data.name, isonumber_from_s64(&ibuf, ethspeed, "bit/s", 0, false, false));
+
     oonf_layer2_set_value(&l2net->neighdata[OONF_LAYER2_NEIGH_RX_BITRATE],
         _l2_origin, ethspeed);
     oonf_layer2_set_value(&l2net->neighdata[OONF_LAYER2_NEIGH_TX_BITRATE],
