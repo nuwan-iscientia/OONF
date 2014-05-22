@@ -148,17 +148,21 @@ struct oonf_appdata {
 #ifdef OONF_LOG_DEBUG_INFO
 #define OONF_DEBUG(source, format, args...) _OONF_LOG(LOG_SEVERITY_DEBUG, source, false, format, ##args)
 #define OONF_DEBUG_NH(source, format, args...) _OONF_LOG(LOG_SEVERITY_DEBUG, source, true, format, ##args)
+#define OONF_TEST_DEBUG(source) oonf_log_mask_test(log_global_mask, source, LOG_SEVERITY_DEBUG)
 #else
 #define OONF_DEBUG(source, format, args...) do { } while(0)
 #define OONF_DEBUG_NH(source, format, args...) do { } while(0)
+#define OONF_TEST_DEBUG(source) false
 #endif
 
 #ifdef OONF_LOG_INFO
 #define OONF_INFO(source, format, args...) _OONF_LOG(LOG_SEVERITY_INFO, source, false, format, ##args)
 #define OONF_INFO_NH(source, format, args...) _OONF_LOG(LOG_SEVERITY_INFO, source, true, format, ##args)
+#define OONF_TEST_INFO(source) oonf_log_mask_test(log_global_mask, source, LOG_SEVERITY_INFO)
 #else
 #define OONF_INFO(source, format, args...) do { } while(0)
 #define OONF_INFO_NH(source, format, args...) do { } while(0)
+#define OONF_TEST_INFO(source) false
 #endif
 
 #define OONF_WARN(source, format, args...) _OONF_LOG(LOG_SEVERITY_WARN, source, false, format, ##args)
