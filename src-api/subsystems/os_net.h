@@ -72,6 +72,12 @@ struct oonf_interface_data {
   /* interface index */
   unsigned index;
 
+  /*
+   * interface index of base interface (for vlan),
+   * same for normal interface
+   */
+  unsigned base_index;
+
   /* true if the interface exists and is up */
   bool up;
 

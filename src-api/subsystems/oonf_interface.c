@@ -247,6 +247,40 @@ oonf_interface_get_data(const char *name, struct oonf_interface_data *buf) {
 }
 
 /**
+ * Search for an interface by its index
+ * @param ifindex index of the interface
+ * @return interface data, NULL if not found
+ */
+struct oonf_interface_data *
+oonf_interface_get_data_by_ifindex(unsigned ifindex) {
+  struct oonf_interface *interf;
+
+  avl_for_each_element(&oonf_interface_tree, interf, _node) {
+    if (interf->data.index == ifindex) {
+      return &interf->data;
+    }
+  }
+  return NULL;
+}
+
+/**
+ * Search for an interface by its base-index
+ * @param ifindex index of the interface
+ * @return first fitting interface data, NULL if not found
+ */
+struct oonf_interface_data *
+oonf_interface_get_data_by_ifbaseindex(unsigned ifindex) {
+  struct oonf_interface *interf;
+
+  avl_for_each_element(&oonf_interface_tree, interf, _node) {
+    if (interf->data.base_index == ifindex) {
+      return &interf->data;
+    }
+  }
+  return NULL;
+}
+
+/**
  * Calculate the IP address a socket should bind to
  * @param filter filter for IP address to bind on
  * @param ifdata interface to bind to socket on, NULL if not

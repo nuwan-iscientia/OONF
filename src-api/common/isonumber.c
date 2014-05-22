@@ -273,7 +273,7 @@ _isonumber_u64_to_string(char *out, size_t out_len,
   multiplier = 1;
   unit_modifier = symbol;
 
-  while (fraction-- > 0) {
+  while (--fraction >= 0) {
     multiplier *= 10;
   }
 
