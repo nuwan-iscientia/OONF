@@ -44,6 +44,7 @@
 #include <sys/ioctl.h>
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <errno.h>
 #include <unistd.h>
 
 #include "common/common_types.h"
@@ -144,7 +145,19 @@ _cb_transmission_event(void *ptr __attribute((unused))) {
     /* initialize interface request */
     memset(&req, 0, sizeof(req));
     req.ifr_data = (void *)&cmd;
-    strscpy(req.ifr_name, interf->data.name, IF_NAMESIZE);
+
+    if (interf->data.base_index != interf->data.index) {
+      /* get name of base interface */
+      if (if_indextoname(interf->data.base_index, req.ifr_name) == NULL) {
+        OONF_WARN(LOG_ETH, "Could not get interface name of index %u: %s (%d)",
+            interf->data.base_index, strerror(errno), errno);
+        continue;
+      }
+    }
+    else {
+      /* copy interface name directly */
+      strscpy(req.ifr_name, interf->data.name, IF_NAMESIZE);
+    }
 
     /* request ethernet information from kernel */
     err = ioctl(os_net_linux_get_ioctl_fd(AF_INET), SIOCETHTOOL, &req);
