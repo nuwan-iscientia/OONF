@@ -425,9 +425,6 @@ oonf_rfc5444_add_protocol(const char *name, bool fixed_local_port) {
   /* keep track of reference count */
   protocol->_refcount++;
 
-  /* set initial refcount */
-  protocol->_refcount = 1;
-
   return protocol;
 }
 
