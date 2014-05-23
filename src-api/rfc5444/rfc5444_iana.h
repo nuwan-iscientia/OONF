@@ -98,20 +98,25 @@ enum rfc6622_pkttlvs_iana {
 
 enum rfc5497_msgtlvs_iana {
   /* RFC 5497 (timetlv) */
-  RFC5497_MSGTLV_INTERVAL_TIME = 0,
-  RFC5497_MSGTLV_VALIDITY_TIME = 1,
+  RFC5497_MSGTLV_INTERVAL_TIME  = 0,
+  RFC5497_MSGTLV_VALIDITY_TIME  = 1,
 };
 
 enum rfc6622_msgtlvs_iana {
   /* RFC 6622 (rfc5444-sec) */
-  RFC6622_MSGTLV_ICV           = 5,
-  RFC6622_MSGTLV_TIMESTAMP     = 6,
+  RFC6622_MSGTLV_ICV            = 5,
+  RFC6622_MSGTLV_TIMESTAMP      = 6,
 };
 
 enum rfc7181_msgtlvs_iana {
   /* RFC 7181 (OLSRv2) */
-  RFC7181_MSGTLV_MPR_WILLING   = 7,
-  RFC7181_MSGTLV_CONT_SEQ_NUM  = 8,
+  RFC7181_MSGTLV_MPR_WILLING    = 7,
+  RFC7181_MSGTLV_CONT_SEQ_NUM   = 8,
+};
+
+enum draft_olsrv2_mt_iana {
+  DRAFT_MT_MSGTLV_MPR_TYPES     = RFC7181_MSGTLV_MPR_WILLING,
+  DRAFT_MT_MSGTLV_MPR_TYPES_EXT = 1,
 };
 
 /* values for MPR_WILLING message TLV */
@@ -136,6 +141,10 @@ enum rfc7181_cont_seq_num_ext {
   RFC7181_CONT_SEQ_NUM_COMPLETE   = 0,
   RFC7181_CONT_SEQ_NUM_INCOMPLETE = 1,
   RFC7181_CONT_SEQ_NUM_BITMASK    = 1,
+};
+
+enum draft_mt_mpr_types {
+  DRAFT_MT_MPR_TYPES_MAX_TOPOLOGIES = 8,
 };
 
 /*
@@ -219,5 +228,4 @@ enum rfc7181_nbr_addr_type_values {
   RFC7181_NBR_ADDR_TYPE_ROUTABLE_ORIG = 3,
   RFC7181_NBR_ADDR_TYPE_BITMASK       = 3,
 };
-
 #endif /* RFC5444_IANA_H_ */
