@@ -181,8 +181,8 @@ struct cfg_schema {
   /* tree of schema entries of this schema */
   struct avl_tree entries;
 
-  /* tree of delta handlers of this schema */
-  struct avl_tree handlers;
+  /* list of delta handlers of this schema */
+  struct list_entity handlers;
 };
 
 enum cfg_schema_section_mode {
@@ -226,7 +226,6 @@ enum cfg_schema_section_mode {
  * a certain type
  */
 struct cfg_schema_section {
-
   /* node for global section tree, initialized by schema_add() */
   struct avl_node _section_node;
 
@@ -247,10 +246,7 @@ struct cfg_schema_section {
       struct cfg_named_section *, struct autobuf *);
 
   /* node for global delta handler tree, initialized by delta_add() */
-  struct avl_node _delta_node;
-
-  /* priority for delta handling, key for delta_node */
-  uint32_t delta_priority;
+  struct list_entity _delta_node;
 
   /* callback for delta handling, NULL if not interested */
   void (*cb_delta_handler)(void);

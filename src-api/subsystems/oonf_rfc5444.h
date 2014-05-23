@@ -81,6 +81,11 @@ enum {
 /* Interface name for unicast targets */
 #define RFC5444_UNICAST_TARGET OONF_INTERFACE_WILDCARD
 
+/* classes for elements of RFC5444 */
+#define RFC5444_CLASS_PROTOCOL  "RFC5444 protocol"
+#define RFC5444_CLASS_INTERFACE "RFC5444 interface"
+#define RFC5444_CLASS_TARGET    "RFC5444 target"
+
 struct oonf_rfc5444_target;
 
 /*

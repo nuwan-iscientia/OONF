@@ -91,7 +91,7 @@ void
 cfg_schema_add(struct cfg_schema *schema) {
   avl_init(&schema->sections, cfg_avlcmp_keys, true);
   avl_init(&schema->entries, cfg_avlcmp_schemaentries, true);
-  avl_init(&schema->handlers, avl_comp_uint32, true);
+  list_init_head(&schema->handlers);
 }
 
 /**
@@ -115,9 +115,8 @@ cfg_schema_add_section(struct cfg_schema *schema,
   avl_insert(&schema->sections, &section->_section_node);
 
   if (section->cb_delta_handler) {
-    /* hook callback into global callback handler tree */
-    section->_delta_node.key = &section->delta_priority;
-    avl_insert(&schema->handlers, &section->_delta_node);
+    /* hook callback into global callback handler list */
+    list_add_tail(&schema->handlers, &section->_delta_node);
   }
 
   for (i=0; i<section->entry_count; i++) {
@@ -174,9 +173,8 @@ cfg_schema_remove_section(struct cfg_schema *schema, struct cfg_schema_section *
       section->entries[i]._node.key = NULL;
     }
   }
-  if (section->_delta_node.key) {
-    avl_remove(&schema->handlers, &section->_delta_node);
-    section->_delta_node.key = NULL;
+  if (list_is_node_added(&section->_delta_node)) {
+    list_remove(&section->_delta_node);
   }
 }
 
@@ -859,7 +857,7 @@ _handle_db_changes(struct cfg_db *pre_change, struct cfg_db *post_change, bool s
   default_section_type[0].db = pre_change;
   default_section_type[1].db = post_change;
 
-  avl_for_each_element(&pre_change->schema->handlers, s_section, _delta_node) {
+  list_for_each_element(&pre_change->schema->handlers, s_section, _delta_node) {
     /* get section types in both databases */
     pre_type = cfg_db_find_sectiontype(pre_change, s_section->type);
     post_type = cfg_db_find_sectiontype(post_change, s_section->type);
@@ -1093,7 +1091,16 @@ _handle_named_section_change(struct cfg_schema_section *s_section,
       s_section->post = post_defnamed;
     }
   }
+
   changed = false;
+
+  if ((s_section->mode == CFG_SSMODE_NAMED
+      || s_section->mode == CFG_SSMODE_NAMED_MANDATORY
+      || s_section->mode == CFG_SSMODE_NAMED_WITH_DEFAULT)
+      && (s_section->pre == NULL) != (s_section->post == NULL)) {
+    /* section vanished or appeared */
+    changed = true;
+  }
 
   for (i=0; i<s_section->entry_count; i++) {
     entry = &s_section->entries[i];

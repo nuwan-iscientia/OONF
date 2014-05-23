@@ -104,17 +104,17 @@ static void _cb_interface_changed(struct oonf_packet_managed *managed, bool);
 
 /* memory block for rfc5444 targets plus MTU sized packet buffer */
 static struct oonf_class _protocol_memcookie = {
-  .name = "RFC5444 Protocol",
+  .name = RFC5444_CLASS_PROTOCOL,
   .size = sizeof(struct oonf_rfc5444_protocol),
 };
 
 static struct oonf_class _interface_memcookie = {
-  .name = "RFC5444 Interface",
+  .name = RFC5444_CLASS_INTERFACE,
   .size = sizeof(struct oonf_rfc5444_interface),
 };
 
 static struct oonf_class _target_memcookie = {
-  .name = "RFC5444 Target",
+  .name = RFC5444_CLASS_TARGET,
   .size = sizeof(struct oonf_rfc5444_target),
 };
 
@@ -389,39 +389,41 @@ oonf_rfc5444_add_protocol(const char *name, bool fixed_local_port) {
   struct oonf_rfc5444_protocol *protocol;
 
   protocol = avl_find_element(&_protocol_tree, name, protocol, _node);
-  if (protocol) {
-    /* protocol already exists */
-    protocol->_refcount++;
-    return protocol;
+  if (!protocol) {
+    protocol = oonf_class_malloc(&_protocol_memcookie);
+    if (protocol == NULL) {
+      return NULL;
+    }
+
+    /* set name */
+    strscpy(protocol->name, name, sizeof(protocol->name));
+    protocol->fixed_local_port = fixed_local_port;
+
+    /* hook into global protocol tree */
+    protocol->_node.key = protocol->name;
+    avl_insert(&_protocol_tree, &protocol->_node);
+
+    /* initialize rfc5444 reader/writer */
+    memcpy(&protocol->reader, &_reader_template, sizeof(_reader_template));
+    memcpy(&protocol->writer, &_writer_template, sizeof(_writer_template));
+    protocol->writer.msg_buffer = protocol->_msg_buffer;
+    protocol->writer.addrtlv_buffer = protocol->_addrtlv_buffer;
+    rfc5444_reader_init(&protocol->reader);
+    rfc5444_writer_init(&protocol->writer);
+
+    /* initialize processing and forwarding set */
+    oonf_duplicate_set_add(&protocol->forwarded_set);
+    oonf_duplicate_set_add(&protocol->processed_set);
+
+    /* init interface subtree */
+    avl_init(&protocol->_interface_tree, avl_comp_strcasecmp, false);
   }
 
-  protocol = oonf_class_malloc(&_protocol_memcookie);
-  if (protocol == NULL) {
-    return NULL;
-  }
+  OONF_INFO(LOG_RFC5444, "Add protocol %s (refcount was %d)",
+      name, protocol->_refcount);
 
-  /* set name */
-  strscpy(protocol->name, name, sizeof(protocol->name));
-  protocol->fixed_local_port = fixed_local_port;
-
-  /* hook into global protocol tree */
-  protocol->_node.key = protocol->name;
-  avl_insert(&_protocol_tree, &protocol->_node);
-
-  /* initialize rfc5444 reader/writer */
-  memcpy(&protocol->reader, &_reader_template, sizeof(_reader_template));
-  memcpy(&protocol->writer, &_writer_template, sizeof(_writer_template));
-  protocol->writer.msg_buffer = protocol->_msg_buffer;
-  protocol->writer.addrtlv_buffer = protocol->_addrtlv_buffer;
-  rfc5444_reader_init(&protocol->reader);
-  rfc5444_writer_init(&protocol->writer);
-
-  /* initialize processing and forwarding set */
-  oonf_duplicate_set_add(&protocol->forwarded_set);
-  oonf_duplicate_set_add(&protocol->processed_set);
-
-  /* init interface subtree */
-  avl_init(&protocol->_interface_tree, avl_comp_strcasecmp, false);
+  /* keep track of reference count */
+  protocol->_refcount++;
 
   /* set initial refcount */
   protocol->_refcount = 1;
@@ -436,6 +438,9 @@ oonf_rfc5444_add_protocol(const char *name, bool fixed_local_port) {
 void
 oonf_rfc5444_remove_protocol(struct oonf_rfc5444_protocol *protocol) {
   struct oonf_rfc5444_interface *interf, *i_it;
+
+  OONF_INFO(LOG_RFC5444, "Remove protocol %s (refcount was %d)",
+      protocol->name, protocol->_refcount);
 
   if (protocol->_refcount > 1) {
     /* There are still users left for this protocol */
@@ -500,9 +505,6 @@ oonf_rfc5444_add_interface(struct oonf_rfc5444_protocol *protocol,
     struct oonf_rfc5444_interface_listener *listener, const char *name) {
   struct oonf_rfc5444_interface *interf;
 
-  OONF_DEBUG(LOG_RFC5444, "Add interface %s to protocol %s",
-      name, protocol->name);
-
   interf = avl_find_element(&protocol->_interface_tree,
       name, interf, _node);
   if (interf == NULL) {
@@ -540,6 +542,9 @@ oonf_rfc5444_add_interface(struct oonf_rfc5444_protocol *protocol,
     protocol->_refcount++;
   }
 
+  OONF_INFO(LOG_RFC5444, "Add interface %s to protocol %s (refcount was %d)",
+      name, protocol->name, interf->_refcount);
+
   /* increase reference count */
   interf->_refcount += 1;
 
@@ -561,8 +566,8 @@ oonf_rfc5444_remove_interface(struct oonf_rfc5444_interface *interf,
     struct oonf_rfc5444_interface_listener *listener) {
   struct oonf_rfc5444_target *target, *t_it;
 
-  OONF_DEBUG(LOG_RFC5444, "Remove interface %s from protocol %s",
-      interf->name, interf->protocol->name);
+  OONF_INFO(LOG_RFC5444, "Remove interface %s from protocol %s (refcount was %d)",
+      interf->name, interf->protocol->name, interf->_refcount);
 
   if (listener != NULL && listener->interface != NULL) {
     list_remove(&listener->_node);
@@ -716,22 +721,22 @@ struct oonf_rfc5444_target *
 oonf_rfc5444_add_target(struct oonf_rfc5444_interface *interf,
     struct netaddr *dst) {
   struct oonf_rfc5444_target *target;
+  struct netaddr_str nbuf;
 
   target = avl_find_element(&interf->_target_tree, dst, target, _node);
-  if (target) {
-    /* target already exists */
-    target->_refcount++;
-    return target;
+  if (!target) {
+    target = _create_target(interf, dst, true);
+    if (target == NULL) {
+      return NULL;
+    }
+
+    /* hook into interface tree */
+    target->_node.key = &target->dst;
+    avl_insert(&interf->_target_tree, &target->_node);
   }
 
-  target = _create_target(interf, dst, true);
-  if (target == NULL) {
-    return NULL;
-  }
-
-  /* hook into interface tree */
-  target->_node.key = &target->dst;
-  avl_insert(&interf->_target_tree, &target->_node);
+  OONF_INFO(LOG_RFC5444, "Add target %s to interface %s on protocol %s (refcount was %d)",
+      netaddr_to_string(&nbuf, dst), interf->name, interf->protocol->name, target->_refcount);
 
   /* increase interface refcount */
   interf->_refcount++;
@@ -744,6 +749,12 @@ oonf_rfc5444_add_target(struct oonf_rfc5444_interface *interf,
  */
 void
 oonf_rfc5444_remove_target(struct oonf_rfc5444_target *target) {
+  struct netaddr_str nbuf;
+
+  OONF_INFO(LOG_RFC5444, "Remove target %s from interface %s on protocol %s (refcount was %d)",
+      netaddr_to_string(&nbuf, &target->dst),
+      target->interface->name, target->interface->protocol->name, target->_refcount);
+
   if (target->_refcount > 1) {
     /* target still in use */
     target->_refcount--;
@@ -1209,7 +1220,7 @@ _cb_cfg_interface_changed(void) {
     return;
   }
 
-  if (interf == NULL) {
+  if (_interface_section.pre == NULL) {
     interf = oonf_rfc5444_add_interface(_rfc5444_protocol,
         NULL, _interface_section.post->name);
     if (interf == NULL) {
