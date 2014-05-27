@@ -83,7 +83,7 @@
   #define PRINTF_SSIZE_T_SPECIFIER    "zd"
   #define PRINTF_PTRDIFF_T_SPECIFIER  "zd"
 #else
-  // TODO figure out which to use.
+  /* maybe someone can check what to do about LLVM/Clang? */
   #error Please implement size_t modifiers
 #endif
 

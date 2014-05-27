@@ -718,7 +718,9 @@ struct oonf_rfc5444_target *
 oonf_rfc5444_add_target(struct oonf_rfc5444_interface *interf,
     struct netaddr *dst) {
   struct oonf_rfc5444_target *target;
+#ifdef OONF_LOG_INFO
   struct netaddr_str nbuf;
+#endif
 
   target = avl_find_element(&interf->_target_tree, dst, target, _node);
   if (!target) {
@@ -746,7 +748,9 @@ oonf_rfc5444_add_target(struct oonf_rfc5444_interface *interf,
  */
 void
 oonf_rfc5444_remove_target(struct oonf_rfc5444_target *target) {
+#ifdef OONF_LOG_INFO
   struct netaddr_str nbuf;
+#endif
 
   OONF_INFO(LOG_RFC5444, "Remove target %s from interface %s on protocol %s (refcount was %d)",
       netaddr_to_string(&nbuf, &target->dst),
