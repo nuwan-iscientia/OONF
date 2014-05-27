@@ -40,73 +40,32 @@
  */
 
 #include <sys/times.h>
-#include <fcntl.h>
+#include <sys/file.h>
 #include <unistd.h>
-#include <stdlib.h>
-#include <syslog.h>
 
-#include "core/oonf_libdata.h"
-#include "core/oonf_logging.h"
-#include "core/oonf_subsystem.h"
 #include "core/os_core.h"
 
-/* prototypes */
-static int _init(void);
-static void _cleanup(void);
-
-/* subsystem definition */
-struct oonf_subsystem oonf_os_core_subsystem = {
-  .name = "os_core",
-  .init = _init,
-  .cleanup = _cleanup,
-  .no_logging = true,
-};
 
 /**
- * Initialize core system
- * @return always returns 0
+ * Create a lock file of a certain name
+ * @param path name of lockfile including path
+ * @return 0 if the lock was created successfully, false otherwise
  */
-static int
-_init(void) {
-  /* seed random number generator */
-  srandom(times(NULL));
+int
+os_core_create_lockfile(const char *path) {
+  int lock_fd;
 
-  /* open logfile */
-  openlog(oonf_log_get_appdata()->app_name, LOG_PID | LOG_ODELAY, LOG_DAEMON);
-  setlogmask(LOG_UPTO(LOG_DEBUG));
-
-  return 0;
-}
-
-/**
- * Cleanup syslog system
- */
-static void
-_cleanup(void) {
-  closelog();
-}
-
-/**
- * Print a line to the syslog
- * @param severity severity of entry
- * @param msg line to print
- */
-void
-os_core_syslog(enum oonf_log_severity severity, const char *msg) {
-  int log_sev;
-
-  switch (severity) {
-    case LOG_SEVERITY_DEBUG:
-      log_sev = LOG_DEBUG;
-      break;
-    case LOG_SEVERITY_INFO:
-      log_sev = LOG_NOTICE;
-      break;
-    default:
-    case LOG_SEVERITY_WARN:
-      log_sev = LOG_WARNING;
-      break;
+  /* create file for lock */
+  lock_fd = open(path, O_RDWR | O_CREAT, S_IRWXU);
+  if (lock_fd == -1) {
+    return -1;
   }
 
-  syslog(log_sev, "%s", msg);
+  if (flock(lock_fd, LOCK_EX | LOCK_NB)) {
+    close(lock_fd);
+    return -1;
+  }
+
+  /* lock will be released when process ends */
+  return 0;
 }
