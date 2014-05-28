@@ -98,6 +98,7 @@ struct oonf_subsystem oonf_link_config_subsystem = {
 
   .cfg_section = &_link_config_section,
 };
+DECLARE_OONF_PLUGIN(oonf_link_config_subsystem);
 
 uint32_t _l2_origin_current, _l2_origin_old;
 
