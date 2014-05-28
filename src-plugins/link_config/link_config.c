@@ -71,7 +71,7 @@ static void _cb_config_changed(void);
 /* define configuration entries */
 #define CFG_VALIDATE_LINKDATA(link_index, p_help, args...)         _CFG_VALIDATE(oonf_layer2_metadata_neigh[link_index].key, "", p_help, .cb_validate = _cb_validate_linkdata, .validate_param = {{ .i32 = { link_index }}}, .list = true, ##args )
 
-static struct cfg_schema_entry _linkconfig_if_entries[] = {
+static struct cfg_schema_entry _link_config_if_entries[] = {
   CFG_VALIDATE_LINKDATA(OONF_LAYER2_NEIGH_RX_BITRATE,
     "Sets the incoming link speed on the interface. Consists of a speed in"
     " bits/s (with iso-prefix) and an optional list of mac addresses of neighbor nodes."),
@@ -83,20 +83,20 @@ static struct cfg_schema_entry _linkconfig_if_entries[] = {
     " dBm (with iso-prefix) and an optional list of mac addresses of neighbor nodes."),
 };
 
-static struct cfg_schema_section _linkconfig_section = {
+static struct cfg_schema_section _link_config_section = {
   .type = CFG_INTERFACE_SECTION,
   .mode = CFG_INTERFACE_SECTION_MODE,
   .cb_delta_handler = _cb_config_changed,
-  .entries = _linkconfig_if_entries,
-  .entry_count = ARRAYSIZE(_linkconfig_if_entries),
+  .entries = _link_config_if_entries,
+  .entry_count = ARRAYSIZE(_link_config_if_entries),
 };
 
-struct oonf_subsystem oonf_linkconfig_subsystem = {
+struct oonf_subsystem oonf_link_config_subsystem = {
   .name = OONF_PLUGIN_GET_NAME(),
   .init = _init,
   .cleanup = _cleanup,
 
-  .cfg_section = &_linkconfig_section,
+  .cfg_section = &_link_config_section,
 };
 
 uint32_t _l2_origin_current, _l2_origin_old;
@@ -263,14 +263,14 @@ _cb_config_changed(void) {
   uint32_t l2origin;
   size_t idx;
 
-  if (_linkconfig_section.post) {
-    for (idx = 0; idx < ARRAYSIZE(_linkconfig_if_entries); idx++) {
-      schema_entry = &_linkconfig_if_entries[idx];
+  if (_link_config_section.post) {
+    for (idx = 0; idx < ARRAYSIZE(_link_config_if_entries); idx++) {
+      schema_entry = &_link_config_if_entries[idx];
       l2idx = schema_entry->validate_param[0].i32[0];
 
-      entry = cfg_db_get_entry(_linkconfig_section.post, schema_entry->key.entry);
+      entry = cfg_db_get_entry(_link_config_section.post, schema_entry->key.entry);
       if (entry) {
-        _parse_strarray(&entry->val, _linkconfig_section.section_name, l2idx);
+        _parse_strarray(&entry->val, _link_config_section.section_name, l2idx);
       }
     }
   }
