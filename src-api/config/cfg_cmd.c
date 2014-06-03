@@ -50,18 +50,17 @@
 
 /* internal struct to get result for argument parsing */
 struct _parsed_argument {
-  char *type;
-  char *name;
-  char *key;
-  char *value;
+  char *section_type;
+  char *section_name;
+  char *entry_key;
+  char *entry_value;
 };
 
 static int _print_schema_section(struct autobuf *log, struct cfg_db *db,
     const char *section);
 static int _print_schema_entry(struct autobuf *log, struct cfg_db *db,
     const char *section, const char *entry);
-static int _do_parse_arg(struct cfg_instance *instance,
-    char *arg, struct _parsed_argument *pa, struct autobuf *log);
+static int _do_parse_arg(char *arg, struct _parsed_argument *pa, struct autobuf *log);
 
 /**
  * Clear the state for command line parsing remembered in the
@@ -71,11 +70,7 @@ static int _do_parse_arg(struct cfg_instance *instance,
 void
 cfg_cmd_clear_state(struct cfg_instance *instance) {
   free(instance->cmd_format);
-  free(instance->cmd_section_name);
-  free(instance->cmd_section_type);
   instance->cmd_format = NULL;
-  instance->cmd_section_name = NULL;
-  instance->cmd_section_type = NULL;
 }
 
 /**
@@ -87,8 +82,8 @@ cfg_cmd_clear_state(struct cfg_instance *instance) {
  * @return 0 if succeeded, -1 otherwise
  */
 int
-cfg_cmd_handle_set(struct cfg_instance *instance, struct cfg_db *db,
-    const char *arg, struct autobuf *log) {
+cfg_cmd_handle_set(struct cfg_instance *instance __attribute__((unused)),
+    struct cfg_db *db, const char *arg, struct autobuf *log) {
   struct _parsed_argument pa;
   char *ptr;
   bool dummy;
@@ -102,13 +97,13 @@ cfg_cmd_handle_set(struct cfg_instance *instance, struct cfg_db *db,
   /* prepare for cleanup */
   result = -1;
 
-  if (_do_parse_arg(instance, ptr, &pa, log)) {
+  if (_do_parse_arg(ptr, &pa, log)) {
     goto handle_set_cleanup;
   }
 
-  if (pa.value != NULL) {
-    if (cfg_db_set_entry(db, instance->cmd_section_type,
-        instance->cmd_section_name, pa.key, pa.value, true)) {
+  if (pa.entry_value != NULL) {
+    if (cfg_db_set_entry(db, pa.section_type,
+        pa.section_name, pa.entry_key, pa.entry_value, true)) {
       result = 0;
     }
     else {
@@ -118,14 +113,14 @@ cfg_cmd_handle_set(struct cfg_instance *instance, struct cfg_db *db,
     goto handle_set_cleanup;
   }
 
-  if (pa.key != NULL) {
+  if (pa.entry_key != NULL) {
     cfg_append_printable_line(log, "Key without value is not allowed for set command: %s", arg);
     goto handle_set_cleanup;
   }
 
   /* set section */
   if (NULL == _cfg_db_add_section(db,
-      instance->cmd_section_type, instance->cmd_section_name, &dummy)) {
+      pa.section_type, pa.section_name, &dummy)) {
     cfg_append_printable_line(log, "Cannot create section: '%s'\n", arg);
     goto handle_set_cleanup;
   }
@@ -145,8 +140,8 @@ handle_set_cleanup:
  * @return 0 if succeeded, -1 otherwise
  */
 int
-cfg_cmd_handle_remove(struct cfg_instance *instance, struct cfg_db *db,
-    const char *arg, struct autobuf *log) {
+cfg_cmd_handle_remove(struct cfg_instance *instance __attribute__((unused)),
+    struct cfg_db *db, const char *arg, struct autobuf *log) {
   struct _parsed_argument pa;
   char *ptr;
   int result;
@@ -159,18 +154,17 @@ cfg_cmd_handle_remove(struct cfg_instance *instance, struct cfg_db *db,
   /* prepare for cleanup */
   result = -1;
 
-  if (_do_parse_arg(instance, ptr, &pa, log)) {
+  if (_do_parse_arg(ptr, &pa, log)) {
     goto handle_remove_cleanup;
   }
 
-  if (pa.value != NULL) {
+  if (pa.entry_value != NULL) {
     cfg_append_printable_line(log, "Value is not allowed for remove command: %s", arg);
     goto handle_remove_cleanup;
   }
 
-  if (pa.key != NULL) {
-    if (!cfg_db_remove_entry(db, instance->cmd_section_type,
-        instance->cmd_section_name, pa.key)) {
+  if (pa.entry_key != NULL) {
+    if (!cfg_db_remove_entry(db, pa.section_type, pa.section_name, pa.entry_key)) {
       result = 0;
     }
     else {
@@ -179,16 +173,15 @@ cfg_cmd_handle_remove(struct cfg_instance *instance, struct cfg_db *db,
     goto handle_remove_cleanup;
   }
 
-  if (instance->cmd_section_name) {
-    if (cfg_db_remove_namedsection(db,
-        instance->cmd_section_type, instance->cmd_section_name)) {
+  if (pa.section_name) {
+    if (cfg_db_remove_namedsection(db, pa.section_type, pa.section_name)) {
       cfg_append_printable_line(log, "Cannot remove section: '%s'\n", arg);
       goto handle_remove_cleanup;
     }
   }
 
-  if (instance->cmd_section_type) {
-    if (cfg_db_remove_sectiontype(db, instance->cmd_section_type)) {
+  if (pa.section_type) {
+    if (cfg_db_remove_sectiontype(db, pa.section_type)) {
       cfg_append_printable_line(log, "Cannot remove section: '%s'\n", arg);
       goto handle_remove_cleanup;
     }
@@ -209,8 +202,8 @@ handle_remove_cleanup:
  * @return 0 if succeeded, -1 otherwise
  */
 int
-cfg_cmd_handle_get(struct cfg_instance *instance, struct cfg_db *db,
-    const char *arg, struct autobuf *log) {
+cfg_cmd_handle_get(struct cfg_instance *instance __attribute__((unused)),
+    struct cfg_db *db, const char *arg, struct autobuf *log) {
   struct cfg_section_type *type, *type_it;
   struct cfg_named_section *named, *named_it;
   struct cfg_entry *entry, *entry_it;
@@ -235,18 +228,18 @@ cfg_cmd_handle_get(struct cfg_instance *instance, struct cfg_db *db,
   /* prepare for cleanup */
   result = -1;
 
-  if (_do_parse_arg(instance, arg_copy, &pa, log)) {
+  if (_do_parse_arg(arg_copy, &pa, log)) {
     goto handle_get_cleanup;
   }
 
-  if (pa.value != NULL) {
+  if (pa.entry_value != NULL) {
     cfg_append_printable_line(log, "Value is not allowed for view command: %s", arg);
     goto handle_get_cleanup;
   }
 
-  if (pa.key != NULL) {
+  if (pa.entry_key != NULL) {
     if (NULL == (entry = cfg_db_find_entry(db,
-        instance->cmd_section_type, instance->cmd_section_name, pa.key))) {
+        pa.section_type, pa.section_name, pa.entry_key))) {
       cfg_append_printable_line(log, "Cannot find data for entry: '%s'\n", arg);
       goto handle_get_cleanup;
     }
@@ -259,8 +252,8 @@ cfg_cmd_handle_get(struct cfg_instance *instance, struct cfg_db *db,
     goto handle_get_cleanup;
   }
 
-  if (pa.name == NULL) {
-    type = cfg_db_find_sectiontype(db, pa.type);
+  if (pa.section_name == NULL) {
+    type = cfg_db_find_sectiontype(db, pa.section_type);
     if (type == NULL || type->names.count == 0) {
       cfg_append_printable_line(log, "Cannot find data for section type: %s", arg);
       goto handle_get_cleanup;
@@ -268,7 +261,7 @@ cfg_cmd_handle_get(struct cfg_instance *instance, struct cfg_db *db,
 
     named = avl_first_element(&type->names, named, node);
     if (cfg_db_is_named_section(named)) {
-      cfg_append_printable_line(log, "Named sections in section type: %s", pa.type);
+      cfg_append_printable_line(log, "Named sections in section type: %s", pa.section_type);
       CFG_FOR_ALL_SECTION_NAMES(type, named, named_it) {
         cfg_append_printable_line(log, "%s", named->name);
       }
@@ -277,7 +270,7 @@ cfg_cmd_handle_get(struct cfg_instance *instance, struct cfg_db *db,
     }
   }
 
-  named = cfg_db_find_namedsection(db, pa.type, pa.name);
+  named = cfg_db_find_namedsection(db, pa.section_type, pa.section_name);
   if (named == NULL) {
     cfg_append_printable_line(log, "Cannot find data for section: %s", arg);
     goto handle_get_cleanup;
@@ -520,15 +513,13 @@ _print_schema_entry(struct autobuf *log, struct cfg_db *db,
 
 /**
  * Parse the parameter string for most commands
- * @param instance pointer to cfg_instance
  * @param arg argument of command
  * @param pa pointer to parsed argument struct for more return data
  * @param log pointer for logging
  * @return 0 if succeeded, negative otherwise
  */
 static int
-_do_parse_arg(struct cfg_instance *instance,
-    char *arg, struct _parsed_argument *pa, struct autobuf *log) {
+_do_parse_arg(char *arg, struct _parsed_argument *pa, struct autobuf *log) {
   static const char *pattern = "^(([a-zA-Z_][a-zA-Z_0-9]*)(\\[([a-zA-Z_][a-zA-Z_0-9]*)\\])?\\.)?([a-zA-Z_][a-zA-Z_0-9]*)?(=(.*))?$";
   regex_t regexp;
   regmatch_t matchers[8];
@@ -547,29 +538,19 @@ _do_parse_arg(struct cfg_instance *instance,
 
   memset(pa, 0, sizeof(*pa));
   if (matchers[2].rm_so != -1) {
-    pa->type = &arg[matchers[2].rm_so];
+    pa->section_type = &arg[matchers[2].rm_so];
     arg[matchers[2].rm_eo] = 0;
-
-    free (instance->cmd_section_type);
-    instance->cmd_section_type = strdup(pa->type);
-
-    /* remove name */
-    free (instance->cmd_section_name);
-    instance->cmd_section_name = NULL;
   }
   if (matchers[4].rm_so != -1) {
-    pa->name = &arg[matchers[4].rm_so];
+    pa->section_name = &arg[matchers[4].rm_so];
     arg[matchers[4].rm_eo] = 0;
-
-    /* name has already been deleted by section type code */
-    instance->cmd_section_name = strdup(pa->name);
   }
   if (matchers[5].rm_so != -1) {
-    pa->key = &arg[matchers[5].rm_so];
+    pa->entry_key = &arg[matchers[5].rm_so];
     arg[matchers[5].rm_eo] = 0;
   }
   if (matchers[7].rm_so != -1) {
-    pa->value = &arg[matchers[7].rm_so];
+    pa->entry_value = &arg[matchers[7].rm_so];
   }
 
   regfree(&regexp);

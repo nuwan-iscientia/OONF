@@ -66,12 +66,6 @@ struct cfg_instance {
 
   /* currently selected parser, NULL for 'auto' */
   char *cmd_format;
-
-  /* last used section type */
-  char *cmd_section_type;
-
-  /* last used section name, NULL for unnamed section */
-  char *cmd_section_name;
 };
 
 EXPORT void cfg_add(struct cfg_instance *);
