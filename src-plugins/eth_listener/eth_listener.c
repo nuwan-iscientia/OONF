@@ -135,7 +135,9 @@ _cb_transmission_event(void *ptr __attribute((unused))) {
   struct ifreq req;
   int64_t ethspeed;
   int err;
+#ifdef OONF_LOG_DEBUG_INFO
   struct isonumber_str ibuf;
+#endif
 
   avl_for_each_element(&oonf_interface_tree, interf, _node) {
     /* initialize ethtool command */

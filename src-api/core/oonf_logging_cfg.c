@@ -190,10 +190,8 @@ oonf_logcfg_apply(struct cfg_db *db) {
     fclose(f);
   }
 
-  /* log.stderr (activate if syslog and file ar offline) */
-  if (!config_global.fork) {
-    activate_stderr |= !(activate_syslog || activate_file);
-  }
+  /* log.stderr (activate if syslog and file are offline) */
+  activate_stderr |= !(activate_syslog || activate_file);
 
   if (activate_stderr && !list_is_node_added(&_stderr_handler.node)) {
     oonf_log_addhandler(&_stderr_handler);
@@ -204,7 +202,7 @@ oonf_logcfg_apply(struct cfg_db *db) {
 
   /* log.syslog */
   if (config_global.fork) {
-    activate_syslog |= !(activate_stderr || activate_file);
+    activate_syslog |= !activate_file;
   }
 
   if (activate_syslog && !list_is_node_added(&_syslog_handler.node)) {

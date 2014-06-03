@@ -484,7 +484,9 @@ _cb_rtnetlink_message(struct nlmsghdr *msg) {
 static void
 _cb_rtnetlink_error(uint32_t seq, int err) {
   struct os_route *route;
+#ifdef OONF_LOG_DEBUG_INFO
   struct os_route_str rbuf;
+#endif
 
   /* transform into errno number */
   err = -err;

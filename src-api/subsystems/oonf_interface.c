@@ -292,7 +292,9 @@ oonf_interface_get_bindaddress(int af_type,
     struct netaddr_acl *filter, struct oonf_interface_data *ifdata) {
   const struct netaddr *result;
   size_t i;
+#ifdef OONF_LOG_DEBUG_INFO
   struct netaddr_str nbuf;
+#endif
 
   OONF_DEBUG(LOG_INTERFACE, "Find bindto for acl:");
   for (i=0; i<filter->accept_count; i++) {
