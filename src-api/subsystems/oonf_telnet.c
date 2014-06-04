@@ -87,7 +87,7 @@ static struct cfg_schema_entry _telnet_entries[] = {
   CFG_MAP_ACL(oonf_stream_managed_config,
       bindto, "bindto", "127.0.0.1\0" "::1", "Allowed addressed to bind telnet socket to"),
   CFG_MAP_INT32_MINMAX(oonf_stream_managed_config,
-      port, "port", "2006", "Network port for telnet interface", 0, false, 1, 65535),
+      port, "port", "2009", "Network port for telnet interface", 0, false, 1, 65535),
 };
 
 static struct cfg_schema_section _telnet_section = {
