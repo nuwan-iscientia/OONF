@@ -49,6 +49,7 @@
 #include "common/netaddr_acl.h"
 
 #include "subsystems/oonf_class.h"
+#include "subsystems/oonf_interface.h"
 #include "subsystems/oonf_socket.h"
 #include "subsystems/oonf_timer.h"
 
@@ -178,19 +179,22 @@ struct oonf_stream_socket {
   bool remove_when_finished;
 };
 
+struct oonf_stream_managed_config {
+  struct netaddr_acl acl;
+  char interface[IF_NAMESIZE];
+  struct netaddr_acl bindto;
+  int32_t port;
+};
+
 struct oonf_stream_managed {
   struct oonf_stream_socket socket_v4;
   struct oonf_stream_socket socket_v6;
   struct netaddr_acl acl;
 
   struct oonf_stream_config config;
-};
 
-struct oonf_stream_managed_config {
-  struct netaddr_acl acl;
-  char interface[IF_NAMESIZE];
-  struct netaddr_acl bindto;
-  int32_t port;
+  struct oonf_stream_managed_config _managed_config;
+  struct oonf_interface_listener _if_listener;
 };
 
 #define LOG_STREAM oonf_stream_socket_subsystem.logging

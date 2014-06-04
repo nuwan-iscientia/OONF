@@ -59,14 +59,16 @@
 static int _init(void);
 static void _cleanup(void);
 
+int _apply_managed(struct oonf_stream_managed *managed);
 static int _apply_managed_socket(int af_type, struct oonf_stream_managed *managed,
-    struct oonf_stream_socket *stream, struct netaddr_acl *bindto, uint16_t port);
+    struct oonf_stream_socket *stream);
 static void _cb_parse_request(int fd, void *data, bool, bool);
 static struct oonf_stream_session *_create_session(
     struct oonf_stream_socket *stream_socket, int sock, struct netaddr *remote_addr);
 static void _cb_parse_connection(int fd, void *data, bool r,bool w);
 
 static void _cb_timeout_handler(void *);
+static void _cb_interface_listener(struct oonf_interface_listener *l);
 
 /* list of olsr stream sockets */
 struct list_entity oonf_stream_head;
@@ -336,6 +338,9 @@ oonf_stream_add_managed(struct oonf_stream_managed *managed) {
   if (managed->config.session_timeout == 0) {
     managed->config.session_timeout = 120000;
   }
+
+  managed->_if_listener.process = _cb_interface_listener;
+  oonf_interface_add_listener(&managed->_if_listener);
 }
 
 /**
@@ -350,18 +355,14 @@ oonf_stream_apply_managed(struct oonf_stream_managed *managed,
     struct oonf_stream_managed_config *config) {
   netaddr_acl_copy(&managed->acl, &config->acl);
 
-  if (_apply_managed_socket(AF_INET, managed,
-      &managed->socket_v4, &config->bindto, config->port)) {
-    return -1;
-  }
+  /* copy config */
+  memcpy(&managed->_managed_config, config, sizeof(*config));
 
-  if (os_net_is_ipv6_supported()) {
-    if (_apply_managed_socket(AF_INET6, managed,
-        &managed->socket_v6, &config->bindto, config->port)) {
-      return -1;
-    }
-  }
-  return 0;
+  /* copy acl */
+  memset(&managed->_managed_config.acl, 0, sizeof(managed->_managed_config.acl));
+  netaddr_acl_copy(&managed->_managed_config.acl, &config->acl);
+
+  return _apply_managed(managed);
 }
 
 /**
@@ -372,6 +373,8 @@ oonf_stream_apply_managed(struct oonf_stream_managed *managed,
  */
 void
 oonf_stream_remove_managed(struct oonf_stream_managed *managed, bool force) {
+  oonf_interface_remove_listener(&managed->_if_listener);
+
   oonf_stream_remove(&managed->socket_v4, force);
   oonf_stream_remove(&managed->socket_v6, force);
 
@@ -379,30 +382,47 @@ oonf_stream_remove_managed(struct oonf_stream_managed *managed, bool force) {
 }
 
 /**
+ * Apply the stored settings of a managed socket
+ * @param managed pointer to managed stream
+ * @return -1 if an error happened, 0 otherwise
+ */
+int
+_apply_managed(struct oonf_stream_managed *managed) {
+  if (_apply_managed_socket(AF_INET, managed, &managed->socket_v4)) {
+    return -1;
+  }
+
+  if (os_net_is_ipv6_supported()) {
+    if (_apply_managed_socket(AF_INET6, managed, &managed->socket_v6)) {
+      return -1;
+    }
+  }
+  return 0;
+}
+
+/**
  * Apply new configuration to a managed stream socket
  * @param af_type address type to bind socket to
  * @param managed pointer to managed stream
  * @param stream pointer to TCP stream to configure
- * @param bindto_acl allowed address to bind socket to
- * @param port local port number
  * @return -1 if an error happened, 0 otherwise.
  */
 static int
 _apply_managed_socket(int af_type, struct oonf_stream_managed *managed,
-    struct oonf_stream_socket *stream,
-    struct netaddr_acl *bind_ip_acl, uint16_t port) {
+    struct oonf_stream_socket *stream) {
   union netaddr_socket sock;
   const struct netaddr *bindto;
   struct netaddr_str buf;
 
-  bindto = oonf_interface_get_bindaddress(af_type, bind_ip_acl, NULL);
+  bindto = oonf_interface_get_bindaddress(
+      af_type, &managed->_managed_config.bindto, NULL);
   if (!bindto) {
     oonf_stream_remove(stream, true);
     return 0;
   }
-  if (netaddr_socket_init(&sock, bindto, port, 0)) {
+  if (netaddr_socket_init(&sock, bindto, managed->_managed_config.port, 0)) {
     OONF_WARN(LOG_STREAM, "Cannot create managed socket address: %s/%u",
-        netaddr_to_string(&buf, bindto), port);
+        netaddr_to_string(&buf, bindto), managed->_managed_config.port);
     return -1;
   }
 
@@ -700,4 +720,28 @@ _cb_parse_connection(int fd, void *data, bool event_read, bool event_write) {
     oonf_stream_remove(s_sock, false);
   }
   return;
+}
+
+/**
+ * Callbacks for events on the interface
+ * @param l
+ * @param old
+ */
+static void
+_cb_interface_listener(struct oonf_interface_listener *l) {
+  struct oonf_stream_managed *managed;
+#ifdef OONF_LOG_DEBUG_INFO
+  int result;
+#endif
+
+  /* calculate managed socket for this event */
+  managed = container_of(l, struct oonf_stream_managed, _if_listener);
+
+#ifdef OONF_LOG_DEBUG_INFO
+  result =
+#endif
+      _apply_managed(managed);
+
+  OONF_DEBUG(LOG_STREAM,
+      "Result from interface triggered socket reconfiguration: %d", result);
 }
