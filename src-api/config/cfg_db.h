@@ -370,13 +370,10 @@ cfg_db_set_entry(struct cfg_db *db, const char *section_type,
  * @param entry_name entry name
  * @param value entry value
  */
-static INLINE int
+static INLINE struct cfg_entry *
 cfg_db_overwrite_entry(struct cfg_db *db, const char *section_type,
     const char *section_name, const char *entry_name, const char *value) {
-  if (cfg_db_set_entry(db, section_type, section_name, entry_name, value, false)) {
-    return 0;
-  }
-  return -1;
+  return cfg_db_set_entry(db, section_type, section_name, entry_name, value, false);
 }
 
 /**
@@ -387,13 +384,10 @@ cfg_db_overwrite_entry(struct cfg_db *db, const char *section_type,
  * @param entry_name entry name
  * @param value entry value
  */
-static INLINE int
+static INLINE struct cfg_entry *
 cfg_db_add_entry(struct cfg_db *db, const char *section_type,
     const char *section_name, const char *entry_name, const char *value) {
-  if (cfg_db_set_entry(db, section_type, section_name, entry_name, value, true)) {
-    return 0;
-  }
-  return -1;
+  return cfg_db_set_entry(db, section_type, section_name, entry_name, value, true);
 }
 
 /**

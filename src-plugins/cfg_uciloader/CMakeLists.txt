@@ -2,4 +2,4 @@
 SET (source "cfg_uciloader.c")
 
 # use generic plugin maker
-oonf_create_plugin("cfg_uciloader" ${source} "")
+oonf_create_plugin("cfg_uciloader" ${source} "uci")

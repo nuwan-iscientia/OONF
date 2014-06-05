@@ -101,7 +101,7 @@ _cleanup(void)
 }
 
 /*
- * Definition of the file-io handler.
+ * Definition of the uci-io handler.
  *
  * This handler can read and write files and use a parser to
  * translate them into a configuration database (and the other way around)
@@ -165,7 +165,8 @@ _cb_uci_load(struct cfg_instance *instance __attribute__((unused)),
         case UCI_TYPE_STRING:
           if (!cfg_db_add_entry(db, db_section->section_type->type,
               db_section->name, opt->e.name, opt->v.string)) {
-            cfg_append_printable_line(log, "Could not allocate configuration entry");
+            cfg_append_printable_line(log, "Could not allocate configuration entry (%s/%s/%s)='%s'",
+                db_section->section_type->type, db_section->name, opt->e.name, opt->v.string);
                   goto loading_error;
           };
           break;
@@ -173,7 +174,8 @@ _cb_uci_load(struct cfg_instance *instance __attribute__((unused)),
           uci_foreach_element(&opt->v.list, i) {
             if (!cfg_db_add_entry(db, db_section->section_type->type,
                 db_section->name, opt->e.name, i->name)) {
-              cfg_append_printable_line(log, "Could not allocate configuration entry");
+              cfg_append_printable_line(log, "Could not allocate configuration entry (%s/%s/%s)='%s'",
+                  db_section->section_type->type, db_section->name, opt->e.name, i->name);
                     goto loading_error;
             };
           }

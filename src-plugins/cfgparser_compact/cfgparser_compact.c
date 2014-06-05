@@ -322,7 +322,7 @@ _parse_line(struct cfg_db *db, char *line,
   }
 
   /* found two tokens */
-  if (cfg_db_add_entry(db, section, *name ? name : NULL, first, ptr)) {
+  if (!cfg_db_add_entry(db, section, *name ? name : NULL, first, ptr)) {
     return -1;
   }
   return 0;
