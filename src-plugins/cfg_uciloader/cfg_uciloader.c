@@ -190,7 +190,7 @@ _cb_uci_load(struct cfg_instance *instance __attribute__((unused)),
 
 uci_error:
   uci_get_errorstr(ctx, &err, NULL);
-  abuf_puts(log, err);
+  abuf_appendf(log, "%s\n", err);
   free(err);
 
 loading_error:
