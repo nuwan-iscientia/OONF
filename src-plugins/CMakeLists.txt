@@ -7,6 +7,11 @@ add_subdirectory(link_config)
 add_subdirectory(plugin_controller)
 add_subdirectory(remotecontrol)
 
+# UCI specific library necessary for Openwrt config loader
+IF (UCI)
+    add_subdirectory(cfg_uciloader)
+ENDIF (UCI)
+
 # linux specific plugins
 IF (LINUX)
     add_subdirectory(nl80211_listener)
