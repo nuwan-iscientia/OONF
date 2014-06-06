@@ -158,31 +158,30 @@ cfg_io_save(struct cfg_instance *instance,
 static struct cfg_io *
 _find_io(struct cfg_instance *instance,
     const char *url, const char **io_param, struct autobuf *log) {
-  struct cfg_io *io;
+  struct cfg_io *io = NULL;
   const char *ptr1;
 
-  ptr1 = strstr(url, "://");
+  ptr1 = strstr(url, CFG_IO_URL_SPLITTER);
   if (ptr1 == url) {
     cfg_append_printable_line(log, "Illegal URL '%s' as parameter for io selection", url);
     return NULL;
   }
   if (ptr1 == NULL) {
-    /* just use the first handler */
-    io = avl_first_element(&instance->io_tree, io, node);
+    /* use default handler, if none was specified */
     ptr1 = url;
+    url = instance->default_io;
   }
   else {
-    char *buffer;
+    ptr1 += sizeof(CFG_IO_URL_SPLITTER) - 1;
+  }
 
-    buffer = strdup(url);
-    if (!buffer)
-      return NULL;
-
-    buffer[ptr1 - url] = 0;
-
-    io = avl_find_element(&instance->io_tree, buffer, io, node);
-    free (buffer);
-    ptr1 += 3;
+  if (url) {
+    /* we either have a handler specified or a defined default handler */
+    io = avl_find_element(&instance->io_tree, instance->default_io, io, node);
+  }
+  else {
+    /* no default, nothing specified, just use the first handler */
+    io = avl_first_element(&instance->io_tree, io, node);
   }
 
   if (io == NULL) {

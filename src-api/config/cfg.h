@@ -54,9 +54,14 @@ struct cfg_instance;
 #include "config/cfg_cmd.h"
 #include "config/cfg_io.h"
 
+#define CFG_IO_URL_SPLITTER "://"
+
 struct cfg_instance {
   /* tree of io handlers and format parsers */
   struct avl_tree io_tree;
+
+  /* name of default io file handler */
+  const char *default_io;
 };
 
 EXPORT void cfg_add(struct cfg_instance *);

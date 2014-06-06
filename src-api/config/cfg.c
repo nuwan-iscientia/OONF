@@ -49,13 +49,14 @@
 #include "config/cfg_io.h"
 #include "config/cfg.h"
 
+static int avl_comp_cfgio(const void *txt1, const void *txt2);
 /**
  * Initialize a configuration instance
  * @param instance pointer to cfg_instance
  */
 void
 cfg_add(struct cfg_instance *instance) {
-  avl_init(&instance->io_tree, avl_comp_strcasecmp, false);
+  avl_init(&instance->io_tree, avl_comp_cfgio, false);
 }
 
 /**
@@ -168,4 +169,35 @@ cfg_get_choice_index(const char *key, const char **array, size_t array_size) {
     }
   }
   return -1;
+}
+
+/**
+ * AVL tree comparator for case insensitive strings.
+ * Custom pointer is the length of the memory to compare.
+ * @param txt1 pointer to string 1
+ * @param txt2 pointer to string 2
+ * @return +1 if k1>k2, -1 if k1<k2, 0 if k1==k2
+ */
+static int
+avl_comp_cfgio(const void *txt1, const void *txt2) {
+  const char *url1 = txt1;
+  const char *url2 = txt2;
+  const char *ptr;
+  ssize_t maxlen = -1;
+
+  ptr = strstr(url1, CFG_IO_URL_SPLITTER);
+  if (ptr) {
+    maxlen = ptr - url1;
+  }
+  ptr = strstr(url2, CFG_IO_URL_SPLITTER);
+  if (ptr) {
+    if ((ptr - url2) > maxlen) {
+      maxlen = ptr - url2;
+    }
+  }
+
+  if (maxlen != -1) {
+    return strncasecmp(url1, url2, maxlen);
+  }
+  return strcasecmp(txt1, txt2);
 }

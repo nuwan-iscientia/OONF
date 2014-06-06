@@ -99,9 +99,10 @@ static struct cfg_schema_section _global_section = {
  * @return -1 if an error happened, 0 otherwise
  */
 int
-oonf_cfg_init(int argc, char **argv) {
+oonf_cfg_init(int argc, char **argv, const char *default_cfg_handler) {
   struct oonf_subsystem *plugin;
 
+  _oonf_cfg_instance.default_io = default_cfg_handler;
   cfg_add(&_oonf_cfg_instance);
 
   /*
