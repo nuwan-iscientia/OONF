@@ -69,8 +69,6 @@ cfg_remove(struct cfg_instance *instance) {
   CFG_FOR_ALL_IO(instance, io, iit) {
     cfg_io_remove(instance, io);
   }
-
-  cfg_cmd_clear_state(instance);
 }
 
 /**

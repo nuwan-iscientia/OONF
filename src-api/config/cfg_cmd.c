@@ -63,15 +63,6 @@ static int _print_schema_entry(struct autobuf *log, struct cfg_db *db,
 static int _do_parse_arg(char *arg, struct _parsed_argument *pa, struct autobuf *log);
 
 /**
- * Clear the state for command line parsing remembered in the
- * cfg_instance object
- * @param instance pointer to cfg_instance
- */
-void
-cfg_cmd_clear_state(struct cfg_instance *instance __attribute__((unused))) {
-}
-
-/**
  * Implements the 'set' command for the command line
  * @param instance pointer to cfg_instance
  * @param db pointer to cfg_db to be modified

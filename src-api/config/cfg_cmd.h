@@ -49,7 +49,6 @@
 #include "config/cfg.h"
 
 /* state for parsing a command line */
-EXPORT void cfg_cmd_clear_state(struct cfg_instance *instance);
 EXPORT int cfg_cmd_handle_set(struct cfg_instance *instance, struct cfg_db *db,
     const char *arg, struct autobuf *log);
 EXPORT int cfg_cmd_handle_remove(struct cfg_instance *instance, struct cfg_db *db,

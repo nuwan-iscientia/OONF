@@ -57,7 +57,6 @@ clear_elements(void) {
     cfg_db_remove(db);
   }
   db = cfg_db_add();
-  cfg_cmd_clear_state(&instance);
   abuf_clear(&log_buf);
 }
 
