@@ -177,7 +177,7 @@ _find_io(struct cfg_instance *instance,
 
   if (url) {
     /* we either have a handler specified or a defined default handler */
-    io = avl_find_element(&instance->io_tree, instance->default_io, io, node);
+    io = avl_find_element(&instance->io_tree, url, io, node);
   }
   else {
     /* no default, nothing specified, just use the first handler */

@@ -124,6 +124,7 @@ _cb_uci_load(const char *param, struct autobuf *log) {
   struct cfg_named_section *db_section;
 
   char *err = NULL;
+  const char *value;
 
   ctx = uci_alloc_context();
   if (!ctx) {
@@ -143,11 +144,12 @@ _cb_uci_load(const char *param, struct autobuf *log) {
   uci_foreach_element(&p->sections, s) {
     struct uci_section *sec = uci_to_section(s);
 
-    if (sec->anonymous) {
+    value = uci_lookup_option_string(ctx, sec, UCI_OPTION_FOR_SECTION_NAME);
+    if (!value) {
       db_section = cfg_db_add_unnamedsection(db, sec->type);
     }
     else {
-      db_section = cfg_db_add_namedsection(db, sec->type, sec->e.name);
+      db_section = cfg_db_add_namedsection(db, sec->type, value);
     }
     if (!db_section) {
       cfg_append_printable_line(log, "Could not allocate configuration section");
@@ -156,6 +158,10 @@ _cb_uci_load(const char *param, struct autobuf *log) {
 
     uci_foreach_element(&sec->options, o) {
       struct uci_option *opt = uci_to_option(o);
+      if (strcmp(opt->e.name, UCI_OPTION_FOR_SECTION_NAME) == 0) {
+        continue;
+      }
+
       switch(opt->type) {
         case UCI_TYPE_STRING:
           if (!cfg_db_add_entry(db, db_section->section_type->type,
