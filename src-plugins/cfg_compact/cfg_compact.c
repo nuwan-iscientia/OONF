@@ -53,13 +53,13 @@
 
 #include "core/oonf_cfg.h"
 
-#include "cfgio_file/cfgio_file.h"
+#include "cfg_compact/cfg_compact.h"
 
 static void _early_cfg_init(void);
 static void _cleanup(void);
 
-static struct cfg_db *_cb_file_load(const char *param, struct autobuf *log);
-static int _cb_file_save(const char *param, struct cfg_db *src, struct autobuf *log);
+static struct cfg_db *_cb_compact_load(const char *param, struct autobuf *log);
+static int _cb_compact_save(const char *param, struct cfg_db *src, struct autobuf *log);
 
 static struct cfg_db *_compact_parse(struct autobuf *input, struct autobuf *log);
 static int _compact_serialize(struct autobuf *dst, struct cfg_db *src,
@@ -67,9 +67,9 @@ static int _compact_serialize(struct autobuf *dst, struct cfg_db *src,
 static int _parse_line(struct cfg_db *db, char *line, char *section, size_t section_size,
     char *name, size_t name_size, struct autobuf *log);
 
-struct oonf_subsystem oonf_io_file_subsystem = {
+struct oonf_subsystem oonf_cfg_compact_subsystem = {
   .name = OONF_PLUGIN_GET_NAME(),
-  .descr = "OONFD file io handler for configuration system",
+  .descr = "OONFD compact configuration file handler",
   .author = "Henning Rogge",
 
   .cleanup = _cleanup,
@@ -77,12 +77,12 @@ struct oonf_subsystem oonf_io_file_subsystem = {
 
   .no_logging = true,
 };
-DECLARE_OONF_PLUGIN(oonf_io_file_subsystem);
+DECLARE_OONF_PLUGIN(oonf_cfg_compact_subsystem);
 
-struct cfg_io cfg_io_file = {
-  .name = "file",
-  .load = _cb_file_load,
-  .save = _cb_file_save,
+struct cfg_io cfg_compact = {
+  .name = "compact",
+  .load = _cb_compact_load,
+  .save = _cb_compact_save,
   .def = true,
 };
 
@@ -92,7 +92,7 @@ struct cfg_io cfg_io_file = {
 static void
 _early_cfg_init(void)
 {
-  cfg_io_add(oonf_cfg_get_instance(), &cfg_io_file);
+  cfg_io_add(oonf_cfg_get_instance(), &cfg_compact);
 }
 
 /**
@@ -101,7 +101,7 @@ _early_cfg_init(void)
 static void
 _cleanup(void)
 {
-  cfg_io_remove(oonf_cfg_get_instance(), &cfg_io_file);
+  cfg_io_remove(oonf_cfg_get_instance(), &cfg_compact);
 }
 
 /*
@@ -121,7 +121,7 @@ _cleanup(void)
  * @return pointer to configuration database, NULL if an error happened
  */
 static struct cfg_db *
-_cb_file_load(const char *param, struct autobuf *log) {
+_cb_compact_load(const char *param, struct autobuf *log) {
   struct autobuf dst;
   struct cfg_db *db;
   char buffer[1024];
@@ -177,7 +177,7 @@ _cb_file_load(const char *param, struct autobuf *log) {
  * @return 0 if database was stored sucessfully, -1 otherwise
  */
 static int
-_cb_file_save(const char *param, struct cfg_db *src_db, struct autobuf *log) {
+_cb_compact_save(const char *param, struct cfg_db *src_db, struct autobuf *log) {
   int fd = 0;
   ssize_t bytes;
   size_t total;
