@@ -39,12 +39,12 @@
  *
  */
 
-#ifndef CFGIO_FILE_H_
-#define CFGIO_FILE_H_
+#ifndef CFG_COMPACT_H_
+#define CFG_COMPACT_H_
 
 #include "common/common_types.h"
 #include "core/oonf_subsystem.h"
 
 EXPORT extern struct oonf_subsystem oonf_cfg_compact_subsystem;
 
-#endif /* CFGIO_FILE_H_ */
+#endif /* CFG_COMPACT_H_ */
