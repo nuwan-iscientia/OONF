@@ -61,6 +61,8 @@ static void _early_cfg_init(void);
 static void _cleanup(void);
 
 static struct cfg_db *_cb_uci_load(const char *param, struct autobuf *log);
+static int _load_section(struct uci_section *sec, struct cfg_db *db, const char *type, const char *name, struct autobuf *log);
+
 
 struct oonf_subsystem oonf_cfg_uciloader_subsystem = {
   .name = OONF_PLUGIN_GET_NAME(),
@@ -118,13 +120,11 @@ static struct cfg_db *
 _cb_uci_load(const char *param, struct autobuf *log) {
   struct uci_context *ctx = NULL;
   struct uci_package *p = NULL;
-  struct uci_element *s, *o, *i;
+  struct uci_element *s, *i;
 
   struct cfg_db *db = NULL;
-  struct cfg_named_section *db_section;
 
   char *err = NULL;
-  const char *value;
 
   ctx = uci_alloc_context();
   if (!ctx) {
@@ -143,46 +143,33 @@ _cb_uci_load(const char *param, struct autobuf *log) {
 
   uci_foreach_element(&p->sections, s) {
     struct uci_section *sec = uci_to_section(s);
+    struct uci_option *names;
 
-    value = uci_lookup_option_string(ctx, sec, UCI_OPTION_FOR_SECTION_NAME);
-    if (!value) {
-      db_section = cfg_db_add_unnamedsection(db, sec->type);
+    names = uci_lookup_option(ctx, sec, UCI_OPTION_FOR_SECTION_NAME);
+    if (!names) {
+      /* a single unnamed section */
+      if (_load_section(sec, db, sec->type, NULL, log)) {
+        goto loading_error;
+      }
     }
     else {
-      db_section = cfg_db_add_namedsection(db, sec->type, value);
-    }
-    if (!db_section) {
-      cfg_append_printable_line(log, "Could not allocate configuration section");
-      goto loading_error;
-    }
-
-    uci_foreach_element(&sec->options, o) {
-      struct uci_option *opt = uci_to_option(o);
-      if (strcmp(opt->e.name, UCI_OPTION_FOR_SECTION_NAME) == 0) {
-        continue;
-      }
-
-      switch(opt->type) {
+      switch (names->type) {
         case UCI_TYPE_STRING:
-          if (!cfg_db_add_entry(db, db_section->section_type->type,
-              db_section->name, opt->e.name, opt->v.string)) {
-            cfg_append_printable_line(log, "Could not allocate configuration entry (%s/%s/%s)='%s'",
-                db_section->section_type->type, db_section->name, opt->e.name, opt->v.string);
-                  goto loading_error;
-          };
+          /* section with a single name */
+          if (_load_section(sec, db, sec->type, names->v.string, log)) {
+            goto loading_error;
+          }
           break;
         case UCI_TYPE_LIST:
-          uci_foreach_element(&opt->v.list, i) {
-            if (!cfg_db_add_entry(db, db_section->section_type->type,
-                db_section->name, opt->e.name, i->name)) {
-              cfg_append_printable_line(log, "Could not allocate configuration entry (%s/%s/%s)='%s'",
-                  db_section->section_type->type, db_section->name, opt->e.name, i->name);
-                    goto loading_error;
-            };
+          /* section with multiple names */
+          uci_foreach_element(&names->v.list, i) {
+            if (_load_section(sec, db, sec->type, i->name, log)) {
+              goto loading_error;
+            }
           }
           break;
         default:
-          cfg_append_printable_line(log, "# uci-error: unknown type for option '%s'\n", opt->e.name);
+          cfg_append_printable_line(log, "# uci-error: unknown type for option '%s'\n", names->e.name);
           goto loading_error;
       }
     }
@@ -201,4 +188,55 @@ loading_error:
 
   uci_free_context(ctx);
   return NULL;
+}
+
+static int
+_load_section(struct uci_section *sec, struct cfg_db *db, const char *type, const char *name, struct autobuf *log) {
+  struct uci_element *o, *i;
+  struct cfg_named_section *db_section;
+
+  if (name) {
+    db_section = cfg_db_add_namedsection(db, type, name);
+  }
+  else {
+    db_section = cfg_db_add_unnamedsection(db, type);
+  }
+
+  if (!db_section) {
+    cfg_append_printable_line(log, "Could not allocate configuration section (%s/%s)",
+        db_section->section_type->type, db_section->name);
+    return -1;
+  }
+
+  uci_foreach_element(&sec->options, o) {
+    struct uci_option *opt = uci_to_option(o);
+    if (strcmp(opt->e.name, UCI_OPTION_FOR_SECTION_NAME) == 0) {
+      continue;
+    }
+
+    switch(opt->type) {
+      case UCI_TYPE_STRING:
+        if (!cfg_db_add_entry(db, db_section->section_type->type,
+            db_section->name, opt->e.name, opt->v.string)) {
+          cfg_append_printable_line(log, "Could not allocate configuration entry (%s/%s/%s)='%s'",
+              db_section->section_type->type, db_section->name, opt->e.name, opt->v.string);
+                return -1;
+        };
+        break;
+      case UCI_TYPE_LIST:
+        uci_foreach_element(&opt->v.list, i) {
+          if (!cfg_db_add_entry(db, db_section->section_type->type,
+              db_section->name, opt->e.name, i->name)) {
+            cfg_append_printable_line(log, "Could not allocate configuration entry (%s/%s/%s)='%s'",
+                db_section->section_type->type, db_section->name, opt->e.name, i->name);
+                  return -1;
+          };
+        }
+        break;
+      default:
+        cfg_append_printable_line(log, "# uci-error: unknown type for option '%s'\n", opt->e.name);
+        return -1;
+    }
+  }
+  return 0;
 }
