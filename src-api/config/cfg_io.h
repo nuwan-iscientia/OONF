@@ -63,12 +63,10 @@ struct cfg_io {
   bool def;
 
   /* callback to load a configuration */
-  struct cfg_db *(*load)(struct cfg_instance *,
-      const char *param, const char *parser, struct autobuf *log);
+  struct cfg_db *(*load)(const char *param, struct autobuf *log);
 
   /* callback to save a configuration */
-  int (*save)(struct cfg_instance *,
-      const char *param, const char *parser, struct cfg_db *src, struct autobuf *log);
+  int (*save)(const char *param, struct cfg_db *src, struct autobuf *log);
 };
 
 #define CFG_FOR_ALL_IO(instance, io, iterator) avl_for_each_element_safe(&(instance)->io_tree, io, node, iterator)
@@ -76,43 +74,9 @@ struct cfg_io {
 EXPORT void cfg_io_add(struct cfg_instance *, struct cfg_io *);
 EXPORT void cfg_io_remove(struct cfg_instance *, struct cfg_io *);
 
-EXPORT struct cfg_db *cfg_io_load_parser(struct cfg_instance *,
-    const char *url, const char *parser, struct autobuf *log);
-EXPORT int cfg_io_save_parser(struct cfg_instance *,
-    const char *url, const char *parser, struct cfg_db *src, struct autobuf *log);
-
-/**
- * Load a configuration database from an external source.
- * This call will always use autodetection for choosing the parser.
- * @param instance pointer to cfg_instance
- * @param url URL specifying the external source
- *   might contain io-handler specification with <iohandler>://
- *   syntax.
- * @param log pointer to autobuffer to contain logging output
- *   by loader.
- * @return pointer to configuration database, NULL if an error happened
- */
-static INLINE struct cfg_db *
-cfg_io_load(struct cfg_instance *instance, const char *url, struct autobuf *log) {
-  return cfg_io_load_parser(instance, url, NULL, log);
-}
-
-/**
- * Store a configuration database into an external destination.
- * This call will always use autodetection for choosing the parser.
- * @param instance pointer to cfg_instance
- * @param url URL specifying the external source
- *   might contain io-handler specification with <iohandler>://
- *   syntax.
- * @param src configuration database to be stored
- * @param log pointer to autobuffer to contain logging output
- *   by storage.
- * @return 0 if data was stored, -1 if an error happened
- */
-static INLINE int
-cfg_io_save(struct cfg_instance *instance,
-    const char *url, struct cfg_db *src, struct autobuf *log) {
-  return cfg_io_save_parser(instance, url, NULL, src, log);
-}
+EXPORT struct cfg_db *cfg_io_load(struct cfg_instance *instance,
+    const char *url, struct autobuf *log);
+EXPORT int cfg_io_save(struct cfg_instance *instance,
+    const char *url, struct cfg_db *src, struct autobuf *log);
 
 #endif /* CFG_IO_H_ */

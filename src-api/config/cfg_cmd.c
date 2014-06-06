@@ -68,9 +68,7 @@ static int _do_parse_arg(char *arg, struct _parsed_argument *pa, struct autobuf 
  * @param instance pointer to cfg_instance
  */
 void
-cfg_cmd_clear_state(struct cfg_instance *instance) {
-  free(instance->cmd_format);
-  instance->cmd_format = NULL;
+cfg_cmd_clear_state(struct cfg_instance *instance __attribute__((unused))) {
 }
 
 /**
@@ -300,7 +298,7 @@ cfg_cmd_handle_load(struct cfg_instance *instance, struct cfg_db *db,
     const char *arg, struct autobuf *log) {
   struct cfg_db *temp_db;
 
-  temp_db = cfg_io_load_parser(instance, arg, instance->cmd_format, log);
+  temp_db = cfg_io_load(instance, arg, log);
   if (temp_db != NULL) {
     cfg_db_copy(db, temp_db);
     cfg_db_remove(temp_db);
@@ -319,25 +317,7 @@ cfg_cmd_handle_load(struct cfg_instance *instance, struct cfg_db *db,
 int
 cfg_cmd_handle_save(struct cfg_instance *instance, struct cfg_db *db,
     const char *arg, struct autobuf *log) {
-  return cfg_io_save_parser(instance, arg, instance->cmd_format, db, log);
-}
-
-/**
- * Implements the 'format' command for the command line
- * @param instance pointer to cfg_instance
- * @param arg argument of command
- * @return 0 if succeeded, -1 otherwise
- */
-int
-cfg_cmd_handle_format(struct cfg_instance *instance, const char *arg) {
-  free (instance->cmd_format);
-
-  if (strcasecmp(arg, "auto") == 0) {
-    instance->cmd_format = NULL;
-    return 0;
-  }
-
-  return (instance->cmd_format = strdup(arg)) != NULL;
+  return cfg_io_save(instance, arg, db, log);
 }
 
 /**

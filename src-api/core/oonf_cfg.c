@@ -356,24 +356,6 @@ oonf_cfg_apply(void) {
   /* remove everything not valid */
   cfg_schema_validate(_oonf_work_db, true, false, NULL);
 
-  if (OONF_TEST_DEBUG(LOG_CONFIG))
-  {
-    struct autobuf output;
-
-    abuf_init(&output);
-    abuf_clear(&log);
-
-    if (cfg_parser_serialize_to_buffer(&_oonf_cfg_instance, NULL, &output, _oonf_work_db, &log)) {
-      OONF_WARN(LOG_CONFIG, "An error happened while dumping the configuration for logging:\n%s",
-          abuf_getptr(&log));
-    }
-    else {
-      OONF_DEBUG(LOG_CONFIG, "Applying configuration:\n%s",
-          abuf_getptr(&output));
-    }
-    abuf_free(&output);
-  }
-
   if (oonf_cfg_update_globalcfg(false)) {
     /* this should not happen at all */
     OONF_WARN(LOG_CONFIG, "Updating global config failed");

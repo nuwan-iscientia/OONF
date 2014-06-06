@@ -48,7 +48,6 @@
 
 #include "common/autobuf.h"
 #include "config/cfg_io.h"
-#include "config/cfg_parser.h"
 #include "config/cfg.h"
 #include "core/oonf_plugins.h"
 
@@ -61,8 +60,7 @@
 static void _early_cfg_init(void);
 static void _cleanup(void);
 
-static struct cfg_db *_cb_uci_load(struct cfg_instance *instance,
-    const char *param, const char *parser, struct autobuf *log);
+static struct cfg_db *_cb_uci_load(const char *param, struct autobuf *log);
 
 struct oonf_subsystem oonf_cfg_uciloader_subsystem = {
   .name = OONF_PLUGIN_GET_NAME(),
@@ -112,15 +110,12 @@ _cleanup(void)
 /**
  * Reads a file from a filesystem, parse it with the help of a
  * configuration parser and returns a configuration database.
- * @param parser parser name, NULL if autodetection should be used
  * @param param file to be read
  * @param log autobuffer for logging purpose
  * @return pointer to configuration database, NULL if an error happened
  */
 static struct cfg_db *
-_cb_uci_load(struct cfg_instance *instance __attribute__((unused)),
-    const char *param, const char *parser __attribute__((unused)),
-    struct autobuf *log) {
+_cb_uci_load(const char *param, struct autobuf *log) {
   struct uci_context *ctx = NULL;
   struct uci_package *p = NULL;
   struct uci_element *s, *o, *i;

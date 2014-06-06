@@ -53,19 +53,10 @@ struct cfg_instance;
 
 #include "config/cfg_cmd.h"
 #include "config/cfg_io.h"
-#include "config/cfg_parser.h"
 
 struct cfg_instance {
   /* tree of io handlers and format parsers */
   struct avl_tree io_tree;
-  struct avl_tree parser_tree;
-
-  /* default io handler and format parser */
-  struct cfg_io *default_io;
-  struct cfg_parser *default_parser;
-
-  /* currently selected parser, NULL for 'auto' */
-  char *cmd_format;
 };
 
 EXPORT void cfg_add(struct cfg_instance *);

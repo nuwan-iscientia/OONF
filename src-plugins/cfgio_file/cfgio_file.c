@@ -48,7 +48,6 @@
 
 #include "common/autobuf.h"
 #include "config/cfg_io.h"
-#include "config/cfg_parser.h"
 #include "config/cfg.h"
 #include "core/oonf_plugins.h"
 
@@ -59,10 +58,14 @@
 static void _early_cfg_init(void);
 static void _cleanup(void);
 
-static struct cfg_db *_cb_file_load(struct cfg_instance *instance,
-    const char *param, const char *parser, struct autobuf *log);
-static int _cb_file_save(struct cfg_instance *instance,
-    const char *param, const char *parser, struct cfg_db *src, struct autobuf *log);
+static struct cfg_db *_cb_file_load(const char *param, struct autobuf *log);
+static int _cb_file_save(const char *param, struct cfg_db *src, struct autobuf *log);
+
+static struct cfg_db *_compact_parse(struct autobuf *input, struct autobuf *log);
+static int _compact_serialize(struct autobuf *dst, struct cfg_db *src,
+    struct autobuf *log);
+static int _parse_line(struct cfg_db *db, char *line, char *section, size_t section_size,
+    char *name, size_t name_size, struct autobuf *log);
 
 struct oonf_subsystem oonf_io_file_subsystem = {
   .name = OONF_PLUGIN_GET_NAME(),
@@ -113,14 +116,12 @@ _cleanup(void)
 /**
  * Reads a file from a filesystem, parse it with the help of a
  * configuration parser and returns a configuration database.
- * @param parser parser name, NULL if autodetection should be used
  * @param param file to be read
  * @param log autobuffer for logging purpose
  * @return pointer to configuration database, NULL if an error happened
  */
 static struct cfg_db *
-_cb_file_load(struct cfg_instance *instance,
-    const char *param, const char *parser, struct autobuf *log) {
+_cb_file_load(const char *param, struct autobuf *log) {
   struct autobuf dst;
   struct cfg_db *db;
   char buffer[1024];
@@ -161,12 +162,7 @@ _cb_file_load(struct cfg_instance *instance,
   }
   close(fd);
 
-  if (parser == NULL) {
-    /* lookup a fitting parser, we know the path as a hint */
-    parser = cfg_parser_find(instance, &dst, param, NULL);
-  }
-
-  db = cfg_parser_parse_buffer(instance, parser, abuf_getptr(&dst), abuf_getlen(&dst), log);
+  db = _compact_parse(&dst, log);
   abuf_free(&dst);
   return db;
 }
@@ -175,16 +171,13 @@ _cb_file_load(struct cfg_instance *instance,
  * Stores a configuration database into a file. It will use a
  * parser (the serialization part) to translate the database into
  * a storage format.
- * @param parser parser name, NULL if autodetection should be used
  * @param param pathname to write configuration file into
  * @param src_db source configuration database
  * @param log autobuffer for logging purpose
  * @return 0 if database was stored sucessfully, -1 otherwise
  */
 static int
-_cb_file_save(struct cfg_instance *instance,
-    const char *param, const char *parser,
-    struct cfg_db *src_db, struct autobuf *log) {
+_cb_file_save(const char *param, struct cfg_db *src_db, struct autobuf *log) {
   int fd = 0;
   ssize_t bytes;
   size_t total;
@@ -195,11 +188,7 @@ _cb_file_save(struct cfg_instance *instance,
         "Out of memory error while allocating io buffer");
     return -1;
   }
-
-  if (parser == NULL) {
-    parser = cfg_parser_find(instance, NULL, param, NULL);
-  }
-  if (cfg_parser_serialize_to_buffer(instance, parser, &abuf, src_db, log)) {
+  if (_compact_serialize(&abuf, src_db, log)) {
     abuf_free(&abuf);
     return -1;
   }
@@ -230,5 +219,214 @@ _cb_file_save(struct cfg_instance *instance,
   close(fd);
   abuf_free(&abuf);
 
+  return 0;
+}
+
+/**
+ * Parse a buffer into a configuration database
+ * @param input autobuffer with configuration input
+ * @param log autobuffer for logging output
+ * @return pointer to configuration database, NULL if an error happened
+ */
+static struct cfg_db *
+_compact_parse(struct autobuf *input, struct autobuf *log) {
+  char section[128];
+  char name[128];
+  struct cfg_db *db;
+  char *eol, *line;
+  char *src;
+  size_t len;
+
+  src = abuf_getptr(input);
+  len = abuf_getlen(input);
+
+  db = cfg_db_add();
+  if (!db) {
+    return NULL;
+  }
+
+  memset(section, 0, sizeof(section));
+  memset(name, 0, sizeof(name));
+
+  line = src;
+  while (line < src + len) {
+    /* find end of line */
+    eol = line;
+    while (*eol != 0 && *eol != '\n') {
+      eol++;
+    }
+
+    /* termiate line with zero byte */
+    *eol = 0;
+    if (eol > line && eol[-1] == '\r') {
+      /* handle \r\n line ending */
+      eol[-1] = 0;
+    }
+
+    if (_parse_line(db, line, section, sizeof(section),
+        name, sizeof(name), log)) {
+      cfg_db_remove(db);
+      return NULL;
+    }
+
+    line = eol+1;
+  }
+  return db;
+}
+
+/**
+ * Serialize a configuration database into a buffer
+ * @param dst target buffer
+ * @param src source configuration database
+ * @param log autbuffer for logging
+ * @return 0 if database was serialized, -1 otherwise
+ */
+static int
+_compact_serialize(struct autobuf *dst, struct cfg_db *src,
+    struct autobuf *log __attribute__ ((unused))) {
+  struct cfg_section_type *section, *s_it;
+  struct cfg_named_section *name, *n_it;
+  struct cfg_entry *entry, *e_it;
+  char *ptr;
+
+  CFG_FOR_ALL_SECTION_TYPES(src, section, s_it) {
+    CFG_FOR_ALL_SECTION_NAMES(section, name, n_it) {
+      if (cfg_db_is_named_section(name)) {
+        abuf_appendf(dst, "[%s=%s]\n", section->type, name->name);
+      }
+      else {
+        abuf_appendf(dst, "[%s]\n", section->type);
+      }
+
+      CFG_FOR_ALL_ENTRIES(name, entry, e_it) {
+        strarray_for_each_element(&entry->val, ptr) {
+          abuf_appendf(dst, "\t%s %s\n", entry->name, ptr);
+        }
+      }
+    }
+  }
+  return 0;
+}
+
+/**
+ * Parse a single line of the compact format
+ * @param db pointer to configuration database
+ * @param line pointer to line to be parsed (will be modified
+ *   during parsing)
+ * @param section pointer to array with current section type
+ *   (might be modified during parsing)
+ * @param section_size number of bytes for section type
+ * @param name pointer to array with current section name
+ *   (might be modified during parsing)
+ * @param name_size number of bytes for section name
+ * @param log autobuffer for logging output
+ * @return 0 if line was parsed successfully, -1 otherwise
+ */
+static int
+_parse_line(struct cfg_db *db, char *line,
+    char *section, size_t section_size,
+    char *name, size_t name_size,
+    struct autobuf *log) {
+  char *first, *ptr;
+  bool dummy;
+
+  /* trim leading and trailing whitespaces */
+  first = str_trim(line);
+
+  if (*first == 0 || *first == '#') {
+    /* empty line or comment */
+    return 0;
+  }
+
+  if (*first == '[') {
+    first++;
+    ptr = strchr(first, ']');
+    if (ptr == NULL) {
+      cfg_append_printable_line(log,
+          "Section syntax error in line: '%s'", line);
+      return -1;
+    }
+    *ptr = 0;
+
+    ptr = strchr(first, '=');
+    if (ptr) {
+      /* trim section name */
+      *ptr++ = 0;
+      ptr = str_trim(ptr);
+    }
+
+    /* trim section name */
+    first = str_trim(first);
+    if (*first == 0) {
+      cfg_append_printable_line(log,
+          "Section syntax error, no section type found");
+      return -1;
+    }
+
+    /* copy section type */
+    strscpy(section, first, section_size);
+
+    /* copy section name */
+    if (ptr) {
+      strscpy(name, ptr, name_size);
+    }
+    else {
+      *name = 0;
+    }
+
+    /* validity of section type (and name) */
+    if (!cfg_is_allowed_key(section)) {
+      cfg_append_printable_line(log,
+          "Illegal section type: '%s'", section);
+      return -1;
+    }
+
+    if (*name != 0 && !cfg_is_allowed_section_name(name)) {
+      cfg_append_printable_line(log,
+          "Illegal section name: '%s'", name);
+      return -1;
+    }
+
+    /* add section to db */
+    if (_cfg_db_add_section(db, section, *name ? name : NULL, &dummy) == NULL) {
+      return -1;
+    }
+    return 0;
+  }
+
+  if (*section == 0) {
+    cfg_append_printable_line(log,
+        "Entry before first section is not allowed in this format");
+    return -1;
+  }
+
+  ptr = first;
+
+  /* look for separator */
+  while (!isspace(*ptr)) {
+    ptr++;
+  }
+
+  *ptr++ = 0;
+
+  /* trim second token */
+  ptr = str_trim(ptr);
+
+  if (*ptr == 0) {
+    cfg_append_printable_line(log,
+        "No second token found in line '%s'",  line);
+    return -1;
+  }
+
+  if (!cfg_is_allowed_key(first)) {
+    cfg_append_printable_line(log,
+        "Illegal key type: '%s'", first);
+    return -1;
+  }
+
+  /* found two tokens */
+  if (!cfg_db_add_entry(db, section, *name ? name : NULL, first, ptr)) {
+    return -1;
+  }
   return 0;
 }

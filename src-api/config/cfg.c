@@ -47,7 +47,6 @@
 #include "common/avl_comp.h"
 #include "common/common_types.h"
 #include "config/cfg_io.h"
-#include "config/cfg_parser.h"
 #include "config/cfg.h"
 
 /**
@@ -56,10 +55,7 @@
  */
 void
 cfg_add(struct cfg_instance *instance) {
-  memset(instance, 0, sizeof(*instance));
-
   avl_init(&instance->io_tree, avl_comp_strcasecmp, false);
-  avl_init(&instance->parser_tree, avl_comp_strcasecmp, false);
 }
 
 /**
@@ -69,14 +65,9 @@ cfg_add(struct cfg_instance *instance) {
 void
 cfg_remove(struct cfg_instance *instance) {
   struct cfg_io *io, *iit;
-  struct cfg_parser *parser, *pit;
 
   CFG_FOR_ALL_IO(instance, io, iit) {
     cfg_io_remove(instance, io);
-  }
-
-  CFG_FOR_ALL_PARSER(instance, parser, pit) {
-    cfg_parser_remove(instance, parser);
   }
 
   cfg_cmd_clear_state(instance);

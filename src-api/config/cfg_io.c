@@ -70,10 +70,6 @@ cfg_io_add(struct cfg_instance *instance, struct cfg_io *io) {
   assert (io->name);
   io->node.key = io->name;
   avl_insert(&instance->io_tree, &io->node);
-
-  if (io->def || instance->io_tree.count == 1) {
-    instance->default_io = io;
-  }
 }
 
 /**
@@ -83,21 +79,9 @@ cfg_io_add(struct cfg_instance *instance, struct cfg_io *io) {
  */
 void
 cfg_io_remove(struct cfg_instance *instance, struct cfg_io *io) {
-  struct cfg_io *ioh, *iter;
-  if (io->node.key) {
+  if (avl_is_node_added(&io->node)) {
     avl_remove(&instance->io_tree, &io->node);
     io->node.key = NULL;
-  }
-
-  if (instance->default_io == io) {
-    /* get new default io handler */
-    instance->default_io = avl_first_element_safe(&instance->io_tree, io, node);
-    CFG_FOR_ALL_IO(instance, ioh, iter) {
-      if (ioh->def) {
-        instance->default_io = ioh;
-        break;
-      }
-    }
   }
 }
 
@@ -107,15 +91,13 @@ cfg_io_remove(struct cfg_instance *instance, struct cfg_io *io) {
  * @param url URL specifying the external source
  *   might contain io-handler specification with {iohandler}://
  *   syntax.
- * @param parser name of parser to be used by io-handler (if necessary),
- *   NULL if parser autodetection should be used
  * @param log pointer to autobuffer to contain logging output
  *   by loader.
  * @return pointer to configuration database, NULL if an error happened
  */
 struct cfg_db *
-cfg_io_load_parser(struct cfg_instance *instance,
-    const char *url, const char *parser, struct autobuf *log) {
+cfg_io_load(struct cfg_instance *instance,
+    const char *url, struct autobuf *log) {
   struct cfg_io *io;
   const char *io_param = NULL;
 
@@ -129,7 +111,7 @@ cfg_io_load_parser(struct cfg_instance *instance,
     cfg_append_printable_line(log, "Error, config io '%s' does not support loading.", io->name);
     return NULL;
   }
-  return io->load(instance, io_param, parser, log);
+  return io->load(io_param, log);
 }
 
 /**
@@ -138,16 +120,14 @@ cfg_io_load_parser(struct cfg_instance *instance,
  * @param url URL specifying the external source
  *   might contain io-handler specification with {iohandler}://
  *   syntax.
- * @param parser name of parser to be used by io-handler (if necessary),
- *   NULL if parser autodetection should be used
  * @param src configuration database to be stored
  * @param log pointer to autobuffer to contain logging output
  *   by storage.
  * @return 0 if data was stored, -1 if an error happened
  */
 int
-cfg_io_save_parser(struct cfg_instance *instance,
-    const char *url, const char *parser, struct cfg_db *src, struct autobuf *log) {
+cfg_io_save(struct cfg_instance *instance,
+    const char *url, struct cfg_db *src, struct autobuf *log) {
   struct cfg_io *io;
   const char *io_param = NULL;
 
@@ -161,7 +141,7 @@ cfg_io_save_parser(struct cfg_instance *instance,
     cfg_append_printable_line(log, "Error, config io '%s' does not support saving.", io->name);
     return -1;
   }
-  return io->save(instance, io_param, parser, src, log);
+  return io->save(io_param, src, log);
 }
 
 /**
@@ -187,8 +167,8 @@ _find_io(struct cfg_instance *instance,
     return NULL;
   }
   if (ptr1 == NULL) {
-    /* get default io handler */
-    io = instance->default_io;
+    /* just use the first handler */
+    io = avl_first_element(&instance->io_tree, io, node);
     ptr1 = url;
   }
   else {

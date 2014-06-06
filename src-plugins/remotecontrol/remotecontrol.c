@@ -166,9 +166,7 @@ static struct oonf_telnet_command _telnet_cmds[] = {
       "\"config get\":                                      Show all section types in database\n"
       "\"config get <section_type>.\":                      Show all named sections of a certain type\n"
       "\"config get <section_type>.<key>\":                 Show the value(s) of a key in an unnamed section\n"
-      "\"config get <section_type>[<name>].<key>\":         Show the value(s) of a key in a named section\n"
-      "\"config format <FORMAT>\":                          Set the format for loading/saving data\n"
-      "\"config format AUTO\":                              Set the format to automatic detection\n",
+      "\"config get <section_type>[<name>].<key>\":         Show the value(s) of a key in a named section\n",
       .acl = &_remotecontrol_config.acl),
   TELNET_CMD("route", _cb_handle_route,
       "\"route add [src <src-ip>] [gw <gateway ip>] dst <destination prefix> [table <table-id>]\n"
@@ -466,9 +464,6 @@ _cb_handle_config(struct oonf_telnet_data *data) {
   }
   else if ((next = str_hasnextword(data->parameter, "rollback"))) {
     oonf_cfg_rollback();
-  }
-  else if ((next = str_hasnextword(data->parameter, "format"))) {
-    cfg_cmd_handle_format(oonf_cfg_get_instance(), next);
   }
   else if ((next = str_hasnextword(data->parameter, "get"))) {
     cfg_cmd_handle_get(oonf_cfg_get_instance(),

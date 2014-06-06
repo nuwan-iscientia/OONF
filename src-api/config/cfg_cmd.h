@@ -60,7 +60,6 @@ EXPORT int cfg_cmd_handle_load(struct cfg_instance *instance,
     struct cfg_db *db, const char *arg, struct autobuf *log);
 EXPORT int cfg_cmd_handle_save(struct cfg_instance *instance, struct cfg_db *db,
     const char *arg, struct autobuf *log);
-EXPORT int cfg_cmd_handle_format(struct cfg_instance *instance, const char *arg);
 EXPORT int cfg_cmd_handle_schema(struct cfg_db *db,
     const char *arg, struct autobuf *log);
 
