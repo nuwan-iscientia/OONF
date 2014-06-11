@@ -363,7 +363,7 @@ netaddr_socket_get_port(const union netaddr_socket *sock) {
  * @param src netaddr source
  * @param forceprefix true if a prefix should be appended even with maximum
  *   prefix length, false if only shorter prefixes should be appended
- * @return pointer to target buffer, NULL if an error happened
+ * @return pointer to target buffer
  */
 const char *
 netaddr_to_prefixstring(struct netaddr_str *dst,
@@ -373,7 +373,7 @@ netaddr_to_prefixstring(struct netaddr_str *dst,
   int maxprefix;
 
   if (!src) {
-    return NONE;
+    return strcpy(dst->buf, NONE);
   }
 
   maxprefix = netaddr_get_maxprefix(src);
@@ -391,11 +391,9 @@ netaddr_to_prefixstring(struct netaddr_str *dst,
       result = _mac_to_string(dst->buf, src->_addr, sizeof(*dst), 8, '-');
       break;
     case AF_UNSPEC:
-      result = strcpy(dst->buf, "-");
-      forceprefix = false;
-      break;
+      /* fall through */
     default:
-      return NULL;
+      return strcpy(dst->buf, NONE);
   }
   if (forceprefix || src->_prefix_len < maxprefix) {
     /* append prefix */

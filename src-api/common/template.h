@@ -71,7 +71,7 @@ EXPORT struct abuf_template_storage *abuf_template_init (
     struct abuf_template_data *data, size_t data_count, const char *format);
 EXPORT int abuf_add_template(struct autobuf *out, const char *format,
     struct abuf_template_storage *storage);
-EXPORT int abuf_add_json(struct autobuf *out, const char *prefix,
+EXPORT int abuf_add_json(struct autobuf *out, const char *prefix, bool newline,
     struct abuf_template_data *data, size_t data_count);
 
 /**

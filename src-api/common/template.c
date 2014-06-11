@@ -168,17 +168,18 @@ abuf_add_template(struct autobuf *out, const char *format,
  * JSON compatible output.
  * @param out output buffer
  * @param prefix string prefix for all lines
+ * @param brackets true to add surrounding brackets and newlines
  * @param data array of template data
  * @param data_count number of template data entries
  * @return -1 if an error happened, 0 otherwise
  */
 int
 abuf_add_json(struct autobuf *out, const char *prefix,
-    struct abuf_template_data *data, size_t data_count) {
+    bool brackets, struct abuf_template_data *data, size_t data_count) {
   bool first;
   size_t i;
 
-  if (abuf_appendf(out, "%s{\n", prefix) < 0) {
+  if (brackets && abuf_appendf(out, "%s{\n", prefix) < 0) {
     return -1;
   }
 
@@ -197,7 +198,7 @@ abuf_add_json(struct autobuf *out, const char *prefix,
       first = false;
     }
 
-    if (abuf_appendf(out, "%s    \"%s\" : ",
+    if (abuf_appendf(out, "%s\t\"%s\" : ",
         prefix, data[i].key) < 0) {
       return -1;
     }
@@ -206,13 +207,13 @@ abuf_add_json(struct autobuf *out, const char *prefix,
     }
   }
 
-  if (!first) {
+  if (!first && brackets) {
     if (abuf_puts(out, "\n") < 0) {
       return -1;
     }
   }
 
-  if (abuf_appendf(out, "%s}\n", prefix) < 0) {
+  if (brackets && abuf_appendf(out, "%s}\n", prefix) < 0) {
     return -1;
   }
   return 0;

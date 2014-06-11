@@ -10,6 +10,7 @@ SET(OONF_SUBSYSTEMS_SRCS oonf_class.c
                          oonf_stream_socket.c
                          oonf_telnet.c
                          oonf_timer.c
+                         oonf_viewer.c
                          )
 
 SET(OONF_SUBSYSTEMS_INCLUDES oonf_class.h
@@ -24,6 +25,7 @@ SET(OONF_SUBSYSTEMS_INCLUDES oonf_class.h
                              oonf_stream_socket.h
                              oonf_telnet.h
                              oonf_timer.h
+                             oonf_viewer.h
                              os_clock.h
                              os_net.h
                              os_routing.h

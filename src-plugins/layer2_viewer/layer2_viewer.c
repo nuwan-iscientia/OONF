@@ -414,7 +414,7 @@ _cb_handle_layer2(struct oonf_telnet_data *data) {
         abuf_add_template(data->out, _net_params.template, tmpl_storage);
       }
       else {
-        abuf_add_json(data->out, "",
+        abuf_add_json(data->out, "", true,
             _template_net_data, ARRAYSIZE(_template_net_data));
       }
     }
@@ -439,7 +439,8 @@ _cb_handle_layer2(struct oonf_telnet_data *data) {
           abuf_add_template(data->out, _neigh_params.template, tmpl_storage);
         }
         else {
-          abuf_add_json(data->out, "", _template_neigh_data, ARRAYSIZE(_template_neigh_data));
+          abuf_add_json(data->out, "", true,
+              _template_neigh_data, ARRAYSIZE(_template_neigh_data));
         }
       }
     }

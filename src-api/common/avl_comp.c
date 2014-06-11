@@ -47,7 +47,6 @@
 
 /**
  * AVL tree comparator for unsigned 32 bit integers
- * Custom pointer is not used.
  * @param k1 pointer to key 1
  * @param k2 pointer to key 2
  * @return +1 if k1>k2, -1 if k1<k2, 0 if k1==k2
@@ -68,7 +67,6 @@ avl_comp_uint32(const void *k1, const void *k2) {
 
 /**
  * AVL tree comparator for unsigned 16 bit integers
- * Custom pointer is not used.
  * @param k1 pointer to key 1
  * @param k2 pointer to key 2
  * @return +1 if k1>k2, -1 if k1<k2, 0 if k1==k2
@@ -89,7 +87,6 @@ avl_comp_uint16(const void *k1, const void *k2) {
 
 /**
  * AVL tree comparator for unsigned 8 bit integers
- * Custom pointer is not used
  * @param k1 pointer to key 1
  * @param k2 pointer to key 2
  * @return +1 if k1>k2, -1 if k1<k2, 0 if k1==k2
@@ -136,7 +133,6 @@ avl_comp_netaddr_socket(const void *k1, const void *k2) {
 
 /**
  * AVL tree comparator for case insensitive strings.
- * Custom pointer is the length of the memory to compare.
  * @param txt1 pointer to string 1
  * @param txt2 pointer to string 2
  * @return +1 if k1>k2, -1 if k1<k2, 0 if k1==k2

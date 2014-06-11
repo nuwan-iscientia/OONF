@@ -58,6 +58,8 @@
 static int _init(void);
 static void _cleanup(void);
 
+static int _avl_comp_strcmdword(const void *txt1, const void *txt2);
+
 static void _call_stop_handler(struct oonf_telnet_data *data);
 static void _cb_config_changed(void);
 static int _cb_telnet_init(struct oonf_stream_session *);
@@ -68,9 +70,8 @@ static enum oonf_stream_session_state _cb_telnet_receive_data(
     struct oonf_stream_session *);
 static enum oonf_telnet_result _telnet_handle_command(
     struct oonf_telnet_data *);
-static struct oonf_telnet_command *_check_telnet_command(
-    struct oonf_telnet_data *data, const char *name,
-    struct oonf_telnet_command *cmd);
+static struct oonf_telnet_command *_check_telnet_command_acl(
+    struct oonf_telnet_data *data, struct oonf_telnet_command *cmd);
 
 static void _cb_telnet_repeat_timer(void *data);
 static enum oonf_telnet_result _cb_telnet_quit(struct oonf_telnet_data *data);
@@ -162,7 +163,7 @@ _init(void) {
   oonf_stream_add_managed(&_telnet_managed);
 
   /* initialize telnet commands */
-  avl_init(&oonf_telnet_cmd_tree, avl_comp_strcasecmp, false);
+  avl_init(&oonf_telnet_cmd_tree, _avl_comp_strcmdword, false);
   for (i=0; i<ARRAYSIZE(_builtin); i++) {
     oonf_telnet_add(&_builtin[i]);
   }
@@ -235,7 +236,32 @@ oonf_telnet_execute(const char *cmd, const char *para,
 
   result = _telnet_handle_command(&data);
   oonf_telnet_stop(&data);
-  return result;
+  return abuf_has_failed(data.out) ? TELNET_RESULT_INTERNAL_ERROR : result;
+}
+
+/**
+ * AVL tree comparator for first word in case insensitive strings.
+ * @param txt1 pointer to string 1
+ * @param txt2 pointer to string 2
+ * @return +1 if k1>k2, -1 if k1<k2, 0 if k1==k2
+ */
+static int
+_avl_comp_strcmdword(const void *ptr1, const void *ptr2) {
+  const char *txt1 = ptr1;
+  const char *txt2 = ptr2;
+  int diff;
+
+  do {
+    diff = (int)(*txt1) - (int)(*txt2);
+    if (diff != 0 || *txt1 == ' ' || *txt2 == ' ') {
+      break;
+    }
+  } while (*txt1++ != 0 && *txt2++ != 0);
+
+  if ((*txt1==' ' && *txt2==0) || (*txt1==0 && *txt2==' ')) {
+    diff = 0;
+  }
+  return diff;
 }
 
 /**
@@ -362,14 +388,12 @@ _call_stop_handler(struct oonf_telnet_data *data) {
  */
 static enum oonf_stream_session_state
 _cb_telnet_receive_data(struct oonf_stream_session *session) {
-  static const char defaultCommand[] = "/link/neigh/topology/hna/mid/routes";
-  static char tmpbuf[128];
-
   struct oonf_telnet_session *telnet_session;
   enum oonf_telnet_result cmd_result;
+  bool processedCommand = false;
+  bool chainCommands = false;
   char *eol;
   int len;
-  bool processedCommand = false, chainCommands = false;
 
   /* get telnet session pointer */
   telnet_session = (struct oonf_telnet_session *)session;
@@ -395,12 +419,6 @@ _cb_telnet_receive_data(struct oonf_stream_session *session) {
     OONF_DEBUG(LOG_TELNET, "Interactive console: %s\n", abuf_getptr(&session->in));
     cmd = abuf_getptr(&session->in);
     processedCommand = true;
-
-    /* apply default command */
-    if (strcmp(cmd, "/") == 0) {
-      strcpy(tmpbuf, defaultCommand);
-      cmd = tmpbuf;
-    }
 
     if (cmd[0] == '/') {
       cmd++;
@@ -457,7 +475,7 @@ _cb_telnet_receive_data(struct oonf_stream_session *session) {
             break;
         }
         /* put an empty line behind each command */
-        if (telnet_session->data.show_echo) {
+        if (!chainCommands && telnet_session->data.show_echo) {
           abuf_puts(&session->out, "\n");
         }
       }
@@ -496,7 +514,10 @@ _telnet_handle_command(struct oonf_telnet_data *data) {
 #ifdef OONF_LOG_INFO
   struct netaddr_str buf;
 #endif
-  cmd = _check_telnet_command(data, data->command, NULL);
+  cmd = avl_find_element(&oonf_telnet_cmd_tree, data->command, cmd, _node);
+  if (cmd) {
+    cmd = _check_telnet_command_acl(data, cmd);
+  }
   if (cmd == NULL) {
     return _TELNET_RESULT_UNKNOWN_COMMAND;
   }
@@ -511,24 +532,16 @@ _telnet_handle_command(struct oonf_telnet_data *data) {
  * Checks for existing (and allowed) telnet command.
  * Either name or cmd should be NULL, but not both.
  * @param data pointer to telnet data
- * @param name pointer to command name (might be NULL)
- * @param cmd pointer to telnet command object (might be NULL)
+ * @param cmd pointer to telnet command object
  * @return telnet command object or NULL if not found or forbidden
  */
 static struct oonf_telnet_command *
-_check_telnet_command(struct oonf_telnet_data *data,
-    const char *name, struct oonf_telnet_command *cmd) {
+_check_telnet_command_acl(struct oonf_telnet_data *data,
+    struct oonf_telnet_command *cmd) {
 #ifdef OONF_LOG_DEBUG_INFO
   struct netaddr_str buf;
 #endif
 
-  // TODO: split into two functions
-  if (cmd == NULL) {
-    cmd = avl_find_element(&oonf_telnet_cmd_tree, name, cmd, _node);
-    if (cmd == NULL) {
-      return cmd;
-    }
-  }
   if (cmd->acl == NULL) {
     return cmd;
   }
@@ -561,7 +574,10 @@ _cb_telnet_help(struct oonf_telnet_data *data) {
   struct oonf_telnet_command *cmd;
 
   if (data->parameter != NULL && data->parameter[0] != 0) {
-    cmd = _check_telnet_command(data, data->parameter, NULL);
+    cmd = avl_find_element(&oonf_telnet_cmd_tree, data->parameter, cmd, _node);
+    if (cmd) {
+        cmd = _check_telnet_command_acl(data, cmd);
+    }
     if (cmd == NULL) {
       abuf_appendf(data->out, "No help text found for command: %s\n", data->parameter);
       return TELNET_RESULT_ACTIVE;
@@ -571,28 +587,21 @@ _cb_telnet_help(struct oonf_telnet_data *data) {
       cmd->help_handler(data);
     }
     else {
-      if (abuf_appendf(data->out, "%s", cmd->help) < 0) {
-        return TELNET_RESULT_INTERNAL_ERROR;
-      }
+      abuf_appendf(data->out, "%s", cmd->help);
     }
     return TELNET_RESULT_ACTIVE;
   }
 
-  if (abuf_puts(data->out, "Known commands:\n") < 0) {
-    return TELNET_RESULT_INTERNAL_ERROR;
-  }
+  abuf_puts(data->out, "Known commands:\n");
+  return TELNET_RESULT_INTERNAL_ERROR;
 
   avl_for_each_element(&oonf_telnet_cmd_tree, cmd, _node) {
-    if (_check_telnet_command(data, NULL, cmd)) {
-      if (abuf_appendf(data->out, "  %s\n", cmd->command) < 0) {
-        return TELNET_RESULT_INTERNAL_ERROR;
-      }
+    if (_check_telnet_command_acl(data, cmd)) {
+      abuf_appendf(data->out, "  %s\n", cmd->command);
     }
   }
 
-  if (abuf_puts(data->out, "Use 'help <command> to see a help text for one command\n") < 0) {
-    return TELNET_RESULT_INTERNAL_ERROR;
-  }
+  abuf_puts(data->out, "Use 'help <command> to see a help text for one command\n");
   return TELNET_RESULT_ACTIVE;
 }
 
