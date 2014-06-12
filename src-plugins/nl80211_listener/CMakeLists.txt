@@ -11,7 +11,7 @@ include_directories(${LIBNL3_INCLUDE_DIRS})
 link_directories(${LIBNL3_LIBRARY_DIRS})
 
 # set library name
-SET (source "nl80211_listener.c")
+SET (source nl80211_listener.c)
 
 message("Using '${LIBNL3_LIBRARIES}' for nl80211 access")
 
