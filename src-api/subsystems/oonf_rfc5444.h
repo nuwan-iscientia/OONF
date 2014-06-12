@@ -270,10 +270,21 @@ oonf_rfc5444_get_core_interface(struct oonf_rfc5444_interface *interf) {
 }
 
 /**
+ * @param interface pointer to rfc5444 interface
+ * @param af_type address family
+ * @return true if the target (address family type) socket is active
+ */
+static INLINE bool
+oonf_rfc5444_is_interface_active(
+    struct oonf_rfc5444_interface *interface, int af_type) {
+  return oonf_packet_managed_is_active(&interface->_socket, af_type);
+}
+
+/**
  * @param target pointer to rfc5444 target
  * @return true if the target (address family type) socket is active
  */
-static inline bool
+static INLINE bool
 oonf_rfc5444_is_target_active(struct oonf_rfc5444_target *target) {
   return target != NULL &&
       oonf_packet_managed_is_active(&target->interface->_socket,
