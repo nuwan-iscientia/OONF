@@ -181,7 +181,7 @@ oonf_viewer_prepare_output(struct oonf_viewer_template *template,
   if (format == NULL || *format == 0) {
     format = template->def_format;
   }
-  if (strcmp(format, JSON_TEMPLATE_FORMAT) != 0) {
+  if (strcmp(format, OONF_VIEWER_JSON_FORMAT) != 0) {
     /* no JSON format, generate template entries */
     template->_storage = abuf_template_init(
         template->data, template->data_size, format);
@@ -209,7 +209,8 @@ oonf_viewer_prepare_output(struct oonf_viewer_template *template,
 int
 oonf_viewer_print_line(struct oonf_viewer_template *template) {
   if (template->_storage) {
-    if (abuf_add_template(template->out, template->_format, template->_storage)) {
+    if (abuf_add_template(template->out, template->_format,
+        template->_storage, false)) {
       return -1;
     }
     abuf_puts(template->out, "\n");
@@ -237,6 +238,15 @@ oonf_viewer_finish_output(struct oonf_viewer_template *template) {
   }
 }
 
+static void
+_print_help_parameters(struct autobuf *out) {
+  abuf_puts(out, "\nAdd the additional parameter '" OONF_VIEWER_JSON_FORMAT
+      "' to generate JSON output of all keys/value pairs.\n"
+      "Add the additional parameter '" OONF_VIEWER_HEAD_FORMAT "' to"
+      " generate a headline for the table.\n"
+      "You can also add a custom template (text with keys inside)"
+      " as a parameter.\n");
+}
 void
 oonf_viewer_print_help(struct autobuf *out, const char *parameter,
     struct oonf_viewer_template *template, size_t count) {
@@ -253,14 +263,10 @@ oonf_viewer_print_help(struct autobuf *out, const char *parameter,
         abuf_appendf(out, "\t%s\n", template[i].json_name);
       }
     }
-    abuf_puts(out, "\nAdd the additional parameter '" JSON_TEMPLATE_FORMAT
-        "' to generate JSON output of all keys/value pairs.\n"
-        "You can also add a custom template (text with keys inside)"
-        " as a parameter.\n"
-        "Use 'help <command> <subcommand>' to get help about a subcommand\n");
+    _print_help_parameters(out);
+    abuf_puts(out, "Use 'help <command> <subcommand>' to get help about a subcommand\n");
     return;
   }
-
   for (i=0; i<count; i++) {
     if (strcmp(parameter, template[i].json_name) == 0) {
       if (template[i].help) {
@@ -273,10 +279,7 @@ oonf_viewer_print_help(struct autobuf *out, const char *parameter,
         abuf_appendf(out, "\t%%%s%%\n", template[i].data[j].key);
       }
 
-      abuf_puts(out, "\nAdd the parameter '" JSON_TEMPLATE_FORMAT
-          " to generate JSON output of all keys/value pairs.\n"
-          "You can also add a custom template (text with keys inside)"
-          " as a parameter.\n");
+      _print_help_parameters(out);
       return;
     }
   }
@@ -287,17 +290,30 @@ oonf_viewer_print_help(struct autobuf *out, const char *parameter,
 int
 oonf_viewer_call_subcommands(struct autobuf *out, const char *param,
     struct oonf_viewer_template *templates, size_t count) {
-  const char *next = NULL;
+  const char *next = NULL, *ptr = NULL;
   int result;
   size_t i;
+  bool head = false;
 
   for (i=0; i<count; i++) {
     if ((next = str_hasnextword(param, templates[i].json_name))) {
+      if ((ptr = str_hasnextword(next, OONF_VIEWER_HEAD_FORMAT))) {
+        head = true;
+        next = ptr;
+      }
+
       if (oonf_viewer_prepare_output(&templates[i], out, next)) {
         return -1;
       }
 
-      result = templates[i].cb_function(&templates[i]);
+      if (head) {
+        result = abuf_add_template(out, templates[i]._format,
+            templates[i]._storage, true);
+        abuf_puts(out, "\n");
+      }
+      else {
+        result = templates[i].cb_function(&templates[i]);
+      }
 
       oonf_viewer_finish_output(&templates[i]);
 

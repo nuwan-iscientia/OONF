@@ -127,13 +127,16 @@ abuf_template_init (
  * @param format format string (as supplied to abuf_template_init()
  * @param storage pointer to template storage object, which will be filled by
  *   this function
+ * @param keys true if the engine should leave the keys in there,
+ *   false to insert the values.
  * @return -1 if an out-of-memory error happened, 0 otherwise
  */
 int
 abuf_add_template(struct autobuf *out, const char *format,
-    struct abuf_template_storage *storage) {
+    struct abuf_template_storage *storage, bool keys) {
   struct abuf_template_storage_entry *entry;
   size_t i, last = 0;
+  const char *value;
 
   if (out == NULL) return 0;
 
@@ -147,8 +150,14 @@ abuf_add_template(struct autobuf *out, const char *format,
       }
     }
 
-    if (entry->data->value) {
-      if (abuf_puts(out, entry->data->value) < 0) {
+    if (keys) {
+      value = entry->data->key;
+    }
+    else {
+      value = entry->data->value;
+    }
+    if (value) {
+      if (abuf_puts(out, value) < 0) {
         return -1;
       }
     }

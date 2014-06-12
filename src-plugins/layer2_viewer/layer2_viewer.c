@@ -55,6 +55,7 @@
 #include "subsystems/oonf_interface.h"
 #include "subsystems/oonf_layer2.h"
 #include "subsystems/oonf_telnet.h"
+#include "subsystems/oonf_viewer.h"
 
 #include "layer2_viewer/layer2_viewer.h"
 
@@ -113,12 +114,12 @@ static struct oonf_telnet_command _telnet_cmd =
   TELNET_CMD("layer2", _cb_handle_layer2,
       "\"layer2 net\": show data of all known WLAN networks\n"
       "\"layer2 net list\": show a table of all known active WLAN networks\n"
-      "\"layer2 net "JSON_TEMPLATE_FORMAT"\": show a json output of all known active WLAN networks\n"
+      "\"layer2 net "OONF_VIEWER_JSON_FORMAT"\": show a json output of all known active WLAN networks\n"
       "\"layer2 net <template>\": show a table of all known active WLAN networks\n"
       "     (use net_full/net_inactive to output all/inactive networks)\n"
       "\"layer2 neigh\": show data of all known WLAN neighbors\n"
       "\"layer2 neigh list\": show a table of all known WLAN neighbors\n"
-      "\"layer2 neigh "JSON_TEMPLATE_FORMAT"\": show a json output of all known WLAN neighbors\n"
+      "\"layer2 neigh "OONF_VIEWER_JSON_FORMAT"\": show a json output of all known WLAN neighbors\n"
       "\"layer2 neigh <template>\": show a table of all known WLAN neighbors\n"
       "     (use neigh_full/neigh_inactive to output all/inactive neighbors)\n",
       .acl = &_config.acl);
@@ -368,7 +369,7 @@ _parse_mode(struct autobuf *out, const char *cmd, struct _command_params *params
     abuf_puts(out, params->headline_table);
     params->template = params->tmpl_table;
   }
-  else if (strcasecmp(next, JSON_TEMPLATE_FORMAT) == 0) {
+  else if (strcasecmp(next, OONF_VIEWER_JSON_FORMAT) == 0) {
     params->template = NULL;
   }
   else if (*next == 0) {
@@ -411,7 +412,7 @@ _cb_handle_layer2(struct oonf_telnet_data *data) {
         return TELNET_RESULT_INTERNAL_ERROR;
       }
       if (_net_params.template) {
-        abuf_add_template(data->out, _net_params.template, tmpl_storage);
+        abuf_add_template(data->out, _net_params.template, tmpl_storage, false);
       }
       else {
         abuf_add_json(data->out, "", true,
@@ -436,7 +437,7 @@ _cb_handle_layer2(struct oonf_telnet_data *data) {
         }
 
         if (_neigh_params.template) {
-          abuf_add_template(data->out, _neigh_params.template, tmpl_storage);
+          abuf_add_template(data->out, _neigh_params.template, tmpl_storage, false);
         }
         else {
           abuf_add_json(data->out, "", true,

@@ -47,7 +47,6 @@
 
 #define JSON_TRUE            "true"
 #define JSON_FALSE           "false"
-#define JSON_TEMPLATE_FORMAT "json"
 
 enum { JSON_BOOL_LENGTH = 6 };
 
@@ -70,7 +69,7 @@ struct abuf_template_storage {
 EXPORT struct abuf_template_storage *abuf_template_init (
     struct abuf_template_data *data, size_t data_count, const char *format);
 EXPORT int abuf_add_template(struct autobuf *out, const char *format,
-    struct abuf_template_storage *storage);
+    struct abuf_template_storage *storage, bool keys);
 EXPORT int abuf_add_json(struct autobuf *out, const char *prefix, bool newline,
     struct abuf_template_data *data, size_t data_count);
 

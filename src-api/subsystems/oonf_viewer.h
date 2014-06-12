@@ -47,6 +47,9 @@
 
 #include "core/oonf_subsystem.h"
 
+#define OONF_VIEWER_JSON_FORMAT "json"
+#define OONF_VIEWER_HEAD_FORMAT "head"
+
 /* This struct contains the session variables for JSON generation */
 struct oonf_viewer_json_session {
   /* pointer to output buffer */
@@ -113,10 +116,12 @@ EXPORT int oonf_viewer_concat_3_templates(struct oonf_viewer_template *dst,
     struct oonf_viewer_template *src3);
 EXPORT void oonf_viewer_free_concat_template(
     struct oonf_viewer_template *template);
+
 EXPORT int oonf_viewer_prepare_output(struct oonf_viewer_template *template,
     struct autobuf *out, const char *format);
 EXPORT int oonf_viewer_print_line(struct oonf_viewer_template *template);
 EXPORT void oonf_viewer_finish_output(struct oonf_viewer_template *template);
+
 EXPORT void oonf_viewer_print_help(struct autobuf *out,
     const char *parameter, struct oonf_viewer_template *template, size_t count);
 EXPORT int oonf_viewer_call_subcommands(struct autobuf *out, const char *param,

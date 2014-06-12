@@ -403,7 +403,7 @@ _open_plugin(const char *filename) {
     }
 
     abuf_clear(&abuf);
-    abuf_add_template(&abuf, DLOPEN_PATTERNS[i], table);
+    abuf_add_template(&abuf, DLOPEN_PATTERNS[i], table, false);
     free(table);
 
     OONF_DEBUG(LOG_PLUGINS, "Trying to load library: %s", abuf_getptr(&abuf));
