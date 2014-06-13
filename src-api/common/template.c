@@ -47,9 +47,9 @@
 #include "common/string.h"
 #include "common/template.h"
 
-static struct abuf_template_data *_find_template(
-    struct abuf_template_data *data, size_t tmplLength, const char *txt, size_t txtLength);
-static int _json_printvalue(struct autobuf *out, const char *txt, bool string);
+static struct abuf_template_data_entry *_find_template(
+    struct abuf_template_data *set, size_t set_count, const char *txt, size_t txtLength);
+static void _json_printvalue(struct autobuf *out, const char *txt, bool string);
 
 /**
  * Initialize an index table for a template engine.
@@ -58,26 +58,45 @@ static int _json_printvalue(struct autobuf *out, const char *txt, bool string);
  * in the integer array the user provided, so the template
  * engine can replace them with the values later.
  *
+ * @param storage pointer to template storage
  * @param data array of key/value pairs for the template engine
  * @param data_count number of keys
  * @param format format string of the template
- * @return allocated template storage object, NULL if an error happened
  */
-struct abuf_template_storage *
-abuf_template_init (
+void
+abuf_template_init_ext(struct abuf_template_storage *storage,
     struct abuf_template_data *data, size_t data_count, const char *format) {
-  struct abuf_template_storage *storage = NULL, *new_storage = NULL;
-  struct abuf_template_data *d;
+  /* helper string for 'just one tab between keys' */
+  static const char default_format[] = "\t";
+
+  struct abuf_template_data_entry *d;
   bool no_open_format = true;
   bool escape = false;
   size_t start = 0;
   size_t pos = 0;
+  size_t i,j;
 
-  storage = calloc(1, sizeof(struct abuf_template_storage));
-  if (storage == NULL) {
-    return NULL;
+  if (!format) {
+    /* generate default format, just tab between each value */
+    storage->format = default_format;
+
+    storage->count = 0;
+
+    for (j = 0; j < data_count; j++) {
+      for (i = 0; i < data[j].count; i++) {
+        storage->indices[storage->count].start = 1;
+        storage->indices[storage->count].end = 0;
+        storage->indices[storage->count].data = &data[j].data[i];
+        storage->count++;
+      }
+    }
+
+    storage->indices[0].start = 0;
+    storage->indices[storage->count-1].end = 1;
+    return;
   }
 
+  storage->format = format;
   while (format[pos]) {
     if (!escape && format[pos] == '%') {
       if (no_open_format) {
@@ -88,14 +107,6 @@ abuf_template_init (
       if (pos - start > 1) {
         d = _find_template(data, data_count, &format[start+1], pos-start-1);
         if (d) {
-          new_storage = realloc(storage, sizeof(struct abuf_template_storage)
-              + sizeof(storage->indices[0]) * (storage->count+1));
-          if (new_storage == NULL) {
-            free(storage);
-            return NULL;
-          }
-          storage = new_storage;
-
           storage->indices[storage->count].start = start;
           storage->indices[storage->count].end = pos+1;
           storage->indices[storage->count].data = d;
@@ -115,8 +126,6 @@ abuf_template_init (
 
     pos++;
   }
-
-  return storage;
 }
 
 /**
@@ -124,30 +133,24 @@ abuf_template_init (
  * Each usage of a key will be replaced with the corresponding
  * value.
  * @param out pointer to autobuf object
- * @param format format string (as supplied to abuf_template_init()
  * @param storage pointer to template storage object, which will be filled by
  *   this function
  * @param keys true if the engine should leave the keys in there,
  *   false to insert the values.
- * @return -1 if an out-of-memory error happened, 0 otherwise
  */
-int
-abuf_add_template(struct autobuf *out, const char *format,
+void
+abuf_add_template(struct autobuf *out,
     struct abuf_template_storage *storage, bool keys) {
   struct abuf_template_storage_entry *entry;
   size_t i, last = 0;
   const char *value;
-
-  if (out == NULL) return 0;
 
   for (i=0; i<storage->count; i++) {
     entry = &storage->indices[i];
 
     /* copy prefix text */
     if (last < entry->start) {
-      if (abuf_memcpy(out, &format[last], entry->start - last) < 0) {
-        return -1;
-      }
+      abuf_memcpy(out, &storage->format[last], entry->start - last);
     }
 
     if (keys) {
@@ -157,19 +160,14 @@ abuf_add_template(struct autobuf *out, const char *format,
       value = entry->data->value;
     }
     if (value) {
-      if (abuf_puts(out, value) < 0) {
-        return -1;
-      }
+      abuf_puts(out, value);
     }
     last = entry->end;
   }
 
-  if (last < strlen(format)) {
-    if (abuf_puts(out, &format[last]) < 0) {
-      return -1;
-    }
+  if (last < strlen(storage->format)) {
+    abuf_puts(out, &storage->format[last]);
   }
-  return 0;
 }
 
 /**
@@ -180,72 +178,65 @@ abuf_add_template(struct autobuf *out, const char *format,
  * @param brackets true to add surrounding brackets and newlines
  * @param data array of template data
  * @param data_count number of template data entries
- * @return -1 if an error happened, 0 otherwise
  */
-int
-abuf_add_json(struct autobuf *out, const char *prefix,
+void
+abuf_add_json_ext(struct autobuf *out, const char *prefix,
     bool brackets, struct abuf_template_data *data, size_t data_count) {
   bool first;
-  size_t i;
+  size_t i,j;
 
-  if (brackets && abuf_appendf(out, "%s{\n", prefix) < 0) {
-    return -1;
+  if (brackets) {
+    abuf_appendf(out, "%s{\n", prefix);
   }
 
   first = true;
   for (i=0; i<data_count; i++) {
-    if (data[i].value == NULL) {
-      continue;
-    }
-
-    if (!first) {
-      if (abuf_puts(out, ",\n") < 0) {
-        return -1;
+    for (j=0; j<data[i].count; j++) {
+      if (data[i].data[j].value == NULL) {
+        continue;
       }
-    }
-    else {
-      first = false;
+
+      if (!first) {
+        abuf_puts(out, ",\n");
+      }
+      else {
+        first = false;
+      }
+
+      abuf_appendf(out, "%s\t\"%s\" : ", prefix, data[i].data[j].key);
+      _json_printvalue(out, data[i].data[j].value, data[i].data[j].string);
     }
 
-    if (abuf_appendf(out, "%s\t\"%s\" : ",
-        prefix, data[i].key) < 0) {
-      return -1;
-    }
-    if (_json_printvalue(out, data[i].value, data[i].string)) {
-      return -1;
+    if (!first && brackets) {
+      abuf_puts(out, "\n");
     }
   }
 
-  if (!first && brackets) {
-    if (abuf_puts(out, "\n") < 0) {
-      return -1;
-    }
+  if (brackets) {
+    abuf_appendf(out, "%s}\n", prefix);
   }
-
-  if (brackets && abuf_appendf(out, "%s}\n", prefix) < 0) {
-    return -1;
-  }
-  return 0;
 }
 
 /**
  * Find the template data corresponding to a key
- * @param keys pointer to template data array
- * @param tmplLength number of template data entries in array
+ * @param set pointer to template data array
+ * @param set_count number of template data entries in array
  * @param txt pointer to text to search in
  * @param txtLength length of text to search in
  * @return pointer to corresponding template data, NULL if not found
  */
-static struct abuf_template_data *
-_find_template(struct abuf_template_data *data, size_t tmplLength, const char *txt, size_t txtLength) {
-  size_t i;
+static struct abuf_template_data_entry *
+_find_template(struct abuf_template_data *set, size_t set_count, const char *txt, size_t txtLength) {
+  size_t i, j;
 
-  for (i=0; i<tmplLength; i++) {
-    const char *key;
+  for (j=0; j<set_count; j++) {
+    for (i=0; i<set[j].count; i++) {
+      const char *key;
 
-    key = data[i].key;
-    if (strncmp(key, txt, txtLength) == 0 && key[txtLength] == 0) {
-      return &data[i];
+      key = set[j].data[i].key;
+      if (strncmp(key, txt, txtLength) == 0 && key[txtLength] == 0) {
+        return &set[j].data[i];
+      }
     }
   }
   return NULL;
@@ -258,15 +249,13 @@ _find_template(struct abuf_template_data *data, size_t tmplLength, const char *t
  * @param delimiter true if string must be enclosed in quotation marks
  * @return -1 if an error happened, 0 otherwise
  */
-static int
+static void
 _json_printvalue(struct autobuf *out, const char *txt, bool delimiter) {
   const char *ptr;
   bool unprintable;
 
   if (delimiter) {
-    if (abuf_puts(out, "\"") < 0) {
-      return -1;
-    }
+    abuf_puts(out, "\"");
   }
   else if (*txt == 0) {
     abuf_puts(out, "0");
@@ -277,20 +266,14 @@ _json_printvalue(struct autobuf *out, const char *txt, bool delimiter) {
     unprintable = !str_char_is_printable(*ptr);
     if (unprintable || *ptr == '\\' || *ptr == '\"') {
       if (ptr != txt) {
-        if (abuf_memcpy(out, txt, ptr - txt) < 0) {
-          return -1;
-        }
+        abuf_memcpy(out, txt, ptr - txt);
       }
 
       if (unprintable) {
-        if (abuf_appendf(out, "\\u00%02x", (unsigned char)(*ptr++)) < 0) {
-          return -1;
-        }
+        abuf_appendf(out, "\\u00%02x", (unsigned char)(*ptr++));
       }
       else {
-        if (abuf_appendf(out, "\\%c", *ptr++) < 0) {
-          return -1;
-        }
+        abuf_appendf(out, "\\%c", *ptr++);
       }
       txt = ptr;
     }
@@ -299,15 +282,9 @@ _json_printvalue(struct autobuf *out, const char *txt, bool delimiter) {
     }
   }
 
-  if (abuf_puts(out, txt) < 0) {
-    return -1;
-  }
+  abuf_puts(out, txt);
   if (delimiter) {
-    if (abuf_puts(out, "\"") < 0) {
-      return -1;
-    }
+    abuf_puts(out, "\"");
   }
-
-  return 0;
 }
 

@@ -56,16 +56,12 @@ struct oonf_subsystem oonf_viewer_subsystem = {
   .cleanup = _cleanup,
 };
 
-/* shared buffer for default patterns */
-static struct autobuf _patterns;
-
 /**
  * Initialize telnet subsystem
  * @return always returns 0
  */
 static int
 _init(void) {
-  abuf_init(&_patterns);
   return 0;
 }
 
@@ -74,126 +70,17 @@ _init(void) {
  */
 static void
 _cleanup(void) {
-  abuf_free(&_patterns);
-}
-
-/**
- * Generate a new default pattern for the template engine as a list of
- * tab separated keys.
- * @param data pointer to template data array
- * @param count number of elements in template data array
- * @return pointer to pattern, NULL if an error happened
- */
-int oonf_viewer_generate_default_format(
-    struct oonf_viewer_template *template) {
-  const char *ptr;
-  bool first = true;
-  size_t i;
-
-  ptr = abuf_getptr(&_patterns) + abuf_getlen(&_patterns);
-
-  for (i=0; i<template->data_size; i++) {
-    if (first) {
-      first = false;
-      abuf_puts(&_patterns, "%");
-    }
-    else {
-      abuf_puts(&_patterns, "%\t%");
-    }
-
-    abuf_puts(&_patterns, template->data[i].key);
-  }
-
-  /* add an additional '0' byte to split patterns */
-  abuf_memcpy(&_patterns, "%", 2);
-
-  if (abuf_has_failed(&_patterns)) {
-    return -1;
-  }
-
-  template->def_format = ptr;
-  return 0;
-}
-
-/**
- * Generate a common template from two sources and generate a
- * default pattern for the new template.
- * @param dst pointer to destination viewer template
- * @param src1 pointer to first viewer template
- * @param src2 pointer to second viewer template
- * @return -1 if an error happened, 0 otherwise
- */
-int
-oonf_viewer_concat_templates(struct oonf_viewer_template *dst,
-    struct oonf_viewer_template *src1, struct oonf_viewer_template *src2) {
-  dst->data = calloc(src1->data_size + src2->data_size,
-      sizeof(struct abuf_template_data));
-  if (!dst->data) {
-    return -1;
-  }
-
-  memcpy(dst->data, src1->data, src1->data_size * sizeof(struct abuf_template_data));
-  memcpy(&dst->data[src1->data_size],
-      src2->data, src2->data_size * sizeof(struct abuf_template_data));
-
-  dst->data_size = src1->data_size + src2->data_size;
-  return 0;
-}
-
-/**
- * Generate a common template from two sources and generate a
- * default pattern for the new template.
- * @param dst pointer to destination viewer template
- * @param src1 pointer to first viewer template
- * @param src2 pointer to second viewer template
- * @return -1 if an error happened, 0 otherwise
- */
-int
-oonf_viewer_concat_3_templates(struct oonf_viewer_template *dst,
-    struct oonf_viewer_template *src1, struct oonf_viewer_template *src2,
-    struct oonf_viewer_template *src3) {
-  dst->data = calloc(src1->data_size + src2->data_size + src3->data_size,
-      sizeof(struct abuf_template_data));
-  if (!dst->data) {
-    return -1;
-  }
-
-  memcpy(dst->data, src1->data, src1->data_size * sizeof(struct abuf_template_data));
-  memcpy(&dst->data[src1->data_size],
-      src2->data, src2->data_size * sizeof(struct abuf_template_data));
-  memcpy(&dst->data[src1->data_size + src2->data_size],
-      src3->data, src3->data_size * sizeof(struct abuf_template_data));
-
-  dst->data_size = src1->data_size + src2->data_size + src3->data_size;
-  return 0;
-}
-
-void
-oonf_viewer_free_concat_template(struct oonf_viewer_template *template) {
-  free(template->data);
 }
 
 int
 oonf_viewer_prepare_output(struct oonf_viewer_template *template,
+    struct abuf_template_storage *storage,
     struct autobuf *out, const char *format) {
   template->out = out;
 
-  if (format == NULL || *format == 0) {
-    format = template->def_format;
-  }
-  if (strcmp(format, OONF_VIEWER_JSON_FORMAT) != 0) {
-    /* no JSON format, generate template entries */
-    template->_storage = abuf_template_init(
-        template->data, template->data_size, format);
-    if (!template->_storage) {
-      return -1;
-    }
-    template->_format = format;
-  }
-  else {
-    /* JSON output doesn't need storage preparation */
+  if (format && strcmp(format, OONF_VIEWER_JSON_FORMAT) == 0) {
+    /* JSON format */
     template->_storage = NULL;
-
     oonf_viewer_init_json_session(&template->_json, out);
 
     /* start wrapper object */
@@ -202,28 +89,31 @@ oonf_viewer_prepare_output(struct oonf_viewer_template *template,
     /* start object with array */
     oonf_viewer_start_json_array(&template->_json, template->json_name);
   }
+  else {
+    if (format && *format == 0) {
+      format = NULL;
+    }
+
+    /* no JSON format, generate template entries */
+    template->_storage = storage;
+    abuf_template_init_ext(template->_storage,
+        template->data, template->data_size, format);
+  }
 
   return 0;
 }
 
-int
-oonf_viewer_print_line(struct oonf_viewer_template *template) {
+void
+oonf_viewer_print_output_line(struct oonf_viewer_template *template) {
   if (template->_storage) {
-    if (abuf_add_template(template->out, template->_format,
-        template->_storage, false)) {
-      return -1;
-    }
+    abuf_add_template(template->out, template->_storage, false);
     abuf_puts(template->out, "\n");
-    return 0;
   }
 
   /* JSON output */
   oonf_viewer_start_json_object(&template->_json);
-  if (oonf_viewer_fill_json_object(&template->_json, template->data, template->data_size)) {
-    return -1;
-  }
+  oonf_viewer_fill_json_object_ext(&template->_json, template->data, template->data_size);
   oonf_viewer_end_json_object(&template->_json);
-  return 0;
 }
 
 void
@@ -231,10 +121,6 @@ oonf_viewer_finish_output(struct oonf_viewer_template *template) {
   if (!template->_storage) {
     oonf_viewer_end_json_array(&template->_json);
     oonf_viewer_end_json_object(&template->_json);
-  }
-  else {
-    free (template->_storage);
-    template->_storage = NULL;
   }
 }
 
@@ -250,7 +136,7 @@ _print_help_parameters(struct autobuf *out) {
 void
 oonf_viewer_print_help(struct autobuf *out, const char *parameter,
     struct oonf_viewer_template *template, size_t count) {
-  size_t i,j;
+  size_t i,j,k;
 
   if (parameter == NULL || *parameter == 0) {
     abuf_puts(out, "Available subcommands:\n");
@@ -276,7 +162,9 @@ oonf_viewer_print_help(struct autobuf *out, const char *parameter,
           template[i].json_name);
 
       for (j=0; j<template[i].data_size; j++) {
-        abuf_appendf(out, "\t%%%s%%\n", template[i].data[j].key);
+        for (k=0; k<template[i].data[j].count; k++) {
+          abuf_appendf(out, "\t%%%s%%\n", template[i].data[j].data[k].key);
+        }
       }
 
       _print_help_parameters(out);
@@ -288,10 +176,11 @@ oonf_viewer_print_help(struct autobuf *out, const char *parameter,
 }
 
 int
-oonf_viewer_call_subcommands(struct autobuf *out, const char *param,
+oonf_viewer_call_subcommands(struct autobuf *out,
+    struct abuf_template_storage *storage, const char *param,
     struct oonf_viewer_template *templates, size_t count) {
   const char *next = NULL, *ptr = NULL;
-  int result;
+  int result = 0;
   size_t i;
   bool head = false;
 
@@ -302,13 +191,12 @@ oonf_viewer_call_subcommands(struct autobuf *out, const char *param,
         next = ptr;
       }
 
-      if (oonf_viewer_prepare_output(&templates[i], out, next)) {
+      if (oonf_viewer_prepare_output(&templates[i], storage, out, next)) {
         return -1;
       }
 
       if (head) {
-        result = abuf_add_template(out, templates[i]._format,
-            templates[i]._storage, true);
+        abuf_add_template(out, templates[i]._storage, true);
         abuf_puts(out, "\n");
       }
       else {
@@ -391,11 +279,9 @@ oonf_viewer_end_json_object(struct oonf_viewer_json_session *session) {
   }
 }
 
-int
-oonf_viewer_fill_json_object(struct oonf_viewer_json_session *session,
+void
+oonf_viewer_fill_json_object_ext(struct oonf_viewer_json_session *session,
     struct abuf_template_data *data, size_t count) {
-  int result;
-
   if (session->empty) {
     session->empty = false;
     abuf_puts(session->out, "\n");
@@ -406,8 +292,6 @@ oonf_viewer_fill_json_object(struct oonf_viewer_json_session *session,
 
   /* temporary remove one level */
   session->prefix[session->level-1] = 0;
-  result = abuf_add_json(session->out, session->prefix, false, data, count);
+  abuf_add_json_ext(session->out, session->prefix, false, data, count);
   session->prefix[session->level-1] = '\t';
-
-  return result;
 }

@@ -82,9 +82,6 @@ struct oonf_viewer_template {
   /* name of the JSON object which contains the key*/
   const char *json_name;
 
-  /* default format for table view */
-  const char *def_format;
-
   /* single line help text for overview about command */
   const char *help_line;
 
@@ -97,9 +94,6 @@ struct oonf_viewer_template {
   /* internal variable for template engine storage array */
   struct abuf_template_storage *_storage;
 
-  /* internal variable for current table format */
-  const char *_format;
-
   /* internal variable for JSON generation */
   struct oonf_viewer_json_session _json;
 };
@@ -107,24 +101,15 @@ struct oonf_viewer_template {
 #define LOG_VIEWER oonf_viewer_subsystem.logging
 EXPORT extern struct oonf_subsystem oonf_viewer_subsystem;
 
-EXPORT int oonf_viewer_generate_default_format(
-    struct oonf_viewer_template *);
-EXPORT int oonf_viewer_concat_templates(struct oonf_viewer_template *dst,
-    struct oonf_viewer_template *src1, struct oonf_viewer_template *src2);
-EXPORT int oonf_viewer_concat_3_templates(struct oonf_viewer_template *dst,
-    struct oonf_viewer_template *src1, struct oonf_viewer_template *src2,
-    struct oonf_viewer_template *src3);
-EXPORT void oonf_viewer_free_concat_template(
-    struct oonf_viewer_template *template);
-
 EXPORT int oonf_viewer_prepare_output(struct oonf_viewer_template *template,
-    struct autobuf *out, const char *format);
-EXPORT int oonf_viewer_print_line(struct oonf_viewer_template *template);
+    struct abuf_template_storage *storage, struct autobuf *out, const char *format);
+EXPORT void oonf_viewer_print_output_line(struct oonf_viewer_template *template);
 EXPORT void oonf_viewer_finish_output(struct oonf_viewer_template *template);
 
 EXPORT void oonf_viewer_print_help(struct autobuf *out,
     const char *parameter, struct oonf_viewer_template *template, size_t count);
-EXPORT int oonf_viewer_call_subcommands(struct autobuf *out, const char *param,
+EXPORT int oonf_viewer_call_subcommands(struct autobuf *out,
+    struct abuf_template_storage *storage, const char *param,
     struct oonf_viewer_template *templates, size_t count);
 
 EXPORT void oonf_viewer_init_json_session(struct oonf_viewer_json_session *,
@@ -134,7 +119,14 @@ EXPORT void oonf_viewer_start_json_array(struct oonf_viewer_json_session *,
 EXPORT void oonf_viewer_end_json_array(struct oonf_viewer_json_session *);
 EXPORT void oonf_viewer_start_json_object(struct oonf_viewer_json_session *);
 EXPORT void oonf_viewer_end_json_object(struct oonf_viewer_json_session *);
-EXPORT int oonf_viewer_fill_json_object(struct oonf_viewer_json_session *,
+EXPORT void oonf_viewer_fill_json_object_ext(struct oonf_viewer_json_session *,
     struct abuf_template_data *data, size_t count);
+
+static inline void
+oonf_viewer_fill_json_object(struct oonf_viewer_json_session *session,
+    struct abuf_template_data_entry *entry, size_t count) {
+  struct abuf_template_data data = { entry, count };
+  oonf_viewer_fill_json_object_ext(session, &data, 1);
+}
 
 #endif /* OONF_VIEWER_H_ */

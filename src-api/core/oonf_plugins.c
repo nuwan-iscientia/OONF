@@ -108,7 +108,7 @@ struct avl_tree oonf_plugin_tree;
 static bool _plugin_tree_initialized = false;
 
 /* library loading patterns */
-static struct abuf_template_data _dlopen_data[] = {
+static struct abuf_template_data_entry _dlopen_data[] = {
   [IDX_DLOPEN_LIB]     =  { .key = "LIB" },
   [IDX_DLOPEN_PATH]    =  { .key = "PATH", .value = "." },
   [IDX_DLOPEN_PRE]     =  { .key = "PRE" },
@@ -379,7 +379,7 @@ _unload_plugin(struct oonf_subsystem *plugin, bool cleanup) {
  */
 static void *
 _open_plugin(const char *filename) {
-  struct abuf_template_storage *table;
+  struct abuf_template_storage table;
   struct autobuf abuf;
   void *result;
   size_t i;
@@ -393,18 +393,11 @@ _open_plugin(const char *filename) {
   _dlopen_data[IDX_DLOPEN_LIB].value = filename;
 
   for (i=0; result == NULL && i<ARRAYSIZE(DLOPEN_PATTERNS); i++) {
-    table = abuf_template_init(
+    abuf_template_init(&table,
         _dlopen_data, ARRAYSIZE(_dlopen_data), DLOPEN_PATTERNS[i]);
 
-    if (table == NULL) {
-      OONF_WARN(LOG_PLUGINS, "Could not parse pattern %s for dlopen",
-          DLOPEN_PATTERNS[i]);
-      continue;
-    }
-
     abuf_clear(&abuf);
-    abuf_add_template(&abuf, DLOPEN_PATTERNS[i], table, false);
-    free(table);
+    abuf_add_template(&abuf, &table, false);
 
     OONF_DEBUG(LOG_PLUGINS, "Trying to load library: %s", abuf_getptr(&abuf));
     result = dlopen(abuf_getptr(&abuf), RTLD_NOW);

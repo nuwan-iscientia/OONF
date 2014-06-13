@@ -138,7 +138,7 @@ static struct {
   struct isonumber_str neighbor[OONF_LAYER2_NEIGH_COUNT];
 } _template_buf;
 
-static struct abuf_template_data _template_neigh_data[5 + OONF_LAYER2_NEIGH_COUNT] = {
+static struct abuf_template_data_entry _template_neigh_data[5 + OONF_LAYER2_NEIGH_COUNT] = {
   { .key = KEY_neighbor, .value = _template_buf.neigh_addr.buf, .string = true},
   { .key = KEY_radio, .value = _template_buf.radio_addr.buf, .string = true},
   { .key = KEY_ifindex, .value = _template_buf.ifindex },
@@ -146,7 +146,7 @@ static struct abuf_template_data _template_neigh_data[5 + OONF_LAYER2_NEIGH_COUN
   { .key = KEY_lastseen, .value = _template_buf.lastseen.buf },
 };
 
-static struct abuf_template_data _template_net_data[7 + OONF_LAYER2_NET_COUNT] = {
+static struct abuf_template_data_entry _template_net_data[7 + OONF_LAYER2_NET_COUNT] = {
   { .key = KEY_radio, .value = _template_buf.radio_addr.buf, .string = true},
   { .key = KEY_ifindex, .value = _template_buf.ifindex },
   { .key = KEY_ifidaddr, .value = _template_buf.if_idaddr.buf, .string = true },
@@ -390,7 +390,7 @@ static enum oonf_telnet_result
 _cb_handle_layer2(struct oonf_telnet_data *data) {
   struct oonf_layer2_net *net;
   struct oonf_layer2_neigh *neigh;
-  struct abuf_template_storage *tmpl_storage = NULL;
+  struct abuf_template_storage tmpl_storage;
 
   if (data->parameter == NULL || *data->parameter == 0) {
     abuf_puts(data->out, "Error, 'layer2' needs a parameter\n");
@@ -399,20 +399,16 @@ _cb_handle_layer2(struct oonf_telnet_data *data) {
 
   if (_parse_mode(data->out, data->parameter, &_net_params)) {
     if (_net_params.template) {
-      tmpl_storage = abuf_template_init(
-        _template_net_data, ARRAYSIZE(_template_net_data), _net_params.template);
-      if (tmpl_storage == NULL) {
-        return TELNET_RESULT_INTERNAL_ERROR;
-      }
+      abuf_template_init(&tmpl_storage, _template_net_data,
+          ARRAYSIZE(_template_net_data), _net_params.template);
     }
 
     avl_for_each_element(&oonf_layer2_net_tree, net, _node) {
       if (_init_network_template_value(net, _net_params.template == NULL)) {
-        free(tmpl_storage);
         return TELNET_RESULT_INTERNAL_ERROR;
       }
       if (_net_params.template) {
-        abuf_add_template(data->out, _net_params.template, tmpl_storage, false);
+        abuf_add_template(data->out, &tmpl_storage, false);
       }
       else {
         abuf_add_json(data->out, "", true,
@@ -422,22 +418,18 @@ _cb_handle_layer2(struct oonf_telnet_data *data) {
   }
   else if (_parse_mode(data->out, data->parameter, &_neigh_params)) {
     if (_neigh_params.template) {
-      tmpl_storage = abuf_template_init(
-        _template_neigh_data, ARRAYSIZE(_template_neigh_data), _neigh_params.template);
-      if (tmpl_storage == NULL) {
-        return TELNET_RESULT_INTERNAL_ERROR;
-      }
+      abuf_template_init(&tmpl_storage, _template_neigh_data,
+          ARRAYSIZE(_template_neigh_data), _neigh_params.template);
     }
 
     avl_for_each_element(&oonf_layer2_net_tree, net, _node) {
       avl_for_each_element(&net->neighbors, neigh, _node) {
         if (_init_neighbor_template_value(neigh, _neigh_params.template == NULL)) {
-          free(tmpl_storage);
           return TELNET_RESULT_INTERNAL_ERROR;
         }
 
         if (_neigh_params.template) {
-          abuf_add_template(data->out, _neigh_params.template, tmpl_storage, false);
+          abuf_add_template(data->out, &tmpl_storage, false);
         }
         else {
           abuf_add_json(data->out, "", true,
@@ -451,7 +443,6 @@ _cb_handle_layer2(struct oonf_telnet_data *data) {
         data->command, data->parameter);
   }
 
-  free(tmpl_storage);
   return TELNET_RESULT_ACTIVE;
 }
 
