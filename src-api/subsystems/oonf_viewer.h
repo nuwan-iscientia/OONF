@@ -109,10 +109,10 @@ struct oonf_viewer_template {
 #define LOG_VIEWER oonf_viewer_subsystem.logging
 EXPORT extern struct oonf_subsystem oonf_viewer_subsystem;
 
-EXPORT int oonf_viewer_prepare_output(struct oonf_viewer_template *template,
+EXPORT int oonf_viewer_output_prepare(struct oonf_viewer_template *template,
     struct abuf_template_storage *storage, struct autobuf *out, const char *format);
-EXPORT void oonf_viewer_print_output_line(struct oonf_viewer_template *template);
-EXPORT void oonf_viewer_finish_output(struct oonf_viewer_template *template);
+EXPORT void oonf_viewer_output_print_line(struct oonf_viewer_template *template);
+EXPORT void oonf_viewer_output_finish(struct oonf_viewer_template *template);
 
 EXPORT void oonf_viewer_print_help(struct autobuf *out,
     const char *parameter, struct oonf_viewer_template *template, size_t count);
@@ -120,21 +120,21 @@ EXPORT int oonf_viewer_call_subcommands(struct autobuf *out,
     struct abuf_template_storage *storage, const char *param,
     struct oonf_viewer_template *templates, size_t count);
 
-EXPORT void oonf_viewer_init_json_session(struct oonf_viewer_json_session *,
+EXPORT void oonf_viewer_json_init_session(struct oonf_viewer_json_session *,
     struct autobuf *out);
-EXPORT void oonf_viewer_start_json_array(struct oonf_viewer_json_session *,
+EXPORT void oonf_viewer_json_start_array(struct oonf_viewer_json_session *,
     const char *name);
-EXPORT void oonf_viewer_end_json_array(struct oonf_viewer_json_session *);
-EXPORT void oonf_viewer_start_json_object(struct oonf_viewer_json_session *);
-EXPORT void oonf_viewer_end_json_object(struct oonf_viewer_json_session *);
-EXPORT void oonf_viewer_fill_json_object_ext(struct oonf_viewer_json_session *,
+EXPORT void oonf_viewer_json_end_array(struct oonf_viewer_json_session *);
+EXPORT void oonf_viewer_json_start_object(struct oonf_viewer_json_session *);
+EXPORT void oonf_viewer_json_end_object(struct oonf_viewer_json_session *);
+EXPORT void oonf_viewer_json_print_object_ext(struct oonf_viewer_json_session *,
     struct abuf_template_data *data, size_t count);
 
 static INLINE void
 oonf_viewer_fill_json_object(struct oonf_viewer_json_session *session,
     struct abuf_template_data_entry *entry, size_t count) {
   struct abuf_template_data data = { entry, count };
-  oonf_viewer_fill_json_object_ext(session, &data, 1);
+  oonf_viewer_json_print_object_ext(session, &data, 1);
 }
 
 #endif /* OONF_VIEWER_H_ */

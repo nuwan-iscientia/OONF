@@ -49,6 +49,21 @@
 static int _init(void);
 static void _cleanup(void);
 
+/* Template call help text for telnet */
+static const char _telnet_help[] =
+    "\n"
+    "Use '" OONF_VIEWER_JSON_FORMAT "' as the first parameter"
+    " ' to generate JSON output of all keys/value pairs.\n"
+    "Use '" OONF_VIEWER_JSON_RAW_FORMAT "' as the first parameter"
+    " to generate JSON output of all keys/value pairs"
+    "  without isoprefixes for numbers.\n"
+    "Use '" OONF_VIEWER_HEAD_FORMAT "' as the first parameter to"
+    " generate a headline for the table.\n"
+    "Use '" OONF_VIEWER_RAW_FORMAT "' as the first parameter to"
+    " generate a headline for the table without isoprefixes for numbers.\n"
+    "You can also add a custom template (text with keys inside)"
+    " as the last parameter instead.\n";
+
 /* subsystem definition */
 struct oonf_subsystem oonf_viewer_subsystem = {
   .name = "viewer",
@@ -72,8 +87,19 @@ static void
 _cleanup(void) {
 }
 
+/**
+ * Prepare a viewer template for output. The create_json and
+ * create_raw variable should be initialized before calling this
+ * function.
+ * @param template pointer to viewer template
+ * @param storage pointer to autobuffer template storage that should
+ *     be printed
+ * @param out pointer to output buffer
+ * @param format pointer to template for output, not used for JSON output
+ * @return
+ */
 int
-oonf_viewer_prepare_output(struct oonf_viewer_template *template,
+oonf_viewer_output_prepare(struct oonf_viewer_template *template,
     struct abuf_template_storage *storage,
     struct autobuf *out, const char *format) {
   template->out = out;
@@ -81,13 +107,13 @@ oonf_viewer_prepare_output(struct oonf_viewer_template *template,
   if (template->create_json) {
     /* JSON format */
     template->_storage = NULL;
-    oonf_viewer_init_json_session(&template->_json, out);
+    oonf_viewer_json_init_session(&template->_json, out);
 
     /* start wrapper object */
-    oonf_viewer_start_json_object(&template->_json);
+    oonf_viewer_json_start_object(&template->_json);
 
     /* start object with array */
-    oonf_viewer_start_json_array(&template->_json, template->json_name);
+    oonf_viewer_json_start_array(&template->_json, template->json_name);
   }
   else {
     if (format && *format == 0) {
@@ -103,42 +129,45 @@ oonf_viewer_prepare_output(struct oonf_viewer_template *template,
   return 0;
 }
 
+/**
+ * Print a link of output as a text table or JSON object. The data
+ * for the output is collected from the value buffers of the template
+ * storage array stored in the template.
+ * @param template pointer to viewer template
+ */
 void
-oonf_viewer_print_output_line(struct oonf_viewer_template *template) {
+oonf_viewer_output_print_line(struct oonf_viewer_template *template) {
   if (!template->create_json) {
     abuf_add_template(template->out, template->_storage, false);
     abuf_puts(template->out, "\n");
   }
   else {
     /* JSON output */
-    oonf_viewer_start_json_object(&template->_json);
-    oonf_viewer_fill_json_object_ext(&template->_json, template->data, template->data_size);
-    oonf_viewer_end_json_object(&template->_json);
+    oonf_viewer_json_start_object(&template->_json);
+    oonf_viewer_json_print_object_ext(&template->_json, template->data, template->data_size);
+    oonf_viewer_json_end_object(&template->_json);
   }
 }
 
+/**
+ * Finalize the output of a text table or JSON object
+ * @param template pointer to viewer template
+ */
 void
-oonf_viewer_finish_output(struct oonf_viewer_template *template) {
+oonf_viewer_output_finish(struct oonf_viewer_template *template) {
   if (template->create_json) {
-    oonf_viewer_end_json_array(&template->_json);
-    oonf_viewer_end_json_object(&template->_json);
+    oonf_viewer_json_end_array(&template->_json);
+    oonf_viewer_json_end_object(&template->_json);
   }
 }
 
-static void
-_print_help_parameters(struct autobuf *out) {
-  abuf_puts(out, "\nUse '" OONF_VIEWER_JSON_FORMAT "' as the first parameter"
-      " ' to generate JSON output of all keys/value pairs.\n"
-      "Use '" OONF_VIEWER_JSON_RAW_FORMAT "' as the first parameter"
-      " to generate JSON output of all keys/value pairs"
-      "  without isoprefixes for numbers.\n"
-      "Use '" OONF_VIEWER_HEAD_FORMAT "' as the first parameter to"
-      " generate a headline for the table.\n"
-      "Use '" OONF_VIEWER_RAW_FORMAT "' as the first parameter to"
-      " generate a headline for the table without isoprefixes for numbers.\n"
-      "You can also add a custom template (text with keys inside)"
-      " as the last parameter instead.\n");
-}
+/**
+ * Print telnet help text for array of templates
+ * @param out output buffer
+ * @param parameter parameter of help command
+ * @param template pointer to template array
+ * @param count number of elements in template array
+ */
 void
 oonf_viewer_print_help(struct autobuf *out, const char *parameter,
     struct oonf_viewer_template *template, size_t count) {
@@ -155,7 +184,8 @@ oonf_viewer_print_help(struct autobuf *out, const char *parameter,
         abuf_appendf(out, "\t%s\n", template[i].json_name);
       }
     }
-    _print_help_parameters(out);
+
+    abuf_puts(out, _telnet_help);
     abuf_puts(out, "Use 'help <command> <subcommand>' to get help about a subcommand\n");
     return;
   }
@@ -173,7 +203,7 @@ oonf_viewer_print_help(struct autobuf *out, const char *parameter,
         }
       }
 
-      _print_help_parameters(out);
+      abuf_puts(out, _telnet_help);
       return;
     }
   }
@@ -181,6 +211,17 @@ oonf_viewer_print_help(struct autobuf *out, const char *parameter,
   abuf_appendf(out, "Unknown subcommand %s\n", parameter);
 }
 
+/**
+ * Parse the parameter of a telnet call to run the callback of the
+ * corresponding template command. This function both prepares and
+ * finishes a viewer template.
+ * @param out pointer to output buffer
+ * @param storage pointer to autobuffer template storage
+ * @param param parameter of telnet call
+ * @param templates pointer to array of viewer templates
+ * @param count number of elements in viewer template array
+ * @return -1 if an error happened, 0 otherwise
+ */
 int
 oonf_viewer_call_subcommands(struct autobuf *out,
     struct abuf_template_storage *storage, const char *param,
@@ -214,7 +255,7 @@ oonf_viewer_call_subcommands(struct autobuf *out,
       templates[i].create_json = json;
       templates[i].create_raw = raw;
 
-      if (oonf_viewer_prepare_output(&templates[i], storage, out, ptr)) {
+      if (oonf_viewer_output_prepare(&templates[i], storage, out, ptr)) {
         return -1;
       }
 
@@ -226,7 +267,7 @@ oonf_viewer_call_subcommands(struct autobuf *out,
         result = templates[i].cb_function(&templates[i]);
       }
 
-      oonf_viewer_finish_output(&templates[i]);
+      oonf_viewer_output_finish(&templates[i]);
 
       return result;
     }
@@ -234,16 +275,27 @@ oonf_viewer_call_subcommands(struct autobuf *out,
   return 1;
 }
 
+/**
+ * Initialize the JSON session object for creating a nested JSON
+ * string output.
+ * @param session JSON session
+ * @param out output buffer
+ */
 void
-oonf_viewer_init_json_session(struct oonf_viewer_json_session *session,
+oonf_viewer_json_init_session(struct oonf_viewer_json_session *session,
     struct autobuf *out) {
   memset(session, 0, sizeof(*session));
   session->out = out;
   session->empty = true;
 }
 
+/**
+ * Starts a new JSON array
+ * @param session JSON session
+ * @param name name of JSON array
+ */
 void
-oonf_viewer_start_json_array(struct oonf_viewer_json_session *session,
+oonf_viewer_json_start_array(struct oonf_viewer_json_session *session,
     const char *name) {
   if (!session->empty) {
     abuf_puts(session->out, ",");
@@ -260,8 +312,13 @@ oonf_viewer_start_json_array(struct oonf_viewer_json_session *session,
   session->prefix[session->level] = 0;
 }
 
+/**
+ * Ends a JSON array, should be paired with corresponding _start_array
+ * call.
+ * @param session JSON session
+ */
 void
-oonf_viewer_end_json_array(struct oonf_viewer_json_session *session) {
+oonf_viewer_json_end_array(struct oonf_viewer_json_session *session) {
   /* close session */
   session->empty = false;
   session->level--;
@@ -270,8 +327,12 @@ oonf_viewer_end_json_array(struct oonf_viewer_json_session *session) {
   abuf_appendf(session->out, "\n%s]", session->prefix);
 }
 
+/**
+ * Starts a new JSON object.
+ * @param session JSON session
+ */
 void
-oonf_viewer_start_json_object(struct oonf_viewer_json_session *session) {
+oonf_viewer_json_start_object(struct oonf_viewer_json_session *session) {
   /* open new session */
   if (!session->empty) {
     abuf_puts(session->out, ",");
@@ -288,8 +349,13 @@ oonf_viewer_start_json_object(struct oonf_viewer_json_session *session) {
   session->prefix[session->level] = 0;
 }
 
+/**
+ * Ends a JSON object, should be paired with corresponding _start_object
+ * call.
+ * @param session JSON session
+ */
 void
-oonf_viewer_end_json_object(struct oonf_viewer_json_session *session) {
+oonf_viewer_json_end_object(struct oonf_viewer_json_session *session) {
   /* close session */
   session->empty = false;
   session->level--;
@@ -302,8 +368,15 @@ oonf_viewer_end_json_object(struct oonf_viewer_json_session *session) {
   }
 }
 
+/**
+ * Print the contect of an autobuffer template as a list of JSON
+ * key/value pairs.
+ * @param session JSON session
+ * @param data autobuffer template data array
+ * @param count number of elements in data array
+ */
 void
-oonf_viewer_fill_json_object_ext(struct oonf_viewer_json_session *session,
+oonf_viewer_json_print_object_ext(struct oonf_viewer_json_session *session,
     struct abuf_template_data *data, size_t count) {
   if (session->empty) {
     session->empty = false;

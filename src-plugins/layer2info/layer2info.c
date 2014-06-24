@@ -344,7 +344,7 @@ _cb_create_text_interface(struct oonf_viewer_template *template) {
         oonf_layer2_metadata_net, OONF_LAYER2_NET_COUNT);
 
     /* generate template output */
-    oonf_viewer_print_output_line(template);
+    oonf_viewer_output_print_line(template);
   }
   return 0;
 }
@@ -363,7 +363,7 @@ _cb_create_text_neighbor(struct oonf_viewer_template *template) {
           oonf_layer2_metadata_neigh, OONF_LAYER2_NEIGH_COUNT);
 
       /* generate template output */
-      oonf_viewer_print_output_line(template);
+      oonf_viewer_output_print_line(template);
     }
   }
   return 0;
@@ -379,7 +379,7 @@ _cb_create_text_default(struct oonf_viewer_template *template) {
         oonf_layer2_metadata_neigh, OONF_LAYER2_NEIGH_COUNT);
 
     /* generate template output */
-    oonf_viewer_print_output_line(template);
+    oonf_viewer_output_print_line(template);
   }
   return 0;
 }
