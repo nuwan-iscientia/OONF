@@ -78,7 +78,7 @@ oonf_viewer_prepare_output(struct oonf_viewer_template *template,
     struct autobuf *out, const char *format) {
   template->out = out;
 
-  if (format && strcmp(format, OONF_VIEWER_JSON_FORMAT) == 0) {
+  if (template->create_json) {
     /* JSON format */
     template->_storage = NULL;
     oonf_viewer_init_json_session(&template->_json, out);
@@ -105,20 +105,21 @@ oonf_viewer_prepare_output(struct oonf_viewer_template *template,
 
 void
 oonf_viewer_print_output_line(struct oonf_viewer_template *template) {
-  if (template->_storage) {
+  if (!template->create_json) {
     abuf_add_template(template->out, template->_storage, false);
     abuf_puts(template->out, "\n");
   }
-
-  /* JSON output */
-  oonf_viewer_start_json_object(&template->_json);
-  oonf_viewer_fill_json_object_ext(&template->_json, template->data, template->data_size);
-  oonf_viewer_end_json_object(&template->_json);
+  else {
+    /* JSON output */
+    oonf_viewer_start_json_object(&template->_json);
+    oonf_viewer_fill_json_object_ext(&template->_json, template->data, template->data_size);
+    oonf_viewer_end_json_object(&template->_json);
+  }
 }
 
 void
 oonf_viewer_finish_output(struct oonf_viewer_template *template) {
-  if (!template->_storage) {
+  if (template->create_json) {
     oonf_viewer_end_json_array(&template->_json);
     oonf_viewer_end_json_object(&template->_json);
   }
@@ -126,12 +127,17 @@ oonf_viewer_finish_output(struct oonf_viewer_template *template) {
 
 static void
 _print_help_parameters(struct autobuf *out) {
-  abuf_puts(out, "\nAdd the additional parameter '" OONF_VIEWER_JSON_FORMAT
-      "' to generate JSON output of all keys/value pairs.\n"
-      "Add the additional parameter '" OONF_VIEWER_HEAD_FORMAT "' to"
+  abuf_puts(out, "\nUse '" OONF_VIEWER_JSON_FORMAT "' as the first parameter"
+      " ' to generate JSON output of all keys/value pairs.\n"
+      "Use '" OONF_VIEWER_JSON_RAW_FORMAT "' as the first parameter"
+      " to generate JSON output of all keys/value pairs"
+      "  without isoprefixes for numbers.\n"
+      "Use '" OONF_VIEWER_HEAD_FORMAT "' as the first parameter to"
       " generate a headline for the table.\n"
+      "Use '" OONF_VIEWER_RAW_FORMAT "' as the first parameter to"
+      " generate a headline for the table without isoprefixes for numbers.\n"
       "You can also add a custom template (text with keys inside)"
-      " as a parameter.\n");
+      " as the last parameter instead.\n");
 }
 void
 oonf_viewer_print_help(struct autobuf *out, const char *parameter,
@@ -183,15 +189,32 @@ oonf_viewer_call_subcommands(struct autobuf *out,
   int result = 0;
   size_t i;
   bool head = false;
+  bool json = false;
+  bool raw = false;
+
+  if ((next = str_hasnextword(param, OONF_VIEWER_HEAD_FORMAT))) {
+    head = true;
+  }
+  else if ((next = str_hasnextword(param, OONF_VIEWER_JSON_FORMAT))) {
+    json = true;
+  }
+  else if ((next = str_hasnextword(param, OONF_VIEWER_RAW_FORMAT))) {
+    raw = true;
+  }
+  else if ((next = str_hasnextword(param, OONF_VIEWER_JSON_RAW_FORMAT))) {
+    json = true;
+    raw = true;
+  }
+  else {
+    next = param;
+  }
 
   for (i=0; i<count; i++) {
-    if ((next = str_hasnextword(param, templates[i].json_name))) {
-      if ((ptr = str_hasnextword(next, OONF_VIEWER_HEAD_FORMAT))) {
-        head = true;
-        next = ptr;
-      }
+    if ((ptr = str_hasnextword(next, templates[i].json_name))) {
+      templates[i].create_json = json;
+      templates[i].create_raw = raw;
 
-      if (oonf_viewer_prepare_output(&templates[i], storage, out, next)) {
+      if (oonf_viewer_prepare_output(&templates[i], storage, out, ptr)) {
         return -1;
       }
 

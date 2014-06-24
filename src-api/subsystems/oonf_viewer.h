@@ -47,8 +47,10 @@
 
 #include "core/oonf_subsystem.h"
 
-#define OONF_VIEWER_JSON_FORMAT "json"
-#define OONF_VIEWER_HEAD_FORMAT "head"
+#define OONF_VIEWER_RAW_FORMAT      "raw"
+#define OONF_VIEWER_HEAD_FORMAT     "head"
+#define OONF_VIEWER_JSON_FORMAT     "json"
+#define OONF_VIEWER_JSON_RAW_FORMAT "jsonraw"
 
 /* This struct contains the session variables for JSON generation */
 struct oonf_viewer_json_session {
@@ -72,6 +74,12 @@ struct oonf_viewer_json_session {
 struct oonf_viewer_template {
   /* output buffer */
   struct autobuf *out;
+
+  /* true if output should be in JSON format */
+  bool create_json;
+
+  /* true if isonumbers should be raw */
+  bool create_raw;
 
   /* pointer to template data array to get key/value pairs */
   struct abuf_template_data *data;

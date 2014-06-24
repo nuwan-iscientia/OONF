@@ -71,8 +71,8 @@ static enum oonf_telnet_result _cb_layer2info(struct oonf_telnet_data *con);
 static enum oonf_telnet_result _cb_layer2info_help(struct oonf_telnet_data *con);
 
 static void _initialize_interface_values(struct oonf_layer2_net *net);
-static void _initialize_data_values(struct isonumber_str *dst,
-    struct oonf_layer2_data *data,
+static void _initialize_data_values(struct oonf_viewer_template *template,
+    struct isonumber_str *dst, struct oonf_layer2_data *data,
     const struct oonf_layer2_metadata *metadata, size_t count);
 static void _initialize_neighbor_values(struct oonf_layer2_neigh *neigh);
 
@@ -306,8 +306,8 @@ _initialize_interface_values(struct oonf_layer2_net *net) {
 }
 
 static void
-_initialize_data_values(struct isonumber_str *dst,
-    struct oonf_layer2_data *data,
+_initialize_data_values(struct oonf_viewer_template *template,
+    struct isonumber_str *dst, struct oonf_layer2_data *data,
     const struct oonf_layer2_metadata *meta, size_t count) {
   size_t i;
 
@@ -316,7 +316,8 @@ _initialize_data_values(struct isonumber_str *dst,
   for (i=0; i<count; i++) {
     if (oonf_layer2_has_value(&data[i])) {
       isonumber_from_s64(&dst[i], oonf_layer2_get_value(data),
-          meta[i].unit, meta[i].fraction, meta[i].binary, true);
+          meta[i].unit, meta[i].fraction, meta[i].binary,
+          template->create_raw);
     }
   }
 }
@@ -339,7 +340,7 @@ _cb_create_text_interface(struct oonf_viewer_template *template) {
 
   avl_for_each_element(&oonf_layer2_net_tree, net, _node) {
     _initialize_interface_values(net);
-    _initialize_data_values(_value_if_data, net->data,
+    _initialize_data_values(template, _value_if_data, net->data,
         oonf_layer2_metadata_net, OONF_LAYER2_NET_COUNT);
 
     /* generate template output */
@@ -358,7 +359,7 @@ _cb_create_text_neighbor(struct oonf_viewer_template *template) {
 
     avl_for_each_element(&net->neighbors, neigh, _node) {
       _initialize_neighbor_values(neigh);
-      _initialize_data_values(_value_neigh_data, neigh->data,
+      _initialize_data_values(template, _value_neigh_data, neigh->data,
           oonf_layer2_metadata_neigh, OONF_LAYER2_NEIGH_COUNT);
 
       /* generate template output */
@@ -374,7 +375,7 @@ _cb_create_text_default(struct oonf_viewer_template *template) {
 
   avl_for_each_element(&oonf_layer2_net_tree, net, _node) {
     _initialize_interface_values(net);
-    _initialize_data_values(_value_neigh_data, net->neighdata,
+    _initialize_data_values(template, _value_neigh_data, net->neighdata,
         oonf_layer2_metadata_neigh, OONF_LAYER2_NEIGH_COUNT);
 
     /* generate template output */
