@@ -130,7 +130,7 @@ EXPORT void oonf_viewer_end_json_object(struct oonf_viewer_json_session *);
 EXPORT void oonf_viewer_fill_json_object_ext(struct oonf_viewer_json_session *,
     struct abuf_template_data *data, size_t count);
 
-static inline void
+static INLINE void
 oonf_viewer_fill_json_object(struct oonf_viewer_json_session *session,
     struct abuf_template_data_entry *entry, size_t count) {
   struct abuf_template_data data = { entry, count };

@@ -172,7 +172,7 @@ EXPORT const struct oonf_layer2_data *oonf_layer2_neigh_query(
  * @param addr local mac address of addr
  * @return layer-2 addr object, NULL if not found
  */
-static inline struct oonf_layer2_net *
+static INLINE struct oonf_layer2_net *
 oonf_layer2_net_get(const struct netaddr *addr) {
   struct oonf_layer2_net *l2net;
   return avl_find_element(&oonf_layer2_net_tree, addr, l2net, _node);
@@ -184,7 +184,7 @@ oonf_layer2_net_get(const struct netaddr *addr) {
  * @param addr remote mac address of neighbor
  * @return layer-2 neighbor object, NULL if not found
  */
-static inline struct oonf_layer2_neigh *
+static INLINE struct oonf_layer2_neigh *
 oonf_layer2_neigh_get(const struct oonf_layer2_net *l2net,
     const struct netaddr *addr) {
   struct oonf_layer2_neigh *l2neigh;
@@ -195,7 +195,7 @@ oonf_layer2_neigh_get(const struct oonf_layer2_net *l2net,
  * @param l2data layer-2 data object
  * @return true if object contains a value, false otherwise
  */
-static inline bool
+static INLINE bool
 oonf_layer2_has_value(const struct oonf_layer2_data *l2data) {
   return l2data->_has_value;
 }
@@ -204,7 +204,7 @@ oonf_layer2_has_value(const struct oonf_layer2_data *l2data) {
  * @param l2data layer-2 data object
  * @return value of data object
  */
-static inline int64_t
+static INLINE int64_t
 oonf_layer2_get_value(const struct oonf_layer2_data *l2data) {
   return l2data->_value;
 }
@@ -213,7 +213,7 @@ oonf_layer2_get_value(const struct oonf_layer2_data *l2data) {
  * @param l2data layer-2 data object
  * @return originator of data value
  */
-static inline uint32_t
+static INLINE uint32_t
 oonf_layer2_get_origin(const struct oonf_layer2_data *l2data) {
   return l2data->_origin;
 }
@@ -224,7 +224,7 @@ oonf_layer2_get_origin(const struct oonf_layer2_data *l2data) {
  * @param origin originator of value
  * @param value new value for data object
  */
-static inline void
+static INLINE void
 oonf_layer2_set_value(struct oonf_layer2_data *l2data,
     uint32_t origin, int64_t value) {
   l2data->_has_value = true;
@@ -236,7 +236,7 @@ oonf_layer2_set_value(struct oonf_layer2_data *l2data,
  * Removes the value of a layer-2 data object
  * @param l2data layer-2 data object
  */
-static inline void
+static INLINE void
 oonf_layer2_reset_value(struct oonf_layer2_data *l2data) {
   l2data->_has_value = false;
   l2data->_origin = 0;
