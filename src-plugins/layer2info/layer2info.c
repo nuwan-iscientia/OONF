@@ -288,6 +288,10 @@ _cb_layer2info_help(struct oonf_telnet_data *con) {
   return TELNET_RESULT_ACTIVE;
 }
 
+/**
+ * Initialize the value buffers for a layer2 interface
+ * @param net pointer to layer2 interface
+ */
 static void
 _initialize_interface_values(struct oonf_layer2_net *net) {
   strscpy(_value_if, net->if_name, sizeof(_value_if));
@@ -305,6 +309,14 @@ _initialize_interface_values(struct oonf_layer2_net *net) {
   }
 }
 
+/**
+ * Initialize the value buffers for an array of layer2 data objects
+ * @param template viewer template
+ * @param dst array of destination buffers
+ * @param data array of data objects
+ * @param meta array of metadata description of objects
+ * @param count number of objects in each array
+ */
 static void
 _initialize_data_values(struct oonf_viewer_template *template,
     struct isonumber_str *dst, struct oonf_layer2_data *data,
@@ -322,6 +334,10 @@ _initialize_data_values(struct oonf_viewer_template *template,
   }
 }
 
+/**
+ * Initialize the value buffers for a layer2 neighbor
+ * @param neigh layer2 neighbor
+ */
 static void
 _initialize_neighbor_values(struct oonf_layer2_neigh *neigh) {
   netaddr_to_string(&_value_neigh_addr, &neigh->addr);
@@ -334,6 +350,11 @@ _initialize_neighbor_values(struct oonf_layer2_neigh *neigh) {
   }
 }
 
+/**
+ * Callback to generate text/json description of all layer2 interfaces
+ * @param template viewer template
+ * @return -1 if an error happened, 0 otherwise
+ */
 static int
 _cb_create_text_interface(struct oonf_viewer_template *template) {
   struct oonf_layer2_net *net;
@@ -349,6 +370,11 @@ _cb_create_text_interface(struct oonf_viewer_template *template) {
   return 0;
 }
 
+/**
+ * Callback to generate text/json description of all layer2 neighbors
+ * @param template viewer template
+ * @return -1 if an error happened, 0 otherwise
+ */
 static int
 _cb_create_text_neighbor(struct oonf_viewer_template *template) {
   struct oonf_layer2_neigh *neigh;
@@ -369,6 +395,12 @@ _cb_create_text_neighbor(struct oonf_viewer_template *template) {
   return 0;
 }
 
+/**
+ * Callback to generate text/json description of the defaults stored
+ * in the layer2 interfaces for their neighbors
+ * @param template viewer template
+ * @return -1 if an error happened, 0 otherwise
+ */
 static int
 _cb_create_text_default(struct oonf_viewer_template *template) {
   struct oonf_layer2_net *net;
