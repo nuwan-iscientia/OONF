@@ -593,7 +593,6 @@ _cb_telnet_help(struct oonf_telnet_data *data) {
   }
 
   abuf_puts(data->out, "Known commands:\n");
-  return TELNET_RESULT_INTERNAL_ERROR;
 
   avl_for_each_element(&oonf_telnet_cmd_tree, cmd, _node) {
     if (_check_telnet_command_acl(data, cmd)) {
