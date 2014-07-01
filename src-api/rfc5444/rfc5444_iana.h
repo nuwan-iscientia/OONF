@@ -130,10 +130,8 @@ enum rfc7181_willingness_values {
   RFC7181_WILLINGNESS_ALWAYS    = 15,
   RFC7181_WILLINGNESS_MAX       = 15,
 
-  RFC7181_WILLINGNESS_FLOODING_MASK   = 0xf0,
-  RFC7181_WILLINGNESS_FLOODING_SHIFT  = 4,
-  RFC7181_WILLINGNESS_ROUTING_MASK    = 0x0f,
-  RFC7181_WILLINGNESS_ROUTING_SHIFT   = 0,
+  RFC7181_WILLINGNESS_MASK      = 0xf,
+  RFC7181_WILLINGNESS_SHIFT     = 4,
 };
 
 /* extension types of CONT_SEQ_NUM TLV */
@@ -195,10 +193,8 @@ enum rfc6130_linkstatus_values {
 };
 
 /* values for OTHER_NEIGHB address TLV */
-enum rfc6130_otherneigh_values {
-  RFC6130_OTHERNEIGHB_LOST      = 0,
+enum rfc6130_otherneigh_bitmask {
   RFC6130_OTHERNEIGHB_SYMMETRIC = 1,
-  RFC6130_OTHERNEIGHB_BITMASK   = 1,
 };
 
 /* values for LINK_METRIC address TLV */
@@ -209,23 +205,17 @@ enum rfc7181_linkmetric_values {
   RFC7181_LINKMETRIC_OUTGOING_NEIGH = 1<<12,
 
   RFC7181_LINKMETRIC_COST_MASK  = 0x0fff,
-  RFC7181_LINKMETRIC_FLAGS_MASK = 0xf000,
 };
 
-/* values for MPR address TLV */
-enum rfc7181_mpr_values {
-  RFC7181_MPR_NOMPR       = 0,
-  RFC7181_MPR_FLOODING    = 1,
-  RFC7181_MPR_ROUTING     = 2,
-  RFC7181_MPR_FLOOD_ROUTE = 3,
-  RFC7181_MPR_BITMASK     = 3,
+/* bitmasks for MPR address TLV */
+enum rfc7181_mpr_bitmask {
+  RFC7181_MPR_FLOODING    = 1<<0,
+  RFC7181_MPR_ROUTING     = 1<<1,
 };
 
 /* values for NBR_ADDR_TYPE address TLV */
-enum rfc7181_nbr_addr_type_values {
+enum rfc7181_nbr_addr_bitmask {
   RFC7181_NBR_ADDR_TYPE_ORIGINATOR    = 1,
   RFC7181_NBR_ADDR_TYPE_ROUTABLE      = 2,
-  RFC7181_NBR_ADDR_TYPE_ROUTABLE_ORIG = 3,
-  RFC7181_NBR_ADDR_TYPE_BITMASK       = 3,
 };
 #endif /* RFC5444_IANA_H_ */
