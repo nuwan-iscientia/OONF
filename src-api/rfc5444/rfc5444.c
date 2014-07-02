@@ -124,7 +124,7 @@ rfc5497_timetlv_encode(uint64_t decoded) {
 
 /**
  * Decode an RFC 5497 encoding into a relative time value.
- * If the encoded data is zero, the function returns 1.
+ * If the encoded data is zero, the function returns 0.
  *
  * @param encoded RFC 5497 encoded time
  * @return relative time in milliseconds
