@@ -327,7 +327,7 @@ _initialize_data_values(struct oonf_viewer_template *template,
 
   for (i=0; i<count; i++) {
     if (oonf_layer2_has_value(&data[i])) {
-      isonumber_from_s64(&dst[i], oonf_layer2_get_value(data),
+      isonumber_from_s64(&dst[i], oonf_layer2_get_value(&data[i]),
           meta[i].unit, meta[i].fraction, meta[i].binary,
           template->create_raw);
     }
