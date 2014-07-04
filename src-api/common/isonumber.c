@@ -323,5 +323,5 @@ _isonumber_u64_to_string(char *out, size_t out_len,
     strscat(out, unit, out_len);
   }
 
-  return out;
+  return str_trim(out);
 }
