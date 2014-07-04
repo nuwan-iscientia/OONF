@@ -2,7 +2,6 @@
 add_subdirectory(cfg_compact)
 add_subdirectory(httptelnet)
 add_subdirectory(layer2info)
-add_subdirectory(layer2_viewer)
 add_subdirectory(link_config)
 add_subdirectory(plugin_controller)
 add_subdirectory(remotecontrol)
