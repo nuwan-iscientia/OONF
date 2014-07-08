@@ -747,9 +747,7 @@ cfg_schema_tobin_acl(const struct cfg_schema_entry *s_entry __attribute__((unuse
   struct netaddr_acl *ptr;
 
   ptr = (struct netaddr_acl *)reference;
-
-  free(ptr->accept);
-  free(ptr->reject);
+  netaddr_acl_remove(ptr);
 
   return netaddr_acl_from_strarray(ptr, value);
 }

@@ -189,7 +189,6 @@ struct oonf_stream_managed_config {
 struct oonf_stream_managed {
   struct oonf_stream_socket socket_v4;
   struct oonf_stream_socket socket_v6;
-  struct netaddr_acl acl;
 
   struct oonf_stream_config config;
 
@@ -215,5 +214,18 @@ EXPORT void oonf_stream_add_managed(struct oonf_stream_managed *);
 EXPORT int oonf_stream_apply_managed(struct oonf_stream_managed *,
     struct oonf_stream_managed_config *);
 EXPORT void oonf_stream_remove_managed(struct oonf_stream_managed *, bool force);
+
+EXPORT void oonf_stream_copy_managed_config(
+    struct oonf_stream_managed_config *dst,
+    struct oonf_stream_managed_config *src);
+/**
+ * Free dynamically allocated parts of managed stream configuration
+ * @param config packet configuration
+ */
+static INLINE void
+oonf_stream_free_managed_config(struct oonf_stream_managed_config *config) {
+  netaddr_acl_remove(&config->acl);
+  netaddr_acl_remove(&config->bindto);
+}
 
 #endif /* OONF_STREAM_SOCKET_H_ */

@@ -353,14 +353,8 @@ oonf_stream_add_managed(struct oonf_stream_managed *managed) {
 int
 oonf_stream_apply_managed(struct oonf_stream_managed *managed,
     struct oonf_stream_managed_config *config) {
-  netaddr_acl_copy(&managed->acl, &config->acl);
-
   /* copy config */
-  memcpy(&managed->_managed_config, config, sizeof(*config));
-
-  /* copy acl */
-  memset(&managed->_managed_config.acl, 0, sizeof(managed->_managed_config.acl));
-  netaddr_acl_copy(&managed->_managed_config.acl, &config->acl);
+  oonf_stream_copy_managed_config(&managed->_managed_config, config);
 
   return _apply_managed(managed);
 }
@@ -378,7 +372,26 @@ oonf_stream_remove_managed(struct oonf_stream_managed *managed, bool force) {
   oonf_stream_remove(&managed->socket_v4, force);
   oonf_stream_remove(&managed->socket_v6, force);
 
-  netaddr_acl_remove(&managed->acl);
+  oonf_stream_free_managed_config(&managed->_managed_config);
+}
+
+/**
+ * copies a stream managed configuration object
+ * @param dst Destination
+ * @param src Source
+ */
+void
+oonf_stream_copy_managed_config(struct oonf_stream_managed_config *dst,
+    struct oonf_stream_managed_config *src) {
+  oonf_stream_free_managed_config(dst);
+
+  memcpy(dst, src, sizeof(*dst));
+
+  memset(&dst->acl, 0, sizeof(dst->acl));
+  netaddr_acl_copy(&dst->acl, &src->acl);
+
+  memset(&dst->bindto, 0, sizeof(dst->bindto));
+  netaddr_acl_copy(&dst->bindto, &src->bindto);
 }
 
 /**

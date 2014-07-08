@@ -600,6 +600,9 @@ oonf_rfc5444_remove_interface(struct oonf_rfc5444_interface *interf,
   /* remove socket */
   oonf_packet_remove_managed(&interf->_socket, false);
 
+  /* cleanup configuration copy */
+  oonf_packet_free_managed_config(&interf->_socket_config);
+
   /* free memory */
   oonf_class_free(&_interface_memcookie, interf);
 }
@@ -622,7 +625,7 @@ oonf_rfc5444_reconfigure_interface(struct oonf_rfc5444_interface *interf,
 
   if (config != NULL) {
     /* copy socket configuration */
-    memcpy(&interf->_socket_config, config, sizeof(interf->_socket_config));
+    oonf_packet_copy_managed_config(&interf->_socket_config, config);
 
     /* overwrite interface name */
     strscpy(interf->_socket_config.interface, interf->name,
@@ -1219,7 +1222,7 @@ _cb_cfg_interface_changed(void) {
     OONF_WARN(LOG_RFC5444,
         "Could not convert "CFG_INTERFACE_SECTION" '%s' to binary (%d)",
         _interface_section.section_name, -(result+1));
-    return;
+    goto interface_changed_error;
   }
 
   if (_interface_section.pre == NULL) {
@@ -1229,11 +1232,15 @@ _cb_cfg_interface_changed(void) {
       OONF_WARN(LOG_RFC5444,
           "Could not generate interface '%s' for protocol '%s'",
           _interface_section.section_name, _rfc5444_protocol->name);
-      return;
+      goto interface_changed_error;
     }
   }
 
   oonf_rfc5444_reconfigure_interface(interf, &config);
+
+  /* fall through */
+interface_changed_error:
+  oonf_packet_free_managed_config(&config);
 }
 
 /**

@@ -364,6 +364,25 @@ oonf_packet_managed_is_active(
 }
 
 /**
+ * copies a packet managed configuration object
+ * @param dst Destination
+ * @param src Source
+ */
+void
+oonf_packet_copy_managed_config(struct oonf_packet_managed_config *dst,
+    struct oonf_packet_managed_config *src) {
+  oonf_packet_free_managed_config(dst);
+
+  memcpy(dst, src, sizeof(*dst));
+
+  memset(&dst->acl, 0, sizeof(dst->acl));
+  netaddr_acl_copy(&dst->acl, &src->acl);
+
+  memset(&dst->bindto, 0, sizeof(dst->bindto));
+  netaddr_acl_copy(&dst->bindto, &src->bindto);
+}
+
+/**
  * Apply a new configuration to all attached sockets
  * @param managed pointer to managed socket
  * @param config pointer to configuration

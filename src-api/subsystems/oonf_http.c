@@ -229,7 +229,7 @@ _cb_config_changed(void) {
 
   /* fall through */
 apply_config_failed:
-  netaddr_acl_remove(&config.acl);
+  oonf_stream_free_managed_config(&config);
 }
 
 /**
