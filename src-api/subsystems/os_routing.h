@@ -75,14 +75,16 @@ struct os_route_str {
   char buf[
            /* header */
            1+
-           /* src */
-           5 + sizeof(struct netaddr_str)
+           /* src-ip */
+           8 + sizeof(struct netaddr_str)
            /* gw */
            + 4 + sizeof(struct netaddr_str)
            /* dst */
            + 5 + sizeof(struct netaddr_str)
+           /* src-prefix */
+           + 12 + sizeof(struct netaddr_str)
            /* metric */
-           + 7 +11
+           + 7+11
            /* table, protocol */
            +6+4 +9+4
            +3 + IF_NAMESIZE + 2 + 10 + 2
@@ -97,8 +99,14 @@ struct os_route {
   /* address family */
   unsigned char family;
 
-  /* source, gateway and destination */
-  struct netaddr src, gw, dst;
+  /* gateway and destination */
+  struct netaddr gw, dst;
+
+  /* source IP that should be used for outgoing IP packets of this route */
+  struct netaddr src_ip;
+
+  /* source-specific routing prefix, only supported for linux/ipv6 */
+  struct netaddr src_prefix;
 
   /* metric of the route */
   int metric;

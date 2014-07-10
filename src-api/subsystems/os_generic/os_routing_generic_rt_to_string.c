@@ -50,14 +50,15 @@
  */
 const char *
 os_routing_to_string(struct os_route_str *buf, struct os_route *route) {
-  struct netaddr_str buf1, buf2, buf3;
+  struct netaddr_str buf1, buf2, buf3, buf4;
   char ifbuf[IF_NAMESIZE];
   int result;
   result = snprintf(buf->buf, sizeof(*buf),
-      "'src %s gw %s dst %s metric %u table %u protocol %u if %s (%u)'",
-      netaddr_to_string(&buf1, &route->src),
+      "'src-ip %s gw %s dst %s src-prefix %s metric %u table %u protocol %u if %s (%u)'",
+      netaddr_to_string(&buf1, &route->src_ip),
       netaddr_to_string(&buf2, &route->gw),
       netaddr_to_string(&buf3, &route->dst),
+      netaddr_to_string(&buf4, &route->src_prefix),
       route->metric,
       (unsigned int)(route->table),
       (unsigned int)(route->protocol),
