@@ -47,6 +47,12 @@
 #include "common/common_types.h"
 #include "subsystems/os_net.h"
 
+/**
+ * Sets the DSCP value for outgoing packets on a socket
+ * @param sock socket file descriptor
+ * @param dscp dscp value
+ * @return -1 if an error happened, 0 otherwise
+ */
 int
 os_net_set_dscp(int sock, uint8_t dscp) {
   if (setsockopt(sock, IPPROTO_IP, IP_TOS, (char *) &dscp, sizeof(dscp)) < 0 ) {
