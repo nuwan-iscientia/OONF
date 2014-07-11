@@ -141,11 +141,20 @@ cfg_validate_int(struct autobuf *out, const char *section_name,
   struct isonumber_str hbuf;
 
   if (isonumber_to_s64(&i, value, fraction, base2)) {
-    cfg_append_printable_line(out, "Value '%s' for entry '%s'"
-        " in section %s is not a fractional %d-byte integer"
-        " with a maximum of %d fractional digits",
-        value, entry_name, section_name,
-        bytelen, fraction);
+    if (fraction) {
+      cfg_append_printable_line(out, "Value '%s' for entry '%s'"
+          " in section %s is not a fractional %d-byte integer"
+          " with a maximum of %d fractional digits",
+          value, entry_name,
+          section_name,
+          bytelen, fraction);
+    }
+    else {
+      cfg_append_printable_line(out, "Value '%s' for entry '%s'"
+          " in section %s is not a %d-byte integer.",
+          value, entry_name,
+          section_name, bytelen);
+    }
     return -1;
   }
 

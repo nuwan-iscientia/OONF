@@ -491,7 +491,7 @@ _print_schema_entry(struct autobuf *log, struct cfg_db *db,
  */
 static int
 _do_parse_arg(char *arg, struct _parsed_argument *pa, struct autobuf *log) {
-  static const char *pattern = "^(([a-zA-Z_][a-zA-Z_0-9]*)(\\[([a-zA-Z_][a-zA-Z_0-9]*)\\])?\\.)?([a-zA-Z_][a-zA-Z_0-9]*)?(=(.*))?$";
+  static const char *pattern = "^(([a-zA-Z_][a-zA-Z_0-9]*)(\\[([^]]*)\\])?\\.)?([a-zA-Z_][a-zA-Z_0-9]*)?(=(.*))?$";
   regex_t regexp;
   regmatch_t matchers[8];
 
