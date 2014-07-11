@@ -40,6 +40,7 @@ IF(LINUX)
                              os_generic/os_net_generic_getsocket.c
                              os_generic/os_net_generic_join_mcast.c
                              os_generic/os_net_generic_set_nonblocking.c
+                             os_generic/os_net_generic_set_dscp.c
                              os_generic/os_routing_generic_rt_to_string.c
                              os_linux/os_clock_linux.c
                              os_linux/os_net_linux.c

@@ -89,6 +89,7 @@ struct oonf_packet_managed_config {
   int32_t port, multicast_port;
   bool loop_multicast;
   bool mesh;
+  int32_t dscp;
 };
 
 struct oonf_packet_managed {

@@ -174,6 +174,8 @@ static struct cfg_schema_entry _interface_entries[] = {
     "ipv4 multicast address of this socket", false, true),
   CFG_MAP_NETADDR_V6(oonf_packet_managed_config, multicast_v6, "multicast_v6", RFC5444_MANET_MULTICAST_V6_TXT,
     "ipv6 multicast address of this socket", false, true),
+  CFG_MAP_INT32_MINMAX(oonf_packet_managed_config, dscp, "dscp", "0",
+    "DSCP field for outgoing UDP protocol traffic", 0, false, 0, 255),
 };
 
 static struct cfg_schema_section _interface_section = {

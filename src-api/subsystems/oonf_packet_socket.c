@@ -64,8 +64,8 @@ static int _apply_managed_socketpair(int af_type,
     struct oonf_packet_socket *sock, struct netaddr_acl *bind_ip,
     struct oonf_packet_socket *mc_sock, struct netaddr *mc_ip);
 static int _apply_managed_socket(struct oonf_packet_managed *managed,
-    struct oonf_packet_socket *stream, const struct netaddr *bindto, int port,
-    struct oonf_interface_data *data);
+    struct oonf_packet_socket *stream, const struct netaddr *bindto,
+    int port, uint8_t dscp, struct oonf_interface_data *data);
 static void _cb_packet_event_unicast(int fd, void *data, bool r, bool w);
 static void _cb_packet_event_multicast(int fd, void *data, bool r, bool w);
 static void _cb_packet_event(int fd, void *data, bool r, bool w, bool mc);
@@ -464,7 +464,8 @@ _apply_managed_socketpair(int af_type, struct oonf_packet_managed *managed,
       mc_ip);
 
   sockstate = _apply_managed_socket(
-      managed, sock, bind_ip, managed->_managed_config.port, data);
+      managed, sock, bind_ip, managed->_managed_config.port,
+      managed->_managed_config.dscp, data);
   if (sockstate == 0) {
     /* settings really changed */
     *changed = true;
@@ -483,7 +484,8 @@ _apply_managed_socketpair(int af_type, struct oonf_packet_managed *managed,
   if (real_multicast && netaddr_get_address_family(mc_ip) != AF_UNSPEC) {
     /* multicast */
     sockstate = _apply_managed_socket(
-        managed, mc_sock, mc_ip, mc_port, data);
+        managed, mc_sock, mc_ip, mc_port,
+        managed->_managed_config.dscp, data);
     if (sockstate == 0) {
       /* settings really changed */
       *changed = true;
@@ -520,6 +522,7 @@ _apply_managed_socketpair(int af_type, struct oonf_packet_managed *managed,
  * @param bindto local address to bind socket to
  *   set to AF_UNSPEC for simple reinitialization
  * @param port local port number
+ * @param dscp dscp value for outgoing traffic
  * @param if_event true if this is just a reapply of current values
  *   because interface came up again.
  * @return -1 if an error happened, 0 if everything is okay,
@@ -528,7 +531,7 @@ _apply_managed_socketpair(int af_type, struct oonf_packet_managed *managed,
 static int
 _apply_managed_socket(struct oonf_packet_managed *managed,
     struct oonf_packet_socket *packet,
-    const struct netaddr *bindto, int port,
+    const struct netaddr *bindto, int port, uint8_t dscp,
     struct oonf_interface_data *data) {
   union netaddr_socket sock;
   struct netaddr_str buf;
@@ -575,6 +578,12 @@ _apply_managed_socket(struct oonf_packet_managed *managed,
     return -1;
   }
 
+  if (os_net_set_dscp(packet->scheduler_entry.fd, dscp)) {
+    OONF_WARN(LOG_PACKET, "Could not set DSCP value for socket: %s (%d)",
+        strerror(errno), errno);
+    oonf_packet_remove(packet, true);
+    return -1;
+  }
   packet->interface = data;
 
   OONF_DEBUG(LOG_PACKET, "Opened new socket and bound it to %s (if %s)",
