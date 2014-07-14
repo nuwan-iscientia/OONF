@@ -78,8 +78,8 @@ test_strscpy_1(void) {
   strcpy (output_start, "1234");
   strscpy (output_start, "123456", output_len);
 
-  CHECK_TRUE(output[0] == -1, "output underflow guard overwritten");
-  CHECK_TRUE(output[sizeof(output)-1] == -1, "output overflow guard overwritten");
+  CHECK_TRUE(output[0] == (char)-1, "output underflow guard overwritten");
+  CHECK_TRUE(output[sizeof(output)-1] == (char)-1, "output overflow guard overwritten");
 
   CHECK_TRUE(strcmp(output_start, "123456") == 0, "bad result: %s", output_start);
   END_TEST();
@@ -92,8 +92,8 @@ test_strscpy_2(void) {
   strcpy (output_start, "1234");
   strscpy (output_start, "1234567890abcdef", output_len);
 
-  CHECK_TRUE(output[0] == -1, "output underflow guard overwritten");
-  CHECK_TRUE(output[sizeof(output)-1] == -1, "output overflow guard overwritten");
+  CHECK_TRUE(output[0] == (char)(char)-1, "output underflow guard overwritten");
+  CHECK_TRUE(output[sizeof(output)-1] == (char)(char)-1, "output overflow guard overwritten");
 
   CHECK_TRUE(strcmp(output_start, "1234567890abc") == 0, "bad result: %s", output_start);
   END_TEST();
@@ -106,8 +106,8 @@ test_strscpy_3(void) {
   strcpy (output_start, "1234");
   strscpy (output_start, NULL, output_len);
 
-  CHECK_TRUE(output[0] == -1, "output underflow guard overwritten");
-  CHECK_TRUE(output[sizeof(output)-1] == -1, "output overflow guard overwritten");
+  CHECK_TRUE(output[0] == (char)-1, "output underflow guard overwritten");
+  CHECK_TRUE(output[sizeof(output)-1] == (char)-1, "output overflow guard overwritten");
 
   CHECK_TRUE(strcmp(output_start, "1234") == 0, "bad result: %s", output_start);
   END_TEST();
@@ -120,8 +120,8 @@ test_strscpy_4(void) {
   strcpy (output_start, "1234");
   strscpy (NULL, "123456", output_len);
 
-  CHECK_TRUE(output[0] == -1, "output underflow guard overwritten");
-  CHECK_TRUE(output[sizeof(output)-1] == -1, "output overflow guard overwritten");
+  CHECK_TRUE(output[0] == (char)-1, "output underflow guard overwritten");
+  CHECK_TRUE(output[sizeof(output)-1] == (char)-1, "output overflow guard overwritten");
 
   CHECK_TRUE(strcmp(output_start, "1234") == 0, "bad result: %s", output_start);
   END_TEST();
@@ -134,8 +134,8 @@ test_strscpy_5(void) {
   strcpy (output_start, "1234");
   strscpy (output_start, "123456", 0);
 
-  CHECK_TRUE(output[0] == -1, "output underflow guard overwritten");
-  CHECK_TRUE(output[sizeof(output)-1] == -1, "output overflow guard overwritten");
+  CHECK_TRUE(output[0] == (char)-1, "output underflow guard overwritten");
+  CHECK_TRUE(output[sizeof(output)-1] == (char)-1, "output overflow guard overwritten");
 
   CHECK_TRUE(strcmp(output_start, "1234") == 0, "bad result: %s", output_start);
   END_TEST();
@@ -148,8 +148,8 @@ test_strscpy_6(void) {
   strcpy (output_start, "123456");
   strscpy (output_start, "1234", output_len);
 
-  CHECK_TRUE(output[0] == -1, "output underflow guard overwritten");
-  CHECK_TRUE(output[sizeof(output)-1] == -1, "output overflow guard overwritten");
+  CHECK_TRUE(output[0] == (char)-1, "output underflow guard overwritten");
+  CHECK_TRUE(output[sizeof(output)-1] == (char)-1, "output overflow guard overwritten");
 
   CHECK_TRUE(strcmp(output_start, "1234") == 0, "bad result: %s", output_start);
   END_TEST();
@@ -162,8 +162,8 @@ test_strscat_1(void) {
   strcpy (output_start, "1234");
   strscat (output_start, "123456", output_len);
 
-  CHECK_TRUE(output[0] == -1, "output underflow guard overwritten");
-  CHECK_TRUE(output[sizeof(output)-1] == -1, "output overflow guard overwritten");
+  CHECK_TRUE(output[0] == (char)-1, "output underflow guard overwritten");
+  CHECK_TRUE(output[sizeof(output)-1] == (char)-1, "output overflow guard overwritten");
 
   CHECK_TRUE(strcmp(output_start, "1234123456") == 0, "bad result: %s", output_start);
   END_TEST();
@@ -176,8 +176,8 @@ test_strscat_2(void) {
   strcpy (output_start, "1234");
   strscat (output_start, "1234567890abcdef", output_len);
 
-  CHECK_TRUE(output[0] == -1, "output underflow guard overwritten");
-  CHECK_TRUE(output[sizeof(output)-1] == -1, "output overflow guard overwritten");
+  CHECK_TRUE(output[0] == (char)-1, "output underflow guard overwritten");
+  CHECK_TRUE(output[sizeof(output)-1] == (char)-1, "output overflow guard overwritten");
 
   CHECK_TRUE(strcmp(output_start, "1234123456789") == 0, "bad result: %s", output_start);
   END_TEST();
@@ -190,8 +190,8 @@ test_strscat_3(void) {
   strcpy (output_start, "1234");
   strscat (output_start, NULL, output_len);
 
-  CHECK_TRUE(output[0] == -1, "output underflow guard overwritten");
-  CHECK_TRUE(output[sizeof(output)-1] == -1, "output overflow guard overwritten");
+  CHECK_TRUE(output[0] == (char)-1, "output underflow guard overwritten");
+  CHECK_TRUE(output[sizeof(output)-1] == (char)-1, "output overflow guard overwritten");
 
   CHECK_TRUE(strcmp(output_start, "1234") == 0, "bad result: %s", output_start);
   END_TEST();
@@ -204,8 +204,8 @@ test_strscat_4(void) {
   strcpy (output_start, "1234");
   strscat (NULL, "123456", output_len);
 
-  CHECK_TRUE(output[0] == -1, "output underflow guard overwritten");
-  CHECK_TRUE(output[sizeof(output)-1] == -1, "output overflow guard overwritten");
+  CHECK_TRUE(output[0] == (char)-1, "output underflow guard overwritten");
+  CHECK_TRUE(output[sizeof(output)-1] == (char)-1, "output overflow guard overwritten");
 
   CHECK_TRUE(strcmp(output_start, "1234") == 0, "bad result: %s", output_start);
   END_TEST();
@@ -218,8 +218,8 @@ test_strscat_5(void) {
   strcpy (output_start, "1234");
   strscat (output_start, "123456", 0);
 
-  CHECK_TRUE(output[0] == -1, "output underflow guard overwritten");
-  CHECK_TRUE(output[sizeof(output)-1] == -1, "output overflow guard overwritten");
+  CHECK_TRUE(output[0] == (char)-1, "output underflow guard overwritten");
+  CHECK_TRUE(output[sizeof(output)-1] == (char)-1, "output overflow guard overwritten");
 
   CHECK_TRUE(strcmp(output_start, "1234") == 0, "bad result: %s", output_start);
   END_TEST();
@@ -232,8 +232,8 @@ test_strscat_6(void) {
   strcpy (output_start, "123456");
   strscat (output_start, "1234", output_len);
 
-  CHECK_TRUE(output[0] == -1, "output underflow guard overwritten");
-  CHECK_TRUE(output[sizeof(output)-1] == -1, "output overflow guard overwritten");
+  CHECK_TRUE(output[0] == (char)-1, "output underflow guard overwritten");
+  CHECK_TRUE(output[sizeof(output)-1] == (char)-1, "output overflow guard overwritten");
 
   CHECK_TRUE(strcmp(output_start, "1234561234") == 0, "bad result: %s", output_start);
   END_TEST();
@@ -250,8 +250,8 @@ test_strtrim_1(void) {
 
   ptr = str_trim(ptr);
 
-  CHECK_TRUE(output[0] == -1, "output underflow guard overwritten");
-  CHECK_TRUE(output[sizeof(output)-1] == -1, "output overflow guard overwritten");
+  CHECK_TRUE(output[0] == (char)-1, "output underflow guard overwritten");
+  CHECK_TRUE(output[sizeof(output)-1] == (char)-1, "output overflow guard overwritten");
 
   CHECK_TRUE(strcmp(ptr, "abcde fg") == 0, "bad result: %s", ptr);
   CHECK_TRUE(ptr == &output_start[2], "bad start pointer");
@@ -269,8 +269,8 @@ test_strtrim_2(void) {
 
   ptr = str_trim(ptr);
 
-  CHECK_TRUE(output[0] == -1, "output underflow guard overwritten");
-  CHECK_TRUE(output[sizeof(output)-1] == -1, "output overflow guard overwritten");
+  CHECK_TRUE(output[0] == (char)-1, "output underflow guard overwritten");
+  CHECK_TRUE(output[sizeof(output)-1] == (char)-1, "output overflow guard overwritten");
 
   CHECK_TRUE(strcmp(ptr, "abcde fg") == 0, "bad result: %s", ptr);
   CHECK_TRUE(ptr == &output_start[0], "bad start pointer");
@@ -288,8 +288,8 @@ test_strtrim_3(void) {
 
   ptr = str_trim(ptr);
 
-  CHECK_TRUE(output[0] == -1, "output underflow guard overwritten");
-  CHECK_TRUE(output[sizeof(output)-1] == -1, "output overflow guard overwritten");
+  CHECK_TRUE(output[0] == (char)-1, "output underflow guard overwritten");
+  CHECK_TRUE(output[sizeof(output)-1] == (char)-1, "output overflow guard overwritten");
 
   CHECK_TRUE(strcmp(ptr, "abcde fg") == 0, "bad result: %s", ptr);
   CHECK_TRUE(ptr == &output_start[2], "bad start pointer");
@@ -307,8 +307,8 @@ test_strtrim_4(void) {
 
   ptr = str_trim(ptr);
 
-  CHECK_TRUE(output[0] == -1, "output underflow guard overwritten");
-  CHECK_TRUE(output[sizeof(output)-1] == -1, "output overflow guard overwritten");
+  CHECK_TRUE(output[0] == (char)-1, "output underflow guard overwritten");
+  CHECK_TRUE(output[sizeof(output)-1] == (char)-1, "output overflow guard overwritten");
 
   CHECK_TRUE(strcmp(ptr, "") == 0, "bad result: %s", ptr);
   CHECK_TRUE(ptr == &output_start[5], "bad start pointer");
