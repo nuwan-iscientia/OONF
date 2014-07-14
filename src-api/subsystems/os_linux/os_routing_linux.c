@@ -505,8 +505,6 @@ _cb_rtnetlink_error(uint32_t seq, int err) {
 #endif
 
   /* transform into errno number */
-  err = -err;
-
   list_for_each_element(&_rtnetlink_feedback, route, _internal._node) {
     if (seq == route->_internal.nl_seq) {
       OONF_DEBUG(LOG_OS_ROUTING, "Route seqno %u failed: %s (%d) %s",

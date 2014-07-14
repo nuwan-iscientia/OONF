@@ -714,8 +714,6 @@ _cb_rtnetlink_error(uint32_t seq, int error) {
   OONF_INFO(LOG_OS_SYSTEM, "Netlink socket provided feedback: %d %d", seq, error);
 
   /* transform into errno number */
-  error = -error;
-
   list_for_each_element(&_rtnetlink_feedback, addr, _internal._node) {
     if (seq == addr->_internal.nl_seq) {
       _address_finished(addr, error);
@@ -787,7 +785,7 @@ _handle_nl_err(struct os_system_netlink *nl, struct nlmsghdr *nh) {
 
   OONF_INFO(nl->used_by->logging,
       "Received netlink seq %u feedback (%u bytes): %s (%d)",
-      nh->nlmsg_seq, nh->nlmsg_len, strerror(-err->error), err->error);
+      nh->nlmsg_seq, nh->nlmsg_len, strerror(-err->error), -err->error);
 
   if (err->error) {
     if (nl->cb_error) {
