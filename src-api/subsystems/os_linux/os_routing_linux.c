@@ -308,8 +308,6 @@ _routing_set(struct nlmsghdr *msg, struct os_route *route,
 
   /* add attributes */
   if (netaddr_get_address_family(&route->src_ip) != AF_UNSPEC) {
-    rt_msg->rtm_src_len = netaddr_get_prefix_length(&route->src_ip);
-
     /* add src-ip */
     if (os_system_netlink_addnetaddr(msg, RTA_PREFSRC, &route->src_ip)) {
       return -1;
@@ -334,12 +332,15 @@ _routing_set(struct nlmsghdr *msg, struct os_route *route,
     }
   }
 
-//  if (netaddr_get_address_family(&route->src_prefix) == AF_INET6) {
-//    /* add source-specific routing prefix */
-//    if (os_system_netlink_addnetaddr(msg, RTA_SRC, &route->src_prefix)) {
-//      return -1;
-//    }
-//  }
+  if (netaddr_get_address_family(&route->src_prefix) == AF_INET6
+      && netaddr_get_prefix_length(&route->src_prefix) != 0) {
+    rt_msg->rtm_src_len = netaddr_get_prefix_length(&route->src_ip);
+
+    /* add source-specific routing prefix */
+    if (os_system_netlink_addnetaddr(msg, RTA_SRC, &route->src_prefix)) {
+      return -1;
+    }
+  }
 
   if (route->metric != -1) {
     /* add metric */
