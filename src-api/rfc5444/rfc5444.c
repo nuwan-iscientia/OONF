@@ -171,14 +171,15 @@ rfc5497_timetlv_decode(uint8_t encoded) {
 
 /**
  * Encode a metric value in RFC7181 (OLSRv2) specified format.
- * A metric value larger than the maximum will be encoded to 4095.
- * Encoding for metric value 0 is not specified.
- * A metric value larger or equal to RFC5444_METRIC infinite is encoded as 0.
+ * A metric value of zero or larger than RFC7181_METRIC_INFINITE
+ * will return an error.
+ * A metric value larger than the RFC7181_METRIC_MAX will be encoded to 4095.
+ * @param encoded pointer to encoded metric value
  * @param decoded metric value.
- * @return encoded metric value.
+ * @return encoded -1 if an error happened, 0 otherwise.
  */
-uint16_t
-rfc7181_metric_encode(uint32_t decoded) {
+int
+rfc7181_metric_encode(struct rfc7181_metric_field *encoded, uint32_t decoded) {
   uint8_t a,b;
   /*
    * metric-value := (257+b)2^a - 256
@@ -186,10 +187,12 @@ rfc7181_metric_encode(uint32_t decoded) {
    */
 
   if (decoded < RFC7181_METRIC_MIN || decoded >= RFC7181_METRIC_INFINITE) {
-    return 0;
+    return -1;
   }
   if (decoded > RFC7181_METRIC_MAX) {
-    return 0x0fff;
+    encoded->b[0] = 0x0f;
+    encoded->b[1] = 0xff;
+    return 0;
   }
 
   /* metric-value + 256 = (257+b)<<a */
@@ -206,7 +209,10 @@ rfc7181_metric_encode(uint32_t decoded) {
 
   b = decoded - 257;
 
-  return (a << 8) + b;
+  encoded->b[0] = a;
+  encoded->b[1] = b;
+
+  return 0;
 }
 
 /**
@@ -215,17 +221,9 @@ rfc7181_metric_encode(uint32_t decoded) {
  * @return decoded metric value
  */
 uint32_t
-rfc7181_metric_decode(uint16_t encoded) {
-  uint8_t a,b;
-  /*
-   * metric-value := (257+b)2^a - 256
-   * metric-code := 256 * a + b
-   */
-
-  a = (encoded >> 8) & 0x0f;
-  b = encoded & 0xff;
-
-  return ((257 + b) << a) - 256;
+rfc7181_metric_decode(struct rfc7181_metric_field *encoded) {
+  uint8_t exponent = encoded->b[0] & 15;
+  return ((257 + encoded->b[1]) << exponent) - 256;
 }
 
 int

@@ -593,6 +593,11 @@ static const uint32_t _metric_table[4096] = {
   0xfc7f00, 0xfcff00, 0xfd7f00, 0xfdff00, 0xfe7f00, 0xfeff00, 0xff7f00, 0xffff00,
 };
 
+static uint16_t
+_get_encoded_value(struct rfc7181_metric_field *value) {
+  return 256 * value->b[0] + value->b[1];
+}
+
 static void
 test_timetlv_decoding(void) {
   uint64_t encoded, decoded;
@@ -679,18 +684,16 @@ test_timetlv_encoding_average(void) {
   END_TEST();
 }
 
-
-
-
-
 static void
 test_metric_decoding(void) {
   uint32_t encoded, decoded;
-
+  struct rfc7181_metric_field metric;
   START_TEST();
 
   for (encoded = 0; encoded < 4096; encoded++) {
-    decoded = rfc7181_metric_decode(encoded);
+    metric.b[0] = encoded >> 8;
+    metric.b[1] = encoded & 255;
+    decoded = rfc7181_metric_decode(&metric);
     CHECK_TRUE(decoded == _metric_table[encoded], "decode(%u) != %u", encoded, decoded);
   }
 
@@ -699,15 +702,16 @@ test_metric_decoding(void) {
 
 static void
 test_metric_encoding_exact(void) {
-  uint32_t encoded, decoded, i;
-
+  uint32_t decoded, i;
+  struct rfc7181_metric_field metric;
   START_TEST();
 
   for (i=0; i<4096; i++) {
     decoded = _metric_table[i];
-    encoded = rfc7181_metric_encode(decoded);
+    CHECK_TRUE(!rfc7181_metric_encode(&metric, decoded),
+        "Metric encoding failed : %u", decoded);
 
-    CHECK_TRUE(encoded == i, "encode(%u) != %u", decoded, i);
+    CHECK_TRUE(_get_encoded_value(&metric) == i, "encode(%u) != %u", decoded, i);
   }
 
   END_TEST();
@@ -715,9 +719,12 @@ test_metric_encoding_exact(void) {
 
 static void
 _do_metric_average_test(uint32_t decoded) {
+  struct rfc7181_metric_field metric;
   uint32_t encoded;
 
-  encoded = rfc7181_metric_encode(decoded);
+  CHECK_TRUE(!rfc7181_metric_encode(&metric, decoded),
+      "Metric encoding failed: %u", decoded);
+  encoded = _get_encoded_value(&metric);
 
   CHECK_TRUE(_metric_table[encoded] > decoded, "encode(%u)=%u, decode(%u)=%u, %u <= %u",
       decoded, encoded,

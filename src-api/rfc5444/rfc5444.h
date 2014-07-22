@@ -42,6 +42,7 @@
 #define RFC5444_CONVERSION_H_
 
 #include "common/common_types.h"
+#include "rfc5444/rfc5444_iana.h"
 
 enum {
   /* timetlv_max = 14 * 2^28 * 1000 / 1024 = 14000 << 18 = 3 670 016 000 ms */
@@ -63,13 +64,17 @@ enum {
   RFC7181_METRIC_INFINITE_PATH = 0xffffffff,
 };
 
+struct rfc7181_metric_field {
+  uint8_t b[2];
+};
+
 EXPORT uint8_t rfc5497_timetlv_get_from_vector(
     uint8_t *vector, size_t vector_length, uint8_t hopcount);
 EXPORT uint8_t rfc5497_timetlv_encode(uint64_t);
 EXPORT uint64_t rfc5497_timetlv_decode(uint8_t);
 
-EXPORT uint16_t rfc7181_metric_encode(uint32_t);
-EXPORT uint32_t rfc7181_metric_decode(uint16_t);
+EXPORT int rfc7181_metric_encode(struct rfc7181_metric_field *, uint32_t);
+EXPORT uint32_t rfc7181_metric_decode(struct rfc7181_metric_field *);
 
 EXPORT int rfc5444_seqno_difference(uint16_t, uint16_t);
 
@@ -88,6 +93,24 @@ rfc5444_seqno_is_larger(uint16_t s1, uint16_t s2) {
 static INLINE int
 rfc5444_seqno_is_smaller(uint16_t s1, uint16_t s2) {
   return s1 != s2 && !rfc5444_seqno_is_larger(s1, s2);
+}
+
+static INLINE bool
+rfc7181_metric_has_flag(struct rfc7181_metric_field *metric,
+    enum rfc7181_linkmetric_flags flag) {
+  return (metric->b[0] & flag) != 0;
+}
+
+static INLINE void
+rfc7181_metric_set_flag(struct rfc7181_metric_field *metric,
+    enum rfc7181_linkmetric_flags flag) {
+  metric->b[0] |= flag;
+}
+
+static INLINE void
+rfc7181_metric_reset_flag(struct rfc7181_metric_field *metric,
+    enum rfc7181_linkmetric_flags flag) {
+  metric->b[0] &= ~flag;
 }
 
 #endif /* RFC5444_CONVERSION_H_ */
