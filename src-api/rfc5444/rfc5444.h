@@ -98,19 +98,19 @@ rfc5444_seqno_is_smaller(uint16_t s1, uint16_t s2) {
 static INLINE bool
 rfc7181_metric_has_flag(struct rfc7181_metric_field *metric,
     enum rfc7181_linkmetric_flags flag) {
-  return (metric->b[0] & flag) != 0;
+  return (metric->b[0] & (uint8_t)flag) != 0;
 }
 
 static INLINE void
 rfc7181_metric_set_flag(struct rfc7181_metric_field *metric,
     enum rfc7181_linkmetric_flags flag) {
-  metric->b[0] |= flag;
+  metric->b[0] |= (uint8_t)flag;
 }
 
 static INLINE void
 rfc7181_metric_reset_flag(struct rfc7181_metric_field *metric,
     enum rfc7181_linkmetric_flags flag) {
-  metric->b[0] &= ~flag;
+  metric->b[0] &= ~((uint8_t)flag);
 }
 
 #endif /* RFC5444_CONVERSION_H_ */
