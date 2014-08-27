@@ -919,7 +919,7 @@ _cb_receive_data(struct oonf_packet_socket *sock,
 
   result = rfc5444_reader_handle_packet(
       &protocol->reader, sock->config.input_buffer, length);
-  if (result) {
+  if (result < 0) {
     OONF_WARN(LOG_RFC5444, "Error while parsing incoming packet from %s: %s (%d)",
         netaddr_socket_to_string(&buf, from), rfc5444_strerror(result), result);
 
