@@ -52,6 +52,7 @@
 #endif
 
 #include "common/autobuf.h"
+#include "common/string.h"
 
 /**
  * @param val original size
@@ -353,9 +354,28 @@ _print_hexline(struct autobuf *out, void *buffer, size_t length) {
   size_t i;
   uint8_t *buf = buffer;
 
-  for (i = 0; i < length; i++) {
-    abuf_appendf(out, "%s%02x", ((i & 3) == 0) ? " " : "", (int) (buf[i]));
+  for (i = 0; i < 32; i++) {
+    if ((i & 3) == 0) {
+      abuf_puts(out, " ");
+    }
+    if (i < length) {
+      abuf_appendf(out, "%02x", (int) (buf[i]));
+    }
+    else {
+      abuf_puts(out, "  ");
+    }
   }
+
+  abuf_puts(out, " ");
+  for (i = 0; i < length; i++) {
+    if (str_char_is_printable(buf[i])) {
+      abuf_appendf(out, "%c", buf[i]);
+    }
+    else {
+      abuf_puts(out, ".");
+    }
+  }
+
 }
 
 /**
