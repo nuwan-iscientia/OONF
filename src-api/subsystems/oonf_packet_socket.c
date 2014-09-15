@@ -578,7 +578,8 @@ _apply_managed_socket(struct oonf_packet_managed *managed,
     return -1;
   }
 
-  if (os_net_set_dscp(packet->scheduler_entry.fd, dscp)) {
+  if (os_net_set_dscp(packet->scheduler_entry.fd, dscp,
+      netaddr_get_address_family(bindto) == AF_INET6)) {
     OONF_WARN(LOG_PACKET, "Could not set DSCP value for socket: %s (%d)",
         strerror(errno), errno);
     oonf_packet_remove(packet, true);

@@ -54,9 +54,16 @@
  * @return -1 if an error happened, 0 otherwise
  */
 int
-os_net_set_dscp(int sock, uint8_t dscp) {
-  if (setsockopt(sock, IPPROTO_IP, IP_TOS, (char *) &dscp, sizeof(dscp)) < 0 ) {
-    return -1;
+os_net_set_dscp(int sock, int dscp, bool ipv6) {
+  if (ipv6) {
+    if (setsockopt(sock, IPPROTO_IPV6, IPV6_TCLASS, (char *) &dscp, sizeof(dscp)) < 0 ) {
+      return -1;
+    }
+  }
+  else {
+    if (setsockopt(sock, IPPROTO_IP, IP_TOS, (char *) &dscp, sizeof(dscp)) < 0 ) {
+      return -1;
+    }
   }
   return 0;
 }

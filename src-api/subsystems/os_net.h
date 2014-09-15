@@ -155,7 +155,7 @@ EXPORT int os_net_join_mcast_recv(int sock, const struct netaddr *multicast,
 EXPORT int os_net_join_mcast_send(int sock, const struct netaddr *multicast,
     const struct oonf_interface_data *oif, bool loop, enum oonf_log_source log_src);
 EXPORT int os_net_update_interface(struct oonf_interface_data *, const char *);
-EXPORT int os_net_set_dscp(int sock, uint8_t dscp);
+EXPORT int os_net_set_dscp(int sock, int dscp, bool ipv6);
 
 EXPORT int os_net_init_mesh_if(struct oonf_interface *);
 EXPORT void os_net_cleanup_mesh_if(struct oonf_interface *);
