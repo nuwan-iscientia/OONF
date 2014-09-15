@@ -253,7 +253,7 @@ oonf_timer_walk(void)
 
   _scheduling_now = true;
 
-  while (true) {
+  while (!avl_is_empty(&_timer_tree)) {
     timer = avl_first_element(&_timer_tree, timer, _node);
 
     if (timer->_clock > oonf_clock_getNow()) {
