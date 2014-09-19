@@ -296,7 +296,10 @@ oonf_interface_get_bindaddress(int af_type,
   struct netaddr_str nbuf;
 #endif
 
-  OONF_DEBUG(LOG_INTERFACE, "Find bindto for acl:");
+  OONF_DEBUG(LOG_INTERFACE, "Find bindto (%s) for acl (if=%s):",
+      af_type == AF_INET ? "ipv4" : "ipv6",
+      !ifdata ? "any" : ifdata->name);
+
   for (i=0; i<filter->accept_count; i++) {
     OONF_DEBUG_NH(LOG_INTERFACE, "\taccept: %s", netaddr_to_string(&nbuf, &filter->accept[i]));
   }

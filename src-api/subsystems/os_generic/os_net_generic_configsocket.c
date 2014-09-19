@@ -54,6 +54,7 @@
  * @param sock filedescriptor
  * @param bind_to ip/port to bind the socket to
  * @param recvbuf size of input buffer for socket
+ * @param rawip true if socket is a raw ip socket, false otherwise
  * @param interf pointer to interface to bind socket on,
  *   NULL if socket should not be bound to an interface
  * @param log_src logging source for error messages
@@ -61,7 +62,7 @@
  */
 int
 os_net_configsocket(int sock, const union netaddr_socket *bind_to, int recvbuf,
-    const struct oonf_interface_data *interf __attribute__((unused)),
+    bool rawip, const struct oonf_interface_data *interf __attribute__((unused)),
     enum oonf_log_source log_src __attribute__((unused))) {
   int yes;
   socklen_t addrlen;
@@ -78,12 +79,12 @@ os_net_configsocket(int sock, const union netaddr_socket *bind_to, int recvbuf,
   }
 
 #if defined(IPV6_V6ONLY)
-  if (bind_to->std.sa_family == AF_INET6) {
-	int no = 1;
-	if (setsockopt(sock, IPPROTO_IPV6, IPV6_V6ONLY, (void *)&no, sizeof(no)) < 0) {
-      OONF_WARN(log_src, "Could not force socket to IPv6 only, continue: %s (%d)\n",
-    		  strerror(errno), errno);
-	}
+  if (!rawip && bind_to->std.sa_family == AF_INET6) {
+    int no = 1;
+    if (setsockopt(sock, IPPROTO_IPV6, IPV6_V6ONLY, (void *)&no, sizeof(no)) < 0) {
+        OONF_WARN(log_src, "Could not force socket to IPv6 only, continue: %s (%d)\n",
+            strerror(errno), errno);
+    }
   }
 #endif
 

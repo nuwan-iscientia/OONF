@@ -48,9 +48,9 @@
 #include "subsystems/os_net.h"
 
 /**
- * Creates a new socket and configures it
+ * Creates a new raw socket and configures it
  * @param bind_to address to bind the socket to
- * @param tcp true for a TCP socket, false for UDP
+ * @param protocol IP protocol number
  * @param recvbuf size of input buffer for socket
  * @param interf pointer to interface to bind socket on,
  *   NULL if socket should not be bound to an interface
@@ -58,20 +58,30 @@
  * @return socket filedescriptor, -1 if an error happened
  */
 int
-os_net_getsocket(const union netaddr_socket *bind_to,
-    bool tcp, int recvbuf, const struct oonf_interface_data *interf,
+os_net_getrawsocket(const union netaddr_socket *bind_to,
+    int protocol, int recvbuf, const struct oonf_interface_data *interf,
     enum oonf_log_source log_src __attribute__((unused))) {
 
+  static const int zero = 0;
   int sock;
+  int family;
 
-  sock = socket(bind_to->std.sa_family,
-      tcp ? SOCK_STREAM : SOCK_DGRAM, 0);
+  family = bind_to->std.sa_family;
+  sock = socket(family, SOCK_RAW, protocol);
   if (sock < 0) {
     OONF_WARN(log_src, "Cannot open socket: %s (%d)", strerror(errno), errno);
     return -1;
   }
 
-  if (os_net_configsocket(sock, bind_to, recvbuf, false, interf, log_src)) {
+  if (family == AF_INET) {
+    if (setsockopt (sock, IPPROTO_IP, IP_HDRINCL, &zero, sizeof(zero)) < 0) {
+      OONF_WARN(log_src, "Cannot disable IP_HDRINCL for socket: %s (%d)", strerror(errno), errno);
+      os_net_close(sock);
+      return -1;
+    }
+  }
+
+  if (os_net_configsocket(sock, bind_to, recvbuf, true, interf, log_src)) {
     os_net_close(sock);
     return -1;
   }

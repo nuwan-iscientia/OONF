@@ -123,7 +123,7 @@ os_net_get_socket_error(int fd, int *value) {
  * @param dst pointer to netaddr socket to send packet to
  * @return same as sendto()
  */
-static INLINE int
+static INLINE ssize_t
 os_net_sendto(int fd, const void *buf, size_t length, const union netaddr_socket *dst) {
   return sendto(fd, buf, length, 0, &dst->std, sizeof(*dst));
 }
@@ -138,7 +138,7 @@ os_net_sendto(int fd, const void *buf, size_t length, const union netaddr_socket
  *   (only used if socket cannot be bound to interface)
  * @return same as recvfrom()
  */
-static INLINE int
+static INLINE ssize_t
 os_net_recvfrom(int fd, void *buf, size_t length, union netaddr_socket *source,
     const struct oonf_interface_data *interf __attribute__((unused))) {
   socklen_t len = sizeof(*source);

@@ -63,7 +63,7 @@ struct oonf_packet_config {
   size_t input_buffer_length;
 
   void (*receive_data)(struct oonf_packet_socket *,
-      union netaddr_socket *from, size_t length);
+      union netaddr_socket *from, void *ptr, size_t length);
 
   void *user;
 };
@@ -73,6 +73,8 @@ struct oonf_packet_socket {
 
   struct oonf_socket_entry scheduler_entry;
   union netaddr_socket local_socket;
+  int protocol;
+
   struct autobuf out;
 
   struct oonf_interface_data *interface;
@@ -86,9 +88,9 @@ struct oonf_packet_managed_config {
   struct netaddr_acl bindto;
   struct netaddr multicast_v4;
   struct netaddr multicast_v6;
-  int32_t port, multicast_port;
+  int32_t port, multicast_port, protocol;
   bool loop_multicast;
-  bool mesh;
+  bool mesh, rawip;
   int32_t dscp;
 };
 
@@ -110,6 +112,8 @@ EXPORT extern struct oonf_subsystem oonf_packet_socket_subsystem;
 
 EXPORT int oonf_packet_add(struct oonf_packet_socket *,
     union netaddr_socket *local, struct oonf_interface_data *);
+EXPORT int oonf_packet_raw_add(struct oonf_packet_socket *, int protocol,
+    union netaddr_socket *local, struct oonf_interface_data *interf);
 EXPORT void oonf_packet_remove(struct oonf_packet_socket *, bool);
 
 EXPORT int oonf_packet_send(struct oonf_packet_socket *,

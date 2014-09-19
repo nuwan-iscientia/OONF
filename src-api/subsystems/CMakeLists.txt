@@ -38,12 +38,14 @@ IF(LINUX)
     SET(OONF_SUBSYSTEMS_SRCS ${OONF_SUBSYSTEMS_SRCS}
                              os_generic/os_net_generic_configsocket.c
                              os_generic/os_net_generic_getsocket.c
+                             os_generic/os_net_generic_getrawsocket.c
                              os_generic/os_net_generic_join_mcast.c
                              os_generic/os_net_generic_set_nonblocking.c
                              os_generic/os_net_generic_set_dscp.c
                              os_generic/os_routing_generic_rt_to_string.c
                              os_linux/os_clock_linux.c
                              os_linux/os_net_linux.c
+                             os_linux/os_net_linux_skip_rawsocket_prefix.c
                              os_linux/os_system_linux.c
                              os_linux/os_routing_linux.c
                              )

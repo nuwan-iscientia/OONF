@@ -104,6 +104,9 @@ struct oonf_rfc5444_protocol {
    */
   bool fixed_local_port;
 
+  /* IP protocol number for raw IP communication */
+  int ip_proto;
+
   /*
    * this variables are only valid during packet processing and contain
    * additional information about the current packet
@@ -230,7 +233,7 @@ EXPORT struct oonf_rfc5444_protocol *oonf_rfc5444_add_protocol(
     const char *name, bool fixed_local_port);
 EXPORT void oonf_rfc5444_remove_protocol(struct oonf_rfc5444_protocol *);
 EXPORT void oonf_rfc5444_reconfigure_protocol(
-    struct oonf_rfc5444_protocol *, uint16_t port);
+    struct oonf_rfc5444_protocol *, uint16_t port, int ip_proto);
 
 EXPORT struct oonf_rfc5444_interface *oonf_rfc5444_add_interface(
     struct oonf_rfc5444_protocol *protocol,

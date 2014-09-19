@@ -124,9 +124,9 @@ static INLINE int os_net_select(
 static INLINE int os_net_connect(int sockfd, const union netaddr_socket *remote);
 static INLINE int os_net_accept(int sockfd, union netaddr_socket *incoming);
 static INLINE int os_net_get_socket_error(int sockfd, int *value);
-static INLINE int os_net_sendto(int fd, const void *buf, size_t length,
+static INLINE ssize_t os_net_sendto(int fd, const void *buf, size_t length,
     const union netaddr_socket *dst);
-static INLINE int os_net_recvfrom(int fd, void *buf, size_t length,
+static INLINE ssize_t os_net_recvfrom(int fd, void *buf, size_t length,
     union netaddr_socket *source, const struct oonf_interface_data *interf);
 static INLINE const char *on_net_get_loopback_name(void);
 
@@ -145,10 +145,12 @@ static INLINE const char *on_net_get_loopback_name(void);
 EXPORT extern struct oonf_subsystem oonf_os_net_subsystem;
 
 /* prototypes for all os_net functions */
-EXPORT int os_net_getsocket(const union netaddr_socket *bindto,
-    bool tcp, int recvbuf, const struct oonf_interface_data *, enum oonf_log_source log_src);
-EXPORT int os_net_configsocket(int sock, const union netaddr_socket *bindto,
+EXPORT int os_net_getsocket(const union netaddr_socket *bindto, bool tcp,
     int recvbuf, const struct oonf_interface_data *, enum oonf_log_source log_src);
+EXPORT int os_net_getrawsocket(const union netaddr_socket *bindto, int protocol,
+    int recvbuf, const struct oonf_interface_data *, enum oonf_log_source log_src);
+EXPORT int os_net_configsocket(int sock, const union netaddr_socket *bindto,
+    int recvbuf, bool rawip, const struct oonf_interface_data *, enum oonf_log_source log_src);
 EXPORT int os_net_set_nonblocking(int sock);
 EXPORT int os_net_join_mcast_recv(int sock, const struct netaddr *multicast,
     const struct oonf_interface_data *oif, enum oonf_log_source log_src);
@@ -156,6 +158,7 @@ EXPORT int os_net_join_mcast_send(int sock, const struct netaddr *multicast,
     const struct oonf_interface_data *oif, bool loop, enum oonf_log_source log_src);
 EXPORT int os_net_update_interface(struct oonf_interface_data *, const char *);
 EXPORT int os_net_set_dscp(int sock, int dscp, bool ipv6);
+EXPORT uint8_t *os_net_skip_rawsocket_prefix(uint8_t *ptr, ssize_t *len, int af_type);
 
 EXPORT int os_net_init_mesh_if(struct oonf_interface *);
 EXPORT void os_net_cleanup_mesh_if(struct oonf_interface *);

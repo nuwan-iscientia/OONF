@@ -98,7 +98,7 @@ os_net_join_mcast_recv(int sock, const struct netaddr *multicast,
     if_index = oif == NULL ? 0 : oif->index;
 
     OONF_DEBUG(log_src,
-        "Socket on interface %s joining multicast %s (if %d)\n",
+        "Socket on interface %s joining receiving multicast %s (if %d)\n",
         ifname, netaddr_to_string(&buf2, multicast), if_index);
 
     netaddr_to_binary(&v6_mreq.ipv6mr_multiaddr, multicast, 16);
@@ -158,7 +158,7 @@ os_net_join_mcast_send(int sock,
   }
   else {
     OONF_DEBUG(log_src,
-        "Socket on interface %s (%d) joining multicast %s (src %s)\n",
+        "Socket on interface %s (%d) joining sending multicast %s (src %s)\n",
         oif->name, oif->index,
         netaddr_to_string(&buf2, multicast),
         netaddr_to_string(&buf1, oif->linklocal_v6_ptr));

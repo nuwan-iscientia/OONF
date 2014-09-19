@@ -62,6 +62,7 @@
 
 struct _rfc5444_config {
   int32_t port;
+  int ip_proto;
   uint64_t aggregation_interval;
 };
 
@@ -74,7 +75,7 @@ static struct oonf_rfc5444_target *_create_target(
 static void _destroy_target(struct oonf_rfc5444_target *);
 
 static void _cb_receive_data(struct oonf_packet_socket *,
-      union netaddr_socket *from, size_t length);
+      union netaddr_socket *from, void *ptr, size_t length);
 static void _cb_send_unicast_packet(
     struct rfc5444_writer *, struct rfc5444_writer_target *, void *, size_t);
 static void _cb_send_multicast_packet(
@@ -152,6 +153,8 @@ static struct oonf_timer_info _aggregation_timer = {
 static struct cfg_schema_entry _rfc5444_entries[] = {
   CFG_MAP_INT32_MINMAX(_rfc5444_config, port, "port", RFC5444_MANET_UDP_PORT_TXT,
     "UDP port for RFC5444 interface", 0, false, 1, 65535),
+  CFG_MAP_INT32_MINMAX(_rfc5444_config, ip_proto, "ip_proto", RFC5444_MANET_IPPROTO_TXT,
+    "IP protocol for RFC5444 interface", 0, false, 1, 255),
   CFG_MAP_CLOCK(_rfc5444_config, aggregation_interval, "agregation_interval", "0.100",
     "Interval in seconds for message aggregation"),
 };
@@ -168,7 +171,7 @@ static struct cfg_schema_entry _interface_entries[] = {
   CFG_MAP_ACL_V46(oonf_packet_managed_config, acl, "acl", ACL_DEFAULT_ACCEPT,
     "Access control list for RFC5444 interface"),
   CFG_MAP_ACL_V46(oonf_packet_managed_config, bindto, "bindto",
-      "-127.0.0.0/8\0" "-::1\0" "0.0.0.0/0\0" "fe80::/10",
+      "-127.0.0.0/8\0" "-::1\0" ACL_DEFAULT_ACCEPT,
     "Bind RFC5444 socket to an address matching this address"),
   CFG_MAP_NETADDR_V4(oonf_packet_managed_config, multicast_v4, "multicast_v4", RFC5444_MANET_MULTICAST_V4_TXT,
     "ipv4 multicast address of this socket", false, true),
@@ -176,6 +179,8 @@ static struct cfg_schema_entry _interface_entries[] = {
     "ipv6 multicast address of this socket", false, true),
   CFG_MAP_INT32_MINMAX(oonf_packet_managed_config, dscp, "dscp", "0",
     "DSCP field for outgoing UDP protocol traffic", 0, false, 0, 255),
+  CFG_MAP_BOOL(oonf_packet_managed_config, rawip, "rawip", "false",
+    "True if a raw IP socket should be used, false to use UDP"),
 };
 
 static struct cfg_schema_section _interface_section = {
@@ -467,21 +472,24 @@ oonf_rfc5444_remove_protocol(struct oonf_rfc5444_protocol *protocol) {
  * Set the port of a protocol
  * @param protocol pointer to protocol instance
  * @param port port number in host byteorder
+ * @param ip_proto ip protocol number in host byteorder
  */
 void
 oonf_rfc5444_reconfigure_protocol(
-    struct oonf_rfc5444_protocol *protocol, uint16_t port) {
+    struct oonf_rfc5444_protocol *protocol, uint16_t port, int ip_proto) {
   struct oonf_rfc5444_interface *interf;
 
   /* nothing to do? */
-  if (port == protocol->port) {
+  if (port == protocol->port && ip_proto == protocol->ip_proto) {
     return;
   }
 
-  OONF_INFO(LOG_RFC5444, "Reconfigure protocol %s to port %u", protocol->name, port);
+  OONF_INFO(LOG_RFC5444, "Reconfigure protocol %s to port %u and ip-protocol %d",
+      protocol->name, port, ip_proto);
 
   /* store protocol port */
   protocol->port = port;
+  protocol->ip_proto = ip_proto;
 
   avl_for_each_element(&protocol->_interface_tree, interf, _node) {
     oonf_packet_remove_managed(&interf->_socket, true);
@@ -644,15 +652,23 @@ oonf_rfc5444_reconfigure_interface(struct oonf_rfc5444_interface *interf,
   port = interf->protocol->port;
 
   /* set fixed configuration options */
-  if (interf->_socket_config.multicast_port == 0) {
-    interf->_socket_config.multicast_port = port;
+  if (interf->_socket_config.rawip) {
+    interf->_socket_config.port = 0;
+    interf->_socket_config.multicast_port = 0;
+    interf->_socket_config.protocol = interf->protocol->ip_proto;
   }
-  if (interf->protocol->fixed_local_port && interf->_socket_config.port == 0) {
-    interf->_socket_config.port = port;
+  else {
+    if (interf->_socket_config.multicast_port == 0) {
+      interf->_socket_config.multicast_port = port;
+    }
+    if (interf->protocol->fixed_local_port && interf->_socket_config.port == 0) {
+      interf->_socket_config.port = port;
+    }
   }
 
-  OONF_INFO(LOG_RFC5444, "Reconfigure RFC5444 interface %s to port %u/%u",
-      interf->name, interf->_socket_config.port, interf->_socket_config.multicast_port);
+  OONF_INFO(LOG_RFC5444, "Reconfigure RFC5444 interface %s to port %u/%u and protocol %d",
+      interf->name, interf->_socket_config.port, interf->_socket_config.multicast_port,
+      interf->_socket_config.protocol);
 
   if (strcmp(interf->name, RFC5444_UNICAST_TARGET) == 0) {
     /* unicast interface */
@@ -889,7 +905,7 @@ _print_packet_to_buffer(union netaddr_socket *sock __attribute__((unused)),
  */
 static void
 _cb_receive_data(struct oonf_packet_socket *sock,
-      union netaddr_socket *from, size_t length) {
+      union netaddr_socket *from, void *ptr, size_t length) {
   struct oonf_rfc5444_protocol *protocol;
   struct oonf_rfc5444_interface *interf;
   enum rfc5444_result result;
@@ -913,18 +929,18 @@ _cb_receive_data(struct oonf_packet_socket *sock,
       sock == &interf->_socket.multicast_v4
       || sock == &interf->_socket.multicast_v6;
 
-  _print_packet_to_buffer(from, interf, sock->config.input_buffer, length,
+  _print_packet_to_buffer(from, interf, ptr, length,
       "Incoming RFC5444 packet from",
       "Error while parsing incoming RFC5444 packet from");
 
   result = rfc5444_reader_handle_packet(
-      &protocol->reader, sock->config.input_buffer, length);
+      &protocol->reader, ptr, length);
   if (result < 0) {
     OONF_WARN(LOG_RFC5444, "Error while parsing incoming packet from %s: %s (%d)",
         netaddr_socket_to_string(&buf, from), rfc5444_strerror(result), result);
 
     abuf_clear(&_printer_buffer);
-    abuf_hexdump(&_printer_buffer, "", sock->config.input_buffer, length);
+    abuf_hexdump(&_printer_buffer, "", ptr, length);
 
     OONF_WARN_NH(LOG_RFC5444, "%s", abuf_getptr(&_printer_buffer));
   }
@@ -1191,7 +1207,8 @@ _cb_cfg_rfc5444_changed(void) {
   }
 
   /* apply values */
-  oonf_rfc5444_reconfigure_protocol(_rfc5444_protocol, config.port);
+  oonf_rfc5444_reconfigure_protocol(_rfc5444_protocol,
+      config.port, config.ip_proto);
   _aggregation_interval = config.aggregation_interval;
 }
 
