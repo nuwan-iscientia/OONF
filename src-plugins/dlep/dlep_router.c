@@ -112,13 +112,13 @@ static struct oonf_class _session_class = {
   .size = sizeof(struct dlep_router_session),
 };
 
-static struct oonf_timer_info _session_event_timer_info = {
+static struct oonf_timer_class _session_event_timer_info = {
   .name = "DLEP router event",
   .callback = _cb_router_send_event,
   .periodic = true,
 };
 
-static struct oonf_timer_info _session_timeout_info = {
+static struct oonf_timer_class _session_timeout_info = {
   .name = "DLEP router timeout",
   .callback = _cb_router_timeout,
 };

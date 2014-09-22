@@ -66,10 +66,10 @@ struct dlep_router_session {
   struct oonf_packet_managed_config discovery_config;
 
   /* event timer (either discovery, connect timeout or heartbeat) */
-  struct oonf_timer_entry event_timer;
+  struct oonf_timer_instance event_timer;
 
   /* timeout (connect timeout or heartbeat timeout) */
-  struct oonf_timer_entry timeout;
+  struct oonf_timer_instance timeout;
 
   /* timer settings */
   uint64_t discovery_interval;
