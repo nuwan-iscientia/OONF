@@ -99,13 +99,13 @@ struct oonf_subsystem eth_listener_subsystem = {
 DECLARE_OONF_PLUGIN(eth_listener_subsystem);
 
 /* timer for generating netlink requests */
-static struct oonf_timer_info _transmission_timer_info = {
+static struct oonf_timer_class _transmission_timer_info = {
   .name = "nl80211 listener timer",
   .callback = _cb_transmission_event,
   .periodic = true,
 };
 
-static struct oonf_timer_entry _transmission_timer = {
+static struct oonf_timer_instance _transmission_timer = {
   .info = &_transmission_timer_info
 };
 

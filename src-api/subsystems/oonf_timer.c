@@ -56,7 +56,7 @@
 static int _init(void);
 static void _cleanup(void);
 
-static void _calc_clock(struct oonf_timer_entry *timer, uint64_t rel_time);
+static void _calc_clock(struct oonf_timer_instance *timer, uint64_t rel_time);
 static int _avlcomp_timer(const void *p1, const void *p2);
 
 /* minimal granularity of the timer system in milliseconds */
@@ -100,7 +100,7 @@ _init(void)
 static void
 _cleanup(void)
 {
-  struct oonf_timer_info *ti, *iterator;
+  struct oonf_timer_class *ti, *iterator;
 
   /* free all timerinfos */
   list_for_each_element_safe(&oonf_timer_info_list, ti, _node, iterator) {
@@ -113,7 +113,7 @@ _cleanup(void)
  * @param ti pointer to uninitialized timer info
  */
 void
-oonf_timer_add(struct oonf_timer_info *ti) {
+oonf_timer_add(struct oonf_timer_class *ti) {
   assert (ti->callback);
   assert (ti->name);
   list_add_tail(&oonf_timer_info_list, &ti->_node);
@@ -125,8 +125,8 @@ oonf_timer_add(struct oonf_timer_info *ti) {
  * @param info pointer to timer info
  */
 void
-oonf_timer_remove(struct oonf_timer_info *info) {
-  struct oonf_timer_entry *timer, *iterator;
+oonf_timer_remove(struct oonf_timer_class *info) {
+  struct oonf_timer_instance *timer, *iterator;
 
   if (!list_is_node_added(&info->_node)) {
 	  /* only free node if its hooked to the timer core */
@@ -149,7 +149,7 @@ oonf_timer_remove(struct oonf_timer_info *info) {
  * @param interval time between two timer events for periodic timers
  */
 void
-oonf_timer_start_ext(struct oonf_timer_entry *timer, uint64_t first, uint64_t interval)
+oonf_timer_start_ext(struct oonf_timer_instance *timer, uint64_t first, uint64_t interval)
 {
 #ifdef OONF_LOG_DEBUG_INFO
   struct isonumber_str timebuf1;
@@ -199,7 +199,7 @@ oonf_timer_start_ext(struct oonf_timer_entry *timer, uint64_t first, uint64_t in
  * @param timer the oonf_timer_entry that shall be removed
  */
 void
-oonf_timer_stop(struct oonf_timer_entry *timer)
+oonf_timer_stop(struct oonf_timer_instance *timer)
 {
   if (timer->_clock == 0) {
     return;
@@ -229,7 +229,7 @@ oonf_timer_stop(struct oonf_timer_entry *timer)
  * @param interval time between two timer events for periodic timers
  */
 void
-oonf_timer_set_ext(struct oonf_timer_entry *timer, uint64_t first, uint64_t interval)
+oonf_timer_set_ext(struct oonf_timer_instance *timer, uint64_t first, uint64_t interval)
 {
   if (first == 0) {
     /* No good future time provided, kill it. */
@@ -248,8 +248,8 @@ oonf_timer_set_ext(struct oonf_timer_entry *timer, uint64_t first, uint64_t inte
 void
 oonf_timer_walk(void)
 {
-  struct oonf_timer_entry *timer;
-  struct oonf_timer_info *info;
+  struct oonf_timer_instance *timer;
+  struct oonf_timer_class *info;
 
   _scheduling_now = true;
 
@@ -303,7 +303,7 @@ oonf_timer_walk(void)
  */
 uint64_t
 oonf_timer_getNextEvent(void) {
-  struct oonf_timer_entry *first;
+  struct oonf_timer_instance *first;
 
   if (avl_is_empty(&_timer_tree)) {
     return UINT64_MAX;
@@ -321,7 +321,7 @@ oonf_timer_getNextEvent(void) {
  * @return the absolute time when timer will fire
  */
 static void
-_calc_clock(struct oonf_timer_entry *timer, uint64_t rel_time)
+_calc_clock(struct oonf_timer_instance *timer, uint64_t rel_time)
 {
   uint64_t t = 0;
   unsigned random_jitter;
@@ -354,7 +354,7 @@ _calc_clock(struct oonf_timer_entry *timer, uint64_t rel_time)
  */
 static int
 _avlcomp_timer(const void *p1, const void *p2) {
-  const struct oonf_timer_entry *t1, *t2;
+  const struct oonf_timer_instance *t1, *t2;
 
   t1 = p1;
   t2 = p2;

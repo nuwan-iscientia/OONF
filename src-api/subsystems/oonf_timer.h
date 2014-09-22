@@ -48,16 +48,13 @@
 
 #include "subsystems/oonf_clock.h"
 
-/* prototype for timer callback */
-typedef void (*timer_cb_func) (void *);
-
-struct oonf_timer_entry;
+struct oonf_timer_instance;
 
 /*
  * This struct defines a class of timers which have the same
  * type (periodic/non-periodic) and callback.
  */
-struct oonf_timer_info {
+struct oonf_timer_class {
   /* _node of timerinfo list */
   struct list_entity _node;
 
@@ -65,7 +62,7 @@ struct oonf_timer_info {
   const char *name;
 
   /* callback function */
-  timer_cb_func callback;
+  void (*callback) (void *);
 
   /* true if this is a class of periodic timers */
   bool periodic;
@@ -77,7 +74,7 @@ struct oonf_timer_info {
   uint32_t changes;
 
   /* pointer to timer currently in callback */
-  struct oonf_timer_entry *_timer_in_callback;
+  struct oonf_timer_instance *_timer_in_callback;
 
   /* set to true if the current running timer has been stopped */
   bool _timer_stopped;
@@ -90,12 +87,12 @@ struct oonf_timer_info {
  * When an event is triggered, its callback is called with cb_context
  * as its parameter.
  */
-struct oonf_timer_entry {
+struct oonf_timer_instance {
   /* Tree membership */
   struct avl_node _node;
 
   /* backpointer to timer info */
-  struct oonf_timer_info *info;
+  struct oonf_timer_class *info;
 
   /* the jitter expressed in percent */
   uint8_t jitter_pct;
@@ -121,12 +118,12 @@ EXPORT extern struct list_entity oonf_timer_info_list;
 
 EXPORT void oonf_timer_walk(void);
 
-EXPORT void oonf_timer_add(struct oonf_timer_info *ti);
-EXPORT void oonf_timer_remove(struct oonf_timer_info *);
+EXPORT void oonf_timer_add(struct oonf_timer_class *ti);
+EXPORT void oonf_timer_remove(struct oonf_timer_class *);
 
-EXPORT void oonf_timer_set_ext(struct oonf_timer_entry *timer, uint64_t first, uint64_t interval);
-EXPORT void oonf_timer_start_ext(struct oonf_timer_entry *timer, uint64_t first, uint64_t interval);
-EXPORT void oonf_timer_stop(struct oonf_timer_entry *);
+EXPORT void oonf_timer_set_ext(struct oonf_timer_instance *timer, uint64_t first, uint64_t interval);
+EXPORT void oonf_timer_start_ext(struct oonf_timer_instance *timer, uint64_t first, uint64_t interval);
+EXPORT void oonf_timer_stop(struct oonf_timer_instance *);
 
 EXPORT uint64_t oonf_timer_getNextEvent(void);
 
@@ -135,7 +132,7 @@ EXPORT uint64_t oonf_timer_getNextEvent(void);
  * @return true if the timer is running, false otherwise
  */
 static INLINE bool
-oonf_timer_is_active(const struct oonf_timer_entry *timer) {
+oonf_timer_is_active(const struct oonf_timer_instance *timer) {
   return timer->_clock != 0ull;
 }
 
@@ -144,7 +141,7 @@ oonf_timer_is_active(const struct oonf_timer_entry *timer) {
  * @return interval between timer events in milliseconds
  */
 static INLINE uint64_t
-oonf_timer_get_period(const struct oonf_timer_entry *timer) {
+oonf_timer_get_period(const struct oonf_timer_instance *timer) {
   return timer->_period;
 }
 
@@ -153,7 +150,7 @@ oonf_timer_get_period(const struct oonf_timer_entry *timer) {
  * @return number of milliseconds until timer fires
  */
 static INLINE int64_t
-oonf_timer_get_due(const struct oonf_timer_entry *timer) {
+oonf_timer_get_due(const struct oonf_timer_instance *timer) {
   return oonf_clock_get_relative(timer->_clock);
 }
 
@@ -166,7 +163,7 @@ oonf_timer_get_due(const struct oonf_timer_entry *timer) {
  * @param rel_time relative time when the timer should fire
  */
 static INLINE void
-oonf_timer_set(struct oonf_timer_entry *timer, uint64_t rel_time) {
+oonf_timer_set(struct oonf_timer_instance *timer, uint64_t rel_time) {
   oonf_timer_set_ext(timer, rel_time, rel_time);
 }
 
@@ -176,7 +173,7 @@ oonf_timer_set(struct oonf_timer_entry *timer, uint64_t rel_time) {
  * @param rel_time relative time when the timer should fire
  */
 static INLINE void
-oonf_timer_start(struct oonf_timer_entry *timer, uint64_t rel_time) {
+oonf_timer_start(struct oonf_timer_instance *timer, uint64_t rel_time) {
   oonf_timer_start_ext(timer, rel_time, rel_time);
 }
 

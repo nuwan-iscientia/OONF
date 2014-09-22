@@ -59,7 +59,7 @@ static int _avl_cmp_dupkey(const void *, const void*);
 
 static void _cb_vtime(void *);
 
-static struct oonf_timer_info _vtime_info = {
+static struct oonf_timer_class _vtime_info = {
   .name = "Valdity time for duplicate set",
   .callback = _cb_vtime,
 };

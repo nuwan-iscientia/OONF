@@ -120,7 +120,7 @@ static struct msghdr _netlink_send_msg = {
 };
 
 /* netlink timeout handling */
-static struct oonf_timer_info _netlink_timer= {
+static struct oonf_timer_class _netlink_timer= {
   .name = "netlink feedback timer",
   .callback = _cb_handle_netlink_timeout,
 };

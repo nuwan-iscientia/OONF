@@ -112,7 +112,7 @@ struct oonf_interface {
   struct avl_node _node;
 
   /* timer for lazy interface change handling */
-  struct oonf_timer_entry _change_timer;
+  struct oonf_timer_instance _change_timer;
 };
 
 /* pre-declare inlines */

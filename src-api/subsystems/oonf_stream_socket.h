@@ -93,7 +93,7 @@ struct oonf_stream_session {
   struct oonf_socket_entry scheduler_entry;
 
   /* timer for handling session timeout */
-  struct oonf_timer_entry timeout;
+  struct oonf_timer_instance timeout;
 
   /* input buffer for session */
   struct autobuf in;

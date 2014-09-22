@@ -73,7 +73,7 @@ struct os_system_netlink {
   void (*cb_timeout)(void);
   void (*cb_done)(uint32_t seq);
 
-  struct oonf_timer_entry timeout;
+  struct oonf_timer_instance timeout;
 };
 
 struct os_system_address_internal {

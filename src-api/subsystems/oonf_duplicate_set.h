@@ -81,7 +81,7 @@ struct oonf_duplicate_entry {
   struct oonf_duplicate_set *set;
 
   struct avl_node _node;
-  struct oonf_timer_entry _vtime;
+  struct oonf_timer_instance _vtime;
 };
 
 #define LOG_DUPLICATE_SET oonf_duplicate_set_subsystem.logging

@@ -144,7 +144,7 @@ static struct oonf_class _addrtlv_memcookie = {
 };
 
 /* timer for aggregating multiple rfc5444 messages to the same target */
-static struct oonf_timer_info _aggregation_timer = {
+static struct oonf_timer_class _aggregation_timer = {
   .name = "RFC5444 aggregation",
   .callback = _cb_aggregation_event,
 };
