@@ -5,6 +5,7 @@ add_subdirectory(layer2info)
 add_subdirectory(link_config)
 add_subdirectory(plugin_controller)
 add_subdirectory(remotecontrol)
+add_subdirectory(dlep)
 
 # UCI specific library necessary for Openwrt config loader
 IF (UCI)
