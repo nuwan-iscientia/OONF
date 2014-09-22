@@ -43,7 +43,41 @@
 #define DLEP_ROUTER_H_
 
 #include "common/common_types.h"
+#include "common/avl.h"
 #include "core/oonf_subsystem.h"
+#include "subsystems/oonf_packet_socket.h"
+#include "subsystems/oonf_timer.h"
+
+enum dlep_router_state {
+  DLEP_ROUTER_DISCOVERY,
+  DLEP_ROUTER_CONNECT,
+  DLEP_ROUTER_ACTIVE,
+};
+
+struct dlep_router_session {
+  /* interface name to talk with DLEP radio */
+  char interf[IF_NAMESIZE];
+
+  /* state of the DLEP session */
+  enum dlep_router_state state;
+
+  /* UDP socket for discovery */
+  struct oonf_packet_managed discovery;
+  struct oonf_packet_managed_config discovery_config;
+
+  /* event timer (either discovery, connect timeout or heartbeat) */
+  struct oonf_timer_entry event_timer;
+
+  /* timeout (connect timeout or heartbeat timeout) */
+  struct oonf_timer_entry timeout;
+
+  /* timer settings */
+  uint64_t discovery_interval;
+  uint64_t heartbeat_interval;
+
+  /* hook into session tree, interface name is the key */
+  struct avl_node _node;
+};
 
 #define LOG_DLEP_ROUTER dlep_router_subsystem.logging
 EXPORT extern struct oonf_subsystem dlep_router_subsystem;
