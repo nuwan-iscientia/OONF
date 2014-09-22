@@ -211,7 +211,7 @@ struct oonf_rfc5444_target {
   struct avl_node _node;
 
   /* timer for message aggregation on interface */
-  struct oonf_timer_entry _aggregation;
+  struct oonf_timer_instance _aggregation;
 
   /* number of users of this target */
   int _refcount;

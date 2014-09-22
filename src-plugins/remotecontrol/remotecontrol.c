@@ -249,7 +249,7 @@ _print_memory(struct autobuf *buf) {
  */
 static void
 _print_timer(struct autobuf *buf) {
-  struct oonf_timer_info *t;
+  struct oonf_timer_class *t;
 
   list_for_each_element(&oonf_timer_info_list, t, _node) {
     abuf_appendf(buf, "%-25s (TIMER) usage: %u changes: %u\n",

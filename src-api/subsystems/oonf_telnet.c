@@ -128,7 +128,7 @@ static struct oonf_class _telnet_memcookie = {
   .name = "telnet session",
   .size = sizeof(struct oonf_telnet_session),
 };
-static struct oonf_timer_info _telnet_repeat_timerinfo = {
+static struct oonf_timer_class _telnet_repeat_timerinfo = {
   .name = "txt repeat timer",
   .callback = _cb_telnet_repeat_timer,
   .periodic = true,
@@ -641,7 +641,7 @@ _cb_telnet_timeout(struct oonf_telnet_data *data) {
  */
 static void
 _cb_telnet_repeat_stophandler(struct oonf_telnet_data *data) {
-  oonf_timer_stop((struct oonf_timer_entry *)data->stop_data[0]);
+  oonf_timer_stop((struct oonf_timer_instance *)data->stop_data[0]);
   free(data->stop_data[0]);
   free(data->stop_data[1]);
 
@@ -680,7 +680,7 @@ _cb_telnet_repeat_timer(void *ptr) {
  */
 static enum oonf_telnet_result
 _cb_telnet_repeat(struct oonf_telnet_data *data) {
-  struct oonf_timer_entry *timer;
+  struct oonf_timer_instance *timer;
   int interval = 0;
   char *ptr = NULL;
 

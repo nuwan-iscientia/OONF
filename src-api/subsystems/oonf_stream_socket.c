@@ -79,7 +79,7 @@ static struct oonf_class _connection_cookie = {
   .size = sizeof(struct oonf_stream_session)
 };
 
-static struct oonf_timer_info _connection_timeout = {
+static struct oonf_timer_class _connection_timeout = {
   .name = "stream socket timout",
   .callback = _cb_timeout_handler,
 };

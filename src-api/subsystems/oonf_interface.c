@@ -87,7 +87,7 @@ struct oonf_subsystem oonf_interface_subsystem = {
 };
 
 static struct list_entity _interface_listener;
-static struct oonf_timer_info _change_timer_info = {
+static struct oonf_timer_class _change_timer_info = {
   .name = "Interface change",
   .callback = _cb_change_handler,
 };
