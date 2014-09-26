@@ -66,6 +66,10 @@ struct oonf_interface_data {
   struct netaddr *addresses;
   size_t addrcount;
 
+  /* list of all prefixes of the interface */
+  struct netaddr *prefixes;
+  size_t prefixcount;
+
   /* interface name */
   char name[IF_NAMESIZE];
 

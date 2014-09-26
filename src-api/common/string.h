@@ -51,6 +51,8 @@
 
 enum { STRARRAY_BLOCKSIZE = 64 };
 
+/* macro to initialize a static string array */
+#define STRARRAY_INIT(str) { .value = (str), .length = sizeof(str) }
 
 /*
  * Represents a string or an array of strings

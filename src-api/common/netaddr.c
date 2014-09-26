@@ -306,6 +306,74 @@ netaddr_create_host_bin(struct netaddr *host, const struct netaddr *netmask,
 }
 
 /**
+ * Creates the network prefix from a host and a netmask. Both host and
+ * netmask must be the same address family.
+ * @param prefix target buffer to write prefix into
+ * @param host host address
+ * @param netmask well formed netmask
+ * @param truncate true if host IP should be truncated
+ * @return -1 if an error happened, 0 otherwise
+ */
+int
+netaddr_create_prefix(struct netaddr *prefix, const struct netaddr *host,
+    const struct netaddr *netmask, bool truncate) {
+  int len, maxlen;
+  if (host->_type != prefix->_type || host->_type == AF_UNSPEC) {
+    return -1;
+  }
+
+  /* get address length */
+  maxlen = netaddr_get_af_maxprefix(prefix->_type) / 8;
+
+  /* initialize prefix */
+  prefix->_prefix_len = 0;
+  prefix->_type = host->_type;
+
+  if (!truncate) {
+    memcpy(&prefix->_addr[0], &host->_addr[0], 16);
+  }
+
+  for (len=0; len<maxlen; len++) {
+    if (truncate) {
+      prefix->_addr[len] = host->_addr[len] & netmask->_addr[len];
+    }
+
+    switch (netmask->_addr[len]) {
+      case 255:
+        len++;
+        prefix->_prefix_len += 8;
+        break;
+      case 254:
+        prefix->_prefix_len += 7;
+        return 0;
+      case 252:
+        prefix->_prefix_len += 6;
+        return 0;
+      case 248:
+        prefix->_prefix_len += 5;
+        return 0;
+      case 240:
+        prefix->_prefix_len += 4;
+        return 0;
+      case 224:
+        prefix->_prefix_len += 3;
+        return 0;
+      case 192:
+        prefix->_prefix_len += 2;
+        return 0;
+      case 128:
+        prefix->_prefix_len += 1;
+        return 0;
+      case 0:
+        return 0;
+      default:
+        return -1;
+    }
+  }
+  return 0;
+}
+
+/**
  * Initialize a netaddr_socket with a netaddr and a port number
  * @param combined pointer to netaddr_socket to be initialized
  * @param addr pointer to netaddr source

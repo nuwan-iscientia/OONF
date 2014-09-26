@@ -143,7 +143,7 @@ os_net_update_interface(struct oonf_interface_data *ifdata,
   struct ifaddrs *ifa;
   size_t addrcount;
   union netaddr_socket *sock;
-  struct netaddr *addr;
+  struct netaddr *addr, *prefix, netmask;
 #ifdef OONF_LOG_INFO
   struct netaddr_str nbuf;
 #endif
@@ -209,7 +209,7 @@ os_net_update_interface(struct oonf_interface_data *ifdata,
     }
   }
 
-  ifdata->addresses = calloc(addrcount, sizeof(struct netaddr));
+  ifdata->addresses = calloc(addrcount*2, sizeof(struct netaddr));
   if (ifdata->addresses == NULL) {
     OONF_WARN(LOG_OS_NET,
         "Cannot allocate memory for interface %s with %"PRINTF_SIZE_T_SPECIFIER" prefixes",
@@ -217,6 +217,8 @@ os_net_update_interface(struct oonf_interface_data *ifdata,
     freeifaddrs(ifaddrs);
     return -1;
   }
+
+  ifdata->prefixes = &ifdata->addresses[addrcount];
 
   ifdata->if_v4 = &NETADDR_UNSPEC;
   ifdata->if_v6 = &NETADDR_UNSPEC;
@@ -228,8 +230,19 @@ os_net_update_interface(struct oonf_interface_data *ifdata,
       sock = (union netaddr_socket *)ifa->ifa_addr;
       addr = &ifdata->addresses[ifdata->addrcount];
 
-      if (netaddr_from_socket(&ifdata->addresses[ifdata->addrcount], sock) == 0) {
+      /* get address of interface */
+      if (netaddr_from_socket(addr, sock) == 0) {
         ifdata->addrcount++;
+
+        sock = (union netaddr_socket *)ifa->ifa_netmask;
+        prefix = &ifdata->prefixes[ifdata->prefixcount];
+
+        /* get corresponding prefix if possible */
+        if (netaddr_from_socket(&netmask, sock) == 0) {
+          if (!netaddr_create_prefix(prefix, addr, &netmask, false)) {
+            ifdata->prefixcount++;
+          }
+        }
 
         if (netaddr_get_address_family(addr) == AF_INET) {
           if (!netaddr_is_in_subnet(&NETADDR_IPV4_MULTICAST, addr)) {

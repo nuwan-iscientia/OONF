@@ -281,6 +281,38 @@ oonf_interface_get_data_by_ifbaseindex(unsigned ifindex) {
 }
 
 /**
+ * Get the prefix of an interface fitting to a destination address
+ * @param destination destination address
+ * @param ifdata interface data, NULL to search over all interfaces
+ * @return network prefix (including full host), NULL if not found
+ */
+const struct netaddr *
+oonf_interface_get_prefix_from_dst(
+    struct netaddr *destination, struct oonf_interface_data *ifdata) {
+  struct oonf_interface *interf;
+  const struct netaddr *result;
+  size_t i;
+
+  if (ifdata == NULL) {
+    avl_for_each_element(&oonf_interface_tree, interf, _node) {
+      result = oonf_interface_get_prefix_from_dst(destination, &interf->data);
+      if (result) {
+        return result;
+      }
+    }
+    return NULL;
+  }
+
+  for (i=0; i<ifdata->prefixcount; i++) {
+    if (netaddr_is_in_subnet(&ifdata->prefixes[i], destination)) {
+      return &ifdata->prefixes[i];
+    }
+  }
+
+  return NULL;
+}
+
+/**
  * Calculate the IP address a socket should bind to
  * @param filter filter for IP address to bind on
  * @param ifdata interface to bind to socket on, NULL if not

@@ -39,61 +39,32 @@
  *
  */
 
-#ifndef DLEP_ROUTER_H_
-#define DLEP_ROUTER_H_
+#ifndef DLEP_WRITER_H_
+#define DLEP_WRITER_H_
 
 #include "common/common_types.h"
-#include "common/avl.h"
-#include "core/oonf_subsystem.h"
-#include "subsystems/oonf_packet_socket.h"
-#include "subsystems/oonf_stream_socket.h"
-#include "subsystems/oonf_timer.h"
+#include "common/autobuf.h"
+#include "common/netaddr.h"
 
-#include "dlep/dlep_tlvmap.h"
+#include "core/oonf_logging.h"
 
-enum dlep_router_state {
-  DLEP_ROUTER_DISCOVERY,
-  DLEP_ROUTER_CONNECT,
-  DLEP_ROUTER_ACTIVE,
-};
+int dlep_writer_init(void);
+void dlep_writer_cleanup(void);
 
-struct dlep_router_session {
-  /* interface name to talk with DLEP radio */
-  char interf[IF_NAMESIZE];
+void dlep_writer_start_signal(uint8_t signal);
+void dlep_writer_add_tlv(uint8_t type, void *data,
+    uint8_t len);
+int dlep_writer_finish_signal(enum oonf_log_source);
 
-  /* state of the DLEP session */
-  enum dlep_router_state state;
+void dlep_writer_send_udp_multicast(struct oonf_packet_managed *managed,
+    enum oonf_log_source source);
+void dlep_writer_send_udp_unicast(struct oonf_packet_managed *managed,
+    union netaddr_socket *dst, enum oonf_log_source source);
+void dlep_writer_send_tcp_unicast(struct oonf_stream_session *session);
 
-  /* UDP socket for discovery */
-  struct oonf_packet_managed discovery;
-  struct oonf_packet_managed_config discovery_config;
+void dlep_writer_add_heartbeat_tlv(uint64_t interval);
+void dlep_writer_add_ipv4_tlv(struct netaddr *, bool add);
+void dlep_writer_add_ipv6_tlv(struct netaddr *, bool add);
+void dlep_writer_add_port_tlv(uint16_t);
 
-  /* TCP client socket for session */
-  struct oonf_stream_socket session;
-  struct oonf_stream_session *stream;
-
-  /* event timer (either discovery or heartbeat) */
-  struct oonf_timer_instance discovery_timer;
-  struct oonf_timer_instance heartbeat_timer;
-
-  /* keep track of various timeouts */
-  struct oonf_timer_instance heartbeat_timeout;
-
-  /* local timer settings */
-  uint64_t local_discovery_interval;
-  uint64_t local_heartbeat_interval;
-
-  /* heartbeat settings from the other side of the session */
-  uint64_t remote_heartbeat_interval;
-
-  /* supported optional tlv data items of the other side */
-  struct dlep_tlvmap optional_tlvs;
-
-  /* hook into session tree, interface name is the key */
-  struct avl_node _node;
-};
-
-#define LOG_DLEP_ROUTER dlep_router_subsystem.logging
-EXPORT extern struct oonf_subsystem dlep_router_subsystem;
-
-#endif /* DLEP_ROUTER_H_ */
+#endif /* DLEP_WRITER_H_ */

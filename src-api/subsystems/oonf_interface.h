@@ -111,5 +111,7 @@ EXPORT void oonf_interface_trigger_handler(struct oonf_interface *interf);
 
 EXPORT const struct netaddr *oonf_interface_get_bindaddress(int af_type,
     struct netaddr_acl *filter, struct oonf_interface_data *ifdata);
+EXPORT const struct netaddr *oonf_interface_get_prefix_from_dst(
+    struct netaddr *destination, struct oonf_interface_data *ifdata);
 
 #endif /* INTERFACE_H_ */
