@@ -134,7 +134,7 @@ oonf_timer_remove(struct oonf_timer_class *info) {
   }
 
   avl_for_each_element_safe(&_timer_tree, timer, _node, iterator) {
-    if (timer->info == info) {
+    if (timer->class == info) {
       oonf_timer_stop(timer);
     }
   }
@@ -155,7 +155,7 @@ oonf_timer_start_ext(struct oonf_timer_instance *timer, uint64_t first, uint64_t
   struct isonumber_str timebuf1;
 #endif
 
-  assert(timer->info);
+  assert(timer->class);
   assert(timer->jitter_pct <= 100);
 
   if (timer->_clock) {
@@ -163,9 +163,9 @@ oonf_timer_start_ext(struct oonf_timer_instance *timer, uint64_t first, uint64_t
   }
   else {
     timer->_node.key = timer;
-    timer->info->usage++;
+    timer->class->usage++;
   }
-  timer->info->changes++;
+  timer->class->changes++;
 
   /*
    * Compute random numbers only once.
@@ -178,13 +178,13 @@ oonf_timer_start_ext(struct oonf_timer_instance *timer, uint64_t first, uint64_t
   _calc_clock(timer, first);
 
   /* Singleshot or periodical timer ? */
-  timer->_period = timer->info->periodic ? interval : 0;
+  timer->_period = timer->class->periodic ? interval : 0;
 
   /* insert into tree */
   avl_insert(&_timer_tree, &timer->_node);
 
   OONF_DEBUG(LOG_TIMER, "TIMER: start timer '%s' firing in %s (%"PRIu64")\n",
-      timer->info->name,
+      timer->class->name,
       oonf_clock_toClockString(&timebuf1, first), timer->_clock);
 
   /* fix 'next event' pointers if necessary */
@@ -205,17 +205,17 @@ oonf_timer_stop(struct oonf_timer_instance *timer)
     return;
   }
 
-  OONF_DEBUG(LOG_TIMER, "TIMER: stop %s\n", timer->info->name);
+  OONF_DEBUG(LOG_TIMER, "TIMER: stop %s\n", timer->class->name);
 
   /* remove timer from tree */
   avl_remove(&_timer_tree, &timer->_node);
   timer->_clock = 0;
   timer->_random = 0;
-  timer->info->usage--;
-  timer->info->changes++;
+  timer->class->usage--;
+  timer->class->changes++;
 
-  if (timer->info->_timer_in_callback == timer) {
-    timer->info->_timer_stopped = true;
+  if (timer->class->_timer_in_callback == timer) {
+    timer->class->_timer_stopped = true;
   }
 }
 
@@ -261,12 +261,12 @@ oonf_timer_walk(void)
     }
 
     OONF_DEBUG(LOG_TIMER, "TIMER: fire '%s' at clocktick %" PRIu64 "\n",
-                  timer->info->name, timer->_clock);
+                  timer->class->name, timer->_clock);
 
     /*
      * The timer->info pointer is invalidated by oonf_timer_stop()
      */
-    info = timer->info;
+    info = timer->class;
     info->_timer_in_callback = timer;
     info->_timer_stopped = false;
 
@@ -279,7 +279,7 @@ oonf_timer_walk(void)
     }
 
     /* This timer is expired, call into the provided callback function */
-    timer->info->callback(timer->cb_context);
+    timer->class->callback(timer->cb_context);
 
     /*
      * Only act on actually running timers, the callback might have

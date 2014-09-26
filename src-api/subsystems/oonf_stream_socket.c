@@ -565,7 +565,7 @@ _create_session(struct oonf_stream_socket *stream_socket,
   }
 
   session->timeout.cb_context = session;
-  session->timeout.info = &_connection_timeout;
+  session->timeout.class = &_connection_timeout;
   if (stream_socket->config.session_timeout) {
     oonf_timer_start(&session->timeout, stream_socket->config.session_timeout);
   }

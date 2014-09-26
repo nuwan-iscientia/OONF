@@ -91,8 +91,8 @@ struct oonf_timer_instance {
   /* Tree membership */
   struct avl_node _node;
 
-  /* backpointer to timer info */
-  struct oonf_timer_class *info;
+  /* backpointer to timer class */
+  struct oonf_timer_class *class;
 
   /* the jitter expressed in percent */
   uint8_t jitter_pct;

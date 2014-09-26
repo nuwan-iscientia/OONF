@@ -832,7 +832,7 @@ _create_target(struct oonf_rfc5444_interface *interf,
   target->interface = interf;
 
   /* aggregation timer */
-  target->_aggregation.info = &_aggregation_timer;
+  target->_aggregation.class = &_aggregation_timer;
   target->_aggregation.cb_context = target;
 
   target->_refcount = 1;
