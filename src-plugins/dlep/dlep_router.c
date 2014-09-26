@@ -189,13 +189,13 @@ _add_session(const char *interf) {
 
   /* initialize timer */
   session->discovery_timer.cb_context = session;
-  session->discovery_timer.info = &_discovery_timer_class;
+  session->discovery_timer.class = &_discovery_timer_class;
 
   session->heartbeat_timer.cb_context = session;
-  session->heartbeat_timer.info = &_heartbeat_timer_class;
+  session->heartbeat_timer.class = &_heartbeat_timer_class;
 
   session->heartbeat_timeout.cb_context = session;
-  session->heartbeat_timeout.info = &_heartbeat_timeout_class;
+  session->heartbeat_timeout.class = &_heartbeat_timeout_class;
 
   /* set socket to discovery mode */
   session->state = DLEP_ROUTER_DISCOVERY;

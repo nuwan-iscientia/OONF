@@ -182,10 +182,10 @@ _add_session(const char *interf) {
 
   /* initialize timer */
   session->heartbeat_timer.cb_context = session;
-  session->heartbeat_timer.info = &_heartbeat_timer_class;
+  session->heartbeat_timer.class = &_heartbeat_timer_class;
 
   session->heartbeat_timeout.cb_context = session;
-  session->heartbeat_timeout.info = &_heartbeat_timeout_class;
+  session->heartbeat_timeout.class = &_heartbeat_timeout_class;
 
   /* set socket to discovery mode */
   session->state = DLEP_RADIO_DISCOVERY;
