@@ -165,7 +165,7 @@ static struct oonf_timer_class _transmission_timer_info = {
 };
 
 struct oonf_timer_instance _transmission_timer = {
-  .info = &_transmission_timer_info
+  .class = &_transmission_timer_info
 };
 
 /* interface allocation */

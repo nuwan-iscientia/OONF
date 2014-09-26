@@ -513,7 +513,7 @@ _interface_add(const char *name, bool mesh) {
 
     interf->data.index = if_nametoindex(name);
 
-    interf->_change_timer.info = &_change_timer_info;
+    interf->_change_timer.class = &_change_timer_info;
     interf->_change_timer.cb_context = interf;
 
     /* initialize data of interface */

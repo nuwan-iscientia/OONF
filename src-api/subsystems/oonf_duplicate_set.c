@@ -171,7 +171,7 @@ oonf_duplicate_entry_add(struct oonf_duplicate_set *set, uint8_t msg_type,
     entry->set = set;
 
     /* initialize vtime */
-    entry->_vtime.info = &_vtime_info;
+    entry->_vtime.class = &_vtime_info;
     entry->_vtime.cb_context = entry;
 
     oonf_timer_start(&entry->_vtime, vtime);

@@ -293,7 +293,7 @@ os_system_netlink_add(struct os_system_netlink *nl, int protocol) {
   oonf_socket_add(&nl->socket);
 
   nl->timeout.cb_context = nl;
-  nl->timeout.info = &_netlink_timer;
+  nl->timeout.class = &_netlink_timer;
 
   return 0;
 
