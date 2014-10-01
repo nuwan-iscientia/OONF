@@ -37,7 +37,7 @@ static enum oonf_stream_session_state _cb_tcp_receive_data(struct oonf_stream_se
 static void _cb_send_heartbeat(void *);
 static void _cb_heartbeat_timeout(void *);
 
-static int _handle_peer_initialization_ack(struct dlep_router_session *stream,
+static int _handle_peer_initialization_ack(struct dlep_router_session *session,
     void *ptr, struct dlep_parser_index *idx);
 
 /* session objects */
@@ -167,14 +167,16 @@ dlep_router_add_session(struct dlep_router_if *interf,
 }
 
 void
-dlep_router_remove_session(struct dlep_router_session *stream) {
-  oonf_stream_close(stream->stream);
-  oonf_stream_remove(&stream->tcp, true);
+dlep_router_remove_session(struct dlep_router_session *session) {
+  if (session->stream) {
+    oonf_stream_close(session->stream);
+  }
+  oonf_stream_remove(&session->tcp, false);
 
-  oonf_timer_stop(&stream->heartbeat_timeout);
-  oonf_timer_stop(&stream->heartbeat_timer);
-  avl_remove(&stream->interface->stream_tree, &stream->_node);
-  oonf_class_free(&_router_stream_class, stream);
+  oonf_timer_stop(&session->heartbeat_timeout);
+  oonf_timer_stop(&session->heartbeat_timer);
+  avl_remove(&session->interface->stream_tree, &session->_node);
+  oonf_class_free(&_router_stream_class, session);
 
 }
 
@@ -248,58 +250,48 @@ _cb_tcp_receive_data(struct oonf_stream_session *tcp_session) {
 }
 
 static void
-_cb_tcp_lost(struct oonf_stream_session *tcp_stream) {
-  struct dlep_router_session *stream;
+_cb_tcp_lost(struct oonf_stream_session *tcp_session) {
+  struct dlep_router_session *session;
 
-  stream = container_of(tcp_stream->comport, struct dlep_router_session, tcp);
+  session = container_of(tcp_session->comport, struct dlep_router_session, tcp);
 
   OONF_DEBUG(LOG_DLEP_ROUTER, "tcp lost");
 
   /* no heartbeats anymore */
-  oonf_timer_stop(&stream->heartbeat_timer);
+  oonf_timer_stop(&session->heartbeat_timer);
 
-  /* clean up stream when the packet handling is over */
-  oonf_timer_set(&stream->heartbeat_timeout, 1);
+  /* trigger lazy cleanup */
+  oonf_timer_set(&session->heartbeat_timeout, 1);
 }
 
 static void
 _cb_send_heartbeat(void *ptr) {
-  struct dlep_router_session *stream = ptr;
+  struct dlep_router_session *session = ptr;
 
   OONF_DEBUG(LOG_DLEP_ROUTER, "Send Heartbeat (%"PRIu64")",
-      stream->interface->local_heartbeat_interval);
+      session->interface->local_heartbeat_interval);
 
-  dlep_writer_start_signal(DLEP_HEARTBEAT, &stream->supported_tlvs);
+  dlep_writer_start_signal(DLEP_HEARTBEAT, &session->supported_tlvs);
 
   if (dlep_writer_finish_signal(LOG_DLEP_ROUTER)) {
     return;
   }
 
-  dlep_writer_send_tcp_unicast(stream->stream, &stream->supported_signals);
+  dlep_writer_send_tcp_unicast(session->stream, &session->supported_signals);
 }
 
 static void
 _cb_heartbeat_timeout(void *ptr) {
-  struct dlep_router_session *stream = ptr;
+  struct dlep_router_session *session = ptr;
 
   OONF_DEBUG(LOG_DLEP_ROUTER, "Heartbeat timeout");
 
-  /* kill tcp socket and session */
-  oonf_stream_remove(&stream->tcp, true);
-
-  /* stop heartbeat timer */
-  oonf_timer_stop(&stream->heartbeat_timer);
-  oonf_timer_stop(&stream->heartbeat_timeout);
-
-  /* remove session object */
-  if (avl_is_node_added(&stream->_node)) {
-    avl_remove(&stream->interface->stream_tree, &stream->_node);
-  }
-  oonf_class_free(&_router_stream_class, stream);
+  /* close session */
+  dlep_router_remove_session(session);
 }
 
 static int
-_handle_peer_initialization_ack(struct dlep_router_session *stream,
+_handle_peer_initialization_ack(struct dlep_router_session *session,
     void *ptr, struct dlep_parser_index *idx) {
   uint8_t *buffer;
   char peer[256];
@@ -320,21 +312,21 @@ _handle_peer_initialization_ack(struct dlep_router_session *stream,
   /* get heartbeat interval */
   pos = idx->idx[DLEP_HEARTBEAT_INTERVAL_TLV];
   dlep_parser_get_heartbeat_interval(
-      &stream->remote_heartbeat_interval, &buffer[pos]);
+      &session->remote_heartbeat_interval, &buffer[pos]);
 
   OONF_DEBUG(LOG_DLEP_ROUTER, "Heartbeat interval is %"PRIu64,
-      stream->remote_heartbeat_interval);
+      session->remote_heartbeat_interval);
 
   /* reset heartbeat timeout */
-  oonf_timer_set(&stream->heartbeat_timeout, stream->remote_heartbeat_interval*2);
+  oonf_timer_set(&session->heartbeat_timeout, session->remote_heartbeat_interval*2);
 
   /* add supported signals */
   pos = idx->idx[DLEP_OPTIONAL_SIGNALS_TLV];
-  dlep_parser_get_optional_signal(&stream->supported_signals, &buffer[pos]);
+  dlep_parser_get_optional_signal(&session->supported_signals, &buffer[pos]);
 
   /* add supported tlvs */
   pos = idx->idx[DLEP_OPTIONAL_DATA_ITEMS_TLV];
-  dlep_parser_get_optional_tlv(&stream->supported_tlvs, &buffer[pos]);
+  dlep_parser_get_optional_tlv(&session->supported_tlvs, &buffer[pos]);
 
   /* get default values for interface */
   pos = idx->idx[DLEP_MDRR_TLV];

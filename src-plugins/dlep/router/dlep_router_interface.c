@@ -39,7 +39,7 @@ static void _cb_receive_udp(struct oonf_packet_socket *,
 static void _handle_peer_offer(struct dlep_router_if *interface,
     uint8_t *buffer, size_t length, struct dlep_parser_index *idx);
 
-static struct avl_tree _session_tree;
+static struct avl_tree _interface_tree;
 
 static struct oonf_class _router_if_class = {
   .name = "DLEP router interface",
@@ -59,13 +59,19 @@ dlep_router_interface_init(void) {
   }
   oonf_class_add(&_router_if_class);
   oonf_timer_add(&_discovery_timer_class);
-  avl_init(&_session_tree, avl_comp_strcasecmp, false);
+  avl_init(&_interface_tree, avl_comp_strcasecmp, false);
 
   return 0;
 }
 
 void
 dlep_router_interface_cleanup(void) {
+  struct dlep_router_if *interf, *it;
+
+  avl_for_each_element_safe(&_interface_tree, interf, _node, it) {
+    dlep_router_remove_interface(interf);
+  }
+
   oonf_timer_remove(&_discovery_timer_class);
   oonf_class_remove(&_router_if_class);
 
@@ -76,7 +82,7 @@ struct dlep_router_if *
 dlep_router_get_interface(const char *ifname) {
   struct dlep_router_if *interface;
 
-  return avl_find_element(&_session_tree, ifname, interface, _node);
+  return avl_find_element(&_interface_tree, ifname, interface, _node);
 }
 
 struct dlep_router_if *
@@ -107,7 +113,7 @@ dlep_router_add_interface(const char *ifname) {
   interface->state = DLEP_ROUTER_DISCOVERY;
 
   /* add to global tree of sessions */
-  avl_insert(&_session_tree, &interface->_node);
+  avl_insert(&_interface_tree, &interface->_node);
 
   /* initialize discovery socket */
   interface->udp.config.user = interface;
@@ -133,7 +139,7 @@ dlep_router_remove_interface(struct dlep_router_if *interface) {
   oonf_timer_stop(&interface->discovery_timer);
 
   /* remove session */
-  avl_remove(&_session_tree, &interface->_node);
+  avl_remove(&_interface_tree, &interface->_node);
   oonf_class_free(&_router_if_class, interface);
 }
 

@@ -84,6 +84,12 @@ dlep_radio_interface_init(void) {
 
 void
 dlep_radio_interface_cleanup(void) {
+  struct dlep_radio_if *interf, *it;
+
+  avl_for_each_element_safe(&_interface_tree, interf, _node, it) {
+    dlep_radio_remove_interface(interf);
+  }
+
   oonf_class_remove(&_interface_class);
   dlep_radio_session_cleanup();
 }

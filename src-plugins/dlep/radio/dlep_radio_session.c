@@ -126,6 +126,7 @@ static void
 _cb_heartbeat_timeout(void *ptr) {
   struct dlep_radio_session *stream = ptr;
 
+  OONF_INFO(LOG_DLEP_RADIO, "Heartbeat timeout");
   oonf_stream_close(&stream->stream);
 }
 
@@ -139,9 +140,6 @@ _cb_incoming_tcp(struct oonf_stream_session *tcp_session) {
 
   /* initialize back pointer */
   stream->interface = interface;
-
-  /* copy timer remote interval */
-  stream->remote_heartbeat_interval = interface->remote_heartbeat_interval;
 
   /* set socket to discovery mode */
   stream->state = DLEP_RADIO_DISCOVERY;
@@ -161,18 +159,29 @@ _cb_incoming_tcp(struct oonf_stream_session *tcp_session) {
   memcpy(&stream->supported_tlvs, &dlep_mandatory_tlvs,
       sizeof(struct dlep_bitmap));
 
+  /* copy timer remote interval */
+  stream->remote_heartbeat_interval = interface->remote_heartbeat_interval;
+  OONF_DEBUG(LOG_DLEP_RADIO, "Heartbeat interval is: %"PRIu64"\n", interface->remote_heartbeat_interval);
+
   /* start heartbeat timeout */
   oonf_timer_set(&stream->heartbeat_timeout, stream->remote_heartbeat_interval * 2);
 
   /* start heartbeat */
   oonf_timer_set(&stream->heartbeat_timer, stream->interface->local_heartbeat_interval);
+fprintf(stderr, "local heartbeat: %"PRIu64 "\n", stream->interface->local_heartbeat_interval);
 
   return 0;
 }
 
 static void
 _cb_tcp_lost(struct oonf_stream_session *tcp_session) {
-  struct dlep_radio_session *stream = (struct dlep_radio_session *)tcp_session;
+  struct dlep_radio_session *stream;
+  struct netaddr_str nbuf;
+
+  stream = container_of(tcp_session, struct dlep_radio_session, stream);
+
+  OONF_DEBUG(LOG_DLEP_RADIO, "Lost tcp session to %s",
+      netaddr_socket_to_string(&nbuf, &tcp_session->remote_socket));
 
   /* reset timers */
   oonf_timer_stop(&stream->heartbeat_timer);
@@ -181,11 +190,13 @@ _cb_tcp_lost(struct oonf_stream_session *tcp_session) {
 
 static enum oonf_stream_session_state
 _cb_tcp_receive_data(struct oonf_stream_session *tcp_session) {
-  struct dlep_radio_session *stream = (struct dlep_radio_session *)tcp_session;
+  struct dlep_radio_session *stream;
   struct dlep_parser_index idx;
   uint16_t siglen;
   int signal, result;
   struct netaddr_str nbuf;
+
+  stream = container_of(tcp_session, struct dlep_radio_session, stream);
 
   if ((signal = dlep_parser_read(&idx, abuf_getptr(&tcp_session->in),
       abuf_getlen(&tcp_session->in), &siglen)) < 0) {
