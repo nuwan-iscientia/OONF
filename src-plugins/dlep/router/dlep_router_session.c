@@ -1,10 +1,43 @@
-/*
- * dlep_router_sesion.c
- *
- *  Created on: Oct 1, 2014
- *      Author: rogge
- */
 
+/*
+ * The olsr.org Optimized Link-State Routing daemon version 2 (olsrd2)
+ * Copyright (c) 2004-2013, the olsr.org team - see HISTORY file
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ *
+ * * Redistributions of source code must retain the above copyright
+ *   notice, this list of conditions and the following disclaimer.
+ * * Redistributions in binary form must reproduce the above copyright
+ *   notice, this list of conditions and the following disclaimer in
+ *   the documentation and/or other materials provided with the
+ *   distribution.
+ * * Neither the name of olsr.org, olsrd nor the names of its
+ *   contributors may be used to endorse or promote products derived
+ *   from this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+ * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+ * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+ * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+ * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+ * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+ * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+ * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+ * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ * POSSIBILITY OF SUCH DAMAGE.
+ *
+ * Visit http://www.olsr.org for more information.
+ *
+ * If you find this software useful feel free to make a donation
+ * to the project. For more information see the website or contact
+ * the copyright holders.
+ *
+ */
 
 #include <errno.h>
 #include <unistd.h>
@@ -37,7 +70,7 @@ static enum oonf_stream_session_state _cb_tcp_receive_data(struct oonf_stream_se
 static void _cb_send_heartbeat(void *);
 static void _cb_heartbeat_timeout(void *);
 
-static int _handle_peer_initialization_ack(struct dlep_router_session *session,
+static void _handle_peer_initialization_ack(struct dlep_router_session *session,
     void *ptr, struct dlep_parser_index *idx);
 
 /* session objects */
@@ -57,15 +90,19 @@ static struct oonf_timer_class _heartbeat_timeout_class = {
   .callback = _cb_heartbeat_timeout,
 };
 
-int
+/**
+ * Initialize dlep router session framework
+ */
+void
 dlep_router_session_init(void) {
   oonf_class_add(&_router_stream_class);
   oonf_timer_add(&_heartbeat_timer_class);
   oonf_timer_add(&_heartbeat_timeout_class);
-
-  return 0;
 }
 
+/**
+ * Cleanup dlep router session framework
+ */
 void
 dlep_router_session_cleanup(void) {
   oonf_timer_remove(&_heartbeat_timeout_class);
@@ -73,6 +110,12 @@ dlep_router_session_cleanup(void) {
   oonf_class_remove(&_router_stream_class);
 }
 
+/**
+ * Get dlep router session based on interface and remote socket
+ * @param interf dlep router interface
+ * @param remote remote IP socket
+ * @return dlep router session, NULL if not found
+ */
 struct dlep_router_session *
 dlep_router_get_session(struct dlep_router_if *interf,
     union netaddr_socket *remote) {
@@ -81,6 +124,13 @@ dlep_router_get_session(struct dlep_router_if *interf,
   return avl_find_element(&interf->stream_tree, remote, session, _node);
 }
 
+/**
+ * Add new dlep router session or return existing one
+ * @param interf dlep router interface
+ * @param local local IP socket
+ * @param remote remote IP socket
+ * @return dlep router session, NULL if not found
+ */
 struct dlep_router_session *
 dlep_router_add_session(struct dlep_router_if *interf,
     union netaddr_socket *local, union netaddr_socket *remote) {
@@ -166,6 +216,10 @@ dlep_router_add_session(struct dlep_router_if *interf,
   return session;
 }
 
+/**
+ * Remove existing dlep router session
+ * @param session dlep router session
+ */
 void
 dlep_router_remove_session(struct dlep_router_session *session) {
   if (session->stream) {
@@ -177,9 +231,13 @@ dlep_router_remove_session(struct dlep_router_session *session) {
   oonf_timer_stop(&session->heartbeat_timer);
   avl_remove(&session->interface->stream_tree, &session->_node);
   oonf_class_free(&_router_stream_class, session);
-
 }
 
+/**
+ * Send a peer initialization signal
+ * @param session dlep router session
+ * @return -1 if an error happened, 0 otherwise
+ */
 static int
 _send_peer_initialization(struct dlep_router_session *session) {
   /* create Peer Initialization */
@@ -201,12 +259,17 @@ _send_peer_initialization(struct dlep_router_session *session) {
   return 0;
 }
 
+/**
+ * Receive tcp data via oonf_stream_socket
+ * @param tcp_session
+ * @return
+ */
 static enum oonf_stream_session_state
 _cb_tcp_receive_data(struct oonf_stream_session *tcp_session) {
   struct dlep_router_session *stream;
   struct dlep_parser_index idx;
   uint16_t siglen;
-  int signal, result;
+  int signal;
   struct netaddr_str nbuf;
 
   stream = container_of(tcp_session->comport, struct dlep_router_session, tcp);
@@ -223,12 +286,17 @@ _cb_tcp_receive_data(struct oonf_stream_session *tcp_session) {
     }
   }
 
+  if (!stream->session_active && signal != DLEP_PEER_INITIALIZATION_ACK) {
+    OONF_WARN(LOG_DLEP_ROUTER, "Received TCP signal %d before Peer Initialization ACK",
+        signal);
+    return STREAM_SESSION_CLEANUP;
+  }
+
   OONF_INFO(LOG_DLEP_ROUTER, "Received TCP signal %d", signal);
 
-  result = 0;
   switch (signal) {
     case DLEP_PEER_INITIALIZATION_ACK:
-      result = _handle_peer_initialization_ack(
+      _handle_peer_initialization_ack(
           stream, abuf_getptr(&tcp_session->in), &idx);
       break;
     case DLEP_HEARTBEAT:
@@ -246,9 +314,13 @@ _cb_tcp_receive_data(struct oonf_stream_session *tcp_session) {
   /* remove signal from input buffer */
   abuf_pull(&tcp_session->in, siglen);
 
-  return result != 0 ? STREAM_SESSION_CLEANUP :STREAM_SESSION_ACTIVE;
+  return STREAM_SESSION_ACTIVE;
 }
 
+/**
+ * Callback triggered when tcp session was lost and will be removed
+ * @param tcp_session tcp session
+ */
 static void
 _cb_tcp_lost(struct oonf_stream_session *tcp_session) {
   struct dlep_router_session *session;
@@ -264,6 +336,10 @@ _cb_tcp_lost(struct oonf_stream_session *tcp_session) {
   oonf_timer_set(&session->heartbeat_timeout, 1);
 }
 
+/**
+ * Callback triggered to send regular heartbeats via TCP
+ * @param ptr dlep router session
+ */
 static void
 _cb_send_heartbeat(void *ptr) {
   struct dlep_router_session *session = ptr;
@@ -280,6 +356,10 @@ _cb_send_heartbeat(void *ptr) {
   dlep_writer_send_tcp_unicast(session->stream, &session->supported_signals);
 }
 
+/**
+ * Callback triggered when remote heartbeat times out
+ * @param ptr dlep router session
+ */
 static void
 _cb_heartbeat_timeout(void *ptr) {
   struct dlep_router_session *session = ptr;
@@ -290,7 +370,13 @@ _cb_heartbeat_timeout(void *ptr) {
   dlep_router_remove_session(session);
 }
 
-static int
+/**
+ * Handle incoming peer initialization ack signal
+ * @param session dlep router session
+ * @param ptr begin of signal
+ * @param idx dlep parser index
+ */
+static void
 _handle_peer_initialization_ack(struct dlep_router_session *session,
     void *ptr, struct dlep_parser_index *idx) {
   uint8_t *buffer;
@@ -299,6 +385,9 @@ _handle_peer_initialization_ack(struct dlep_router_session *session,
   uint64_t data;
 
   buffer = ptr;
+
+  /* activate session */
+  session->session_active = true;
 
   /* get peer type */
   peer[0] = 0;
@@ -352,6 +441,4 @@ _handle_peer_initialization_ack(struct dlep_router_session *session,
     dlep_parser_get_cdrt(&data, &buffer[pos]);
     OONF_DEBUG(LOG_DLEP_ROUTER, "Received default for cdrt: %" PRIu64, data);
   }
-
-  return 0;
 }

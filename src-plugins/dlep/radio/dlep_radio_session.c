@@ -60,7 +60,7 @@ static int _cb_incoming_tcp(struct oonf_stream_session *);
 static void _cb_tcp_lost(struct oonf_stream_session *);
 static enum oonf_stream_session_state _cb_tcp_receive_data(struct oonf_stream_session *);
 
-static int _handle_peer_initialization(struct dlep_radio_session *stream,
+static int _handle_peer_initialization(struct dlep_radio_session *session,
     void *ptr, struct dlep_parser_index *idx);
 
 static void _cb_heartbeat_timeout(void *);
@@ -82,15 +82,19 @@ static struct oonf_timer_class _heartbeat_timer_class = {
   .periodic = true,
 };
 
-int
+/**
+ * Initialize framework for dlep radio sessions
+ */
+void
 dlep_radio_session_init(void) {
   oonf_class_add(&_session_class);
   oonf_timer_add(&_heartbeat_timeout_class);
   oonf_timer_add(&_heartbeat_timer_class);
-
-  return 0;
 }
 
+/**
+ * Cleanup dlep radio session framework
+ */
 void
 dlep_radio_session_cleanup(void) {
   oonf_timer_remove(&_heartbeat_timer_class);
@@ -98,6 +102,10 @@ dlep_radio_session_cleanup(void) {
   oonf_class_remove(&_session_class);
 }
 
+/**
+ * Initialize the callbacks for a dlep tcp socket
+ * @param config tcp socket config
+ */
 void
 dlep_radio_session_initialize_tcp_callbacks(
     struct oonf_stream_config *config) {
@@ -107,6 +115,10 @@ dlep_radio_session_initialize_tcp_callbacks(
   config->receive_data = _cb_tcp_receive_data;
 }
 
+/**
+ * Callback to send regular heartbeats over tcp session
+ * @param ptr pointer to dlep radio session
+ */
 static void
 _cb_send_heartbeat(void *ptr) {
   struct dlep_radio_session *stream = ptr;
@@ -122,6 +134,10 @@ _cb_send_heartbeat(void *ptr) {
   dlep_writer_send_tcp_unicast(&stream->stream, &stream->supported_signals);
 }
 
+/**
+ * Callback triggered when remote heartbeat times out
+ * @param ptr pointer to dlep radio session
+ */
 static void
 _cb_heartbeat_timeout(void *ptr) {
   struct dlep_radio_session *stream = ptr;
@@ -130,6 +146,11 @@ _cb_heartbeat_timeout(void *ptr) {
   oonf_stream_close(&stream->stream);
 }
 
+/**
+ * Callback triggered when a new tcp session is accepted by the local socket
+ * @param tcp_session pointer to tcp session object
+ * @return always 0
+ */
 static int
 _cb_incoming_tcp(struct oonf_stream_session *tcp_session) {
   struct dlep_radio_session *stream;
@@ -141,8 +162,8 @@ _cb_incoming_tcp(struct oonf_stream_session *tcp_session) {
   /* initialize back pointer */
   stream->interface = interface;
 
-  /* set socket to discovery mode */
-  stream->state = DLEP_RADIO_DISCOVERY;
+  /* wait for end of Peer Initialization */
+  stream->session_active = false;
 
   /* initialize timer */
   stream->heartbeat_timer.cb_context = stream;
@@ -168,11 +189,14 @@ _cb_incoming_tcp(struct oonf_stream_session *tcp_session) {
 
   /* start heartbeat */
   oonf_timer_set(&stream->heartbeat_timer, stream->interface->local_heartbeat_interval);
-fprintf(stderr, "local heartbeat: %"PRIu64 "\n", stream->interface->local_heartbeat_interval);
 
   return 0;
 }
 
+/**
+ * Callback when a tcp session is lost and must be closed
+ * @param tcp_session pointer to tcp session object
+ */
 static void
 _cb_tcp_lost(struct oonf_stream_session *tcp_session) {
   struct dlep_radio_session *stream;
@@ -188,15 +212,20 @@ _cb_tcp_lost(struct oonf_stream_session *tcp_session) {
   oonf_timer_stop(&stream->heartbeat_timeout);
 }
 
+/**
+ * Callback to receive data over oonf_stream_socket
+ * @param tcp_session pointer to tcp session
+ * @return tcp session state
+ */
 static enum oonf_stream_session_state
 _cb_tcp_receive_data(struct oonf_stream_session *tcp_session) {
-  struct dlep_radio_session *stream;
+  struct dlep_radio_session *session;
   struct dlep_parser_index idx;
   uint16_t siglen;
   int signal, result;
   struct netaddr_str nbuf;
 
-  stream = container_of(tcp_session, struct dlep_radio_session, stream);
+  session = container_of(tcp_session, struct dlep_radio_session, stream);
 
   if ((signal = dlep_parser_read(&idx, abuf_getptr(&tcp_session->in),
       abuf_getlen(&tcp_session->in), &siglen)) < 0) {
@@ -211,17 +240,23 @@ _cb_tcp_receive_data(struct oonf_stream_session *tcp_session) {
     }
   }
 
+  if (!session->session_active && signal != DLEP_PEER_INITIALIZATION) {
+    OONF_WARN(LOG_DLEP_RADIO, "Received TCP signal %d before Peer Initialization",
+        signal);
+    return STREAM_SESSION_CLEANUP;
+  }
+
   OONF_INFO(LOG_DLEP_RADIO, "Received TCP signal %d", signal);
 
   switch (signal) {
     case DLEP_PEER_INITIALIZATION:
       result = _handle_peer_initialization(
-          stream, abuf_getptr(&tcp_session->in), &idx);
+          session, abuf_getptr(&tcp_session->in), &idx);
       break;
     case DLEP_HEARTBEAT:
       OONF_DEBUG(LOG_DLEP_RADIO, "Received TCP heartbeat, reset interval to %"PRIu64,
-          stream->remote_heartbeat_interval * 2);
-      oonf_timer_set(&stream->heartbeat_timeout, stream->remote_heartbeat_interval * 2);
+          session->remote_heartbeat_interval * 2);
+      oonf_timer_set(&session->heartbeat_timeout, session->remote_heartbeat_interval * 2);
       break;
     default:
       OONF_WARN(LOG_DLEP_RADIO,
@@ -236,8 +271,15 @@ _cb_tcp_receive_data(struct oonf_stream_session *tcp_session) {
   return result != 0 ? STREAM_SESSION_CLEANUP :STREAM_SESSION_ACTIVE;
 }
 
+/**
+ * Handle peer initialization from router
+ * @param session dlep radio session
+ * @param ptr pointer to begin of signal
+ * @param idx dlep parser index
+ * @return -1 if an error happened, 0 otherwise
+ */
 static int
-_handle_peer_initialization(struct dlep_radio_session *stream,
+_handle_peer_initialization(struct dlep_radio_session *session,
     void *ptr, struct dlep_parser_index *idx) {
   uint8_t *buffer;
   char peer[256];
@@ -257,24 +299,24 @@ _handle_peer_initialization(struct dlep_radio_session *stream,
   /* get heartbeat interval */
   pos = idx->idx[DLEP_HEARTBEAT_INTERVAL_TLV];
   dlep_parser_get_heartbeat_interval(
-      &stream->remote_heartbeat_interval, &buffer[pos]);
+      &session->remote_heartbeat_interval, &buffer[pos]);
 
   /* reset heartbeat timeout */
-  oonf_timer_set(&stream->heartbeat_timeout, stream->remote_heartbeat_interval*2);
+  oonf_timer_set(&session->heartbeat_timeout, session->remote_heartbeat_interval*2);
 
   /* add supported signals */
   pos = idx->idx[DLEP_OPTIONAL_SIGNALS_TLV];
-  dlep_parser_get_optional_signal(&stream->supported_signals, &buffer[pos]);
+  dlep_parser_get_optional_signal(&session->supported_signals, &buffer[pos]);
 
   /* add supported tlvs */
   pos = idx->idx[DLEP_OPTIONAL_DATA_ITEMS_TLV];
-  dlep_parser_get_optional_tlv(&stream->supported_tlvs, &buffer[pos]);
+  dlep_parser_get_optional_tlv(&session->supported_tlvs, &buffer[pos]);
 
   /* create PEER initialization ACK */
-  dlep_writer_start_signal(DLEP_PEER_INITIALIZATION_ACK, &stream->supported_tlvs);
+  dlep_writer_start_signal(DLEP_PEER_INITIALIZATION_ACK, &session->supported_tlvs);
 
   /* add mandatory TLVs */
-  dlep_writer_add_heartbeat_tlv(stream->interface->local_heartbeat_interval);
+  dlep_writer_add_heartbeat_tlv(session->interface->local_heartbeat_interval);
   dlep_writer_add_mdrr(0); // TODO: maximum data rate rausfinden
   dlep_writer_add_mdrt(0); // TODO: maximum data rate rausfinden
   dlep_writer_add_cdrr(0);
@@ -288,6 +330,9 @@ _handle_peer_initialization(struct dlep_radio_session *stream,
   }
 
   /* send signal */
-  dlep_writer_send_tcp_unicast(&stream->stream, &stream->supported_signals);
+  dlep_writer_send_tcp_unicast(&session->stream, &session->supported_signals);
+
+  /* activate session */
+  session->session_active = true;
   return 0;
 }

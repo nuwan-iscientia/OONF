@@ -50,12 +50,6 @@
 
 #include "dlep/dlep_bitmap.h"
 
-enum dlep_radio_state {
-  DLEP_RADIO_DISCOVERY,
-  DLEP_RADIO_CONNECT,
-  DLEP_RADIO_ACTIVE,
-};
-
 struct dlep_radio_if {
   /* interface name to talk with DLEP router */
   char name[IF_NAMESIZE];
@@ -78,7 +72,7 @@ struct dlep_radio_if {
   struct avl_node _node;
 };
 
-EXPORT int dlep_radio_interface_init(void);
+EXPORT void dlep_radio_interface_init(void);
 EXPORT void dlep_radio_interface_cleanup(void);
 EXPORT struct dlep_radio_if *dlep_radio_get_interface(const char *ifname);
 EXPORT struct dlep_radio_if *dlep_radio_add_interface(const char *ifname);

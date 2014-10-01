@@ -109,26 +109,32 @@ struct oonf_subsystem dlep_radio_subsystem = {
 };
 DECLARE_OONF_PLUGIN(dlep_radio_subsystem);
 
+/**
+ * Plugin constructor for dlep radio
+ * @return -1 if an error happened, 0 otherwise
+ */
 static int
 _init(void) {
   if (dlep_writer_init()) {
     return -1;
   }
 
-  if (dlep_radio_interface_init()) {
-    dlep_writer_cleanup();
-    return -1;
-  }
-
+  dlep_radio_interface_init();
   return 0;
 }
 
+/**
+ * Plugin destructor for dlep radio
+ */
 static void
 _cleanup(void) {
   dlep_radio_interface_cleanup();
   dlep_writer_cleanup();
 }
 
+/**
+ * Callback for configuration changes
+ */
 static void
 _cb_config_changed(void) {
   struct dlep_radio_if *interface;

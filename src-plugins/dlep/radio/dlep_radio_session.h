@@ -60,7 +60,7 @@ struct dlep_radio_session {
   struct dlep_radio_if *interface;
 
   /* state of the DLEP session */
-  enum dlep_radio_state state;
+  bool session_active;
 
   /* heartbeat timer */
   struct oonf_timer_instance heartbeat_timer;
@@ -78,7 +78,7 @@ struct dlep_radio_session {
   struct dlep_bitmap supported_tlvs;
 };
 
-EXPORT int dlep_radio_session_init(void);
+EXPORT void dlep_radio_session_init(void);
 EXPORT void dlep_radio_session_cleanup(void);
 
 EXPORT void dlep_radio_session_initialize_tcp_callbacks(

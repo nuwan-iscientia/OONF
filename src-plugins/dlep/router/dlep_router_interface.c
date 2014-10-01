@@ -1,10 +1,43 @@
-/*
- * dlep_router_interface.c
- *
- *  Created on: Oct 1, 2014
- *      Author: rogge
- */
 
+/*
+ * The olsr.org Optimized Link-State Routing daemon version 2 (olsrd2)
+ * Copyright (c) 2004-2013, the olsr.org team - see HISTORY file
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ *
+ * * Redistributions of source code must retain the above copyright
+ *   notice, this list of conditions and the following disclaimer.
+ * * Redistributions in binary form must reproduce the above copyright
+ *   notice, this list of conditions and the following disclaimer in
+ *   the documentation and/or other materials provided with the
+ *   distribution.
+ * * Neither the name of olsr.org, olsrd nor the names of its
+ *   contributors may be used to endorse or promote products derived
+ *   from this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+ * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+ * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+ * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+ * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+ * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+ * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+ * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+ * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ * POSSIBILITY OF SUCH DAMAGE.
+ *
+ * Visit http://www.olsr.org for more information.
+ *
+ * If you find this software useful feel free to make a donation
+ * to the project. For more information see the website or contact
+ * the copyright holders.
+ *
+ */
 
 #include <errno.h>
 #include <unistd.h>
@@ -30,8 +63,6 @@
 #include "dlep/router/dlep_router_session.h"
 
 static void _cleanup_interface(struct dlep_router_if *interface);
-static void _restart_interface(struct dlep_router_if *interface);
-
 static void _cb_send_discovery(void *);
 
 static void _cb_receive_udp(struct oonf_packet_socket *,
@@ -52,18 +83,23 @@ static struct oonf_timer_class _discovery_timer_class = {
   .periodic = true,
 };
 
-int
+/**
+ * Initialize dlep router interface framework. This will also
+ * initialize the dlep router session framework.
+ */
+void
 dlep_router_interface_init(void) {
-  if (dlep_router_session_init()) {
-    return -1;
-  }
   oonf_class_add(&_router_if_class);
   oonf_timer_add(&_discovery_timer_class);
   avl_init(&_interface_tree, avl_comp_strcasecmp, false);
 
-  return 0;
+  dlep_router_session_init();
 }
 
+/**
+ * Cleanup dlep router interface framework. This will also cleanup
+ * all dlep router sessions.
+ */
 void
 dlep_router_interface_cleanup(void) {
   struct dlep_router_if *interf, *it;
@@ -78,6 +114,11 @@ dlep_router_interface_cleanup(void) {
   dlep_router_session_cleanup();
 }
 
+/**
+ * Get a dlep router interface via interface name
+ * @param ifname interface name
+ * @return dlep router interface, NULL if not found
+ */
 struct dlep_router_if *
 dlep_router_get_interface(const char *ifname) {
   struct dlep_router_if *interface;
@@ -85,6 +126,11 @@ dlep_router_get_interface(const char *ifname) {
   return avl_find_element(&_interface_tree, ifname, interface, _node);
 }
 
+/**
+ * Add a new dlep interface or get existing one with same name.
+ * @param ifname interface name
+ * @return dlep router interface, NULL if allocation failed
+ */
 struct dlep_router_if *
 dlep_router_add_interface(const char *ifname) {
   struct dlep_router_if *interface;
@@ -109,9 +155,6 @@ dlep_router_add_interface(const char *ifname) {
   interface->discovery_timer.cb_context = interface;
   interface->discovery_timer.class = &_discovery_timer_class;
 
-  /* set socket to discovery mode */
-  interface->state = DLEP_ROUTER_DISCOVERY;
-
   /* add to global tree of sessions */
   avl_insert(&_interface_tree, &interface->_node);
 
@@ -126,6 +169,10 @@ dlep_router_add_interface(const char *ifname) {
   return interface;
 }
 
+/**
+ * Remove dlep router interface
+ * @param interface dlep router interface
+ */
 void
 dlep_router_remove_interface(struct dlep_router_if *interface) {
   OONF_DEBUG(LOG_DLEP_ROUTER, "remove session %s", interface->name);
@@ -143,12 +190,25 @@ dlep_router_remove_interface(struct dlep_router_if *interface) {
   oonf_class_free(&_router_if_class, interface);
 }
 
+/**
+ * Apply new settings to dlep router interface. This will close all
+ * existing dlep sessions.
+ * @param interf dlep router interface
+ */
 void
 dlep_router_apply_interface_settings(struct dlep_router_if *interf) {
   oonf_packet_apply_managed(&interf->udp, &interf->udp_config);
-  _restart_interface(interf);
+
+  _cleanup_interface(interf);
+
+  /* reset discovery timers */
+  oonf_timer_set(&interf->discovery_timer, interf->local_discovery_interval);
 }
 
+/**
+ * Close all existing dlep sessions of a dlep interface
+ * @param interface dlep router interface
+ */
 static void
 _cleanup_interface(struct dlep_router_if *interface) {
   struct dlep_router_session *stream, *it;
@@ -159,19 +219,10 @@ _cleanup_interface(struct dlep_router_if *interface) {
   }
 }
 
-static void
-_restart_interface(struct dlep_router_if *interface) {
-  OONF_DEBUG(LOG_DLEP_ROUTER, "Restart session %s", interface->name);
-
-  _cleanup_interface(interface);
-
-  /* reset timers */
-  oonf_timer_set(&interface->discovery_timer, interface->local_discovery_interval);
-
-  /* reset session state to discovery */
-  interface->state = DLEP_ROUTER_DISCOVERY;
-}
-
+/**
+ * Callback triggered to send regular UDP discovery signals
+ * @param ptr dlep router interface
+ */
 static void
 _cb_send_discovery(void *ptr) {
   struct dlep_router_if *interface = ptr;
@@ -189,6 +240,13 @@ _cb_send_discovery(void *ptr) {
       &interface->udp, &dlep_mandatory_signals, LOG_DLEP_ROUTER);
 }
 
+/**
+ * Callback to receive UDP data through oonf_packet_managed API
+ * @param pkt
+ * @param from
+ * @param ptr
+ * @param length
+ */
 static void
 _cb_receive_udp(struct oonf_packet_socket *pkt,
     union netaddr_socket *from, void *ptr, size_t length) {
@@ -198,11 +256,6 @@ _cb_receive_udp(struct oonf_packet_socket *pkt,
   struct netaddr_str nbuf;
 
   interface = pkt->config.user;
-
-  if (interface->state != DLEP_ROUTER_DISCOVERY) {
-    /* ignore all traffic unless we are in discovery phase */
-    return;
-  }
 
   if ((signal = dlep_parser_read(&idx, ptr, length, NULL)) < 0) {
     OONF_WARN_HEX(LOG_DLEP_ROUTER, ptr, length,
@@ -224,6 +277,15 @@ _cb_receive_udp(struct oonf_packet_socket *pkt,
   _handle_peer_offer(interface, ptr, length, &idx);
 }
 
+/**
+ * Get a matching local IP address for a list of remote IP addresses
+ * @param remote_addr remote IP address
+ * @param ifdata interface required for local IP address
+ * @param idx dlep parser index
+ * @param buffer dlep signal buffer
+ * @param length length of signal buffer
+ * @return matching local IP address, NULL if no match
+ */
 static const struct netaddr *
 _get_local_tcp_address(struct netaddr *remote_addr,
     struct oonf_interface_data *ifdata,
@@ -274,6 +336,7 @@ _get_local_tcp_address(struct netaddr *remote_addr,
       return result;
     }
   }
+
   /*
    * no valid address, hit the manufacturers over the head for not
    * supporting IPv6 linklocal addresses
@@ -284,6 +347,13 @@ _get_local_tcp_address(struct netaddr *remote_addr,
   return NULL;
 }
 
+/**
+ * Handle dlep Peer Offer signal via UDP
+ * @param interface dlep router interface
+ * @param buffer dlep signal buffer
+ * @param length signal length
+ * @param idx dlep parser index
+ */
 static void
 _handle_peer_offer(struct dlep_router_if *interface,
     uint8_t *buffer, size_t length, struct dlep_parser_index *idx) {

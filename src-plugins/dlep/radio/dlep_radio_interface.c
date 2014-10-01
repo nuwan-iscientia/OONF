@@ -63,7 +63,7 @@ static void _handle_peer_discovery(struct dlep_radio_if *interface,
     union netaddr_socket *dst, uint8_t *buffer, struct dlep_parser_index *idx);
 
 
-/* tcp objects */
+/* DLEP interfaces */
 static struct avl_tree _interface_tree;
 
 static struct oonf_class _interface_class = {
@@ -71,17 +71,22 @@ static struct oonf_class _interface_class = {
   .size = sizeof(struct dlep_radio_if),
 };
 
-int
+/**
+ * Initialize everything for dlep radio interfaces. This function also
+ * initializes the dlep sessions.
+ */
+void
 dlep_radio_interface_init(void) {
-  if (dlep_radio_session_init()) {
-    return -1;
-  }
-
   oonf_class_add(&_interface_class);
   avl_init(&_interface_tree, avl_comp_strcasecmp, false);
-  return 0;
+
+  dlep_radio_session_init();
 }
 
+/**
+ * Cleanup everything allocated for dlep radio interfaces. This will
+ * also clean up all dlep sessions.
+ */
 void
 dlep_radio_interface_cleanup(void) {
   struct dlep_radio_if *interf, *it;
@@ -94,6 +99,11 @@ dlep_radio_interface_cleanup(void) {
   dlep_radio_session_cleanup();
 }
 
+/**
+ * Get a dlep radio interface by name
+ * @param ifname interface name
+ * @return dlep radio interface, NULL if not found
+ */
 struct dlep_radio_if *
 dlep_radio_get_interface(const char *ifname) {
   struct dlep_radio_if *interf;
@@ -101,6 +111,12 @@ dlep_radio_get_interface(const char *ifname) {
   return avl_find_element(&_interface_tree, ifname, interf, name);
 }
 
+/**
+ * Add a new dlep radio interface to the database
+ * (keep existing one if already there).
+ * @param ifname interface name
+ * @return dlep radio interface, NULL if allocation failed
+ */
 struct dlep_radio_if *
 dlep_radio_add_interface(const char *ifname) {
   struct dlep_radio_if *interface;
@@ -138,6 +154,10 @@ dlep_radio_add_interface(const char *ifname) {
   return interface;
 }
 
+/**
+ * Remove a dlep radio interface
+ * @param interface dlep radio interface
+ */
 void
 dlep_radio_remove_interface(struct dlep_radio_if *interface) {
   /* cleanup discovery socket */
@@ -151,12 +171,24 @@ dlep_radio_remove_interface(struct dlep_radio_if *interface) {
   oonf_class_free(&_interface_class, interface);
 }
 
+/**
+ * Apply settings for dlep radio interface
+ * @param interface dlep radio interface
+ */
 void
 dlep_radio_apply_interface_settings(struct dlep_radio_if *interface) {
   oonf_packet_apply_managed(&interface->udp, &interface->udp_config);
   oonf_stream_apply_managed(&interface->tcp, &interface->tcp_config);
 }
 
+/**
+ * Callback for handle incoming UDP packets for DLEP
+ * via oonf_packet_managed API.
+ * @param pkt packet socket
+ * @param from IP socket UDP was coming from
+ * @param ptr begin of UDP data
+ * @param length length of UDP data
+ */
 static void
 _cb_receive_udp(struct oonf_packet_socket *pkt,
     union netaddr_socket *from, void *ptr, size_t length) {
@@ -187,6 +219,13 @@ _cb_receive_udp(struct oonf_packet_socket *pkt,
   _handle_peer_discovery(session, from, ptr, &idx);
 }
 
+/**
+ * Handle peer discovery signal from UDP
+ * @param interface dlep radio interface
+ * @param dst IP socket UDP was coming from
+ * @param buffer begin of UDP data
+ * @param idx index table for DLEP signal
+ */
 static void
 _handle_peer_discovery(struct dlep_radio_if *interface,
     union netaddr_socket *dst, uint8_t *buffer, struct dlep_parser_index *idx) {

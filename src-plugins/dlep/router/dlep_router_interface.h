@@ -1,8 +1,42 @@
+
 /*
- * dlep_router_interface.h
+ * The olsr.org Optimized Link-State Routing daemon version 2 (olsrd2)
+ * Copyright (c) 2004-2013, the olsr.org team - see HISTORY file
+ * All rights reserved.
  *
- *  Created on: Oct 1, 2014
- *      Author: rogge
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ *
+ * * Redistributions of source code must retain the above copyright
+ *   notice, this list of conditions and the following disclaimer.
+ * * Redistributions in binary form must reproduce the above copyright
+ *   notice, this list of conditions and the following disclaimer in
+ *   the documentation and/or other materials provided with the
+ *   distribution.
+ * * Neither the name of olsr.org, olsrd nor the names of its
+ *   contributors may be used to endorse or promote products derived
+ *   from this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+ * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+ * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+ * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+ * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+ * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+ * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+ * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+ * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ * POSSIBILITY OF SUCH DAMAGE.
+ *
+ * Visit http://www.olsr.org for more information.
+ *
+ * If you find this software useful feel free to make a donation
+ * to the project. For more information see the website or contact
+ * the copyright holders.
+ *
  */
 
 #ifndef DLEP_ROUTER_INTERFACE_H_
@@ -13,18 +47,9 @@
 #include "subsystems/oonf_packet_socket.h"
 #include "subsystems/oonf_timer.h"
 
-enum dlep_router_state {
-  DLEP_ROUTER_DISCOVERY,
-  DLEP_ROUTER_CONNECT,
-  DLEP_ROUTER_ACTIVE,
-};
-
 struct dlep_router_if {
   /* interface name to talk with DLEP radio */
   char name[IF_NAMESIZE];
-
-  /* state of the DLEP session */
-  enum dlep_router_state state;
 
   /* UDP socket for discovery */
   struct oonf_packet_managed udp;
@@ -47,7 +72,7 @@ struct dlep_router_if {
   struct avl_tree stream_tree;
 };
 
-EXPORT int dlep_router_interface_init(void);
+EXPORT void dlep_router_interface_init(void);
 EXPORT void dlep_router_interface_cleanup(void);
 
 EXPORT struct dlep_router_if *dlep_router_get_interface(const char *ifname);
