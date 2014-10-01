@@ -83,6 +83,8 @@ static struct oonf_timer_class _discovery_timer_class = {
   .periodic = true,
 };
 
+static bool _shutting_down;
+
 /**
  * Initialize dlep router interface framework. This will also
  * initialize the dlep router session framework.
@@ -94,6 +96,8 @@ dlep_router_interface_init(void) {
   avl_init(&_interface_tree, avl_comp_strcasecmp, false);
 
   dlep_router_session_init();
+
+  _shutting_down = false;
 }
 
 /**
@@ -164,7 +168,7 @@ dlep_router_add_interface(const char *ifname) {
   oonf_packet_add_managed(&interface->udp);
 
   /* initialize stream list */
-  avl_init(&interface->stream_tree, avl_comp_netaddr_socket, false);
+  avl_init(&interface->session_tree, avl_comp_netaddr_socket, false);
 
   return interface;
 }
@@ -206,6 +210,23 @@ dlep_router_apply_interface_settings(struct dlep_router_if *interf) {
 }
 
 /**
+ * Send all active sessions a Peer Terminate signal
+ */
+void
+dlep_router_terminate_all_sessions(void) {
+  struct dlep_router_if *interf;
+  struct dlep_router_session *session;
+
+  _shutting_down = true;
+
+  avl_for_each_element(&_interface_tree, interf, _node) {
+    avl_for_each_element(&interf->session_tree, session, _node) {
+      dlep_router_terminate_session(session);
+    }
+  }
+}
+
+/**
  * Close all existing dlep sessions of a dlep interface
  * @param interface dlep router interface
  */
@@ -214,7 +235,7 @@ _cleanup_interface(struct dlep_router_if *interface) {
   struct dlep_router_session *stream, *it;
 
   /* close TCP connection and socket */
-  avl_for_each_element_safe(&interface->stream_tree, stream, _node, it) {
+  avl_for_each_element_safe(&interface->session_tree, stream, _node, it) {
     dlep_router_remove_session(stream);
   }
 }
@@ -226,6 +247,11 @@ _cleanup_interface(struct dlep_router_if *interface) {
 static void
 _cb_send_discovery(void *ptr) {
   struct dlep_router_if *interface = ptr;
+
+  if (_shutting_down) {
+    /* don't send discovery signals during shutdown */
+    return;
+  }
 
   OONF_INFO(LOG_DLEP_ROUTER, "Send UDP Peer Discovery");
 
@@ -255,6 +281,10 @@ _cb_receive_udp(struct oonf_packet_socket *pkt,
   int signal;
   struct netaddr_str nbuf;
 
+  if (_shutting_down) {
+    /* ignore UDP traffic during shutdown */
+    return;
+  }
   interface = pkt->config.user;
 
   if ((signal = dlep_parser_read(&idx, ptr, length, NULL)) < 0) {

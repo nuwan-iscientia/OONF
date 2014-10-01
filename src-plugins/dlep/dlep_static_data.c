@@ -42,8 +42,8 @@ struct dlep_bitmap dlep_mandatory_tlvs = { .b = {
 }};
 
 struct dlep_bitmap dlep_supported_optional_signals = { .b = {
-  (1 << DLEP_DESTINATION_UP_ACK)
-  | (1 << DLEP_DESTINATION_DOWN_ACK),
+  (1 << DLEP_PEER_TERMINATION)
+  | (1 << DLEP_PEER_TERMINATION_ACK),
   0,0,0
 }};
 
@@ -77,6 +77,12 @@ struct dlep_bitmap dlep_mandatory_tlvs_per_signal[DLEP_SIGNAL_COUNT] = {
       | (1 << DLEP_OPTIONAL_DATA_ITEMS_TLV),
       0,0,0
   }},
+  [DLEP_PEER_TERMINATION] = { .b = {
+      0,0,0,0
+  }},
+  [DLEP_PEER_TERMINATION_ACK] = { .b = {
+      0,0,0,0
+  }},
 };
 
 struct dlep_bitmap dlep_supported_optional_tlvs_per_signal[DLEP_SIGNAL_COUNT] = {
@@ -95,6 +101,14 @@ struct dlep_bitmap dlep_supported_optional_tlvs_per_signal[DLEP_SIGNAL_COUNT] = 
   [DLEP_PEER_INITIALIZATION_ACK] = { .b = {
       (1 << DLEP_PEER_TYPE_TLV)
       | (1 << DLEP_VENDOR_EXTENSION_TLV),
+      0,0,0
+  }},
+  [DLEP_PEER_TERMINATION] = { .b = {
+      (1 << DLEP_STATUS_TLV),
+      0,0,0
+  }},
+  [DLEP_PEER_TERMINATION_ACK] = { .b = {
+      (1 << DLEP_STATUS_TLV),
       0,0,0
   }},
 };

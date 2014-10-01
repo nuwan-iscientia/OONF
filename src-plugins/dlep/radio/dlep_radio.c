@@ -64,6 +64,7 @@
 /* prototypes */
 static int _init(void);
 static void _cleanup(void);
+static void _initiate_shutdown(void);
 
 static void _cb_config_changed(void);
 
@@ -105,6 +106,7 @@ struct oonf_subsystem dlep_radio_subsystem = {
   .cfg_section = &_radio_section,
 
   .init = _init,
+  .initiate_shutdown = _initiate_shutdown,
   .cleanup = _cleanup,
 };
 DECLARE_OONF_PLUGIN(dlep_radio_subsystem);
@@ -121,6 +123,14 @@ _init(void) {
 
   dlep_radio_interface_init();
   return 0;
+}
+
+/**
+ * Send a clean Peer Terminate before we drop the session to shutdown
+ */
+static void
+_initiate_shutdown(void) {
+  dlep_radio_terminate_all_sessions();
 }
 
 /**

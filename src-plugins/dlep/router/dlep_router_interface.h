@@ -69,7 +69,7 @@ struct dlep_router_if {
   struct avl_node _node;
 
   /* list of all streams on this interface */
-  struct avl_tree stream_tree;
+  struct avl_tree session_tree;
 };
 
 EXPORT void dlep_router_interface_init(void);
@@ -80,5 +80,6 @@ EXPORT struct dlep_router_if *dlep_router_add_interface(const char *ifname);
 EXPORT void dlep_router_remove_interface(struct dlep_router_if *);
 
 EXPORT void dlep_router_apply_interface_settings(struct dlep_router_if *);
+EXPORT void dlep_router_terminate_all_sessions(void);
 
 #endif /* DLEP_ROUTER_INTERFACE_H_ */

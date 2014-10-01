@@ -51,6 +51,12 @@
 #include "dlep/dlep_bitmap.h"
 #include "dlep/router/dlep_router_interface.h"
 
+enum dlep_router_session_state {
+  DLEP_ROUTER_SESSION_INIT,
+  DLEP_ROUTER_SESSION_ACTIVE,
+  DLEP_ROUTER_SESSION_TERMINATE,
+};
+
 struct dlep_router_session {
   /* remote socket of radio */
   union netaddr_socket remote_socket;
@@ -65,7 +71,7 @@ struct dlep_router_session {
   struct dlep_router_if *interface;
 
   /* state of the DLEP session */
-  bool session_active;
+  enum dlep_router_session_state state;
 
   /* timer to generate heartbeats */
   struct oonf_timer_instance heartbeat_timer;
@@ -97,5 +103,6 @@ EXPORT struct dlep_router_session *dlep_router_add_session(
 EXPORT void dlep_router_remove_session(struct dlep_router_session *);
 
 EXPORT int dlep_router_send_peer_initialization(struct dlep_router_session *);
+EXPORT void dlep_router_terminate_session(struct dlep_router_session *session);
 
 #endif /* DLEP_ROUTER_SESSION_H_ */

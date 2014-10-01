@@ -72,6 +72,10 @@ static void _cb_heartbeat_timeout(void *);
 
 static void _handle_peer_initialization_ack(struct dlep_router_session *session,
     void *ptr, struct dlep_parser_index *idx);
+static int _handle_peer_termination_ack(struct dlep_router_session *session,
+    void *ptr, struct dlep_parser_index *idx);
+static int _handle_peer_termination(struct dlep_router_session *session,
+    void *ptr, struct dlep_parser_index *idx);
 
 /* session objects */
 static struct oonf_class _router_stream_class = {
@@ -121,7 +125,7 @@ dlep_router_get_session(struct dlep_router_if *interf,
     union netaddr_socket *remote) {
   struct dlep_router_session *session;
 
-  return avl_find_element(&interf->stream_tree, remote, session, _node);
+  return avl_find_element(&interf->session_tree, remote, session, _node);
 }
 
 /**
@@ -211,7 +215,7 @@ dlep_router_add_session(struct dlep_router_if *interf,
       interf->local_heartbeat_interval);
 
   /* add session to interface */
-  avl_insert(&interf->stream_tree, &session->_node);
+  avl_insert(&interf->session_tree, &session->_node);
 
   return session;
 }
@@ -229,8 +233,27 @@ dlep_router_remove_session(struct dlep_router_session *session) {
 
   oonf_timer_stop(&session->heartbeat_timeout);
   oonf_timer_stop(&session->heartbeat_timer);
-  avl_remove(&session->interface->stream_tree, &session->_node);
+  avl_remove(&session->interface->session_tree, &session->_node);
   oonf_class_free(&_router_stream_class, session);
+}
+
+/**
+ * Send peer termination to radio
+ * @param session
+ */
+void
+dlep_router_terminate_session(struct dlep_router_session *session) {
+  if (session->state != DLEP_ROUTER_SESSION_ACTIVE) {
+    return;
+  }
+
+  dlep_writer_start_signal(DLEP_PEER_TERMINATION, &session->supported_tlvs);
+  dlep_writer_add_status(DLEP_STATUS_OKAY);
+  if (!dlep_writer_finish_signal(LOG_DLEP_ROUTER)) {
+    dlep_writer_send_tcp_unicast(session->stream, &session->supported_signals);
+
+    session->state = DLEP_ROUTER_SESSION_TERMINATE;
+  }
 }
 
 /**
@@ -266,13 +289,13 @@ _send_peer_initialization(struct dlep_router_session *session) {
  */
 static enum oonf_stream_session_state
 _cb_tcp_receive_data(struct oonf_stream_session *tcp_session) {
-  struct dlep_router_session *stream;
+  struct dlep_router_session *session;
   struct dlep_parser_index idx;
   uint16_t siglen;
-  int signal;
+  int signal, result;
   struct netaddr_str nbuf;
 
-  stream = container_of(tcp_session->comport, struct dlep_router_session, tcp);
+  session = container_of(tcp_session->comport, struct dlep_router_session, tcp);
 
   if ((signal = dlep_parser_read(&idx, abuf_getptr(&tcp_session->in),
       abuf_getlen(&tcp_session->in), &siglen)) < 0) {
@@ -286,23 +309,44 @@ _cb_tcp_receive_data(struct oonf_stream_session *tcp_session) {
     }
   }
 
-  if (!stream->session_active && signal != DLEP_PEER_INITIALIZATION_ACK) {
-    OONF_WARN(LOG_DLEP_ROUTER, "Received TCP signal %d before Peer Initialization ACK",
-        signal);
+  if (session->state == DLEP_ROUTER_SESSION_INIT
+      && signal != DLEP_PEER_INITIALIZATION_ACK) {
+    OONF_WARN(LOG_DLEP_ROUTER,
+        "Received TCP signal %d before Peer Initialization", signal);
     return STREAM_SESSION_CLEANUP;
+  }
+
+  if (session->state == DLEP_ROUTER_SESSION_TERMINATE
+      && signal != DLEP_PEER_TERMINATION_ACK) {
+    OONF_DEBUG(LOG_DLEP_ROUTER,
+        "Ignore signal %d when waiting for Termination Ack", signal);
+
+    /* remove signal from input buffer */
+    abuf_pull(&tcp_session->in, siglen);
+
+    return STREAM_SESSION_ACTIVE;
   }
 
   OONF_INFO(LOG_DLEP_ROUTER, "Received TCP signal %d", signal);
 
+  result = 0;
   switch (signal) {
     case DLEP_PEER_INITIALIZATION_ACK:
       _handle_peer_initialization_ack(
-          stream, abuf_getptr(&tcp_session->in), &idx);
+          session, abuf_getptr(&tcp_session->in), &idx);
       break;
     case DLEP_HEARTBEAT:
       OONF_DEBUG(LOG_DLEP_ROUTER, "Received TCP heartbeat, reset interval to %"PRIu64,
-          stream->remote_heartbeat_interval * 2);
-      oonf_timer_set(&stream->heartbeat_timeout, stream->remote_heartbeat_interval * 2);
+          session->remote_heartbeat_interval * 2);
+      oonf_timer_set(&session->heartbeat_timeout, session->remote_heartbeat_interval * 2);
+      break;
+    case DLEP_PEER_TERMINATION:
+      result = _handle_peer_termination(
+          session, abuf_getptr(&tcp_session->in), &idx);
+      break;
+    case DLEP_PEER_TERMINATION_ACK:
+      result = _handle_peer_termination_ack(
+          session, abuf_getptr(&tcp_session->in), &idx);
       break;
     default:
       OONF_WARN(LOG_DLEP_ROUTER,
@@ -314,7 +358,7 @@ _cb_tcp_receive_data(struct oonf_stream_session *tcp_session) {
   /* remove signal from input buffer */
   abuf_pull(&tcp_session->in, siglen);
 
-  return STREAM_SESSION_ACTIVE;
+  return result != 0 ? STREAM_SESSION_CLEANUP : STREAM_SESSION_ACTIVE;
 }
 
 /**
@@ -387,7 +431,7 @@ _handle_peer_initialization_ack(struct dlep_router_session *session,
   buffer = ptr;
 
   /* activate session */
-  session->session_active = true;
+  session->state = DLEP_ROUTER_SESSION_ACTIVE;
 
   /* get peer type */
   peer[0] = 0;
@@ -441,4 +485,70 @@ _handle_peer_initialization_ack(struct dlep_router_session *session,
     dlep_parser_get_cdrt(&data, &buffer[pos]);
     OONF_DEBUG(LOG_DLEP_ROUTER, "Received default for cdrt: %" PRIu64, data);
   }
+}
+
+
+/**
+ * Handle peer termination from radio
+ * @param session dlep router session
+ * @param ptr pointer to begin of signal
+ * @param idx dlep parser index
+ * @return -1 if an error happened, 0 otherwise
+ */
+static int
+_handle_peer_termination(struct dlep_router_session *session,
+    void *ptr, struct dlep_parser_index *idx) {
+  uint8_t *buffer = ptr;
+  enum dlep_status status;
+  int pos;
+
+  pos = idx->idx[DLEP_STATUS_TLV];
+  if (pos) {
+    dlep_parser_get_status(&status, &buffer[pos]);
+    OONF_DEBUG(LOG_DLEP_ROUTER, "Peer termination status: %u",
+        status);
+  }
+
+  /* send Peer Termination Ack */
+  dlep_writer_start_signal(DLEP_PEER_TERMINATION_ACK, &session->supported_tlvs);
+  dlep_writer_add_status(DLEP_STATUS_OKAY);
+
+  if (dlep_writer_finish_signal(LOG_DLEP_ROUTER)) {
+    return -1;
+  }
+
+  dlep_writer_send_tcp_unicast(session->stream, &session->supported_signals);
+  return 0;
+}
+
+/**
+ * Handle peer termination ack from radio
+ * @param session dlep router session
+ * @param ptr pointer to begin of signal
+ * @param idx dlep parser index
+ * @return -1 if an error happened, 0 otherwise
+ */
+static int
+_handle_peer_termination_ack(struct dlep_router_session *session,
+    void *ptr, struct dlep_parser_index *idx) {
+  uint8_t *buffer = ptr;
+  enum dlep_status status;
+  int pos;
+  struct netaddr_str nbuf;
+
+  pos = idx->idx[DLEP_STATUS_TLV];
+  if (pos) {
+    dlep_parser_get_status(&status, &buffer[pos]);
+    OONF_DEBUG(LOG_DLEP_ROUTER, "Peer termination ack status: %u",
+        status);
+  }
+
+  if (session->state != DLEP_ROUTER_SESSION_TERMINATE) {
+    OONF_WARN(LOG_DLEP_ROUTER, "Got Peer Termination ACK without"
+        " sending a Peer Terminate from %s",
+        netaddr_socket_to_string(&nbuf, &session->stream->remote_socket));
+  }
+
+  /* terminate session */
+  return -1;
 }

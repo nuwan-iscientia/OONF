@@ -70,13 +70,20 @@ struct dlep_radio_if {
 
   /* hook into session tree, interface name is the key */
   struct avl_node _node;
+
+  /* tree of all radio sessions */
+  struct avl_tree session_tree;
 };
 
 EXPORT void dlep_radio_interface_init(void);
 EXPORT void dlep_radio_interface_cleanup(void);
+
 EXPORT struct dlep_radio_if *dlep_radio_get_interface(const char *ifname);
 EXPORT struct dlep_radio_if *dlep_radio_add_interface(const char *ifname);
 EXPORT void dlep_radio_remove_interface(struct dlep_radio_if *);
+
 EXPORT void dlep_radio_apply_interface_settings(struct dlep_radio_if *interface);
+
+EXPORT void dlep_radio_terminate_all_sessions(void);
 
 #endif /* DLEP_RADIO_INTERFACE_H_ */

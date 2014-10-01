@@ -52,6 +52,12 @@
 #include "dlep/dlep_bitmap.h"
 #include "dlep/radio/dlep_radio_session.h"
 
+enum dlep_radio_session_state {
+  DLEP_RADIO_SESSION_INIT,
+  DLEP_RADIO_SESSION_ACTIVE,
+  DLEP_RADIO_SESSION_TERMINATE,
+};
+
 struct dlep_radio_session {
   /* basic content for tcp stream */
   struct oonf_stream_session stream;
@@ -60,7 +66,7 @@ struct dlep_radio_session {
   struct dlep_radio_if *interface;
 
   /* state of the DLEP session */
-  bool session_active;
+  enum dlep_radio_session_state state;
 
   /* heartbeat timer */
   struct oonf_timer_instance heartbeat_timer;
@@ -76,6 +82,9 @@ struct dlep_radio_session {
 
   /* supported tlv data items of the other side */
   struct dlep_bitmap supported_tlvs;
+
+  /* node for session tree of interface */
+  struct avl_node _node;
 };
 
 EXPORT void dlep_radio_session_init(void);
@@ -84,4 +93,5 @@ EXPORT void dlep_radio_session_cleanup(void);
 EXPORT void dlep_radio_session_initialize_tcp_callbacks(
     struct oonf_stream_config *config);
 
+EXPORT void dlep_radio_terminate_session(struct dlep_radio_session *session);
 #endif /* DLEP_RADIO_SESSION_H_ */

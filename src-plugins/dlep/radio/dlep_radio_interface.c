@@ -71,6 +71,8 @@ static struct oonf_class _interface_class = {
   .size = sizeof(struct dlep_radio_if),
 };
 
+static bool _shutting_down;
+
 /**
  * Initialize everything for dlep radio interfaces. This function also
  * initializes the dlep sessions.
@@ -81,6 +83,7 @@ dlep_radio_interface_init(void) {
   avl_init(&_interface_tree, avl_comp_strcasecmp, false);
 
   dlep_radio_session_init();
+  _shutting_down = false;
 }
 
 /**
@@ -138,6 +141,9 @@ dlep_radio_add_interface(const char *ifname) {
   /* add to global tree of sessions */
   avl_insert(&_interface_tree, &interface->_node);
 
+  /* initialize session tree */
+  avl_init(&interface->session_tree, avl_comp_netaddr_socket, false);
+
   /* initialize discovery socket */
   interface->udp.config.user = interface;
   interface->udp.config.receive_data = _cb_receive_udp;
@@ -182,6 +188,23 @@ dlep_radio_apply_interface_settings(struct dlep_radio_if *interface) {
 }
 
 /**
+ * Send all active sessions a Peer Terminate signal
+ */
+void
+dlep_radio_terminate_all_sessions(void) {
+  struct dlep_radio_if *interf;
+  struct dlep_radio_session *session;
+
+  _shutting_down = true;
+
+  avl_for_each_element(&_interface_tree, interf, _node) {
+    avl_for_each_element(&interf->session_tree, session, _node) {
+      dlep_radio_terminate_session(session);
+    }
+  }
+}
+
+/**
  * Callback for handle incoming UDP packets for DLEP
  * via oonf_packet_managed API.
  * @param pkt packet socket
@@ -192,12 +215,17 @@ dlep_radio_apply_interface_settings(struct dlep_radio_if *interface) {
 static void
 _cb_receive_udp(struct oonf_packet_socket *pkt,
     union netaddr_socket *from, void *ptr, size_t length) {
-  struct dlep_radio_if *session;
+  struct dlep_radio_if *interf;
   struct dlep_parser_index idx;
   int signal;
   struct netaddr_str nbuf;
 
-  session = pkt->config.user;
+  interf = pkt->config.user;
+
+  if (_shutting_down) {
+    /* ignore all UDP communication when shutting down */
+    return;
+  }
 
   if ((signal = dlep_parser_read(&idx, ptr, length, NULL)) < 0) {
     OONF_WARN_HEX(LOG_DLEP_RADIO, ptr, length,
@@ -216,7 +244,7 @@ _cb_receive_udp(struct oonf_packet_socket *pkt,
     return;
   }
 
-  _handle_peer_discovery(session, from, ptr, &idx);
+  _handle_peer_discovery(interf, from, ptr, &idx);
 }
 
 /**

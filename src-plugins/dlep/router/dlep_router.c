@@ -63,6 +63,7 @@
 
 /* prototypes */
 static int _init(void);
+static void _initiate_shutdown(void);
 static void _cleanup(void);
 
 static void _cb_config_changed(void);
@@ -104,6 +105,7 @@ struct oonf_subsystem dlep_router_subsystem = {
   .cfg_section = &_router_section,
 
   .init = _init,
+  .initiate_shutdown = _initiate_shutdown,
   .cleanup = _cleanup,
 };
 DECLARE_OONF_PLUGIN(dlep_router_subsystem);
@@ -120,6 +122,14 @@ _init(void) {
 
   dlep_router_interface_init();
   return 0;
+}
+
+/**
+ * Send a clean Peer Terminate before we drop the session to shutdown
+ */
+static void
+_initiate_shutdown(void) {
+  dlep_router_terminate_all_sessions();
 }
 
 /**
