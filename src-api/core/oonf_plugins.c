@@ -83,7 +83,6 @@ enum {
  * %POST%:   shared library postfix defined by the app (linux: ".so")
  * %VER:     version number as defined by the app (e.g. "0.1.0")
  */
-// TODO: put a "local library path" setting into the configuration
 static const char *DLOPEN_PATTERNS[] = {
   "%PATH%/oonf/%PRE%%LIB%%POST%.%VER%",
   "%PATH%/oonf/%PRELIB%%LIB%%POSTLIB%.%VERLIB%",
@@ -156,6 +155,15 @@ oonf_plugins_cleanup(void) {
   avl_for_each_element_safe(&oonf_plugin_tree, plugin, _node, iterator) {
     _unload_plugin(plugin, true);
   }
+}
+
+/**
+ * Sets the user-configured path to look for plugins
+ * @param path default path
+ */
+void
+oonf_plugins_set_path(const char *path) {
+  _dlopen_data[IDX_DLOPEN_PATH].value = path;
 }
 
 /**
@@ -354,9 +362,6 @@ _unload_plugin(struct oonf_subsystem *plugin, bool cleanup) {
 
   if (plugin->_initialized) {
     OONF_INFO(LOG_PLUGINS, "Unloading plugin %s\n", plugin->name);
-    if (!plugin->no_logging) {
-      OONF_INFO(plugin->logging, "Plugin %s stopped", plugin->name);
-    }
 
     /* remove first from tree */
     avl_delete(&oonf_plugin_tree, &plugin->_node);
@@ -399,9 +404,8 @@ _open_plugin(const char *filename) {
     abuf_clear(&abuf);
     abuf_add_template(&abuf, &table, false);
 
-    OONF_DEBUG(LOG_PLUGINS, "Trying to load library: %s", abuf_getptr(&abuf));
     result = dlopen(abuf_getptr(&abuf), RTLD_NOW);
-    if (result == NULL) {
+    if (!result) {
       OONF_DEBUG(LOG_PLUGINS, "Loading of plugin file %s failed: %s",
           abuf_getptr(&abuf), dlerror());
     }

@@ -65,6 +65,7 @@ EXPORT extern struct avl_tree oonf_plugin_tree;
 EXPORT void oonf_plugins_init(void);
 EXPORT void oonf_plugins_initiate_shutdown(void);
 EXPORT void oonf_plugins_cleanup(void);
+EXPORT void oonf_plugins_set_path(const char *path);
 
 EXPORT void oonf_plugins_hook(struct oonf_subsystem *subsystem);
 

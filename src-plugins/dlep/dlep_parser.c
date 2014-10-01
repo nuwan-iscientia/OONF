@@ -45,39 +45,55 @@
 #include "common/common_types.h"
 #include "common/netaddr.h"
 
+#include "dlep/dlep_bitmap.h"
 #include "dlep/dlep_iana.h"
 #include "dlep/dlep_parser.h"
-#include "dlep/dlep_tlvdata.h"
-#include "dlep/dlep_tlvmap.h"
+#include "dlep/dlep_static_data.h"
+
+#ifndef _BSD_SOURCE
+#define _BSD_SOURCE
+#endif
+#include <endian.h> /* be64toh */
+
 
 static int _check_tlv_length(uint8_t type, uint8_t length);
 static int _check_mandatory_tlvs(struct dlep_parser_index *idx,
     uint8_t signal);
+static void _remove_unknown_tlvs(struct dlep_parser_index *idx,
+    uint8_t signal);
 
 int
 dlep_parser_read(struct dlep_parser_index *idx,
-    uint8_t *signal, size_t len) {
-  uint8_t tlv_type, tlv_length, signal_type;
+    void *ptr, size_t total_len, uint16_t *siglen) {
+  uint8_t tlv_type, tlv_length, signal_type, *signal;
   uint16_t signal_length;
   size_t pos;
 
-  if (len < 3) {
+  if (total_len < 3) {
     /* signal header not complete */
-    return -1;
+    return DLEP_PARSER_INCOMPLETE_HEADER;
   }
+
+  /* get byte-wise pointer */
+  signal = ptr;
 
   /* get signal length */
   memcpy(&signal_length, &signal[1], 2);
-  signal_length = ntohs(signal_length);
+  signal_length = ntohs(signal_length) + 3;
   pos = 0;
 
-  if (len - 3 < signal_length) {
+  if (total_len < signal_length) {
     /* signal not complete */
-    return -2;
+    return DLEP_PARSER_INCOMPLETE_SIGNAL;
   }
 
   /* get signal type */
   signal_type = signal[0];
+
+  /* store signal length */
+  if (siglen) {
+    *siglen = signal_length;
+  }
 
   /* prepare index */
   memset(idx, 0, sizeof(*idx));
@@ -86,27 +102,28 @@ dlep_parser_read(struct dlep_parser_index *idx,
   pos += 3;
 
   while (pos < signal_length) {
-    if (pos + 2 < signal_length) {
+    if (pos + 2 > signal_length) {
       /* tlv header broken */
-      return -3;
+      return DLEP_PARSER_INCOMPLETE_TLV_HEADER;
     }
 
     /* get tlv header */
     tlv_type = signal[pos];
     tlv_length = signal[pos+1];
 
-    if (pos + 2 + tlv_length < signal_length) {
+    if (pos + 2 + tlv_length > signal_length) {
       /* tlv too long */
-      return -4;
+      return DLEP_PARSER_INCOMPLETE_TLV;
     }
 
     if (_check_tlv_length(tlv_type, tlv_length)) {
       /* length of TLV is incorrect */
-      return -5;
+      return DLEP_PARSER_ILLEGAL_TLV_LENGTH;
     }
 
     /* remember index of first tlv */
-    if (tlv_type < DLEP_TLV_COUNT && idx->idx[tlv_type] == 0) {
+    if (tlv_type < DLEP_TLV_COUNT
+        && idx->idx[tlv_type] == 0) {
       idx->idx[tlv_type] = pos;
     }
 
@@ -116,9 +133,12 @@ dlep_parser_read(struct dlep_parser_index *idx,
 
   if (_check_mandatory_tlvs(idx, signal_type)) {
     /* mandatory TLV is missing */
-    return -6;
+    return DLEP_PARSER_MISSING_MANDATORY_TLV;
   }
-  return 0;
+
+  _remove_unknown_tlvs(idx, signal_type);
+
+  return signal[0];
 }
 
 uint16_t
@@ -210,18 +230,82 @@ dlep_parser_get_ipv6_addr(struct netaddr *ipv6, bool *add, uint8_t *tlv) {
   return 0;
 }
 
+void
+dlep_parser_get_mdrr(uint64_t *mdrr, uint8_t *tlv) {
+  uint64_t value;
+
+  memcpy(&value, &tlv[2], sizeof(value));
+  *mdrr = be64toh(value);
+}
+void
+dlep_parser_get_mdrt(uint64_t *mdrt, uint8_t *tlv) {
+  uint64_t value;
+
+  memcpy(&value, &tlv[2], sizeof(value));
+  *mdrt = be64toh(value);
+}
+
+void
+dlep_parser_get_cdrr(uint64_t *cdrr, uint8_t *tlv) {
+  uint64_t value;
+
+  memcpy(&value, &tlv[2], sizeof(value));
+  *cdrr = be64toh(value);
+}
+void
+dlep_parser_get_cdrt(uint64_t *cdrt, uint8_t *tlv) {
+  uint64_t value;
+
+  memcpy(&value, &tlv[2], sizeof(value));
+  *cdrt = be64toh(value);
+}
+
+void
+dlep_parser_get_status(enum dlep_status *status, uint8_t *tlv) {
+  if (tlv[2] >= DLEP_STATUS_COUNT) {
+    /* normalize status code */
+    *status = DLEP_STATUS_ERROR;
+  }
+  else {
+    *status = tlv[2];
+  }
+}
+
+void
+dlep_parser_get_optional_signal(struct dlep_bitmap *bitmap, uint8_t *tlv) {
+  unsigned i;
+
+  memset(bitmap, 0, sizeof(*bitmap));
+  for (i=0; i<tlv[1]; i++) {
+    dlep_bitmap_set(bitmap, tlv[2+i]);
+  }
+}
+
+void
+dlep_parser_get_optional_tlv(struct dlep_bitmap *bitmap, uint8_t *tlv) {
+  unsigned i;
+
+  memset(bitmap, 0, sizeof(*bitmap));
+  for (i=0; i<tlv[1]; i++) {
+    dlep_bitmap_set(bitmap, tlv[2+i]);
+  }
+}
+
 static int
 _check_tlv_length(uint8_t type, uint8_t length) {
+  uint8_t min, max;
   if (type >= DLEP_TLV_COUNT) {
     /* unsupported custom TLV, no check necessary */
     return 0;
   }
 
   /* check length */
-  if (length < dlep_tlv_constraints[type].min_length) {
+  min = dlep_tlv_constraints[type].min_length;
+  if (min > 0 && length < min) {
     return -1;
   }
-  if (length > dlep_tlv_constraints[type].min_length) {
+  max = dlep_tlv_constraints[type].max_length;
+  if (max < 255 && length > max) {
     return -1;
   }
   return 0;
@@ -230,7 +314,7 @@ _check_tlv_length(uint8_t type, uint8_t length) {
 static int
 _check_mandatory_tlvs(struct dlep_parser_index *idx,
     uint8_t signal) {
-  struct dlep_tlvmap *mandatory;
+  struct dlep_bitmap *mandatory;
   int i;
 
   if (signal >= DLEP_SIGNAL_COUNT) {
@@ -238,12 +322,37 @@ _check_mandatory_tlvs(struct dlep_parser_index *idx,
     return 0;
   }
 
-  mandatory = &dlep_mandatory_tlvs[signal];
+  mandatory = &dlep_mandatory_tlvs_per_signal[signal];
   for (i=0; i<DLEP_TLV_COUNT; i++) {
-    if (dlep_tlvmap_get(mandatory, i)
+    if (dlep_bitmap_get(mandatory, i)
         && idx->idx[i] == 0) {
       return -1;
     }
   }
   return 0;
+}
+
+static void
+_remove_unknown_tlvs(struct dlep_parser_index *idx,
+    uint8_t signal) {
+  struct dlep_bitmap *mandatory, *optional;
+  int i;
+
+  if (signal >= DLEP_SIGNAL_COUNT) {
+    /* unsupported custom signal */
+    memset(idx, 0, sizeof(*idx));
+
+    return;
+  }
+
+  mandatory = &dlep_mandatory_tlvs_per_signal[signal];
+  optional = &dlep_supported_optional_tlvs_per_signal[signal];
+
+  for (i=0; i<DLEP_TLV_COUNT; i++) {
+    if (!dlep_bitmap_get(mandatory, i)
+        && !dlep_bitmap_get(optional, i)) {
+      idx->idx[i] = 0;
+    }
+  }
+  return;
 }

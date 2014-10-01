@@ -76,6 +76,8 @@ abuf_template_init_ext(struct abuf_template_storage *storage,
   size_t pos = 0;
   size_t i,j;
 
+  memset(storage, 0, sizeof(*storage));
+
   if (!format) {
     /* generate default format, just tab between each value */
     storage->format = default_format;

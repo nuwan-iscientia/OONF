@@ -129,10 +129,11 @@ EXPORT int oonf_packet_apply_managed(struct oonf_packet_managed *,
 EXPORT void oonf_packet_remove_managed(struct oonf_packet_managed *, bool force);
 EXPORT bool oonf_packet_managed_is_active(
     struct oonf_packet_managed *managed, int af_type);
-
 EXPORT void oonf_packet_copy_managed_config(
     struct oonf_packet_managed_config *dst,
     struct oonf_packet_managed_config *src);
+EXPORT void oonf_packet_free_managed_config(
+    struct oonf_packet_managed_config *config);
 
 /**
  * @param sock pointer to packet socket
@@ -141,16 +142,6 @@ EXPORT void oonf_packet_copy_managed_config(
 static INLINE bool
 oonf_packet_is_active(struct oonf_packet_socket *sock) {
   return list_is_node_added(&sock->node);
-}
-
-/**
- * Free dynamically allocated parts of managed packet configuration
- * @param config packet configuration
- */
-static INLINE void
-oonf_packet_free_managed_config(struct oonf_packet_managed_config *config) {
-  netaddr_acl_remove(&config->acl);
-  netaddr_acl_remove(&config->bindto);
 }
 
 #endif /* OONF_PACKET_SOCKET_H_ */

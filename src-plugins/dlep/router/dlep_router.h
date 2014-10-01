@@ -49,49 +49,7 @@
 #include "subsystems/oonf_stream_socket.h"
 #include "subsystems/oonf_timer.h"
 
-#include "dlep/dlep_tlvmap.h"
-
-enum dlep_router_state {
-  DLEP_ROUTER_DISCOVERY,
-  DLEP_ROUTER_CONNECT,
-  DLEP_ROUTER_ACTIVE,
-};
-
-struct dlep_router_session {
-  /* interface name to talk with DLEP radio */
-  char interf[IF_NAMESIZE];
-
-  /* state of the DLEP session */
-  enum dlep_router_state state;
-
-  /* UDP socket for discovery */
-  struct oonf_packet_managed discovery;
-  struct oonf_packet_managed_config discovery_config;
-
-  /* TCP client socket for session */
-  struct oonf_stream_socket session;
-  struct oonf_stream_session *stream;
-
-  /* event timer (either discovery or heartbeat) */
-  struct oonf_timer_instance discovery_timer;
-  struct oonf_timer_instance heartbeat_timer;
-
-  /* keep track of various timeouts */
-  struct oonf_timer_instance heartbeat_timeout;
-
-  /* local timer settings */
-  uint64_t local_discovery_interval;
-  uint64_t local_heartbeat_interval;
-
-  /* heartbeat settings from the other side of the session */
-  uint64_t remote_heartbeat_interval;
-
-  /* supported optional tlv data items of the other side */
-  struct dlep_tlvmap optional_tlvs;
-
-  /* hook into session tree, interface name is the key */
-  struct avl_node _node;
-};
+#include "dlep/dlep_bitmap.h"
 
 #define LOG_DLEP_ROUTER dlep_router_subsystem.logging
 EXPORT extern struct oonf_subsystem dlep_router_subsystem;

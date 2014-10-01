@@ -65,7 +65,7 @@ ROUND_UP_TO_POWER_OF_2(size_t val, size_t pow2) {
 }
 
 static int _autobuf_enlarge(struct autobuf *autobuf, size_t new_size);
-static void _print_hexline(struct autobuf *out, void *buffer, size_t length);
+static void _print_hexline(struct autobuf *out, const void *buffer, size_t length);
 
 /**
  * Initialize an autobuffer and allocate a chunk of memory
@@ -325,8 +325,8 @@ abuf_pull(struct autobuf * autobuf, size_t len) {
  * @param length length of buffer in bytes
  */
 void
-abuf_hexdump(struct autobuf *out, const char *prefix, void *buffer, size_t length) {
-  uint8_t *buf;
+abuf_hexdump(struct autobuf *out, const char *prefix, const void *buffer, size_t length) {
+  const uint8_t *buf;
   size_t j, l;
 
   buf = buffer;
@@ -350,9 +350,9 @@ abuf_hexdump(struct autobuf *out, const char *prefix, void *buffer, size_t lengt
  * @param length length of buffer in bytes
  */
 static void
-_print_hexline(struct autobuf *out, void *buffer, size_t length) {
+_print_hexline(struct autobuf *out, const void *buffer, size_t length) {
   size_t i;
-  uint8_t *buf = buffer;
+  const uint8_t *buf = buffer;
 
   for (i = 0; i < 32; i++) {
     if ((i & 3) == 0) {

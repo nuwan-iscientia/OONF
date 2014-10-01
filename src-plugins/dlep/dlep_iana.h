@@ -102,8 +102,15 @@ enum dlep_tlvs {
 };
 
 enum dlep_ipaddr_indicator {
-  DLEP_IP_ADD = 0x01,
-  DLEP_IP_REMOVE = 0x02,
+  DLEP_IP_ADD    = 1,
+  DLEP_IP_REMOVE = 2,
+};
+
+enum dlep_status {
+  DLEP_STATUS_OKAY  = 0,
+  DLEP_STATUS_ERROR = 1,
+
+  DLEP_STATUS_COUNT,
 };
 
 #endif /* DLEP_IANA_H_ */

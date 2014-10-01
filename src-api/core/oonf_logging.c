@@ -357,10 +357,11 @@ oonf_log_get_walltime(void) {
  */
 void
 oonf_log(enum oonf_log_severity severity, enum oonf_log_source source, bool no_header,
-    const char *file, int line, const char *format, ...)
+    const char *file, int line, const void *hexptr, size_t hexlen, const char *format, ...)
 {
   struct oonf_log_handler_entry *h, *iterator;
   struct oonf_log_parameters param;
+  char *last;
   va_list ap;
   int p1 = 0, p2 = 0, p3 = 0;
 
@@ -375,9 +376,20 @@ oonf_log(enum oonf_log_severity severity, enum oonf_log_source source, bool no_h
   }
   p3 = abuf_vappendf(&_logbuffer, format, ap);
 
-  /* remove \n at the end of the line if necessary */
-  if (abuf_getptr(&_logbuffer)[p1 + p2 + p3 - 1] == '\n') {
-    abuf_getptr(&_logbuffer)[p1 + p2 + p3 - 1] = 0;
+  last = &abuf_getptr(&_logbuffer)[p1 + p2 + p3 - 1];
+  if (hexptr) {
+    /* append \n at the end of the line if necessary */
+    if (*last != '\n') {
+      abuf_puts(&_logbuffer, "\n");
+    }
+
+    abuf_hexdump(&_logbuffer, "", hexptr, hexlen);
+  }
+  else {
+    /* remove \n at the end of the line if necessary */
+    if (*last == '\n') {
+      *last = 0;
+    }
   }
 
   param.severity = severity;

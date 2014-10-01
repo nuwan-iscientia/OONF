@@ -76,6 +76,8 @@ static struct cfg_schema_entry _global_entries[] = {
       "Set to true to stop daemon startup if at least one plugin doesn't load."),
   CFG_MAP_STRING(oonf_config_global, pidfile, "pidfile", "",
       "Write the process id of the forced child into a file"),
+  CFG_MAP_STRING(oonf_config_global, plugin_path, "plugin_path", "",
+      "Additional user defined path to look for plugins"),
 
   /*
    * this array entry is accessed in oonf_cfg_init(),
@@ -109,8 +111,8 @@ oonf_cfg_init(int argc, char **argv, const char *default_cfg_handler) {
    * initialize default for lockfile, make sure that index stays correct!
    *
     */
-  _global_entries[3].def.value = oonf_log_get_appdata()->default_lockfile;
-  _global_entries[3].def.length = strlen(oonf_log_get_appdata()->default_lockfile) + 1;
+  _global_entries[4].def.value = oonf_log_get_appdata()->default_lockfile;
+  _global_entries[4].def.length = strlen(oonf_log_get_appdata()->default_lockfile) + 1;
 
   /* initialize schema */
   cfg_schema_add(&_oonf_schema);
@@ -327,6 +329,11 @@ oonf_cfg_apply(void) {
   result = -1;
   old_db = NULL;
 
+  if (oonf_cfg_update_globalcfg(true)) {
+    OONF_WARN(LOG_CONFIG, "Updating global config failed");
+    goto apply_failed;
+  }
+
   if (oonf_cfg_loadplugins()) {
     goto apply_failed;
   }
@@ -425,12 +432,18 @@ oonf_cfg_rollback(void) {
 int
 oonf_cfg_update_globalcfg(bool raw) {
   struct cfg_named_section *named;
+  int result;
 
   named = cfg_db_find_namedsection(
       raw ? _oonf_raw_db : _oonf_work_db, CFG_SECTION_GLOBAL, NULL);
 
-  return cfg_schema_tobin(&config_global,
+  result = cfg_schema_tobin(&config_global,
       named, _global_entries, ARRAYSIZE(_global_entries));
+
+  /* set plugin path */
+  oonf_plugins_set_path(config_global.plugin_path);
+
+  return result;
 }
 
 /**

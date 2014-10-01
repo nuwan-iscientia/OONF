@@ -48,10 +48,18 @@
 #include "subsystems/oonf_packet_socket.h"
 #include "subsystems/oonf_stream_socket.h"
 
+#include "dlep/dlep_bitmap.h"
 #include "dlep/dlep_iana.h"
+#include "dlep/dlep_static_data.h"
 #include "dlep/dlep_writer.h"
 
+#ifndef _BSD_SOURCE
+#define _BSD_SOURCE
+#endif
+#include <endian.h> /* htobe64 */
+
 static struct autobuf _signal_buf;
+static struct dlep_bitmap *_supported_tlvs;
 
 int
 dlep_writer_init(void) {
@@ -64,17 +72,22 @@ dlep_writer_cleanup(void) {
 }
 
 void
-dlep_writer_start_signal(uint8_t signal) {
+dlep_writer_start_signal(uint8_t signal, struct dlep_bitmap *supported_tlvs) {
   abuf_clear(&_signal_buf);
   abuf_append_uint8(&_signal_buf, signal);
   abuf_append_uint16(&_signal_buf, 0);
+
+  _supported_tlvs = supported_tlvs;
 }
 
 void
 dlep_writer_add_tlv(uint8_t type, void *data, uint8_t len) {
-  abuf_append_uint8(&_signal_buf, type);
-  abuf_append_uint8(&_signal_buf, len);
-  abuf_memcpy(&_signal_buf, data, len);
+  if (dlep_bitmap_get(_supported_tlvs, type)
+      || dlep_bitmap_get(&dlep_mandatory_tlvs, type)) {
+    abuf_append_uint8(&_signal_buf, type);
+    abuf_append_uint8(&_signal_buf, len);
+    abuf_memcpy(&_signal_buf, data, len);
+  }
 }
 
 int
@@ -95,7 +108,7 @@ dlep_writer_finish_signal(enum oonf_log_source source) {
   }
 
   /* calculate network ordered size */
-  len = htons(abuf_getlen(&_signal_buf));
+  len = htons(abuf_getlen(&_signal_buf)-3);
 
   /* put it into the signal */
   ptr = abuf_getptr(&_signal_buf);
@@ -106,34 +119,53 @@ dlep_writer_finish_signal(enum oonf_log_source source) {
 
 void
 dlep_writer_send_udp_multicast(struct oonf_packet_managed *managed,
-    enum oonf_log_source source) {
-  if (oonf_packet_send_managed_multicast(
-      managed, abuf_getptr(&_signal_buf), abuf_getlen(&_signal_buf), AF_INET)) {
-    OONF_WARN(source, "Could not send ipv4 multicast signal");
-  }
-  if (oonf_packet_send_managed_multicast(
-      managed, abuf_getptr(&_signal_buf), abuf_getlen(&_signal_buf), AF_INET6)) {
-    OONF_WARN(source, "Could not send ipv6 multicast signal");
+    struct dlep_bitmap *supported_signals, enum oonf_log_source source) {
+  uint8_t signal;
+
+  signal = abuf_getptr(&_signal_buf)[0];
+  if (dlep_bitmap_get(supported_signals, signal)
+      || dlep_bitmap_get(&dlep_mandatory_signals, signal)) {
+    if (oonf_packet_send_managed_multicast(
+        managed, abuf_getptr(&_signal_buf), abuf_getlen(&_signal_buf), AF_INET)) {
+      OONF_WARN(source, "Could not send ipv4 multicast signal");
+    }
+    if (oonf_packet_send_managed_multicast(
+        managed, abuf_getptr(&_signal_buf), abuf_getlen(&_signal_buf), AF_INET6)) {
+      OONF_WARN(source, "Could not send ipv6 multicast signal");
+    }
   }
 }
 
 void
 dlep_writer_send_udp_unicast(struct oonf_packet_managed *managed,
-    union netaddr_socket *dst, enum oonf_log_source source) {
+    union netaddr_socket *dst, struct dlep_bitmap *supported_signals,
+    enum oonf_log_source source) {
   struct netaddr_str nbuf;
+  uint8_t signal;
 
-  if (oonf_packet_send_managed(
-      managed, dst, abuf_getptr(&_signal_buf), abuf_getlen(&_signal_buf))) {
-    OONF_WARN(source, "Could not send udp unicast to %s",
-        netaddr_socket_to_string(&nbuf, dst));
+  signal = abuf_getptr(&_signal_buf)[0];
+  if (dlep_bitmap_get(supported_signals, signal)
+      || dlep_bitmap_get(&dlep_mandatory_signals, signal)) {
+    if (oonf_packet_send_managed(
+        managed, dst, abuf_getptr(&_signal_buf), abuf_getlen(&_signal_buf))) {
+      OONF_WARN(source, "Could not send udp unicast to %s",
+          netaddr_socket_to_string(&nbuf, dst));
+    }
   }
 }
 
 void
-dlep_writer_send_tcp_unicast(struct oonf_stream_session *session) {
-  abuf_memcpy(&session->out,
-      abuf_getptr(&_signal_buf), abuf_getlen(&_signal_buf));
-  oonf_stream_flush(session);
+dlep_writer_send_tcp_unicast(struct oonf_stream_session *session,
+    struct dlep_bitmap *supported_signals) {
+  uint8_t signal;
+
+  signal = abuf_getptr(&_signal_buf)[0];
+  if (dlep_bitmap_get(supported_signals, signal)
+      || dlep_bitmap_get(&dlep_mandatory_signals, signal)) {
+    abuf_memcpy(&session->out,
+        abuf_getptr(&_signal_buf), abuf_getlen(&_signal_buf));
+    oonf_stream_flush(session);
+  }
 }
 
 void
@@ -145,32 +177,34 @@ dlep_writer_add_heartbeat_tlv(uint64_t interval) {
   dlep_writer_add_tlv(DLEP_HEARTBEAT_INTERVAL_TLV, &value, sizeof(value));
 }
 
-void
+int
 dlep_writer_add_ipv4_tlv(struct netaddr *ipv4, bool add) {
   uint8_t value[5];
 
   if (netaddr_get_address_family(ipv4) != AF_INET) {
-    return;
+    return -1;
   }
 
   value[0] = add ? DLEP_IP_ADD : DLEP_IP_REMOVE;
   netaddr_to_binary(&value[1], ipv4, 4);
 
   dlep_writer_add_tlv(DLEP_IPV4_ADDRESS_TLV, value, sizeof(value));
+  return 0;
 }
 
-void
+int
 dlep_writer_add_ipv6_tlv(struct netaddr *ipv6, bool add) {
   uint8_t value[17];
 
   if (netaddr_get_address_family(ipv6) != AF_INET6) {
-    return;
+    return -1;
   }
 
   value[0] = add ? DLEP_IP_ADD : DLEP_IP_REMOVE;
   netaddr_to_binary(&value[1], ipv6, 16);
 
   dlep_writer_add_tlv(DLEP_IPV6_ADDRESS_TLV, value, sizeof(value));
+  return 0;
 }
 
 void
@@ -180,4 +214,75 @@ dlep_writer_add_port_tlv(uint16_t port) {
   value = htons(port);
 
   dlep_writer_add_tlv(DLEP_PORT_TLV, &value, sizeof(value));
+}
+
+void
+dlep_writer_add_mdrr(uint64_t max_datarate) {
+  uint64_t value;
+
+  value = be64toh(max_datarate);
+
+  dlep_writer_add_tlv(DLEP_MDRR_TLV, &value, sizeof(value));
+}
+
+void
+dlep_writer_add_mdrt(uint64_t max_datarate) {
+  uint64_t value;
+
+  value = be64toh(max_datarate);
+
+  dlep_writer_add_tlv(DLEP_MDRT_TLV, &value, sizeof(value));
+}
+
+void
+dlep_writer_add_cdrr(uint64_t max_datarate) {
+  uint64_t value;
+
+  value = be64toh(max_datarate);
+
+  dlep_writer_add_tlv(DLEP_CDRR_TLV, &value, sizeof(value));
+}
+
+void
+dlep_writer_add_cdrt(uint64_t max_datarate) {
+  uint64_t value;
+
+  value = be64toh(max_datarate);
+
+  dlep_writer_add_tlv(DLEP_CDRT_TLV, &value, sizeof(value));
+}
+
+void
+dlep_writer_add_status(enum dlep_status status) {
+  uint8_t value = status;
+
+  dlep_writer_add_tlv(DLEP_STATUS_TLV, &value, sizeof(value));
+}
+
+void
+dlep_writer_add_optional_signals(void) {
+  uint8_t value[DLEP_SIGNAL_COUNT];
+  size_t i,j;
+
+  for (i=0,j=0; i<DLEP_SIGNAL_COUNT; i++) {
+    if (dlep_bitmap_get(&dlep_supported_optional_signals, i)) {
+      value[j++] = i;
+    }
+  }
+
+  dlep_writer_add_tlv(DLEP_OPTIONAL_SIGNALS_TLV, &value[0], j);
+}
+
+void
+dlep_writer_add_optional_data_items(void) {
+  uint8_t value[DLEP_TLV_COUNT];
+  size_t i,j;
+
+  for (i=0,j=0; i<DLEP_TLV_COUNT; i++) {
+    if (dlep_bitmap_get(&dlep_supported_optional_tlvs, i)) {
+      value[j++] = i;
+    }
+  }
+
+  dlep_writer_add_tlv(DLEP_OPTIONAL_DATA_ITEMS_TLV, &value[0], j);
 }

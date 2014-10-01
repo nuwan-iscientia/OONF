@@ -59,12 +59,15 @@
 static int _init(void);
 static void _cleanup(void);
 
+static void _stream_close(struct oonf_stream_session *session);
 int _apply_managed(struct oonf_stream_managed *managed);
 static int _apply_managed_socket(int af_type, struct oonf_stream_managed *managed,
-    struct oonf_stream_socket *stream);
+    struct oonf_stream_socket *stream, struct oonf_interface_data *data);
 static void _cb_parse_request(int fd, void *data, bool, bool);
 static struct oonf_stream_session *_create_session(
-    struct oonf_stream_socket *stream_socket, int sock, struct netaddr *remote_addr);
+    struct oonf_stream_socket *stream_socket, int sock,
+    const struct netaddr *remote_addr,
+    const union netaddr_socket *remote_socket);
 static void _cb_parse_connection(int fd, void *data, bool r,bool w);
 
 static void _cb_timeout_handler(void *);
@@ -111,7 +114,7 @@ _cleanup(void) {
   struct oonf_stream_socket *comport;
 
   while (!list_is_empty(&oonf_stream_head)) {
-    comport = list_first_element(&oonf_stream_head, comport, node);
+    comport = list_first_element(&oonf_stream_head, comport, _node);
 
     oonf_stream_remove(comport, true);
   }
@@ -131,7 +134,8 @@ oonf_stream_flush(struct oonf_stream_session *con) {
 
 /**
  * Add a new stream socket to the scheduler
- * @param stream_socket pointer to uninitialized stream socket struct
+ * @param stream_socket pointer to stream socket struct with
+ *   initialized config
  * @param local pointer to local ip/port of socket, port must be 0 if
  *   this shall be an outgoing socket
  * @return -1 if an error happened, 0 otherwise
@@ -141,8 +145,6 @@ oonf_stream_add(struct oonf_stream_socket *stream_socket,
     const union netaddr_socket *local) {
   int s = -1;
   struct netaddr_str buf;
-
-  memset(stream_socket, 0, sizeof(*stream_socket));
 
   /* server socket not necessary for outgoing connections */
   if (netaddr_socket_get_port(local) != 0) {
@@ -179,7 +181,7 @@ oonf_stream_add(struct oonf_stream_socket *stream_socket,
   }
 
   list_init_head(&stream_socket->session);
-  list_add_tail(&oonf_stream_head, &stream_socket->node);
+  list_add_tail(&oonf_stream_head, &stream_socket->_node);
 
   return 0;
 
@@ -201,35 +203,45 @@ add_stream_error:
  */
 void
 oonf_stream_remove(struct oonf_stream_socket *stream_socket, bool force) {
-  struct oonf_stream_session *session, *ptr;
-
   if (stream_socket->busy && !force) {
     stream_socket->remove = true;
     return;
   }
 
-  if (!list_is_node_added(&stream_socket->node)) {
+  if (!list_is_node_added(&stream_socket->_node)) {
     return;
   }
 
-  list_for_each_element_safe(&stream_socket->session, session, node, ptr) {
-    if (force || (abuf_getlen(&session->out) == 0 && !session->busy)) {
-      /* close everything that doesn't need to send data anymore */
-      oonf_stream_close(session, force);
-    }
-  }
-
-  if (!list_is_empty(&stream_socket->session)) {
-    return;
-  }
-
-  list_remove(&stream_socket->node);
+  oonf_stream_close_all_sessions(stream_socket);
+  list_remove(&stream_socket->_node);
 
   if (stream_socket->scheduler_entry.fd) {
     /* only for server sockets */
     os_net_close(stream_socket->scheduler_entry.fd);
     oonf_socket_remove(&stream_socket->scheduler_entry);
   }
+}
+
+/**
+ * Closes all client connections of a stream socket, does not close the local
+ * socket itself.
+ * @param stream_socket stream socket
+ */
+void
+oonf_stream_close_all_sessions(struct oonf_stream_socket *stream_socket) {
+  struct oonf_stream_session *session, *ptr;
+
+  if (!list_is_node_added(&stream_socket->_node)) {
+    return;
+  }
+
+  list_for_each_element_safe(&stream_socket->session, session, node, ptr) {
+    if (abuf_getlen(&session->out) == 0 && !session->busy) {
+      /* close everything that doesn't need to send data anymore */
+      oonf_stream_close(session);
+    }
+  }
+  return;
 }
 
 /**
@@ -263,7 +275,7 @@ oonf_stream_connect_to(struct oonf_stream_socket *stream_socket,
   }
 
   netaddr_from_socket(&remote_addr, remote);
-  session = _create_session(stream_socket, s, &remote_addr);
+  session = _create_session(stream_socket, s, &remote_addr, remote);
   if (session) {
     session->wait_for_connect = wait_for_connect;
     return session;
@@ -294,13 +306,134 @@ oonf_stream_set_timeout(struct oonf_stream_session *con, uint64_t timeout) {
  *   false if all data in queue should still be sent
  */
 void
-oonf_stream_close(struct oonf_stream_session *session, bool force) {
-  if (session->busy && !force) {
+oonf_stream_close(struct oonf_stream_session *session) {
+  if (session->busy) {
     /* remove the session later */
     session->removed = true;
     return;
   }
+  _stream_close (session);
+}
 
+/**
+ * Initialized a managed TCP stream
+ * @param managed pointer to initialized managed stream
+ */
+void
+oonf_stream_add_managed(struct oonf_stream_managed *managed) {
+  if (managed->config.allowed_sessions == 0) {
+    managed->config.allowed_sessions = 10;
+  }
+  if (managed->config.maximum_input_buffer == 0) {
+    managed->config.maximum_input_buffer = 65536;
+  }
+  if (managed->config.session_timeout == 0) {
+    managed->config.session_timeout = 120000;
+  }
+
+  managed->_if_listener.process = _cb_interface_listener;
+  managed->_if_listener.name = managed->_managed_config.interface;
+}
+
+/**
+ * Apply a configuration to a stream. Will reset both ACLs
+ * and socket ports/bindings.
+ * @param managed pointer to managed stream
+ * @param config pointer to stream config
+ * @return -1 if an error happened, 0 otherwise.
+ */
+int
+oonf_stream_apply_managed(struct oonf_stream_managed *managed,
+    struct oonf_stream_managed_config *config) {
+  bool if_changed;
+
+  if_changed = strcmp(config->interface, managed->_managed_config.interface) != 0;
+
+  oonf_stream_copy_managed_config(&managed->_managed_config, config);
+
+  /* set back pointers */
+  managed->socket_v4.managed = managed;
+  managed->socket_v6.managed = managed;
+
+  /* handle change in interface listener */
+  if (if_changed) {
+    /* interface changed, remove old listener if necessary */
+    oonf_interface_remove_listener(&managed->_if_listener);
+
+    if (managed->_managed_config.interface[0]) {
+      /* create new interface listener */
+      oonf_interface_add_listener(&managed->_if_listener);
+    }
+  }
+
+  OONF_DEBUG(LOG_STREAM, "Apply changes for managed socket (if %s) with port %d",
+      config->interface == NULL || config->interface[0] == 0 ? "any" : config->interface,
+      config->port);
+
+  return _apply_managed(managed);
+}
+
+/**
+ * Remove a managed TCP stream
+ * @param managed pointer to managed stream
+ * @param force true if socket will be closed immediately,
+ *   false if scheduler should wait until outgoing buffers are empty
+ */
+void
+oonf_stream_remove_managed(struct oonf_stream_managed *managed, bool force) {
+  oonf_interface_remove_listener(&managed->_if_listener);
+
+  oonf_stream_remove(&managed->socket_v4, force);
+  oonf_stream_remove(&managed->socket_v6, force);
+  oonf_interface_remove_listener(&managed->_if_listener);
+  oonf_stream_free_managed_config(&managed->_managed_config);
+}
+
+/**
+ * Closes all connections of a managed socket, but not the socket itself
+ * @param managed managed stream socket
+ */
+void
+oonf_stream_close_all_managed_sessions(struct oonf_stream_managed *managed) {
+  oonf_stream_close_all_sessions(&managed->socket_v4);
+  oonf_stream_close_all_sessions(&managed->socket_v6);
+}
+
+/**
+ * Free dynamically allocated parts of managed stream configuration
+ * @param config packet configuration
+ */
+void
+oonf_stream_free_managed_config(struct oonf_stream_managed_config *config) {
+  netaddr_acl_remove(&config->acl);
+  netaddr_acl_remove(&config->bindto);
+}
+
+/**
+ * copies a stream managed configuration object
+ * @param dst Destination
+ * @param src Source
+ */
+void
+oonf_stream_copy_managed_config(struct oonf_stream_managed_config *dst,
+    struct oonf_stream_managed_config *src) {
+  oonf_stream_free_managed_config(dst);
+
+  memcpy(dst, src, sizeof(*dst));
+
+  memset(&dst->acl, 0, sizeof(dst->acl));
+  netaddr_acl_copy(&dst->acl, &src->acl);
+
+  memset(&dst->bindto, 0, sizeof(dst->bindto));
+  netaddr_acl_copy(&dst->bindto, &src->bindto);
+}
+
+/**
+ * Close a TCP stream
+ * @param session tcp stream session
+ */
+static void
+_stream_close(struct oonf_stream_session *session) {
   if (!list_is_node_added(&session->node)) {
     return;
   }
@@ -324,89 +457,25 @@ oonf_stream_close(struct oonf_stream_session *session, bool force) {
 }
 
 /**
- * Initialized a managed TCP stream
- * @param managed pointer to initialized managed stream
- */
-void
-oonf_stream_add_managed(struct oonf_stream_managed *managed) {
-  if (managed->config.allowed_sessions == 0) {
-    managed->config.allowed_sessions = 10;
-  }
-  if (managed->config.maximum_input_buffer == 0) {
-    managed->config.maximum_input_buffer = 65536;
-  }
-  if (managed->config.session_timeout == 0) {
-    managed->config.session_timeout = 120000;
-  }
-
-  managed->_if_listener.process = _cb_interface_listener;
-  oonf_interface_add_listener(&managed->_if_listener);
-}
-
-/**
- * Apply a configuration to a stream. Will reset both ACLs
- * and socket ports/bindings.
- * @param managed pointer to managed stream
- * @param config pointer to stream config
- * @return -1 if an error happened, 0 otherwise.
- */
-int
-oonf_stream_apply_managed(struct oonf_stream_managed *managed,
-    struct oonf_stream_managed_config *config) {
-  /* copy config */
-  oonf_stream_copy_managed_config(&managed->_managed_config, config);
-
-  return _apply_managed(managed);
-}
-
-/**
- * Remove a managed TCP stream
- * @param managed pointer to managed stream
- * @param force true if socket will be closed immediately,
- *   false if scheduler should wait until outgoing buffers are empty
- */
-void
-oonf_stream_remove_managed(struct oonf_stream_managed *managed, bool force) {
-  oonf_interface_remove_listener(&managed->_if_listener);
-
-  oonf_stream_remove(&managed->socket_v4, force);
-  oonf_stream_remove(&managed->socket_v6, force);
-
-  oonf_stream_free_managed_config(&managed->_managed_config);
-}
-
-/**
- * copies a stream managed configuration object
- * @param dst Destination
- * @param src Source
- */
-void
-oonf_stream_copy_managed_config(struct oonf_stream_managed_config *dst,
-    struct oonf_stream_managed_config *src) {
-  oonf_stream_free_managed_config(dst);
-
-  memcpy(dst, src, sizeof(*dst));
-
-  memset(&dst->acl, 0, sizeof(dst->acl));
-  netaddr_acl_copy(&dst->acl, &src->acl);
-
-  memset(&dst->bindto, 0, sizeof(dst->bindto));
-  netaddr_acl_copy(&dst->bindto, &src->bindto);
-}
-
-/**
  * Apply the stored settings of a managed socket
  * @param managed pointer to managed stream
  * @return -1 if an error happened, 0 otherwise
  */
 int
 _apply_managed(struct oonf_stream_managed *managed) {
-  if (_apply_managed_socket(AF_INET, managed, &managed->socket_v4)) {
+  struct oonf_interface_data *data = NULL;
+
+  /* get interface */
+  if (managed->_if_listener.interface) {
+    data = &managed->_if_listener.interface->data;
+  }
+
+  if (_apply_managed_socket(AF_INET, managed, &managed->socket_v4, data)) {
     return -1;
   }
 
   if (os_net_is_ipv6_supported()) {
-    if (_apply_managed_socket(AF_INET6, managed, &managed->socket_v6)) {
+    if (_apply_managed_socket(AF_INET6, managed, &managed->socket_v6, data)) {
       return -1;
     }
   }
@@ -422,20 +491,31 @@ _apply_managed(struct oonf_stream_managed *managed) {
  */
 static int
 _apply_managed_socket(int af_type, struct oonf_stream_managed *managed,
-    struct oonf_stream_socket *stream) {
+    struct oonf_stream_socket *stream, struct oonf_interface_data *data) {
+  struct netaddr_acl *bind_ip_acl;
+  const struct netaddr *bind_ip;
   union netaddr_socket sock;
-  const struct netaddr *bindto;
   struct netaddr_str buf;
 
-  bindto = oonf_interface_get_bindaddress(
-      af_type, &managed->_managed_config.bindto, NULL);
-  if (!bindto) {
+  bind_ip_acl = &managed->_managed_config.bindto;
+
+  /* Get address the unicast socket should bind on */
+  if (data != NULL && netaddr_get_address_family(data->linklocal_v6_ptr) == af_type &&
+      netaddr_acl_check_accept(bind_ip_acl, data->linklocal_v6_ptr)) {
+
+    bind_ip = data->linklocal_v6_ptr;
+  }
+  else {
+    bind_ip = oonf_interface_get_bindaddress(af_type, bind_ip_acl, data);
+  }
+  if (!bind_ip) {
     oonf_stream_remove(stream, true);
     return 0;
   }
-  if (netaddr_socket_init(&sock, bindto, managed->_managed_config.port, 0)) {
+  if (netaddr_socket_init(&sock, bind_ip, managed->_managed_config.port,
+      data == NULL ? 0 : data->index)) {
     OONF_WARN(LOG_STREAM, "Cannot create managed socket address: %s/%u",
-        netaddr_to_string(&buf, bindto), managed->_managed_config.port);
+        netaddr_to_string(&buf, bind_ip), managed->_managed_config.port);
     return -1;
   }
 
@@ -469,7 +549,7 @@ _apply_managed_socket(int af_type, struct oonf_stream_managed *managed,
 static void
 _cb_parse_request(int fd, void *data, bool event_read,
     bool event_write __attribute__((unused))) {
-  struct oonf_stream_socket *comport;
+  struct oonf_stream_socket *stream;
   union netaddr_socket remote_socket;
   struct netaddr remote_addr;
   socklen_t addrlen;
@@ -482,7 +562,7 @@ _cb_parse_request(int fd, void *data, bool event_read,
     return;
   }
 
-  comport = data;
+  stream = data;
 
   addrlen = sizeof(remote_socket);
   sock = accept(fd, &remote_socket.std, &addrlen);
@@ -492,16 +572,16 @@ _cb_parse_request(int fd, void *data, bool event_read,
   }
 
   netaddr_from_socket(&remote_addr, &remote_socket);
-  if (comport->config.acl) {
-    if (!netaddr_acl_check_accept(comport->config.acl, &remote_addr)) {
+  if (stream->config.acl) {
+    if (!netaddr_acl_check_accept(stream->config.acl, &remote_addr)) {
       OONF_DEBUG(LOG_STREAM, "Access from %s to socket %s blocked because of ACL",
           netaddr_to_string(&buf1, &remote_addr),
-          netaddr_socket_to_string(&buf2, &comport->local_socket));
+          netaddr_socket_to_string(&buf2, &stream->local_socket));
       close(sock);
       return;
     }
   }
-  _create_session(comport, sock, &remote_addr);
+  _create_session(stream, sock, &remote_addr, &remote_socket);
 }
 
 /**
@@ -513,7 +593,8 @@ _cb_parse_request(int fd, void *data, bool event_read,
  */
 static struct oonf_stream_session *
 _create_session(struct oonf_stream_socket *stream_socket,
-    int sock, struct netaddr *remote_addr) {
+    int sock, const struct netaddr *remote_addr,
+    const union netaddr_socket *remote_socket) {
   struct oonf_stream_session *session;
 #ifdef OONF_LOG_DEBUG_INFO
   struct netaddr_str buf;
@@ -552,6 +633,7 @@ _create_session(struct oonf_stream_socket *stream_socket,
   session->comport = stream_socket;
 
   session->remote_address = *remote_addr;
+  session->remote_socket = *remote_socket;
 
   if (stream_socket->config.allowed_sessions-- > 0) {
     /* create active session */
@@ -597,7 +679,7 @@ parse_request_error:
 static void
 _cb_timeout_handler(void *data) {
   struct oonf_stream_session *session = data;
-  oonf_stream_close(session, false);
+  oonf_stream_close(session);
 }
 
 /**
@@ -635,7 +717,8 @@ _cb_parse_connection(int fd, void *data, bool event_read, bool event_write) {
       }
       else if (value != 0) {
         OONF_WARN(LOG_STREAM, "Connection to %s failed: %s (%d)",
-            netaddr_to_string(&buf, &session->remote_address), strerror(value), value);
+            netaddr_socket_to_string(&buf, &session->remote_socket),
+            strerror(value), value);
         session->state = STREAM_SESSION_CLEANUP;
       }
       else {
@@ -725,7 +808,9 @@ _cb_parse_connection(int fd, void *data, bool event_read, bool event_write) {
     OONF_DEBUG(LOG_STREAM, "  cleanup\n");
 
     /* clean up connection by calling cleanup directly */
-    oonf_stream_close(session, session->state == STREAM_SESSION_CLEANUP);
+    _stream_close(session);
+
+    /* session object will not be valid anymore after this point */
   }
 
   /* lazy socket removal */

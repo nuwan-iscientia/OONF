@@ -64,7 +64,7 @@ static int _apply_managed(struct oonf_packet_managed *managed);
 static int _apply_managed_socketpair(int af_type,
     struct oonf_packet_managed *managed,
     struct oonf_interface_data *data, bool *changed,
-    struct oonf_packet_socket *sock, struct netaddr_acl *bind_ip,
+    struct oonf_packet_socket *sock,
     struct oonf_packet_socket *mc_sock, struct netaddr *mc_ip);
 static int _apply_managed_socket(struct oonf_packet_managed *managed,
     struct oonf_packet_socket *stream, const struct netaddr *bindto,
@@ -294,13 +294,7 @@ oonf_packet_apply_managed(struct oonf_packet_managed *managed,
 
   if_changed = strcmp(config->interface, managed->_managed_config.interface) != 0;
 
-  /* copy config */
-  memcpy(&managed->_managed_config, config, sizeof(*config));
-  managed->_if_listener.mesh = config->mesh;
-
-  /* copy acl */
-  memset(&managed->_managed_config.acl, 0, sizeof(managed->_managed_config.acl));
-  netaddr_acl_copy(&managed->_managed_config.acl, &config->acl);
+  oonf_packet_copy_managed_config(&managed->_managed_config, config);
 
   /* handle change in interface listener */
   if (if_changed) {
@@ -418,6 +412,16 @@ oonf_packet_copy_managed_config(struct oonf_packet_managed_config *dst,
 }
 
 /**
+ * Free dynamically allocated parts of managed packet configuration
+ * @param config packet configuration
+ */
+void
+oonf_packet_free_managed_config(struct oonf_packet_managed_config *config) {
+  netaddr_acl_remove(&config->acl);
+  netaddr_acl_remove(&config->bindto);
+}
+
+/**
  * Apply a new configuration to all attached sockets
  * @param managed pointer to managed socket
  * @param config pointer to configuration
@@ -435,14 +439,14 @@ _apply_managed(struct oonf_packet_managed *managed) {
   }
 
   if (_apply_managed_socketpair(AF_INET, managed, data, &changed,
-      &managed->socket_v4, &managed->_managed_config.bindto,
-      &managed->multicast_v4, &managed->_managed_config.multicast_v4)) {
+      &managed->socket_v4, &managed->multicast_v4,
+      &managed->_managed_config.multicast_v4)) {
     result = -1;
   }
 
   if (_apply_managed_socketpair(AF_INET6, managed, data, &changed,
-      &managed->socket_v6, &managed->_managed_config.bindto,
-      &managed->multicast_v6, &managed->_managed_config.multicast_v6)) {
+      &managed->socket_v6, &managed->multicast_v6,
+      &managed->_managed_config.multicast_v6)) {
     result = -1;
   }
 
@@ -465,12 +469,15 @@ _apply_managed(struct oonf_packet_managed *managed) {
 static int
 _apply_managed_socketpair(int af_type, struct oonf_packet_managed *managed,
     struct oonf_interface_data *data, bool *changed,
-    struct oonf_packet_socket *sock, struct netaddr_acl *bind_ip_acl,
+    struct oonf_packet_socket *sock,
     struct oonf_packet_socket *mc_sock, struct netaddr *mc_ip) {
+  struct netaddr_acl *bind_ip_acl;
   int sockstate = 0, result = 0;
   uint16_t mc_port;
   bool real_multicast;
   const struct netaddr *bind_ip;
+
+  bind_ip_acl = &managed->_managed_config.bindto;
 
   /* copy unicast port if necessary */
   mc_port = managed->_managed_config.multicast_port;

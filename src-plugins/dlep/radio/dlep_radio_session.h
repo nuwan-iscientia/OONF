@@ -39,60 +39,49 @@
  *
  */
 
-#ifndef OONF_CFG_H_
-#define OONF_CFG_H_
+#ifndef DLEP_RADIO_SESSION_H_
+#define DLEP_RADIO_SESSION_H_
 
 #include "common/common_types.h"
-#include "common/autobuf.h"
-#include "common/list.h"
-#include "common/netaddr.h"
-#include "config/cfg_schema.h"
+#include "common/avl.h"
 #include "core/oonf_subsystem.h"
+#include "subsystems/oonf_packet_socket.h"
+#include "subsystems/oonf_stream_socket.h"
+#include "subsystems/oonf_timer.h"
 
-struct oonf_config_global {
-  struct strarray plugin;
-  char *plugin_path;
-  char *pidfile;
-  char *lockfile;
-  bool fork;
-  bool failfast;
+#include "dlep/dlep_bitmap.h"
+#include "dlep/radio/dlep_radio_session.h"
+
+struct dlep_radio_session {
+  /* basic content for tcp stream */
+  struct oonf_stream_session stream;
+
+  /* back pointer to interface session */
+  struct dlep_radio_if *interface;
+
+  /* state of the DLEP session */
+  enum dlep_radio_state state;
+
+  /* heartbeat timer */
+  struct oonf_timer_instance heartbeat_timer;
+
+  /* heartbeat timeout */
+  struct oonf_timer_instance heartbeat_timeout;
+
+  /* heartbeat settings from the other side of the session */
+  uint64_t remote_heartbeat_interval;
+
+  /* supported signals of the other side */
+  struct dlep_bitmap supported_signals;
+
+  /* supported tlv data items of the other side */
+  struct dlep_bitmap supported_tlvs;
 };
 
-/* section types for configuration */
-#define CFG_SECTION_GLOBAL   "global"
+EXPORT int dlep_radio_session_init(void);
+EXPORT void dlep_radio_session_cleanup(void);
 
-/* name of parameter in 'global' section to load plugins */
-#define CFG_GLOBAL_PLUGIN    "plugin"
+EXPORT void dlep_radio_session_initialize_tcp_callbacks(
+    struct oonf_stream_config *config);
 
-EXPORT extern struct oonf_subsystem oonf_cfg_subsystem;
-EXPORT extern struct oonf_config_global config_global;
-
-EXPORT int oonf_cfg_init(int argc, char **argv, const char *) __attribute__((warn_unused_result));
-EXPORT void oonf_cfg_cleanup(void);
-EXPORT int oonf_cfg_loadplugins(void) __attribute__((warn_unused_result));
-EXPORT struct oonf_subsystem *oonf_cfg_load_plugin(const char *name);
-EXPORT void oonf_cfg_unconfigure_plugins(void);
-EXPORT void oonf_cfg_initplugins(void);
-EXPORT int oonf_cfg_apply(void) __attribute__((warn_unused_result));
-EXPORT int oonf_cfg_rollback(void);
-EXPORT void oonf_cfg_exit(void);
-EXPORT bool oonf_cfg_is_running(void);
-
-EXPORT void oonf_cfg_trigger_reload(void);
-EXPORT bool oonf_cfg_is_reload_set(void);
-EXPORT void oonf_cfg_trigger_commit(void);
-EXPORT bool oonf_cfg_is_commit_set(void);
-
-EXPORT struct cfg_instance *oonf_cfg_get_instance(void);
-EXPORT struct cfg_db *oonf_cfg_get_db(void);
-EXPORT struct cfg_db *oonf_cfg_get_rawdb(void);
-EXPORT struct cfg_schema *oonf_cfg_get_schema(void);
-
-EXPORT int oonf_cfg_get_argc(void);
-EXPORT const char **oonf_cfg_get_argv(void);
-
-/* do not use this in plugins */
-EXPORT int oonf_cfg_update_globalcfg(bool) __attribute__((warn_unused_result));
-EXPORT int oonf_cfg_clear_rawdb(void) __attribute__((warn_unused_result));
-
-#endif /* OONF_CFG_H_ */
+#endif /* DLEP_RADIO_SESSION_H_ */

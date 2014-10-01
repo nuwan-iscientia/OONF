@@ -318,7 +318,7 @@ int
 netaddr_create_prefix(struct netaddr *prefix, const struct netaddr *host,
     const struct netaddr *netmask, bool truncate) {
   int len, maxlen;
-  if (host->_type != prefix->_type || host->_type == AF_UNSPEC) {
+  if (host->_type != netmask->_type || host->_type == AF_UNSPEC) {
     return -1;
   }
 

@@ -238,7 +238,7 @@ os_net_update_interface(struct oonf_interface_data *ifdata,
         prefix = &ifdata->prefixes[ifdata->prefixcount];
 
         /* get corresponding prefix if possible */
-        if (netaddr_from_socket(&netmask, sock) == 0) {
+        if (!netaddr_from_socket(&netmask, sock)) {
           if (!netaddr_create_prefix(prefix, addr, &netmask, false)) {
             ifdata->prefixcount++;
           }

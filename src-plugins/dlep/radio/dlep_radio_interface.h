@@ -39,29 +39,50 @@
  *
  */
 
-#ifndef DLEP_SIGNAL_H_
-#define DLEP_SIGNAL_H_
+#ifndef DLEP_RADIO_INTERFACE_H_
+#define DLEP_RADIO_INTERFACE_H_
 
 #include "common/common_types.h"
+#include "common/avl.h"
+#include "subsystems/oonf_packet_socket.h"
+#include "subsystems/oonf_stream_socket.h"
+#include "subsystems/oonf_timer.h"
 
-#include "dlep/dlep_iana.h"
+#include "dlep/dlep_bitmap.h"
 
-struct dlep_tlvmap {
-  uint64_t map[256/64];
+enum dlep_radio_state {
+  DLEP_RADIO_DISCOVERY,
+  DLEP_RADIO_CONNECT,
+  DLEP_RADIO_ACTIVE,
 };
 
-EXPORT extern struct dlep_tlvmap dlep_mandatory_tlvs[DLEP_SIGNAL_COUNT];
+struct dlep_radio_if {
+  /* interface name to talk with DLEP router */
+  char name[IF_NAMESIZE];
 
-bool dlep_tlvmap_is_subset(struct dlep_tlvmap *set, struct dlep_tlvmap *subset);
+  /* UDP socket for discovery */
+  struct oonf_packet_managed udp;
+  struct oonf_packet_managed_config udp_config;
 
-static INLINE bool
-dlep_tlvmap_get(struct dlep_tlvmap *map, uint8_t bit) {
-  return ((map->map[bit >> 6]) & (1 << (bit & 63))) != 0;
-}
+  /* TCP client socket for session */
+  struct oonf_stream_managed tcp;
+  struct oonf_stream_managed_config tcp_config;
 
-static INLINE void
-dlep_tlvmap_set(struct dlep_tlvmap *map, uint8_t bit) {
-  map->map[bit >> 6] |= 1 << (bit & 63);
-}
+  /* local timer settings */
+  uint64_t local_heartbeat_interval;
 
-#endif /* DLEP_SIGNAL_H_ */
+  /* heartbeat settings from the other side of the session (from UDP) */
+  uint64_t remote_heartbeat_interval;
+
+  /* hook into session tree, interface name is the key */
+  struct avl_node _node;
+};
+
+EXPORT int dlep_radio_interface_init(void);
+EXPORT void dlep_radio_interface_cleanup(void);
+EXPORT struct dlep_radio_if *dlep_radio_get_interface(const char *ifname);
+EXPORT struct dlep_radio_if *dlep_radio_add_interface(const char *ifname);
+EXPORT void dlep_radio_remove_interface(struct dlep_radio_if *);
+EXPORT void dlep_radio_apply_interface_settings(struct dlep_radio_if *interface);
+
+#endif /* DLEP_RADIO_INTERFACE_H_ */

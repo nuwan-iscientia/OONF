@@ -144,30 +144,35 @@ struct oonf_appdata {
 #define BASEPATH_LENGTH 0
 #endif
 
-#define _OONF_LOG(severity, source, no_header, format, args...) do { if (oonf_log_mask_test(log_global_mask, source, severity)) oonf_log(severity, source, no_header, &__FILE__[BASEPATH_LENGTH], __LINE__, format, ##args); } while(0)
+#define _OONF_LOG(severity, source, no_header, hexptr, hexlen, format, args...) do { if (oonf_log_mask_test(log_global_mask, source, severity)) oonf_log(severity, source, no_header, &__FILE__[BASEPATH_LENGTH], __LINE__, hexptr, hexlen, format, ##args); } while(0)
 
 #ifdef OONF_LOG_DEBUG_INFO
-#define OONF_DEBUG(source, format, args...) _OONF_LOG(LOG_SEVERITY_DEBUG, source, false, format, ##args)
-#define OONF_DEBUG_NH(source, format, args...) _OONF_LOG(LOG_SEVERITY_DEBUG, source, true, format, ##args)
+#define OONF_DEBUG(source, format, args...) _OONF_LOG(LOG_SEVERITY_DEBUG, source, false, NULL, 0, format, ##args)
+#define OONF_DEBUG_NH(source, format, args...) _OONF_LOG(LOG_SEVERITY_DEBUG, source, true, NULL, 0, format, ##args)
+#define OONF_DEBUG_HEX(source, hexptr, hexlen, format, args...) _OONF_LOG(LOG_SEVERITY_DEBUG, source, false, hexptr, hexlen, format, ##args)
 #define OONF_TEST_DEBUG(source) oonf_log_mask_test(log_global_mask, source, LOG_SEVERITY_DEBUG)
 #else
 #define OONF_DEBUG(source, format, args...) do { } while(0)
 #define OONF_DEBUG_NH(source, format, args...) do { } while(0)
+#define OONF_DEBUG_HEX(source, hexptr, hexlen, format, args...) do { } while(0)
 #define OONF_TEST_DEBUG(source) false
 #endif
 
 #ifdef OONF_LOG_INFO
-#define OONF_INFO(source, format, args...) _OONF_LOG(LOG_SEVERITY_INFO, source, false, format, ##args)
-#define OONF_INFO_NH(source, format, args...) _OONF_LOG(LOG_SEVERITY_INFO, source, true, format, ##args)
+#define OONF_INFO(source, format, args...) _OONF_LOG(LOG_SEVERITY_INFO, source, false, NULL, 0, format, ##args)
+#define OONF_INFO_NH(source, format, args...) _OONF_LOG(LOG_SEVERITY_INFO, source, true, NULL, 0, format, ##args)
+#define OONF_INFO_HEX(source, hexptr, hexlen, format, args...) _OONF_LOG(LOG_SEVERITY_INFO, source, false, NULL, 0, format, ##args)
 #define OONF_TEST_INFO(source) oonf_log_mask_test(log_global_mask, source, LOG_SEVERITY_INFO)
 #else
 #define OONF_INFO(source, format, args...) do { } while(0)
 #define OONF_INFO_NH(source, format, args...) do { } while(0)
+#define OONF_INFO_HEX(source, hexptr, hexlen, format, args...) do { } while(0)
 #define OONF_TEST_INFO(source) false
 #endif
 
-#define OONF_WARN(source, format, args...) _OONF_LOG(LOG_SEVERITY_WARN, source, false, format, ##args)
-#define OONF_WARN_NH(source, format, args...) _OONF_LOG(LOG_SEVERITY_WARN, source, true, format, ##args)
+#define OONF_WARN(source, format, args...) _OONF_LOG(LOG_SEVERITY_WARN, source, false, NULL, 0, format, ##args)
+#define OONF_WARN_NH(source, format, args...) _OONF_LOG(LOG_SEVERITY_WARN, source, true, NULL, 0, format, ##args)
+#define OONF_WARN_HEX(source, hexptr, hexlen, format, args...) _OONF_LOG(LOG_SEVERITY_WARN, source, false, NULL, 0, format, ##args)
 
 typedef void log_handler_cb(struct oonf_log_handler_entry *, struct oonf_log_parameters *);
 
@@ -211,8 +216,8 @@ EXPORT void oonf_log_printversion(struct autobuf *abuf);
 
 EXPORT const char *oonf_log_get_walltime(void);
 
-EXPORT void oonf_log(enum oonf_log_severity, enum oonf_log_source, bool, const char *, int, const char *, ...)
-  __attribute__ ((format(printf, 6, 7)));
+EXPORT void oonf_log(enum oonf_log_severity, enum oonf_log_source, bool, const char *, int, const void *, size_t, const char *,  ...)
+  __attribute__ ((format(printf, 8, 9)));
 
 EXPORT void oonf_log_stderr(struct oonf_log_handler_entry *,
     struct oonf_log_parameters *);

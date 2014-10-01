@@ -77,6 +77,9 @@ struct oonf_stream_session {
   /* ip addr of peer (R) */
   struct netaddr remote_address;
 
+  /* full socket (ip, port, maybe interface) of peer (R) */
+  union netaddr_socket remote_socket;
+
   /* output buffer, anything inside will be written to the peer as
    * soon as possible */
   struct autobuf out;
@@ -164,7 +167,7 @@ struct oonf_stream_config {
  * TCP streams.
  */
 struct oonf_stream_socket {
-  struct list_entity node;
+  struct list_entity _node;
 
   union netaddr_socket local_socket;
 
@@ -173,6 +176,9 @@ struct oonf_stream_socket {
   struct oonf_socket_entry scheduler_entry;
 
   struct oonf_stream_config config;
+
+  /* optional back pointer for managed tcp sockets */
+  struct oonf_stream_managed *managed;
 
   bool busy;
   bool remove;
@@ -202,30 +208,23 @@ EXPORT extern struct oonf_subsystem oonf_stream_socket_subsystem;
 EXPORT int oonf_stream_add(struct oonf_stream_socket *,
     const union netaddr_socket *local);
 EXPORT void oonf_stream_remove(struct oonf_stream_socket *, bool force);
+EXPORT void oonf_stream_close_all_sessions(struct oonf_stream_socket *stream_socket);
 EXPORT struct oonf_stream_session *oonf_stream_connect_to(
     struct oonf_stream_socket *, const union netaddr_socket *remote);
 EXPORT void oonf_stream_flush(struct oonf_stream_session *con);
 
 EXPORT void oonf_stream_set_timeout(
     struct oonf_stream_session *con, uint64_t timeout);
-EXPORT void oonf_stream_close(struct oonf_stream_session *con, bool force);
+EXPORT void oonf_stream_close(struct oonf_stream_session *con);
 
 EXPORT void oonf_stream_add_managed(struct oonf_stream_managed *);
 EXPORT int oonf_stream_apply_managed(struct oonf_stream_managed *,
     struct oonf_stream_managed_config *);
 EXPORT void oonf_stream_remove_managed(struct oonf_stream_managed *, bool force);
-
-EXPORT void oonf_stream_copy_managed_config(
-    struct oonf_stream_managed_config *dst,
+EXPORT void oonf_stream_close_all_managed_sessions(
+    struct oonf_stream_managed *managed);
+EXPORT void oonf_stream_copy_managed_config(struct oonf_stream_managed_config *dst,
     struct oonf_stream_managed_config *src);
-/**
- * Free dynamically allocated parts of managed stream configuration
- * @param config packet configuration
- */
-static INLINE void
-oonf_stream_free_managed_config(struct oonf_stream_managed_config *config) {
-  netaddr_acl_remove(&config->acl);
-  netaddr_acl_remove(&config->bindto);
-}
+EXPORT void oonf_stream_free_managed_config(struct oonf_stream_managed_config *config);
 
 #endif /* OONF_STREAM_SOCKET_H_ */
