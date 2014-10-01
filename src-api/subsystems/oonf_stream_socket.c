@@ -500,7 +500,10 @@ _apply_managed_socket(int af_type, struct oonf_stream_managed *managed,
   bind_ip_acl = &managed->_managed_config.bindto;
 
   /* Get address the unicast socket should bind on */
-  if (data != NULL && netaddr_get_address_family(data->linklocal_v6_ptr) == af_type &&
+  if (data != NULL && !data->up) {
+    bind_ip = NULL;
+  }
+  else if (data != NULL && netaddr_get_address_family(data->linklocal_v6_ptr) == af_type &&
       netaddr_acl_check_accept(bind_ip_acl, data->linklocal_v6_ptr)) {
 
     bind_ip = data->linklocal_v6_ptr;
