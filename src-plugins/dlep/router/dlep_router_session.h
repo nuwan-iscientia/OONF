@@ -17,7 +17,7 @@
 #include "dlep/dlep_bitmap.h"
 #include "dlep/router/dlep_router_interface.h"
 
-struct dlep_router_stream {
+struct dlep_router_session {
   /* remote socket of radio */
   union netaddr_socket remote_socket;
 
@@ -25,7 +25,7 @@ struct dlep_router_stream {
   struct oonf_stream_socket tcp;
 
   /* tcp stream session */
-  struct oonf_stream_session *session;
+  struct oonf_stream_session *stream;
 
   /* back pointer to interface session */
   struct dlep_router_if *interface;
@@ -52,13 +52,13 @@ struct dlep_router_stream {
 EXPORT int dlep_router_session_init(void);
 EXPORT void dlep_router_session_cleanup(void);
 
-EXPORT struct dlep_router_stream *dlep_router_get_session(
+EXPORT struct dlep_router_session *dlep_router_get_session(
     struct dlep_router_if *interf, union netaddr_socket *remote);
-EXPORT struct dlep_router_stream *dlep_router_add_session(
+EXPORT struct dlep_router_session *dlep_router_add_session(
     struct dlep_router_if *interf,
     union netaddr_socket *local, union netaddr_socket *remote);
-EXPORT void dlep_router_remove_session(struct dlep_router_stream *);
+EXPORT void dlep_router_remove_session(struct dlep_router_session *);
 
-EXPORT int dlep_router_send_peer_initialization(struct dlep_router_stream *);
+EXPORT int dlep_router_send_peer_initialization(struct dlep_router_session *);
 
 #endif /* DLEP_ROUTER_SESSION_H_ */

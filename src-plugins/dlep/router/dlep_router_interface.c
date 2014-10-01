@@ -145,7 +145,7 @@ dlep_router_apply_interface_settings(struct dlep_router_if *interf) {
 
 static void
 _cleanup_interface(struct dlep_router_if *interface) {
-  struct dlep_router_stream *stream, *it;
+  struct dlep_router_session *stream, *it;
 
   /* close TCP connection and socket */
   avl_for_each_element_safe(&interface->stream_tree, stream, _node, it) {

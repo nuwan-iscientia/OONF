@@ -29,7 +29,7 @@
 #include "dlep/router/dlep_router_interface.h"
 #include "dlep/router/dlep_router_session.h"
 
-static int _send_peer_initialization(struct dlep_router_stream *session);
+static int _send_peer_initialization(struct dlep_router_session *session);
 
 static void _cb_tcp_lost(struct oonf_stream_session *);
 static enum oonf_stream_session_state _cb_tcp_receive_data(struct oonf_stream_session *);
@@ -37,13 +37,13 @@ static enum oonf_stream_session_state _cb_tcp_receive_data(struct oonf_stream_se
 static void _cb_send_heartbeat(void *);
 static void _cb_heartbeat_timeout(void *);
 
-static int _handle_peer_initialization_ack(struct dlep_router_stream *stream,
+static int _handle_peer_initialization_ack(struct dlep_router_session *stream,
     void *ptr, struct dlep_parser_index *idx);
 
 /* session objects */
 static struct oonf_class _router_stream_class = {
   .name = "DLEP router stream",
-  .size = sizeof(struct dlep_router_stream),
+  .size = sizeof(struct dlep_router_session),
 };
 
 static struct oonf_timer_class _heartbeat_timer_class = {
@@ -73,18 +73,18 @@ dlep_router_session_cleanup(void) {
   oonf_class_remove(&_router_stream_class);
 }
 
-struct dlep_router_stream *
+struct dlep_router_session *
 dlep_router_get_session(struct dlep_router_if *interf,
     union netaddr_socket *remote) {
-  struct dlep_router_stream *session;
+  struct dlep_router_session *session;
 
   return avl_find_element(&interf->stream_tree, remote, session, _node);
 }
 
-struct dlep_router_stream *
+struct dlep_router_session *
 dlep_router_add_session(struct dlep_router_if *interf,
     union netaddr_socket *local, union netaddr_socket *remote) {
-  struct dlep_router_stream *session;
+  struct dlep_router_session *session;
   struct netaddr_str nbuf1, nbuf2;
 
   session = dlep_router_get_session(interf, remote);
@@ -117,8 +117,8 @@ dlep_router_add_session(struct dlep_router_if *interf,
     return NULL;
   }
 
-  session->session = oonf_stream_connect_to(&session->tcp, remote);
-  if (session->session) {
+  session->stream = oonf_stream_connect_to(&session->tcp, remote);
+  if (!session->stream) {
     OONF_WARN(LOG_DLEP_ROUTER,
         "Could not open TCP client on %s for %s to %s",
         interf->name,
@@ -145,6 +145,8 @@ dlep_router_add_session(struct dlep_router_if *interf,
   session->heartbeat_timeout.class = &_heartbeat_timeout_class;
 
   if (_send_peer_initialization(session)) {
+    OONF_WARN(LOG_DLEP_ROUTER, "Could not send peer initialization to %s",
+        netaddr_socket_to_string(&nbuf1, remote));
     oonf_stream_remove(&session->tcp, true);
     oonf_class_free(&_router_stream_class, session);
     return NULL;
@@ -165,8 +167,8 @@ dlep_router_add_session(struct dlep_router_if *interf,
 }
 
 void
-dlep_router_remove_session(struct dlep_router_stream *stream) {
-  oonf_stream_close(stream->session);
+dlep_router_remove_session(struct dlep_router_session *stream) {
+  oonf_stream_close(stream->stream);
   oonf_stream_remove(&stream->tcp, true);
 
   oonf_timer_stop(&stream->heartbeat_timeout);
@@ -177,7 +179,7 @@ dlep_router_remove_session(struct dlep_router_stream *stream) {
 }
 
 static int
-_send_peer_initialization(struct dlep_router_stream *session) {
+_send_peer_initialization(struct dlep_router_session *session) {
   /* create Peer Initialization */
   OONF_INFO(LOG_DLEP_ROUTER, "Send Peer Initialization");
 
@@ -193,17 +195,19 @@ _send_peer_initialization(struct dlep_router_stream *session) {
     return -1;
   }
 
-  dlep_writer_send_tcp_unicast(session->session, &dlep_mandatory_signals);
+  dlep_writer_send_tcp_unicast(session->stream, &dlep_mandatory_signals);
   return 0;
 }
 
 static enum oonf_stream_session_state
 _cb_tcp_receive_data(struct oonf_stream_session *tcp_session) {
-  struct dlep_router_stream *stream = (struct dlep_router_stream *)tcp_session;
+  struct dlep_router_session *stream;
   struct dlep_parser_index idx;
   uint16_t siglen;
   int signal, result;
   struct netaddr_str nbuf;
+
+  stream = container_of(tcp_session->comport, struct dlep_router_session, tcp);
 
   if ((signal = dlep_parser_read(&idx, abuf_getptr(&tcp_session->in),
       abuf_getlen(&tcp_session->in), &siglen)) < 0) {
@@ -245,9 +249,9 @@ _cb_tcp_receive_data(struct oonf_stream_session *tcp_session) {
 
 static void
 _cb_tcp_lost(struct oonf_stream_session *tcp_stream) {
-  struct dlep_router_stream *stream;
+  struct dlep_router_session *stream;
 
-  stream = container_of(tcp_stream->comport, struct dlep_router_stream, tcp);
+  stream = container_of(tcp_stream->comport, struct dlep_router_session, tcp);
 
   OONF_DEBUG(LOG_DLEP_ROUTER, "tcp lost");
 
@@ -260,7 +264,7 @@ _cb_tcp_lost(struct oonf_stream_session *tcp_stream) {
 
 static void
 _cb_send_heartbeat(void *ptr) {
-  struct dlep_router_stream *stream = ptr;
+  struct dlep_router_session *stream = ptr;
 
   OONF_DEBUG(LOG_DLEP_ROUTER, "Send Heartbeat (%"PRIu64")",
       stream->interface->local_heartbeat_interval);
@@ -271,12 +275,12 @@ _cb_send_heartbeat(void *ptr) {
     return;
   }
 
-  dlep_writer_send_tcp_unicast(stream->session, &stream->supported_signals);
+  dlep_writer_send_tcp_unicast(stream->stream, &stream->supported_signals);
 }
 
 static void
 _cb_heartbeat_timeout(void *ptr) {
-  struct dlep_router_stream *stream = ptr;
+  struct dlep_router_session *stream = ptr;
 
   OONF_DEBUG(LOG_DLEP_ROUTER, "Heartbeat timeout");
 
@@ -295,7 +299,7 @@ _cb_heartbeat_timeout(void *ptr) {
 }
 
 static int
-_handle_peer_initialization_ack(struct dlep_router_stream *stream,
+_handle_peer_initialization_ack(struct dlep_router_session *stream,
     void *ptr, struct dlep_parser_index *idx) {
   uint8_t *buffer;
   char peer[256];
