@@ -368,7 +368,7 @@ _print_hexline(struct autobuf *out, const void *buffer, size_t length) {
 
   abuf_puts(out, " ");
   for (i = 0; i < length; i++) {
-    if (str_char_is_printable(buf[i])) {
+    if (buf[i] >= 32 && buf[i] < 127) {
       abuf_appendf(out, "%c", buf[i]);
     }
     else {
