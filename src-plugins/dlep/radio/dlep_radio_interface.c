@@ -62,9 +62,11 @@ static void _cb_receive_udp(struct oonf_packet_socket *,
 static void _handle_peer_discovery(struct dlep_radio_if *interface,
     union netaddr_socket *dst, uint8_t *buffer, struct dlep_parser_index *idx);
 
+static void _generate_peer_offer(
+    struct dlep_radio_if *interface, union netaddr_socket *dst);
 
 /* DLEP interfaces */
-static struct avl_tree _interface_tree;
+struct avl_tree dlep_radio_if_tree;
 
 static struct oonf_class _interface_class = {
   .name = "DLEP radio session",
@@ -80,7 +82,7 @@ static bool _shutting_down;
 void
 dlep_radio_interface_init(void) {
   oonf_class_add(&_interface_class);
-  avl_init(&_interface_tree, avl_comp_strcasecmp, false);
+  avl_init(&dlep_radio_if_tree, avl_comp_strcasecmp, false);
 
   dlep_radio_session_init();
   _shutting_down = false;
@@ -94,7 +96,7 @@ void
 dlep_radio_interface_cleanup(void) {
   struct dlep_radio_if *interf, *it;
 
-  avl_for_each_element_safe(&_interface_tree, interf, _node, it) {
+  avl_for_each_element_safe(&dlep_radio_if_tree, interf, _node, it) {
     dlep_radio_remove_interface(interf);
   }
 
@@ -111,7 +113,7 @@ struct dlep_radio_if *
 dlep_radio_get_interface(const char *ifname) {
   struct dlep_radio_if *interf;
 
-  return avl_find_element(&_interface_tree, ifname, interf, name);
+  return avl_find_element(&dlep_radio_if_tree, ifname, interf, name);
 }
 
 /**
@@ -139,7 +141,7 @@ dlep_radio_add_interface(const char *ifname) {
   interface->_node.key = interface->name;
 
   /* add to global tree of sessions */
-  avl_insert(&_interface_tree, &interface->_node);
+  avl_insert(&dlep_radio_if_tree, &interface->_node);
 
   /* initialize session tree */
   avl_init(&interface->session_tree, avl_comp_netaddr_socket, false);
@@ -173,7 +175,7 @@ dlep_radio_remove_interface(struct dlep_radio_if *interface) {
   oonf_stream_remove_managed(&interface->tcp, true);
 
   /* remove tcp */
-  avl_remove(&_interface_tree, &interface->_node);
+  avl_remove(&dlep_radio_if_tree, &interface->_node);
   oonf_class_free(&_interface_class, interface);
 }
 
@@ -197,7 +199,7 @@ dlep_radio_terminate_all_sessions(void) {
 
   _shutting_down = true;
 
-  avl_for_each_element(&_interface_tree, interf, _node) {
+  avl_for_each_element(&dlep_radio_if_tree, interf, _node) {
     avl_for_each_element(&interf->session_tree, session, _node) {
       dlep_radio_terminate_session(session);
     }
@@ -257,8 +259,7 @@ _cb_receive_udp(struct oonf_packet_socket *pkt,
 static void
 _handle_peer_discovery(struct dlep_radio_if *interface,
     union netaddr_socket *dst, uint8_t *buffer, struct dlep_parser_index *idx) {
-  struct netaddr addr;
-  int pos, ipv4, ipv6;
+  int pos;
   struct netaddr_str nbuf;
 
   /* get heartbeat interval */
@@ -272,6 +273,14 @@ _handle_peer_discovery(struct dlep_radio_if *interface,
   /* create Peer Offer */
   OONF_INFO(LOG_DLEP_RADIO, "Send UDP Peer Offer to %s",
       netaddr_socket_to_string(&nbuf, dst));
+
+  _generate_peer_offer(interface, dst);
+}
+
+static void
+_generate_peer_offer(struct dlep_radio_if *interface, union netaddr_socket *dst) {
+  struct netaddr addr;
+  int ipv4, ipv6;
 
   dlep_writer_start_signal(DLEP_PEER_OFFER, &dlep_mandatory_tlvs);
   dlep_writer_add_heartbeat_tlv(interface->local_heartbeat_interval);

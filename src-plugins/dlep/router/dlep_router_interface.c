@@ -70,6 +70,8 @@ static void _cb_receive_udp(struct oonf_packet_socket *,
 static void _handle_peer_offer(struct dlep_router_if *interface,
     uint8_t *buffer, size_t length, struct dlep_parser_index *idx);
 
+static void _generate_peer_discovery(struct dlep_router_if *interface);
+
 static struct avl_tree _interface_tree;
 
 static struct oonf_class _router_if_class = {
@@ -254,16 +256,7 @@ _cb_send_discovery(void *ptr) {
   }
 
   OONF_INFO(LOG_DLEP_ROUTER, "Send UDP Peer Discovery");
-
-  dlep_writer_start_signal(DLEP_PEER_DISCOVERY, &dlep_mandatory_tlvs);
-  dlep_writer_add_heartbeat_tlv(interface->local_heartbeat_interval);
-
-  if (dlep_writer_finish_signal(LOG_DLEP_ROUTER)) {
-    return;
-  }
-
-  dlep_writer_send_udp_multicast(
-      &interface->udp, &dlep_mandatory_signals, LOG_DLEP_ROUTER);
+  _generate_peer_discovery(interface);
 }
 
 /**
@@ -446,4 +439,17 @@ _handle_peer_offer(struct dlep_router_if *interface,
   }
 
   dlep_router_add_session(interface, &local_socket, &remote_socket);
+}
+
+static void
+_generate_peer_discovery(struct dlep_router_if *interface) {
+  dlep_writer_start_signal(DLEP_PEER_DISCOVERY, &dlep_mandatory_tlvs);
+  dlep_writer_add_heartbeat_tlv(interface->local_heartbeat_interval);
+
+  if (dlep_writer_finish_signal(LOG_DLEP_ROUTER)) {
+    return;
+  }
+
+  dlep_writer_send_udp_multicast(
+      &interface->udp, &dlep_mandatory_signals, LOG_DLEP_ROUTER);
 }

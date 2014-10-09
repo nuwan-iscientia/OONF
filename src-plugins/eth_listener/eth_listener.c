@@ -168,16 +168,11 @@ _cb_transmission_event(void *ptr __attribute((unused))) {
     }
 
     /* layer-2 object for this interface */
-    l2net = oonf_layer2_net_get(&interf->data.mac);
+    l2net = oonf_layer2_net_add(interf->data.name);
     if (l2net == NULL) {
-      l2net = oonf_layer2_net_add(&interf->data.mac);
-      if (l2net == NULL) {
-        continue;
-      }
-
-      /* copy interface static values */
-      l2net->if_index = interf->data.index;
-      strscpy(l2net->if_name, interf->data.name, sizeof(l2net->if_name));
+      continue;
+    }
+    if (l2net->if_type == OONF_LAYER2_TYPE_UNDEFINED) {
       l2net->if_type = OONF_LAYER2_TYPE_ETHERNET;
     }
 

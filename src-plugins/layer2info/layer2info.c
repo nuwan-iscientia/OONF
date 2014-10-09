@@ -294,11 +294,14 @@ _cb_layer2info_help(struct oonf_telnet_data *con) {
  */
 static void
 _initialize_interface_values(struct oonf_layer2_net *net) {
-  strscpy(_value_if, net->if_name, sizeof(_value_if));
-  snprintf(_value_if_index, sizeof(_value_if_index), "%u", net->if_index);
+  struct oonf_interface_data *data;
+
+  data = &net->if_listener.interface->data;
+
+  strscpy(_value_if, net->name, sizeof(_value_if));
+  snprintf(_value_if_index, sizeof(_value_if_index), "%u", data->index);
   strscpy(_value_if_ident, net->if_ident, sizeof(_value_if_ident));
-  netaddr_to_string(&_value_if_ident_addr, &net->if_idaddr);
-  netaddr_to_string(&_value_if_local_addr, &net->addr);
+  netaddr_to_string(&_value_if_local_addr, &data->mac);
 
   if (net->last_seen) {
     oonf_clock_toIntervalString(&_value_if_lastseen,

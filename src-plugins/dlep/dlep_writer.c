@@ -178,6 +178,20 @@ dlep_writer_add_heartbeat_tlv(uint64_t interval) {
 }
 
 int
+dlep_writer_add_mac_tlv(struct netaddr *mac) {
+  uint8_t value[6];
+
+  if (netaddr_get_address_family(mac) != AF_MAC48) {
+    return -1;
+  }
+
+  netaddr_to_binary(value, mac, 6);
+
+  dlep_writer_add_tlv(DLEP_MAC_ADDRESS_TLV, value, sizeof(value));
+  return 0;
+}
+
+int
 dlep_writer_add_ipv4_tlv(struct netaddr *ipv4, bool add) {
   uint8_t value[5];
 

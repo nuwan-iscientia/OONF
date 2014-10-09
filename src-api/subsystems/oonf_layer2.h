@@ -45,6 +45,7 @@
 #include "common/avl.h"
 #include "common/common_types.h"
 #include "core/oonf_subsystem.h"
+#include "subsystems/oonf_interface.h"
 #include "subsystems/oonf_timer.h"
 
 #define LAYER2_CLASS_NEIGHBOR  "layer2_neighbor"
@@ -82,6 +83,7 @@ enum oonf_layer2_network_type {
   OONF_LAYER2_TYPE_WIRELESS,
   OONF_LAYER2_TYPE_ETHERNET,
   OONF_LAYER2_TYPE_TUNNEL,
+  OONF_LAYER2_TYPE_DLEP,
 
   OONF_LAYER2_TYPE_COUNT,
 };
@@ -90,6 +92,8 @@ enum oonf_layer2_neighbor_index {
   OONF_LAYER2_NEIGH_SIGNAL,
   OONF_LAYER2_NEIGH_TX_BITRATE,
   OONF_LAYER2_NEIGH_RX_BITRATE,
+  OONF_LAYER2_NEIGH_TX_MAX_BITRATE,
+  OONF_LAYER2_NEIGH_RX_MAX_BITRATE,
   OONF_LAYER2_NEIGH_TX_BYTES,
   OONF_LAYER2_NEIGH_RX_BYTES,
   OONF_LAYER2_NEIGH_TX_FRAMES,
@@ -102,14 +106,12 @@ enum oonf_layer2_neighbor_index {
 };
 
 struct oonf_layer2_net {
-  struct avl_node _node;
-  struct netaddr addr;
-
-  int  if_index;
-  char if_name[IF_NAMESIZE];
+  char name[IF_NAMESIZE];
   char if_ident[64];
+
+  struct oonf_interface_listener if_listener;
+
   enum oonf_layer2_network_type if_type;
-  struct netaddr if_idaddr;
 
   struct avl_tree neighbors;
 
@@ -117,6 +119,8 @@ struct oonf_layer2_net {
 
   struct oonf_layer2_data data[OONF_LAYER2_NET_COUNT];
   struct oonf_layer2_data neighdata[OONF_LAYER2_NEIGH_COUNT];
+
+  struct avl_node _node;
 };
 
 struct oonf_layer2_neigh {
@@ -150,7 +154,7 @@ EXPORT extern struct avl_tree oonf_layer2_net_tree;
 EXPORT uint32_t oonf_layer2_register_origin(void);
 EXPORT void oonf_layer2_cleanup_origin(uint32_t);
 
-EXPORT struct oonf_layer2_net *oonf_layer2_net_add(struct netaddr *);
+EXPORT struct oonf_layer2_net *oonf_layer2_net_add(const char *ifname);
 EXPORT void oonf_layer2_net_remove(
     struct oonf_layer2_net *, uint32_t origin);
 EXPORT void oonf_layer2_net_cleanup(
@@ -161,21 +165,26 @@ EXPORT struct oonf_layer2_neigh *oonf_layer2_neigh_add(
     struct oonf_layer2_net *, struct netaddr *l2neigh);
 EXPORT void oonf_layer2_neigh_remove(
     struct oonf_layer2_neigh *l2neigh, uint32_t origin, bool commit);
+EXPORT void oonf_layer2_neigh_cleanup(
+    struct oonf_layer2_neigh *l2net, uint32_t origin, bool commit);
+
 EXPORT bool oonf_layer2_neigh_commit(struct oonf_layer2_neigh *l2neigh);
 
 EXPORT const struct oonf_layer2_data *oonf_layer2_neigh_query(
-    const struct netaddr *l2net, const struct netaddr *l2neigh,
+    const char *ifname, const struct netaddr *l2neigh,
     enum oonf_layer2_neighbor_index idx);
+EXPORT const struct oonf_layer2_data *oonf_layer2_neigh_get_value(
+    struct oonf_layer2_neigh *l2neigh, enum oonf_layer2_neighbor_index idx);
 
 /**
- * Get a layer-2 addr object from the database
- * @param addr local mac address of addr
+ * Get a layer-2 interface object from the database
+ * @param ifname name of interface
  * @return layer-2 addr object, NULL if not found
  */
 static INLINE struct oonf_layer2_net *
-oonf_layer2_net_get(const struct netaddr *addr) {
+oonf_layer2_net_get(const char *ifname) {
   struct oonf_layer2_net *l2net;
-  return avl_find_element(&oonf_layer2_net_tree, addr, l2net, _node);
+  return avl_find_element(&oonf_layer2_net_tree, ifname, l2net, _node);
 }
 
 /**

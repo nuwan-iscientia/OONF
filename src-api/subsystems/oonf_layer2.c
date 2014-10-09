@@ -52,7 +52,8 @@
 static int _init(void);
 static void _cleanup(void);
 
-static bool _commit(struct oonf_layer2_net *l2net, bool commit_change);
+static bool _commit_net(struct oonf_layer2_net *l2net, bool commit_change);
+static bool _commit_neigh(struct oonf_layer2_neigh *l2neigh, bool commit_change);
 static void _net_remove(struct oonf_layer2_net *l2net);
 static void _neigh_remove(struct oonf_layer2_neigh *l2neigh);
 
@@ -86,6 +87,7 @@ const char *oonf_layer2_network_type[OONF_LAYER2_TYPE_COUNT] = {
   [OONF_LAYER2_TYPE_WIRELESS]  = "wireless",
   [OONF_LAYER2_TYPE_ETHERNET]  = "ethernet",
   [OONF_LAYER2_TYPE_TUNNEL]    = "tunnel",
+  [OONF_LAYER2_TYPE_DLEP]      = "dlep",
 };
 
 /* infrastructure for l2net/l2neigh tree */
@@ -111,7 +113,7 @@ _init(void) {
   oonf_class_add(&_l2network_class);
   oonf_class_add(&_l2neighbor_class);
 
-  avl_init(&oonf_layer2_net_tree, avl_comp_netaddr, false);
+  avl_init(&oonf_layer2_net_tree, avl_comp_strcasecmp, false);
   return 0;
 }
 
@@ -154,15 +156,15 @@ oonf_layer2_cleanup_origin(uint32_t origin) {
 }
 
 /**
- * Add a layer-2 addr to the database
- * @param addr local mac address of addr
- * @return layer-2 addr object
+ * Add a layer-2 network to the database
+ * @param ifname name of interface
+ * @return layer-2 network object
  */
 struct oonf_layer2_net *
-oonf_layer2_net_add(struct netaddr *network) {
+oonf_layer2_net_add(const char *ifname) {
   struct oonf_layer2_net *l2net;
 
-  l2net = avl_find_element(&oonf_layer2_net_tree, network, l2net, _node);
+  l2net = avl_find_element(&oonf_layer2_net_tree, ifname, l2net, _node);
   if (l2net) {
     return l2net;
   }
@@ -172,11 +174,19 @@ oonf_layer2_net_add(struct netaddr *network) {
     return NULL;
   }
 
-  memcpy(&l2net->addr, network, sizeof(*network));
-  l2net->_node.key = &l2net->addr;
+  /* initialize key */
+  strscpy(l2net->name, ifname, sizeof(l2net->name));
+
+  /* add to global l2net tree */
+  l2net->_node.key = l2net->name;
   avl_insert(&oonf_layer2_net_tree, &l2net->_node);
 
+  /* initialize tree of neighbors */
   avl_init(&l2net->neighbors, avl_comp_netaddr, false);
+
+  /* initialize interface listener */
+  l2net->if_listener.name = l2net->name;
+  oonf_interface_add_listener(&l2net->if_listener);
 
   oonf_class_event(&_l2network_class, l2net, OONF_OBJECT_ADDED);
 
@@ -192,17 +202,25 @@ oonf_layer2_net_add(struct netaddr *network) {
  */
 void
 oonf_layer2_net_cleanup(struct oonf_layer2_net *l2net, uint32_t origin, bool commit) {
+  struct oonf_layer2_neigh *l2neigh, *l2neigh_it;
   int i;
+
+  avl_for_each_element_safe(&l2net->neighbors, l2neigh, _node, l2neigh_it) {
+    oonf_layer2_neigh_cleanup(l2neigh, origin, commit);
+  }
 
   for (i=0; i<OONF_LAYER2_NET_COUNT; i++) {
     if (l2net->data[i]._origin == origin) {
       oonf_layer2_reset_value(&l2net->data[i]);
     }
   }
-
-  if (commit) {
-	_commit(l2net, false);
+  for (i=0; i<OONF_LAYER2_NEIGH_COUNT; i++) {
+    if (l2net->neighdata[i]._origin == origin) {
+      oonf_layer2_reset_value(&l2net->neighdata[i]);
+    }
   }
+
+  _commit_net(l2net, commit);
 }
 
 
@@ -231,7 +249,7 @@ oonf_layer2_net_remove(struct oonf_layer2_net *l2net, uint32_t origin) {
  */
 bool
 oonf_layer2_net_commit(struct oonf_layer2_net *l2net) {
-  return _commit(l2net, true);
+  return _commit_net(l2net, true);
 }
 
 /**
@@ -293,6 +311,20 @@ oonf_layer2_neigh_remove(struct oonf_layer2_neigh *l2neigh, uint32_t origin, boo
   }
 }
 
+void
+oonf_layer2_neigh_cleanup(struct oonf_layer2_neigh *l2neigh,
+    uint32_t origin, bool commit) {
+  int i;
+
+  for (i=0; i<OONF_LAYER2_NEIGH_COUNT; i++) {
+    if (l2neigh->data[i]._origin == origin) {
+      oonf_layer2_reset_value(&l2neigh->data[i]);
+    }
+  }
+
+  _commit_neigh(l2neigh, commit);
+}
+
 /**
  * Commit all changes to a layer-2 neighbor object. This might remove the
  * object from the database if all data has been removed from the object.
@@ -316,20 +348,20 @@ oonf_layer2_neigh_commit(struct oonf_layer2_neigh *l2neigh) {
 
 /**
  * Get neighbor specific data, either from neighbor or from the networks default
- * @param l2net_addr network mac address
+ * @param ifname name of interface
  * @param l2neigh_addr neighbor mac address
  * @param idx data index
  * @return pointer to linklayer data, NULL if no value available
  */
 const struct oonf_layer2_data *
-oonf_layer2_neigh_query(const struct netaddr *l2net_addr,
+oonf_layer2_neigh_query(const char *ifname,
     const struct netaddr *l2neigh_addr, enum oonf_layer2_neighbor_index idx) {
   struct oonf_layer2_net *l2net;
   struct oonf_layer2_neigh *l2neigh;
   struct oonf_layer2_data *data;
 
   /* query layer2 database about neighbor */
-  l2net = oonf_layer2_net_get(l2net_addr);
+  l2net = oonf_layer2_net_get(ifname);
   if (l2net == NULL) {
     return NULL;
   }
@@ -352,6 +384,30 @@ oonf_layer2_neigh_query(const struct netaddr *l2net_addr,
 }
 
 /**
+ * Get neighbor specific data, either from neighbor or from the networks default
+ * @param l2neigh pointer to layer2 neighbor
+ * @param idx data index
+ * @return pointer to linklayer data, NULL if no value available
+ */
+const struct oonf_layer2_data *
+oonf_layer2_neigh_get_value(struct oonf_layer2_neigh *l2neigh,
+    enum oonf_layer2_neighbor_index idx) {
+  struct oonf_layer2_data *data;
+
+  data = &l2neigh->data[idx];
+  if (oonf_layer2_has_value(data)) {
+    return data;
+  }
+
+  /* look for network specific default */
+  data = &l2neigh->network->neighdata[idx];
+  if (oonf_layer2_has_value(data)) {
+    return data;
+  }
+  return NULL;
+}
+
+/**
  * Commit all changes to a layer-2 addr object. This might remove the
  * object from the database if all data has been removed from the object.
  * @param l2net layer-2 addr object
@@ -359,7 +415,7 @@ oonf_layer2_neigh_query(const struct netaddr *l2net_addr,
  * @return true if the object has been removed, false otherwise
  */
 static bool
-_commit(struct oonf_layer2_net *l2net, bool commit_change) {
+_commit_net(struct oonf_layer2_net *l2net, bool commit_change) {
   size_t i;
 
   if (l2net->neighbors.count > 0) {
@@ -376,9 +432,43 @@ _commit(struct oonf_layer2_net *l2net, bool commit_change) {
     }
   }
 
+  for (i=0; i<OONF_LAYER2_NEIGH_COUNT; i++) {
+    if (oonf_layer2_has_value(&l2net->neighdata[i])) {
+      if (commit_change) {
+        oonf_class_event(&_l2network_class, l2net, OONF_OBJECT_CHANGED);
+      }
+      return false;
+    }
+  }
+
   _net_remove(l2net);
   return true;
 }
+
+/**
+ * Commit all changes to a layer-2 neighbor object. This might remove the
+ * object from the database if all data has been removed from the object.
+ * @param l2net layer-2 neighbor object
+ * @param commit_change true if function shall trigger change events
+ * @return true if the object has been removed, false otherwise
+ */
+static bool
+_commit_neigh(struct oonf_layer2_neigh *l2neigh, bool commit_change) {
+  size_t i;
+
+  for (i=0; i<OONF_LAYER2_NEIGH_COUNT; i++) {
+    if (oonf_layer2_has_value(&l2neigh->data[i])) {
+      if (commit_change) {
+        oonf_class_event(&_l2neighbor_class, l2neigh, OONF_OBJECT_CHANGED);
+      }
+      return false;
+    }
+  }
+
+  _neigh_remove(l2neigh);
+  return true;
+}
+
 
 /**
  * Removes a layer-2 addr object from the database.
@@ -394,6 +484,9 @@ _net_remove(struct oonf_layer2_net *l2net) {
   }
 
   oonf_class_event(&_l2network_class, l2net, OONF_OBJECT_REMOVED);
+
+  /* remove interface listener */
+  oonf_interface_remove_listener(&l2net->if_listener);
 
   /* free addr */
   avl_remove(&oonf_layer2_net_tree, &l2net->_node);

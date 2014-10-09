@@ -223,17 +223,15 @@ _cleanup(void) {
 }
 
 static struct oonf_layer2_net *
-_create_l2net(struct netaddr *mac, int if_index, const char *if_name) {
+_create_l2net(const char *if_name) {
   struct oonf_layer2_net *net;
-  net = oonf_layer2_net_add(mac);
+  net = oonf_layer2_net_add(if_name);
   if (net == NULL) {
     return NULL;
   }
 
   if (net->if_type ==  OONF_LAYER2_TYPE_UNDEFINED) {
     net->if_type = OONF_LAYER2_TYPE_WIRELESS;
-    net->if_index = if_index;
-    strscpy(net->if_name, if_name, IF_NAMESIZE);
   }
   if (net->if_type !=  OONF_LAYER2_TYPE_WIRELESS) {
     OONF_WARN(LOG_NL80211, "Wireless interface %s is already type %d",
@@ -394,7 +392,7 @@ _parse_cmd_new_station(struct nlmsghdr *hdr) {
   OONF_DEBUG(LOG_NL80211, "Add neighbor %s for network %s",
       netaddr_to_string(&buf1, &mac), netaddr_to_string(&buf2, &if_data->mac));
 
-  net = _create_l2net(&if_data->mac, if_data->index, if_data->name);
+  net = _create_l2net(if_data->name);
   if (net == NULL) {
     return;
   }
@@ -521,7 +519,7 @@ _parse_cmd_del_station(struct nlmsghdr *hdr) {
   OONF_DEBUG(LOG_NL80211, "Remove neighbor %s for network %s",
       netaddr_to_string(&buf1, &mac), netaddr_to_string(&buf2, &if_data->mac));
 
-  net = oonf_layer2_net_get(&if_data->mac);
+  net = oonf_layer2_net_get(if_data->name);
   if (net == NULL) {
     return;
   }
@@ -603,15 +601,11 @@ _parse_cmd_new_scan_result(struct nlmsghdr *msg) {
     return;
   }
 
-  net = _create_l2net(&if_data->mac, if_data->index, if_data->name);
+  net = _create_l2net(if_data->name);
   if (net == NULL) {
     return;
   }
   net->if_type = OONF_LAYER2_TYPE_WIRELESS;
-
-  if (bss[NL80211_BSS_BSSID]) {
-    memcpy(&net->if_idaddr, &bssid, sizeof(bssid));
-  }
 
   /* remove old data */
   for (i=0; i<OONF_LAYER2_NET_COUNT; i++) {

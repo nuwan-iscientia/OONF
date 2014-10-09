@@ -209,7 +209,7 @@ _parse_strarray(struct strarray *array, const char *ifname,
     return;
   }
 
-  l2net = oonf_layer2_net_add(&ifptr->mac);
+  l2net = oonf_layer2_net_add(ifptr->name);
   if (l2net == NULL) {
     return;
   }

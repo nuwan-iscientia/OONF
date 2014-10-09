@@ -75,6 +75,8 @@ struct dlep_radio_if {
   struct avl_tree session_tree;
 };
 
+EXPORT struct avl_tree dlep_radio_if_tree;
+
 EXPORT void dlep_radio_interface_init(void);
 EXPORT void dlep_radio_interface_cleanup(void);
 

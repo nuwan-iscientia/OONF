@@ -1,7 +1,7 @@
 
 /*
- * The olsr.org Optimized Link-State Routing daemon version 2 (olsrd2)
- * Copyright (c) 2004-2013, the olsr.org team - see HISTORY file
+ * The olsr.org Optimized Link-State Routing daemon(olsrd)
+ * Copyright (c) 2004-2012, the olsr.org team - see HISTORY file
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -38,46 +38,13 @@
  * the copyright holders.
  *
  */
-
-#ifndef DLEP_WRITER_H_
-#define DLEP_WRITER_H_
+#ifndef LAYER2_GENERATOR_H_
+#define LAYER2_GENERATOR_H_
 
 #include "common/common_types.h"
-#include "common/autobuf.h"
-#include "common/netaddr.h"
+#include "core/oonf_subsystem.h"
 
-#include "core/oonf_logging.h"
-#include "subsystems/oonf_stream_socket.h"
+#define LOG_L2GEN layer2_generator_subsystem.logging
+EXPORT extern struct oonf_subsystem layer2_generator_subsystem;
 
-#include "dlep/dlep_bitmap.h"
-
-int dlep_writer_init(void);
-void dlep_writer_cleanup(void);
-
-void dlep_writer_start_signal(uint8_t signal, struct dlep_bitmap *supported_tlvs);
-void dlep_writer_add_tlv(uint8_t type, void *data,
-    uint8_t len);
-int dlep_writer_finish_signal(enum oonf_log_source);
-
-void dlep_writer_send_udp_multicast(struct oonf_packet_managed *managed,
-    struct dlep_bitmap *supported_signals, enum oonf_log_source source);
-void dlep_writer_send_udp_unicast(struct oonf_packet_managed *managed,
-    union netaddr_socket *dst, struct dlep_bitmap *supported_signals,
-    enum oonf_log_source source);
-void dlep_writer_send_tcp_unicast(struct oonf_stream_session *session,
-    struct dlep_bitmap *supported_signals);
-
-void dlep_writer_add_heartbeat_tlv(uint64_t interval);
-int dlep_writer_add_mac_tlv(struct netaddr *mac);
-int dlep_writer_add_ipv4_tlv(struct netaddr *, bool add);
-int dlep_writer_add_ipv6_tlv(struct netaddr *, bool add);
-void dlep_writer_add_port_tlv(uint16_t);
-void dlep_writer_add_mdrr(uint64_t max_datarate);
-void dlep_writer_add_mdrt(uint64_t max_datarate);
-void dlep_writer_add_cdrr(uint64_t max_datarate);
-void dlep_writer_add_cdrt(uint64_t max_datarate);
-void dlep_writer_add_status(enum dlep_status status);
-void dlep_writer_add_optional_signals(void);
-void dlep_writer_add_optional_data_items(void);
-
-#endif /* DLEP_WRITER_H_ */
+#endif /* LAYER2_GENERATOR_H_ */

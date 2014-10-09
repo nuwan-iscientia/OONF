@@ -44,6 +44,7 @@
 #include "common/netaddr.h"
 
 #include "subsystems/oonf_class.h"
+#include "subsystems/oonf_layer2.h"
 #include "subsystems/oonf_packet_socket.h"
 #include "subsystems/oonf_stream_socket.h"
 #include "subsystems/oonf_timer.h"
@@ -70,6 +71,24 @@ static int _handle_peer_termination_ack(struct dlep_radio_session *session,
 static void _cb_heartbeat_timeout(void *);
 static void _cb_send_heartbeat(void *);
 
+static void _cb_l2_neigh_added(void *);
+static void _cb_l2_neigh_changed(void *);
+static void _cb_l2_neigh_removed(void *);
+
+static uint64_t _get_l2neigh_default_value(struct oonf_layer2_net *l2net,
+    enum oonf_layer2_network_index idx, uint64_t def);
+static uint64_t _get_l2neigh_value(struct oonf_layer2_neigh *l2neigh,
+    enum oonf_layer2_neighbor_index idx, uint64_t def);
+
+static int _generate_peer_initialization_ack(struct dlep_radio_session *session,
+    struct oonf_layer2_net *l2net);
+static void _generate_destination_up(struct dlep_radio_session *,
+    struct oonf_layer2_neigh *);
+static void _generate_destination_update(struct dlep_radio_session *,
+    struct oonf_layer2_neigh *);
+static void _generate_destination_down(struct dlep_radio_session *,
+    struct oonf_layer2_neigh *);
+
 static struct oonf_class _session_class = {
   .name = "DLEP TCP session",
   .size = sizeof(struct dlep_radio_session),
@@ -86,12 +105,22 @@ static struct oonf_timer_class _heartbeat_timer_class = {
   .periodic = true,
 };
 
+static struct oonf_class_extension _layer2_neigh_listener = {
+  .ext_name = "dlep radio",
+  .class_name = LAYER2_CLASS_NEIGHBOR,
+
+  .cb_add = _cb_l2_neigh_added,
+  .cb_change = _cb_l2_neigh_changed,
+  .cb_remove = _cb_l2_neigh_removed,
+};
+
 /**
  * Initialize framework for dlep radio sessions
  */
 void
 dlep_radio_session_init(void) {
   oonf_class_add(&_session_class);
+  oonf_class_extension_add(&_layer2_neigh_listener);
   oonf_timer_add(&_heartbeat_timeout_class);
   oonf_timer_add(&_heartbeat_timer_class);
 }
@@ -103,6 +132,7 @@ void
 dlep_radio_session_cleanup(void) {
   oonf_timer_remove(&_heartbeat_timer_class);
   oonf_timer_remove(&_heartbeat_timeout_class);
+  oonf_class_extension_remove(&_layer2_neigh_listener);
   oonf_class_remove(&_session_class);
 }
 
@@ -270,6 +300,7 @@ _cb_tcp_receive_data(struct oonf_stream_session *tcp_session) {
 
       return STREAM_SESSION_CLEANUP;
     }
+    return STREAM_SESSION_ACTIVE;
   }
 
   if (session->state == DLEP_RADIO_SESSION_INIT
@@ -311,6 +342,10 @@ _cb_tcp_receive_data(struct oonf_stream_session *tcp_session) {
       result = _handle_peer_termination_ack(
           session, abuf_getptr(&tcp_session->in), &idx);
       break;
+    case DLEP_DESTINATION_UP_ACK:
+      break;
+    case DLEP_DESTINATION_DOWN_ACK:
+      break;
     default:
       OONF_WARN(LOG_DLEP_RADIO,
           "Received illegal signal in TCP from %s: %u",
@@ -334,6 +369,8 @@ _cb_tcp_receive_data(struct oonf_stream_session *tcp_session) {
 static int
 _handle_peer_initialization(struct dlep_radio_session *session,
     void *ptr, struct dlep_parser_index *idx) {
+  struct oonf_layer2_neigh *l2neigh;
+  struct oonf_layer2_net *l2net;
   uint8_t *buffer;
   char peer[256];
   int pos;
@@ -347,6 +384,12 @@ _handle_peer_initialization(struct dlep_radio_session *session,
     dlep_parser_get_peer_type(peer, &buffer[pos]);
 
     OONF_INFO(LOG_DLEP_RADIO, "Router peer type: %s", peer);
+  }
+
+  /* get reference to l2 network data */
+  l2net = oonf_layer2_net_add(session->interface->name);
+  if (!l2net) {
+    return -1;
   }
 
   /* get heartbeat interval */
@@ -365,28 +408,17 @@ _handle_peer_initialization(struct dlep_radio_session *session,
   pos = idx->idx[DLEP_OPTIONAL_DATA_ITEMS_TLV];
   dlep_parser_get_optional_tlv(&session->supported_tlvs, &buffer[pos]);
 
-  /* create PEER initialization ACK */
-  dlep_writer_start_signal(DLEP_PEER_INITIALIZATION_ACK, &session->supported_tlvs);
-
-  /* add mandatory TLVs */
-  dlep_writer_add_heartbeat_tlv(session->interface->local_heartbeat_interval);
-  dlep_writer_add_mdrr(0); // TODO: maximum data rate rausfinden
-  dlep_writer_add_mdrt(0); // TODO: maximum data rate rausfinden
-  dlep_writer_add_cdrr(0);
-  dlep_writer_add_cdrt(0);
-  dlep_writer_add_optional_signals();
-  dlep_writer_add_optional_data_items();
-
-  /* assemble signal */
-  if (dlep_writer_finish_signal(LOG_DLEP_RADIO)) {
+  if (_generate_peer_initialization_ack(session, l2net)) {
     return -1;
   }
 
-  /* send signal */
-  dlep_writer_send_tcp_unicast(&session->stream, &session->supported_signals);
-
   /* activate session */
   session->state = DLEP_RADIO_SESSION_ACTIVE;
+
+  /* generate Destination Up for all active neighbors */
+  avl_for_each_element(&l2net->neighbors, l2neigh, _node) {
+    _generate_destination_up(session, l2neigh);
+  }
   return 0;
 }
 
@@ -453,4 +485,219 @@ _handle_peer_termination_ack(struct dlep_radio_session *session,
 
   /* terminate session */
   return -1;
+}
+
+static void
+_cb_l2_neigh_added(void *ptr) {
+  struct oonf_layer2_neigh *l2neigh;
+  struct oonf_layer2_net *l2net;
+  struct dlep_radio_if *dlep_if;
+  struct dlep_radio_session *dlep_session;
+
+  struct netaddr_str nbuf1;
+
+  /* get l2neighbor and l2network */
+  l2neigh = ptr;
+  l2net = l2neigh->network;
+
+  OONF_DEBUG(LOG_DLEP_RADIO, "Received neighbor addition for %s on interface %s",
+      netaddr_to_string(&nbuf1, &l2neigh->addr), l2net->name);
+
+  avl_for_each_element(&dlep_radio_if_tree, dlep_if, _node) {
+    if (strcmp(dlep_if->name, l2net->name) != 0) {
+      continue;
+    }
+
+    avl_for_each_element(&dlep_if->session_tree, dlep_session, _node) {
+      if (dlep_session->state != DLEP_RADIO_SESSION_ACTIVE) {
+        continue;
+      }
+
+      _generate_destination_up(dlep_session, l2neigh);
+    }
+  }
+}
+
+static void
+_cb_l2_neigh_changed(void *ptr) {
+  struct oonf_layer2_neigh *l2neigh;
+  struct oonf_layer2_net *l2net;
+  struct dlep_radio_if *dlep_if;
+  struct dlep_radio_session *dlep_session;
+
+  struct netaddr_str nbuf1;
+
+  /* get l2neighbor and l2network */
+  l2neigh = ptr;
+  l2net = l2neigh->network;
+
+  OONF_DEBUG(LOG_DLEP_RADIO, "Received neighbor addition for %s on interface %s",
+      netaddr_to_string(&nbuf1, &l2neigh->addr), l2net->name);
+
+  avl_for_each_element(&dlep_radio_if_tree, dlep_if, _node) {
+    if (strcmp(dlep_if->name, l2net->name) != 0) {
+      continue;
+    }
+
+    avl_for_each_element(&dlep_if->session_tree, dlep_session, _node) {
+      if (dlep_session->state != DLEP_RADIO_SESSION_ACTIVE) {
+        continue;
+      }
+
+      _generate_destination_update(dlep_session, l2neigh);
+    }
+  }
+}
+
+static void
+_cb_l2_neigh_removed(void *ptr) {
+  struct oonf_layer2_neigh *l2neigh;
+  struct oonf_layer2_net *l2net;
+  struct dlep_radio_if *dlep_if;
+  struct dlep_radio_session *dlep_session;
+
+  struct netaddr_str nbuf1;
+
+  /* get l2neighbor and l2network */
+  l2neigh = ptr;
+  l2net = l2neigh->network;
+
+  OONF_DEBUG(LOG_DLEP_RADIO, "Received neighbor addition for %s on interface %s",
+      netaddr_to_string(&nbuf1, &l2neigh->addr), l2net->name);
+
+  avl_for_each_element(&dlep_radio_if_tree, dlep_if, _node) {
+    if (strcmp(dlep_if->name, l2net->name) != 0) {
+      continue;
+    }
+
+    avl_for_each_element(&dlep_if->session_tree, dlep_session, _node) {
+      if (dlep_session->state != DLEP_RADIO_SESSION_ACTIVE) {
+        continue;
+      }
+
+      _generate_destination_down(dlep_session, l2neigh);
+    }
+  }
+}
+
+static uint64_t
+_get_l2neigh_default_value(struct oonf_layer2_net *l2net,
+    enum oonf_layer2_network_index idx, uint64_t def) {
+  const struct oonf_layer2_data *data;
+
+  if (!l2net) {
+    return def;
+  }
+
+  data = &l2net->neighdata[idx];
+  if (oonf_layer2_has_value(data)) {
+    return oonf_layer2_get_value(data);
+  }
+  else {
+    return def;
+  }
+}
+
+static uint64_t
+_get_l2neigh_value(struct oonf_layer2_neigh *l2neigh,
+    enum oonf_layer2_neighbor_index idx, uint64_t def) {
+  const struct oonf_layer2_data *data;
+
+  if (!l2neigh) {
+    return def;
+  }
+
+  data = oonf_layer2_neigh_get_value(l2neigh, idx);
+  if (data) {
+    return oonf_layer2_get_value(data);
+  }
+  else {
+    return def;
+  }
+}
+
+static int
+_generate_peer_initialization_ack(struct dlep_radio_session *session,
+    struct oonf_layer2_net *l2net) {
+  /* create PEER initialization ACK */
+  dlep_writer_start_signal(DLEP_PEER_INITIALIZATION_ACK, &session->supported_tlvs);
+
+  /* add mandatory TLVs */
+  dlep_writer_add_heartbeat_tlv(session->interface->local_heartbeat_interval);
+  dlep_writer_add_mdrr(_get_l2neigh_default_value(l2net, OONF_LAYER2_NEIGH_RX_MAX_BITRATE, 0));
+  dlep_writer_add_mdrt(_get_l2neigh_default_value(l2net, OONF_LAYER2_NEIGH_RX_MAX_BITRATE, 0));
+  dlep_writer_add_cdrr(0);
+  dlep_writer_add_cdrt(0);
+  dlep_writer_add_optional_signals();
+  dlep_writer_add_optional_data_items();
+
+  /* assemble signal */
+  if (dlep_writer_finish_signal(LOG_DLEP_RADIO)) {
+    return -1;
+  }
+
+  /* send signal */
+  dlep_writer_send_tcp_unicast(&session->stream, &session->supported_signals);
+
+  return 0;
+}
+
+static void
+_generate_destination_up(struct dlep_radio_session *session,
+    struct oonf_layer2_neigh *l2neigh) {
+  dlep_writer_start_signal(DLEP_DESTINATION_UP, &session->supported_tlvs);
+  dlep_writer_add_mac_tlv(&l2neigh->addr);
+
+  dlep_writer_add_mdrr(
+      _get_l2neigh_value(l2neigh, OONF_LAYER2_NEIGH_RX_MAX_BITRATE, 0));
+  dlep_writer_add_mdrt(
+      _get_l2neigh_value(l2neigh, OONF_LAYER2_NEIGH_TX_MAX_BITRATE, 0));
+  dlep_writer_add_cdrr(
+      _get_l2neigh_value(l2neigh, OONF_LAYER2_NEIGH_RX_BITRATE, 0));
+  dlep_writer_add_cdrt(
+      _get_l2neigh_value(l2neigh, OONF_LAYER2_NEIGH_TX_BITRATE, 0));
+
+  if (dlep_writer_finish_signal(LOG_DLEP_RADIO)) {
+    dlep_radio_terminate_session(session);
+    return;
+  }
+
+  dlep_writer_send_tcp_unicast(&session->stream, &session->supported_signals);
+}
+
+static void
+_generate_destination_update(struct dlep_radio_session *session,
+    struct oonf_layer2_neigh *l2neigh) {
+  dlep_writer_start_signal(DLEP_DESTINATION_UPDATE, &session->supported_tlvs);
+  dlep_writer_add_mac_tlv(&l2neigh->addr);
+
+  dlep_writer_add_mdrr(
+      _get_l2neigh_value(l2neigh, OONF_LAYER2_NEIGH_RX_MAX_BITRATE, 0));
+  dlep_writer_add_mdrt(
+      _get_l2neigh_value(l2neigh, OONF_LAYER2_NEIGH_TX_MAX_BITRATE, 0));
+  dlep_writer_add_cdrr(
+      _get_l2neigh_value(l2neigh, OONF_LAYER2_NEIGH_RX_BITRATE, 0));
+  dlep_writer_add_cdrt(
+      _get_l2neigh_value(l2neigh, OONF_LAYER2_NEIGH_TX_BITRATE, 0));
+
+  if (dlep_writer_finish_signal(LOG_DLEP_RADIO)) {
+    dlep_radio_terminate_session(session);
+    return;
+  }
+
+  dlep_writer_send_tcp_unicast(&session->stream, &session->supported_signals);
+}
+
+static void
+_generate_destination_down(struct dlep_radio_session *session,
+    struct oonf_layer2_neigh *l2neigh) {
+  dlep_writer_start_signal(DLEP_DESTINATION_DOWN, &session->supported_tlvs);
+  dlep_writer_add_mac_tlv(&l2neigh->addr);
+
+  if (dlep_writer_finish_signal(LOG_DLEP_RADIO)) {
+    dlep_radio_terminate_session(session);
+    return;
+  }
+
+  dlep_writer_send_tcp_unicast(&session->stream, &session->supported_signals);
 }
