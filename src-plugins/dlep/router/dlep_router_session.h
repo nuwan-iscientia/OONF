@@ -92,17 +92,17 @@ struct dlep_router_session {
   struct avl_node _node;
 };
 
-EXPORT void dlep_router_session_init(void);
-EXPORT void dlep_router_session_cleanup(void);
+void dlep_router_session_init(void);
+void dlep_router_session_cleanup(void);
 
-EXPORT struct dlep_router_session *dlep_router_get_session(
+struct dlep_router_session *dlep_router_get_session(
     struct dlep_router_if *interf, union netaddr_socket *remote);
-EXPORT struct dlep_router_session *dlep_router_add_session(
+struct dlep_router_session *dlep_router_add_session(
     struct dlep_router_if *interf,
     union netaddr_socket *local, union netaddr_socket *remote);
-EXPORT void dlep_router_remove_session(struct dlep_router_session *);
+void dlep_router_remove_session(struct dlep_router_session *);
 
-EXPORT int dlep_router_send_peer_initialization(struct dlep_router_session *);
-EXPORT void dlep_router_terminate_session(struct dlep_router_session *session);
+int dlep_router_send_peer_initialization(struct dlep_router_session *);
+void dlep_router_terminate_session(struct dlep_router_session *session);
 
 #endif /* DLEP_ROUTER_SESSION_H_ */

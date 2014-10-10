@@ -87,11 +87,11 @@ struct dlep_radio_session {
   struct avl_node _node;
 };
 
-EXPORT void dlep_radio_session_init(void);
-EXPORT void dlep_radio_session_cleanup(void);
+void dlep_radio_session_init(void);
+void dlep_radio_session_cleanup(void);
 
-EXPORT void dlep_radio_session_initialize_tcp_callbacks(
+void dlep_radio_session_initialize_tcp_callbacks(
     struct oonf_stream_config *config);
 
-EXPORT void dlep_radio_terminate_session(struct dlep_radio_session *session);
+void dlep_radio_terminate_session(struct dlep_radio_session *session);
 #endif /* DLEP_RADIO_SESSION_H_ */

@@ -72,12 +72,10 @@ int dlep_writer_add_mac_tlv(struct netaddr *mac);
 int dlep_writer_add_ipv4_tlv(struct netaddr *, bool add);
 int dlep_writer_add_ipv6_tlv(struct netaddr *, bool add);
 void dlep_writer_add_port_tlv(uint16_t);
-void dlep_writer_add_mdrr(uint64_t max_datarate);
-void dlep_writer_add_mdrt(uint64_t max_datarate);
-void dlep_writer_add_cdrr(uint64_t max_datarate);
-void dlep_writer_add_cdrt(uint64_t max_datarate);
+void dlep_writer_add_uint64(uint64_t number, enum dlep_tlvs tlv);
 void dlep_writer_add_status(enum dlep_status status);
 void dlep_writer_add_optional_signals(void);
 void dlep_writer_add_optional_data_items(void);
+void dlep_writer_add_signal(int32_t signal);
 
 #endif /* DLEP_WRITER_H_ */

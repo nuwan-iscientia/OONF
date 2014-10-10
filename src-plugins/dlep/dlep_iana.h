@@ -99,6 +99,17 @@ enum dlep_tlvs {
   DLEP_VENDOR_EXTENSION_TLV    = 22,
   DLEP_VERSION_TLV             = 23,
 
+  /* custom additions */
+  DLEP_FRAMES_R_TLV,
+  DLEP_FRAMES_T_TLV,
+  DLEP_BYTES_R_TLV,
+  DLEP_BYTES_T_TLV,
+  DLEP_FRAMES_RETRIES_TLV,
+  DLEP_FRAMES_FAILED_TLV,
+
+  DLEP_SIGNAL_TLV,
+
+  /* must be the last entry */
   DLEP_TLV_COUNT,
 };
 

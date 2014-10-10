@@ -231,39 +231,12 @@ dlep_writer_add_port_tlv(uint16_t port) {
 }
 
 void
-dlep_writer_add_mdrr(uint64_t max_datarate) {
+dlep_writer_add_uint64(uint64_t number, enum dlep_tlvs tlv) {
   uint64_t value;
 
-  value = be64toh(max_datarate);
+  value = be64toh(number);
 
-  dlep_writer_add_tlv(DLEP_MDRR_TLV, &value, sizeof(value));
-}
-
-void
-dlep_writer_add_mdrt(uint64_t max_datarate) {
-  uint64_t value;
-
-  value = be64toh(max_datarate);
-
-  dlep_writer_add_tlv(DLEP_MDRT_TLV, &value, sizeof(value));
-}
-
-void
-dlep_writer_add_cdrr(uint64_t max_datarate) {
-  uint64_t value;
-
-  value = be64toh(max_datarate);
-
-  dlep_writer_add_tlv(DLEP_CDRR_TLV, &value, sizeof(value));
-}
-
-void
-dlep_writer_add_cdrt(uint64_t max_datarate) {
-  uint64_t value;
-
-  value = be64toh(max_datarate);
-
-  dlep_writer_add_tlv(DLEP_CDRT_TLV, &value, sizeof(value));
+  dlep_writer_add_tlv(tlv, &value, sizeof(value));
 }
 
 void
@@ -299,4 +272,13 @@ dlep_writer_add_optional_data_items(void) {
   }
 
   dlep_writer_add_tlv(DLEP_OPTIONAL_DATA_ITEMS_TLV, &value[0], j);
+}
+
+void
+dlep_writer_add_signal(int32_t signal) {
+  uint32_t *value = (uint32_t*)(&signal);
+
+  *value = htonl(*value);
+
+  dlep_writer_add_tlv(DLEP_SIGNAL_TLV, value, sizeof(*value));
 }

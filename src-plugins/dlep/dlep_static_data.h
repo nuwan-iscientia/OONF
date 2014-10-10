@@ -18,13 +18,13 @@ struct dlep_tlvdata {
   uint8_t max_length;
 };
 
-EXPORT extern struct dlep_bitmap dlep_mandatory_signals;
-EXPORT extern struct dlep_bitmap dlep_mandatory_tlvs;
-EXPORT extern struct dlep_bitmap dlep_mandatory_tlvs_per_signal[DLEP_SIGNAL_COUNT];
-EXPORT extern struct dlep_bitmap dlep_supported_optional_tlvs_per_signal[DLEP_SIGNAL_COUNT];
-EXPORT extern struct dlep_bitmap dlep_supported_optional_signals;
-EXPORT extern struct dlep_bitmap dlep_supported_optional_tlvs;
+extern struct dlep_bitmap dlep_mandatory_signals;
+extern struct dlep_bitmap dlep_mandatory_tlvs;
+extern struct dlep_bitmap dlep_mandatory_tlvs_per_signal[DLEP_SIGNAL_COUNT];
+extern struct dlep_bitmap dlep_supported_optional_tlvs_per_signal[DLEP_SIGNAL_COUNT];
+extern struct dlep_bitmap dlep_supported_optional_signals;
+extern struct dlep_bitmap dlep_supported_optional_tlvs;
 
-EXPORT extern struct dlep_tlvdata dlep_tlv_constraints[DLEP_TLV_COUNT];
+extern struct dlep_tlvdata dlep_tlv_constraints[DLEP_TLV_COUNT];
 
 #endif /* DLEP_TLVDATA_H_ */

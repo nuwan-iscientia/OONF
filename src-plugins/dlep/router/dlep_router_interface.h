@@ -72,14 +72,14 @@ struct dlep_router_if {
   struct avl_tree session_tree;
 };
 
-EXPORT void dlep_router_interface_init(void);
-EXPORT void dlep_router_interface_cleanup(void);
+void dlep_router_interface_init(void);
+void dlep_router_interface_cleanup(void);
 
-EXPORT struct dlep_router_if *dlep_router_get_interface(const char *ifname);
-EXPORT struct dlep_router_if *dlep_router_add_interface(const char *ifname);
-EXPORT void dlep_router_remove_interface(struct dlep_router_if *);
+struct dlep_router_if *dlep_router_get_interface(const char *ifname);
+struct dlep_router_if *dlep_router_add_interface(const char *ifname);
+void dlep_router_remove_interface(struct dlep_router_if *);
 
-EXPORT void dlep_router_apply_interface_settings(struct dlep_router_if *);
-EXPORT void dlep_router_terminate_all_sessions(void);
+void dlep_router_apply_interface_settings(struct dlep_router_if *);
+void dlep_router_terminate_all_sessions(void);
 
 #endif /* DLEP_ROUTER_INTERFACE_H_ */

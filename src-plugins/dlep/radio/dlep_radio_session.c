@@ -616,6 +616,54 @@ _get_l2neigh_value(struct oonf_layer2_neigh *l2neigh,
   }
 }
 
+static void
+_handle_uint64_metric(struct oonf_layer2_net *l2net,
+    struct oonf_layer2_neigh *l2neigh,
+    enum oonf_layer2_neighbor_index l2type, enum dlep_tlvs dleptlv) {
+  if (l2net) {
+    dlep_writer_add_uint64(
+        _get_l2neigh_default_value(l2net, l2type, 0), dleptlv);
+  }
+  else {
+    dlep_writer_add_uint64(
+        _get_l2neigh_value(l2neigh, l2type, 0), dleptlv);
+  }
+}
+
+static void
+_handle_metrics(struct oonf_layer2_net *l2net,
+    struct oonf_layer2_neigh *l2neigh) {
+  _handle_uint64_metric(l2net, l2neigh,
+      OONF_LAYER2_NEIGH_RX_MAX_BITRATE, DLEP_MDRR_TLV);
+  _handle_uint64_metric(l2net, l2neigh,
+      OONF_LAYER2_NEIGH_TX_MAX_BITRATE, DLEP_MDRT_TLV);
+  _handle_uint64_metric(l2net, l2neigh,
+      OONF_LAYER2_NEIGH_RX_BITRATE, DLEP_CDRR_TLV);
+  _handle_uint64_metric(l2net, l2neigh,
+      OONF_LAYER2_NEIGH_TX_BITRATE, DLEP_CDRT_TLV);
+  _handle_uint64_metric(l2net, l2neigh,
+      OONF_LAYER2_NEIGH_RX_FRAMES, DLEP_FRAMES_R_TLV);
+  _handle_uint64_metric(l2net, l2neigh,
+      OONF_LAYER2_NEIGH_TX_FRAMES, DLEP_FRAMES_T_TLV);
+  _handle_uint64_metric(l2net, l2neigh,
+      OONF_LAYER2_NEIGH_RX_BYTES, DLEP_BYTES_R_TLV);
+  _handle_uint64_metric(l2net, l2neigh,
+      OONF_LAYER2_NEIGH_TX_BYTES, DLEP_BYTES_T_TLV);
+  _handle_uint64_metric(l2net, l2neigh,
+      OONF_LAYER2_NEIGH_TX_RETRIES, DLEP_FRAMES_RETRIES_TLV);
+  _handle_uint64_metric(l2net, l2neigh,
+      OONF_LAYER2_NEIGH_TX_FAILED, DLEP_FRAMES_FAILED_TLV);
+
+  if (l2net) {
+    dlep_writer_add_signal(
+        _get_l2neigh_default_value(l2net, OONF_LAYER2_NEIGH_SIGNAL, 0));
+  }
+  else {
+    dlep_writer_add_signal(
+        _get_l2neigh_value(l2neigh, OONF_LAYER2_NEIGH_SIGNAL, 0));
+  }
+}
+
 static int
 _generate_peer_initialization_ack(struct dlep_radio_session *session,
     struct oonf_layer2_net *l2net) {
@@ -624,12 +672,11 @@ _generate_peer_initialization_ack(struct dlep_radio_session *session,
 
   /* add mandatory TLVs */
   dlep_writer_add_heartbeat_tlv(session->interface->local_heartbeat_interval);
-  dlep_writer_add_mdrr(_get_l2neigh_default_value(l2net, OONF_LAYER2_NEIGH_RX_MAX_BITRATE, 0));
-  dlep_writer_add_mdrt(_get_l2neigh_default_value(l2net, OONF_LAYER2_NEIGH_RX_MAX_BITRATE, 0));
-  dlep_writer_add_cdrr(0);
-  dlep_writer_add_cdrt(0);
   dlep_writer_add_optional_signals();
   dlep_writer_add_optional_data_items();
+
+  /* add metrics */
+  _handle_metrics(l2net, NULL);
 
   /* assemble signal */
   if (dlep_writer_finish_signal(LOG_DLEP_RADIO)) {
@@ -648,14 +695,7 @@ _generate_destination_up(struct dlep_radio_session *session,
   dlep_writer_start_signal(DLEP_DESTINATION_UP, &session->supported_tlvs);
   dlep_writer_add_mac_tlv(&l2neigh->addr);
 
-  dlep_writer_add_mdrr(
-      _get_l2neigh_value(l2neigh, OONF_LAYER2_NEIGH_RX_MAX_BITRATE, 0));
-  dlep_writer_add_mdrt(
-      _get_l2neigh_value(l2neigh, OONF_LAYER2_NEIGH_TX_MAX_BITRATE, 0));
-  dlep_writer_add_cdrr(
-      _get_l2neigh_value(l2neigh, OONF_LAYER2_NEIGH_RX_BITRATE, 0));
-  dlep_writer_add_cdrt(
-      _get_l2neigh_value(l2neigh, OONF_LAYER2_NEIGH_TX_BITRATE, 0));
+  _handle_metrics(NULL, l2neigh);
 
   if (dlep_writer_finish_signal(LOG_DLEP_RADIO)) {
     dlep_radio_terminate_session(session);
@@ -671,14 +711,7 @@ _generate_destination_update(struct dlep_radio_session *session,
   dlep_writer_start_signal(DLEP_DESTINATION_UPDATE, &session->supported_tlvs);
   dlep_writer_add_mac_tlv(&l2neigh->addr);
 
-  dlep_writer_add_mdrr(
-      _get_l2neigh_value(l2neigh, OONF_LAYER2_NEIGH_RX_MAX_BITRATE, 0));
-  dlep_writer_add_mdrt(
-      _get_l2neigh_value(l2neigh, OONF_LAYER2_NEIGH_TX_MAX_BITRATE, 0));
-  dlep_writer_add_cdrr(
-      _get_l2neigh_value(l2neigh, OONF_LAYER2_NEIGH_RX_BITRATE, 0));
-  dlep_writer_add_cdrt(
-      _get_l2neigh_value(l2neigh, OONF_LAYER2_NEIGH_TX_BITRATE, 0));
+  _handle_metrics(NULL, l2neigh);
 
   if (dlep_writer_finish_signal(LOG_DLEP_RADIO)) {
     dlep_radio_terminate_session(session);

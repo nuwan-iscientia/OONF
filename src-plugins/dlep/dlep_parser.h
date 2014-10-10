@@ -74,12 +74,11 @@ void dlep_parser_get_heartbeat_interval(uint64_t *interval, uint8_t *tlv);
 void dlep_parser_get_mac_addr(struct netaddr *mac, uint8_t *tlv);
 int dlep_parser_get_ipv4_addr(struct netaddr *ipv4, bool *add, uint8_t *tlv);
 int dlep_parser_get_ipv6_addr(struct netaddr *ipv6, bool *add, uint8_t *tlv);
-void dlep_parser_get_mdrr(uint64_t *mdrr, uint8_t *tlv);
-void dlep_parser_get_mdrt(uint64_t *mdrt, uint8_t *tlv);
-void dlep_parser_get_cdrr(uint64_t *cdrr, uint8_t *tlv);
-void dlep_parser_get_cdrt(uint64_t *cdrt, uint8_t *tlv);
+void dlep_parser_get_uint64(uint64_t *mdrr, uint8_t *tlv);
 void dlep_parser_get_status(enum dlep_status *status, uint8_t *tlv);
 void dlep_parser_get_optional_signal(struct dlep_bitmap *bitmap, uint8_t *tlv);
 void dlep_parser_get_optional_tlv(struct dlep_bitmap *bitmap, uint8_t *tlv);
+
+void dlep_parser_get_signal(int32_t *sig, uint8_t *tlv);
 
 #endif /* DLEP_PARSER_H_ */

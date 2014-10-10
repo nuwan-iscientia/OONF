@@ -50,7 +50,14 @@ struct dlep_bitmap dlep_supported_optional_signals = { .b = {
 }};
 
 struct dlep_bitmap dlep_supported_optional_tlvs = { .b = {
-  0,0,0,0
+  (1 << DLEP_FRAMES_R_TLV)
+  | (1 << DLEP_FRAMES_T_TLV)
+  | (1 << DLEP_BYTES_R_TLV)
+  | (1 << DLEP_BYTES_T_TLV)
+  | (1 << DLEP_FRAMES_RETRIES_TLV)
+  | (1 << DLEP_FRAMES_FAILED_TLV)
+  | (1 << DLEP_SIGNAL_TLV),
+  0,0,0
 }};
 
 struct dlep_bitmap dlep_mandatory_tlvs_per_signal[DLEP_SIGNAL_COUNT] = {
@@ -119,7 +126,14 @@ struct dlep_bitmap dlep_supported_optional_tlvs_per_signal[DLEP_SIGNAL_COUNT] = 
   }},
   [DLEP_PEER_INITIALIZATION_ACK] = { .b = {
       (1 << DLEP_PEER_TYPE_TLV)
-      | (1 << DLEP_VENDOR_EXTENSION_TLV),
+      | (1 << DLEP_VENDOR_EXTENSION_TLV)
+      | (1 << DLEP_FRAMES_R_TLV)
+      | (1 << DLEP_FRAMES_T_TLV)
+      | (1 << DLEP_BYTES_R_TLV)
+      | (1 << DLEP_BYTES_T_TLV)
+      | (1 << DLEP_FRAMES_RETRIES_TLV)
+      | (1 << DLEP_FRAMES_FAILED_TLV)
+      | (1 << DLEP_SIGNAL_TLV),
       0,0,0
   }},
   [DLEP_PEER_TERMINATION] = { .b = {
@@ -131,10 +145,24 @@ struct dlep_bitmap dlep_supported_optional_tlvs_per_signal[DLEP_SIGNAL_COUNT] = 
       0,0,0
   }},
   [DLEP_DESTINATION_UP] = { .b = {
-      0,0,0,0
+      (1 << DLEP_FRAMES_R_TLV)
+      | (1 << DLEP_FRAMES_T_TLV)
+      | (1 << DLEP_BYTES_R_TLV)
+      | (1 << DLEP_BYTES_T_TLV)
+      | (1 << DLEP_FRAMES_RETRIES_TLV)
+      | (1 << DLEP_FRAMES_FAILED_TLV)
+      | (1 << DLEP_SIGNAL_TLV),
+      0,0,0
   }},
   [DLEP_DESTINATION_UPDATE] = { .b = {
-      0,0,0,0
+      (1 << DLEP_FRAMES_R_TLV)
+      | (1 << DLEP_FRAMES_T_TLV)
+      | (1 << DLEP_BYTES_R_TLV)
+      | (1 << DLEP_BYTES_T_TLV)
+      | (1 << DLEP_FRAMES_RETRIES_TLV)
+      | (1 << DLEP_FRAMES_FAILED_TLV)
+      | (1 << DLEP_SIGNAL_TLV),
+      0,0,0
   }},
   [DLEP_DESTINATION_DOWN] = { .b = {
       0,0,0,0
@@ -165,4 +193,12 @@ struct dlep_tlvdata dlep_tlv_constraints[DLEP_TLV_COUNT] = {
     [DLEP_OPTIONAL_SIGNALS_TLV] = { 0,255 },
     [DLEP_OPTIONAL_DATA_ITEMS_TLV] = { 0,255 },
     [DLEP_VENDOR_EXTENSION_TLV] = { 3,255 },
+
+    [DLEP_FRAMES_R_TLV] = { 8,8 },
+    [DLEP_FRAMES_T_TLV] = { 8,8 },
+    [DLEP_BYTES_R_TLV] = { 8,8 },
+    [DLEP_BYTES_T_TLV] = { 8,8 },
+    [DLEP_FRAMES_RETRIES_TLV] = { 8,8 },
+    [DLEP_FRAMES_FAILED_TLV] = { 8,8 },
+    [DLEP_SIGNAL_TLV] = { 4,4 },
 };

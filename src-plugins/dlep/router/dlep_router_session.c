@@ -291,8 +291,9 @@ _cb_tcp_receive_data(struct oonf_stream_session *tcp_session) {
         && signal != DLEP_PARSER_INCOMPLETE_SIGNAL) {
       OONF_WARN_HEX(LOG_DLEP_ROUTER,
           abuf_getptr(&tcp_session->in), abuf_getlen(&tcp_session->in),
-          "Could not parse incoming TCP signal %d from %s",
-          signal, netaddr_socket_to_string(&nbuf, &tcp_session->remote_socket));
+          "Could not parse incoming TCP signal from %s: %d",
+          netaddr_socket_to_string(&nbuf, &tcp_session->remote_socket),
+          signal);
       return STREAM_SESSION_CLEANUP;
     }
   }
@@ -638,46 +639,58 @@ _handle_destination_down(struct dlep_router_session *session,
 }
 
 static void
-_handle_metrics(struct oonf_layer2_data *neighbor_data,
-    uint8_t *buffer, struct dlep_parser_index *idx) {
+_handle_uint64_metric(struct oonf_layer2_data *neighbor_data,
+    enum oonf_layer2_neighbor_index l2datatype,
+    const char *text_type __attribute__((unused)),
+    uint8_t *buffer, struct dlep_parser_index *idx, enum dlep_tlvs dleptlv) {
   uint64_t data;
   int pos;
 
-  /* get default values for interface */
-  pos = idx->idx[DLEP_MDRR_TLV];
+  pos = idx->idx[dleptlv];
   if (pos) {
-    dlep_parser_get_mdrr(&data, &buffer[pos]);
-    OONF_DEBUG(LOG_DLEP_ROUTER, "Received mdrr: %" PRIu64, data);
+    dlep_parser_get_uint64(&data, &buffer[pos]);
 
-    oonf_layer2_set_value(&neighbor_data[OONF_LAYER2_NEIGH_RX_MAX_BITRATE],
-        _l2_origin, data);
+    OONF_DEBUG(LOG_DLEP_ROUTER, "Received %s: %" PRIu64, text_type, data);
+
+    oonf_layer2_set_value(&neighbor_data[l2datatype], _l2_origin, data);
   }
+}
 
-  pos = idx->idx[DLEP_MDRT_TLV];
+static void
+_handle_metrics(struct oonf_layer2_data *neighbor_data,
+    uint8_t *buffer, struct dlep_parser_index *idx) {
+  int32_t sig;
+  int pos;
+
+  /* get metric values */
+  _handle_uint64_metric(neighbor_data, OONF_LAYER2_NEIGH_RX_MAX_BITRATE,
+      "mdrr", buffer, idx, DLEP_MDRR_TLV);
+  _handle_uint64_metric(neighbor_data, OONF_LAYER2_NEIGH_TX_MAX_BITRATE,
+      "mdrt", buffer, idx, DLEP_MDRT_TLV);
+  _handle_uint64_metric(neighbor_data, OONF_LAYER2_NEIGH_RX_BITRATE,
+      "cdrr", buffer, idx, DLEP_CDRR_TLV);
+  _handle_uint64_metric(neighbor_data, OONF_LAYER2_NEIGH_TX_BITRATE,
+      "cdrt", buffer, idx, DLEP_CDRT_TLV);
+  _handle_uint64_metric(neighbor_data, OONF_LAYER2_NEIGH_RX_BYTES,
+      "byte-count (r)", buffer, idx, DLEP_BYTES_R_TLV);
+  _handle_uint64_metric(neighbor_data, OONF_LAYER2_NEIGH_TX_BYTES,
+      "byte-count (r)", buffer, idx, DLEP_BYTES_T_TLV);
+  _handle_uint64_metric(neighbor_data, OONF_LAYER2_NEIGH_RX_FRAMES,
+      "frame-count (r)", buffer, idx, DLEP_FRAMES_R_TLV);
+  _handle_uint64_metric(neighbor_data, OONF_LAYER2_NEIGH_TX_FRAMES,
+      "frame-count (r)", buffer, idx, DLEP_FRAMES_T_TLV);
+  _handle_uint64_metric(neighbor_data, OONF_LAYER2_NEIGH_TX_RETRIES,
+      "frame-retries (t)", buffer, idx, DLEP_FRAMES_RETRIES_TLV);
+  _handle_uint64_metric(neighbor_data, OONF_LAYER2_NEIGH_TX_FAILED,
+      "frame-fails (t)", buffer, idx, DLEP_FRAMES_FAILED_TLV);
+
+  pos = idx->idx[DLEP_SIGNAL_TLV];
   if (pos) {
-    dlep_parser_get_mdrt(&data, &buffer[pos]);
-    OONF_DEBUG(LOG_DLEP_ROUTER, "Received mdrt: %" PRIu64, data);
+    dlep_parser_get_signal(&sig, &buffer[pos]);
 
-    oonf_layer2_set_value(&neighbor_data[OONF_LAYER2_NEIGH_TX_MAX_BITRATE],
-        _l2_origin, data);
-  }
+    OONF_DEBUG(LOG_DLEP_ROUTER, "Received signal strength: %d", sig);
 
-  pos = idx->idx[DLEP_CDRR_TLV];
-  if (pos) {
-    dlep_parser_get_cdrr(&data, &buffer[pos]);
-    OONF_DEBUG(LOG_DLEP_ROUTER, "Received cdrr: %" PRIu64, data);
-
-    oonf_layer2_set_value(&neighbor_data[OONF_LAYER2_NEIGH_RX_BITRATE],
-        _l2_origin, data);
-  }
-
-  pos = idx->idx[DLEP_CDRT_TLV];
-  if (pos) {
-    dlep_parser_get_cdrt(&data, &buffer[pos]);
-    OONF_DEBUG(LOG_DLEP_ROUTER, "Received cdrt: %" PRIu64, data);
-
-    oonf_layer2_set_value(&neighbor_data[OONF_LAYER2_NEIGH_TX_BITRATE],
-        _l2_origin, data);
+    oonf_layer2_set_value(&neighbor_data[OONF_LAYER2_NEIGH_SIGNAL], _l2_origin, sig);
   }
 }
 

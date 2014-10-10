@@ -231,33 +231,11 @@ dlep_parser_get_ipv6_addr(struct netaddr *ipv6, bool *add, uint8_t *tlv) {
 }
 
 void
-dlep_parser_get_mdrr(uint64_t *mdrr, uint8_t *tlv) {
+dlep_parser_get_uint64(uint64_t *number, uint8_t *tlv) {
   uint64_t value;
 
   memcpy(&value, &tlv[2], sizeof(value));
-  *mdrr = be64toh(value);
-}
-void
-dlep_parser_get_mdrt(uint64_t *mdrt, uint8_t *tlv) {
-  uint64_t value;
-
-  memcpy(&value, &tlv[2], sizeof(value));
-  *mdrt = be64toh(value);
-}
-
-void
-dlep_parser_get_cdrr(uint64_t *cdrr, uint8_t *tlv) {
-  uint64_t value;
-
-  memcpy(&value, &tlv[2], sizeof(value));
-  *cdrr = be64toh(value);
-}
-void
-dlep_parser_get_cdrt(uint64_t *cdrt, uint8_t *tlv) {
-  uint64_t value;
-
-  memcpy(&value, &tlv[2], sizeof(value));
-  *cdrt = be64toh(value);
+  *number= be64toh(value);
 }
 
 void
@@ -289,6 +267,15 @@ dlep_parser_get_optional_tlv(struct dlep_bitmap *bitmap, uint8_t *tlv) {
   for (i=0; i<tlv[1]; i++) {
     dlep_bitmap_set(bitmap, tlv[2+i]);
   }
+}
+
+void
+dlep_parser_get_signal(int32_t *sig, uint8_t *tlv) {
+  uint32_t value;
+
+  memcpy(&value, &tlv[2], sizeof(value));
+  value = ntohl(value);
+  memcpy(sig, &value, sizeof(value));
 }
 
 static int
