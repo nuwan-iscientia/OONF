@@ -684,13 +684,21 @@ _handle_metrics(struct oonf_layer2_data *neighbor_data,
   _handle_uint64_metric(neighbor_data, OONF_LAYER2_NEIGH_TX_FAILED,
       "frame-fails (t)", buffer, idx, DLEP_FRAMES_FAILED_TLV);
 
-  pos = idx->idx[DLEP_SIGNAL_TLV];
+  pos = idx->idx[DLEP_TX_SIGNAL_TLV];
   if (pos) {
-    dlep_parser_get_signal(&sig, &buffer[pos]);
+    dlep_parser_get_tx_signal(&sig, &buffer[pos]);
 
-    OONF_DEBUG(LOG_DLEP_ROUTER, "Received signal strength: %d", sig);
+    OONF_DEBUG(LOG_DLEP_ROUTER, "Received tx-signal strength: %d", sig);
 
-    oonf_layer2_set_value(&neighbor_data[OONF_LAYER2_NEIGH_SIGNAL], _l2_origin, sig);
+    oonf_layer2_set_value(&neighbor_data[OONF_LAYER2_NEIGH_TX_SIGNAL], _l2_origin, sig);
+  }
+  pos = idx->idx[DLEP_RX_SIGNAL_TLV];
+  if (pos) {
+    dlep_parser_get_rx_signal(&sig, &buffer[pos]);
+
+    OONF_DEBUG(LOG_DLEP_ROUTER, "Received rx-signal strength: %d", sig);
+
+    oonf_layer2_set_value(&neighbor_data[OONF_LAYER2_NEIGH_RX_SIGNAL], _l2_origin, sig);
   }
 }
 

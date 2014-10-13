@@ -439,7 +439,7 @@ _parse_cmd_new_station(struct nlmsghdr *hdr) {
         nla_get_u32(sinfo[NL80211_STA_INFO_TX_FAILED]));
   }
   if (sinfo[NL80211_STA_INFO_SIGNAL])  {
-    oonf_layer2_set_value(&neigh->data[OONF_LAYER2_NEIGH_SIGNAL], _l2_origin,
+    oonf_layer2_set_value(&neigh->data[OONF_LAYER2_NEIGH_RX_SIGNAL], _l2_origin,
         1000 * (int8_t)nla_get_u8(sinfo[NL80211_STA_INFO_SIGNAL]));
   }
   if (sinfo[NL80211_STA_INFO_TX_BITRATE]) {
@@ -736,7 +736,8 @@ _parse_cmd_new_scan_result(struct nlmsghdr *msg) {
     }
 
     if (max_rate) {
-      oonf_layer2_set_value(&net->data[OONF_LAYER2_NET_MAX_BITRATE], _l2_origin, max_rate);
+      oonf_layer2_set_value(&net->neighdata[OONF_LAYER2_NEIGH_TX_MAX_BITRATE], _l2_origin, max_rate);
+      oonf_layer2_set_value(&net->neighdata[OONF_LAYER2_NEIGH_RX_MAX_BITRATE], _l2_origin, max_rate);
     }
   }
 

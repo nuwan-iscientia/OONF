@@ -78,7 +78,13 @@ static struct cfg_schema_entry _link_config_if_entries[] = {
   CFG_VALIDATE_LINKDATA(OONF_LAYER2_NEIGH_TX_BITRATE,
     "Sets the outgoing link speed on the interface. Consists of a speed in"
     " bits/s (with iso-prefix) and an optional list of mac addresses of neighbor nodes."),
-  CFG_VALIDATE_LINKDATA(OONF_LAYER2_NEIGH_SIGNAL,
+  CFG_VALIDATE_LINKDATA(OONF_LAYER2_NEIGH_RX_MAX_BITRATE,
+    "Sets the maximal incoming link speed on the interface. Consists of a speed in"
+    " bits/s (with iso-prefix) and an optional list of mac addresses of neighbor nodes."),
+  CFG_VALIDATE_LINKDATA(OONF_LAYER2_NEIGH_TX_MAX_BITRATE,
+    "Sets the maximal outgoing link speed on the interface. Consists of a speed in"
+    " bits/s (with iso-prefix) and an optional list of mac addresses of neighbor nodes."),
+  CFG_VALIDATE_LINKDATA(OONF_LAYER2_NEIGH_RX_SIGNAL,
     "Sets the incoing signal strength on the interface. Consists of a signal strength in"
     " dBm (with iso-prefix) and an optional list of mac addresses of neighbor nodes."),
 };

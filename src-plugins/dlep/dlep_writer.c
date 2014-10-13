@@ -275,10 +275,19 @@ dlep_writer_add_optional_data_items(void) {
 }
 
 void
-dlep_writer_add_signal(int32_t signal) {
+dlep_writer_add_rx_signal(int32_t signal) {
   uint32_t *value = (uint32_t*)(&signal);
 
   *value = htonl(*value);
 
-  dlep_writer_add_tlv(DLEP_SIGNAL_TLV, value, sizeof(*value));
+  dlep_writer_add_tlv(DLEP_RX_SIGNAL_TLV, value, sizeof(*value));
+}
+
+void
+dlep_writer_add_tx_signal(int32_t signal) {
+  uint32_t *value = (uint32_t*)(&signal);
+
+  *value = htonl(*value);
+
+  dlep_writer_add_tlv(DLEP_TX_SIGNAL_TLV, value, sizeof(*value));
 }

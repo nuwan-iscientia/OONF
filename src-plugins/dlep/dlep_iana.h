@@ -107,7 +107,8 @@ enum dlep_tlvs {
   DLEP_FRAMES_RETRIES_TLV,
   DLEP_FRAMES_FAILED_TLV,
 
-  DLEP_SIGNAL_TLV,
+  DLEP_RX_SIGNAL_TLV,
+  DLEP_TX_SIGNAL_TLV,
 
   /* must be the last entry */
   DLEP_TLV_COUNT,

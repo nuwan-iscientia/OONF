@@ -655,12 +655,16 @@ _handle_metrics(struct oonf_layer2_net *l2net,
       OONF_LAYER2_NEIGH_TX_FAILED, DLEP_FRAMES_FAILED_TLV);
 
   if (l2net) {
-    dlep_writer_add_signal(
-        _get_l2neigh_default_value(l2net, OONF_LAYER2_NEIGH_SIGNAL, 0));
+    dlep_writer_add_tx_signal(
+        _get_l2neigh_default_value(l2net, OONF_LAYER2_NEIGH_TX_SIGNAL, 0));
+    dlep_writer_add_rx_signal(
+        _get_l2neigh_default_value(l2net, OONF_LAYER2_NEIGH_RX_SIGNAL, 0));
   }
   else {
-    dlep_writer_add_signal(
-        _get_l2neigh_value(l2neigh, OONF_LAYER2_NEIGH_SIGNAL, 0));
+    dlep_writer_add_tx_signal(
+        _get_l2neigh_value(l2neigh, OONF_LAYER2_NEIGH_TX_SIGNAL, 0));
+    dlep_writer_add_rx_signal(
+        _get_l2neigh_value(l2neigh, OONF_LAYER2_NEIGH_RX_SIGNAL, 0));
   }
 }
 

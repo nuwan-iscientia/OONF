@@ -54,15 +54,18 @@
 #define OONF_LAYER2_NET_MAX_BITRATE_KEY  "max_bitrate"
 #define OONF_LAYER2_NET_FREQUENCY_KEY    "frequency"
 
-#define OONF_LAYER2_NEIGH_SIGNAL_KEY     "signal"
-#define OONF_LAYER2_NEIGH_TX_BITRATE_KEY "tx_bitrate"
-#define OONF_LAYER2_NEIGH_RX_BITRATE_KEY "rx_bitrate"
-#define OONF_LAYER2_NEIGH_TX_BYTES_KEY   "tx_bytes"
-#define OONF_LAYER2_NEIGH_RX_BYTES_KEY   "rx_bytes"
-#define OONF_LAYER2_NEIGH_TX_FRAMES_KEY  "tx_frames"
-#define OONF_LAYER2_NEIGH_RX_FRAMES_KEY  "rx_frames"
-#define OONF_LAYER2_NEIGH_TX_RETRIES_KEY "tx_retries"
-#define OONF_LAYER2_NEIGH_TX_FAILED_KEY  "tx_failed"
+#define OONF_LAYER2_NEIGH_RX_SIGNAL_KEY      "rx_signal"
+#define OONF_LAYER2_NEIGH_TX_SIGNAL_KEY      "tx_signal"
+#define OONF_LAYER2_NEIGH_TX_BITRATE_KEY     "tx_bitrate"
+#define OONF_LAYER2_NEIGH_RX_BITRATE_KEY     "rx_bitrate"
+#define OONF_LAYER2_NEIGH_TX_MAX_BITRATE_KEY "tx_max_bitrate"
+#define OONF_LAYER2_NEIGH_RX_MAX_BITRATE_KEY "rx_max_bitrate"
+#define OONF_LAYER2_NEIGH_TX_BYTES_KEY       "tx_bytes"
+#define OONF_LAYER2_NEIGH_RX_BYTES_KEY       "rx_bytes"
+#define OONF_LAYER2_NEIGH_TX_FRAMES_KEY      "tx_frames"
+#define OONF_LAYER2_NEIGH_RX_FRAMES_KEY      "rx_frames"
+#define OONF_LAYER2_NEIGH_TX_RETRIES_KEY     "tx_retries"
+#define OONF_LAYER2_NEIGH_TX_FAILED_KEY      "tx_failed"
 
 struct oonf_layer2_data {
   int64_t _value;
@@ -72,7 +75,6 @@ struct oonf_layer2_data {
 
 enum oonf_layer2_network_index {
   OONF_LAYER2_NET_FREQUENCY,
-  OONF_LAYER2_NET_MAX_BITRATE,
 
   /* last entry */
   OONF_LAYER2_NET_COUNT,
@@ -89,7 +91,8 @@ enum oonf_layer2_network_type {
 };
 
 enum oonf_layer2_neighbor_index {
-  OONF_LAYER2_NEIGH_SIGNAL,
+  OONF_LAYER2_NEIGH_TX_SIGNAL,
+  OONF_LAYER2_NEIGH_RX_SIGNAL,
   OONF_LAYER2_NEIGH_TX_BITRATE,
   OONF_LAYER2_NEIGH_RX_BITRATE,
   OONF_LAYER2_NEIGH_TX_MAX_BITRATE,

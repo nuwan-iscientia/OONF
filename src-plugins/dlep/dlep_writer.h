@@ -76,6 +76,7 @@ void dlep_writer_add_uint64(uint64_t number, enum dlep_tlvs tlv);
 void dlep_writer_add_status(enum dlep_status status);
 void dlep_writer_add_optional_signals(void);
 void dlep_writer_add_optional_data_items(void);
-void dlep_writer_add_signal(int32_t signal);
+void dlep_writer_add_tx_signal(int32_t signal);
+void dlep_writer_add_rx_signal(int32_t signal);
 
 #endif /* DLEP_WRITER_H_ */

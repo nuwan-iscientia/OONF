@@ -66,20 +66,22 @@ struct oonf_subsystem oonf_layer2_subsystem = {
 
 /* l2neigh string keys */
 const struct oonf_layer2_metadata oonf_layer2_metadata_neigh[OONF_LAYER2_NEIGH_COUNT] = {
-  [OONF_LAYER2_NEIGH_SIGNAL]     = { .key = OONF_LAYER2_NEIGH_SIGNAL_KEY, .unit = "dBm", .fraction = 3 },
-  [OONF_LAYER2_NEIGH_TX_BITRATE] = { .key = OONF_LAYER2_NEIGH_TX_BITRATE_KEY, .unit = "bit/s", .binary = true },
-  [OONF_LAYER2_NEIGH_RX_BITRATE] = { .key = OONF_LAYER2_NEIGH_RX_BITRATE_KEY, .unit = "bit/s", .binary = true },
-  [OONF_LAYER2_NEIGH_TX_BYTES]   = { .key = OONF_LAYER2_NEIGH_TX_BYTES_KEY, .unit = "byte", .binary = true },
-  [OONF_LAYER2_NEIGH_RX_BYTES]   = { .key = OONF_LAYER2_NEIGH_RX_BYTES_KEY, .unit = "byte", .binary = true },
-  [OONF_LAYER2_NEIGH_TX_FRAMES]  = { .key = OONF_LAYER2_NEIGH_TX_FRAMES_KEY },
-  [OONF_LAYER2_NEIGH_RX_FRAMES]  = { .key = OONF_LAYER2_NEIGH_RX_FRAMES_KEY },
-  [OONF_LAYER2_NEIGH_TX_RETRIES] = { .key = OONF_LAYER2_NEIGH_TX_RETRIES_KEY },
-  [OONF_LAYER2_NEIGH_TX_FAILED]  = { .key = OONF_LAYER2_NEIGH_TX_FAILED_KEY },
+  [OONF_LAYER2_NEIGH_TX_SIGNAL]      = { .key = OONF_LAYER2_NEIGH_TX_SIGNAL_KEY, .unit = "dBm", .fraction = 3 },
+  [OONF_LAYER2_NEIGH_RX_SIGNAL]      = { .key = OONF_LAYER2_NEIGH_RX_SIGNAL_KEY, .unit = "dBm", .fraction = 3 },
+  [OONF_LAYER2_NEIGH_TX_BITRATE]     = { .key = OONF_LAYER2_NEIGH_TX_BITRATE_KEY, .unit = "bit/s", .binary = true },
+  [OONF_LAYER2_NEIGH_RX_BITRATE]     = { .key = OONF_LAYER2_NEIGH_RX_BITRATE_KEY, .unit = "bit/s", .binary = true },
+  [OONF_LAYER2_NEIGH_TX_MAX_BITRATE] = { .key = OONF_LAYER2_NEIGH_TX_MAX_BITRATE_KEY, .unit = "bit/s", .binary = true },
+  [OONF_LAYER2_NEIGH_RX_MAX_BITRATE] = { .key = OONF_LAYER2_NEIGH_RX_MAX_BITRATE_KEY, .unit = "bit/s", .binary = true },
+  [OONF_LAYER2_NEIGH_TX_BYTES]       = { .key = OONF_LAYER2_NEIGH_TX_BYTES_KEY, .unit = "byte", .binary = true },
+  [OONF_LAYER2_NEIGH_RX_BYTES]       = { .key = OONF_LAYER2_NEIGH_RX_BYTES_KEY, .unit = "byte", .binary = true },
+  [OONF_LAYER2_NEIGH_TX_FRAMES]      = { .key = OONF_LAYER2_NEIGH_TX_FRAMES_KEY },
+  [OONF_LAYER2_NEIGH_RX_FRAMES]      = { .key = OONF_LAYER2_NEIGH_RX_FRAMES_KEY },
+  [OONF_LAYER2_NEIGH_TX_RETRIES]     = { .key = OONF_LAYER2_NEIGH_TX_RETRIES_KEY },
+  [OONF_LAYER2_NEIGH_TX_FAILED]      = { .key = OONF_LAYER2_NEIGH_TX_FAILED_KEY },
 };
 
 const struct oonf_layer2_metadata oonf_layer2_metadata_net[OONF_LAYER2_NET_COUNT] = {
   [OONF_LAYER2_NET_FREQUENCY]    = { .key = OONF_LAYER2_NET_FREQUENCY_KEY, .unit = "Hz" },
-  [OONF_LAYER2_NET_MAX_BITRATE]  = { .key = OONF_LAYER2_NET_MAX_BITRATE_KEY, .unit = "bit/s", .binary = true },
 };
 
 const char *oonf_layer2_network_type[OONF_LAYER2_TYPE_COUNT] = {

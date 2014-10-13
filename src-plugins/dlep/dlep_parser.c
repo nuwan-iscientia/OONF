@@ -270,7 +270,16 @@ dlep_parser_get_optional_tlv(struct dlep_bitmap *bitmap, uint8_t *tlv) {
 }
 
 void
-dlep_parser_get_signal(int32_t *sig, uint8_t *tlv) {
+dlep_parser_get_tx_signal(int32_t *sig, uint8_t *tlv) {
+  uint32_t value;
+
+  memcpy(&value, &tlv[2], sizeof(value));
+  value = ntohl(value);
+  memcpy(sig, &value, sizeof(value));
+}
+
+void
+dlep_parser_get_rx_signal(int32_t *sig, uint8_t *tlv) {
   uint32_t value;
 
   memcpy(&value, &tlv[2], sizeof(value));

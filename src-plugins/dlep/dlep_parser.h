@@ -79,6 +79,7 @@ void dlep_parser_get_status(enum dlep_status *status, uint8_t *tlv);
 void dlep_parser_get_optional_signal(struct dlep_bitmap *bitmap, uint8_t *tlv);
 void dlep_parser_get_optional_tlv(struct dlep_bitmap *bitmap, uint8_t *tlv);
 
-void dlep_parser_get_signal(int32_t *sig, uint8_t *tlv);
+void dlep_parser_get_tx_signal(int32_t *sig, uint8_t *tlv);
+void dlep_parser_get_rx_signal(int32_t *sig, uint8_t *tlv);
 
 #endif /* DLEP_PARSER_H_ */

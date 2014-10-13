@@ -188,8 +188,6 @@ _cb_transmission_event(void *ptr __attribute((unused))) {
         _l2_origin, ethspeed);
     oonf_layer2_set_value(&l2net->neighdata[OONF_LAYER2_NEIGH_TX_BITRATE],
         _l2_origin, ethspeed);
-    oonf_layer2_set_value(&l2net->data[OONF_LAYER2_NET_MAX_BITRATE],
-        _l2_origin, ethspeed);
   }
 }
 
