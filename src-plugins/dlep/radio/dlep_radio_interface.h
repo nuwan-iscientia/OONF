@@ -54,6 +54,9 @@ struct dlep_radio_if {
   /* interface name to talk with DLEP router */
   char name[IF_NAMESIZE];
 
+  /* interface name to get layer2 data from */
+  char source[IF_NAMESIZE];
+
   /* UDP socket for discovery */
   struct oonf_packet_managed udp;
   struct oonf_packet_managed_config udp_config;

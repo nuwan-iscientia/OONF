@@ -939,6 +939,7 @@ _cb_config_changed(void) {
   array = cfg_schema_tovalue(_nl80211_section.pre, &_nl80211_entries[IDX_INTERFACES]);
   if (array && strarray_get_count_c(array) > 0) {
     for (i=0; i<_if_listener_count; i++) {
+      OONF_DEBUG(LOG_NL80211, "Remove listener for %s", _if_listener[i].name);
       oonf_interface_remove_listener(&_if_listener[i]);
       free ((char *)_if_listener[i].name);
     }
@@ -958,6 +959,7 @@ _cb_config_changed(void) {
 
     i = 0;
     strarray_for_each_element(array, str) {
+      OONF_DEBUG(LOG_NL80211, "Add listener for %s", str);
       _if_listener[i].name = strdup(str);
       oonf_interface_add_listener(&_if_listener[i]);
       i++;

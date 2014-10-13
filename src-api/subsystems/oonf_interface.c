@@ -145,6 +145,8 @@ oonf_interface_add_listener(
     return 0;
   }
 
+  OONF_DEBUG(LOG_INTERFACE, "Add listener for interface %s", listener->name);
+
   if (listener->name) {
     listener->interface = _interface_add(listener->name, listener->mesh);
     if (listener->interface == NULL) {
@@ -166,6 +168,8 @@ oonf_interface_remove_listener(
   if (!list_is_node_added(&listener->_node)) {
     return;
   }
+
+  OONF_DEBUG(LOG_INTERFACE, "Remove listener for interface %s", listener->name);
 
   if (listener->interface) {
     _interface_remove(listener->interface, listener->mesh);

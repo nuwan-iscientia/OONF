@@ -70,6 +70,9 @@ static void _cb_config_changed(void);
 
 /* configuration */
 static struct cfg_schema_entry _radio_entries[] = {
+  CFG_MAP_STRING_ARRAY(dlep_radio_if, source, "source", "wlan0",
+     "Name of interface which layer2 data should be transmitted", IF_NAMESIZE),
+
   CFG_MAP_NETADDR_V4(dlep_radio_if, udp_config.multicast_v4, "discovery_mc_v4",
     "224.0.0.1", "IPv4 address to send discovery UDP packet to", false, false),
   CFG_MAP_NETADDR_V6(dlep_radio_if, udp_config.multicast_v6, "discovery_mc_v6",

@@ -387,7 +387,7 @@ _handle_peer_initialization(struct dlep_radio_session *session,
   }
 
   /* get reference to l2 network data */
-  l2net = oonf_layer2_net_add(session->interface->name);
+  l2net = oonf_layer2_net_add(session->interface->source);
   if (!l2net) {
     return -1;
   }
@@ -504,7 +504,7 @@ _cb_l2_neigh_added(void *ptr) {
       netaddr_to_string(&nbuf1, &l2neigh->addr), l2net->name);
 
   avl_for_each_element(&dlep_radio_if_tree, dlep_if, _node) {
-    if (strcmp(dlep_if->name, l2net->name) != 0) {
+    if (strcmp(dlep_if->source, l2net->name) != 0) {
       continue;
     }
 
@@ -531,11 +531,11 @@ _cb_l2_neigh_changed(void *ptr) {
   l2neigh = ptr;
   l2net = l2neigh->network;
 
-  OONF_DEBUG(LOG_DLEP_RADIO, "Received neighbor addition for %s on interface %s",
+  OONF_DEBUG(LOG_DLEP_RADIO, "Received neighbor change for %s on interface %s",
       netaddr_to_string(&nbuf1, &l2neigh->addr), l2net->name);
 
   avl_for_each_element(&dlep_radio_if_tree, dlep_if, _node) {
-    if (strcmp(dlep_if->name, l2net->name) != 0) {
+    if (strcmp(dlep_if->source, l2net->name) != 0) {
       continue;
     }
 
@@ -562,11 +562,11 @@ _cb_l2_neigh_removed(void *ptr) {
   l2neigh = ptr;
   l2net = l2neigh->network;
 
-  OONF_DEBUG(LOG_DLEP_RADIO, "Received neighbor addition for %s on interface %s",
+  OONF_DEBUG(LOG_DLEP_RADIO, "Received neighbor removal for %s on interface %s",
       netaddr_to_string(&nbuf1, &l2neigh->addr), l2net->name);
 
   avl_for_each_element(&dlep_radio_if_tree, dlep_if, _node) {
-    if (strcmp(dlep_if->name, l2net->name) != 0) {
+    if (strcmp(dlep_if->source, l2net->name) != 0) {
       continue;
     }
 
@@ -696,6 +696,11 @@ _generate_peer_initialization_ack(struct dlep_radio_session *session,
 static void
 _generate_destination_up(struct dlep_radio_session *session,
     struct oonf_layer2_neigh *l2neigh) {
+  struct netaddr_str nbuf;
+
+  OONF_DEBUG(LOG_DLEP_RADIO, "Destination up: %s/%s",
+      l2neigh->network->name, netaddr_to_string(&nbuf, &l2neigh->addr));
+
   dlep_writer_start_signal(DLEP_DESTINATION_UP, &session->supported_tlvs);
   dlep_writer_add_mac_tlv(&l2neigh->addr);
 
@@ -712,6 +717,11 @@ _generate_destination_up(struct dlep_radio_session *session,
 static void
 _generate_destination_update(struct dlep_radio_session *session,
     struct oonf_layer2_neigh *l2neigh) {
+  struct netaddr_str nbuf;
+
+  OONF_DEBUG(LOG_DLEP_RADIO, "Destination updata: %s/%s",
+      l2neigh->network->name, netaddr_to_string(&nbuf, &l2neigh->addr));
+
   dlep_writer_start_signal(DLEP_DESTINATION_UPDATE, &session->supported_tlvs);
   dlep_writer_add_mac_tlv(&l2neigh->addr);
 
@@ -728,6 +738,11 @@ _generate_destination_update(struct dlep_radio_session *session,
 static void
 _generate_destination_down(struct dlep_radio_session *session,
     struct oonf_layer2_neigh *l2neigh) {
+  struct netaddr_str nbuf;
+
+  OONF_DEBUG(LOG_DLEP_RADIO, "Destination down: %s/%s",
+      l2neigh->network->name, netaddr_to_string(&nbuf, &l2neigh->addr));
+
   dlep_writer_start_signal(DLEP_DESTINATION_DOWN, &session->supported_tlvs);
   dlep_writer_add_mac_tlv(&l2neigh->addr);
 
