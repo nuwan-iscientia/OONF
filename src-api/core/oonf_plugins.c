@@ -84,18 +84,10 @@ enum {
  * %VER:     version number as defined by the app (e.g. "0.1.0")
  */
 static const char *DLOPEN_PATTERNS[] = {
-  "%PATH%/oonf/%PRE%%LIB%%POST%.%VER%",
-  "%PATH%/oonf/%PRELIB%%LIB%%POSTLIB%.%VERLIB%",
-  "%PATH%/oonf/%PRE%%LIB%%POST%",
-  "%PATH%/oonf/%PRELIB%%LIB%%POSTLIB%",
   "%PATH%/%PRE%%LIB%%POST%.%VER%",
   "%PATH%/%PRELIB%%LIB%%POSTLIB%.%VERLIB%",
   "%PATH%/%PRE%%LIB%%POST%",
   "%PATH%/%PRELIB%%LIB%%POSTLIB%",
-  "oonf/%PRE%%LIB%%POST%.%VER%",
-  "oonf/%PRELIB%%LIB%%POSTLIB%.%VERLIB%",
-  "oonf/%PRE%%LIB%%POST%",
-  "oonf/%PRELIB%%LIB%%POSTLIB%",
   "%PRE%%LIB%%POST%.%VER%",
   "%PRELIB%%LIB%%POSTLIB%.%VERLIB%",
   "%PRE%%LIB%%POST%",
