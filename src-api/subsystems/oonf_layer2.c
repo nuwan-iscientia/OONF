@@ -53,7 +53,6 @@ static int _init(void);
 static void _cleanup(void);
 
 static bool _commit_net(struct oonf_layer2_net *l2net, bool commit_change);
-static bool _commit_neigh(struct oonf_layer2_neigh *l2neigh, bool commit_change);
 static void _net_remove(struct oonf_layer2_net *l2net);
 static void _neigh_remove(struct oonf_layer2_neigh *l2neigh);
 
@@ -64,7 +63,7 @@ struct oonf_subsystem oonf_layer2_subsystem = {
     .cleanup = _cleanup,
 };
 
-/* l2neigh string keys */
+/* layer2 neighbor metadata */
 const struct oonf_layer2_metadata oonf_layer2_metadata_neigh[OONF_LAYER2_NEIGH_COUNT] = {
   [OONF_LAYER2_NEIGH_TX_SIGNAL]      = { .key = OONF_LAYER2_NEIGH_TX_SIGNAL_KEY, .unit = "dBm", .fraction = 3 },
   [OONF_LAYER2_NEIGH_RX_SIGNAL]      = { .key = OONF_LAYER2_NEIGH_RX_SIGNAL_KEY, .unit = "dBm", .fraction = 3 },
@@ -76,12 +75,23 @@ const struct oonf_layer2_metadata oonf_layer2_metadata_neigh[OONF_LAYER2_NEIGH_C
   [OONF_LAYER2_NEIGH_RX_BYTES]       = { .key = OONF_LAYER2_NEIGH_RX_BYTES_KEY, .unit = "byte", .binary = true },
   [OONF_LAYER2_NEIGH_TX_FRAMES]      = { .key = OONF_LAYER2_NEIGH_TX_FRAMES_KEY },
   [OONF_LAYER2_NEIGH_RX_FRAMES]      = { .key = OONF_LAYER2_NEIGH_RX_FRAMES_KEY },
+  [OONF_LAYER2_NEIGH_TX_THROUGHPUT]  = { .key = OONF_LAYER2_NEIGH_TX_THROUGHPUT_KEY, .unit = "bit/s", .binary = true },
   [OONF_LAYER2_NEIGH_TX_RETRIES]     = { .key = OONF_LAYER2_NEIGH_TX_RETRIES_KEY },
   [OONF_LAYER2_NEIGH_TX_FAILED]      = { .key = OONF_LAYER2_NEIGH_TX_FAILED_KEY },
 };
 
+/* layer2 network metadata */
 const struct oonf_layer2_metadata oonf_layer2_metadata_net[OONF_LAYER2_NET_COUNT] = {
-  [OONF_LAYER2_NET_FREQUENCY]    = { .key = OONF_LAYER2_NET_FREQUENCY_KEY, .unit = "Hz" },
+  [OONF_LAYER2_NET_FREQUENCY_1]     = { .key = OONF_LAYER2_NET_FREQUENCY_1_KEY, .unit = "Hz" },
+  [OONF_LAYER2_NET_FREQUENCY_2]     = { .key = OONF_LAYER2_NET_FREQUENCY_2_KEY, .unit = "Hz" },
+  [OONF_LAYER2_NET_BANDWIDTH_1]     = { .key = OONF_LAYER2_NET_BANDWIDTH_1_KEY, .unit = "Hz" },
+  [OONF_LAYER2_NET_BANDWIDTH_2]     = { .key = OONF_LAYER2_NET_BANDWIDTH_2_KEY, .unit = "Hz" },
+  [OONF_LAYER2_NET_NOISE]           = { .key = OONF_LAYER2_NET_NOISE_KEY, .unit="dBm", .fraction = 3 },
+  [OONF_LAYER2_NET_CHANNEL_ACTIVE]  = { .key = OONF_LAYER2_NET_CHANNEL_ACTIVE_KEY, .unit="s", .fraction = 9 },
+  [OONF_LAYER2_NET_CHANNEL_BUSY]    = { .key = OONF_LAYER2_NET_CHANNEL_BUSY_KEY, .unit="s", .fraction = 9 },
+  [OONF_LAYER2_NET_CHANNEL_BUSYEXT] = { .key = OONF_LAYER2_NET_CHANNEL_BUSYEXT_KEY, .unit="s", .fraction = 9 },
+  [OONF_LAYER2_NET_CHANNEL_RX]      = { .key = OONF_LAYER2_NET_CHANNEL_RX_KEY, .unit="s", .fraction = 9 },
+  [OONF_LAYER2_NET_CHANNEL_TX]      = { .key = OONF_LAYER2_NET_CHANNEL_TX_KEY, .unit="s", .fraction = 9 },
 };
 
 const char *oonf_layer2_network_type[OONF_LAYER2_TYPE_COUNT] = {
@@ -324,7 +334,9 @@ oonf_layer2_neigh_cleanup(struct oonf_layer2_neigh *l2neigh,
     }
   }
 
-  _commit_neigh(l2neigh, commit);
+  if (commit) {
+    oonf_layer2_neigh_commit(l2neigh);
+  }
 }
 
 /**
@@ -410,6 +422,30 @@ oonf_layer2_neigh_get_value(struct oonf_layer2_neigh *l2neigh,
 }
 
 /**
+ * Changes a layer2 data value
+ * @param l2data pointer to layer2 data
+ * @param origin origin for new data
+ * @param value value of new data
+ * @return true if value has changed, false otherwise
+ */
+bool
+oonf_layer2_change_value(struct oonf_layer2_data *l2data,
+    uint32_t origin, int64_t value) {
+  int64_t old = 0;
+
+  if (oonf_layer2_has_value(l2data)) {
+    old = oonf_layer2_get_value(l2data);
+  }
+
+  if (old != value || oonf_layer2_get_origin(l2data) != origin) {
+    oonf_layer2_set_value(l2data, origin, value);
+    return true;
+  }
+  return false;
+
+}
+
+/**
  * Commit all changes to a layer-2 addr object. This might remove the
  * object from the database if all data has been removed from the object.
  * @param l2net layer-2 addr object
@@ -446,31 +482,6 @@ _commit_net(struct oonf_layer2_net *l2net, bool commit_change) {
   _net_remove(l2net);
   return true;
 }
-
-/**
- * Commit all changes to a layer-2 neighbor object. This might remove the
- * object from the database if all data has been removed from the object.
- * @param l2net layer-2 neighbor object
- * @param commit_change true if function shall trigger change events
- * @return true if the object has been removed, false otherwise
- */
-static bool
-_commit_neigh(struct oonf_layer2_neigh *l2neigh, bool commit_change) {
-  size_t i;
-
-  for (i=0; i<OONF_LAYER2_NEIGH_COUNT; i++) {
-    if (oonf_layer2_has_value(&l2neigh->data[i])) {
-      if (commit_change) {
-        oonf_class_event(&_l2neighbor_class, l2neigh, OONF_OBJECT_CHANGED);
-      }
-      return false;
-    }
-  }
-
-  _neigh_remove(l2neigh);
-  return true;
-}
-
 
 /**
  * Removes a layer-2 addr object from the database.

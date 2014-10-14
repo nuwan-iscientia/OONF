@@ -51,9 +51,19 @@
 #define LAYER2_CLASS_NEIGHBOR  "layer2_neighbor"
 #define LAYER2_CLASS_NETWORK   "layer2_network"
 
-#define OONF_LAYER2_NET_MAX_BITRATE_KEY  "max_bitrate"
-#define OONF_LAYER2_NET_FREQUENCY_KEY    "frequency"
+#define OONF_LAYER2_NET_LAST_SEEN_KEY        "last_seen"
+#define OONF_LAYER2_NET_FREQUENCY_1_KEY      "frequency1"
+#define OONF_LAYER2_NET_FREQUENCY_2_KEY      "frequency2"
+#define OONF_LAYER2_NET_BANDWIDTH_1_KEY      "bandwidth1"
+#define OONF_LAYER2_NET_BANDWIDTH_2_KEY      "bandwidth2"
+#define OONF_LAYER2_NET_NOISE_KEY            "noise"
+#define OONF_LAYER2_NET_CHANNEL_ACTIVE_KEY   "ch_active"
+#define OONF_LAYER2_NET_CHANNEL_BUSY_KEY     "ch_busy"
+#define OONF_LAYER2_NET_CHANNEL_BUSYEXT_KEY  "ch_ext_busy"
+#define OONF_LAYER2_NET_CHANNEL_RX_KEY       "ch_rx"
+#define OONF_LAYER2_NET_CHANNEL_TX_KEY       "ch_tx"
 
+#define OONF_LAYER2_NEIGH_LAST_SEEN_KEY      "last_seen"
 #define OONF_LAYER2_NEIGH_RX_SIGNAL_KEY      "rx_signal"
 #define OONF_LAYER2_NEIGH_TX_SIGNAL_KEY      "tx_signal"
 #define OONF_LAYER2_NEIGH_TX_BITRATE_KEY     "tx_bitrate"
@@ -64,6 +74,7 @@
 #define OONF_LAYER2_NEIGH_RX_BYTES_KEY       "rx_bytes"
 #define OONF_LAYER2_NEIGH_TX_FRAMES_KEY      "tx_frames"
 #define OONF_LAYER2_NEIGH_RX_FRAMES_KEY      "rx_frames"
+#define OONF_LAYER2_NEIGH_TX_THROUGHPUT_KEY  "tx_throughput"
 #define OONF_LAYER2_NEIGH_TX_RETRIES_KEY     "tx_retries"
 #define OONF_LAYER2_NEIGH_TX_FAILED_KEY      "tx_failed"
 
@@ -74,7 +85,16 @@ struct oonf_layer2_data {
 };
 
 enum oonf_layer2_network_index {
-  OONF_LAYER2_NET_FREQUENCY,
+  OONF_LAYER2_NET_FREQUENCY_1,
+  OONF_LAYER2_NET_FREQUENCY_2,
+  OONF_LAYER2_NET_BANDWIDTH_1,
+  OONF_LAYER2_NET_BANDWIDTH_2,
+  OONF_LAYER2_NET_NOISE,
+  OONF_LAYER2_NET_CHANNEL_ACTIVE,
+  OONF_LAYER2_NET_CHANNEL_BUSY,
+  OONF_LAYER2_NET_CHANNEL_BUSYEXT,
+  OONF_LAYER2_NET_CHANNEL_RX,
+  OONF_LAYER2_NET_CHANNEL_TX,
 
   /* last entry */
   OONF_LAYER2_NET_COUNT,
@@ -101,6 +121,7 @@ enum oonf_layer2_neighbor_index {
   OONF_LAYER2_NEIGH_RX_BYTES,
   OONF_LAYER2_NEIGH_TX_FRAMES,
   OONF_LAYER2_NEIGH_RX_FRAMES,
+  OONF_LAYER2_NEIGH_TX_THROUGHPUT,
   OONF_LAYER2_NEIGH_TX_RETRIES,
   OONF_LAYER2_NEIGH_TX_FAILED,
 
@@ -119,7 +140,6 @@ struct oonf_layer2_net {
   struct avl_tree neighbors;
 
   uint64_t last_seen;
-
   struct oonf_layer2_data data[OONF_LAYER2_NET_COUNT];
   struct oonf_layer2_data neighdata[OONF_LAYER2_NEIGH_COUNT];
 
@@ -130,10 +150,11 @@ struct oonf_layer2_neigh {
   struct avl_node _node;
   struct netaddr addr;
 
+  struct netaddr proxied_addr;
+
   struct oonf_layer2_net *network;
 
   uint64_t last_seen;
-
   struct oonf_layer2_data data[OONF_LAYER2_NEIGH_COUNT];
 };
 
@@ -178,6 +199,9 @@ EXPORT const struct oonf_layer2_data *oonf_layer2_neigh_query(
     enum oonf_layer2_neighbor_index idx);
 EXPORT const struct oonf_layer2_data *oonf_layer2_neigh_get_value(
     struct oonf_layer2_neigh *l2neigh, enum oonf_layer2_neighbor_index idx);
+
+EXPORT bool oonf_layer2_change_value(struct oonf_layer2_data *l2data,
+    uint32_t origin, int64_t value);
 
 /**
  * Get a layer-2 interface object from the database

@@ -39,40 +39,16 @@
  *
  */
 
-#ifndef NL80211_LISTENER_H_
-#define NL80211_LISTENER_H_
+#ifndef NL80211_GET_INTERFACE_H_
+#define NL80211_GET_INTERFACE_H_
 
-#include "common/common_types.h"
-#include "core/oonf_subsystem.h"
-#include "subsystems/oonf_interface.h"
-#include "subsystems/oonf_layer2.h"
+#include <linux/netlink.h>
 
-struct nl80211_if {
-  char name[IF_NAMESIZE];
+#include "nl80211_listener/nl80211_listener.h"
 
-  struct oonf_interface_listener if_listener;
+void nl80211_send_get_interface(struct nlmsghdr *nl_msg,
+    struct genlmsghdr *hdr, struct nl80211_if *interf);
+void nl80211_process_get_interface_result(
+    struct nl80211_if *interf, struct nlmsghdr*);
 
-  struct oonf_layer2_net *l2net;
-
-  int phy_if;
-  uint64_t max_tx, max_rx;
-  bool ifdata_changed;
-
-  bool _remove, _if_section, _nl80211_section;
-
-  struct avl_node _node;
-};
-
-#define LOG_NL80211 nl80211_listener_subsystem.logging
-EXPORT extern struct oonf_subsystem nl80211_listener_subsystem;
-
-bool nl80211_change_l2net_data(struct oonf_layer2_net *l2net,
-    enum oonf_layer2_network_index idx, uint64_t value);
-// struct nl80211_if *nl80211_get_if(const char *name);
-
-static INLINE unsigned
-nl80211_get_if_index(struct nl80211_if *interf) {
-  return interf->if_listener.interface->data.index;
-}
-
-#endif /* NL80211_LISTENER_H_ */
+#endif /* NL80211_GET_INTERFACE_H_ */

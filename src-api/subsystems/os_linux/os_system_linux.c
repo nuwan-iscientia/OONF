@@ -431,7 +431,9 @@ os_system_netlink_addreq(struct nlmsghdr *n,
   /* fix length of netlink message */
   n->nlmsg_len = aligned_msg_len + aligned_attr_len;
 
-  memcpy((char *)nl_attr + NLA_HDRLEN, data, len);
+  if (len) {
+    memcpy((char *)nl_attr + NLA_HDRLEN, data, len);
+  }
   return 0;
 }
 

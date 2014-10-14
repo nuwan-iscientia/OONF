@@ -66,12 +66,17 @@
 #include "core/oonf_plugins.h"
 #include "core/oonf_subsystem.h"
 #include "subsystems/oonf_class.h"
-#include "subsystems/oonf_clock.h"
 #include "subsystems/oonf_interface.h"
 #include "subsystems/oonf_layer2.h"
 #include "subsystems/oonf_timer.h"
 #include "subsystems/os_system.h"
 
+#include "nl80211_listener/genl_get_family.h"
+#include "nl80211_listener/nl80211_get_interface.h"
+#include "nl80211_listener/nl80211_get_mpp.h"
+#include "nl80211_listener/nl80211_get_station_dump.h"
+#include "nl80211_listener/nl80211_get_survey.h"
+#include "nl80211_listener/nl80211_get_wiphy.h"
 #include "nl80211_listener/nl80211_listener.h"
 
 /* definitions */
@@ -84,30 +89,47 @@ enum _nl80211_cfg_idx {
   IDX_INTERFACES,
 };
 
-enum query_type {
-  QUERY_FIRST = 0,
-  QUERY_STATION_DUMP = 0,
-  QUERY_SCAN_DUMP,
+enum _if_query {
+  QUERY_START       = 0,
+  QUERY_GET_IF      = 0,
+  QUERY_GET_WIPHY   = 1,
+  QUERY_GET_SURVEY  = 2,
+  QUERY_GET_MPP     = 3,
+  QUERY_GET_STATION = 4,
+  QUERY_END         = 5,
 
-  /* must be last */
-  QUERY_COUNT,
+  QUERY_GET_FAMILY  = 6,
 };
 
 /* prototypes */
 static int _init(void);
 static void _cleanup(void);
 
+static struct nl80211_if *_nl80211_if_get(const char *name);
+static struct nl80211_if *_nl80211_if_add(const char *name);
+static void _nl80211_if_remove(struct nl80211_if *);
+
 static void _cb_config_changed(void);
-static void _send_genl_getfamily(void);
+static void _cb_if_config_changed(void);
+
+static void _cb_transmission_event(void *);
+static void _trigger_next_netlink_query(void);
 
 static void _cb_nl_message(struct nlmsghdr *hdr);
 static void _cb_nl_error(uint32_t seq, int error);
 static void _cb_nl_timeout(void);
 static void _cb_nl_done(uint32_t seq);
 
-static void _cb_transmission_event(void *);
 
 /* configuration */
+static struct cfg_schema_section _if_section = {
+  .type = CFG_INTERFACE_SECTION,
+  .mode = CFG_INTERFACE_SECTION_MODE,
+  .cb_delta_handler = _cb_if_config_changed,
+  .entries = NULL,
+  .entry_count = 0,
+};
+
 static struct cfg_schema_entry _nl80211_entries[] = {
   [IDX_INTERVAL] = CFG_MAP_CLOCK_MIN(_nl80211_config, interval, "interval", "1.0",
       "Interval between two linklayer information updates", 100),
@@ -121,6 +143,7 @@ static struct cfg_schema_section _nl80211_section = {
   .cb_delta_handler = _cb_config_changed,
   .entries = _nl80211_entries,
   .entry_count = ARRAYSIZE(_nl80211_entries),
+  .next_section = &_if_section,
 };
 
 static struct _nl80211_config _config;
@@ -147,30 +170,38 @@ static struct os_system_netlink _netlink_handler = {
   .cb_timeout = _cb_nl_timeout,
 };
 
-static struct nlmsghdr *_msgbuf;
+static uint32_t _nl_msgbuffer[UIO_MAXIOV/4];
+static struct nlmsghdr *_nl_msg = (void *)_nl_msgbuffer;
 
-static int _nl80211_id = -1;
-static bool _nl80211_mc_set = false;
+static uint32_t _nl80211_id = 0;
+static uint32_t _nl80211_multicast_group = 0;
 
-static char _last_queried_if[IF_NAMESIZE];
-static enum query_type _next_query_type;
+/* layer2 metadata */
+static uint32_t _layer2_origin;
 
-static uint32_t _l2_origin;
+/* current query data */
+static struct nl80211_if *_current_query_if = NULL;
+static enum _if_query _current_query_number = QUERY_START;
+static bool _current_query_in_progress = false;
 
-/* timer for generatstatic ing netlink requests */
+/* timer for generating netlink requests */
 static struct oonf_timer_class _transmission_timer_info = {
   .name = "nl80211 listener timer",
   .callback = _cb_transmission_event,
   .periodic = true,
 };
 
-struct oonf_timer_instance _transmission_timer = {
+static struct oonf_timer_instance _transmission_timer = {
   .class = &_transmission_timer_info
 };
 
-/* interface allocation */
-size_t _if_listener_count;
-struct oonf_interface_listener *_if_listener;
+/* nl80211_if handling */
+static struct avl_tree _nl80211_if_tree;
+
+static struct oonf_class _nl80211_if_class = {
+  .name = "nl80211 if",
+  .size = sizeof(struct nl80211_if),
+};
 
 /**
  * Constructor of plugin
@@ -178,25 +209,18 @@ struct oonf_interface_listener *_if_listener;
  */
 static int
 _init(void) {
-  _msgbuf = calloc(1, UIO_MAXIOV);
-  if (_msgbuf == NULL) {
-    OONF_WARN(LOG_NL80211, "Not enough memory for nl80211 memory buffer");
-    return -1;
-  }
-
   if (os_system_netlink_add(&_netlink_handler, NETLINK_GENERIC)) {
-    free(_msgbuf);
     return -1;
   }
 
-  _l2_origin = oonf_layer2_register_origin();
+  /* initialize nl80211 if storage system */
+  oonf_class_add(&_nl80211_if_class);
+  avl_init(&_nl80211_if_tree, avl_comp_strcasecmp, false);
+
+  /* get layer2 origin */
+  _layer2_origin = oonf_layer2_register_origin();
 
   oonf_timer_add(&_transmission_timer_info);
-
-  memset(_last_queried_if, 0, sizeof(_last_queried_if));
-  _next_query_type = QUERY_STATION_DUMP;
-
-  _send_genl_getfamily();
   return 0;
 }
 
@@ -205,544 +229,221 @@ _init(void) {
  */
 static void
 _cleanup(void) {
-  /* free interface listeners */
-  for (size_t i=0; i<_if_listener_count; i++) {
-	  oonf_interface_remove_listener(&_if_listener[i]);
-      free ((char *)_if_listener[i].name);
+  struct nl80211_if *interf, *it_if;
+  avl_for_each_element_safe(&_nl80211_if_tree, interf, _node, it_if) {
+    _nl80211_if_remove(interf);
   }
-  free (_if_listener);
-  _if_listener = NULL;
-
-  oonf_layer2_cleanup_origin(_l2_origin);
+  oonf_layer2_cleanup_origin(_layer2_origin);
 
   oonf_timer_stop(&_transmission_timer);
   oonf_timer_remove(&_transmission_timer_info);
   os_system_netlink_remove(&_netlink_handler);
-
-  free (_msgbuf);
 }
 
-static struct oonf_layer2_net *
-_create_l2net(const char *if_name) {
-  struct oonf_layer2_net *net;
-  net = oonf_layer2_net_add(if_name);
-  if (net == NULL) {
+/**
+ * Change a layer2 network setting
+ * @param l2net pointer to layer2 network
+ * @param idx index of setting
+ * @param value new value
+ * @return true if value changed, false otherwise
+ */
+bool
+nl80211_change_l2net_data(struct oonf_layer2_net *l2net,
+    enum oonf_layer2_network_index idx, uint64_t value) {
+  return oonf_layer2_change_value(&l2net->data[idx], _layer2_origin, value);
+}
+
+static struct nl80211_if *
+_nl80211_if_get(const char *name) {
+  struct nl80211_if *interf;
+
+  return avl_find_element(&_nl80211_if_tree, name, interf, _node);
+}
+
+static struct nl80211_if *
+_nl80211_if_add(const char *name) {
+  struct nl80211_if *interf;
+
+  interf = _nl80211_if_get(name);
+  if (interf) {
+    return interf;
+  }
+
+  interf = oonf_class_malloc(&_nl80211_if_class);
+  if (!interf) {
     return NULL;
   }
 
-  if (net->if_type ==  OONF_LAYER2_TYPE_UNDEFINED) {
-    net->if_type = OONF_LAYER2_TYPE_WIRELESS;
-  }
-  if (net->if_type !=  OONF_LAYER2_TYPE_WIRELESS) {
-    OONF_WARN(LOG_NL80211, "Wireless interface %s is already type %d",
-        if_name, net->if_type);
+  /* initialize avl node */
+  strscpy(interf->name, name, IF_NAMESIZE);
+  interf->_node.key = interf->name;
+
+  /* initialize l2net */
+  interf->l2net = oonf_layer2_net_add(interf->name);
+  if (!interf->l2net) {
+    oonf_class_free(&_nl80211_if_class, interf);
     return NULL;
   }
-  return net;
+
+  /* initialize interface listener */
+  interf->if_listener.name = interf->name;
+  if (oonf_interface_add_listener(&interf->if_listener)) {
+    oonf_layer2_net_remove(interf->l2net, _layer2_origin);
+    oonf_class_free(&_nl80211_if_class, interf);
+    return NULL;
+  }
+
+  /* initialize physical interface */
+  interf->phy_if = -1;
+
+  OONF_DEBUG(LOG_NL80211, "Add if %s", name);
+  avl_insert(&_nl80211_if_tree, &interf->_node);
+  return interf;
+}
+
+static void
+_nl80211_if_remove(struct nl80211_if *interf) {
+  avl_remove(&_nl80211_if_tree, &interf->_node);
+  oonf_interface_remove_listener(&interf->if_listener);
+  oonf_class_free(&_nl80211_if_class, interf);
 }
 
 /**
- * Parse the netlink message result that contains the list of available
- * generic netlink families of the kernel.
- * @param hdr pointer to netlink message
+ * Update configuration of interface section
  */
 static void
-_parse_cmd_newfamily(struct nlmsghdr *hdr) {
-  static struct nla_policy ctrl_policy[CTRL_ATTR_MAX+1] = {
-    [CTRL_ATTR_FAMILY_ID]    = { .type = NLA_U16 },
-    [CTRL_ATTR_FAMILY_NAME]  = { .type = NLA_STRING, .maxlen = GENL_NAMSIZ },
-    [CTRL_ATTR_VERSION]      = { .type = NLA_U32 },
-    [CTRL_ATTR_HDRSIZE]      = { .type = NLA_U32 },
-    [CTRL_ATTR_MAXATTR]      = { .type = NLA_U32 },
-    [CTRL_ATTR_OPS]          = { .type = NLA_NESTED },
-    [CTRL_ATTR_MCAST_GROUPS] = { .type = NLA_NESTED },
-  };
-  struct nlattr *attrs[CTRL_ATTR_MAX+1];
-  struct nlattr *mcgrp;
-  int iterator;
+_cb_if_config_changed(void) {
+  struct nl80211_if *interf;
 
-  if (nlmsg_parse(hdr, sizeof(struct genlmsghdr),
-      attrs, CTRL_ATTR_MAX, ctrl_policy) < 0) {
-    OONF_WARN(LOG_NL80211, "Cannot parse netlink CTRL_CMD_NEWFAMILY message");
-    return;
-  }
-
-  if (attrs[CTRL_ATTR_FAMILY_ID] == NULL) {
-    OONF_WARN(LOG_NL80211, "Missing Family ID in CTRL_CMD_NEWFAMILY");
-    return;
-  }
-  if (attrs[CTRL_ATTR_FAMILY_NAME] == NULL) {
-    OONF_WARN(LOG_NL80211, "Missing Family Name in CTRL_CMD_NEWFAMILY");
-    return;
-  }
-
-  OONF_DEBUG(LOG_NL80211, "Found Netlink family '%s'\n",
-      nla_get_string(attrs[CTRL_ATTR_FAMILY_NAME]));
-
-  if (strcmp(nla_get_string(attrs[CTRL_ATTR_FAMILY_NAME]), "nl80211") != 0) {
-    /* not interested in this one */
-    return;
-  }
-
-  _nl80211_id = nla_get_u16(attrs[CTRL_ATTR_FAMILY_ID]);
-  OONF_DEBUG(LOG_NL80211, "Received nl80211 family id: %d\n", _nl80211_id);
-
-  if (_nl80211_mc_set || !attrs[CTRL_ATTR_MCAST_GROUPS]) {
-    /* no multicast groups */
-    return;
-  }
-
-  nla_for_each_nested(mcgrp, attrs[CTRL_ATTR_MCAST_GROUPS], iterator) {
-    struct nlattr *tb_mcgrp[CTRL_ATTR_MCAST_GRP_MAX + 1];
-    uint32_t group;
-
-    nla_parse(tb_mcgrp, CTRL_ATTR_MCAST_GRP_MAX,
-        nla_data(mcgrp), nla_len(mcgrp), NULL);
-
-    if (!tb_mcgrp[CTRL_ATTR_MCAST_GRP_NAME] ||
-        !tb_mcgrp[CTRL_ATTR_MCAST_GRP_ID])
-      continue;
-
-    group = nla_get_u32(tb_mcgrp[CTRL_ATTR_MCAST_GRP_ID]);
-    OONF_DEBUG(LOG_NL80211, "Found multicast group %s: %d",
-        (char *)nla_data(tb_mcgrp[CTRL_ATTR_MCAST_GRP_NAME]),
-        group);
-
-    if (strcmp(nla_data(tb_mcgrp[CTRL_ATTR_MCAST_GRP_NAME]), "mlme"))
-      continue;
-
-    if (os_system_netlink_add_mc(&_netlink_handler, &group, 1)) {
-      OONF_WARN(LOG_NL80211,
-          "Could not activate multicast group %d for nl80211", group);
+  if (_if_section.pre == NULL) {
+    interf = _nl80211_if_add(_if_section.section_name);
+    if (interf) {
+      interf->_if_section = true;
     }
-    else {
-      _nl80211_mc_set = true;
-    }
-    break;
-  }
-}
-
-/**
- * Parse result of station dump nl80211 command
- * @param hdr pointer to netlink message
- */
-static void
-_parse_cmd_new_station(struct nlmsghdr *hdr) {
-  static struct nla_policy stats_policy[NL80211_STA_INFO_MAX + 1] = {
-    [NL80211_STA_INFO_INACTIVE_TIME] = { .type = NLA_U32 },
-    [NL80211_STA_INFO_RX_BYTES]      = { .type = NLA_U32 },
-    [NL80211_STA_INFO_TX_BYTES]      = { .type = NLA_U32 },
-    [NL80211_STA_INFO_RX_PACKETS]    = { .type = NLA_U32 },
-    [NL80211_STA_INFO_TX_PACKETS]    = { .type = NLA_U32 },
-    [NL80211_STA_INFO_SIGNAL]        = { .type = NLA_U8 },
-    [NL80211_STA_INFO_RX_BITRATE]    = { .type = NLA_NESTED },
-    [NL80211_STA_INFO_TX_BITRATE]    = { .type = NLA_NESTED },
-    [NL80211_STA_INFO_LLID]          = { .type = NLA_U16 },
-    [NL80211_STA_INFO_PLID]          = { .type = NLA_U16 },
-    [NL80211_STA_INFO_PLINK_STATE]   = { .type = NLA_U8 },
-    [NL80211_STA_INFO_TX_RETRIES]    = { .type = NLA_U32 },
-    [NL80211_STA_INFO_TX_FAILED]     = { .type = NLA_U32 },
-  };
-  static struct nla_policy rate_policy[NL80211_RATE_INFO_MAX + 1] = {
-    [NL80211_RATE_INFO_BITRATE]      = { .type = NLA_U16 },
-    [NL80211_RATE_INFO_MCS]          = { .type = NLA_U8 },
-    [NL80211_RATE_INFO_40_MHZ_WIDTH] = { .type = NLA_FLAG },
-    [NL80211_RATE_INFO_SHORT_GI]     = { .type = NLA_FLAG },
-  };
-
-  struct nlattr *tb[NL80211_ATTR_MAX + 1];
-  struct nlattr *sinfo[NL80211_STA_INFO_MAX + 1];
-  struct nlattr *rinfo[NL80211_RATE_INFO_MAX + 1];
-
-  struct oonf_interface_data *if_data;
-  struct oonf_layer2_net *net;
-  struct oonf_layer2_neigh *neigh;
-  struct netaddr mac;
-  unsigned if_index;
-  int i;
-
-#ifdef OONF_LOG_DEBUG_INFO
-  struct netaddr_str buf1, buf2;
-#endif
-
-  if (nlmsg_parse(hdr, sizeof(struct genlmsghdr),
-      tb, NL80211_ATTR_MAX, NULL) < 0) {
-    OONF_WARN(LOG_NL80211, "Cannot parse netlink NL80211_CMD_NEW_STATION message");
-    return;
   }
 
-  if (!tb[NL80211_ATTR_STA_INFO]) {
-    OONF_WARN(LOG_NL80211, "Cannot find station info attribute");
-    return;
-  }
-  if (nla_parse_nested(sinfo, NL80211_STA_INFO_MAX,
-           tb[NL80211_ATTR_STA_INFO], stats_policy)) {
-    OONF_WARN(LOG_NL80211, "Cannot parse station info attribute");
-    return;
-  }
-
-  netaddr_from_binary(&mac, nla_data(tb[NL80211_ATTR_MAC]), 6, AF_MAC48);
-  if_index = nla_get_u32(tb[NL80211_ATTR_IFINDEX]);
-
-  if_data = oonf_interface_get_data_by_ifbaseindex(if_index);
-  if (if_data == NULL || netaddr_get_address_family(&if_data->mac) == AF_UNSPEC) {
-    return;
-  }
-
-  OONF_DEBUG(LOG_NL80211, "Add neighbor %s for network %s",
-      netaddr_to_string(&buf1, &mac), netaddr_to_string(&buf2, &if_data->mac));
-
-  net = _create_l2net(if_data->name);
-  if (net == NULL) {
-    return;
-  }
-
-  net->if_type = OONF_LAYER2_TYPE_WIRELESS;
-
-  neigh = oonf_layer2_neigh_add(net, &mac);
-  if (neigh == NULL) {
-    return;
-  }
-
-  /* remove old data */
-  for (i=0; i<OONF_LAYER2_NEIGH_COUNT; i++) {
-    oonf_layer2_reset_value(&neigh->data[i]);
-  }
-  neigh->last_seen = 0;
-
-  /* insert new data */
-  if (sinfo[NL80211_STA_INFO_INACTIVE_TIME]) {
-    neigh->last_seen = oonf_clock_get_absolute(nla_get_u32(sinfo[NL80211_STA_INFO_INACTIVE_TIME]));
-  }
-  if (sinfo[NL80211_STA_INFO_RX_BYTES]) {
-    oonf_layer2_set_value(&neigh->data[OONF_LAYER2_NEIGH_RX_BYTES], _l2_origin,
-        nla_get_u32(sinfo[NL80211_STA_INFO_RX_BYTES]));
-  }
-  if (sinfo[NL80211_STA_INFO_RX_PACKETS]) {
-    oonf_layer2_set_value(&neigh->data[OONF_LAYER2_NEIGH_RX_FRAMES], _l2_origin,
-        nla_get_u32(sinfo[NL80211_STA_INFO_RX_PACKETS]));
-  }
-  if (sinfo[NL80211_STA_INFO_TX_BYTES]) {
-    oonf_layer2_set_value(&neigh->data[OONF_LAYER2_NEIGH_TX_BYTES], _l2_origin,
-        nla_get_u32(sinfo[NL80211_STA_INFO_TX_BYTES]));
-  }
-  if (sinfo[NL80211_STA_INFO_TX_PACKETS]) {
-    oonf_layer2_set_value(&neigh->data[OONF_LAYER2_NEIGH_TX_FRAMES], _l2_origin,
-        nla_get_u32(sinfo[NL80211_STA_INFO_TX_PACKETS]));
-  }
-  if (sinfo[NL80211_STA_INFO_TX_RETRIES])  {
-    oonf_layer2_set_value(&neigh->data[OONF_LAYER2_NEIGH_TX_RETRIES], _l2_origin,
-        nla_get_u32(sinfo[NL80211_STA_INFO_TX_RETRIES]));
-  }
-  if (sinfo[NL80211_STA_INFO_TX_FAILED]) {
-    oonf_layer2_set_value(&neigh->data[OONF_LAYER2_NEIGH_TX_FAILED], _l2_origin,
-        nla_get_u32(sinfo[NL80211_STA_INFO_TX_FAILED]));
-  }
-  if (sinfo[NL80211_STA_INFO_SIGNAL])  {
-    oonf_layer2_set_value(&neigh->data[OONF_LAYER2_NEIGH_RX_SIGNAL], _l2_origin,
-        1000 * (int8_t)nla_get_u8(sinfo[NL80211_STA_INFO_SIGNAL]));
-  }
-  if (sinfo[NL80211_STA_INFO_TX_BITRATE]) {
-    if (nla_parse_nested(rinfo, NL80211_RATE_INFO_MAX,
-             sinfo[NL80211_STA_INFO_TX_BITRATE], rate_policy) == 0) {
-      if (rinfo[NL80211_RATE_INFO_BITRATE]) {
-        int64_t rate = nla_get_u16(rinfo[NL80211_RATE_INFO_BITRATE]);
-        oonf_layer2_set_value(&neigh->data[OONF_LAYER2_NEIGH_TX_BITRATE], _l2_origin,
-            (rate * 1024 * 1024) / 10);
+  if (_if_section.post == NULL) {
+    interf = _nl80211_if_get(_if_section.section_name);
+    if (interf) {
+      interf->_if_section = false;
+      if (!interf->_nl80211_section) {
+        _nl80211_if_remove(interf);
       }
-      /* TODO: do we need the rest of the data ? */
-#if 0
-      if (rinfo[NL80211_RATE_INFO_MCS])
-        printf(" MCS %d", nla_get_u8(rinfo[NL80211_RATE_INFO_MCS]));
-      if (rinfo[NL80211_RATE_INFO_40_MHZ_WIDTH])
-        printf(" 40Mhz");
-      if (rinfo[NL80211_RATE_INFO_SHORT_GI])
-        printf(" short GI");
-#endif
     }
   }
-  if (sinfo[NL80211_STA_INFO_RX_BITRATE]) {
-    if (nla_parse_nested(rinfo, NL80211_RATE_INFO_MAX,
-             sinfo[NL80211_STA_INFO_RX_BITRATE], rate_policy) == 0) {
-      if (rinfo[NL80211_RATE_INFO_BITRATE]) {
-        int64_t rate = nla_get_u16(rinfo[NL80211_RATE_INFO_BITRATE]);
-        oonf_layer2_set_value(&neigh->data[OONF_LAYER2_NEIGH_RX_BITRATE], _l2_origin,
-            (rate * 1024 * 1024) / 10);
-      }
-      /* TODO: do we need the rest of the data ? */
-#if 0
-      if (rinfo[NL80211_RATE_INFO_MCS])
-        printf(" MCS %d", nla_get_u8(rinfo[NL80211_RATE_INFO_MCS]));
-      if (rinfo[NL80211_RATE_INFO_40_MHZ_WIDTH])
-        printf(" 40Mhz");
-      if (rinfo[NL80211_RATE_INFO_SHORT_GI])
-        printf(" short GI");
-#endif
-    }
-  }
-
-  oonf_layer2_neigh_commit(neigh);
-  return;
 }
 
 /**
- * Parse result of station dump nl80211 command
- * @param hdr pointer to netlink message
+ * Transmit the next netlink command to nl80211
+ * @param ptr unused
  */
 static void
-_parse_cmd_del_station(struct nlmsghdr *hdr) {
-  struct nlattr *tb[NL80211_ATTR_MAX + 1];
-
-  struct oonf_interface_data *if_data;
-  struct oonf_layer2_neigh *neigh;
-  struct oonf_layer2_net *net;
-  struct netaddr mac;
-  unsigned if_index;
-#ifdef OONF_LOG_DEBUG_INFO
-  struct netaddr_str buf1, buf2;
-#endif
-
-  if (nlmsg_parse(hdr, sizeof(struct genlmsghdr),
-      tb, NL80211_ATTR_MAX, NULL) < 0) {
-    OONF_WARN(LOG_NL80211, "Cannot parse netlink NL80211_CMD_NEW_STATION message");
-    return;
-  }
-
-  netaddr_from_binary(&mac, nla_data(tb[NL80211_ATTR_MAC]), 6, AF_MAC48);
-  if_index = nla_get_u32(tb[NL80211_ATTR_IFINDEX]);
-
-  if_data = oonf_interface_get_data_by_ifbaseindex(if_index);
-  if (if_data == NULL || netaddr_get_address_family(&if_data->mac) == AF_UNSPEC) {
-    return;
-  }
-
-  OONF_DEBUG(LOG_NL80211, "Remove neighbor %s for network %s",
-      netaddr_to_string(&buf1, &mac), netaddr_to_string(&buf2, &if_data->mac));
-
-  net = oonf_layer2_net_get(if_data->name);
-  if (net == NULL) {
-    return;
-  }
-
-  neigh = oonf_layer2_neigh_get(net, &mac);
-  if (neigh != NULL) {
-    oonf_layer2_neigh_remove(neigh, _l2_origin, true);
+_cb_transmission_event(void *ptr __attribute__((unused))) {
+  if (!_current_query_in_progress) {
+    _trigger_next_netlink_query();
   }
 }
 
-#define WLAN_CAPABILITY_ESS   (1<<0)
-#define WLAN_CAPABILITY_IBSS    (1<<1)
-#define WLAN_CAPABILITY_CF_POLLABLE (1<<2)
-#define WLAN_CAPABILITY_CF_POLL_REQUEST (1<<3)
-#define WLAN_CAPABILITY_PRIVACY   (1<<4)
-#define WLAN_CAPABILITY_SHORT_PREAMBLE  (1<<5)
-#define WLAN_CAPABILITY_PBCC    (1<<6)
-#define WLAN_CAPABILITY_CHANNEL_AGILITY (1<<7)
-#define WLAN_CAPABILITY_SPECTRUM_MGMT (1<<8)
-#define WLAN_CAPABILITY_QOS   (1<<9)
-#define WLAN_CAPABILITY_SHORT_SLOT_TIME (1<<10)
-#define WLAN_CAPABILITY_APSD    (1<<11)
-#define WLAN_CAPABILITY_DSSS_OFDM (1<<13)
-
-/**
- * Parse the result of the passive scan of nl80211
- * @param msg pointer to netlink message
- */
 static void
-_parse_cmd_new_scan_result(struct nlmsghdr *msg) {
-  static struct nla_policy bss_policy[NL80211_BSS_MAX + 1] = {
-    [NL80211_BSS_TSF]             = { .type = NLA_U64 },
-    [NL80211_BSS_FREQUENCY]       = { .type = NLA_U32 },
-//    [NL80211_BSS_BSSID] = { },
-    [NL80211_BSS_BEACON_INTERVAL] = { .type = NLA_U16 },
-    [NL80211_BSS_CAPABILITY]      = { .type = NLA_U16 },
-//    [NL80211_BSS_INFORMATION_ELEMENTS] = { },
-    [NL80211_BSS_SIGNAL_MBM]      = { .type = NLA_U32 },
-    [NL80211_BSS_SIGNAL_UNSPEC]   = { .type = NLA_U8 },
-    [NL80211_BSS_STATUS]          = { .type = NLA_U32 },
-    [NL80211_BSS_SEEN_MS_AGO]     = { .type = NLA_U32 },
-//    [NL80211_BSS_BEACON_IES] = { },
-  };
+_send_netlink_message(struct nl80211_if *interf, enum _if_query query) {
+  struct genlmsghdr *hdr;
 
-  struct nlattr *tb[NL80211_ATTR_MAX + 1];
-  struct nlattr *bss[NL80211_BSS_MAX + 1];
+  memset(&_nl_msgbuffer, 0, sizeof(_nl_msgbuffer));
 
-  struct oonf_interface_data *if_data;
-  struct oonf_layer2_net *net;
-  struct netaddr bssid;
-  unsigned if_index;
-  int i;
-#ifdef OONF_LOG_DEBUG_INFO
-  struct netaddr_str buf;
-#endif
+  /* generic netlink initialization */
+  _nl_msg->nlmsg_len = NLMSG_LENGTH(sizeof(struct genlmsghdr));
+  _nl_msg->nlmsg_flags = NLM_F_REQUEST | NLM_F_DUMP;
 
-  if (nlmsg_parse(msg, sizeof(struct genlmsghdr),
-      tb, NL80211_ATTR_MAX, NULL) < 0) {
-    OONF_WARN(LOG_NL80211, "Cannot parse netlink NL80211_CMD_NEW_SCAN_RESULT message");
-    return;
+  /* request nl80211 identifier */
+  if (query == QUERY_GET_FAMILY) {
+    /* request nl80211 identifier */
+    _nl_msg->nlmsg_type = GENL_ID_CTRL;
+  }
+  else {
+    _nl_msg->nlmsg_type = _nl80211_id;
   }
 
-  if (!tb[NL80211_ATTR_BSS]) {
-    OONF_WARN(LOG_NL80211, "bss info missing!\n");
-    return;
-  }
-  if (nla_parse_nested(bss, NL80211_BSS_MAX,
-           tb[NL80211_ATTR_BSS],
-           bss_policy)) {
-    OONF_WARN(LOG_NL80211, "failed to parse nested attributes!\n");
-    return;
+  hdr = NLMSG_DATA(_nl_msg);
+
+  if (query < QUERY_END) {
+    OONF_DEBUG(LOG_NL80211, "Get query %d for interface %s", query, interf->name);
   }
 
-  netaddr_from_binary(&bssid, nla_data(bss[NL80211_BSS_BSSID]), 6, AF_MAC48);
-  if_index = nla_get_u32(tb[NL80211_ATTR_IFINDEX]);
-
-  if_data = oonf_interface_get_data_by_ifbaseindex(if_index);
-  if (if_data == NULL || netaddr_get_address_family(&if_data->mac) == AF_UNSPEC) {
-    return;
-  }
-
-  net = _create_l2net(if_data->name);
-  if (net == NULL) {
-    return;
-  }
-  net->if_type = OONF_LAYER2_TYPE_WIRELESS;
-
-  /* remove old data */
-  for (i=0; i<OONF_LAYER2_NET_COUNT; i++) {
-    oonf_layer2_reset_value(&net->data[i]);
-  }
-  net->last_seen = 0;
-
-  OONF_DEBUG(LOG_NL80211, "Add radio %s", netaddr_to_string(&buf, &if_data->mac));
-#if 0
-  if (bss[NL80211_BSS_STATUS]) {
-    switch (nla_get_u32(bss[NL80211_BSS_STATUS])) {
-    case NL80211_BSS_STATUS_AUTHENTICATED:
-      printf(" -- authenticated");
+  switch (query) {
+    case QUERY_GET_IF:
+      nl80211_send_get_interface(_nl_msg, hdr, interf);
       break;
-    case NL80211_BSS_STATUS_ASSOCIATED:
-      printf(" -- associated");
+    case QUERY_GET_WIPHY:
+      nl80211_send_get_wiphy(_nl_msg, hdr, interf);
       break;
-    case NL80211_BSS_STATUS_IBSS_JOINED:
-      printf(" -- joined");
+    case QUERY_GET_SURVEY:
+      nl80211_send_get_survey(_nl_msg, hdr, interf);
+      break;
+    case QUERY_GET_MPP:
+      nl80211_send_get_mpp(_nl_msg, hdr, interf);
+      break;
+    case QUERY_GET_STATION:
+      nl80211_send_get_station_dump(_nl_msg, hdr, interf);
+      break;
+    case QUERY_GET_FAMILY:
+      genl_send_get_family(hdr);
       break;
     default:
-      printf(" -- unknown status: %d",
-        nla_get_u32(bss[NL80211_BSS_STATUS]));
-      break;
+      return;
+  }
+
+  os_system_netlink_send(&_netlink_handler, _nl_msg);
+
+}
+
+static void
+_get_next_query(void) {
+  if (avl_is_empty(&_nl80211_if_tree)) {
+    OONF_DEBUG(LOG_NL80211, "No nl80211 interfaces");
+    _current_query_if = NULL;
+    return;
+  }
+
+  /* no query left to do? start again at the first */
+  if (!_current_query_if) {
+    /* start with first interface and query */
+    _current_query_if = avl_first_element(&_nl80211_if_tree, _current_query_if, _node);
+    _current_query_number = QUERY_START;
+    _current_query_in_progress = true;
+  }
+  else {
+    /* next query */
+    _current_query_number++;
+
+    if (_current_query_number == QUERY_END) {
+      _current_query_if = avl_next_element_safe(
+          &_nl80211_if_tree, _current_query_if, _node);
+      _current_query_number = QUERY_START;
     }
   }
-  printf("\n");
+}
 
-  if (bss[NL80211_BSS_TSF]) {
-    unsigned long long tsf;
-    tsf = (unsigned long long)nla_get_u64(bss[NL80211_BSS_TSF]);
-    printf("\tTSF: %llu usec (%llud, %.2lld:%.2llu:%.2llu)\n",
-      tsf, tsf/1000/1000/60/60/24, (tsf/1000/1000/60/60) % 24,
-      (tsf/1000/1000/60) % 60, (tsf/1000/1000) % 60);
-  }
-#endif
-
-  if (bss[NL80211_BSS_FREQUENCY]) {
-    oonf_layer2_set_value(&net->data[OONF_LAYER2_NET_FREQUENCY], _l2_origin,
-        nla_get_u32(bss[NL80211_BSS_FREQUENCY]) * 1000000ll);
-  }
-#if 0
-  if (bss[NL80211_BSS_BEACON_INTERVAL])
-    printf("\tbeacon interval: %d\n",
-      nla_get_u16(bss[NL80211_BSS_BEACON_INTERVAL]));
-  if (bss[NL80211_BSS_CAPABILITY]) {
-    __u16 capa = nla_get_u16(bss[NL80211_BSS_CAPABILITY]);
-    printf("\tcapability:");
-    if (capa & WLAN_CAPABILITY_ESS)
-      printf(" ESS");
-    if (capa & WLAN_CAPABILITY_IBSS)
-      printf(" IBSS");
-    if (capa & WLAN_CAPABILITY_PRIVACY)
-      printf(" Privacy");
-    if (capa & WLAN_CAPABILITY_SHORT_PREAMBLE)
-      printf(" ShortPreamble");
-    if (capa & WLAN_CAPABILITY_PBCC)
-      printf(" PBCC");
-    if (capa & WLAN_CAPABILITY_CHANNEL_AGILITY)
-      printf(" ChannelAgility");
-    if (capa & WLAN_CAPABILITY_SPECTRUM_MGMT)
-      printf(" SpectrumMgmt");
-    if (capa & WLAN_CAPABILITY_QOS)
-      printf(" QoS");
-    if (capa & WLAN_CAPABILITY_SHORT_SLOT_TIME)
-      printf(" ShortSlotTime");
-    if (capa & WLAN_CAPABILITY_APSD)
-      printf(" APSD");
-    if (capa & WLAN_CAPABILITY_DSSS_OFDM)
-      printf(" DSSS-OFDM");
-    printf(" (0x%.4x)\n", capa);
-  }
-  if (bss[NL80211_BSS_SIGNAL_MBM]) {
-    int s = nla_get_u32(bss[NL80211_BSS_SIGNAL_MBM]);
-    printf("\tsignal: %d.%.2d dBm\n", s/100, s%100);
-  }
-  if (bss[NL80211_BSS_SIGNAL_UNSPEC]) {
-    unsigned char s = nla_get_u8(bss[NL80211_BSS_SIGNAL_UNSPEC]);
-    printf("\tsignal: %d/100\n", s);
-  }
-#endif
-  if (bss[NL80211_BSS_SEEN_MS_AGO]) {
-    net->last_seen = oonf_clock_get_absolute(nla_get_u32(bss[NL80211_BSS_SEEN_MS_AGO]));
-  }
-  if (bss[NL80211_BSS_INFORMATION_ELEMENTS] != NULL ||
-      bss[NL80211_BSS_BEACON_IES] != NULL) {
-    int len;
-    uint8_t *data;
-    int64_t rate, max_rate;
-
-    max_rate = 0;
-
-    if (bss[NL80211_BSS_INFORMATION_ELEMENTS]) {
-      len = nla_len(bss[NL80211_BSS_INFORMATION_ELEMENTS]);
-      data = nla_data(bss[NL80211_BSS_INFORMATION_ELEMENTS]);
-    }
-    else {
-      len = nla_len(bss[NL80211_BSS_BEACON_IES]);
-      data = nla_data(bss[NL80211_BSS_BEACON_IES]);
-    }
-
-    /* collect pointers to data-rates */
-    while (len > 0) {
-      if (data[0] == 0) {
-        /* SSID */
-        strscpy(net->if_ident, (const char *)(&data[2]), data[1]);
-      }
-      if (data[0] == 1) {
-        /* supported rates */
-        for (i=0; i<data[1]; i++) {
-          rate = (data[2+i] & 0x7f) << 19;
-          if (rate > max_rate) {
-            max_rate = rate;
-          }
-        }
-      }
-      else if (data[0] == 50) {
-        /* extended supported rates */
-        for (i=0; i<data[1]; i++) {
-          rate = (data[2+i] & 0x7f) << 19;
-          if (rate > max_rate) {
-            max_rate = rate;
-          }
-        }
-      }
-      len -= data[1] + 2;
-      data += data[1] + 2;
-    }
-
-    if (max_rate) {
-      oonf_layer2_set_value(&net->neighdata[OONF_LAYER2_NEIGH_TX_MAX_BITRATE], _l2_origin, max_rate);
-      oonf_layer2_set_value(&net->neighdata[OONF_LAYER2_NEIGH_RX_MAX_BITRATE], _l2_origin, max_rate);
-    }
+static void
+_trigger_next_netlink_query(void) {
+  if (!_nl80211_id || !_nl80211_multicast_group) {
+    /* first we need to get the ID and multicast group */
+    OONF_DEBUG(LOG_NL80211, "Get nl80211 family and multicast id");
+    _send_netlink_message(NULL, QUERY_GET_FAMILY);
+    return;
   }
 
-  oonf_layer2_net_commit(net);
-  return;
+  /* calculate next interface/query */
+  _get_next_query();
+
+  if (!_current_query_if) {
+    /* done with this series of queries, wait for next timer */
+    OONF_DEBUG(LOG_NL80211, "All queries done for all interfaces");
+    _current_query_in_progress = false;
+    return;
+  }
+
+  _send_netlink_message(_current_query_if,
+      _current_query_number);
 }
 
 /**
@@ -755,166 +456,59 @@ _cb_nl_message(struct nlmsghdr *hdr) {
 
   gen_hdr = NLMSG_DATA(hdr);
   if (hdr->nlmsg_type == GENL_ID_CTRL && gen_hdr->cmd == CTRL_CMD_NEWFAMILY) {
-    _parse_cmd_newfamily(hdr);
+    genl_process_get_family_result(hdr,
+        &_nl80211_id, &_nl80211_multicast_group);
     return;
   }
 
-  if (hdr->nlmsg_type == _nl80211_id) {
-    if (gen_hdr->cmd == NL80211_CMD_NEW_STATION) {
-      _parse_cmd_new_station(hdr);
-      return;
-    }
-    if (gen_hdr->cmd == NL80211_CMD_DEL_STATION) {
-      _parse_cmd_del_station(hdr);
-      return;
-    }
-    if (gen_hdr->cmd == NL80211_CMD_NEW_SCAN_RESULTS) {
-      _parse_cmd_new_scan_result(hdr);
-      return;
-    }
-  }
-
-  OONF_INFO(LOG_NL80211, "Unhandled incoming netlink message type %u cmd %u\n",
-      hdr->nlmsg_type, gen_hdr->cmd);
-}
-
-/**
- * Request the list of generic netlink families from the kernel
- */
-static void
-_send_genl_getfamily(void) {
-  struct genlmsghdr *hdr;
-
-  memset(_msgbuf, 0, UIO_MAXIOV);
-
-  /* generic netlink initialization */
-  hdr = NLMSG_DATA(_msgbuf);
-  _msgbuf->nlmsg_len = NLMSG_LENGTH(sizeof(*hdr));
-  _msgbuf->nlmsg_flags = NLM_F_REQUEST | NLM_F_DUMP;
-
-  /* request nl80211 identifier */
-  _msgbuf->nlmsg_type = GENL_ID_CTRL;
-
-  hdr->cmd = CTRL_CMD_GETFAMILY;
-  hdr->version = 1;
-
-  os_system_netlink_send(&_netlink_handler, _msgbuf);
-}
-
-/**
- * Request a station dump from nl80211
- * @param if_idx interface index to be dumped
- */
-static void
-_send_nl80211_get_station_dump(int if_idx) {
-  struct genlmsghdr *hdr;
-
-  memset(_msgbuf, 0, UIO_MAXIOV);
-
-  /* generic netlink initialization */
-  hdr = NLMSG_DATA(_msgbuf);
-  _msgbuf->nlmsg_len = NLMSG_LENGTH(sizeof(*hdr));
-  _msgbuf->nlmsg_flags = NLM_F_REQUEST | NLM_F_DUMP;
-
-  /* get nl80211 station dump */
-  _msgbuf->nlmsg_type = _nl80211_id;
-  hdr->cmd = NL80211_CMD_GET_STATION;
-
-  /* add interface index to the request */
-  os_system_netlink_addreq(_msgbuf, NL80211_ATTR_IFINDEX, &if_idx, sizeof(if_idx));
-
-  os_system_netlink_send(&_netlink_handler, _msgbuf);
-}
-
-/**
- * Request a passive scan dump from nl80211
- * @param if_idx interface index to be dumped
- */
-static void
-_send_nl80211_get_scan_dump(int if_idx) {
-  struct genlmsghdr *hdr;
-
-  memset(_msgbuf, 0, UIO_MAXIOV);
-
-  /* generic netlink initialization */
-  hdr = NLMSG_DATA(_msgbuf);
-  _msgbuf->nlmsg_len = NLMSG_LENGTH(sizeof(*hdr));
-  _msgbuf->nlmsg_flags = NLM_F_REQUEST | NLM_F_DUMP;
-
-  /* get nl80211 station dump */
-  _msgbuf->nlmsg_type = _nl80211_id;
-  hdr->cmd = NL80211_CMD_GET_SCAN;
-
-  /* add interface index to the request */
-  os_system_netlink_addreq(_msgbuf, NL80211_ATTR_IFINDEX, &if_idx, sizeof(if_idx));
-
-  os_system_netlink_send(&_netlink_handler, _msgbuf);
-}
-
-/**
- * Transmit the next netlink command to nl80211
- * @param ptr unused
- */
-static void
-_cb_transmission_event(void *ptr __attribute__((unused))) {
-  struct oonf_interface *interf = NULL;
-
-  if (!avl_is_empty(&oonf_interface_tree)) {
-    if (_last_queried_if[0] == 0) {
-      /* get first interface */
-      interf = avl_first_element(&oonf_interface_tree, interf, _node);
-    }
-    else {
-      /* get next interface */
-      interf = avl_find_ge_element(&oonf_interface_tree, _last_queried_if, interf, _node);
-
-      if (interf != NULL && strcmp(_last_queried_if, interf->data.name) == 0) {
-        interf = avl_next_element_safe(&oonf_interface_tree, interf, _node);
-      }
-    }
-
-    if (!interf && _next_query_type < QUERY_COUNT-1) {
-      /* begin next query type */
-      _next_query_type++;
-      interf = avl_first_element(&oonf_interface_tree, interf, _node);
-    }
-  }
-
-  if (!interf) {
-    /* nothing to do anymore */
-    memset(_last_queried_if, 0, sizeof(_last_queried_if));
-    _next_query_type = QUERY_FIRST;
+  if (hdr->nlmsg_type != _nl80211_id) {
+    OONF_WARN(LOG_NL80211, "Unhandled netlink message type: %u", hdr->nlmsg_type);
     return;
   }
 
-  strscpy(_last_queried_if, interf->data.name, IF_NAMESIZE);
-
-  OONF_DEBUG(LOG_NL80211, "Send Query %d to NL80211 interface '%s' (%u)",
-      _next_query_type, interf->data.name, interf->data.index);
-  if (_next_query_type == QUERY_STATION_DUMP) {
-    _send_nl80211_get_station_dump(interf->data.base_index);
-  }
-  else if (_next_query_type == QUERY_SCAN_DUMP){
-    _send_nl80211_get_scan_dump(interf->data.base_index);
+  switch(gen_hdr->cmd) {
+    case NL80211_CMD_NEW_INTERFACE:
+      nl80211_process_get_interface_result(_current_query_if, hdr);
+      break;
+    case NL80211_CMD_NEW_WIPHY:
+      nl80211_process_get_wiphy_result(_current_query_if, hdr);
+      break;
+    case NL80211_CMD_NEW_SURVEY_RESULTS:
+      nl80211_process_get_survey_result(_current_query_if, hdr);
+      break;
+    case NL80211_CMD_NEW_MPATH:
+      nl80211_process_get_mpp_result(_current_query_if, hdr);
+      break;
+    case NL80211_CMD_NEW_STATION:
+      nl80211_process_get_station_dump_result(
+          _current_query_if, hdr, _layer2_origin);
+      break;
+    default:
+      OONF_WARN(LOG_NL80211, "Unhandled nl80211 cmd: %u", gen_hdr->cmd);
+      break;
   }
 }
 
 static void
 _cb_nl_error(uint32_t seq __attribute((unused)), int error __attribute((unused))) {
   OONF_DEBUG(LOG_NL80211, "%u: Received error %d", seq, error);
-  _cb_transmission_event(NULL);
+  _trigger_next_netlink_query();
 }
 
 static void
 _cb_nl_timeout(void) {
   OONF_DEBUG(LOG_NL80211, "Received timeout");
-  _cb_transmission_event(NULL);
+  _trigger_next_netlink_query();
 }
 
 static void
 _cb_nl_done(uint32_t seq __attribute((unused))) {
   OONF_DEBUG(LOG_NL80211, "%u: Received done", seq);
-  _cb_transmission_event(NULL);
+
+  if (_current_query_number == QUERY_GET_WIPHY) {
+    nl80211_finalize_get_wiphy(_current_query_if, _layer2_origin);
+  }
+  _trigger_next_netlink_query();
 }
 
 /**
@@ -923,8 +517,8 @@ _cb_nl_done(uint32_t seq __attribute((unused))) {
 static void
 _cb_config_changed(void) {
   const struct const_strarray *array;
+  struct nl80211_if *interf;
   const char *str;
-  size_t i;
 
   if (cfg_schema_tobin(&_config, _nl80211_section.post,
       _nl80211_entries, ARRAYSIZE(_nl80211_entries))) {
@@ -936,33 +530,38 @@ _cb_config_changed(void) {
   /* set transmission timer */
   oonf_timer_set_ext(&_transmission_timer, 1, _config.interval);
 
+  /* mark old interfaces for removal */
   array = cfg_schema_tovalue(_nl80211_section.pre, &_nl80211_entries[IDX_INTERFACES]);
   if (array && strarray_get_count_c(array) > 0) {
-    for (i=0; i<_if_listener_count; i++) {
-      OONF_DEBUG(LOG_NL80211, "Remove listener for %s", _if_listener[i].name);
-      oonf_interface_remove_listener(&_if_listener[i]);
-      free ((char *)_if_listener[i].name);
+    strarray_for_each_element(array, str) {
+      interf = _nl80211_if_get(str);
+      if (interf) {
+        interf->_remove = !interf->_if_section;
+        interf->_nl80211_section = false;
+      }
     }
-    free(_if_listener);
-    _if_listener = NULL;
-    _if_listener_count = 0;
   }
 
+  /* create new interfaces and remove mark */
   array = cfg_schema_tovalue(_nl80211_section.post, &_nl80211_entries[IDX_INTERFACES]);
   if (array && strarray_get_count_c(array) > 0) {
-    _if_listener = calloc(strarray_get_count_c(array), sizeof(struct oonf_interface_listener));
-    if (_if_listener == NULL) {
-      OONF_WARN(LOG_NL80211, "Out of memory for interface listeners");
-      return;
-    }
-    _if_listener_count = strarray_get_count_c(array);
-
-    i = 0;
     strarray_for_each_element(array, str) {
-      OONF_DEBUG(LOG_NL80211, "Add listener for %s", str);
-      _if_listener[i].name = strdup(str);
-      oonf_interface_add_listener(&_if_listener[i]);
-      i++;
+      interf = _nl80211_if_add(str);
+      if (interf) {
+        /* mark for removal */
+        interf->_remove = false;
+        interf->_nl80211_section = true;
+      }
+    }
+  }
+
+  array = cfg_schema_tovalue(_nl80211_section.pre, &_nl80211_entries[IDX_INTERFACES]);
+  if (array && strarray_get_count_c(array) > 0) {
+    strarray_for_each_element(array, str) {
+      interf = _nl80211_if_get(str);
+      if (interf && interf->_remove) {
+        _nl80211_if_remove(interf);
+      }
     }
   }
 }
