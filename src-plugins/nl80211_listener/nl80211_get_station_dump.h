@@ -45,6 +45,6 @@
 void nl80211_send_get_station_dump(struct nlmsghdr *nl_msg,
     struct genlmsghdr *hdr, struct nl80211_if *interf);
 void nl80211_process_get_station_dump_result(
-    struct nl80211_if *interf, struct nlmsghdr*, uint32_t layer2_origin);
+    struct nl80211_if *interf, struct nlmsghdr*);
 
 #endif /* NL80211_GET_STATION_DUMP_H_ */

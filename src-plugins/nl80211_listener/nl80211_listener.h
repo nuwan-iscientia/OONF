@@ -68,7 +68,11 @@ EXPORT extern struct oonf_subsystem nl80211_listener_subsystem;
 
 bool nl80211_change_l2net_data(struct oonf_layer2_net *l2net,
     enum oonf_layer2_network_index idx, uint64_t value);
-// struct nl80211_if *nl80211_get_if(const char *name);
+bool nl80211_change_l2net_neighbor_default(struct oonf_layer2_net *l2net,
+    enum oonf_layer2_neighbor_index idx, uint64_t value);
+void nl80211_cleanup_l2neigh_data(struct oonf_layer2_neigh *l2neigh);
+bool nl80211_change_l2neigh_data(struct oonf_layer2_neigh *l2neigh,
+    enum oonf_layer2_neighbor_index idx, uint64_t value);
 
 static INLINE unsigned
 nl80211_get_if_index(struct nl80211_if *interf) {

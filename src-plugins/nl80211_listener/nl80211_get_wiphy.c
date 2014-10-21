@@ -159,7 +159,8 @@ nl80211_send_get_wiphy(struct nlmsghdr *nl_msg,
   interf->max_rx = 0;
   interf->max_tx = 0;
 
-  hdr->cmd = NL80211_CMD_GET_INTERFACE;
+  hdr->cmd = NL80211_CMD_GET_WIPHY;
+  nl_msg->nlmsg_flags |= NLM_F_DUMP;
 
   /* add "split wiphy dump" flag */
   os_system_netlink_addreq(nl_msg, NL80211_ATTR_SPLIT_WIPHY_DUMP,
@@ -168,6 +169,8 @@ nl80211_send_get_wiphy(struct nlmsghdr *nl_msg,
   /* add interface index to the request */
   os_system_netlink_addreq(nl_msg, NL80211_ATTR_WIPHY,
       &interf->phy_if, sizeof(interf->phy_if));
+
+  OONF_DEBUG(LOG_NL80211, "Send GET_WIPHY to phydev %d", interf->phy_if);
 }
 
 /**
@@ -235,13 +238,15 @@ nl80211_process_get_wiphy_result(struct nl80211_if *interf,
  * @param interf nl80211 listener interface
  */
 void
-nl80211_finalize_get_wiphy(struct nl80211_if *interf, uint32_t layer2_origin) {
-  interf->ifdata_changed |= oonf_layer2_change_value(
-      &interf->l2net->neighdata[OONF_LAYER2_NEIGH_RX_MAX_BITRATE],
-      layer2_origin, interf->max_rx);
-  interf->ifdata_changed |= oonf_layer2_change_value(
-      &interf->l2net->neighdata[OONF_LAYER2_NEIGH_TX_MAX_BITRATE],
-      layer2_origin, interf->max_tx);
+nl80211_finalize_get_wiphy(struct nl80211_if *interf) {
+  OONF_DEBUG(LOG_NL80211, "Maximum rx rate for %s: %"PRId64,
+      interf->name, interf->max_rx);
+  OONF_DEBUG(LOG_NL80211, "Maximum tx rate for %s: %"PRId64,
+      interf->name, interf->max_tx);
+  interf->ifdata_changed |= nl80211_change_l2net_neighbor_default(
+      interf->l2net, OONF_LAYER2_NEIGH_RX_MAX_BITRATE, interf->max_rx);
+  interf->ifdata_changed |= nl80211_change_l2net_neighbor_default(
+      interf->l2net, OONF_LAYER2_NEIGH_TX_MAX_BITRATE, interf->max_tx);
 }
 
 /**
@@ -293,6 +298,9 @@ _get_max_bitrate(struct nl80211_if *interf, uint8_t *mcs, bool ht20_sgi, bool ht
     unsigned int MCS_RATE_BIT = 1 << mcs_bit % 8;
 
     if((mcs[mcs_octet] & MCS_RATE_BIT)) {
+      OONF_DEBUG(LOG_NL80211, "%s supports rate MCS %d",
+          interf->name, mcs_bit);
+
       if (ht20) {
         rate_info = &_mcs_table_80211n_20[mcs_bit];
         rate = ht20_sgi ? rate_info->sgi : rate_info->lgi;
@@ -326,7 +334,7 @@ _process_ht_mcs_array(struct nl80211_if *interf, uint8_t *mcs,
   max_rx_supp_data_rate = (mcs[10] & ((mcs[11] & 0x3) << 8));
 
   rate_tx = 1024ull * 1024ull
-      * _get_max_bitrate(interf, mcs, ht20_sgi, ht40_sgi);
+      * _get_max_bitrate(interf, mcs, ht20_sgi, ht40_sgi) / 10ull;
 
   /*
    * this is a shortcut, because we don't want to deal with different

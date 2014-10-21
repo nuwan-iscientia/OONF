@@ -83,9 +83,11 @@
  * Send a netlink message to get the nl80211 id and multicast group
  */
 void
-genl_send_get_family(struct genlmsghdr *hdr) {
+genl_send_get_family(struct nlmsghdr *nl_msg, struct genlmsghdr *hdr) {
   hdr->cmd = CTRL_CMD_GETFAMILY;
   hdr->version = 1;
+
+  nl_msg->nlmsg_flags |= NLM_F_DUMP;
 }
 
 /**

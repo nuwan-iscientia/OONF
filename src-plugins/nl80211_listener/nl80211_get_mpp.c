@@ -90,6 +90,7 @@ nl80211_send_get_mpp(struct nlmsghdr *nl_msg,
   int if_index = nl80211_get_if_index(interf);
 
   hdr->cmd = NL80211_CMD_GET_MPP;
+  nl_msg->nlmsg_flags |= NLM_F_DUMP;
 
   /* add interface index to the request */
   os_system_netlink_addreq(nl_msg, NL80211_ATTR_IFINDEX,
@@ -106,6 +107,7 @@ nl80211_process_get_mpp_result(struct nl80211_if *interf,
     struct nlmsghdr *hdr) {
   struct oonf_layer2_neigh *l2neigh;
   struct netaddr remote_mac;
+  struct netaddr_str nbuf1, nbuf2;
 
   struct nlattr *tb[NL80211_ATTR_MAX + 1];
   struct genlmsghdr *gnlh;
@@ -120,7 +122,7 @@ nl80211_process_get_mpp_result(struct nl80211_if *interf,
   }
 
   netaddr_from_binary(&remote_mac,
-      nla_data(tb[NL80211_ATTR_MAC]), 6, AF_MAC48);
+      nla_data(tb[NL80211_ATTR_MPATH_NEXT_HOP]), 6, AF_MAC48);
 
   l2neigh = oonf_layer2_neigh_add(interf->l2net, &remote_mac);
   if (!l2neigh) {
@@ -128,5 +130,9 @@ nl80211_process_get_mpp_result(struct nl80211_if *interf,
   }
 
   netaddr_from_binary(&l2neigh->proxied_addr,
-      nla_data(tb[NL80211_ATTR_MPATH_NEXT_HOP]), 6, AF_MAC48);
+      nla_data(tb[NL80211_ATTR_MAC]), 6, AF_MAC48);
+
+  OONF_DEBUG(LOG_NL80211, "Neighbor %s was proxied by mesh node %s",
+      netaddr_to_string(&nbuf1, &l2neigh->proxied_addr),
+      netaddr_to_string(&nbuf2, &remote_mac));
 }

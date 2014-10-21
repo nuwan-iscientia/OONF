@@ -80,8 +80,8 @@
 #include "nl80211_listener/nl80211_listener.h"
 #include "nl80211_listener/nl80211_get_station_dump.h"
 
-static void _handle_traffic(struct oonf_layer2_data *data,
-    uint32_t layer2_origin, uint32_t new_32bit);
+static bool _handle_traffic(struct oonf_layer2_neigh *l2neigh,
+    enum oonf_layer2_neighbor_index idx, uint32_t new_32bit);
 static int64_t _get_bitrate(struct nlattr *bitrate_attr);
 
 /**
@@ -95,6 +95,7 @@ nl80211_send_get_station_dump(struct nlmsghdr *nl_msg,
   int if_index = nl80211_get_if_index(interf);
 
   hdr->cmd = NL80211_CMD_GET_STATION;
+  nl_msg->nlmsg_flags |= NLM_F_DUMP;
 
   /* add interface index to the request */
   os_system_netlink_addreq(nl_msg, NL80211_ATTR_IFINDEX,
@@ -108,7 +109,7 @@ nl80211_send_get_station_dump(struct nlmsghdr *nl_msg,
  */
 void
 nl80211_process_get_station_dump_result(struct nl80211_if *interf,
-    struct nlmsghdr *hdr, uint32_t layer2_origin) {
+    struct nlmsghdr *hdr) {
   struct oonf_layer2_neigh *l2neigh;
   struct netaddr l2neigh_mac;
 
@@ -160,7 +161,7 @@ nl80211_process_get_station_dump_result(struct nl80211_if *interf,
   }
 
   /* remove old data, but do not commit */
-  oonf_layer2_neigh_cleanup(l2neigh, layer2_origin, false);
+  nl80211_cleanup_l2neigh_data(l2neigh);
 
   if (sinfo[NL80211_STA_INFO_INACTIVE_TIME]) {
     l2neigh->last_seen = oonf_clock_get_absolute(
@@ -168,43 +169,43 @@ nl80211_process_get_station_dump_result(struct nl80211_if *interf,
   }
 
   if (sinfo[NL80211_STA_INFO_RX_BYTES]) {
-    _handle_traffic(&l2neigh->data[OONF_LAYER2_NEIGH_RX_BYTES],
-        layer2_origin, nla_get_u32(sinfo[NL80211_STA_INFO_RX_BYTES]));
+    _handle_traffic(l2neigh, OONF_LAYER2_NEIGH_RX_BYTES,
+        nla_get_u32(sinfo[NL80211_STA_INFO_RX_BYTES]));
   }
   if (sinfo[NL80211_STA_INFO_RX_PACKETS]) {
-    _handle_traffic(&l2neigh->data[OONF_LAYER2_NEIGH_RX_FRAMES],
-      layer2_origin, nla_get_u32(sinfo[NL80211_STA_INFO_RX_PACKETS]));
+    _handle_traffic(l2neigh, OONF_LAYER2_NEIGH_RX_FRAMES,
+      nla_get_u32(sinfo[NL80211_STA_INFO_RX_PACKETS]));
   }
   if (sinfo[NL80211_STA_INFO_TX_BYTES]) {
-    _handle_traffic(&l2neigh->data[OONF_LAYER2_NEIGH_TX_BYTES],
-        layer2_origin, nla_get_u32(sinfo[NL80211_STA_INFO_TX_BYTES]));
+    _handle_traffic(l2neigh, OONF_LAYER2_NEIGH_TX_BYTES,
+        nla_get_u32(sinfo[NL80211_STA_INFO_TX_BYTES]));
   }
   if (sinfo[NL80211_STA_INFO_TX_PACKETS]) {
-    _handle_traffic(&l2neigh->data[OONF_LAYER2_NEIGH_TX_FRAMES],
-        layer2_origin, nla_get_u32(sinfo[NL80211_STA_INFO_TX_PACKETS]));
+    _handle_traffic(l2neigh, OONF_LAYER2_NEIGH_TX_FRAMES,
+        nla_get_u32(sinfo[NL80211_STA_INFO_TX_PACKETS]));
   }
   if (sinfo[NL80211_STA_INFO_TX_RETRIES]) {
-    _handle_traffic(&l2neigh->data[OONF_LAYER2_NEIGH_TX_RETRIES],
-        layer2_origin, nla_get_u32(sinfo[NL80211_STA_INFO_TX_RETRIES]));
+    _handle_traffic(l2neigh, OONF_LAYER2_NEIGH_TX_RETRIES,
+        nla_get_u32(sinfo[NL80211_STA_INFO_TX_RETRIES]));
   }
   if (sinfo[NL80211_STA_INFO_TX_FAILED]) {
-    _handle_traffic(&l2neigh->data[OONF_LAYER2_NEIGH_TX_FAILED],
-        layer2_origin, nla_get_u32(sinfo[NL80211_STA_INFO_TX_FAILED]));
+    _handle_traffic(l2neigh, OONF_LAYER2_NEIGH_TX_FAILED,
+        nla_get_u32(sinfo[NL80211_STA_INFO_TX_FAILED]));
   }
 
   if (sinfo[NL80211_STA_INFO_TX_BITRATE]) {
     int64_t rate = _get_bitrate(sinfo[NL80211_STA_INFO_TX_BITRATE]);
     if (rate) {
-      oonf_layer2_set_value(&l2neigh->data[OONF_LAYER2_NEIGH_TX_BITRATE],
-          layer2_origin, rate);
+      nl80211_change_l2neigh_data(l2neigh,
+          OONF_LAYER2_NEIGH_TX_BITRATE, rate);
     }
   }
 
   if (sinfo[NL80211_STA_INFO_RX_BITRATE]) {
     int64_t rate = _get_bitrate(sinfo[NL80211_STA_INFO_RX_BITRATE]);
     if (rate) {
-      oonf_layer2_set_value(&l2neigh->data[OONF_LAYER2_NEIGH_RX_BITRATE],
-          layer2_origin, rate);
+      nl80211_change_l2neigh_data(l2neigh,
+                OONF_LAYER2_NEIGH_RX_BITRATE, rate);
     }
   }
 
@@ -214,22 +215,20 @@ nl80211_process_get_station_dump_result(struct nl80211_if *interf,
     rate = nla_get_u32(sinfo[NL80211_STA_INFO_EXPECTED_THROUGHPUT]);
 
     /* convert in bps */
-    oonf_layer2_set_value(&l2neigh->data[OONF_LAYER2_NEIGH_TX_THROUGHPUT],
-        layer2_origin, rate);
+    nl80211_change_l2neigh_data(l2neigh,
+              OONF_LAYER2_NEIGH_TX_THROUGHPUT, rate);
   }
 
   oonf_layer2_neigh_commit(l2neigh);
 }
 
-static void
-_handle_traffic(struct oonf_layer2_data *data,
-    uint32_t layer2_origin, uint32_t new_32bit) {
+static bool
+_handle_traffic(struct oonf_layer2_neigh *l2neigh,
+    enum oonf_layer2_neighbor_index idx, uint32_t new_32bit) {
+  struct oonf_layer2_data *data;
   int64_t new_value;
-  if (oonf_layer2_get_origin(data) != layer2_origin) {
-    /* not our own data, reset value */
-    oonf_layer2_set_value(data, layer2_origin, (uint64_t)new_32bit);
-    return;
-  }
+
+  data = &l2neigh->data[idx];
 
   new_value = oonf_layer2_get_value(data) & (~(0xffffffffll));
   new_value |= 0xffffffffllu & new_32bit;
@@ -239,7 +238,7 @@ _handle_traffic(struct oonf_layer2_data *data,
     new_value += 0x100000000ll;
   }
 
-  oonf_layer2_set_value(data, layer2_origin, new_value);
+  return nl80211_change_l2neigh_data(l2neigh, idx, new_value);
 }
 
 static int64_t

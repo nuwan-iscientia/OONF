@@ -119,9 +119,7 @@ nl80211_process_get_interface_result(struct nl80211_if *interf,
     return;
   }
 
-  if (!interf->phy_if) {
-    interf->phy_if = nla_get_u32(tb_msg[NL80211_ATTR_WIPHY]);
-  }
+  interf->phy_if = nla_get_u32(tb_msg[NL80211_ATTR_WIPHY]);
 
   if (tb_msg[NL80211_ATTR_SSID]) {
     char ssid[33];
