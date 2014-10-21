@@ -89,7 +89,10 @@ static struct cfg_schema_entry _radio_entries[] = {
       "Filter to determine the binding of the TCP server socket"),
   CFG_MAP_CLOCK_MINMAX(dlep_radio_if, local_heartbeat_interval,
       "heartbeat_interval", "1.000",
-      "Interval in seconds between two heartbeat signals", 1000, 65535000),
+      "Interval in seconds between two heartbeat signals", 1000, 65535 * 1000),
+
+  CFG_MAP_BOOL(dlep_radio_if, use_proxied_mac, "proxied", "false",
+      "Use proxied 802.11s mac address for neighbors"),
 };
 
 static struct cfg_schema_section _radio_section = {
