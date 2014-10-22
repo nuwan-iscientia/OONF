@@ -672,6 +672,11 @@ netlink_rcv_retry:
         break;
     }
   }
+
+  /* reset timeout if necessary */
+  if (oonf_timer_is_active(&nl->timeout)) {
+    oonf_timer_set(&nl->timeout, OS_SYSTEM_NETLINK_TIMEOUT);
+  }
 }
 
 /**
