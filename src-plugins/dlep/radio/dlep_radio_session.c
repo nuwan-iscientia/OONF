@@ -88,6 +88,8 @@ static void _generate_destination_update(struct dlep_radio_session *,
     struct oonf_layer2_neigh *);
 static void _generate_destination_down(struct dlep_radio_session *,
     struct oonf_layer2_neigh *);
+static void _generate_mac_tlv(struct dlep_radio_session *session,
+    struct oonf_layer2_neigh *l2neigh);
 
 static struct oonf_class _session_class = {
   .name = "DLEP TCP session",
@@ -702,16 +704,7 @@ _generate_destination_up(struct dlep_radio_session *session,
       l2neigh->network->name, netaddr_to_string(&nbuf, &l2neigh->addr));
 
   dlep_writer_start_signal(DLEP_DESTINATION_UP, &session->supported_tlvs);
-
-  if (!session->interface->use_proxied_mac
-      || netaddr_get_address_family(&l2neigh->proxied_addr) == AF_UNSPEC) {
-    dlep_writer_add_mac_tlv(&l2neigh->addr);
-  }
-  else {
-    OONF_DEBUG(LOG_DLEP_RADIO, "proxied mac: %s",
-        netaddr_to_string(&nbuf, &l2neigh->proxied_addr));
-    dlep_writer_add_mac_tlv(&l2neigh->proxied_addr);
-  }
+  _generate_mac_tlv(session, l2neigh);
 
   _handle_metrics(NULL, l2neigh);
 
@@ -732,15 +725,7 @@ _generate_destination_update(struct dlep_radio_session *session,
       l2neigh->network->name, netaddr_to_string(&nbuf, &l2neigh->addr));
 
   dlep_writer_start_signal(DLEP_DESTINATION_UPDATE, &session->supported_tlvs);
-  if (!session->interface->use_proxied_mac
-      || netaddr_get_address_family(&l2neigh->proxied_addr) == AF_UNSPEC) {
-    dlep_writer_add_mac_tlv(&l2neigh->addr);
-  }
-  else {
-    OONF_DEBUG(LOG_DLEP_RADIO, "proxied mac: %s",
-        netaddr_to_string(&nbuf, &l2neigh->proxied_addr));
-    dlep_writer_add_mac_tlv(&l2neigh->proxied_addr);
-  }
+  _generate_mac_tlv(session, l2neigh);
 
   _handle_metrics(NULL, l2neigh);
 
@@ -761,15 +746,7 @@ _generate_destination_down(struct dlep_radio_session *session,
       l2neigh->network->name, netaddr_to_string(&nbuf, &l2neigh->addr));
 
   dlep_writer_start_signal(DLEP_DESTINATION_DOWN, &session->supported_tlvs);
-  if (!session->interface->use_proxied_mac
-      || netaddr_get_address_family(&l2neigh->proxied_addr) == AF_UNSPEC) {
-    dlep_writer_add_mac_tlv(&l2neigh->addr);
-  }
-  else {
-    OONF_DEBUG(LOG_DLEP_RADIO, "proxied mac: %s",
-        netaddr_to_string(&nbuf, &l2neigh->proxied_addr));
-    dlep_writer_add_mac_tlv(&l2neigh->proxied_addr);
-  }
+  _generate_mac_tlv(session, l2neigh);
 
   if (dlep_writer_finish_signal(LOG_DLEP_RADIO)) {
     dlep_radio_terminate_session(session);
@@ -777,4 +754,22 @@ _generate_destination_down(struct dlep_radio_session *session,
   }
 
   dlep_writer_send_tcp_unicast(&session->stream, &session->supported_signals);
+}
+
+static void
+_generate_mac_tlv(struct dlep_radio_session *session,
+    struct oonf_layer2_neigh *l2neigh) {
+  struct netaddr_str nbuf;
+
+  if (!session->interface->use_proxied_mac
+      || netaddr_get_address_family(&l2neigh->proxied_addr) == AF_UNSPEC) {
+    OONF_DEBUG(LOG_DLEP_RADIO, "direct mac: %s",
+        netaddr_to_string(&nbuf, &l2neigh->addr));
+    dlep_writer_add_mac_tlv(&l2neigh->addr);
+  }
+  else {
+    OONF_DEBUG(LOG_DLEP_RADIO, "proxied mac: %s",
+        netaddr_to_string(&nbuf, &l2neigh->proxied_addr));
+    dlep_writer_add_mac_tlv(&l2neigh->proxied_addr);
+  }
 }

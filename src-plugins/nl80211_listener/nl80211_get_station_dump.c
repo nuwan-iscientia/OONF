@@ -229,13 +229,20 @@ _handle_traffic(struct oonf_layer2_neigh *l2neigh,
   int64_t new_value;
 
   data = &l2neigh->data[idx];
+  new_value = 0;
 
-  new_value = oonf_layer2_get_value(data) & (~(0xffffffffll));
-  new_value |= 0xffffffffllu & new_32bit;
+  if (oonf_layer2_has_value(data)) {
+    new_value  |= oonf_layer2_get_value(data) & (~(0xffffffffll));
+  }
+  new_value |= 0xffffffffll & new_32bit;
+
+  OONF_DEBUG(LOG_NL80211, "new32: 0x%08x old: %016"PRIx64 " new: %016"PRIx64,
+      new_32bit, oonf_layer2_get_value(data), new_value);
 
   if (new_value < oonf_layer2_get_value(data)) {
     /* handle 32bit counter overflow */
     new_value += 0x100000000ll;
+    OONF_DEBUG(LOG_NL80211, "Overflow, new: %016"PRIx64, new_value);
   }
 
   return nl80211_change_l2neigh_data(l2neigh, idx, new_value);
