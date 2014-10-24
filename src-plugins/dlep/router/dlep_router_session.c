@@ -371,7 +371,7 @@ _cb_tcp_lost(struct oonf_stream_session *tcp_session) {
 
   session = container_of(tcp_session->comport, struct dlep_router_session, tcp);
 
-  OONF_DEBUG(LOG_DLEP_ROUTER, "tcp session lost");
+  OONF_INFO(LOG_DLEP_ROUTER, "tcp session lost");
 
   /* just to be sure */
   session->state = DLEP_ROUTER_SESSION_TERMINATE;
@@ -412,7 +412,7 @@ static void
 _cb_heartbeat_timeout(void *ptr) {
   struct dlep_router_session *session = ptr;
 
-  OONF_DEBUG(LOG_DLEP_ROUTER, "Heartbeat timeout");
+  OONF_INFO(LOG_DLEP_ROUTER, "Heartbeat timeout");
 
   /* close session */
   dlep_router_remove_session(session);

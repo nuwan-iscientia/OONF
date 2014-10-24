@@ -86,6 +86,9 @@ static struct cfg_schema_entry _router_entries[] = {
   CFG_MAP_CLOCK_MINMAX(dlep_router_if, local_heartbeat_interval,
       "heartbeat_interval", "1.000",
     "Interval in seconds between two heartbeat signals", 1000, 65535000),
+
+  CFG_MAP_BOOL(dlep_router_if, single_session, "single_session", "true",
+      "Restrict DLEP router to single session per interface"),
 };
 
 static struct cfg_schema_section _router_section = {

@@ -65,6 +65,9 @@ struct dlep_router_if {
   /* heartbeat settings from the other side of the session */
   uint64_t remote_heartbeat_interval;
 
+  /* true if router should not accept further sessions */
+  bool single_session;
+
   /* hook into session tree, interface name is the key */
   struct avl_node _node;
 

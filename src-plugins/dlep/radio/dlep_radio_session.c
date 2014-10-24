@@ -703,7 +703,8 @@ _generate_destination_up(struct dlep_radio_session *session,
 
   dlep_writer_start_signal(DLEP_DESTINATION_UP, &session->supported_tlvs);
 
-  if (!session->interface->use_proxied_mac) {
+  if (!session->interface->use_proxied_mac
+      || netaddr_get_address_family(&l2neigh->proxied_addr) == AF_UNSPEC) {
     dlep_writer_add_mac_tlv(&l2neigh->addr);
   }
   else {
@@ -731,7 +732,8 @@ _generate_destination_update(struct dlep_radio_session *session,
       l2neigh->network->name, netaddr_to_string(&nbuf, &l2neigh->addr));
 
   dlep_writer_start_signal(DLEP_DESTINATION_UPDATE, &session->supported_tlvs);
-  if (!session->interface->use_proxied_mac) {
+  if (!session->interface->use_proxied_mac
+      || netaddr_get_address_family(&l2neigh->proxied_addr) == AF_UNSPEC) {
     dlep_writer_add_mac_tlv(&l2neigh->addr);
   }
   else {
@@ -759,7 +761,8 @@ _generate_destination_down(struct dlep_radio_session *session,
       l2neigh->network->name, netaddr_to_string(&nbuf, &l2neigh->addr));
 
   dlep_writer_start_signal(DLEP_DESTINATION_DOWN, &session->supported_tlvs);
-  if (!session->interface->use_proxied_mac) {
+  if (!session->interface->use_proxied_mac
+      || netaddr_get_address_family(&l2neigh->proxied_addr) == AF_UNSPEC) {
     dlep_writer_add_mac_tlv(&l2neigh->addr);
   }
   else {

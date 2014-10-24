@@ -255,8 +255,11 @@ _cb_send_discovery(void *ptr) {
     return;
   }
 
-  OONF_INFO(LOG_DLEP_ROUTER, "Send UDP Peer Discovery");
-  _generate_peer_discovery(interface);
+  if (!interface->single_session
+      || avl_is_empty(&interface->session_tree)) {
+    OONF_INFO(LOG_DLEP_ROUTER, "Send UDP Peer Discovery");
+    _generate_peer_discovery(interface);
+  }
 }
 
 /**
@@ -284,6 +287,12 @@ _cb_receive_udp(struct oonf_packet_socket *pkt,
     OONF_WARN_HEX(LOG_DLEP_ROUTER, ptr, length,
         "Could not parse incoming UDP signal from %s: %d",
         netaddr_socket_to_string(&nbuf, from), signal);
+    return;
+  }
+
+  if (interface->single_session
+      && !avl_is_empty(&interface->session_tree)) {
+    /* ignore UDP signal */
     return;
   }
 
