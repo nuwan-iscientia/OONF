@@ -139,26 +139,26 @@ nl80211_process_get_survey_result(struct nl80211_if *interf, struct nlmsghdr *hd
   if (sinfo[NL80211_SURVEY_INFO_CHANNEL_TIME]) {
     interf->ifdata_changed |= nl80211_change_l2net_data(
         interf->l2net, OONF_LAYER2_NET_CHANNEL_ACTIVE,
-        1000000000ll * (int64_t)nla_get_u64(sinfo[NL80211_SURVEY_INFO_CHANNEL_TIME]));
+        1000000ll * (int64_t)nla_get_u64(sinfo[NL80211_SURVEY_INFO_CHANNEL_TIME]));
   }
   if (sinfo[NL80211_SURVEY_INFO_CHANNEL_TIME_BUSY]) {
     interf->ifdata_changed |= nl80211_change_l2net_data(
         interf->l2net, OONF_LAYER2_NET_CHANNEL_BUSY,
-            1000000000ll * (int64_t)nla_get_u64(sinfo[NL80211_SURVEY_INFO_CHANNEL_TIME_BUSY]));
+            1000000ll * (int64_t)nla_get_u64(sinfo[NL80211_SURVEY_INFO_CHANNEL_TIME_BUSY]));
   }
   if (sinfo[NL80211_SURVEY_INFO_CHANNEL_TIME_EXT_BUSY]) {
     interf->ifdata_changed |= nl80211_change_l2net_data(
         interf->l2net, OONF_LAYER2_NET_CHANNEL_BUSYEXT,
-            1000000000ll * (int64_t)nla_get_u64(sinfo[NL80211_SURVEY_INFO_CHANNEL_TIME_EXT_BUSY]));
+            1000000ll * (int64_t)nla_get_u64(sinfo[NL80211_SURVEY_INFO_CHANNEL_TIME_EXT_BUSY]));
   }
   if (sinfo[NL80211_SURVEY_INFO_CHANNEL_TIME_RX]) {
     interf->ifdata_changed |= nl80211_change_l2net_data(
         interf->l2net, OONF_LAYER2_NET_CHANNEL_RX,
-            1000000000ll * (int64_t)nla_get_u64(sinfo[NL80211_SURVEY_INFO_CHANNEL_TIME_RX]));
+            1000000ll * (int64_t)nla_get_u64(sinfo[NL80211_SURVEY_INFO_CHANNEL_TIME_RX]));
   }
   if (sinfo[NL80211_SURVEY_INFO_CHANNEL_TIME_TX]) {
     interf->ifdata_changed |= nl80211_change_l2net_data(
         interf->l2net, OONF_LAYER2_NET_CHANNEL_TX,
-            1000000000ll * (int64_t)nla_get_u64(sinfo[NL80211_SURVEY_INFO_CHANNEL_TIME_TX]));
+            1000000ll * (int64_t)nla_get_u64(sinfo[NL80211_SURVEY_INFO_CHANNEL_TIME_TX]));
   }
 }

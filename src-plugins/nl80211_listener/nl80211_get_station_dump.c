@@ -168,17 +168,20 @@ nl80211_process_get_station_dump_result(struct nl80211_if *interf,
       -((int64_t)(nla_get_u32(sinfo[NL80211_STA_INFO_INACTIVE_TIME]))));
   }
 
-  if (sinfo[NL80211_STA_INFO_RX_BYTES]) {
-    _handle_traffic(l2neigh, OONF_LAYER2_NEIGH_RX_BYTES,
-        nla_get_u32(sinfo[NL80211_STA_INFO_RX_BYTES]));
+  /* byte data is 64 bit */
+  if (sinfo[NL80211_STA_INFO_RX_BYTES64]) {
+    nl80211_change_l2neigh_data(l2neigh, OONF_LAYER2_NEIGH_RX_BYTES,
+        nla_get_u64(sinfo[NL80211_STA_INFO_RX_BYTES64]));
   }
+  if (sinfo[NL80211_STA_INFO_TX_BYTES64]) {
+    nl80211_change_l2neigh_data(l2neigh, OONF_LAYER2_NEIGH_TX_BYTES,
+        nla_get_u64(sinfo[NL80211_STA_INFO_TX_BYTES64]));
+  }
+
+  /* packet data is only 32 bit */
   if (sinfo[NL80211_STA_INFO_RX_PACKETS]) {
     _handle_traffic(l2neigh, OONF_LAYER2_NEIGH_RX_FRAMES,
       nla_get_u32(sinfo[NL80211_STA_INFO_RX_PACKETS]));
-  }
-  if (sinfo[NL80211_STA_INFO_TX_BYTES]) {
-    _handle_traffic(l2neigh, OONF_LAYER2_NEIGH_TX_BYTES,
-        nla_get_u32(sinfo[NL80211_STA_INFO_TX_BYTES]));
   }
   if (sinfo[NL80211_STA_INFO_TX_PACKETS]) {
     _handle_traffic(l2neigh, OONF_LAYER2_NEIGH_TX_FRAMES,
@@ -193,6 +196,7 @@ nl80211_process_get_station_dump_result(struct nl80211_if *interf,
         nla_get_u32(sinfo[NL80211_STA_INFO_TX_FAILED]));
   }
 
+  /* bitrates are special */
   if (sinfo[NL80211_STA_INFO_TX_BITRATE]) {
     int64_t rate = _get_bitrate(sinfo[NL80211_STA_INFO_TX_BITRATE]);
     if (rate) {
@@ -200,7 +204,6 @@ nl80211_process_get_station_dump_result(struct nl80211_if *interf,
           OONF_LAYER2_NEIGH_TX_BITRATE, rate);
     }
   }
-
   if (sinfo[NL80211_STA_INFO_RX_BITRATE]) {
     int64_t rate = _get_bitrate(sinfo[NL80211_STA_INFO_RX_BITRATE]);
     if (rate) {
@@ -209,6 +212,7 @@ nl80211_process_get_station_dump_result(struct nl80211_if *interf,
     }
   }
 
+  /* expected throughput is special too */
   if (sinfo[NL80211_STA_INFO_EXPECTED_THROUGHPUT]) {
     int64_t rate;
 
@@ -216,7 +220,7 @@ nl80211_process_get_station_dump_result(struct nl80211_if *interf,
 
     /* convert in bps */
     nl80211_change_l2neigh_data(l2neigh,
-              OONF_LAYER2_NEIGH_TX_THROUGHPUT, rate);
+              OONF_LAYER2_NEIGH_TX_THROUGHPUT, rate * 1024ll);
   }
 
   oonf_layer2_neigh_commit(l2neigh);
@@ -225,23 +229,28 @@ nl80211_process_get_station_dump_result(struct nl80211_if *interf,
 static bool
 _handle_traffic(struct oonf_layer2_neigh *l2neigh,
     enum oonf_layer2_neighbor_index idx, uint32_t new_32bit) {
+  static const uint64_t UPPER_32_MASK = 0xffffffff00000000ull;
+  static const uint64_t LOWER_32_MASK = 0x00000000ffffffffull;
   struct oonf_layer2_data *data;
-  int64_t new_value;
+  uint64_t old_value, new_value;
+
+  new_value = 0;
+  old_value = 0;
 
   data = &l2neigh->data[idx];
-  new_value = 0;
-
   if (oonf_layer2_has_value(data)) {
-    new_value  |= oonf_layer2_get_value(data) & (~(0xffffffffll));
+    old_value = oonf_layer2_get_value(data);
   }
-  new_value |= 0xffffffffll & new_32bit;
+
+  new_value = old_value & UPPER_32_MASK;
+  new_value |= (new_32bit & LOWER_32_MASK);
 
   OONF_DEBUG(LOG_NL80211, "new32: 0x%08x old: %016"PRIx64 " new: %016"PRIx64,
-      new_32bit, oonf_layer2_get_value(data), new_value);
+      new_32bit, old_value, new_value);
 
-  if (new_value < oonf_layer2_get_value(data)) {
+  if (new_value + 0x80000000ull < old_value) {
     /* handle 32bit counter overflow */
-    new_value += 0x100000000ll;
+    new_value += 0x100000000ull;
     OONF_DEBUG(LOG_NL80211, "Overflow, new: %016"PRIx64, new_value);
   }
 
