@@ -82,7 +82,7 @@ static void _handle_destination_down(struct dlep_router_session *session,
     void *ptr, struct dlep_parser_index *idx);
 
 static void _handle_metrics(struct oonf_layer2_data *neighbor_data,
-    uint8_t *buffer, struct dlep_parser_index *idx);
+    const uint8_t *buffer, const struct dlep_parser_index *idx);
 
 static int _generate_peer_initialization(struct dlep_router_session *session);
 static void _generate_heartbeat(struct dlep_router_session *session);
@@ -367,6 +367,8 @@ _cb_tcp_receive_data(struct oonf_stream_session *tcp_session) {
 static void
 _cb_tcp_lost(struct oonf_stream_session *tcp_session) {
   struct dlep_router_session *session;
+  struct oonf_layer2_destination *l2dst, *l2dst_it;
+  struct oonf_layer2_neigh *l2neigh, *l2neigh_it;
   struct oonf_layer2_net *l2net;
 
   session = container_of(tcp_session->comport, struct dlep_router_session, tcp);
@@ -380,7 +382,17 @@ _cb_tcp_lost(struct oonf_stream_session *tcp_session) {
   /* cleanup layer2 data */
   l2net = oonf_layer2_net_get(session->interface->name);
   if (l2net) {
-    oonf_layer2_net_cleanup(l2net, _l2_origin, true);
+    avl_for_each_element_safe(&l2net->neighbors, l2neigh, _node, l2neigh_it) {
+      avl_for_each_element_safe(&l2neigh->destinations, l2dst, _node, l2dst_it) {
+        if (l2dst->origin == _l2_origin) {
+          oonf_layer2_destination_remove(l2dst);
+        }
+      }
+      oonf_layer2_neigh_cleanup(l2neigh, _l2_origin);
+      oonf_layer2_neigh_commit(l2neigh);
+    }
+    oonf_layer2_net_cleanup(l2net, _l2_origin);
+    oonf_layer2_net_commit(l2net);
   }
 
   /* no heartbeats anymore */
@@ -566,6 +578,7 @@ _handle_destination_up(struct dlep_router_session *session,
   }
 
   _handle_metrics(&l2neigh->data[0], buffer, idx);
+  oonf_layer2_neigh_commit(l2neigh);
 
   _generate_destination_up_ack(session, DLEP_STATUS_OKAY);
 }
@@ -603,6 +616,7 @@ _handle_destination_update(struct dlep_router_session *session,
   }
 
   _handle_metrics(&l2neigh->data[0], buffer, idx);
+  oonf_layer2_neigh_commit(l2neigh);
 }
 
 static void
@@ -633,7 +647,7 @@ _handle_destination_down(struct dlep_router_session *session,
     return;
   }
 
-  oonf_layer2_neigh_remove(l2neigh, _l2_origin, true);
+  oonf_layer2_neigh_remove(l2neigh, _l2_origin);
 
   _generate_destination_down_ack(session, DLEP_STATUS_OKAY);
 }
@@ -642,7 +656,8 @@ static void
 _handle_uint64_metric(struct oonf_layer2_data *neighbor_data,
     enum oonf_layer2_neighbor_index l2datatype,
     const char *text_type __attribute__((unused)),
-    uint8_t *buffer, struct dlep_parser_index *idx, enum dlep_tlvs dleptlv) {
+    const uint8_t *buffer,
+    const struct dlep_parser_index *idx, enum dlep_tlvs dleptlv) {
   uint64_t data;
   int pos;
 
@@ -658,9 +673,15 @@ _handle_uint64_metric(struct oonf_layer2_data *neighbor_data,
 
 static void
 _handle_metrics(struct oonf_layer2_data *neighbor_data,
-    uint8_t *buffer, struct dlep_parser_index *idx) {
+    const uint8_t *buffer, const struct dlep_parser_index *idx) {
   int32_t sig;
   int pos;
+
+  for (pos = 0; pos < OONF_LAYER2_NEIGH_COUNT; pos++) {
+    if (oonf_layer2_get_origin(&neighbor_data[pos]) == _l2_origin) {
+      oonf_layer2_reset_value(&neighbor_data[pos]);
+    }
+  }
 
   /* get metric values */
   _handle_uint64_metric(neighbor_data, OONF_LAYER2_NEIGH_RX_MAX_BITRATE,

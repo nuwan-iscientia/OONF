@@ -68,9 +68,9 @@ void dlep_writer_send_tcp_unicast(struct oonf_stream_session *session,
     struct dlep_bitmap *supported_signals);
 
 void dlep_writer_add_heartbeat_tlv(uint64_t interval);
-int dlep_writer_add_mac_tlv(struct netaddr *mac);
-int dlep_writer_add_ipv4_tlv(struct netaddr *, bool add);
-int dlep_writer_add_ipv6_tlv(struct netaddr *, bool add);
+int dlep_writer_add_mac_tlv(const struct netaddr *mac);
+int dlep_writer_add_ipv4_tlv(const struct netaddr *, bool add);
+int dlep_writer_add_ipv6_tlv(const struct netaddr *, bool add);
 void dlep_writer_add_port_tlv(uint16_t);
 void dlep_writer_add_uint64(uint64_t number, enum dlep_tlvs tlv);
 void dlep_writer_add_status(enum dlep_status status);

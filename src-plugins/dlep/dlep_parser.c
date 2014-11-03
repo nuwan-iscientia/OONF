@@ -64,8 +64,9 @@ static void _remove_unknown_tlvs(struct dlep_parser_index *idx,
 
 int
 dlep_parser_read(struct dlep_parser_index *idx,
-    void *ptr, size_t total_len, uint16_t *siglen) {
-  uint8_t tlv_type, tlv_length, signal_type, *signal;
+    const void *ptr, size_t total_len, uint16_t *siglen) {
+  uint8_t tlv_type, tlv_length, signal_type;
+  const uint8_t *signal;
   uint16_t signal_length;
   size_t pos;
 
@@ -142,7 +143,7 @@ dlep_parser_read(struct dlep_parser_index *idx,
 }
 
 uint16_t
-dlep_parser_get_next_tlv(uint8_t *buffer, size_t len, size_t offset) {
+dlep_parser_get_next_tlv(const uint8_t *buffer, size_t len, size_t offset) {
   uint8_t type;
 
   /* remember TLV type */
@@ -163,20 +164,20 @@ dlep_parser_get_next_tlv(uint8_t *buffer, size_t len, size_t offset) {
 }
 
 void
-dlep_parser_get_dlep_port(uint16_t *port, uint8_t *tlv) {
+dlep_parser_get_dlep_port(uint16_t *port, const uint8_t *tlv) {
   uint16_t tmp;
   memcpy(&tmp, &tlv[2], 2);
   *port = ntohs(tmp);
 }
 
 void
-dlep_parser_get_peer_type(char *string, uint8_t *tlv) {
+dlep_parser_get_peer_type(char *string, const uint8_t *tlv) {
   memcpy(string, &tlv[2], tlv[1]);
   string[tlv[2]] = 0;
 }
 
 void
-dlep_parser_get_heartbeat_interval(uint64_t *interval, uint8_t *tlv) {
+dlep_parser_get_heartbeat_interval(uint64_t *interval, const uint8_t *tlv) {
   uint16_t tmp;
   memcpy(&tmp, &tlv[2], tlv[1]);
 
@@ -184,13 +185,13 @@ dlep_parser_get_heartbeat_interval(uint64_t *interval, uint8_t *tlv) {
 }
 
 void
-dlep_parser_get_mac_addr(struct netaddr *mac, uint8_t *tlv) {
+dlep_parser_get_mac_addr(struct netaddr *mac, const uint8_t *tlv) {
   /* length was already checked */
   netaddr_from_binary(mac, &tlv[2], tlv[1], AF_MAC48);
 }
 
 int
-dlep_parser_get_ipv4_addr(struct netaddr *ipv4, bool *add, uint8_t *tlv) {
+dlep_parser_get_ipv4_addr(struct netaddr *ipv4, bool *add, const uint8_t *tlv) {
   if (add) {
     switch (tlv[2]) {
       case DLEP_IP_ADD:
@@ -210,7 +211,7 @@ dlep_parser_get_ipv4_addr(struct netaddr *ipv4, bool *add, uint8_t *tlv) {
 }
 
 int
-dlep_parser_get_ipv6_addr(struct netaddr *ipv6, bool *add, uint8_t *tlv) {
+dlep_parser_get_ipv6_addr(struct netaddr *ipv6, bool *add, const uint8_t *tlv) {
   if (add) {
     switch (tlv[2]) {
       case DLEP_IP_ADD:
@@ -231,7 +232,7 @@ dlep_parser_get_ipv6_addr(struct netaddr *ipv6, bool *add, uint8_t *tlv) {
 }
 
 void
-dlep_parser_get_uint64(uint64_t *number, uint8_t *tlv) {
+dlep_parser_get_uint64(uint64_t *number, const uint8_t *tlv) {
   uint64_t value;
 
   memcpy(&value, &tlv[2], sizeof(value));
@@ -239,7 +240,7 @@ dlep_parser_get_uint64(uint64_t *number, uint8_t *tlv) {
 }
 
 void
-dlep_parser_get_status(enum dlep_status *status, uint8_t *tlv) {
+dlep_parser_get_status(enum dlep_status *status, const uint8_t *tlv) {
   if (tlv[2] >= DLEP_STATUS_COUNT) {
     /* normalize status code */
     *status = DLEP_STATUS_ERROR;
@@ -250,7 +251,7 @@ dlep_parser_get_status(enum dlep_status *status, uint8_t *tlv) {
 }
 
 void
-dlep_parser_get_optional_signal(struct dlep_bitmap *bitmap, uint8_t *tlv) {
+dlep_parser_get_optional_signal(struct dlep_bitmap *bitmap, const uint8_t *tlv) {
   unsigned i;
 
   memset(bitmap, 0, sizeof(*bitmap));
@@ -260,7 +261,7 @@ dlep_parser_get_optional_signal(struct dlep_bitmap *bitmap, uint8_t *tlv) {
 }
 
 void
-dlep_parser_get_optional_tlv(struct dlep_bitmap *bitmap, uint8_t *tlv) {
+dlep_parser_get_optional_tlv(struct dlep_bitmap *bitmap, const uint8_t *tlv) {
   unsigned i;
 
   memset(bitmap, 0, sizeof(*bitmap));
@@ -270,7 +271,7 @@ dlep_parser_get_optional_tlv(struct dlep_bitmap *bitmap, uint8_t *tlv) {
 }
 
 void
-dlep_parser_get_tx_signal(int32_t *sig, uint8_t *tlv) {
+dlep_parser_get_tx_signal(int32_t *sig, const uint8_t *tlv) {
   uint32_t value;
 
   memcpy(&value, &tlv[2], sizeof(value));
@@ -279,7 +280,7 @@ dlep_parser_get_tx_signal(int32_t *sig, uint8_t *tlv) {
 }
 
 void
-dlep_parser_get_rx_signal(int32_t *sig, uint8_t *tlv) {
+dlep_parser_get_rx_signal(int32_t *sig, const uint8_t *tlv) {
   uint32_t value;
 
   memcpy(&value, &tlv[2], sizeof(value));

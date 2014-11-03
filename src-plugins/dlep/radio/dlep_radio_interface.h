@@ -71,8 +71,9 @@ struct dlep_radio_if {
   /* heartbeat settings from the other side of the session (from UDP) */
   uint64_t remote_heartbeat_interval;
 
-  /* true if dlep should use proxied 802.11s macs */
-  bool use_proxied_mac;
+  /* decide to publish proxied/non-proxied destinations */
+  bool use_proxied_dst;
+  bool use_nonproxied_dst;
 
   /* hook into session tree, interface name is the key */
   struct avl_node _node;

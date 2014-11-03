@@ -95,7 +95,6 @@ static int _cb_create_text_default(struct oonf_viewer_template *);
 #define KEY_IF_PREFIX                   "if_"
 
 #define KEY_NEIGH_ADDR                  "neigh_addr"
-#define KEY_NEIGH_PROXY                  "neigh_proxy"
 #define KEY_NEIGH_LASTSEEN              "neigh_lastseen"
 #define KEY_NEIGH_PREFIX                "neigh_"
 
@@ -113,7 +112,6 @@ static struct isonumber_str             _value_if_lastseen;
 static struct isonumber_str             _value_if_data[OONF_LAYER2_NET_COUNT];
 
 static struct netaddr_str               _value_neigh_addr;
-static struct netaddr_str               _value_neigh_proxy;
 static struct isonumber_str             _value_neigh_lastseen;
 static struct isonumber_str             _value_neigh_data[OONF_LAYER2_NEIGH_COUNT];
 
@@ -138,7 +136,6 @@ static struct abuf_template_data_entry _tde_if_data[OONF_LAYER2_NET_COUNT];
 
 static struct abuf_template_data_entry _tde_neigh[] = {
     { KEY_NEIGH_ADDR, _value_neigh_addr.buf, true },
-    { KEY_NEIGH_PROXY, _value_neigh_proxy.buf, true },
     { KEY_NEIGH_LASTSEEN, _value_neigh_lastseen.buf, false },
 };
 
@@ -347,7 +344,6 @@ _initialize_data_values(struct oonf_viewer_template *template,
 static void
 _initialize_neighbor_values(struct oonf_layer2_neigh *neigh) {
   netaddr_to_string(&_value_neigh_addr, &neigh->addr);
-  netaddr_to_string(&_value_neigh_proxy, &neigh->proxied_addr);
 
   if (neigh->last_seen) {
     oonf_clock_toIntervalString(&_value_neigh_lastseen,

@@ -178,7 +178,7 @@ dlep_writer_add_heartbeat_tlv(uint64_t interval) {
 }
 
 int
-dlep_writer_add_mac_tlv(struct netaddr *mac) {
+dlep_writer_add_mac_tlv(const struct netaddr *mac) {
   uint8_t value[6];
 
   if (netaddr_get_address_family(mac) != AF_MAC48) {
@@ -192,7 +192,7 @@ dlep_writer_add_mac_tlv(struct netaddr *mac) {
 }
 
 int
-dlep_writer_add_ipv4_tlv(struct netaddr *ipv4, bool add) {
+dlep_writer_add_ipv4_tlv(const struct netaddr *ipv4, bool add) {
   uint8_t value[5];
 
   if (netaddr_get_address_family(ipv4) != AF_INET) {
@@ -207,7 +207,7 @@ dlep_writer_add_ipv4_tlv(struct netaddr *ipv4, bool add) {
 }
 
 int
-dlep_writer_add_ipv6_tlv(struct netaddr *ipv6, bool add) {
+dlep_writer_add_ipv6_tlv(const struct netaddr *ipv6, bool add) {
   uint8_t value[17];
 
   if (netaddr_get_address_family(ipv6) != AF_INET6) {

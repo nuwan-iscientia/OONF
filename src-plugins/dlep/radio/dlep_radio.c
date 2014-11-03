@@ -91,8 +91,10 @@ static struct cfg_schema_entry _radio_entries[] = {
       "heartbeat_interval", "1.000",
       "Interval in seconds between two heartbeat signals", 1000, 65535 * 1000),
 
-  CFG_MAP_BOOL(dlep_radio_if, use_proxied_mac, "proxied", "false",
-      "Use proxied 802.11s mac address for neighbors"),
+  CFG_MAP_BOOL(dlep_radio_if, use_proxied_dst, "proxied", "false",
+      "Report 802.11s proxied mac address for neighbors"),
+  CFG_MAP_BOOL(dlep_radio_if, use_nonproxied_dst, "not_proxied", "true",
+      "Report direct neighbors"),
 };
 
 static struct cfg_schema_section _radio_section = {

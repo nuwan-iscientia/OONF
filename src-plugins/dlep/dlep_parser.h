@@ -63,23 +63,23 @@ enum dlep_parser_errors {
 };
 
 int dlep_parser_read(struct dlep_parser_index *idx,
-    void *signal, size_t len, uint16_t *siglen);
-int dlep_parser_check_mandatory_tlvs(struct dlep_parser_index *idx,
-    struct dlep_bitmap *mandatory);
-uint16_t dlep_parser_get_next_tlv(uint8_t *buffer, size_t len, size_t offset);
+    const void *signal, size_t len, uint16_t *siglen);
+int dlep_parser_check_mandatory_tlvs(const struct dlep_parser_index *idx,
+    const struct dlep_bitmap *mandatory);
+uint16_t dlep_parser_get_next_tlv(const uint8_t *buffer, size_t len, size_t offset);
 
-void dlep_parser_get_dlep_port(uint16_t *port, uint8_t *tlv);
-void dlep_parser_get_peer_type(char *string, uint8_t *tlv);
-void dlep_parser_get_heartbeat_interval(uint64_t *interval, uint8_t *tlv);
-void dlep_parser_get_mac_addr(struct netaddr *mac, uint8_t *tlv);
-int dlep_parser_get_ipv4_addr(struct netaddr *ipv4, bool *add, uint8_t *tlv);
-int dlep_parser_get_ipv6_addr(struct netaddr *ipv6, bool *add, uint8_t *tlv);
-void dlep_parser_get_uint64(uint64_t *mdrr, uint8_t *tlv);
-void dlep_parser_get_status(enum dlep_status *status, uint8_t *tlv);
-void dlep_parser_get_optional_signal(struct dlep_bitmap *bitmap, uint8_t *tlv);
-void dlep_parser_get_optional_tlv(struct dlep_bitmap *bitmap, uint8_t *tlv);
+void dlep_parser_get_dlep_port(uint16_t *port, const uint8_t *tlv);
+void dlep_parser_get_peer_type(char *string, const uint8_t *tlv);
+void dlep_parser_get_heartbeat_interval(uint64_t *interval, const uint8_t *tlv);
+void dlep_parser_get_mac_addr(struct netaddr *mac, const uint8_t *tlv);
+int dlep_parser_get_ipv4_addr(struct netaddr *ipv4, bool *add, const uint8_t *tlv);
+int dlep_parser_get_ipv6_addr(struct netaddr *ipv6, bool *add, const uint8_t *tlv);
+void dlep_parser_get_uint64(uint64_t *mdrr, const uint8_t *tlv);
+void dlep_parser_get_status(enum dlep_status *status, const uint8_t *tlv);
+void dlep_parser_get_optional_signal(struct dlep_bitmap *bitmap, const uint8_t *tlv);
+void dlep_parser_get_optional_tlv(struct dlep_bitmap *bitmap, const uint8_t *tlv);
 
-void dlep_parser_get_tx_signal(int32_t *sig, uint8_t *tlv);
-void dlep_parser_get_rx_signal(int32_t *sig, uint8_t *tlv);
+void dlep_parser_get_tx_signal(int32_t *sig, const uint8_t *tlv);
+void dlep_parser_get_rx_signal(int32_t *sig, const uint8_t *tlv);
 
 #endif /* DLEP_PARSER_H_ */

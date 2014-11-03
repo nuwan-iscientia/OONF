@@ -52,7 +52,6 @@
 static int _init(void);
 static void _cleanup(void);
 
-static bool _commit_net(struct oonf_layer2_net *l2net, bool commit_change);
 static void _net_remove(struct oonf_layer2_net *l2net);
 static void _neigh_remove(struct oonf_layer2_neigh *l2neigh);
 
@@ -111,6 +110,10 @@ static struct oonf_class _l2neighbor_class = {
   .name = LAYER2_CLASS_NEIGHBOR,
   .size = sizeof(struct oonf_layer2_neigh),
 };
+static struct oonf_class _l2dst_class = {
+  .name = LAYER2_CLASS_DESTINATION,
+  .size = sizeof(struct oonf_layer2_destination),
+};
 
 struct avl_tree oonf_layer2_net_tree;
 
@@ -124,6 +127,7 @@ static int
 _init(void) {
   oonf_class_add(&_l2network_class);
   oonf_class_add(&_l2neighbor_class);
+  oonf_class_add(&_l2dst_class);
 
   avl_init(&oonf_layer2_net_tree, avl_comp_strcasecmp, false);
   return 0;
@@ -140,6 +144,7 @@ _cleanup(void) {
     _net_remove(l2net);
   }
 
+  oonf_class_remove(&_l2dst_class);
   oonf_class_remove(&_l2neighbor_class);
   oonf_class_remove(&_l2network_class);
 }
@@ -193,7 +198,7 @@ oonf_layer2_net_add(const char *ifname) {
   l2net->_node.key = l2net->name;
   avl_insert(&oonf_layer2_net_tree, &l2net->_node);
 
-  /* initialize tree of neighbors */
+  /* initialize tree of neighbors and proxies */
   avl_init(&l2net->neighbors, avl_comp_netaddr, false);
 
   /* initialize interface listener */
@@ -206,35 +211,31 @@ oonf_layer2_net_add(const char *ifname) {
 }
 
 /**
- * Remove all information of a certain originator from a layer-2 addr
+ * Remove all data objects of a certain originator from a layer-2 network
  * object.
  * @param l2net layer-2 addr object
  * @param origin originator number
- * @param commit true if event should be triggered by cleanup
+ * @return true if a value was removed, false otherwise
  */
-void
-oonf_layer2_net_cleanup(struct oonf_layer2_net *l2net, uint32_t origin, bool commit) {
-  struct oonf_layer2_neigh *l2neigh, *l2neigh_it;
+bool
+oonf_layer2_net_cleanup(struct oonf_layer2_net *l2net, uint32_t origin) {
+  bool changed = false;
   int i;
-
-  avl_for_each_element_safe(&l2net->neighbors, l2neigh, _node, l2neigh_it) {
-    oonf_layer2_neigh_cleanup(l2neigh, origin, commit);
-  }
 
   for (i=0; i<OONF_LAYER2_NET_COUNT; i++) {
     if (l2net->data[i]._origin == origin) {
       oonf_layer2_reset_value(&l2net->data[i]);
+      changed = true;
     }
   }
   for (i=0; i<OONF_LAYER2_NEIGH_COUNT; i++) {
     if (l2net->neighdata[i]._origin == origin) {
       oonf_layer2_reset_value(&l2net->neighdata[i]);
+      changed = true;
     }
   }
-
-  _commit_net(l2net, commit);
+  return changed;
 }
-
 
 /**
  * Remove all information of a certain originator from a layer-2 addr
@@ -245,12 +246,12 @@ oonf_layer2_net_cleanup(struct oonf_layer2_net *l2net, uint32_t origin, bool com
 void
 oonf_layer2_net_remove(struct oonf_layer2_net *l2net, uint32_t origin) {
   struct oonf_layer2_neigh *l2neigh, *l2neigh_it;
-
   avl_for_each_element_safe(&l2net->neighbors, l2neigh, _node, l2neigh_it) {
-    oonf_layer2_neigh_remove(l2neigh, origin, true);
+    oonf_layer2_neigh_remove(l2neigh, origin);
   }
 
-  oonf_layer2_net_cleanup(l2net, origin, true);
+  oonf_layer2_net_cleanup(l2net, origin);
+  oonf_layer2_net_commit(l2net);
 }
 
 /**
@@ -261,7 +262,29 @@ oonf_layer2_net_remove(struct oonf_layer2_net *l2net, uint32_t origin) {
  */
 bool
 oonf_layer2_net_commit(struct oonf_layer2_net *l2net) {
-  return _commit_net(l2net, true);
+  size_t i;
+
+  if (l2net->neighbors.count > 0) {
+    oonf_class_event(&_l2network_class, l2net, OONF_OBJECT_CHANGED);
+    return false;
+  }
+
+  for (i=0; i<OONF_LAYER2_NET_COUNT; i++) {
+    if (oonf_layer2_has_value(&l2net->data[i])) {
+      oonf_class_event(&_l2network_class, l2net, OONF_OBJECT_CHANGED);
+      return false;
+    }
+  }
+
+  for (i=0; i<OONF_LAYER2_NEIGH_COUNT; i++) {
+    if (oonf_layer2_has_value(&l2net->neighdata[i])) {
+      oonf_class_event(&_l2network_class, l2net, OONF_OBJECT_CHANGED);
+      return false;
+    }
+  }
+
+  _net_remove(l2net);
+  return true;
 }
 
 /**
@@ -296,47 +319,52 @@ oonf_layer2_neigh_add(struct oonf_layer2_net *l2net,
 
   avl_insert(&l2net->neighbors, &l2neigh->_node);
 
+  avl_init(&l2neigh->destinations, avl_comp_netaddr, false);
+
   oonf_class_event(&_l2neighbor_class, l2neigh, OONF_OBJECT_ADDED);
 
   return l2neigh;
 }
 
 /**
+ * Remove all data objects of a certain originator from a layer-2 neighbor
+ * object.
+ * @param l2neigh layer-2 neighbor
+ * @param origin originator number
+ */
+bool
+oonf_layer2_neigh_cleanup(struct oonf_layer2_neigh *l2neigh, uint32_t origin) {
+  bool changed = false;
+  int i;
+
+  for (i=0; i<OONF_LAYER2_NEIGH_COUNT; i++) {
+    if (l2neigh->data[i]._origin == origin) {
+      oonf_layer2_reset_value(&l2neigh->data[i]);
+      changed = true;
+    }
+  }
+  return changed;
+}
+
+
+/**
  * Remove all information of a certain originator from a layer-2 neighbor
  * object. Remove the object if its empty.
  * @param l2neigh layer-2 neighbor object
  * @param origin originator number
- * @param commit true if the node should be removed if empty and an event should be triggered
  */
 void
-oonf_layer2_neigh_remove(struct oonf_layer2_neigh *l2neigh, uint32_t origin, bool commit) {
-  int i;
+oonf_layer2_neigh_remove(struct oonf_layer2_neigh *l2neigh, uint32_t origin) {
+  struct oonf_layer2_destination *l2dst, *l2dst_it;
 
-  for (i=0; i<OONF_LAYER2_NEIGH_COUNT; i++) {
-    if (l2neigh->data[i]._origin == origin) {
-      oonf_layer2_reset_value(&l2neigh->data[i]);
+  avl_for_each_element_safe(&l2neigh->destinations, l2dst, _node, l2dst_it) {
+    if (l2dst->origin == origin) {
+      oonf_layer2_destination_remove(l2dst);
     }
   }
 
-  if (commit) {
-	  oonf_layer2_neigh_commit(l2neigh);
-  }
-}
-
-void
-oonf_layer2_neigh_cleanup(struct oonf_layer2_neigh *l2neigh,
-    uint32_t origin, bool commit) {
-  int i;
-
-  for (i=0; i<OONF_LAYER2_NEIGH_COUNT; i++) {
-    if (l2neigh->data[i]._origin == origin) {
-      oonf_layer2_reset_value(&l2neigh->data[i]);
-    }
-  }
-
-  if (commit) {
-    oonf_layer2_neigh_commit(l2neigh);
-  }
+  oonf_layer2_neigh_cleanup(l2neigh, origin);
+  oonf_layer2_neigh_commit(l2neigh);
 }
 
 /**
@@ -349,6 +377,11 @@ bool
 oonf_layer2_neigh_commit(struct oonf_layer2_neigh *l2neigh) {
   size_t i;
 
+  if (l2neigh->destinations.count > 0) {
+    oonf_class_event(&_l2neighbor_class, l2neigh, OONF_OBJECT_CHANGED);
+    return false;
+  }
+
   for (i=0; i<OONF_LAYER2_NEIGH_COUNT; i++) {
     if (oonf_layer2_has_value(&l2neigh->data[i])) {
       oonf_class_event(&_l2neighbor_class, l2neigh, OONF_OBJECT_CHANGED);
@@ -358,6 +391,45 @@ oonf_layer2_neigh_commit(struct oonf_layer2_neigh *l2neigh) {
 
   _neigh_remove(l2neigh);
   return true;
+}
+
+struct oonf_layer2_destination *
+oonf_layer2_destination_add(struct oonf_layer2_neigh *l2neigh,
+    const struct netaddr *destination, uint32_t origin) {
+  struct oonf_layer2_destination *l2dst;
+
+  l2dst = oonf_layer2_destination_get(l2neigh, destination);
+  if (l2dst) {
+    if (!memcmp(&l2dst->destination, destination, sizeof(*destination))) {
+      memcpy(&l2dst->destination, destination, sizeof(*destination));
+      l2dst->origin = origin;
+
+      oonf_class_event(&_l2dst_class, l2dst, OONF_OBJECT_CHANGED);
+    }
+    return l2dst;
+  }
+
+  l2dst = oonf_class_malloc(&_l2dst_class);
+  if (!l2dst) {
+    return NULL;
+  }
+
+  memcpy(&l2dst->destination, destination, sizeof(*destination));
+  l2dst->origin = origin;
+
+  l2dst->_node.key = &l2dst->destination;
+  avl_insert(&l2neigh->destinations, &l2dst->_node);
+
+  oonf_class_event(&_l2dst_class, l2dst, OONF_OBJECT_ADDED);
+  return l2dst;
+}
+
+void
+oonf_layer2_destination_remove(struct oonf_layer2_destination *l2dst) {
+  oonf_class_event(&_l2dst_class, l2dst, OONF_OBJECT_REMOVED);
+
+  avl_remove(&l2dst->neighbor->destinations, &l2dst->_node);
+  oonf_class_free(&_l2dst_class, l2dst);
 }
 
 /**
@@ -404,9 +476,9 @@ oonf_layer2_neigh_query(const char *ifname,
  * @return pointer to linklayer data, NULL if no value available
  */
 const struct oonf_layer2_data *
-oonf_layer2_neigh_get_value(struct oonf_layer2_neigh *l2neigh,
+oonf_layer2_neigh_get_value(const struct oonf_layer2_neigh *l2neigh,
     enum oonf_layer2_neighbor_index idx) {
-  struct oonf_layer2_data *data;
+  const struct oonf_layer2_data *data;
 
   data = &l2neigh->data[idx];
   if (oonf_layer2_has_value(data)) {
@@ -431,56 +503,15 @@ oonf_layer2_neigh_get_value(struct oonf_layer2_neigh *l2neigh,
 bool
 oonf_layer2_change_value(struct oonf_layer2_data *l2data,
     uint32_t origin, int64_t value) {
-  int64_t old = 0;
+  bool changed = true;
 
   if (oonf_layer2_has_value(l2data)) {
-    old = oonf_layer2_get_value(l2data);
+    changed = value != oonf_layer2_get_value(l2data);
   }
-
-  if (old != value || oonf_layer2_get_origin(l2data) != origin) {
+  if (changed) {
     oonf_layer2_set_value(l2data, origin, value);
-    return true;
   }
-  return false;
-
-}
-
-/**
- * Commit all changes to a layer-2 addr object. This might remove the
- * object from the database if all data has been removed from the object.
- * @param l2net layer-2 addr object
- * @param commit_change true if function shall trigger change events
- * @return true if the object has been removed, false otherwise
- */
-static bool
-_commit_net(struct oonf_layer2_net *l2net, bool commit_change) {
-  size_t i;
-
-  if (l2net->neighbors.count > 0) {
-    oonf_class_event(&_l2network_class, l2net, OONF_OBJECT_CHANGED);
-    return false;
-  }
-
-  for (i=0; i<OONF_LAYER2_NET_COUNT; i++) {
-    if (oonf_layer2_has_value(&l2net->data[i])) {
-      if (commit_change) {
-        oonf_class_event(&_l2network_class, l2net, OONF_OBJECT_CHANGED);
-      }
-      return false;
-    }
-  }
-
-  for (i=0; i<OONF_LAYER2_NEIGH_COUNT; i++) {
-    if (oonf_layer2_has_value(&l2net->neighdata[i])) {
-      if (commit_change) {
-        oonf_class_event(&_l2network_class, l2net, OONF_OBJECT_CHANGED);
-      }
-      return false;
-    }
-  }
-
-  _net_remove(l2net);
-  return true;
+  return changed;
 }
 
 /**
@@ -512,6 +543,13 @@ _net_remove(struct oonf_layer2_net *l2net) {
  */
 static void
 _neigh_remove(struct oonf_layer2_neigh *l2neigh) {
+  struct oonf_layer2_destination *l2dst, *l2dst_it;
+
+  /* free all embedded destinations */
+  avl_for_each_element_safe(&l2neigh->destinations, l2dst, _node, l2dst_it) {
+    oonf_layer2_destination_remove(l2dst);
+  }
+
   /* inform user that mac entry will be removed */
   oonf_class_event(&_l2neighbor_class, l2neigh, OONF_OBJECT_REMOVED);
 
