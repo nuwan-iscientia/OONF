@@ -497,6 +497,7 @@ _handle_peer_termination_ack(struct dlep_radio_session *session,
 
 static void
 _cb_l2_neigh_added(void *ptr) {
+  struct oonf_layer2_destination *l2dst;
   struct oonf_layer2_neigh *l2neigh;
   struct oonf_layer2_net *l2net;
   struct dlep_radio_if *dlep_if;
@@ -521,7 +522,15 @@ _cb_l2_neigh_added(void *ptr) {
         continue;
       }
 
-      _generate_destination_up(dlep_session, l2neigh, NULL);
+      if (dlep_if->use_nonproxied_dst) {
+        _generate_destination_up(dlep_session, l2neigh, NULL);
+      }
+
+      if (dlep_if->use_proxied_dst) {
+        avl_for_each_element(&l2neigh->destinations, l2dst, _node) {
+          _generate_destination_up(dlep_session, l2neigh, l2dst);
+        }
+      }
     }
   }
 }
@@ -593,10 +602,15 @@ _cb_l2_neigh_removed(void *ptr) {
         continue;
       }
 
-      avl_for_each_element(&l2neigh->destinations, l2dst, _node) {
-        _generate_destination_down(dlep_session, l2neigh, l2dst);
+      if (dlep_if->use_nonproxied_dst) {
+        _generate_destination_down(dlep_session, l2neigh, NULL);
       }
-      _generate_destination_down(dlep_session, l2neigh, NULL);
+
+      if (dlep_if->use_proxied_dst) {
+        avl_for_each_element(&l2neigh->destinations, l2dst, _node) {
+          _generate_destination_down(dlep_session, l2neigh, l2dst);
+        }
+      }
     }
   }
 }
