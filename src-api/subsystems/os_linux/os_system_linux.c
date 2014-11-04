@@ -582,6 +582,8 @@ _netlink_handler(int fd, void *data, bool event_read, bool event_write) {
   ssize_t ret;
   size_t len;
   int flags;
+  uint32_t current_seq;
+  bool trigger_is_done;
 
 #if defined(OONF_LOG_DEBUG_INFO)
   struct autobuf hexbuf;
@@ -645,12 +647,23 @@ netlink_rcv_retry:
   abuf_free(&hexbuf);
 #endif
   
+  trigger_is_done = false;
 
   /* loop through netlink headers */
   len = (size_t) ret;
   for (nh = nl->in; NLMSG_OK (nh, len); nh = NLMSG_NEXT (nh, len)) {
     OONF_INFO(nl->used_by->logging,
-        "Netlink message received: type %d\n", nh->nlmsg_type);
+        "Netlink message received: type %d seq %u\n", nh->nlmsg_type,
+        nh->nlmsg_seq);
+
+    if (nh == nl->in) {
+      current_seq = nh->nlmsg_seq;
+    }
+
+    if (current_seq != nh->nlmsg_seq && trigger_is_done) {
+      nl->cb_done(current_seq);
+      trigger_is_done = false;
+    }
 
     switch (nh->nlmsg_type) {
       case NLMSG_NOOP:
@@ -658,10 +671,12 @@ netlink_rcv_retry:
 
       case NLMSG_DONE:
         /* End of a multipart netlink message reached */
+        trigger_is_done = true;
         break;
 
       case NLMSG_ERROR:
         /* Feedback for async netlink message */
+        trigger_is_done = false;
         _handle_nl_err(nl, nh);
         break;
 
@@ -671,6 +686,12 @@ netlink_rcv_retry:
         }
         break;
     }
+  }
+
+  if (trigger_is_done) {
+    oonf_timer_stop(&nl->timeout);
+    nl->cb_done(current_seq);
+    _netlink_job_finished(nl);
   }
 
   /* reset timeout if necessary */
