@@ -414,9 +414,14 @@ oonf_layer2_destination_add(struct oonf_layer2_neigh *l2neigh,
     return NULL;
   }
 
+  /* copy data into destination storage */
   memcpy(&l2dst->destination, destination, sizeof(*destination));
   l2dst->origin = origin;
 
+  /* add back-pointer */
+  l2dst->neighbor = l2neigh;
+
+  /* add to neighbor tree */
   l2dst->_node.key = &l2dst->destination;
   avl_insert(&l2neigh->destinations, &l2dst->_node);
 
