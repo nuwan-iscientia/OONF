@@ -62,6 +62,7 @@
 #define _JSON_NAME_INTERFACE   "interface"
 #define _JSON_NAME_NEIGHBOR    "neighbor"
 #define _JSON_NAME_DEFAULT     "default"
+#define _JSON_NAME_DESTINATION "destination"
 
 /* prototypes */
 static int _init(void);
@@ -79,6 +80,7 @@ static void _initialize_neighbor_values(struct oonf_layer2_neigh *neigh);
 static int _cb_create_text_interface(struct oonf_viewer_template *);
 static int _cb_create_text_neighbor(struct oonf_viewer_template *);
 static int _cb_create_text_default(struct oonf_viewer_template *);
+static int _cb_create_text_dst(struct oonf_viewer_template *);
 
 /*
  * list of template keys and corresponding buffers for values.
@@ -98,6 +100,8 @@ static int _cb_create_text_default(struct oonf_viewer_template *);
 #define KEY_NEIGH_LASTSEEN              "neigh_lastseen"
 #define KEY_NEIGH_PREFIX                "neigh_"
 
+#define KEY_DST_ADDR                    "dst_addr"
+
 /*
  * buffer space for values that will be assembled
  * into the output of the plugin
@@ -115,6 +119,8 @@ static struct netaddr_str               _value_neigh_addr;
 static struct isonumber_str             _value_neigh_lastseen;
 static struct isonumber_str             _value_neigh_data[OONF_LAYER2_NEIGH_COUNT];
 
+static struct netaddr_str               _value_dst_addr;
+
 /* definition of the template data entries for JSON and table output */
 static struct abuf_template_data_entry _tde_if_key[] = {
     { KEY_IF, _value_if, true },
@@ -123,40 +129,51 @@ static struct abuf_template_data_entry _tde_if_key[] = {
 };
 
 static struct abuf_template_data_entry _tde_if[] = {
-    { KEY_IF, _value_if, true },
-    { KEY_IF_INDEX, _value_if_index, false },
     { KEY_IF_TYPE, _value_if_type, true },
     { KEY_IF_IDENT, _value_if_ident, true },
     { KEY_IF_IDENT_ADDR, _value_if_ident_addr.buf, true },
-    { KEY_IF_LOCAL_ADDR, _value_if_local_addr.buf, true },
     { KEY_IF_LASTSEEN, _value_if_lastseen.buf, false },
 };
 
 static struct abuf_template_data_entry _tde_if_data[OONF_LAYER2_NET_COUNT];
 
-static struct abuf_template_data_entry _tde_neigh[] = {
+static struct abuf_template_data_entry _tde_neigh_key[] = {
     { KEY_NEIGH_ADDR, _value_neigh_addr.buf, true },
+};
+
+static struct abuf_template_data_entry _tde_neigh[] = {
     { KEY_NEIGH_LASTSEEN, _value_neigh_lastseen.buf, false },
 };
 
 static struct abuf_template_data_entry _tde_neigh_data[OONF_LAYER2_NEIGH_COUNT];
+
+static struct abuf_template_data_entry _tde_dst_key[] = {
+    { KEY_DST_ADDR, _value_dst_addr.buf, true },
+};
 
 static struct abuf_template_storage _template_storage;
 static struct autobuf _key_storage;
 
 /* Template Data objects (contain one or more Template Data Entries) */
 static struct abuf_template_data _td_if[] = {
+    { _tde_if_key, ARRAYSIZE(_tde_if_key) },
     { _tde_if, ARRAYSIZE(_tde_if) },
     { _tde_if_data, ARRAYSIZE(_tde_if_data) },
 };
 static struct abuf_template_data _td_neigh[] = {
     { _tde_if_key, ARRAYSIZE(_tde_if_key) },
+    { _tde_neigh_key, ARRAYSIZE(_tde_neigh_key) },
     { _tde_neigh, ARRAYSIZE(_tde_neigh) },
     { _tde_neigh_data, ARRAYSIZE(_tde_neigh_data) },
 };
 static struct abuf_template_data _td_default[] = {
     { _tde_if_key, ARRAYSIZE(_tde_if_key) },
     { _tde_neigh_data, ARRAYSIZE(_tde_neigh_data) },
+};
+static struct abuf_template_data _td_dst[] = {
+    { _tde_if_key, ARRAYSIZE(_tde_if_key) },
+    { _tde_neigh_key, ARRAYSIZE(_tde_neigh_key) },
+    { _tde_dst_key, ARRAYSIZE(_tde_dst_key) },
 };
 
 /* OONF viewer templates (based on Template Data arrays) */
@@ -178,6 +195,12 @@ static struct oonf_viewer_template _templates[] = {
         .data_size = ARRAYSIZE(_td_default),
         .json_name = _JSON_NAME_DEFAULT,
         .cb_function = _cb_create_text_default,
+    },
+    {
+        .data = _td_dst,
+        .data_size = ARRAYSIZE(_td_dst),
+        .json_name = _JSON_NAME_DESTINATION,
+        .cb_function = _cb_create_text_dst,
     },
 };
 
@@ -355,6 +378,15 @@ _initialize_neighbor_values(struct oonf_layer2_neigh *neigh) {
 }
 
 /**
+ * Initialize the value buffers for a layer2 destination
+ * @param l2dst layer2 destination
+ */
+static void
+_initialize_destination_values(struct oonf_layer2_destination *l2dst) {
+  netaddr_to_string(&_value_dst_addr, &l2dst->destination);
+}
+
+/**
  * Callback to generate text/json description of all layer2 interfaces
  * @param template viewer template
  * @return -1 if an error happened, 0 otherwise
@@ -419,3 +451,32 @@ _cb_create_text_default(struct oonf_viewer_template *template) {
   }
   return 0;
 }
+
+/**
+ * Callback to generate text/json description of all layer2 destinations
+ * @param template viewer template
+ * @return -1 if an error happened, 0 otherwise
+ */
+static int
+_cb_create_text_dst(struct oonf_viewer_template *template) {
+  struct oonf_layer2_destination *l2dst;
+  struct oonf_layer2_neigh *neigh;
+  struct oonf_layer2_net *net;
+
+  avl_for_each_element(&oonf_layer2_net_tree, net, _node) {
+    _initialize_interface_values(net);
+
+    avl_for_each_element(&net->neighbors, neigh, _node) {
+      _initialize_neighbor_values(neigh);
+
+      avl_for_each_element(&neigh->destinations, l2dst, _node) {
+        _initialize_destination_values(l2dst);
+
+        /* generate template output */
+        oonf_viewer_output_print_line(template);
+      }
+    }
+  }
+  return 0;
+}
+
