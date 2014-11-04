@@ -117,6 +117,23 @@ dlep_radio_get_interface(const char *ifname) {
 }
 
 /**
+ * Get a dlep radio interface by name
+ * @param ifname interface name
+ * @return dlep radio interface, NULL if not found
+ */
+struct dlep_radio_if *
+dlep_radio_get_source_if(const char *ifname) {
+  struct dlep_radio_if *interf;
+
+  avl_for_each_element(&dlep_radio_if_tree, interf, _node) {
+    if (strcmp(interf->source, ifname) == 0) {
+      return interf;
+    }
+  }
+  return NULL;
+}
+
+/**
  * Add a new dlep radio interface to the database
  * (keep existing one if already there).
  * @param ifname interface name

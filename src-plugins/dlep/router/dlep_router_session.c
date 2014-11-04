@@ -562,7 +562,7 @@ _handle_destination_up(struct dlep_router_session *session,
   /* get mac address of new destination */
   pos = idx->idx[DLEP_MAC_ADDRESS_TLV];
   dlep_parser_get_mac_addr(&mac, &buffer[pos]);
-  OONF_DEBUG(LOG_DLEP_ROUTER, "New destination came up: %s",
+  OONF_INFO(LOG_DLEP_ROUTER, "New destination came up: %s",
       netaddr_to_string(&nbuf, &mac));
 
   l2net = oonf_layer2_net_add(session->interface->name);
@@ -598,7 +598,7 @@ _handle_destination_update(struct dlep_router_session *session,
   /* get mac address of new destination */
   pos = idx->idx[DLEP_MAC_ADDRESS_TLV];
   dlep_parser_get_mac_addr(&mac, &buffer[pos]);
-  OONF_DEBUG(LOG_DLEP_ROUTER, "Update for destination: %s",
+  OONF_INFO(LOG_DLEP_ROUTER, "Update for destination: %s",
       netaddr_to_string(&nbuf, &mac));
 
   l2net = oonf_layer2_net_get(session->interface->name);
@@ -634,7 +634,7 @@ _handle_destination_down(struct dlep_router_session *session,
   /* get mac address of new destination */
   pos = idx->idx[DLEP_MAC_ADDRESS_TLV];
   dlep_parser_get_mac_addr(&mac, &buffer[pos]);
-  OONF_DEBUG(LOG_DLEP_ROUTER, "New destination came up: %s",
+  OONF_INFO(LOG_DLEP_ROUTER, "New destination came up: %s",
       netaddr_to_string(&nbuf, &mac));
 
   l2net = oonf_layer2_net_get(session->interface->name);

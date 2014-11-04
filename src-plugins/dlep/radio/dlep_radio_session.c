@@ -75,6 +75,9 @@ static void _cb_l2_neigh_added(void *);
 static void _cb_l2_neigh_changed(void *);
 static void _cb_l2_neigh_removed(void *);
 
+static void _cb_l2_dst_added(void *);
+static void _cb_l2_dst_removed(void *);
+
 static uint64_t _get_l2neigh_default_value(const struct oonf_layer2_net *l2net,
     enum oonf_layer2_network_index idx, uint64_t def);
 static uint64_t _get_l2neigh_value(const struct oonf_layer2_neigh *l2neigh,
@@ -117,6 +120,14 @@ static struct oonf_class_extension _layer2_neigh_listener = {
   .cb_remove = _cb_l2_neigh_removed,
 };
 
+static struct oonf_class_extension _layer2_dst_listener = {
+  .ext_name = "dlep radio",
+  .class_name = LAYER2_CLASS_DESTINATION,
+
+  .cb_add = _cb_l2_dst_added,
+  .cb_remove = _cb_l2_dst_removed,
+};
+
 /**
  * Initialize framework for dlep radio sessions
  */
@@ -124,6 +135,7 @@ void
 dlep_radio_session_init(void) {
   oonf_class_add(&_session_class);
   oonf_class_extension_add(&_layer2_neigh_listener);
+  oonf_class_extension_add(&_layer2_dst_listener);
   oonf_timer_add(&_heartbeat_timeout_class);
   oonf_timer_add(&_heartbeat_timer_class);
 }
@@ -135,6 +147,7 @@ void
 dlep_radio_session_cleanup(void) {
   oonf_timer_remove(&_heartbeat_timer_class);
   oonf_timer_remove(&_heartbeat_timeout_class);
+  oonf_class_extension_remove(&_layer2_dst_listener);
   oonf_class_extension_remove(&_layer2_neigh_listener);
   oonf_class_remove(&_session_class);
 }
@@ -497,7 +510,6 @@ _handle_peer_termination_ack(struct dlep_radio_session *session,
 
 static void
 _cb_l2_neigh_added(void *ptr) {
-  struct oonf_layer2_destination *l2dst;
   struct oonf_layer2_neigh *l2neigh;
   struct oonf_layer2_net *l2net;
   struct dlep_radio_if *dlep_if;
@@ -512,25 +524,18 @@ _cb_l2_neigh_added(void *ptr) {
   OONF_DEBUG(LOG_DLEP_RADIO, "Received neighbor addition for %s on interface %s",
       netaddr_to_string(&nbuf1, &l2neigh->addr), l2net->name);
 
-  avl_for_each_element(&dlep_radio_if_tree, dlep_if, _node) {
-    if (strcmp(dlep_if->source, l2net->name) != 0) {
-      continue;
-    }
+  dlep_if = dlep_radio_get_source_if(l2net->name);
+  if (!dlep_if) {
+    return;
+  }
 
-    avl_for_each_element(&dlep_if->session_tree, dlep_session, _node) {
-      if (dlep_session->state != DLEP_RADIO_SESSION_ACTIVE) {
-        continue;
-      }
+  if (!dlep_if->use_nonproxied_dst) {
+    return;
+  }
 
-      if (dlep_if->use_nonproxied_dst) {
-        _generate_destination_up(dlep_session, l2neigh, NULL);
-      }
-
-      if (dlep_if->use_proxied_dst) {
-        avl_for_each_element(&l2neigh->destinations, l2dst, _node) {
-          _generate_destination_up(dlep_session, l2neigh, l2dst);
-        }
-      }
+  avl_for_each_element(&dlep_if->session_tree, dlep_session, _node) {
+    if (dlep_session->state == DLEP_RADIO_SESSION_ACTIVE) {
+      _generate_destination_up(dlep_session, l2neigh, NULL);
     }
   }
 }
@@ -552,22 +557,25 @@ _cb_l2_neigh_changed(void *ptr) {
   OONF_DEBUG(LOG_DLEP_RADIO, "Received neighbor change for %s on interface %s",
       netaddr_to_string(&nbuf1, &l2neigh->addr), l2net->name);
 
-  avl_for_each_element(&dlep_radio_if_tree, dlep_if, _node) {
-    if (strcmp(dlep_if->source, l2net->name) != 0) {
-      continue;
-    }
+  dlep_if = dlep_radio_get_source_if(l2net->name);
+  if (!dlep_if) {
+    return;
+  }
 
-    avl_for_each_element(&dlep_if->session_tree, dlep_session, _node) {
-      if (dlep_session->state != DLEP_RADIO_SESSION_ACTIVE) {
-        continue;
-      }
+  OONF_DEBUG(LOG_DLEP_RADIO, "Send change notifications change");
 
+  avl_for_each_element(&dlep_if->session_tree, dlep_session, _node) {
+    if (dlep_session->state == DLEP_RADIO_SESSION_ACTIVE) {
       if (dlep_if->use_nonproxied_dst) {
+        OONF_DEBUG(LOG_DLEP_RADIO, "Handle non-proxied change");
         _generate_destination_update(dlep_session, l2neigh, NULL);
       }
 
       if (dlep_if->use_proxied_dst) {
+        OONF_DEBUG(LOG_DLEP_RADIO, "Handle proxied changes");
         avl_for_each_element(&l2neigh->destinations, l2dst, _node) {
+          OONF_DEBUG(LOG_DLEP_RADIO, "Handle non-proxied change for %s",
+              netaddr_to_string(&nbuf1, &l2dst->destination));
           _generate_destination_update(dlep_session, l2neigh, l2dst);
         }
       }
@@ -577,7 +585,6 @@ _cb_l2_neigh_changed(void *ptr) {
 
 static void
 _cb_l2_neigh_removed(void *ptr) {
-  struct oonf_layer2_destination *l2dst;
   struct oonf_layer2_neigh *l2neigh;
   struct oonf_layer2_net *l2net;
   struct dlep_radio_if *dlep_if;
@@ -592,25 +599,88 @@ _cb_l2_neigh_removed(void *ptr) {
   OONF_DEBUG(LOG_DLEP_RADIO, "Received neighbor removal for %s on interface %s",
       netaddr_to_string(&nbuf1, &l2neigh->addr), l2net->name);
 
-  avl_for_each_element(&dlep_radio_if_tree, dlep_if, _node) {
-    if (strcmp(dlep_if->source, l2net->name) != 0) {
-      continue;
+  dlep_if = dlep_radio_get_source_if(l2net->name);
+  if (!dlep_if) {
+    return;
+  }
+
+  if (!dlep_if->use_nonproxied_dst) {
+    return;
+  }
+
+  avl_for_each_element(&dlep_if->session_tree, dlep_session, _node) {
+    if (dlep_session->state == DLEP_RADIO_SESSION_ACTIVE) {
+      _generate_destination_down(dlep_session, l2neigh, NULL);
     }
+  }
+}
 
-    avl_for_each_element(&dlep_if->session_tree, dlep_session, _node) {
-      if (dlep_session->state != DLEP_RADIO_SESSION_ACTIVE) {
-        continue;
-      }
+static void
+_cb_l2_dst_added(void *ptr) {
+  struct oonf_layer2_destination *l2dst;
+  struct oonf_layer2_neigh *l2neigh;
+  struct oonf_layer2_net *l2net;
+  struct dlep_radio_if *dlep_if;
+  struct dlep_radio_session *dlep_session;
 
-      if (dlep_if->use_nonproxied_dst) {
-        _generate_destination_down(dlep_session, l2neigh, NULL);
-      }
+  struct netaddr_str nbuf1, nbuf2;
 
-      if (dlep_if->use_proxied_dst) {
-        avl_for_each_element(&l2neigh->destinations, l2dst, _node) {
-          _generate_destination_down(dlep_session, l2neigh, l2dst);
-        }
-      }
+  /* get l2neighbor and l2network */
+  l2dst = ptr;
+  l2neigh = l2dst->neighbor;
+  l2net = l2neigh->network;
+
+  OONF_DEBUG(LOG_DLEP_RADIO, "Received neighbor addition for %s (%s) on interface %s",
+      netaddr_to_string(&nbuf1, &l2dst->destination),
+      netaddr_to_string(&nbuf2, &l2neigh->addr), l2net->name);
+
+  dlep_if = dlep_radio_get_source_if(l2net->name);
+  if (!dlep_if) {
+    return;
+  }
+
+  if (!dlep_if->use_proxied_dst) {
+    return;
+  }
+
+  avl_for_each_element(&dlep_if->session_tree, dlep_session, _node) {
+    if (dlep_session->state == DLEP_RADIO_SESSION_ACTIVE) {
+      _generate_destination_up(dlep_session, l2neigh, l2dst);
+    }
+  }
+}
+
+static void
+_cb_l2_dst_removed(void *ptr) {
+  struct oonf_layer2_destination *l2dst;
+  struct oonf_layer2_neigh *l2neigh;
+  struct oonf_layer2_net *l2net;
+  struct dlep_radio_if *dlep_if;
+  struct dlep_radio_session *dlep_session;
+
+  struct netaddr_str nbuf1, nbuf2;
+
+  /* get l2neighbor and l2network */
+  l2dst = ptr;
+  l2neigh = l2dst->neighbor;
+  l2net = l2neigh->network;
+
+  OONF_DEBUG(LOG_DLEP_RADIO, "Received neighbor removal for %s (%s) on interface %s",
+      netaddr_to_string(&nbuf1, &l2dst->destination),
+      netaddr_to_string(&nbuf2, &l2neigh->addr), l2net->name);
+
+  dlep_if = dlep_radio_get_source_if(l2net->name);
+  if (!dlep_if) {
+    return;
+  }
+
+  if (!dlep_if->use_proxied_dst) {
+    return;
+  }
+
+  avl_for_each_element(&dlep_if->session_tree, dlep_session, _node) {
+    if (dlep_session->state == DLEP_RADIO_SESSION_ACTIVE) {
+      _generate_destination_down(dlep_session, l2neigh, l2dst);
     }
   }
 }
