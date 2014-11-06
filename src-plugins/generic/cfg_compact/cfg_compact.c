@@ -67,7 +67,7 @@ static int _compact_serialize(struct autobuf *dst, struct cfg_db *src,
 static int _parse_line(struct cfg_db *db, char *line, char *section, size_t section_size,
     char *name, size_t name_size, struct autobuf *log);
 
-struct oonf_subsystem oonf_cfg_compact_subsystem = {
+static struct oonf_subsystem _oonf_cfg_compact_subsystem = {
   .name = OONF_CFG_COMPACT_SUBSYSTEM,
   .descr = "OONFD compact configuration file handler",
   .author = "Henning Rogge",
@@ -77,9 +77,9 @@ struct oonf_subsystem oonf_cfg_compact_subsystem = {
 
   .no_logging = true,
 };
-DECLARE_OONF_PLUGIN(oonf_cfg_compact_subsystem);
+DECLARE_OONF_PLUGIN(_oonf_cfg_compact_subsystem);
 
-struct cfg_io cfg_compact = {
+static struct cfg_io _cfg_compact = {
   .name = "compact",
   .load = _cb_compact_load,
   .save = _cb_compact_save,
@@ -92,7 +92,7 @@ struct cfg_io cfg_compact = {
 static void
 _early_cfg_init(void)
 {
-  cfg_io_add(oonf_cfg_get_instance(), &cfg_compact);
+  cfg_io_add(oonf_cfg_get_instance(), &_cfg_compact);
 }
 
 /**
@@ -101,7 +101,7 @@ _early_cfg_init(void)
 static void
 _cleanup(void)
 {
-  cfg_io_remove(oonf_cfg_get_instance(), &cfg_compact);
+  cfg_io_remove(oonf_cfg_get_instance(), &_cfg_compact);
 }
 
 /*

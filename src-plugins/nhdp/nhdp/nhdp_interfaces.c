@@ -54,9 +54,11 @@
 #include "subsystems/oonf_class.h"
 #include "subsystems/oonf_interface.h"
 #include "subsystems/oonf_timer.h"
+
 #include "nhdp/nhdp.h"
 #include "nhdp/nhdp_db.h"
 #include "nhdp/nhdp_interfaces.h"
+#include "nhdp/nhdp_internal.h"
 #include "nhdp/nhdp_writer.h"
 
 /* Prototypes of local functions */
@@ -70,8 +72,8 @@ static void _cb_generate_hello(void *ptr);
 static void _cb_interface_event(struct oonf_rfc5444_interface_listener *, bool);
 
 /* global tree of nhdp interfaces, filters and addresses */
-struct avl_tree nhdp_interface_tree;
-struct avl_tree nhdp_ifaddr_tree;
+static struct avl_tree _interface_tree;
+static struct avl_tree _ifaddr_tree;
 
 /* memory and timers for nhdp interface objects */
 static struct oonf_class _interface_info = {
@@ -103,8 +105,8 @@ static struct oonf_rfc5444_protocol *_protocol;
  */
 void
 nhdp_interfaces_init(struct oonf_rfc5444_protocol *p) {
-  avl_init(&nhdp_interface_tree, avl_comp_strcasecmp, false);
-  avl_init(&nhdp_ifaddr_tree, avl_comp_ifaddr, true);
+  avl_init(&_interface_tree, avl_comp_strcasecmp, false);
+  avl_init(&_ifaddr_tree, avl_comp_ifaddr, true);
   oonf_class_add(&_interface_info);
   oonf_class_add(&_addr_info);
   oonf_timer_add(&_interface_hello_timer);
@@ -121,7 +123,7 @@ void
 nhdp_interfaces_cleanup(void) {
   struct nhdp_interface *interf, *if_it;
 
-  avl_for_each_element_safe(&nhdp_interface_tree, interf, _node, if_it) {
+  avl_for_each_element_safe(&_interface_tree, interf, _node, if_it) {
     nhdp_interface_remove(interf);
   }
 
@@ -203,7 +205,7 @@ struct nhdp_interface *
 nhdp_interface_add(const char *name) {
   struct nhdp_interface *interf;
 
-  interf = avl_find_element(&nhdp_interface_tree, name, interf, _node);
+  interf = avl_find_element(&_interface_tree, name, interf, _node);
   if (interf == NULL) {
     interf = oonf_class_malloc(&_interface_info);
     if (interf == NULL) {
@@ -228,7 +230,7 @@ nhdp_interface_add(const char *name) {
 
     /* hook into global interface tree */
     interf->_node.key = interf->rfc5444_if.interface->name;
-    avl_insert(&nhdp_interface_tree, &interf->_node);
+    avl_insert(&_interface_tree, &interf->_node);
 
     /* init address tree */
     avl_init(&interf->_if_addresses, avl_comp_netaddr, false);
@@ -301,7 +303,7 @@ nhdp_interface_remove(struct nhdp_interface *interf) {
   }
 
   /* remove first from tree because we use the interface name as a key */
-  avl_remove(&nhdp_interface_tree, &interf->_node);
+  avl_remove(&_interface_tree, &interf->_node);
 
   /* now clean up the rest */
   oonf_interface_remove_listener(&interf->core_if_listener);
@@ -326,6 +328,17 @@ nhdp_interface_apply_settings(struct nhdp_interface *interf) {
   interf->n_hold_time = interf->l_hold_time;
   interf->i_hold_time = interf->n_hold_time;
 }
+
+struct avl_tree *
+nhdp_interface_get_tree(void) {
+  return &_interface_tree;
+}
+
+struct avl_tree *
+nhdp_interface_get_address_tree(void) {
+  return &_ifaddr_tree;
+}
+
 
 /**
  * Add a nhdp interface address to an interface
@@ -355,7 +368,7 @@ _addr_add(struct nhdp_interface *interf, struct netaddr *addr) {
 
     /* hook if-addr into interface and global tree */
     if_addr->_global_node.key = &if_addr->if_addr;
-    avl_insert(&nhdp_ifaddr_tree, &if_addr->_global_node);
+    avl_insert(&_ifaddr_tree, &if_addr->_global_node);
 
     if_addr->_if_node.key = &if_addr->if_addr;
     avl_insert(&interf->_if_addresses, &if_addr->_if_node);
@@ -408,7 +421,7 @@ _cb_remove_addr(void *ptr) {
   oonf_class_event(&_addr_info, addr, OONF_OBJECT_REMOVED);
 
   oonf_timer_stop(&addr->_vtime);
-  avl_remove(&nhdp_ifaddr_tree, &addr->_global_node);
+  avl_remove(&_ifaddr_tree, &addr->_global_node);
   avl_remove(&addr->interf->_if_addresses, &addr->_if_node);
   oonf_class_free(&_addr_info, addr);
 }

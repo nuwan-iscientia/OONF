@@ -56,6 +56,9 @@
 
 #include "subsystems/oonf_stream_socket.h"
 
+/* Definitions */
+#define LOG_STREAM _oonf_stream_socket_subsystem.logging
+
 /* prototypes */
 static int _init(void);
 static void _cleanup(void);
@@ -75,7 +78,7 @@ static void _cb_timeout_handler(void *);
 static void _cb_interface_listener(struct oonf_interface_listener *l);
 
 /* list of olsr stream sockets */
-struct list_entity oonf_stream_head;
+static struct list_entity _stream_head;
 
 /* server socket */
 static struct oonf_class _connection_cookie = {
@@ -97,14 +100,14 @@ static const char *_dependencies[] = {
   OONF_OS_NET_SUBSYSTEM,
 };
 
-struct oonf_subsystem oonf_stream_socket_subsystem = {
+static struct oonf_subsystem _oonf_stream_socket_subsystem = {
   .name = OONF_STREAM_SUBSYSTEM,
   .dependencies = _dependencies,
   .dependencies_count = ARRAYSIZE(_dependencies),
   .init = _init,
   .cleanup = _cleanup,
 };
-DECLARE_OONF_PLUGIN(oonf_stream_socket_subsystem);
+DECLARE_OONF_PLUGIN(_oonf_stream_socket_subsystem);
 
 /**
  * Initialize the stream socket handlers
@@ -114,7 +117,7 @@ static int
 _init(void) {
   oonf_class_add(&_connection_cookie);
   oonf_timer_add(&_connection_timeout);
-  list_init_head(&oonf_stream_head);
+  list_init_head(&_stream_head);
   return 0;
 }
 
@@ -125,8 +128,8 @@ static void
 _cleanup(void) {
   struct oonf_stream_socket *comport;
 
-  while (!list_is_empty(&oonf_stream_head)) {
-    comport = list_first_element(&oonf_stream_head, comport, _node);
+  while (!list_is_empty(&_stream_head)) {
+    comport = list_first_element(&_stream_head, comport, _node);
 
     oonf_stream_remove(comport, true);
   }
@@ -193,7 +196,7 @@ oonf_stream_add(struct oonf_stream_socket *stream_socket,
   }
 
   list_init_head(&stream_socket->session);
-  list_add_tail(&oonf_stream_head, &stream_socket->_node);
+  list_add_tail(&_stream_head, &stream_socket->_node);
 
   return 0;
 

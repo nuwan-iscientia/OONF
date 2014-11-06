@@ -56,12 +56,12 @@
 
 #include "subsystems/oonf_http.h"
 
+/* Definitions */
+#define LOG_HTTP _oonf_http_subsystem.logging
+
 /* Http text constants */
 static const char HTTP_VERSION_1_0[] = "HTTP/1.0";
 static const char HTTP_VERSION_1_1[] = "HTTP/1.1";
-
-const char *HTTP_CONTENTTYPE_HTML = "text/html";
-const char *HTTP_CONTENTTYPE_TEXT = "text/plain";
 
 static const char HTTP_GET[] = "GET";
 static const char HTTP_POST[] = "POST";
@@ -139,7 +139,7 @@ static const char *_dependencies[] = {
   OONF_STREAM_SUBSYSTEM,
 };
 
-struct oonf_subsystem oonf_http_subsystem = {
+struct oonf_subsystem _oonf_http_subsystem = {
   .name = OONF_HTTP_SUBSYSTEM,
   .dependencies = _dependencies,
   .dependencies_count = ARRAYSIZE(_dependencies),
@@ -147,7 +147,7 @@ struct oonf_subsystem oonf_http_subsystem = {
   .cleanup = _cleanup,
   .cfg_section = &_http_section,
 };
-DECLARE_OONF_PLUGIN(oonf_http_subsystem);
+DECLARE_OONF_PLUGIN(_oonf_http_subsystem);
 
 /**
  * Initialize http subsystem

@@ -53,6 +53,9 @@
 
 #include "subsystems/oonf_timer.h"
 
+/* Definitions */
+#define LOG_TIMER _oonf_timer_subsystem.logging
+
 /* prototypes */
 static int _init(void);
 static void _cleanup(void);
@@ -61,7 +64,7 @@ static void _calc_clock(struct oonf_timer_instance *timer, uint64_t rel_time);
 static int _avlcomp_timer(const void *p1, const void *p2);
 
 /* minimal granularity of the timer system in milliseconds */
-const uint64_t TIMESLICE = 100;
+static const uint64_t TIMESLICE = 100;
 
 /* tree of all timers */
 static struct avl_tree _timer_tree;
@@ -70,21 +73,21 @@ static struct avl_tree _timer_tree;
 static bool _scheduling_now;
 
 /* List of timer classes */
-struct list_entity oonf_timer_info_list;
+static struct list_entity _timer_info_list;
 
 /* subsystem definition */
 static const char *_dependencies[] = {
   OONF_CLOCK_SUBSYSTEM,
 };
 
-struct oonf_subsystem oonf_timer_subsystem = {
+static struct oonf_subsystem _oonf_timer_subsystem = {
   .name = OONF_TIMER_SUBSYSTEM,
   .dependencies = _dependencies,
   .dependencies_count = ARRAYSIZE(_dependencies),
   .init = _init,
   .cleanup = _cleanup,
 };
-DECLARE_OONF_PLUGIN(oonf_timer_subsystem);
+DECLARE_OONF_PLUGIN(_oonf_timer_subsystem);
 
 /**
  * Initialize timer scheduler subsystem
@@ -98,7 +101,7 @@ _init(void)
   avl_init(&_timer_tree, _avlcomp_timer, true);
   _scheduling_now = false;
 
-  list_init_head(&oonf_timer_info_list);
+  list_init_head(&_timer_info_list);
   return 0;
 }
 
@@ -111,7 +114,7 @@ _cleanup(void)
   struct oonf_timer_class *ti, *iterator;
 
   /* free all timerinfos */
-  list_for_each_element_safe(&oonf_timer_info_list, ti, _node, iterator) {
+  list_for_each_element_safe(&_timer_info_list, ti, _node, iterator) {
     oonf_timer_remove(ti);
   }
 }
@@ -124,7 +127,7 @@ void
 oonf_timer_add(struct oonf_timer_class *ti) {
   assert (ti->callback);
   assert (ti->name);
-  list_add_tail(&oonf_timer_info_list, &ti->_node);
+  list_add_tail(&_timer_info_list, &ti->_node);
 }
 
 /**
@@ -319,6 +322,11 @@ oonf_timer_getNextEvent(void) {
 
   first = avl_first_element(&_timer_tree, first, _node);
   return first->_clock;
+}
+
+struct list_entity *
+oonf_timer_get_list(void) {
+  return &_timer_info_list;
 }
 
 /**

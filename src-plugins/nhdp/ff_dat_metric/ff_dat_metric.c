@@ -66,6 +66,9 @@
 
 #include "ff_dat_metric/ff_dat_metric.h"
 
+/* Definitions */
+#define LOG_FF_DAT _olsrv2_ffdat_subsystem.logging
+
 /* prototypes */
 static int _init(void);
 static void _cleanup(void);
@@ -131,7 +134,7 @@ static const char *_dependencies[] = {
   OONF_RFC5444_SUBSYSTEM,
   OONF_TIMER_SUBSYSTEM,
 };
-struct oonf_subsystem olsrv2_ffdat_subsystem = {
+static struct oonf_subsystem _olsrv2_ffdat_subsystem = {
   .name = OONF_FF_DAT_METRIC_SUBSYSTEM,
   .dependencies = _dependencies,
   .dependencies_count = ARRAYSIZE(_dependencies),
@@ -143,7 +146,7 @@ struct oonf_subsystem olsrv2_ffdat_subsystem = {
   .init = _init,
   .cleanup = _cleanup,
 };
-DECLARE_OONF_PLUGIN(olsrv2_ffdat_subsystem);
+DECLARE_OONF_PLUGIN(_olsrv2_ffdat_subsystem);
 
 /* RFC5444 packet listener */
 static struct oonf_rfc5444_protocol *_protocol;
@@ -265,7 +268,7 @@ static void
 _cb_enable_metric(void) {
   struct nhdp_link *lnk;
 
-  list_for_each_element(&nhdp_link_list, lnk, _global_node) {
+  list_for_each_element(nhdp_db_get_link_list(), lnk, _global_node) {
     _cb_link_added(lnk);
   }
 
@@ -280,7 +283,7 @@ _cb_disable_metric(void) {
   oonf_timer_stop(&_sampling_timer);
   rfc5444_reader_remove_packet_consumer(&_protocol->reader, &_packet_consumer);
 
-  list_for_each_element(&nhdp_link_list, lnk, _global_node) {
+  list_for_each_element(nhdp_db_get_link_list(), lnk, _global_node) {
     _cb_link_removed(lnk);
   }
 }
@@ -455,7 +458,7 @@ _cb_dat_sampling(void *ptr __attribute__((unused))) {
     return;
   }
 
-  list_for_each_element(&nhdp_link_list, lnk, _global_node) {
+  list_for_each_element(nhdp_db_get_link_list(), lnk, _global_node) {
     ldata = oonf_class_get_extension(&_link_extenstion, lnk);
 
     if (ldata->activePtr == -1) {

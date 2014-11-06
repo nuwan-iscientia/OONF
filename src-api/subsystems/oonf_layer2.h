@@ -208,16 +208,6 @@ struct oonf_layer2_metadata {
   const bool binary;
 };
 
-#define LOG_LAYER2 oonf_layer2_subsystem.logging
-EXPORT extern struct oonf_subsystem oonf_layer2_subsystem;
-
-EXPORT extern const struct oonf_layer2_metadata oonf_layer2_metadata_neigh[OONF_LAYER2_NEIGH_COUNT];
-EXPORT extern const struct oonf_layer2_metadata oonf_layer2_metadata_net[OONF_LAYER2_NET_COUNT];
-
-EXPORT extern const char *oonf_layer2_network_type[OONF_LAYER2_TYPE_COUNT];
-
-EXPORT extern struct avl_tree oonf_layer2_net_tree;
-
 EXPORT uint32_t oonf_layer2_register_origin(void);
 EXPORT void oonf_layer2_cleanup_origin(uint32_t);
 
@@ -249,6 +239,13 @@ EXPORT const struct oonf_layer2_data *oonf_layer2_neigh_get_value(
 EXPORT bool oonf_layer2_change_value(struct oonf_layer2_data *l2data,
     uint32_t origin, int64_t value);
 
+EXPORT const struct oonf_layer2_metadata *oonf_layer2_get_neigh_metadata(
+    enum oonf_layer2_neighbor_index);
+EXPORT const struct oonf_layer2_metadata *oonf_layer2_get_net_metadata(
+    enum oonf_layer2_network_index);
+EXPORT const char *oonf_layer2_get_network_type(enum oonf_layer2_network_type);
+EXPORT struct avl_tree *oonf_layer2_get_network_tree(void);
+
 /**
  * Get a layer-2 interface object from the database
  * @param ifname name of interface
@@ -257,7 +254,7 @@ EXPORT bool oonf_layer2_change_value(struct oonf_layer2_data *l2data,
 static INLINE struct oonf_layer2_net *
 oonf_layer2_net_get(const char *ifname) {
   struct oonf_layer2_net *l2net;
-  return avl_find_element(&oonf_layer2_net_tree, ifname, l2net, _node);
+  return avl_find_element(oonf_layer2_get_network_tree(), ifname, l2net, _node);
 }
 
 /**

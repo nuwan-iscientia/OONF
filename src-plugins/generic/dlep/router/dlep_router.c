@@ -62,6 +62,7 @@
 #include "dlep/router/dlep_router_interface.h"
 
 /* prototypes */
+static void _early_cfg_init(void);
 static int _init(void);
 static void _initiate_shutdown(void);
 static void _cleanup(void);
@@ -107,7 +108,7 @@ static const char *_dependencies[] = {
   OONF_STREAM_SUBSYSTEM,
   OONF_TIMER_SUBSYSTEM,
 };
-struct oonf_subsystem dlep_router_subsystem = {
+static struct oonf_subsystem _dlep_router_subsystem = {
   .name = OONF_DLEP_ROUTER_SUBSYSTEM,
   .dependencies = _dependencies,
   .dependencies_count = ARRAYSIZE(_dependencies),
@@ -116,11 +117,19 @@ struct oonf_subsystem dlep_router_subsystem = {
 
   .cfg_section = &_router_section,
 
+  .early_cfg_init = _early_cfg_init,
   .init = _init,
   .initiate_shutdown = _initiate_shutdown,
   .cleanup = _cleanup,
 };
-DECLARE_OONF_PLUGIN(dlep_router_subsystem);
+DECLARE_OONF_PLUGIN(_dlep_router_subsystem);
+
+enum oonf_log_source LOG_DLEP_ROUTER;
+
+static void
+_early_cfg_init(void) {
+  LOG_DLEP_ROUTER = _dlep_router_subsystem.logging;
+}
 
 /**
  * Plugin constructor for dlep router

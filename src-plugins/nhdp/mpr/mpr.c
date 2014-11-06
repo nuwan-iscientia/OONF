@@ -68,6 +68,7 @@
 /* FIXME remove unneeded includes */
 
 /* prototypes */
+static void _early_cfg_init(void);
 static int _init(void);
 static void _cleanup(void);
 static void _cb_update_mpr(void);
@@ -97,17 +98,22 @@ static const char *_dependencies[] = {
   OONF_CLASS_SUBSYSTEM,
   OONF_TIMER_SUBSYSTEM,
 };
-struct oonf_subsystem olsrv2_mpr_subsystem = {
+static struct oonf_subsystem _olsrv2_mpr_subsystem = {
   .name = OONF_MPR_SUBSYSTEM,
   .dependencies = _dependencies,
   .dependencies_count = ARRAYSIZE(_dependencies),
   .descr = "OLSRv2 MPR Plugin",
   .author = "Jonathan Kirchhoff",
+
   .cfg_section = &_mpr_rfc_section,
+
+  .early_cfg_init = _early_cfg_init,
   .init = _init,
   .cleanup = _cleanup,
 };
-DECLARE_OONF_PLUGIN(olsrv2_mpr_subsystem);
+DECLARE_OONF_PLUGIN(_olsrv2_mpr_subsystem);
+
+enum oonf_log_source LOG_MPR;
 
 static struct nhdp_domain_mpr _mpr_handler = {
   .name = OONF_MPR_SUBSYSTEM,
@@ -116,6 +122,11 @@ static struct nhdp_domain_mpr _mpr_handler = {
   .mpr_start = false,
   .mprs_start = false,
 };
+
+static void
+_early_cfg_init(void) {
+  LOG_MPR = _olsrv2_mpr_subsystem.logging;
+}
 
 /**
  * Initialize plugin
@@ -154,7 +165,7 @@ _update_nhdp_routing(struct neighbor_graph *graph) {
 
   OONF_DEBUG(LOG_MPR, "Updating ROUTING MPRs");
   
-  list_for_each_element(&nhdp_link_list, lnk, _global_node) {
+  list_for_each_element(nhdp_db_get_link_list(), lnk, _global_node) {
     lnk->neigh->_domaindata[0].neigh_is_mpr = false;
     current_mpr_node = avl_find_element(&graph->set_mpr,
         &lnk->neigh->originator,
@@ -181,7 +192,7 @@ _update_nhdp_flooding(struct neighbor_graph *graph) {
 
   OONF_DEBUG(LOG_MPR, "Updating FLOODING MPRs");
 
-  list_for_each_element(&nhdp_link_list, current_link, _global_node) {
+  list_for_each_element(nhdp_db_get_link_list(), current_link, _global_node) {
     current_mpr_node = avl_find_element(&graph->set_mpr,
         &current_link->neigh->originator,
         current_mpr_node, _avl_node);
@@ -203,7 +214,7 @@ _clear_nhdp_flooding(void) {
 
   OONF_DEBUG(LOG_MPR, "Updating FLOODING MPRs");
 
-  list_for_each_element(&nhdp_link_list, current_link, _global_node) {
+  list_for_each_element(nhdp_db_get_link_list(), current_link, _global_node) {
     current_link->neigh->neigh_is_flooding_mpr = false;
   }
 }
@@ -223,7 +234,7 @@ _update_flooding_mpr(void) {
    * selection? */
   /* calculate flooding MPRs */
   _clear_nhdp_flooding();
-  avl_for_each_element(&nhdp_interface_tree, flooding_data.current_interface, _node) {
+  avl_for_each_element(nhdp_interface_get_tree(), flooding_data.current_interface, _node) {
     OONF_DEBUG(LOG_MPR, "Calculating flooding MPRs for interface %s",
         nhdp_interface_get_name(flooding_data.current_interface));
     
@@ -244,7 +255,7 @@ _update_routing_mpr(void) {
   struct neighbor_graph routing_graph;
   struct nhdp_domain *domain;
 
-  list_for_each_element(&nhdp_domain_list, domain, _node) {
+  list_for_each_element(nhdp_domain_get_list(), domain, _node) {
     memset(&routing_graph, 0, sizeof(routing_graph));
 
     mpr_calculate_neighbor_graph_routing(domain, &routing_graph);

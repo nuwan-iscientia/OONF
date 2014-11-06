@@ -62,6 +62,8 @@
 #include "auto_ll4/auto_ll4.h"
 
 /* constants and definitions */
+#define LOG_AUTO_LL4 _olsrv2_auto_ll4_subsystem.logging
+
 struct _config {
   uint64_t startup_delay;
 };
@@ -148,7 +150,7 @@ static const char *_dependencies[] = {
   OONF_OS_SYSTEM_SUBSYSTEM,
   OONF_NHDP_SUBSYSTEM,
 };
-struct oonf_subsystem olsrv2_auto_ll4_subsystem = {
+static struct oonf_subsystem _olsrv2_auto_ll4_subsystem = {
   .name = OONF_AUTO_LL4_SUBSYSTEM,
   .dependencies = _dependencies,
   .dependencies_count = ARRAYSIZE(_dependencies),
@@ -161,7 +163,7 @@ struct oonf_subsystem olsrv2_auto_ll4_subsystem = {
   .cleanup = _cleanup,
   .initiate_shutdown = _initiate_shutdown,
 };
-DECLARE_OONF_PLUGIN(olsrv2_auto_ll4_subsystem);
+DECLARE_OONF_PLUGIN(_olsrv2_auto_ll4_subsystem);
 
 /* timer for handling new NHDP neighbors */
 static struct oonf_timer_class _startup_timer_info = {
@@ -235,7 +237,7 @@ static void
 _initiate_shutdown(void) {
   struct nhdp_interface *nhdp_if;
 
-  avl_for_each_element(&nhdp_interface_tree, nhdp_if, _node) {
+  avl_for_each_element(nhdp_interface_get_tree(), nhdp_if, _node) {
     OONF_DEBUG(LOG_AUTO_LL4, "initiate cleanup if: %s",
         nhdp_interface_get_coreif(nhdp_if)->data.name);
     _cb_remove_nhdp_interface(nhdp_if);
@@ -756,7 +758,7 @@ _cb_ll4_cfg_changed(void) {
     return;
   }
 
-  avl_for_each_element(&nhdp_interface_tree, nhdp_if, _node) {
+  avl_for_each_element(nhdp_interface_get_tree(), nhdp_if, _node) {
     /* get auto linklayer extension */
     auto_ll4 = oonf_class_get_extension(&_nhdp_if_extenstion, nhdp_if);
 

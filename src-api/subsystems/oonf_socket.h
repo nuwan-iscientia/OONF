@@ -69,10 +69,6 @@ struct oonf_socket_entry {
   struct list_entity _node;
 };
 
-#define LOG_SOCKET oonf_socket_subsystem.logging
-EXPORT extern struct oonf_subsystem oonf_socket_subsystem;
-EXPORT extern struct list_entity oonf_socket_head;
-
 EXPORT void oonf_socket_add(struct oonf_socket_entry *);
 EXPORT void oonf_socket_remove(struct oonf_socket_entry *);
 

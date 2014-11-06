@@ -51,7 +51,7 @@
 #include "subsystems/oonf_class.h"
 #include "subsystems/oonf_timer.h"
 
-#include "nhdp/nhdp.h"
+#include "nhdp/nhdp_internal.h"
 #include "nhdp/nhdp_hysteresis.h"
 #include "nhdp/nhdp_interfaces.h"
 #include "nhdp/nhdp_domain.h"
@@ -126,26 +126,26 @@ static struct oonf_timer_class _l2hop_vtime_info = {
 };
 
 /* global tree of neighbor addresses */
-struct avl_tree nhdp_naddr_tree;
+static struct avl_tree _naddr_tree;
 
 /* list of neighbors */
-struct list_entity nhdp_neigh_list;
+static struct list_entity _neigh_list;
 
 /* tree of neighbors with originator addresses */
-struct avl_tree nhdp_neigh_originator_tree;
+static struct avl_tree _neigh_originator_tree;
 
 /* list of links (to neighbors) */
-struct list_entity nhdp_link_list;
+static struct list_entity _link_list;
 
 /**
  * Initialize NHDP databases
  */
 void
 nhdp_db_init(void) {
-  avl_init(&nhdp_naddr_tree, avl_comp_netaddr, false);
-  list_init_head(&nhdp_neigh_list);
-  avl_init(&nhdp_neigh_originator_tree, avl_comp_netaddr, false);
-  list_init_head(&nhdp_link_list);
+  avl_init(&_naddr_tree, avl_comp_netaddr, false);
+  list_init_head(&_neigh_list);
+  avl_init(&_neigh_originator_tree, avl_comp_netaddr, false);
+  list_init_head(&_link_list);
 
   oonf_class_add(&_neigh_info);
   oonf_class_add(&_naddr_info);
@@ -168,7 +168,7 @@ nhdp_db_cleanup(void) {
   struct nhdp_neighbor *neigh, *n_it;
 
   /* remove all neighbors */
-  list_for_each_element_safe(&nhdp_neigh_list, neigh, _global_node, n_it) {
+  list_for_each_element_safe(&_neigh_list, neigh, _global_node, n_it) {
     nhdp_db_neighbor_remove(neigh);
   }
 
@@ -208,7 +208,7 @@ nhdp_db_neighbor_add(void) {
   list_init_head(&neigh->_links);
 
   /* hook into global neighbor list */
-  list_add_tail(&nhdp_neigh_list, &neigh->_global_node);
+  list_add_tail(&_neigh_list, &neigh->_global_node);
 
   /* initialize originator node */
   neigh->_originator_node.key = &neigh->originator;
@@ -251,7 +251,7 @@ nhdp_db_neighbor_remove(struct nhdp_neighbor *neigh) {
 
   /* remove from originator tree if necessary */
   if (netaddr_get_address_family(&neigh->originator) != AF_UNSPEC) {
-    avl_remove(&nhdp_neigh_originator_tree, &neigh->_originator_node);
+    avl_remove(&_neigh_originator_tree, &neigh->_originator_node);
   }
 
   /* remove from global list and free memory */
@@ -352,7 +352,7 @@ nhdp_db_neighbor_addr_add(struct nhdp_neighbor *neigh,
   naddr->_lost_vtime.cb_context = naddr;
 
   /* add to trees */
-  avl_insert(&nhdp_naddr_tree, &naddr->_global_node);
+  avl_insert(&_naddr_tree, &naddr->_global_node);
   avl_insert(&neigh->_neigh_addresses, &naddr->_neigh_node);
 
   /* trigger event */
@@ -371,7 +371,7 @@ nhdp_db_neighbor_addr_remove(struct nhdp_naddr *naddr) {
   oonf_class_event(&_naddr_info, naddr, OONF_OBJECT_REMOVED);
 
   /* remove from trees */
-  avl_remove(&nhdp_naddr_tree, &naddr->_global_node);
+  avl_remove(&_naddr_tree, &naddr->_global_node);
   avl_remove(&naddr->neigh->_neigh_addresses, &naddr->_neigh_node);
 
   /* stop timer */
@@ -416,7 +416,7 @@ nhdp_db_neighbor_set_originator(struct nhdp_neighbor *neigh,
 
   if (netaddr_get_address_family(&neigh->originator) != AF_UNSPEC) {
     /* different originator, remove from tree */
-    avl_remove(&nhdp_neigh_originator_tree, &neigh->_originator_node);
+    avl_remove(&_neigh_originator_tree, &neigh->_originator_node);
 
     list_for_each_element(&neigh->_links, lnk, _neigh_node) {
       /* remove links from interface specific tree */
@@ -427,7 +427,7 @@ nhdp_db_neighbor_set_originator(struct nhdp_neighbor *neigh,
   neigh2 = nhdp_db_neighbor_get_by_originator(originator);
   if (neigh2) {
     /* different neighbor has this originator, invalidate it */
-    avl_remove(&nhdp_neigh_originator_tree, &neigh2->_originator_node);
+    avl_remove(&_neigh_originator_tree, &neigh2->_originator_node);
 
     list_for_each_element(&neigh2->_links, lnk, _neigh_node) {
       /* remove links from interface specific tree */
@@ -442,7 +442,7 @@ nhdp_db_neighbor_set_originator(struct nhdp_neighbor *neigh,
 
   if (netaddr_get_address_family(originator) != AF_UNSPEC) {
     /* add to tree if new originator is valid */
-    avl_insert(&nhdp_neigh_originator_tree, &neigh->_originator_node);
+    avl_insert(&_neigh_originator_tree, &neigh->_originator_node);
 
     list_for_each_element(&neigh->_links, lnk, _neigh_node) {
       /* remove links from interface specific tree */
@@ -506,7 +506,7 @@ nhdp_db_link_add(struct nhdp_neighbor *neigh, struct nhdp_interface *local_if) {
   lnk->neigh = neigh;
 
   /* hook into global list */
-  list_add_tail(&nhdp_link_list, &lnk->_global_node);
+  list_add_tail(&_link_list, &lnk->_global_node);
 
   /* init local trees */
   avl_init(&lnk->_addresses, avl_comp_netaddr, false);
@@ -820,6 +820,26 @@ nhdp_db_link_status_to_string(struct nhdp_link *lnk) {
     default:
       return _LINK_LOST;
   }
+}
+
+struct list_entity *
+nhdp_db_get_neigh_list(void) {
+  return &_neigh_list;
+}
+
+struct list_entity *
+nhdp_db_get_link_list(void) {
+  return &_link_list;
+}
+
+struct avl_tree *
+nhdp_db_get_naddr_tree(void) {
+  return &_naddr_tree;
+}
+
+struct avl_tree *
+nhdp_db_get_neigh_originator_tree(void) {
+  return &_neigh_originator_tree;
 }
 
 /**

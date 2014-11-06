@@ -66,6 +66,9 @@
 #define SOL_NETLINK 270
 #endif
 
+/* Definitions */
+#define LOG_OS_SYSTEM _oonf_os_system_subsystem.logging
+
 /* prototypes */
 static int _init(void);
 static void _cleanup(void);
@@ -126,37 +129,37 @@ static struct oonf_timer_class _netlink_timer= {
   .callback = _cb_handle_netlink_timeout,
 };
 
-/* built in rtnetlink receiver */
-static struct os_system_netlink _rtnetlink_receiver = {
-  .used_by = &oonf_os_system_subsystem,
-  .cb_message = _cb_rtnetlink_message,
-  .cb_error = _cb_rtnetlink_error,
-  .cb_done = _cb_rtnetlink_done,
-  .cb_timeout = _cb_rtnetlink_timeout,
-};
-
-struct list_entity _rtnetlink_feedback;
-
-const uint32_t _rtnetlink_mcast[] = {
-  RTNLGRP_LINK, RTNLGRP_IPV4_IFADDR, RTNLGRP_IPV6_IFADDR
-};
-
 /* list of interface change listeners */
-struct list_entity _ifchange_listener;
+static struct list_entity _ifchange_listener;
 
 /* subsystem definition */
 static const char *_dependencies[] = {
   OONF_SOCKET_SUBSYSTEM,
 };
 
-struct oonf_subsystem oonf_os_system_subsystem = {
+static struct oonf_subsystem _oonf_os_system_subsystem = {
   .name = OONF_OS_SYSTEM_SUBSYSTEM,
   .dependencies = _dependencies,
   .dependencies_count = ARRAYSIZE(_dependencies),
   .init = _init,
   .cleanup = _cleanup,
 };
-DECLARE_OONF_PLUGIN(oonf_os_system_subsystem);
+DECLARE_OONF_PLUGIN(_oonf_os_system_subsystem);
+
+/* built in rtnetlink receiver */
+static struct os_system_netlink _rtnetlink_receiver = {
+  .used_by = &_oonf_os_system_subsystem,
+  .cb_message = _cb_rtnetlink_message,
+  .cb_error = _cb_rtnetlink_error,
+  .cb_done = _cb_rtnetlink_done,
+  .cb_timeout = _cb_rtnetlink_timeout,
+};
+
+static struct list_entity _rtnetlink_feedback;
+
+static const uint32_t _rtnetlink_mcast[] = {
+  RTNLGRP_LINK, RTNLGRP_IPV4_IFADDR, RTNLGRP_IPV6_IFADDR
+};
 
 /* tracking of used netlink sequence numbers */
 static uint32_t _seq_used = 0;

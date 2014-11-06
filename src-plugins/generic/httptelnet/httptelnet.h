@@ -47,7 +47,4 @@
 
 #define OONF_HTTPTELNET_SUBSYSTEM "httptelnet"
 
-#define LOG_HTTPTELNET oonf_httptelnet_subsystem.logging
-EXPORT extern struct oonf_subsystem oonf_httptelnet_subsystem;
-
 #endif /* HTTPTELNET_H_ */

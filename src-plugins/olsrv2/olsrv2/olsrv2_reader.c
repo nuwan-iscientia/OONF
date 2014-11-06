@@ -50,6 +50,7 @@
 #include "subsystems/oonf_rfc5444.h"
 
 #include "olsrv2/olsrv2.h"
+#include "olsrv2/olsrv2_internal.h"
 #include "olsrv2/olsrv2_originator.h"
 #include "olsrv2/olsrv2_reader.h"
 #include "olsrv2/olsrv2_routing.h"

@@ -49,6 +49,4 @@
 
 #define UCI_OPTION_FOR_SECTION_NAME "name"
 
-EXPORT extern struct oonf_subsystem oonf_cfg_uciloader_subsystem;
-
 #endif /* CFG_UCILOADER_H_ */

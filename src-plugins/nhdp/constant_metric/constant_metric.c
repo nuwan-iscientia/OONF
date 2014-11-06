@@ -63,6 +63,8 @@
 #include "constant_metric/constant_metric.h"
 
 /* constants and definitions */
+#define LOG_CONSTANT_METRIC _olsrv2_constant_metric_subsystem.logging
+
 #define CFG_LINK_ENTRY "link"
 
 struct _linkcost {
@@ -108,7 +110,7 @@ static const char *_dependencies[] = {
   OONF_TIMER_SUBSYSTEM,
   OONF_NHDP_SUBSYSTEM,
 };
-struct oonf_subsystem olsrv2_constant_metric_subsystem = {
+static struct oonf_subsystem _olsrv2_constant_metric_subsystem = {
   .name = OONF_CONSTANT_METRIC_SUBSYSTEM,
   .dependencies = _dependencies,
   .dependencies_count = ARRAYSIZE(_dependencies),
@@ -120,7 +122,7 @@ struct oonf_subsystem olsrv2_constant_metric_subsystem = {
   .init = _init,
   .cleanup = _cleanup,
 };
-DECLARE_OONF_PLUGIN(olsrv2_constant_metric_subsystem);
+DECLARE_OONF_PLUGIN(_olsrv2_constant_metric_subsystem);
 
 /* timer for handling new NHDP neighbors */
 static struct oonf_timer_class _setup_timer_info = {
@@ -233,7 +235,7 @@ _cb_set_linkcost(void *ptr __attribute__((unused))) {
     return;
   }
 
-  list_for_each_element(&nhdp_link_list, lnk, _global_node) {
+  list_for_each_element(nhdp_db_get_link_list(), lnk, _global_node) {
     const char *ifname;
 
     ifname = nhdp_interface_get_name(lnk->local_if);

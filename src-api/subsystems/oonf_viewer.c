@@ -45,6 +45,9 @@
 #include "core/oonf_subsystem.h"
 #include "subsystems/oonf_viewer.h"
 
+/* Definitions */
+#define LOG_VIEWER _oonf_viewer_subsystem.logging
+
 /* static function prototypes */
 static int _init(void);
 static void _cleanup(void);
@@ -65,12 +68,12 @@ static const char _telnet_help[] =
     " as the last parameter instead.\n";
 
 /* subsystem definition */
-struct oonf_subsystem oonf_viewer_subsystem = {
+static struct oonf_subsystem _oonf_viewer_subsystem = {
   .name = OONF_VIEWER_SUBSYSTEM,
   .init = _init,
   .cleanup = _cleanup,
 };
-DECLARE_OONF_PLUGIN(oonf_viewer_subsystem);
+DECLARE_OONF_PLUGIN(_oonf_viewer_subsystem);
 
 /**
  * Initialize telnet subsystem

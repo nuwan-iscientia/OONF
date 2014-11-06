@@ -38,11 +38,6 @@
  *
  */
 
-// FIXME Clean up includes
-#include "neighbor-graph-routing.h"
-#include "neighbor-graph.h"
-#include "mpr.h"
-
 #include "nhdp/nhdp.h"
 #include "nhdp/nhdp_db.h"
 #include "nhdp/nhdp_domain.h"
@@ -59,6 +54,11 @@
 #include "rfc5444/rfc5444.h"
 #include "subsystems/oonf_class.h"
 #include "subsystems/oonf_timer.h"
+
+#include "mpr/mpr_internal.h"
+#include "mpr/neighbor-graph-routing.h"
+#include "mpr/neighbor-graph.h"
+#include "mpr/mpr.h"
 
 /* FIXME remove unneeded includes */
 
@@ -229,7 +229,7 @@ _calculate_n1(struct nhdp_domain *domain, struct neighbor_graph *graph) {
 
   OONF_DEBUG(LOG_MPR, "Calculate N1 for routing MPRs");
 
-  list_for_each_element(&nhdp_neigh_list, neigh, _global_node) {
+  list_for_each_element(nhdp_db_get_link_list(), neigh, _global_node) {
     if (_is_allowed_neighbor_tuple(domain, neigh)) {
       mpr_add_n1_node_to_set(&graph->set_n1, neigh, NULL);
     }

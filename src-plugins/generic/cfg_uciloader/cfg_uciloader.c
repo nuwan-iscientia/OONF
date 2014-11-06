@@ -49,7 +49,7 @@
 #include "common/autobuf.h"
 #include "config/cfg_io.h"
 #include "config/cfg.h"
-#include "core/oonf_plugins.h"
+#include "core/oonf_subsystem.h"
 
 #include "core/oonf_cfg.h"
 
@@ -63,8 +63,7 @@ static void _cleanup(void);
 static struct cfg_db *_cb_uci_load(const char *param, struct autobuf *log);
 static int _load_section(struct uci_section *sec, struct cfg_db *db, const char *type, const char *name, struct autobuf *log);
 
-
-struct oonf_subsystem oonf_cfg_uciloader_subsystem = {
+static struct oonf_subsystem _oonf_cfg_uciloader_subsystem = {
   .name = OONF_CFG_UCILOADER_SUBSYSTEM,
   .descr = "OONF uci handler for configuration system",
   .author = "Henning Rogge",
@@ -74,9 +73,9 @@ struct oonf_subsystem oonf_cfg_uciloader_subsystem = {
 
   .no_logging = true,
 };
-DECLARE_OONF_PLUGIN(oonf_cfg_uciloader_subsystem);
+DECLARE_OONF_PLUGIN(_oonf_cfg_uciloader_subsystem);
 
-struct cfg_io cfg_io_uci = {
+static struct cfg_io _cfg_io_uci = {
   .name = "uci",
   .load = _cb_uci_load,
   .def = false,
@@ -88,7 +87,7 @@ struct cfg_io cfg_io_uci = {
 static void
 _early_cfg_init(void)
 {
-  cfg_io_add(oonf_cfg_get_instance(), &cfg_io_uci);
+  cfg_io_add(oonf_cfg_get_instance(), &_cfg_io_uci);
 }
 
 /**
@@ -97,7 +96,7 @@ _early_cfg_init(void)
 static void
 _cleanup(void)
 {
-  cfg_io_remove(oonf_cfg_get_instance(), &cfg_io_uci);
+  cfg_io_remove(oonf_cfg_get_instance(), &_cfg_io_uci);
 }
 
 /*

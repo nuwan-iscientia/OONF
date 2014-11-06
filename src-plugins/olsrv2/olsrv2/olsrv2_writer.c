@@ -55,6 +55,7 @@
 #include "nhdp/nhdp_domain.h"
 
 #include "olsrv2/olsrv2.h"
+#include "olsrv2/olsrv2_internal.h"
 #include "olsrv2/olsrv2_lan.h"
 #include "olsrv2/olsrv2_originator.h"
 #include "olsrv2/olsrv2_writer.h"
@@ -247,7 +248,7 @@ _generate_neighbor_metric_tlvs(struct rfc5444_writer *writer,
   struct rfc7181_metric_field metric_in_encoded, metric_out_encoded;
   bool second_tlv;
 
-  list_for_each_element(&nhdp_domain_list, domain, _node) {
+  list_for_each_element(nhdp_domain_get_list(), domain, _node) {
     neigh_domain = nhdp_domain_get_neighbordata(domain, neigh);
 
     /* erase metric values */
@@ -321,7 +322,7 @@ _cb_addAddresses(struct rfc5444_writer *writer) {
   routable_acl = olsrv2_get_routable();
 
   /* iterate over neighbors */
-  list_for_each_element(&nhdp_neigh_list, neigh, _global_node) {
+  list_for_each_element(nhdp_db_get_neigh_list(), neigh, _global_node) {
     any_advertised = false;
 
     if (!neigh->symmetric) {
@@ -330,7 +331,7 @@ _cb_addAddresses(struct rfc5444_writer *writer) {
     }
 
     /* see if we have been selected as a MPR by this neighbor */
-    list_for_each_element(&nhdp_domain_list, domain, _node) {
+    list_for_each_element(nhdp_domain_get_list(), domain, _node) {
       if (nhdp_domain_get_neighbordata(domain, neigh)->local_is_mpr) {
         /* found one */
         any_advertised = true;
@@ -386,7 +387,7 @@ _cb_addAddresses(struct rfc5444_writer *writer) {
   }
 
   /* Iterate over locally attached networks */
-  avl_for_each_element(&olsrv2_lan_tree, lan, _node) {
+  avl_for_each_element(olsrv2_lan_get_tree(), lan, _node) {
     if (netaddr_get_address_family(&lan->prefix) != _send_msg_af) {
       /* wrong address family */
       continue;
@@ -404,7 +405,7 @@ _cb_addAddresses(struct rfc5444_writer *writer) {
     /* add Gateway TLV and Metric TLV */
     memset(distance_vector, 0, sizeof(distance_vector));
 
-    list_for_each_element(&nhdp_domain_list, domain, _node) {
+    list_for_each_element(nhdp_domain_get_list(), domain, _node) {
       lan_data = olsrv2_lan_get_domaindata(domain, lan);
       metric_out = lan_data->outgoing_metric;
       if (metric_out >= RFC7181_METRIC_INFINITE) {

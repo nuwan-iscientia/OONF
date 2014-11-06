@@ -556,7 +556,7 @@ static int
 _cb_create_text_old_originator(struct oonf_viewer_template *template) {
   struct olsrv2_originator_set_entry *entry;
 
-  avl_for_each_element(&olsrv2_originator_set_tree, entry, _node) {
+  avl_for_each_element(olsrv2_originator_get_tree(), entry, _node) {
     _initialize_old_originator_values(entry);
 
     /* generate template output */
@@ -593,10 +593,10 @@ _cb_create_text_lan(struct oonf_viewer_template *template) {
   struct olsrv2_lan_entry *lan;
   struct nhdp_domain *domain;
 
-  avl_for_each_element(&olsrv2_lan_tree, lan, _node) {
+  avl_for_each_element(olsrv2_lan_get_tree(), lan, _node) {
     _initialize_lan_values(lan);
 
-    list_for_each_element(&nhdp_domain_list, domain, _node) {
+    list_for_each_element(nhdp_domain_get_list(), domain, _node) {
       _initialize_domain_values(domain);
       _initialize_domain_metric_values(domain,
           olsrv2_lan_get_domaindata(domain, lan)->outgoing_metric);
@@ -620,7 +620,7 @@ static int
 _cb_create_text_node(struct oonf_viewer_template *template) {
   struct olsrv2_tc_node *node;
 
-  avl_for_each_element(&olsrv2_tc_tree, node, _originator_node) {
+  avl_for_each_element(olsrv2_tc_get_tree(), node, _originator_node) {
     if (olsrv2_tc_is_node_virtual(node)) {
       continue;
     }
@@ -642,7 +642,7 @@ _cb_create_text_attached_network(struct oonf_viewer_template *template) {
   struct olsrv2_tc_attachment *attached;
   struct nhdp_domain *domain;
 
-  avl_for_each_element(&olsrv2_tc_tree, node, _originator_node) {
+  avl_for_each_element(olsrv2_tc_get_tree(), node, _originator_node) {
     _initialize_node_values(node);
 
     if (olsrv2_tc_is_node_virtual(node)) {
@@ -652,7 +652,7 @@ _cb_create_text_attached_network(struct oonf_viewer_template *template) {
     avl_for_each_element(&node->_endpoints, attached, _src_node) {
       _initialize_attached_network_values(attached);
 
-      list_for_each_element(&nhdp_domain_list, domain, _node) {
+      list_for_each_element(nhdp_domain_get_list(), domain, _node) {
         _initialize_domain_values(domain);
         _initialize_domain_metric_values(domain,
             olsrv2_tc_attachment_get_metric(domain, attached));
@@ -677,7 +677,7 @@ _cb_create_text_edge(struct oonf_viewer_template *template) {
   struct olsrv2_tc_edge *edge;
   struct nhdp_domain *domain;
 
-  avl_for_each_element(&olsrv2_tc_tree, node, _originator_node) {
+  avl_for_each_element(olsrv2_tc_get_tree(), node, _originator_node) {
     _initialize_node_values(node);
 
     if (olsrv2_tc_is_node_virtual(node)) {
@@ -690,7 +690,7 @@ _cb_create_text_edge(struct oonf_viewer_template *template) {
 
       _initialize_edge_values(edge);
 
-      list_for_each_element(&nhdp_domain_list, domain, _node) {
+      list_for_each_element(nhdp_domain_get_list(), domain, _node) {
         _initialize_domain_values(domain);
         _initialize_domain_metric_values(domain,
             olsrv2_tc_edge_get_metric(domain, edge));
@@ -712,10 +712,10 @@ _cb_create_text_route(struct oonf_viewer_template *template) {
   struct olsrv2_routing_entry *route;
   struct nhdp_domain *domain;
 
-  list_for_each_element(&nhdp_domain_list, domain, _node) {
+  list_for_each_element(nhdp_domain_get_list(), domain, _node) {
     _initialize_domain_values(domain);
 
-    avl_for_each_element(&olsrv2_routing_tree[domain->index],
+    avl_for_each_element(olsrv2_routing_get_tree(domain->index),
         route, _node) {
       _initialize_domain_metric_values(domain, route->cost);
       _initialize_route_values(route);

@@ -54,6 +54,9 @@
 
 #include "subsystems/os_net.h"
 
+/* Defintions */
+#define LOG_OS_NET _oonf_os_net_subsystem.logging
+
 /* ip forwarding */
 #define PROC_IPFORWARD_V4 "/proc/sys/net/ipv4/ip_forward"
 #define PROC_IPFORWARD_V6 "/proc/sys/net/ipv6/conf/all/forwarding"
@@ -86,14 +89,14 @@ static const char *_dependencies[] = {
   OONF_TIMER_SUBSYSTEM,
 };
 
-struct oonf_subsystem oonf_os_net_subsystem = {
+static struct oonf_subsystem _oonf_os_net_subsystem = {
   .name = OONF_OS_NET_SUBSYSTEM,
   .dependencies = _dependencies,
   .dependencies_count = ARRAYSIZE(_dependencies),
   .init = _init,
   .cleanup = _cleanup,
 };
-DECLARE_OONF_PLUGIN(oonf_os_net_subsystem);
+DECLARE_OONF_PLUGIN(_oonf_os_net_subsystem);
 
 /* global procfile state before initialization */
 static char _original_rp_filter;

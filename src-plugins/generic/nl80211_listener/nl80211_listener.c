@@ -134,6 +134,7 @@ static struct {
 };
 
 /* prototypes */
+static void _early_cfg_init(void);
 static int _init(void);
 static void _cleanup(void);
 
@@ -189,7 +190,7 @@ static const char *_dependencies[] = {
   OONF_OS_SYSTEM_SUBSYSTEM,
 };
 
-struct oonf_subsystem nl80211_listener_subsystem = {
+static struct oonf_subsystem _nl80211_listener_subsystem = {
   .name = OONF_NL80211_LISTENER_SUBSYSTEM,
   .dependencies = _dependencies,
   .dependencies_count = ARRAYSIZE(_dependencies),
@@ -198,14 +199,17 @@ struct oonf_subsystem nl80211_listener_subsystem = {
 
   .cfg_section = &_nl80211_section,
 
+  .early_cfg_init = _early_cfg_init,
   .init = _init,
   .cleanup = _cleanup,
 };
-DECLARE_OONF_PLUGIN(nl80211_listener_subsystem);
+DECLARE_OONF_PLUGIN(_nl80211_listener_subsystem);
+
+enum oonf_log_source LOG_NL80211;
 
 /* netlink specific data */
 static struct os_system_netlink _netlink_handler = {
-  .used_by = &nl80211_listener_subsystem,
+  .used_by = &_nl80211_listener_subsystem,
   .cb_message = _cb_nl_message,
   .cb_error = _cb_nl_error,
   .cb_done = _cb_nl_done,
@@ -246,6 +250,11 @@ static struct oonf_class _nl80211_if_class = {
   .name = "nl80211 if",
   .size = sizeof(struct nl80211_if),
 };
+
+static void
+_early_cfg_init(void) {
+  LOG_NL80211 = _nl80211_listener_subsystem.logging;
+}
 
 /**
  * Constructor of plugin

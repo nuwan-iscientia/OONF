@@ -124,7 +124,4 @@ struct link_datff_data {
   struct link_datff_bucket buckets[0];
 };
 
-#define LOG_FF_DAT olsrv2_ffdat_subsystem.logging
-EXPORT extern struct oonf_subsystem olsrv2_ffdat_subsystem;
-
 #endif /* FF_DAT_METRIC_H_ */

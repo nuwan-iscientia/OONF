@@ -59,7 +59,7 @@
 #include "subsystems/oonf_rfc5444.h"
 
 /* constants and definitions */
-#define _LOG_RFC5444_NAME "rfc5444"
+#define LOG_RFC5444 _oonf_rfc5444_subsystem.logging
 
 struct _rfc5444_config {
   int32_t port;
@@ -247,7 +247,7 @@ static const char *_dependencies[] = {
   OONF_TIMER_SUBSYSTEM,
 };
 
-struct oonf_subsystem oonf_rfc5444_subsystem = {
+static struct oonf_subsystem _oonf_rfc5444_subsystem = {
   .name = "rfc5444",
   .dependencies = _dependencies,
   .dependencies_count = ARRAYSIZE(_dependencies),
@@ -255,7 +255,7 @@ struct oonf_subsystem oonf_rfc5444_subsystem = {
   .cleanup = _cleanup,
   .cfg_section = &_interface_section,
 };
-DECLARE_OONF_PLUGIN(oonf_rfc5444_subsystem);
+DECLARE_OONF_PLUGIN(_oonf_rfc5444_subsystem);
 
 /**
  * Initialize RFC5444 handling system

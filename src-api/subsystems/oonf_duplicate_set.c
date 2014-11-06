@@ -50,6 +50,9 @@
 
 #include "subsystems/oonf_duplicate_set.h"
 
+/* Definitions */
+#define LOG_DUPLICATE_SET _oonf_duplicate_set_subsystem.logging
+
 /* prototypes */
 static int _init(void);
 static void _cleanup(void);
@@ -71,7 +74,7 @@ static struct oonf_class _dupset_class = {
 };
 
 /* dupset result names */
-const char *OONF_DUPSET_RESULT_STR[OONF_DUPSET_MAX] = {
+static const char *OONF_DUPSET_RESULT_STR[OONF_DUPSET_MAX] = {
   [OONF_DUPSET_TOO_OLD]   = "too old",
   [OONF_DUPSET_DUPLICATE] = "duplicate",
   [OONF_DUPSET_CURRENT]   = "current",
@@ -86,14 +89,14 @@ static const char *_dependencies[] = {
   OONF_TIMER_SUBSYSTEM,
 };
 
-struct oonf_subsystem oonf_duplicate_set_subsystem = {
+static struct oonf_subsystem _oonf_duplicate_set_subsystem = {
   .name = OONF_DUPSET_SUBSYSTEM,
   .dependencies = _dependencies,
   .dependencies_count = ARRAYSIZE(_dependencies),
   .init = _init,
   .cleanup = _cleanup,
 };
-DECLARE_OONF_PLUGIN(oonf_duplicate_set_subsystem);
+DECLARE_OONF_PLUGIN(_oonf_duplicate_set_subsystem);
 
 /**
  * Initialize duplicate set subsystem
@@ -315,6 +318,11 @@ _test(struct oonf_duplicate_entry *entry,
     }
   }
   return OONF_DUPSET_NEWEST;
+}
+
+const char *
+oonf_duplicate_get_result_str(enum oonf_duplicate_result result) {
+  return OONF_DUPSET_RESULT_STR[result];
 }
 
 /**

@@ -51,7 +51,4 @@
 /* definitions and constants */
 #define OONF_MPR_SUBSYSTEM "mpr"
 
-#define LOG_MPR olsrv2_mpr_subsystem.logging
-EXPORT extern struct oonf_subsystem olsrv2_mpr_subsystem;
-
 #endif /* MPR_H_ */

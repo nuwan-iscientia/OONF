@@ -51,6 +51,9 @@
 
 #define OONF_HTTP_SUBSYSTEM "http"
 
+#define HTTP_CONTENTTYPE_HTML "text/html"
+#define HTTP_CONTENTTYPE_TEXT "text/plain"
+
 /* built in parameters for header parser */
 enum {
   OONF_HTTP_MAX_HEADERS = 16,
@@ -114,12 +117,6 @@ struct oonf_http_handler {
   enum oonf_http_result (*content_handler)(
       struct autobuf *out, struct oonf_http_session *);
 };
-
-#define LOG_HTTP oonf_http_subsystem.logging
-EXPORT extern struct oonf_subsystem oonf_http_subsystem;
-
-EXPORT extern const char *HTTP_CONTENTTYPE_HTML;
-EXPORT extern const char *HTTP_CONTENTTYPE_TEXT;
 
 EXPORT void oonf_http_add(struct oonf_http_handler *);
 EXPORT void oonf_http_remove(struct oonf_http_handler *);

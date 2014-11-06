@@ -91,9 +91,6 @@ struct os_system_address {
   void (*cb_finished)(struct os_system_address *, int error);
 };
 
-#define LOG_OS_SYSTEM oonf_os_system_subsystem.logging
-EXPORT extern struct oonf_subsystem oonf_os_system_subsystem;
-
 /* prototypes for all os_system functions */
 EXPORT void os_system_iflistener_add(struct os_system_if_listener *);
 EXPORT void os_system_iflistener_remove(struct os_system_if_listener *);

@@ -55,6 +55,9 @@
 
 #include "subsystems/oonf_telnet.h"
 
+/* Definitions */
+#define LOG_TELNET _oonf_telnet_subsystem.logging
+
 /* static function prototypes */
 static int _init(void);
 static void _cleanup(void);
@@ -123,7 +126,7 @@ static const char *_dependencies[] = {
   OONF_TIMER_SUBSYSTEM,
 };
 
-struct oonf_subsystem oonf_telnet_subsystem = {
+static struct oonf_subsystem _oonf_telnet_subsystem = {
   .name = OONF_TELNET_SUBSYSTEM,
   .dependencies = _dependencies,
   .dependencies_count = ARRAYSIZE(_dependencies),
@@ -131,7 +134,7 @@ struct oonf_subsystem oonf_telnet_subsystem = {
   .cleanup = _cleanup,
   .cfg_section = &_telnet_section,
 };
-DECLARE_OONF_PLUGIN(oonf_telnet_subsystem);
+DECLARE_OONF_PLUGIN(_oonf_telnet_subsystem);
 
 /* telnet session handling */
 static struct oonf_class _telnet_memcookie = {
@@ -157,7 +160,7 @@ static struct oonf_stream_managed _telnet_managed = {
   },
 };
 
-struct avl_tree oonf_telnet_cmd_tree;
+static struct avl_tree _telnet_cmd_tree;
 
 /**
  * Initialize telnet subsystem
@@ -173,7 +176,7 @@ _init(void) {
   oonf_stream_add_managed(&_telnet_managed);
 
   /* initialize telnet commands */
-  avl_init(&oonf_telnet_cmd_tree, _avl_comp_strcmdword, false);
+  avl_init(&_telnet_cmd_tree, _avl_comp_strcmdword, false);
   for (i=0; i<ARRAYSIZE(_builtin); i++) {
     oonf_telnet_add(&_builtin[i]);
   }
@@ -197,7 +200,7 @@ _cleanup(void) {
 int
 oonf_telnet_add(struct oonf_telnet_command *command) {
   command->_node.key = command->command;
-  if (avl_insert(&oonf_telnet_cmd_tree, &command->_node)) {
+  if (avl_insert(&_telnet_cmd_tree, &command->_node)) {
     return -1;
   }
   return 0;
@@ -209,7 +212,7 @@ oonf_telnet_add(struct oonf_telnet_command *command) {
  */
 void
 oonf_telnet_remove(struct oonf_telnet_command *command) {
-  avl_remove(&oonf_telnet_cmd_tree, &command->_node);
+  avl_remove(&_telnet_cmd_tree, &command->_node);
 }
 
 /**
@@ -524,7 +527,7 @@ _telnet_handle_command(struct oonf_telnet_data *data) {
 #ifdef OONF_LOG_INFO
   struct netaddr_str buf;
 #endif
-  cmd = avl_find_element(&oonf_telnet_cmd_tree, data->command, cmd, _node);
+  cmd = avl_find_element(&_telnet_cmd_tree, data->command, cmd, _node);
   if (cmd) {
     cmd = _check_telnet_command_acl(data, cmd);
   }
@@ -584,7 +587,7 @@ _cb_telnet_help(struct oonf_telnet_data *data) {
   struct oonf_telnet_command *cmd;
 
   if (data->parameter != NULL && data->parameter[0] != 0) {
-    cmd = avl_find_element(&oonf_telnet_cmd_tree, data->parameter, cmd, _node);
+    cmd = avl_find_element(&_telnet_cmd_tree, data->parameter, cmd, _node);
     if (cmd) {
         cmd = _check_telnet_command_acl(data, cmd);
     }
@@ -604,7 +607,7 @@ _cb_telnet_help(struct oonf_telnet_data *data) {
 
   abuf_puts(data->out, "Known commands:\n");
 
-  avl_for_each_element(&oonf_telnet_cmd_tree, cmd, _node) {
+  avl_for_each_element(&_telnet_cmd_tree, cmd, _node) {
     if (_check_telnet_command_acl(data, cmd)) {
       abuf_appendf(data->out, "  %s\n", cmd->command);
     }

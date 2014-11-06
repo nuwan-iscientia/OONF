@@ -50,9 +50,10 @@
 
 #include "nhdp/nhdp.h"
 #include "nhdp/nhdp_db.h"
+#include "nhdp/nhdp_domain.h"
 #include "nhdp/nhdp_hysteresis.h"
 #include "nhdp/nhdp_interfaces.h"
-#include "nhdp/nhdp_domain.h"
+#include "nhdp/nhdp_internal.h"
 #include "nhdp/nhdp_reader.h"
 
 /* NHDP message TLV array index */
@@ -452,7 +453,7 @@ _cb_messagetlvs(struct rfc5444_reader_tlvblock_context *context) {
   }
 
   /* clear flags in neighbors */
-  list_for_each_element(&nhdp_neigh_list, neigh, _global_node) {
+  list_for_each_element(nhdp_db_get_neigh_list(), neigh, _global_node) {
     neigh->_process_count = 0;
   }
 
@@ -695,7 +696,7 @@ _process_domainspecific_linkdata(struct netaddr *addr __attribute__((unused))) {
    * clear routing mpr, willingness and metric values
    * that should be present in HELLO
    */
-  list_for_each_element(&nhdp_domain_list, domain, _node) {
+  list_for_each_element(nhdp_domain_get_list(), domain, _node) {
     neighdata = nhdp_domain_get_neighbordata(domain, _current.neighbor);
 
     neighdata->local_is_mpr = false;
@@ -743,7 +744,7 @@ _process_domainspecific_2hopdata(struct nhdp_l2hop *l2hop,
 #endif
 
   /* clear metric values that should be present in HELLO */
-  list_for_each_element(&nhdp_domain_list, domain, _node) {
+  list_for_each_element(nhdp_domain_get_list(), domain, _node) {
     if (!domain->metric->no_default_handling) {
       data = nhdp_domain_get_l2hopdata(domain, l2hop);
       data->metric.in = RFC7181_METRIC_INFINITE;

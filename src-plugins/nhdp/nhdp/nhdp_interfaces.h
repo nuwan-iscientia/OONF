@@ -146,9 +146,6 @@ struct nhdp_interface_addr {
   struct avl_node _global_node;
 };
 
-EXPORT extern struct avl_tree nhdp_interface_tree;
-EXPORT extern struct avl_tree nhdp_ifaddr_tree;
-
 void nhdp_interfaces_init(struct oonf_rfc5444_protocol *);
 void nhdp_interfaces_cleanup(void);
 
@@ -156,6 +153,9 @@ EXPORT struct nhdp_interface *nhdp_interface_add(const char *name);
 EXPORT void nhdp_interface_remove(struct nhdp_interface *interf);
 EXPORT void nhdp_interface_apply_settings(struct nhdp_interface *interf);
 EXPORT void nhdp_interface_update_status(struct nhdp_interface *);
+
+EXPORT struct avl_tree *nhdp_interface_get_tree(void);
+EXPORT struct avl_tree *nhdp_interface_get_address_tree(void);
 
 /**
  * @param interface name
@@ -165,7 +165,7 @@ static INLINE struct nhdp_interface *
 nhdp_interface_get(const char *name) {
   struct nhdp_interface *interf;
 
-  return avl_find_element(&nhdp_interface_tree, name, interf, _node);
+  return avl_find_element(nhdp_interface_get_tree(), name, interf, _node);
 }
 
 /**
@@ -197,7 +197,7 @@ static INLINE struct nhdp_interface_addr *
 nhdp_interface_addr_global_get(const struct netaddr *addr) {
   struct nhdp_interface_addr *iaddr;
 
-  return avl_find_element(&nhdp_ifaddr_tree, addr, iaddr, _global_node);
+  return avl_find_element(nhdp_interface_get_address_tree(), addr, iaddr, _global_node);
 }
 
 /**

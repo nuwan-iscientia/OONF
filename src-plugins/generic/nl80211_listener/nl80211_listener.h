@@ -65,9 +65,6 @@ struct nl80211_if {
   struct avl_node _node;
 };
 
-#define LOG_NL80211 nl80211_listener_subsystem.logging
-EXPORT extern struct oonf_subsystem nl80211_listener_subsystem;
-
 struct oonf_layer2_destination *nl80211_add_dst(struct oonf_layer2_neigh *,
     const struct netaddr *dst);
 bool nl80211_change_l2net_data(struct oonf_layer2_net *l2net,

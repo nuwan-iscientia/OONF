@@ -138,9 +138,6 @@ struct olsrv2_routing_filter {
   struct list_entity _node;
 };
 
-EXPORT extern struct avl_tree olsrv2_routing_tree[NHDP_MAXIMUM_DOMAINS];
-EXPORT extern struct list_entity olsrv2_routing_filter_list;
-
 void olsrv2_routing_init(void);
 void olsrv2_routing_initiate_shutdown(void);
 void olsrv2_routing_cleanup(void);
@@ -156,13 +153,16 @@ EXPORT void olsrv2_routing_trigger_update(void);
 EXPORT const struct olsrv2_routing_domain *
     olsrv2_routing_get_parameters(struct nhdp_domain *);
 
+EXPORT struct avl_tree *olsrv2_routing_get_tree(size_t);
+EXPORT struct list_entity *olsrv2_routing_get_filter_list(void);
+
 /**
  * Add a routing filter to the dijkstra processing list
  * @param filter pointer to routing filter
  */
 static INLINE void
 olsrv2_routing_filter_add(struct olsrv2_routing_filter *filter) {
-  list_add_tail(&olsrv2_routing_filter_list, &filter->_node);
+  list_add_tail(olsrv2_routing_get_filter_list(), &filter->_node);
 }
 
 /**

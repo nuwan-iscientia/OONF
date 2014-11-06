@@ -123,7 +123,7 @@ static const char *_dependencies[] = {
   OONF_RFC5444_SUBSYSTEM,
   OONF_TIMER_SUBSYSTEM,
 };
-struct oonf_subsystem nhdp_subsystem = {
+static struct oonf_subsystem nhdp_subsystem = {
   .name = OONF_NHDP_SUBSYSTEM,
   .dependencies = _dependencies,
   .dependencies_count = ARRAYSIZE(_dependencies),
@@ -141,7 +141,8 @@ static struct oonf_rfc5444_protocol *_protocol;
 /* NHDP originator address, might be undefined */
 static struct netaddr _originator_v4, _originator_v6;
 
-/* Additional logging sources */
+/* logging sources for NHDP subsystem */
+enum oonf_log_source LOG_NHDP;
 enum oonf_log_source LOG_NHDP_R;
 enum oonf_log_source LOG_NHDP_W;
 
@@ -150,6 +151,7 @@ enum oonf_log_source LOG_NHDP_W;
  */
 static void
 _early_cfg_init(void) {
+  LOG_NHDP = nhdp_subsystem.logging;
   LOG_NHDP_R = oonf_log_register_source(OONF_NHDP_SUBSYSTEM "_r");
   LOG_NHDP_W = oonf_log_register_source(OONF_NHDP_SUBSYSTEM "_w");
 }

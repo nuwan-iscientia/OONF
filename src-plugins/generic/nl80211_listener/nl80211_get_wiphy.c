@@ -76,6 +76,7 @@
 #include "common/common_types.h"
 #include "subsystems/os_system.h"
 
+#include "nl80211_listener/nl80211_internal.h"
 #include "nl80211_listener/nl80211_listener.h"
 #include "nl80211_listener/nl80211_get_wiphy.h"
 

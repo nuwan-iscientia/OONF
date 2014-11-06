@@ -74,15 +74,6 @@ enum {
   NHDP_ADDRTLV_LQ_CUSTOM = 228,
 };
 
-#define LOG_NHDP nhdp_subsystem.logging
-EXPORT struct oonf_subsystem nhdp_subsystem;
-
-EXPORT extern enum oonf_log_source LOG_NHDP_R;
-EXPORT extern enum oonf_log_source LOG_NHDP_W;
-
-int nhdp_init(void)  __attribute__((warn_unused_result));
-void nhdp_cleanup(void);
-
 EXPORT void nhdp_set_originator(const struct netaddr *);
 EXPORT void nhdp_reset_originator(int af_type);
 EXPORT const struct netaddr *nhdp_get_originator(int af_type);

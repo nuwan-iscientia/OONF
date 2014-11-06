@@ -178,12 +178,6 @@ oonf_subsystem_configure(struct cfg_schema *schema,
     schema_section = schema_section->next_section;
   }
 
-  if (subsystem->early_cfg_init) {
-    OONF_DEBUG(LOG_SUBSYSTEMS, "(%s) Call 'early_cfg_init() callback",
-        subsystem->name);
-    subsystem->early_cfg_init();
-  }
-
   /* add logging source */
   if (!subsystem->no_logging) {
     OONF_DEBUG(LOG_SUBSYSTEMS, "(%s) Register logging source",
@@ -192,6 +186,13 @@ oonf_subsystem_configure(struct cfg_schema *schema,
   }
   else {
     subsystem->logging = LOG_MAIN;
+  }
+
+  /* early configuration */
+  if (subsystem->early_cfg_init) {
+    OONF_DEBUG(LOG_SUBSYSTEMS, "(%s) Call 'early_cfg_init() callback",
+        subsystem->name);
+    subsystem->early_cfg_init();
   }
 }
 

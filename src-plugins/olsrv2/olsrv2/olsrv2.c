@@ -166,7 +166,7 @@ static const char *_dependencies[] = {
   OONF_TIMER_SUBSYSTEM,
   OONF_NHDP_SUBSYSTEM,
 };
-struct oonf_subsystem olsrv2_subsystem = {
+static struct oonf_subsystem _olsrv2_subsystem = {
   .name = OONF_OLSRV2_SUBSYSTEM,
   .dependencies = _dependencies,
   .dependencies_count = ARRAYSIZE(_dependencies),
@@ -176,7 +176,7 @@ struct oonf_subsystem olsrv2_subsystem = {
   .initiate_shutdown = _initiate_shutdown,
   .cfg_section = &_olsrv2_section,
 };
-DECLARE_OONF_PLUGIN(olsrv2_subsystem);
+DECLARE_OONF_PLUGIN(_olsrv2_subsystem);
 
 static struct _config _olsrv2_config;
 
@@ -202,15 +202,17 @@ static struct oonf_rfc5444_protocol *_protocol;
 static uint16_t _ansn;
 
 /* Additional logging sources */
+enum oonf_log_source LOG_OLSRV2;
 enum oonf_log_source LOG_OLSRV2_R;
-enum oonf_log_source LOG_OLSRV2_W;
 enum oonf_log_source LOG_OLSRV2_ROUTING;
+enum oonf_log_source LOG_OLSRV2_W;
 
 /**
  * Initialize additional logging sources for NHDP
  */
 static void
 _early_cfg_init(void) {
+  LOG_OLSRV2 = _olsrv2_subsystem.logging;
   LOG_OLSRV2_R = oonf_log_register_source(OONF_OLSRV2_SUBSYSTEM "_r");
   LOG_OLSRV2_W = oonf_log_register_source(OONF_OLSRV2_SUBSYSTEM "_w");
   LOG_OLSRV2_ROUTING = oonf_log_register_source(OONF_OLSRV2_SUBSYSTEM "_routing");
@@ -460,7 +462,7 @@ olsrv2_update_ansn(void) {
   bool changed;
 
   changed = false;
-  list_for_each_element(&nhdp_domain_list, domain, _node) {
+  list_for_each_element(nhdp_domain_get_list(), domain, _node) {
     if (domain->metric_changed) {
       changed = true;
       domain->metric_changed = false;
@@ -634,7 +636,7 @@ _parse_lan_array(struct cfg_named_section *section, bool add) {
  */
 static void
 _cb_generate_tc(void *ptr __attribute__((unused))) {
-  if (nhdp_domain_node_is_mpr() || !avl_is_empty(&olsrv2_lan_tree)) {
+  if (nhdp_domain_node_is_mpr() || !avl_is_empty(olsrv2_lan_get_tree())) {
     olsrv2_writer_send_tc();
   }
 }
@@ -666,7 +668,7 @@ _update_originators(void) {
   netaddr_invalidate(&new_v4);
   netaddr_invalidate(&new_v6);
 
-  avl_for_each_element(&nhdp_interface_tree, n_interf, _node) {
+  avl_for_each_element(nhdp_interface_get_tree(), n_interf, _node) {
     interf = nhdp_interface_get_coreif(n_interf);
 
     /* check if originator is still valid */
@@ -764,7 +766,7 @@ _cb_cfg_domain_changed(void) {
   memset(&rtdomain, 0, sizeof(rtdomain));
   if (cfg_schema_tobin(&rtdomain, _rt_domain_section.post,
       _rt_domain_entries, ARRAYSIZE(_rt_domain_entries))) {
-    OONF_WARN(LOG_NHDP, "Cannot convert OLSRV2 routing domain parameters.");
+    OONF_WARN(LOG_OLSRV2, "Cannot convert OLSRV2 routing domain parameters.");
     return;
   }
 

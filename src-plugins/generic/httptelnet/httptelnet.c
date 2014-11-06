@@ -52,6 +52,9 @@
 
 #include "httptelnet/httptelnet.h"
 
+/* Definitions */
+#define LOG_HTTPTELNET _oonf_httptelnet_subsystem.logging
+
 /* prototypes */
 static int _init(void);
 static void _cleanup(void);
@@ -86,7 +89,7 @@ static const char *_dependencies[] = {
   OONF_TELNET_SUBSYSTEM,
 };
 
-struct oonf_subsystem oonf_httptelnet_subsystem = {
+static struct oonf_subsystem _oonf_httptelnet_subsystem = {
   .name = OONF_HTTPTELNET_SUBSYSTEM,
   .dependencies = _dependencies,
   .dependencies_count = ARRAYSIZE(_dependencies),
@@ -98,7 +101,7 @@ struct oonf_subsystem oonf_httptelnet_subsystem = {
   .init = _init,
   .cleanup = _cleanup,
 };
-DECLARE_OONF_PLUGIN(oonf_httptelnet_subsystem);
+DECLARE_OONF_PLUGIN(_oonf_httptelnet_subsystem);
 
 /**
  * Constructor of plugin

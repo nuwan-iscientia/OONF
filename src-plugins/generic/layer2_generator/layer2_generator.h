@@ -46,7 +46,4 @@
 
 #define OONF_L2GEN_SUBSYSTEM "layer2_generator"
 
-#define LOG_L2GEN layer2_generator_subsystem.logging
-EXPORT extern struct oonf_subsystem layer2_generator_subsystem;
-
 #endif /* LAYER2_GENERATOR_H_ */

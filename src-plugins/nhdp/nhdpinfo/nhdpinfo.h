@@ -47,7 +47,4 @@
 
 #define OONF_NHDPINFO_SUBSYSTEM "nhdpinfo"
 
-#define LOG_NHDPINFO olsrv2_nhdpinfo_subsystem.logging
-EXPORT extern struct oonf_subsystem olsrv2_nhdpinfo_subsystem;
-
 #endif /* NHDPINFO_H_ */

@@ -47,7 +47,4 @@
 
 #define OONF_NHDPCHECK_SUBSYSTEM "nhdpcheck"
 
-#define LOG_NHDPCHECK olsrv2_nhdpcheck_subsystem.logging
-EXPORT extern struct oonf_subsystem olsrv2_nhdpcheck_subsystem;
-
 #endif /* NHDPCHECK_H_ */

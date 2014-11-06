@@ -50,6 +50,9 @@
 
 #include "subsystems/oonf_layer2.h"
 
+/* Definitions */
+#define LOG_LAYER2 _oonf_layer2_subsystem.logging
+
 /* prototypes */
 static int _init(void);
 static void _cleanup(void);
@@ -63,17 +66,17 @@ static const char *_dependencies[] = {
   OONF_INTERFACE_SUBSYSTEM,
 };
 
-struct oonf_subsystem oonf_layer2_subsystem = {
+static struct oonf_subsystem _oonf_layer2_subsystem = {
   .name = OONF_LAYER2_SUBSYSTEM,
   .dependencies = _dependencies,
   .dependencies_count = ARRAYSIZE(_dependencies),
   .init = _init,
   .cleanup = _cleanup,
 };
-DECLARE_OONF_PLUGIN(oonf_layer2_subsystem);
+DECLARE_OONF_PLUGIN(_oonf_layer2_subsystem);
 
 /* layer2 neighbor metadata */
-const struct oonf_layer2_metadata oonf_layer2_metadata_neigh[OONF_LAYER2_NEIGH_COUNT] = {
+static const struct oonf_layer2_metadata _oonf_layer2_metadata_neigh[OONF_LAYER2_NEIGH_COUNT] = {
   [OONF_LAYER2_NEIGH_TX_SIGNAL]      = { .key = OONF_LAYER2_NEIGH_TX_SIGNAL_KEY, .unit = "dBm", .fraction = 3 },
   [OONF_LAYER2_NEIGH_RX_SIGNAL]      = { .key = OONF_LAYER2_NEIGH_RX_SIGNAL_KEY, .unit = "dBm", .fraction = 3 },
   [OONF_LAYER2_NEIGH_TX_BITRATE]     = { .key = OONF_LAYER2_NEIGH_TX_BITRATE_KEY, .unit = "bit/s", .binary = true },
@@ -90,7 +93,7 @@ const struct oonf_layer2_metadata oonf_layer2_metadata_neigh[OONF_LAYER2_NEIGH_C
 };
 
 /* layer2 network metadata */
-const struct oonf_layer2_metadata oonf_layer2_metadata_net[OONF_LAYER2_NET_COUNT] = {
+static const struct oonf_layer2_metadata _oonf_layer2_metadata_net[OONF_LAYER2_NET_COUNT] = {
   [OONF_LAYER2_NET_FREQUENCY_1]     = { .key = OONF_LAYER2_NET_FREQUENCY_1_KEY, .unit = "Hz" },
   [OONF_LAYER2_NET_FREQUENCY_2]     = { .key = OONF_LAYER2_NET_FREQUENCY_2_KEY, .unit = "Hz" },
   [OONF_LAYER2_NET_BANDWIDTH_1]     = { .key = OONF_LAYER2_NET_BANDWIDTH_1_KEY, .unit = "Hz" },
@@ -103,7 +106,7 @@ const struct oonf_layer2_metadata oonf_layer2_metadata_net[OONF_LAYER2_NET_COUNT
   [OONF_LAYER2_NET_CHANNEL_TX]      = { .key = OONF_LAYER2_NET_CHANNEL_TX_KEY, .unit="s", .fraction = 9 },
 };
 
-const char *oonf_layer2_network_type[OONF_LAYER2_TYPE_COUNT] = {
+static const char *oonf_layer2_network_type[OONF_LAYER2_TYPE_COUNT] = {
   [OONF_LAYER2_TYPE_UNDEFINED] = "undefined",
   [OONF_LAYER2_TYPE_WIRELESS]  = "wireless",
   [OONF_LAYER2_TYPE_ETHERNET]  = "ethernet",
@@ -125,7 +128,7 @@ static struct oonf_class _l2dst_class = {
   .size = sizeof(struct oonf_layer2_destination),
 };
 
-struct avl_tree oonf_layer2_net_tree;
+static struct avl_tree _oonf_layer2_net_tree;
 
 static uint32_t _next_origin = 0;
 
@@ -139,7 +142,7 @@ _init(void) {
   oonf_class_add(&_l2neighbor_class);
   oonf_class_add(&_l2dst_class);
 
-  avl_init(&oonf_layer2_net_tree, avl_comp_strcasecmp, false);
+  avl_init(&_oonf_layer2_net_tree, avl_comp_strcasecmp, false);
   return 0;
 }
 
@@ -150,7 +153,7 @@ static void
 _cleanup(void) {
   struct oonf_layer2_net *l2net, *l2n_it;
 
-  avl_for_each_element_safe(&oonf_layer2_net_tree, l2net, _node, l2n_it) {
+  avl_for_each_element_safe(&_oonf_layer2_net_tree, l2net, _node, l2n_it) {
     _net_remove(l2net);
   }
 
@@ -177,7 +180,7 @@ void
 oonf_layer2_cleanup_origin(uint32_t origin) {
   struct oonf_layer2_net *l2net, *l2net_it;
 
-  avl_for_each_element_safe(&oonf_layer2_net_tree, l2net, _node, l2net_it) {
+  avl_for_each_element_safe(&_oonf_layer2_net_tree, l2net, _node, l2net_it) {
     oonf_layer2_net_remove(l2net, origin);
   }
 }
@@ -191,7 +194,7 @@ struct oonf_layer2_net *
 oonf_layer2_net_add(const char *ifname) {
   struct oonf_layer2_net *l2net;
 
-  l2net = avl_find_element(&oonf_layer2_net_tree, ifname, l2net, _node);
+  l2net = avl_find_element(&_oonf_layer2_net_tree, ifname, l2net, _node);
   if (l2net) {
     return l2net;
   }
@@ -206,7 +209,7 @@ oonf_layer2_net_add(const char *ifname) {
 
   /* add to global l2net tree */
   l2net->_node.key = l2net->name;
-  avl_insert(&oonf_layer2_net_tree, &l2net->_node);
+  avl_insert(&_oonf_layer2_net_tree, &l2net->_node);
 
   /* initialize tree of neighbors and proxies */
   avl_init(&l2net->neighbors, avl_comp_netaddr, false);
@@ -529,6 +532,26 @@ oonf_layer2_change_value(struct oonf_layer2_data *l2data,
   return changed;
 }
 
+const struct oonf_layer2_metadata *
+oonf_layer2_get_neigh_metadata(enum oonf_layer2_neighbor_index idx) {
+  return &_oonf_layer2_metadata_neigh[idx];
+}
+
+const struct oonf_layer2_metadata *
+oonf_layer2_get_net_metadata(enum oonf_layer2_network_index idx) {
+  return &_oonf_layer2_metadata_net[idx];
+}
+
+const char *
+oonf_layer2_get_network_type(enum oonf_layer2_network_type type) {
+  return oonf_layer2_network_type[type];
+}
+
+struct avl_tree *
+oonf_layer2_get_network_tree(void) {
+  return &_oonf_layer2_net_tree;
+}
+
 /**
  * Removes a layer-2 addr object from the database.
  * @param l2net layer-2 addr object
@@ -548,7 +571,7 @@ _net_remove(struct oonf_layer2_net *l2net) {
   oonf_interface_remove_listener(&l2net->if_listener);
 
   /* free addr */
-  avl_remove(&oonf_layer2_net_tree, &l2net->_node);
+  avl_remove(&_oonf_layer2_net_tree, &l2net->_node);
   oonf_class_free(&_l2network_class, l2net);
 }
 

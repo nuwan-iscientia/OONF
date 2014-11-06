@@ -48,7 +48,4 @@
 /* definitions and constants */
 #define OONF_CONSTANT_METRIC_SUBSYSTEM "constant_metric"
 
-#define LOG_CONSTANT_METRIC olsrv2_constant_metric_subsystem.logging
-EXPORT extern struct oonf_subsystem olsrv2_constant_metric_subsystem;
-
 #endif /* CONSTANT_METRIC_H_ */

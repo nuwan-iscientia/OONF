@@ -54,6 +54,9 @@
 
 #include "subsystems/oonf_packet_socket.h"
 
+/* Defintions */
+#define LOG_PACKET _oonf_packet_socket_subsystem.logging
+
 /* prototypes */
 static int _init(void);
 static void _cleanup(void);
@@ -81,14 +84,14 @@ static const char *_dependencies[] = {
   OONF_OS_NET_SUBSYSTEM,
 };
 
-struct oonf_subsystem oonf_packet_socket_subsystem = {
+static struct oonf_subsystem _oonf_packet_socket_subsystem = {
   .name = "packet",
   .dependencies = _dependencies,
   .dependencies_count = ARRAYSIZE(_dependencies),
   .init = _init,
   .cleanup = _cleanup,
 };
-DECLARE_OONF_PLUGIN(oonf_packet_socket_subsystem);
+DECLARE_OONF_PLUGIN(_oonf_packet_socket_subsystem);
 
 /* other global variables */
 static struct list_entity _packet_sockets = { NULL, NULL };

@@ -174,9 +174,6 @@ struct olsrv2_tc_endpoint {
   struct avl_node _node;
 };
 
-EXPORT extern struct avl_tree olsrv2_tc_tree;
-EXPORT extern struct avl_tree olsrv2_tc_endpoint_tree;
-
 void olsrv2_tc_init(void);
 void olsrv2_tc_cleanup(void);
 
@@ -193,6 +190,9 @@ EXPORT struct olsrv2_tc_attachment *olsrv2_tc_endpoint_add(
 EXPORT void olsrv2_tc_endpoint_remove(
     struct olsrv2_tc_attachment *);
 
+EXPORT struct avl_tree *olsrv2_tc_get_tree(void);
+EXPORT struct avl_tree *olsrv2_tc_get_endpoint_tree(void);
+
 /**
  * @param originator originator address of a tc node
  * @return pointer to tc node, NULL if not found
@@ -201,7 +201,7 @@ static INLINE struct olsrv2_tc_node *
 olsrv2_tc_node_get(struct netaddr *originator) {
   struct olsrv2_tc_node *node;
 
-  return avl_find_element(&olsrv2_tc_tree, originator, node, _originator_node);
+  return avl_find_element(olsrv2_tc_get_tree(), originator, node, _originator_node);
 }
 
 /**
@@ -221,7 +221,7 @@ static INLINE struct olsrv2_tc_endpoint *
 olsrv2_tc_endpoint_get(struct netaddr *prefix) {
   struct olsrv2_tc_endpoint *end;
 
-  return avl_find_element(&olsrv2_tc_endpoint_tree, prefix, end, _node);
+  return avl_find_element(olsrv2_tc_get_endpoint_tree(), prefix, end, _node);
 }
 
 static INLINE uint32_t

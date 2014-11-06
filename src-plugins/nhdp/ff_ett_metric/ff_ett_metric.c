@@ -239,7 +239,7 @@ static void
 _cb_enable_metric(void) {
   struct nhdp_link *lnk;
 
-  list_for_each_element(&nhdp_link_list, lnk, _global_node) {
+  list_for_each_element(&_link_list, lnk, _global_node) {
     _cb_link_added(lnk);
   }
 
@@ -270,7 +270,7 @@ _cb_disable_metric(void) {
   rfc5444_reader_remove_message_consumer(&_protocol->reader, &_lq_consumer);
   rfc5444_writer_unregister_addrtlvtype(&_protocol->writer, &_lq_transmit_tlv);
 
-  list_for_each_element(&nhdp_link_list, lnk, _global_node) {
+  list_for_each_element(&_link_list, lnk, _global_node) {
     _cb_link_removed(lnk);
   }
 }
@@ -400,7 +400,7 @@ _cb_ett_sampling(void *ptr __attribute__((unused))) {
     return;
   }
 
-  list_for_each_element(&nhdp_link_list, lnk, _global_node) {
+  list_for_each_element(&_link_list, lnk, _global_node) {
     ldata = oonf_class_get_extension(&_link_extenstion, lnk);
 
     if (ldata->activePtr == -1) {
@@ -590,7 +590,7 @@ _cb_addAddresses(struct rfc5444_writer *writer) {
   target = oonf_rfc5444_get_target_from_writer(writer);
 
   /* then transmit neighbor addresses */
-  list_for_each_element(&nhdp_link_list, lnk, _global_node) {
+  list_for_each_element(&_link_list, lnk, _global_node) {
     ldata = oonf_class_get_extension(&_link_extenstion, lnk);
 
     value = htons(ldata->last_lq);

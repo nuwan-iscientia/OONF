@@ -47,7 +47,4 @@
 
 #define OONF_LAYER2INFO_SUBSYSTEM "layer2info"
 
-#define LOG_LAYER2INFO oonf_layer2info_subsystem.logging
-EXPORT extern struct oonf_subsystem oonf_layer2info_subsystem;
-
 #endif /* LAYER2INFO_H_ */

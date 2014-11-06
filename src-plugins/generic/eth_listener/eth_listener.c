@@ -59,6 +59,8 @@
 #include "eth_listener/ethtool-copy.h"
 
 /* definitions */
+#define LOG_ETH _eth_listener_subsystem.logging
+
 struct _eth_config {
   uint64_t interval;
 };
@@ -92,8 +94,7 @@ static const char *_dependencies[] = {
   OONF_LAYER2_SUBSYSTEM,
   OONF_TIMER_SUBSYSTEM,
 };
-
-struct oonf_subsystem eth_listener_subsystem = {
+static struct oonf_subsystem _eth_listener_subsystem = {
   .name = OONF_ETH_LISTENER_SUBSYSTEM,
   .dependencies = _dependencies,
   .dependencies_count = ARRAYSIZE(_dependencies),
@@ -105,7 +106,7 @@ struct oonf_subsystem eth_listener_subsystem = {
   .init = _init,
   .cleanup = _cleanup,
 };
-DECLARE_OONF_PLUGIN(eth_listener_subsystem);
+DECLARE_OONF_PLUGIN(_eth_listener_subsystem);
 
 /* timer for generating netlink requests */
 static struct oonf_timer_class _transmission_timer_info = {
@@ -148,7 +149,7 @@ _cb_transmission_event(void *ptr __attribute((unused))) {
   struct isonumber_str ibuf;
 #endif
 
-  avl_for_each_element(&oonf_interface_tree, interf, _node) {
+  avl_for_each_element(oonf_interface_get_tree(), interf, _node) {
     /* initialize ethtool command */
     memset(&cmd, 0, sizeof(cmd));
     cmd.cmd = ETHTOOL_GSET;

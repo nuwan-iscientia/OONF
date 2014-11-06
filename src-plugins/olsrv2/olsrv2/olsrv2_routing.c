@@ -54,6 +54,7 @@
 #include "nhdp/nhdp_db.h"
 #include "nhdp/nhdp_domain.h"
 
+#include "olsrv2/olsrv2_internal.h"
 #include "olsrv2/olsrv2_originator.h"
 #include "olsrv2/olsrv2_tc.h"
 #include "olsrv2/olsrv2_routing.h"
@@ -103,8 +104,8 @@ static struct nhdp_domain_listener _nhdp_listener = {
 static bool _trigger_dijkstra = false;
 
 /* global datastructures for routing */
-struct avl_tree olsrv2_routing_tree[NHDP_MAXIMUM_DOMAINS];
-struct list_entity olsrv2_routing_filter_list;
+static struct avl_tree _routing_tree[NHDP_MAXIMUM_DOMAINS];
+static struct list_entity _routing_filter_list;
 
 static struct avl_tree _dijkstra_working_tree;
 static struct list_entity _kernel_queue;
@@ -122,9 +123,9 @@ olsrv2_routing_init(void) {
   oonf_timer_add(&_dijkstra_timer_info);
 
   for (i=0; i<NHDP_MAXIMUM_DOMAINS; i++) {
-    avl_init(&olsrv2_routing_tree[i], avl_comp_netaddr, false);
+    avl_init(&_routing_tree[i], avl_comp_netaddr, false);
   }
-  list_init_head(&olsrv2_routing_filter_list);
+  list_init_head(&_routing_filter_list);
   avl_init(&_dijkstra_working_tree, avl_comp_uint32, true);
   list_init_head(&_kernel_queue);
 
@@ -144,7 +145,7 @@ olsrv2_routing_initiate_shutdown(void) {
 
   /* remove all routes */
   for (i=0; i<NHDP_MAXIMUM_DOMAINS; i++) {
-    avl_for_each_element_safe(&olsrv2_routing_tree[i], entry, _node, e_it) {
+    avl_for_each_element_safe(&_routing_tree[i], entry, _node, e_it) {
       if (entry->set) {
         entry->set = false;
         _add_route_to_kernel_queue(entry);
@@ -169,7 +170,7 @@ olsrv2_routing_cleanup(void) {
   oonf_timer_stop(&_rate_limit_timer);
 
   for (i=0; i<NHDP_MAXIMUM_DOMAINS; i++) {
-    avl_for_each_element_safe(&olsrv2_routing_tree[i], entry, _node, e_it) {
+    avl_for_each_element_safe(&_routing_tree[i], entry, _node, e_it) {
       /* make sure route processing has stopped */
       entry->route.cb_finished = NULL;
       os_routing_interrupt(&entry->route);
@@ -179,7 +180,7 @@ olsrv2_routing_cleanup(void) {
     }
   }
 
-  list_for_each_element_safe(&olsrv2_routing_filter_list, filter, _node, f_it) {
+  list_for_each_element_safe(&_routing_filter_list, filter, _node, f_it) {
     olsrv2_routing_filter_remove(filter);
   }
 
@@ -230,7 +231,7 @@ olsrv2_routing_force_update(bool skip_wait) {
 
   OONF_DEBUG(LOG_OLSRV2_ROUTING, "Run Dijkstra");
 
-  list_for_each_element(&nhdp_domain_list, domain, _node) {
+  list_for_each_element(nhdp_domain_get_list(), domain, _node) {
     /* initialize dijkstra specific fields */
     _prepare_routes(domain);
 
@@ -281,13 +282,13 @@ olsrv2_routing_set_domain_parameter(struct nhdp_domain *domain,
   /* copy parameters */
   memcpy(&_domain_parameter[domain->index], parameter, sizeof(*parameter));
 
-  if (avl_is_empty(&olsrv2_routing_tree[domain->index])) {
+  if (avl_is_empty(&_routing_tree[domain->index])) {
     /* no routes present */
     return;
   }
 
   /* remove old kernel routes */
-  avl_for_each_element(&olsrv2_routing_tree[domain->index], rtentry, _node) {
+  avl_for_each_element(&_routing_tree[domain->index], rtentry, _node) {
     if (rtentry->set) {
       rtentry->set = false;
 
@@ -307,6 +308,16 @@ olsrv2_routing_set_domain_parameter(struct nhdp_domain *domain,
   _trigger_dijkstra = true;
 }
 
+struct avl_tree *
+olsrv2_routing_get_tree(size_t idx) {
+  return &_routing_tree[idx];
+}
+
+struct list_entity *
+olsrv2_routing_get_filter_list(void) {
+  return &_routing_filter_list;
+}
+
 /**
  * Add a new routing entry to the database
  * @param domain pointer to nhdp domain
@@ -318,7 +329,7 @@ _add_entry(struct nhdp_domain *domain, struct netaddr *prefix) {
   struct olsrv2_routing_entry *rtentry;
 
   rtentry = avl_find_element(
-      &olsrv2_routing_tree[domain->index], prefix, rtentry, _node);
+      &_routing_tree[domain->index], prefix, rtentry, _node);
   if (rtentry) {
     return rtentry;
   }
@@ -340,7 +351,7 @@ _add_entry(struct nhdp_domain *domain, struct netaddr *prefix) {
   rtentry->route.cb_finished = _cb_route_finished;
   rtentry->route.family = netaddr_get_address_family(prefix);
 
-  avl_insert(&olsrv2_routing_tree[domain->index], &rtentry->_node);
+  avl_insert(&_routing_tree[domain->index], &rtentry->_node);
   return rtentry;
 }
 
@@ -352,7 +363,7 @@ static void
 _remove_entry(struct olsrv2_routing_entry *entry) {
   /* remove entry from database if its still there */
   if (list_is_node_added(&entry->_node.list)) {
-    avl_remove(&olsrv2_routing_tree[entry->domain->index], &entry->_node);
+    avl_remove(&_routing_tree[entry->domain->index], &entry->_node);
   }
   oonf_class_free(&_rtset_entry, entry);
 }
@@ -491,7 +502,7 @@ _prepare_routes(struct nhdp_domain *domain) {
   struct netaddr_str nbuf;
 
   /* prepare all existing routing entries and put them into the working queue */
-  avl_for_each_element(&olsrv2_routing_tree[domain->index], rtentry, _node) {
+  avl_for_each_element(&_routing_tree[domain->index], rtentry, _node) {
     rtentry->set = false;
     rtentry->_old_if_index = rtentry->route.if_index;
     rtentry->_old_distance = rtentry->route.metric;
@@ -499,7 +510,7 @@ _prepare_routes(struct nhdp_domain *domain) {
   }
 
   /* initialize private dijkstra data on nodes */
-  avl_for_each_element(&olsrv2_tc_tree, node, _originator_node) {
+  avl_for_each_element(olsrv2_tc_get_tree(), node, _originator_node) {
     node->target._dijkstra.first_hop = NULL;
     node->target._dijkstra.path_cost = RFC7181_METRIC_INFINITE_PATH;
     node->target._dijkstra.local =
@@ -513,14 +524,14 @@ _prepare_routes(struct nhdp_domain *domain) {
   }
 
   /* initialize private dijkstra data on endpoints */
-  avl_for_each_element(&olsrv2_tc_endpoint_tree, end, _node) {
+  avl_for_each_element(olsrv2_tc_get_endpoint_tree(), end, _node) {
     end->target._dijkstra.first_hop = NULL;
     end->target._dijkstra.path_cost = RFC7181_METRIC_INFINITE_PATH;
     end->target._dijkstra.done = false;
   }
 
   /* initialize Dijkstra working queue with one-hop neighbors */
-  list_for_each_element(&nhdp_neigh_list, neigh, _global_node) {
+  list_for_each_element(nhdp_db_get_neigh_list(), neigh, _global_node) {
     if (neigh->symmetric > 0
         && netaddr_get_address_family(&neigh->originator) != AF_UNSPEC
         && (node = olsrv2_tc_node_get(&neigh->originator)) != NULL) {
@@ -617,7 +628,7 @@ _handle_nhdp_routes(struct nhdp_domain *domain) {
   uint32_t neighcost;
   uint32_t l2hop_pathcost;
 
-  list_for_each_element(&nhdp_neigh_list, neigh, _global_node) {
+  list_for_each_element(nhdp_db_get_neigh_list(), neigh, _global_node) {
     /* get linkcost to neighbor */
     neigh_data = nhdp_domain_get_neighbordata(domain, neigh);
     neighcost = neigh_data->metric.out;
@@ -724,13 +735,13 @@ _process_dijkstra_result(struct nhdp_domain *domain) {
   struct olsrv2_routing_entry *rtentry;
   struct olsrv2_routing_filter *filter;
 
-  avl_for_each_element(&olsrv2_routing_tree[domain->index], rtentry, _node) {
+  avl_for_each_element(&_routing_tree[domain->index], rtentry, _node) {
     /* initialize rest of route parameters */
     rtentry->route.table = _domain_parameter[rtentry->domain->index].table;
     rtentry->route.protocol = _domain_parameter[rtentry->domain->index].protocol;
     rtentry->route.metric = _domain_parameter[rtentry->domain->index].distance;
 
-    list_for_each_element(&olsrv2_routing_filter_list, filter, _node) {
+    list_for_each_element(&_routing_filter_list, filter, _node) {
       if (!filter->filter(domain, &rtentry->route)) {
         /* route was dropped by filter */
         continue;

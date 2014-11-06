@@ -112,12 +112,7 @@ struct oonf_timer_instance {
   uint64_t _clock;
 };
 
-#define LOG_TIMER oonf_timer_subsystem.logging
-EXPORT extern struct oonf_subsystem oonf_timer_subsystem;
-
 /* Timers */
-EXPORT extern struct list_entity oonf_timer_info_list;
-
 EXPORT void oonf_timer_walk(void);
 
 EXPORT void oonf_timer_add(struct oonf_timer_class *ti);
@@ -128,6 +123,8 @@ EXPORT void oonf_timer_start_ext(struct oonf_timer_instance *timer, uint64_t fir
 EXPORT void oonf_timer_stop(struct oonf_timer_instance *);
 
 EXPORT uint64_t oonf_timer_getNextEvent(void);
+
+EXPORT struct list_entity *oonf_timer_get_list(void);
 
 /**
  * @param timer pointer to timer

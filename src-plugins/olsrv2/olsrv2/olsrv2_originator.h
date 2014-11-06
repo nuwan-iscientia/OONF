@@ -57,14 +57,14 @@ struct olsrv2_originator_set_entry {
   struct oonf_timer_instance _vtime;
 };
 
-EXPORT extern struct avl_tree olsrv2_originator_set_tree;
-
 void olsrv2_originator_init(void);
 void olsrv2_originator_cleanup(void);
 
 EXPORT const struct netaddr *olsrv2_originator_get(int af_type);
 EXPORT bool olsrv2_originator_is_local(const struct netaddr *);
 EXPORT void olsrv2_originator_set(const struct netaddr *originator);
+
+EXPORT struct avl_tree *olsrv2_originator_get_tree(void);
 
 /**
  * @param addr originator address
@@ -73,7 +73,7 @@ EXPORT void olsrv2_originator_set(const struct netaddr *originator);
 static INLINE struct olsrv2_originator_set_entry *
 olsrv2_originator_get_entry(const struct netaddr *addr) {
   struct olsrv2_originator_set_entry *entry;
-  return avl_find_element(&olsrv2_originator_set_tree, addr, entry, _node);
+  return avl_find_element(olsrv2_originator_get_tree(), addr, entry, _node);
 }
 
 #endif /* OLSRV2_ORIGINATOR_SET_H_ */

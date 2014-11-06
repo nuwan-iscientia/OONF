@@ -38,12 +38,6 @@
  *
  */
 
-#include "selection-rfc7181.h"
-
-#include "neighbor-graph-flooding.h"
-#include "neighbor-graph.h"
-#include "mpr.h"
-
 #include "nhdp/nhdp.h"
 #include "nhdp/nhdp_db.h"
 #include "nhdp/nhdp_domain.h"
@@ -60,6 +54,12 @@
 #include "rfc5444/rfc5444.h"
 #include "subsystems/oonf_class.h"
 #include "subsystems/oonf_timer.h"
+
+#include "mpr/mpr_internal.h"
+#include "mpr/neighbor-graph-flooding.h"
+#include "mpr/neighbor-graph.h"
+#include "mpr/mpr.h"
+#include "mpr/selection-rfc7181.h"
 
 /* FIXME remove unneeded includes */
 

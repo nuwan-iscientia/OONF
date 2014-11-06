@@ -61,7 +61,7 @@ static struct oonf_class _lan_class = {
 };
 
 /* global tree of originator set entries */
-struct avl_tree olsrv2_lan_tree;
+static struct avl_tree _lan_tree;
 
 /**
  * Initialize olsrv2 lan set
@@ -70,7 +70,7 @@ void
 olsrv2_lan_init(void) {
   oonf_class_add(&_lan_class);
 
-  avl_init(&olsrv2_lan_tree, avl_comp_netaddr, false);
+  avl_init(&_lan_tree, avl_comp_netaddr, false);
 }
 
 /**
@@ -81,7 +81,7 @@ olsrv2_lan_cleanup(void) {
   struct olsrv2_lan_entry *entry, *e_it;
 
   /* remove all originator entries */
-  avl_for_each_element_safe(&olsrv2_lan_tree, entry, _node, e_it) {
+  avl_for_each_element_safe(&_lan_tree, entry, _node, e_it) {
     _remove(entry);
   }
 
@@ -115,7 +115,7 @@ olsrv2_lan_add(struct nhdp_domain *domain,
     /* copy key and append to tree */
     memcpy(&entry->prefix, prefix, sizeof(*prefix));
     entry->_node.key = &entry->prefix;
-    avl_insert(&olsrv2_lan_tree, &entry->_node);
+    avl_insert(&_lan_tree, &entry->_node);
 
     entry->same_distance = true;
 
@@ -178,12 +178,17 @@ olsrv2_lan_remove(struct nhdp_domain *domain,
   _remove(entry);
 }
 
+struct avl_tree *
+olsrv2_lan_get_tree(void) {
+  return &_lan_tree;
+}
+
 /**
  * Remove a local attached network entry
  * @param entry LAN entry
  */
 static void
 _remove(struct olsrv2_lan_entry *entry) {
-  avl_remove(&olsrv2_lan_tree, &entry->_node);
+  avl_remove(&_lan_tree, &entry->_node);
   oonf_class_free(&_lan_class, entry);
 }

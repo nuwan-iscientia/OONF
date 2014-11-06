@@ -72,7 +72,7 @@ static struct oonf_timer_class _originator_entry_timer = {
 };
 
 /* global tree of originator set entries */
-struct avl_tree olsrv2_originator_set_tree;
+static struct avl_tree _originator_set_tree;
 
 /* current originators */
 static struct netaddr _originator_v4, _originator_v6;
@@ -87,7 +87,7 @@ olsrv2_originator_init(void) {
   oonf_timer_add(&_originator_entry_timer);
 
   /* initialize global originator tree */
-  avl_init(&olsrv2_originator_set_tree, avl_comp_netaddr, false);
+  avl_init(&_originator_set_tree, avl_comp_netaddr, false);
 }
 
 /**
@@ -98,7 +98,7 @@ olsrv2_originator_cleanup(void) {
   struct olsrv2_originator_set_entry *entry, *e_it;
 
   /* remove all originator entries */
-  avl_for_each_element_safe(&olsrv2_originator_set_tree, entry, _node, e_it) {
+  avl_for_each_element_safe(&_originator_set_tree, entry, _node, e_it) {
     _cb_originator_entry_vtime(entry);
   }
 
@@ -154,6 +154,11 @@ olsrv2_originator_set(const struct netaddr *originator) {
   }
 }
 
+struct avl_tree *
+olsrv2_originator_get_tree(void) {
+  return &_originator_set_tree;
+}
+
 /**
  * Add a new entry to the olsrv2 originator set
  * @param originator originator address
@@ -175,7 +180,7 @@ _remember_removed_originator(struct netaddr *originator, uint64_t vtime) {
     /* copy key and append to tree */
     memcpy(&entry->originator, originator, sizeof(*originator));
     entry->_node.key = &entry->originator;
-    avl_insert(&olsrv2_originator_set_tree, &entry->_node);
+    avl_insert(&_originator_set_tree, &entry->_node);
 
     /* initialize timer */
     entry->_vtime.class = &_originator_entry_timer;
@@ -233,7 +238,7 @@ _cb_originator_entry_vtime(void *ptr) {
   struct olsrv2_originator_set_entry *entry = ptr;
 
   oonf_timer_stop(&entry->_vtime);
-  avl_remove(&olsrv2_originator_set_tree, &entry->_node);
+  avl_remove(&_originator_set_tree, &entry->_node);
 
   oonf_class_free(&_originator_entry_class, entry);
 }

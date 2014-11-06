@@ -53,6 +53,9 @@
 
 #include "nhdpcheck/nhdpcheck.h"
 
+/* Definitions */
+#define LOG_NHDPCHECK _olsrv2_nhdpcheck_subsystem.logging
+
 /* prototypes */
 static int _init(void);
 static void _cleanup(void);
@@ -62,16 +65,17 @@ static const char *_dependencies[] = {
   OONF_RFC5444_SUBSYSTEM,
   OONF_NHDP_SUBSYSTEM,
 };
-struct oonf_subsystem olsrv2_nhdpcheck_subsystem = {
+static struct oonf_subsystem _olsrv2_nhdpcheck_subsystem = {
   .name = OONF_NHDPCHECK_SUBSYSTEM,
   .dependencies = _dependencies,
   .dependencies_count = ARRAYSIZE(_dependencies),
   .descr = "OLSRv2 nhdpcheck plugin",
   .author = "Henning Rogge",
+
   .init = _init,
   .cleanup = _cleanup,
 };
-DECLARE_OONF_PLUGIN(olsrv2_nhdpcheck_subsystem);
+DECLARE_OONF_PLUGIN(_olsrv2_nhdpcheck_subsystem);
 
 /* NHDP message TLV array index */
 enum {

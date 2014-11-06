@@ -47,6 +47,4 @@
 
 #define OONF_CFG_COMPACT_SUBSYSTEM "cfg_compact"
 
-EXPORT extern struct oonf_subsystem oonf_cfg_compact_subsystem;
-
 #endif /* CFG_COMPACT_H_ */

@@ -86,10 +86,6 @@ struct oonf_duplicate_entry {
   struct oonf_timer_instance _vtime;
 };
 
-#define LOG_DUPLICATE_SET oonf_duplicate_set_subsystem.logging
-EXPORT extern struct oonf_subsystem oonf_duplicate_set_subsystem;
-EXPORT extern const char *OONF_DUPSET_RESULT_STR[OONF_DUPSET_MAX];
-
 EXPORT void oonf_duplicate_set_add(struct oonf_duplicate_set *);
 EXPORT void oonf_duplicate_set_remove(struct oonf_duplicate_set *);
 
@@ -100,6 +96,8 @@ EXPORT enum oonf_duplicate_result oonf_duplicate_entry_add(
 EXPORT enum oonf_duplicate_result oonf_duplicate_test(
     struct oonf_duplicate_set *, uint8_t msg_type,
     struct netaddr *, uint16_t seqno);
+
+EXPORT const char *oonf_duplicate_get_result_str(enum oonf_duplicate_result);
 
 static INLINE bool
 oonf_duplicate_is_new(enum oonf_duplicate_result result) {

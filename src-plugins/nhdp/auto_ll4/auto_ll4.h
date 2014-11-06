@@ -48,7 +48,4 @@
 /* definitions and constants */
 #define OONF_AUTO_LL4_SUBSYSTEM "auto_ll4"
 
-#define LOG_AUTO_LL4 olsrv2_auto_ll4_subsystem.logging
-EXPORT extern struct oonf_subsystem olsrv2_auto_ll4_subsystem;
-
 #endif /* AUTO_LL4_H_ */

@@ -47,7 +47,4 @@
 
 #define OONF_ETH_LISTENER_SUBSYSTEM "eth_listener"
 
-#define LOG_ETH eth_listener_subsystem.logging
-EXPORT extern struct oonf_subsystem eth_listener_subsystem;
-
 #endif /* ETH_LISTENER_H_ */

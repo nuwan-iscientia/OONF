@@ -56,6 +56,9 @@
 
 #include "layer2_generator/layer2_generator.h"
 
+/* Definitions */
+#define LOG_L2GEN _layer2_generator_subsystem.logging
+
 /* prototypes */
 static int _init(void);
 static void _cleanup(void);
@@ -110,7 +113,7 @@ static const char *_dependencies[] = {
   OONF_TIMER_SUBSYSTEM,
 };
 
-struct oonf_subsystem layer2_generator_subsystem = {
+static struct oonf_subsystem _layer2_generator_subsystem = {
   .name = OONF_L2GEN_SUBSYSTEM,
   .dependencies = _dependencies,
   .dependencies_count = ARRAYSIZE(_dependencies),
@@ -122,7 +125,7 @@ struct oonf_subsystem layer2_generator_subsystem = {
   .init = _init,
   .cleanup = _cleanup,
 };
-DECLARE_OONF_PLUGIN(layer2_generator_subsystem);
+DECLARE_OONF_PLUGIN(_layer2_generator_subsystem);
 
 static uint32_t _origin = 0;
 

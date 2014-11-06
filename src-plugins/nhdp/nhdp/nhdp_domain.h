@@ -159,9 +159,6 @@ struct nhdp_domain_listener {
   struct list_entity _node;
 };
 
-EXPORT extern struct list_entity nhdp_domain_list;
-EXPORT extern struct list_entity nhdp_domain_listener_list;
-
 void nhdp_domain_init(struct oonf_rfc5444_protocol *);
 void nhdp_domain_cleanup(void);
 
@@ -215,6 +212,10 @@ EXPORT size_t nhdp_domain_encode_willingness_tlvvalue(
 
 EXPORT bool nhdp_domain_set_incoming_metric(
     struct nhdp_domain *domain, struct nhdp_link *lnk, uint32_t metric_in);
+
+EXPORT struct list_entity *nhdp_domain_get_list(void);
+EXPORT struct list_entity *nhdp_domain_get_listener_list(void);
+
 
 /**
  * @param domain NHDP domain

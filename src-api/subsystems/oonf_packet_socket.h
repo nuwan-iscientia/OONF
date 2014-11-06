@@ -109,9 +109,6 @@ struct oonf_packet_managed {
   struct oonf_interface_listener _if_listener;
 };
 
-#define LOG_PACKET oonf_packet_socket_subsystem.logging
-EXPORT extern struct oonf_subsystem oonf_packet_socket_subsystem;
-
 EXPORT int oonf_packet_add(struct oonf_packet_socket *,
     union netaddr_socket *local, struct oonf_interface_data *);
 EXPORT int oonf_packet_raw_add(struct oonf_packet_socket *, int protocol,

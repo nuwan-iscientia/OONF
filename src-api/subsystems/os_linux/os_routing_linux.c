@@ -52,6 +52,9 @@
 
 #include "subsystems/os_routing.h"
 
+/* Definitions */
+#define LOG_OS_ROUTING _oonf_os_routing_subsystem.logging
+
 /* prototypes */
 static int _init(void);
 static void _cleanup(void);
@@ -65,32 +68,33 @@ static void _cb_rtnetlink_error(uint32_t seq, int err);
 static void _cb_rtnetlink_done(uint32_t seq);
 static void _cb_rtnetlink_timeout(void);
 
-/* netlink socket for route set/get commands */
-struct os_system_netlink _rtnetlink_socket = {
-  .used_by = &oonf_os_routing_subsystem,
-  .cb_message = _cb_rtnetlink_message,
-  .cb_error = _cb_rtnetlink_error,
-  .cb_done = _cb_rtnetlink_done,
-  .cb_timeout = _cb_rtnetlink_timeout,
-};
-struct list_entity _rtnetlink_feedback;
-
 /* subsystem definition */
 static const char *_dependencies[] = {
   OONF_OS_SYSTEM_SUBSYSTEM,
 };
 
-struct oonf_subsystem oonf_os_routing_subsystem = {
+static struct oonf_subsystem _oonf_os_routing_subsystem = {
   .name = OONF_OS_ROUTING_SUBSYSTEM,
   .dependencies = _dependencies,
   .dependencies_count = ARRAYSIZE(_dependencies),
   .init = _init,
   .cleanup = _cleanup,
 };
-DECLARE_OONF_PLUGIN(oonf_os_routing_subsystem);
+DECLARE_OONF_PLUGIN(_oonf_os_routing_subsystem);
+
+/* netlink socket for route set/get commands */
+struct os_system_netlink _rtnetlink_socket = {
+  .used_by = &_oonf_os_routing_subsystem,
+  .cb_message = _cb_rtnetlink_message,
+  .cb_error = _cb_rtnetlink_error,
+  .cb_done = _cb_rtnetlink_done,
+  .cb_timeout = _cb_rtnetlink_timeout,
+};
+
+static struct list_entity _rtnetlink_feedback;
 
 /* default wildcard route */
-const struct os_route OS_ROUTE_WILDCARD = {
+static const struct os_route OS_ROUTE_WILDCARD = {
   .family = AF_UNSPEC,
   .src_ip = { ._type = AF_UNSPEC },
   .gw = { ._type = AF_UNSPEC },
@@ -251,6 +255,11 @@ os_routing_query(struct os_route *route) {
 void
 os_routing_interrupt(struct os_route *route) {
   _routing_finished(route, -1);
+}
+
+const struct os_route *
+os_routing_get_wildcard_route(void) {
+  return &OS_ROUTE_WILDCARD;
 }
 
 /**

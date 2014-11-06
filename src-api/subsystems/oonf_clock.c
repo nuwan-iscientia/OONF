@@ -57,6 +57,9 @@
 
 #include "subsystems/oonf_clock.h"
 
+/* definitions */
+#define LOG_CLOCK _oonf_clock_subsystem.logging
+
 /* prototypes */
 static int _init(void);
 
@@ -71,13 +74,13 @@ static const char *_dependencies[] = {
   OONF_OS_CLOCK_SUBSYSTEM,
 };
 
-struct oonf_subsystem oonf_clock_subsystem = {
+static struct oonf_subsystem _oonf_clock_subsystem = {
   .name = OONF_CLOCK_SUBSYSTEM,
   .dependencies = _dependencies,
   .dependencies_count = ARRAYSIZE(_dependencies),
   .init = _init,
 };
-DECLARE_OONF_PLUGIN(oonf_clock_subsystem);
+DECLARE_OONF_PLUGIN(_oonf_clock_subsystem);
 
 /**
  * Initialize olsr clock system

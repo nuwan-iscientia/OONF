@@ -55,6 +55,9 @@
 
 #include "nhdpinfo/nhdpinfo.h"
 
+/* Definitions */
+#define LOG_NHDPINFO _olsrv2_nhdpinfo_subsystem.logging
+
 /* name of telnet subcommands/JSON nodes */
 #define _JSON_NAME_INTERFACE     "interface"
 #define _JSON_NAME_IFADDR        "if_addr"
@@ -382,7 +385,7 @@ static const char *_dependencies[] = {
   OONF_VIEWER_SUBSYSTEM,
   OONF_NHDP_SUBSYSTEM,
 };
-struct oonf_subsystem olsrv2_nhdpinfo_subsystem = {
+static struct oonf_subsystem _olsrv2_nhdpinfo_subsystem = {
   .name = OONF_NHDPINFO_SUBSYSTEM,
   .dependencies = _dependencies,
   .dependencies_count = ARRAYSIZE(_dependencies),
@@ -391,7 +394,7 @@ struct oonf_subsystem olsrv2_nhdpinfo_subsystem = {
   .init = _init,
   .cleanup = _cleanup,
 };
-DECLARE_OONF_PLUGIN(olsrv2_nhdpinfo_subsystem);
+DECLARE_OONF_PLUGIN(_olsrv2_nhdpinfo_subsystem);
 
 /**
  * Initialize plugin
@@ -670,7 +673,7 @@ static int
 _cb_create_text_interface(struct oonf_viewer_template *template) {
   struct nhdp_interface *nhdpif;
 
-  avl_for_each_element(&nhdp_interface_tree, nhdpif, _node) {
+  avl_for_each_element(nhdp_interface_get_tree(), nhdpif, _node) {
     _initialize_interface_values(nhdpif);
 
     /* generate template output */
@@ -689,7 +692,7 @@ _cb_create_text_if_address(struct oonf_viewer_template *template) {
   struct nhdp_interface *nhdp_if;
   struct nhdp_interface_addr *nhdp_addr;
 
-  avl_for_each_element(&nhdp_interface_tree, nhdp_if, _node) {
+  avl_for_each_element(nhdp_interface_get_tree(), nhdp_if, _node) {
     /* fill output buffers for template engine */
     _initialize_interface_values(nhdp_if);
 
@@ -715,7 +718,7 @@ _cb_create_text_link(struct oonf_viewer_template *template) {
   struct nhdp_link *nlink;
   struct nhdp_domain *domain;
 
-  avl_for_each_element(&nhdp_interface_tree, nhdp_if, _node) {
+  avl_for_each_element(nhdp_interface_get_tree(), nhdp_if, _node) {
     /* fill output buffers for template engine */
     _initialize_interface_values(nhdp_if);
 
@@ -723,7 +726,7 @@ _cb_create_text_link(struct oonf_viewer_template *template) {
       _initialize_nhdp_link_values(nlink);
       _initialize_nhdp_neighbor_values(nlink->neigh);
 
-      list_for_each_element(&nhdp_domain_list, domain, _node) {
+      list_for_each_element(nhdp_domain_get_list(), domain, _node) {
         _initialize_nhdp_domain_metric_values(domain,
             &(nhdp_domain_get_linkdata(domain, nlink)->metric));
         _initialize_nhdp_domain_metric_int_values(domain, nlink);
@@ -747,7 +750,7 @@ _cb_create_text_link_address(struct oonf_viewer_template *template) {
   struct nhdp_link *nhdplink;
   struct nhdp_laddr *laddr;
 
-  avl_for_each_element(&nhdp_interface_tree, nhdpif, _node) {
+  avl_for_each_element(nhdp_interface_get_tree(), nhdpif, _node) {
     /* fill output buffers for template engine */
     _initialize_interface_values(nhdpif);
 
@@ -778,7 +781,7 @@ _cb_create_text_link_twohop(struct oonf_viewer_template *template) {
   struct nhdp_l2hop *twohop;
   struct nhdp_domain *domain;
 
-  avl_for_each_element(&nhdp_interface_tree, nhdpif, _node) {
+  avl_for_each_element(nhdp_interface_get_tree(), nhdpif, _node) {
     /* fill output buffers for template engine */
     _initialize_interface_values(nhdpif);
 
@@ -789,7 +792,7 @@ _cb_create_text_link_twohop(struct oonf_viewer_template *template) {
       avl_for_each_element(&nhdplink->_2hop, twohop, _link_node) {
         _initialize_nhdp_link_twohop_values(twohop);
 
-        list_for_each_element(&nhdp_domain_list, domain, _node) {
+        list_for_each_element(nhdp_domain_get_list(), domain, _node) {
           _initialize_nhdp_domain_metric_values(domain,
               &nhdp_domain_get_l2hopdata(domain, twohop)->metric);
 
@@ -812,10 +815,10 @@ _cb_create_text_neighbor(struct oonf_viewer_template *template) {
   struct nhdp_neighbor *neigh;
   struct nhdp_domain *domain;
 
-  list_for_each_element(&nhdp_neigh_list, neigh, _global_node) {
+  list_for_each_element(nhdp_db_get_neigh_list(), neigh, _global_node) {
     _initialize_nhdp_neighbor_values(neigh);
 
-    list_for_each_element(&nhdp_domain_list, domain, _node) {
+    list_for_each_element(nhdp_domain_get_list(), domain, _node) {
       struct nhdp_neighbor_domaindata *data;
 
       data = nhdp_domain_get_neighbordata(domain, neigh);
@@ -840,7 +843,7 @@ _cb_create_text_neighbor_address(struct oonf_viewer_template *template) {
   struct nhdp_neighbor *neigh;
   struct nhdp_naddr *naddr;
 
-  list_for_each_element(&nhdp_neigh_list, neigh, _global_node) {
+  list_for_each_element(nhdp_db_get_neigh_list(), neigh, _global_node) {
     _initialize_nhdp_neighbor_values(neigh);
 
     avl_for_each_element(&neigh->_neigh_addresses, naddr, _neigh_node) {

@@ -297,11 +297,6 @@ struct nhdp_naddr {
   bool _this_if, _might_be_removed;
 };
 
-EXPORT extern struct list_entity nhdp_neigh_list;
-EXPORT extern struct list_entity nhdp_link_list;
-EXPORT extern struct avl_tree nhdp_naddr_tree;
-EXPORT extern struct avl_tree nhdp_neigh_originator_tree;
-
 void nhdp_db_init(void);
 void nhdp_db_cleanup(void);
 
@@ -333,6 +328,11 @@ EXPORT void nhdp_db_link_update_status(struct nhdp_link *);
 
 EXPORT const char *nhdp_db_link_status_to_string(struct nhdp_link *);
 
+EXPORT struct list_entity *nhdp_db_get_neigh_list(void);
+EXPORT struct list_entity *nhdp_db_get_link_list(void);
+EXPORT struct avl_tree *nhdp_db_get_naddr_tree(void);
+EXPORT struct avl_tree *nhdp_db_get_neigh_originator_tree(void);
+
 /**
  * @param addr network address
  * @return corresponding neighbor address object, NULL if not found
@@ -340,7 +340,7 @@ EXPORT const char *nhdp_db_link_status_to_string(struct nhdp_link *);
 static INLINE struct nhdp_naddr *
 nhdp_db_neighbor_addr_get(const struct netaddr *addr) {
   struct nhdp_naddr *naddr;
-  return avl_find_element(&nhdp_naddr_tree, addr, naddr, _global_node);
+  return avl_find_element(nhdp_db_get_naddr_tree(), addr, naddr, _global_node);
 }
 
 /**
@@ -350,7 +350,7 @@ nhdp_db_neighbor_addr_get(const struct netaddr *addr) {
 static INLINE struct nhdp_neighbor *
 nhdp_db_neighbor_get_by_originator(const struct netaddr *originator) {
   struct nhdp_neighbor *neigh;
-  return avl_find_element(&nhdp_neigh_originator_tree, originator, neigh, _originator_node);
+  return avl_find_element(nhdp_db_get_neigh_originator_tree(), originator, neigh, _originator_node);
 }
 
 /**

@@ -126,10 +126,6 @@ struct os_route {
   void (*cb_get)(struct os_route *filter, struct os_route *route);
 };
 
-#define LOG_OS_ROUTING oonf_os_routing_subsystem.logging
-EXPORT extern struct oonf_subsystem oonf_os_routing_subsystem;
-EXPORT extern const struct os_route OS_ROUTE_WILDCARD;
-
 /* prototypes for all os_routing functions */
 EXPORT int os_routing_set(struct os_route *, bool set, bool del_similar);
 EXPORT int os_routing_query(struct os_route *);
@@ -137,5 +133,7 @@ EXPORT void os_routing_interrupt(struct os_route *);
 
 EXPORT const char *os_routing_to_string(
     struct os_route_str *buf, struct os_route *route);
+
+EXPORT const struct os_route *os_routing_get_wildcard_route(void);
 
 #endif /* OS_ROUTING_H_ */

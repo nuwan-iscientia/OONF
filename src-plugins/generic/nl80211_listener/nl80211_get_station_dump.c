@@ -77,6 +77,7 @@
 #include "subsystems/oonf_clock.h"
 #include "subsystems/os_system.h"
 
+#include "nl80211_listener/nl80211_internal.h"
 #include "nl80211_listener/nl80211_listener.h"
 #include "nl80211_listener/nl80211_get_station_dump.h"
 

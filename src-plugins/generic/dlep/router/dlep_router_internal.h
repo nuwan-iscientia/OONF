@@ -39,45 +39,12 @@
  *
  */
 
-#ifndef OLSRV2_H_
-#define OLSRV2_H_
+#ifndef DLEP_ROUTER_INTERNAL_H_
+#define DLEP_ROUTER_INTERNAL_H_
 
-#include "common/common_types.h"
-#include "common/netaddr.h"
-#include "common/netaddr_acl.h"
-#include "core/oonf_subsystem.h"
+#include "core/oonf_logging.h"
 
-#include "nhdp/nhdp_domain.h"
+/* headers only for use inside the DLEP_ROUTER subsystem */
+enum oonf_log_source LOG_DLEP_ROUTER;
 
-#define OONF_OLSRV2_SUBSYSTEM "olsrv2"
-
-#define CFG_OLSRV2_SECTION "olsrv2"
-
-/* default settings for routable addresses */
-#define OLSRV2_ROUTABLE_IPV4 "-169.254.0.0/16\0-127.0.0.0/8\0-224.0.0.0/12\0"
-#define OLSRV2_ROUTABLE_IPV6 "-fe80::/10\0-::1\0-ff00::/8\0"
-
-#define CFG_VALIDATE_LAN(p_name, p_def, p_help, args...)         _CFG_VALIDATE(p_name, p_def, p_help, .cb_validate = olsrv2_validate_lan, .validate_param = {{.i8 = {AF_INET, AF_INET6, -1,-1, -1}}, {.b = true}}, ##args )
-
-EXPORT uint64_t olsrv2_get_tc_interval(void);
-EXPORT uint64_t olsrv2_get_tc_validity(void);
-EXPORT const struct netaddr_acl *olsrv2_get_routable(void);
-EXPORT bool olsrv2_mpr_shall_process(
-    struct rfc5444_reader_tlvblock_context *, uint64_t vtime);
-EXPORT bool olsrv2_mpr_shall_forwarding(
-    struct rfc5444_reader_tlvblock_context *context,
-    struct netaddr *source_address, uint64_t vtime);
-EXPORT uint16_t olsrv2_get_ansn(void);
-EXPORT uint16_t olsrv2_update_ansn(void);
-EXPORT int olsrv2_validate_lan(const struct cfg_schema_entry *entry,
-    const char *section_name, const char *value, struct autobuf *out);
-
-/**
- * @return validity time of former originator IDs
- */
-static INLINE uint64_t
-olsrv2_get_old_originator_validity(void) {
-  return olsrv2_get_tc_validity() * 2;
-}
-
-#endif /* OLSRV2_H_ */
+#endif /* DLEP_ROUTER_INTERNAL_H_ */

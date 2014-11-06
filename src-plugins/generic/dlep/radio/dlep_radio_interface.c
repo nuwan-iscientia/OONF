@@ -54,6 +54,7 @@
 #include "dlep/dlep_writer.h"
 #include "dlep/radio/dlep_radio.h"
 #include "dlep/radio/dlep_radio_interface.h"
+#include "dlep/radio/dlep_radio_internal.h"
 #include "dlep/radio/dlep_radio_session.h"
 
 static void _cb_receive_udp(struct oonf_packet_socket *,

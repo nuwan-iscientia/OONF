@@ -50,7 +50,4 @@
 
 #define OONF_DLEP_ROUTER_SUBSYSTEM "dlep_router"
 
-#define LOG_DLEP_ROUTER dlep_router_subsystem.logging
-EXPORT extern struct oonf_subsystem dlep_router_subsystem;
-
 #endif /* DLEP_ROUTER_H_ */

@@ -47,7 +47,4 @@
 
 #define OONF_HYSTERESIS_OLSRV1_SUBSYSTEM "hysteresis_olsrv1"
 
-#define LOG_HYSTERESIS_OLSRV1 olsrv2_hysteresis_olsrv1_subsystem.logging
-EXPORT extern struct oonf_subsystem olsrv2_hysteresis_olsrv1_subsystem;
-
 #endif /* HYSTERESIS_OONFV1_H_ */

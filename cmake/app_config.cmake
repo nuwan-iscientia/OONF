@@ -48,7 +48,7 @@ set (OONF_NEED_PACKETBB true)
 
 # use default static plugins if custom variable not set
 IF (NOT OONF_CUSTOM_STATIC_PLUGINS OR OONF_CUSTOM_STATIC_PLUGINS STREQUAL "")
-	set (OONF_STATIC_PLUGINS "cfg_compact nl80211_listener layer2info dlep_router")
+	set (OONF_STATIC_PLUGINS "") # cfg_compact nl80211_listener layer2info")
 ELSE ()
 	set (OONF_STATIC_PLUGINS "${OONF_CUSTOM_STATIC_PLUGINS}")
 ENDIF ()

@@ -53,6 +53,8 @@
 #include "link_config/link_config.h"
 
 /* definitions and constants */
+#define LOG_LINK_CONFIG _oonf_link_config_subsystem.logging
+
 #define CFG_RX_LINKSPEED_KEY          "rx_linkspeed"
 
 enum {
@@ -60,6 +62,7 @@ enum {
 };
 
 /* Prototypes */
+static void _early_cfg_init(void);
 static int _init(void);
 static void _cleanup(void);
 static int _cb_validate_linkdata(const struct cfg_schema_entry *entry,
@@ -69,7 +72,7 @@ static void _parse_strarray(struct strarray *array, const char *ifname,
 static void _cb_config_changed(void);
 
 /* define configuration entries */
-#define CFG_VALIDATE_LINKDATA(link_index, p_help, args...)         _CFG_VALIDATE(oonf_layer2_metadata_neigh[link_index].key, "", p_help, .cb_validate = _cb_validate_linkdata, .validate_param = {{ .i32 = { link_index }}}, .list = true, ##args )
+#define CFG_VALIDATE_LINKDATA(link_index, p_help, args...)         _CFG_VALIDATE("", "", p_help, .cb_validate = _cb_validate_linkdata, .validate_param = {{ .i32 = { link_index }}}, .list = true, ##args )
 
 static struct cfg_schema_entry _link_config_if_entries[] = {
   CFG_VALIDATE_LINKDATA(OONF_LAYER2_NEIGH_RX_BITRATE,
@@ -103,18 +106,32 @@ static const char *_dependencies[] = {
   OONF_INTERFACE_SUBSYSTEM,
   OONF_LAYER2_SUBSYSTEM,
 };
-struct oonf_subsystem oonf_link_config_subsystem = {
+static struct oonf_subsystem _oonf_link_config_subsystem = {
   .name = OONF_LINK_CONFIG_SUBSYSTEM,
   .dependencies = _dependencies,
   .dependencies_count = ARRAYSIZE(_dependencies),
+  .early_cfg_init = _early_cfg_init,
   .init = _init,
   .cleanup = _cleanup,
 
   .cfg_section = &_link_config_section,
 };
-DECLARE_OONF_PLUGIN(oonf_link_config_subsystem);
+DECLARE_OONF_PLUGIN(_oonf_link_config_subsystem);
 
-uint32_t _l2_origin_current, _l2_origin_old;
+static uint32_t _l2_origin_current, _l2_origin_old;
+
+static void
+_early_cfg_init(void) {
+  struct cfg_schema_entry *entry;
+  size_t i;
+
+  for (i=0; i<ARRAYSIZE(_link_config_if_entries); i++) {
+    entry = &_link_config_if_entries[i];
+    entry->key.entry = oonf_layer2_get_neigh_metadata(
+        (enum oonf_layer2_neighbor_index)
+        entry->validate_param[0].i32[0])->key;
+  }
+}
 
 /**
  * Subsystem constructor
@@ -144,19 +161,22 @@ _cleanup(void) {
  * @param out
  * @return
  */
-int
+static int
 _cb_validate_linkdata(const struct cfg_schema_entry *entry,
     const char *section_name, const char *value, struct autobuf *out) {
+  enum oonf_layer2_neighbor_index idx;
   struct isonumber_str sbuf;
   struct netaddr_str nbuf;
   const char *ptr;
+
+  idx = entry->validate_param[0].i32[0];
 
   /* test if first word is a human readable number */
   ptr = str_cpynextword(sbuf.buf, value, sizeof(sbuf));
   if (cfg_validate_int(out, section_name, entry->key.entry, sbuf.buf,
       INT64_MIN, INT64_MAX, 8,
-      oonf_layer2_metadata_neigh[entry->validate_param[0].i32[0]].fraction,
-      oonf_layer2_metadata_neigh[entry->validate_param[0].i32[0]].binary)) {
+      oonf_layer2_get_neigh_metadata(idx)->fraction,
+      oonf_layer2_get_neigh_metadata(idx)->binary)) {
     return -1;
   }
 
@@ -231,8 +251,8 @@ _parse_strarray(struct strarray *array, const char *ifname,
   strarray_for_each_element(array, entry) {
     ptr = str_cpynextword(hbuf.buf, entry, sizeof(hbuf));
     if (isonumber_to_s64(&value, hbuf.buf,
-        oonf_layer2_metadata_neigh[idx].fraction,
-        oonf_layer2_metadata_neigh[idx].binary)) {
+        oonf_layer2_get_neigh_metadata(idx)->fraction,
+        oonf_layer2_get_neigh_metadata(idx)->binary)) {
       continue;
     }
 
@@ -240,7 +260,7 @@ _parse_strarray(struct strarray *array, const char *ifname,
       /* add network wide data entry */
       if (!_set_l2value(&l2net->neighdata[idx], value)) {
         OONF_INFO(LOG_LINK_CONFIG, "if-wide %s for %s: %s",
-            oonf_layer2_metadata_neigh[idx].key, ifname, hbuf.buf);
+            oonf_layer2_get_neigh_metadata(idx)->key, ifname, hbuf.buf);
       }
       continue;
     }
@@ -259,7 +279,7 @@ _parse_strarray(struct strarray *array, const char *ifname,
 
       if (!_set_l2value(&l2neigh->data[idx], value)) {
         OONF_INFO(LOG_LINK_CONFIG, "%s to neighbor %s on %s: %s",
-            oonf_layer2_metadata_neigh[idx].key, nbuf.buf, ifname, hbuf.buf);
+            oonf_layer2_get_neigh_metadata(idx)->key, nbuf.buf, ifname, hbuf.buf);
       }
     }
   }
@@ -294,7 +314,7 @@ _cb_config_changed(void) {
   oonf_layer2_cleanup_origin(_l2_origin_old);
 
   /* trigger change events */
-  avl_for_each_element(&oonf_layer2_net_tree, l2net, _node) {
+  avl_for_each_element(oonf_layer2_get_network_tree(), l2net, _node) {
     for (idx = 0; idx < OONF_LAYER2_NET_COUNT; idx++) {
       if (oonf_layer2_get_origin(&l2net->neighdata[idx]) == _l2_origin_current) {
         oonf_layer2_net_commit(l2net);

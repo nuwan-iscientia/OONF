@@ -47,7 +47,4 @@
 
 #define OONF_DLEP_RADIO_SUBSYSTEM "dlep_radio"
 
-#define LOG_DLEP_RADIO dlep_radio_subsystem.logging
-EXPORT extern struct oonf_subsystem dlep_radio_subsystem;
-
 #endif /* DLEP_RADIO_H_ */

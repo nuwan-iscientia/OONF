@@ -63,8 +63,6 @@
 #error "Unknown operation system"
 #endif
 
-EXPORT extern struct oonf_subsystem oonf_os_clock_subsystem;
-
 /* prototypes for all os_system functions */
 EXPORT int os_clock_gettime64(uint64_t *t64);
 

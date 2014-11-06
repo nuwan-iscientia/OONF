@@ -58,6 +58,9 @@
 
 #include "subsystems/oonf_interface.h"
 
+/* Definitions */
+#define LOG_INTERFACE _oonf_interface_subsystem.logging
+
 /* timeinterval to delay change in interface to trigger actions */
 #define OONF_INTERFACE_CHANGE_INTERVAL 100
 
@@ -78,7 +81,7 @@ static void _cb_change_handler(void *);
 static void _trigger_change_timer(struct oonf_interface *);
 
 /* global tree of known interfaces */
-struct avl_tree oonf_interface_tree;
+static struct avl_tree _oonf_interface_tree;
 
 /* subsystem definition */
 static const char *_dependencies[] = {
@@ -88,14 +91,14 @@ static const char *_dependencies[] = {
   OONF_OS_SYSTEM_SUBSYSTEM,
 };
 
-struct oonf_subsystem oonf_interface_subsystem = {
+static struct oonf_subsystem _oonf_interface_subsystem = {
   .name = OONF_INTERFACE_SUBSYSTEM,
   .dependencies = _dependencies,
   .dependencies_count = ARRAYSIZE(_dependencies),
   .init = _init,
   .cleanup = _cleanup,
 };
-DECLARE_OONF_PLUGIN(oonf_interface_subsystem);
+DECLARE_OONF_PLUGIN(_oonf_interface_subsystem);
 
 static struct list_entity _interface_listener;
 static struct oonf_timer_class _change_timer_info = {
@@ -121,7 +124,7 @@ _init(void) {
   oonf_timer_add(&_change_timer_info);
   oonf_class_add(&_if_class);
 
-  avl_init(&oonf_interface_tree, avl_comp_strcasecmp, false);
+  avl_init(&_oonf_interface_tree, avl_comp_strcasecmp, false);
   list_init_head(&_interface_listener);
 
   os_system_iflistener_add(&_iflistener);
@@ -201,11 +204,11 @@ oonf_interface_trigger_change(unsigned if_index, bool down) {
   struct oonf_interface *interf = NULL, *if_ptr;
 
   if (if_indextoname(if_index, if_name) != NULL) {
-    interf = avl_find_element(&oonf_interface_tree, if_name, interf, _node);
+    interf = avl_find_element(&_oonf_interface_tree, if_name, interf, _node);
   }
 
   if (interf == NULL) {
-    avl_for_each_element(&oonf_interface_tree, if_ptr, _node) {
+    avl_for_each_element(&_oonf_interface_tree, if_ptr, _node) {
       if (if_ptr->data.index == if_index) {
         interf = if_ptr;
       }
@@ -247,7 +250,7 @@ struct oonf_interface_data *
 oonf_interface_get_data(const char *name, struct oonf_interface_data *buf) {
   struct oonf_interface *interf;
 
-  interf = avl_find_element(&oonf_interface_tree, name, interf, _node);
+  interf = avl_find_element(&_oonf_interface_tree, name, interf, _node);
   if (interf == NULL) {
     if (buf) {
       if (os_net_update_interface(buf, name)) {
@@ -270,7 +273,7 @@ struct oonf_interface_data *
 oonf_interface_get_data_by_ifindex(unsigned ifindex) {
   struct oonf_interface *interf;
 
-  avl_for_each_element(&oonf_interface_tree, interf, _node) {
+  avl_for_each_element(&_oonf_interface_tree, interf, _node) {
     if (interf->data.index == ifindex) {
       return &interf->data;
     }
@@ -287,7 +290,7 @@ struct oonf_interface_data *
 oonf_interface_get_data_by_ifbaseindex(unsigned ifindex) {
   struct oonf_interface *interf;
 
-  avl_for_each_element(&oonf_interface_tree, interf, _node) {
+  avl_for_each_element(&_oonf_interface_tree, interf, _node) {
     if (interf->data.base_index == ifindex) {
       return &interf->data;
     }
@@ -309,7 +312,7 @@ oonf_interface_get_prefix_from_dst(
   size_t i;
 
   if (ifdata == NULL) {
-    avl_for_each_element(&oonf_interface_tree, interf, _node) {
+    avl_for_each_element(&_oonf_interface_tree, interf, _node) {
       result = oonf_interface_get_prefix_from_dst(destination, &interf->data);
       if (result) {
         return result;
@@ -372,6 +375,11 @@ oonf_interface_get_bindaddress(int af_type,
   }
   OONF_DEBUG_NH(LOG_INTERFACE, "Bind to '%s'", netaddr_to_string(&nbuf, result));
   return result;
+}
+
+struct avl_tree *
+oonf_interface_get_tree(void) {
+  return &_oonf_interface_tree;
 }
 
 /**
@@ -438,7 +446,7 @@ _get_exact_match_bindaddress(int af_type, struct netaddr_acl *filter,
 
   /* handle the 'all interfaces' case */
   if (ifdata == NULL) {
-    avl_for_each_element(&oonf_interface_tree, interf, _node) {
+    avl_for_each_element(&_oonf_interface_tree, interf, _node) {
       if ((result = _get_exact_match_bindaddress(af_type, filter, &interf->data)) != NULL) {
         return result;
       }
@@ -482,7 +490,7 @@ _get_matching_bindaddress(int af_type, struct netaddr_acl *filter,
 
   /* handle the 'all interfaces' case */
   if (ifdata == NULL) {
-    avl_for_each_element(&oonf_interface_tree, interf, _node) {
+    avl_for_each_element(&_oonf_interface_tree, interf, _node) {
       if ((result = _get_matching_bindaddress(af_type, filter, &interf->data)) != NULL) {
         return result;
       }
@@ -513,7 +521,7 @@ static struct oonf_interface *
 _interface_add(const char *name, bool mesh) {
   struct oonf_interface *interf;
 
-  interf = avl_find_element(&oonf_interface_tree, name, interf, _node);
+  interf = avl_find_element(&_oonf_interface_tree, name, interf, _node);
   if (!interf) {
     /* allocate new interface */
     interf = oonf_class_malloc(&_if_class);
@@ -524,7 +532,7 @@ _interface_add(const char *name, bool mesh) {
     /* hookup */
     strscpy(interf->data.name, name, sizeof(interf->data.name));
     interf->_node.key = interf->data.name;
-    avl_insert(&oonf_interface_tree, &interf->_node);
+    avl_insert(&_oonf_interface_tree, &interf->_node);
 
     interf->data.index = if_nametoindex(name);
 
@@ -586,7 +594,7 @@ _interface_remove(struct oonf_interface *interf, bool mesh) {
   if (interf->data.addresses) {
     free(interf->data.addresses);
   }
-  avl_remove(&oonf_interface_tree, &interf->_node);
+  avl_remove(&_oonf_interface_tree, &interf->_node);
 
   oonf_timer_stop(&interf->_change_timer);
   oonf_class_free(&_if_class, interf);

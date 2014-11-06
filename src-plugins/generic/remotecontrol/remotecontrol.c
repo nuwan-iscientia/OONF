@@ -61,7 +61,9 @@
 
 #include "remotecontrol/remotecontrol.h"
 
-/* variable definitions */
+/* Definitions */
+#define LOG_REMOTECONTROL _oonf_remotecontrol_subsystem.logging
+
 struct _remotecontrol_cfg {
   struct netaddr_acl acl;
 };
@@ -126,7 +128,7 @@ static const char *_dependencies[] = {
   OONF_OS_ROUTING_SUBSYSTEM,
 };
 
-struct oonf_subsystem oonf_remotecontrol_subsystem = {
+static struct oonf_subsystem _oonf_remotecontrol_subsystem = {
   .name = OONF_REMOTECONTROL_SUBSYSTEM,
   .dependencies = _dependencies,
   .dependencies_count = ARRAYSIZE(_dependencies),
@@ -138,7 +140,7 @@ struct oonf_subsystem oonf_remotecontrol_subsystem = {
   .init = _init,
   .cleanup = _cleanup,
 };
-DECLARE_OONF_PLUGIN(oonf_remotecontrol_subsystem);
+DECLARE_OONF_PLUGIN(_oonf_remotecontrol_subsystem);
 
 /* command callbacks and names */
 static struct oonf_telnet_command _telnet_cmds[] = {
@@ -237,7 +239,7 @@ static void
 _print_memory(struct autobuf *buf) {
   struct oonf_class *c;
 
-  avl_for_each_element(&oonf_classes, c, _node) {
+  avl_for_each_element(oonf_class_get_tree(), c, _node) {
     abuf_appendf(buf, "%-25s (MEMORY) size: %"PRINTF_SIZE_T_SPECIFIER
         " usage: %u freelist: %u allocations: %u/%u\n",
         c->name, c->size,
@@ -256,7 +258,7 @@ static void
 _print_timer(struct autobuf *buf) {
   struct oonf_timer_class *t;
 
-  list_for_each_element(&oonf_timer_info_list, t, _node) {
+  list_for_each_element(oonf_timer_get_list(), t, _node) {
     abuf_appendf(buf, "%-25s (TIMER) usage: %u changes: %u\n",
         t->name, t->usage, t->changes);
   }
@@ -600,7 +602,7 @@ _cb_handle_route(struct oonf_telnet_data *data) {
   struct os_route route;
   int result;
 
-  memcpy(&route, &OS_ROUTE_WILDCARD, sizeof(route));
+  memcpy(&route, os_routing_get_wildcard_route(), sizeof(route));
 
   if ((next = str_hasnextword(data->parameter, "add")) != NULL) {
     add = true;

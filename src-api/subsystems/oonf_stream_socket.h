@@ -204,9 +204,6 @@ struct oonf_stream_managed {
   struct oonf_interface_listener _if_listener;
 };
 
-#define LOG_STREAM oonf_stream_socket_subsystem.logging
-EXPORT extern struct oonf_subsystem oonf_stream_socket_subsystem;
-
 EXPORT int oonf_stream_add(struct oonf_stream_socket *,
     const union netaddr_socket *local);
 EXPORT void oonf_stream_remove(struct oonf_stream_socket *, bool force);

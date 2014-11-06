@@ -56,6 +56,9 @@
 
 #include "subsystems/oonf_socket.h"
 
+/* Definitions */
+#define LOG_SOCKET _oonf_socket_subsystem.logging
+
 /* prototypes */
 static int _init(void);
 static void _cleanup(void);
@@ -63,10 +66,10 @@ static void _initiate_shutdown(void);
 static int _handle_scheduling(void);
 
 /* time until the scheduler should run */
-uint64_t _scheduler_time_limit;
+static uint64_t _scheduler_time_limit;
 
 /* List of all active sockets in scheduler */
-struct list_entity oonf_socket_head;
+static struct list_entity _socket_head;
 
 /* subsystem definition */
 static const char *_dependencies[] = {
@@ -74,7 +77,7 @@ static const char *_dependencies[] = {
   OONF_OS_NET_SUBSYSTEM,
 };
 
-struct oonf_subsystem oonf_socket_subsystem = {
+static struct oonf_subsystem _oonf_socket_subsystem = {
   .name = OONF_SOCKET_SUBSYSTEM,
   .dependencies = _dependencies,
   .dependencies_count = ARRAYSIZE(_dependencies),
@@ -82,7 +85,7 @@ struct oonf_subsystem oonf_socket_subsystem = {
   .cleanup = _cleanup,
   .initiate_shutdown = _initiate_shutdown,
 };
-DECLARE_OONF_PLUGIN(oonf_socket_subsystem);
+DECLARE_OONF_PLUGIN(_oonf_socket_subsystem);
 
 /**
  * Initialize olsr socket scheduler
@@ -94,7 +97,7 @@ _init(void) {
     return -1;
   }
 
-  list_init_head(&oonf_socket_head);
+  list_init_head(&_socket_head);
   return 0;
 }
 
@@ -107,7 +110,7 @@ _cleanup(void)
 {
   struct oonf_socket_entry *entry, *iterator;
 
-  list_for_each_element_safe(&oonf_socket_head, entry, _node, iterator) {
+  list_for_each_element_safe(&_socket_head, entry, _node, iterator) {
     list_remove(&entry->_node);
     os_net_close(entry->fd);
   }
@@ -133,7 +136,7 @@ oonf_socket_add(struct oonf_socket_entry *entry)
 
   OONF_DEBUG(LOG_SOCKET, "Adding socket entry %d to scheduler\n", entry->fd);
 
-  list_add_before(&oonf_socket_head, &entry->_node);
+  list_add_before(&_socket_head, &entry->_node);
 }
 
 /**
@@ -196,7 +199,7 @@ _handle_scheduling(void)
     FD_ZERO(&obits);
 
     /* Adding file-descriptors to FD set */
-    list_for_each_element_safe(&oonf_socket_head, entry, _node, iterator) {
+    list_for_each_element_safe(&_socket_head, entry, _node, iterator) {
       if (entry->process == NULL) {
         continue;
       }
@@ -254,7 +257,7 @@ _handle_scheduling(void)
     if (oonf_clock_update()) {
       return -1;
     }
-    list_for_each_element_safe(&oonf_socket_head, entry, _node, iterator) {
+    list_for_each_element_safe(&_socket_head, entry, _node, iterator) {
       if (entry->process == NULL) {
         continue;
       }

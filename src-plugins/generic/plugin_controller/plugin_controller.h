@@ -48,7 +48,4 @@
 
 #define OONF_PLUGIN_CONTROLLER_SUBSYSTEM "plugin_controller"
 
-#define LOG_PLUGINCTRL oonf_plugin_controller_subsystem.logging
-EXPORT extern struct oonf_subsystem oonf_plugin_controller_subsystem;
-
 #endif /* PLUGIN_CONTROLLER_H_ */

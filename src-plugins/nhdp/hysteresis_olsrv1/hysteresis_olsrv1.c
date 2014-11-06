@@ -59,7 +59,7 @@
 #include "hysteresis_olsrv1/hysteresis_olsrv1.h"
 
 /* definitions and constants */
-#define CFG_HYSTERESIS_OONFV1_SECTION "hysteresis_olsrv1"
+#define LOG_HYSTERESIS_OLSRV1 olsrv2_hysteresis_olsrv1_subsystem.logging
 
 struct _config {
   int accept;
@@ -108,7 +108,7 @@ static struct cfg_schema_entry _hysteresis_entries[] = {
 };
 
 static struct cfg_schema_section _hysteresis_section = {
-  .type = CFG_HYSTERESIS_OONFV1_SECTION,
+  .type = OONF_HYSTERESIS_OLSRV1_SUBSYSTEM,
   .cb_delta_handler = _cb_cfg_changed,
   .cb_validate = _cb_cfg_validate,
   .entries = _hysteresis_entries,
@@ -124,7 +124,7 @@ static const char *_dependencies[] = {
   OONF_TIMER_SUBSYSTEM,
   OONF_NHDP_SUBSYSTEM,
 };
-struct oonf_subsystem olsrv2_hysteresis_olsrv1_subsystem = {
+static struct oonf_subsystem _olsrv2_hysteresis_olsrv1_subsystem = {
   .name = OONF_HYSTERESIS_OLSRV1_SUBSYSTEM,
   .dependencies = _dependencies,
   .dependencies_count = ARRAYSIZE(_dependencies),
@@ -136,7 +136,7 @@ struct oonf_subsystem olsrv2_hysteresis_olsrv1_subsystem = {
   .init = _init,
   .cleanup = _cleanup,
 };
-DECLARE_OONF_PLUGIN(olsrv2_hysteresis_olsrv1_subsystem);
+DECLARE_OONF_PLUGIN(_olsrv2_hysteresis_olsrv1_subsystem);
 
 /* storage extension for nhdp_link */
 struct oonf_class_extension _link_extenstion = {
@@ -172,7 +172,7 @@ _init(void) {
     struct nhdp_link *lnk;
 
     /* add all custom extensions for link */
-    list_for_each_element(&nhdp_link_list, lnk, _global_node) {
+    list_for_each_element(nhdp_db_get_link_list(), lnk, _global_node) {
       _cb_link_added(lnk);
     }
   }
@@ -192,7 +192,7 @@ _cleanup(void) {
   struct nhdp_link *lnk;
 
   /* remove all custom extensions for link */
-  list_for_each_element(&nhdp_link_list, lnk, _global_node) {
+  list_for_each_element(nhdp_db_get_link_list(), lnk, _global_node) {
     _cb_link_removed(lnk);
   }
 

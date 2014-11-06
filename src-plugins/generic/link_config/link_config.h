@@ -46,7 +46,5 @@
 #include "core/oonf_subsystem.h"
 
 #define OONF_LINK_CONFIG_SUBSYSTEM "link_config"
-#define LOG_LINK_CONFIG oonf_link_config_subsystem.logging
-EXPORT extern struct oonf_subsystem oonf_link_config_subsystem;
 
 #endif /* OONF_LINKCONFIG_H_ */

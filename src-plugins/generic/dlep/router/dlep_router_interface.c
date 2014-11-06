@@ -58,6 +58,7 @@
 #include "dlep/dlep_writer.h"
 #include "dlep/router/dlep_router.h"
 #include "dlep/router/dlep_router_interface.h"
+#include "dlep/router/dlep_router_internal.h"
 #include "dlep/router/dlep_router_session.h"
 
 static void _cleanup_interface(struct dlep_router_if *interface);

@@ -49,6 +49,9 @@
 
 #include "subsystems/oonf_class.h"
 
+/* Definitions */
+#define LOG_CLASS (_oonf_class_subsystem.logging)
+
 /* prototypes */
 static int _init(void);
 static void _cleanup(void);
@@ -59,22 +62,22 @@ static const char *_cb_to_keystring(struct oonf_objectkey_str *,
     struct oonf_class *, void *);
 
 /* list of memory cookies */
-struct avl_tree oonf_classes;
+static struct avl_tree _classes_tree;
 
 /* name of event types */
-const char *OONF_CLASS_EVENT_NAME[] = {
+static const char *OONF_CLASS_EVENT_NAME[] = {
   [OONF_OBJECT_ADDED] = "added",
   [OONF_OBJECT_REMOVED] = "removed",
   [OONF_OBJECT_CHANGED] = "changed",
 };
 
 /* subsystem definition */
-struct oonf_subsystem oonf_class_subsystem = {
+static struct oonf_subsystem _oonf_class_subsystem = {
   .name = OONF_CLASS_SUBSYSTEM,
   .init = _init,
   .cleanup = _cleanup,
 };
-DECLARE_OONF_PLUGIN(oonf_class_subsystem);
+DECLARE_OONF_PLUGIN(_oonf_class_subsystem);
 
 /**
  * Initialize the class system
@@ -82,7 +85,7 @@ DECLARE_OONF_PLUGIN(oonf_class_subsystem);
  */
 static int
 _init(void) {
-  avl_init(&oonf_classes, avl_comp_strcasecmp, false);
+  avl_init(&_classes_tree, avl_comp_strcasecmp, false);
   return 0;
 }
 
@@ -97,7 +100,7 @@ _cleanup(void)
   /*
    * Walk the full index range and kill 'em all.
    */
-  avl_for_each_element_safe(&oonf_classes, info, _node, iterator) {
+  avl_for_each_element_safe(&_classes_tree, info, _node, iterator) {
     oonf_class_remove(info);
   }
 }
@@ -116,7 +119,7 @@ oonf_class_add(struct oonf_class *ci)
 
   /* hook into tree */
   ci->_node.key = ci->name;
-  avl_insert(&oonf_classes, &ci->_node);
+  avl_insert(&_classes_tree, &ci->_node);
 
   /* add standard key generator if necessary */
   if (ci->to_keystring == NULL) {
@@ -141,7 +144,7 @@ oonf_class_remove(struct oonf_class *ci)
   struct oonf_class_extension *ext, *iterator;
 
   /* remove memcookie from tree */
-  avl_remove(&oonf_classes, &ci->_node);
+  avl_remove(&_classes_tree, &ci->_node);
 
   /* remove all free memory blocks */
   _free_freelist(ci);
@@ -298,7 +301,7 @@ oonf_class_extension_add(struct oonf_class_extension *ext) {
     return 0;
   }
 
-  c = avl_find_element(&oonf_classes, ext->class_name, c, _node);
+  c = avl_find_element(&_classes_tree, ext->class_name, c, _node);
   if (c == NULL) {
     OONF_WARN(LOG_CLASS, "Unknown class %s for extension %s",
         ext->class_name, ext->ext_name);
@@ -374,6 +377,16 @@ oonf_class_event(struct oonf_class *c, void *ptr, enum oonf_class_event evt) {
     }
   }
   OONF_DEBUG(LOG_CLASS, "Fire event finished");
+}
+
+struct avl_tree *
+oonf_class_get_tree(void) {
+  return &_classes_tree;
+}
+
+const char *
+oonf_class_get_event_name(enum oonf_class_event event) {
+  return OONF_CLASS_EVENT_NAME[event];
 }
 
 /**

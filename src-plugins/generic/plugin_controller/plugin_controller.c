@@ -52,6 +52,8 @@
 #include "plugin_controller/plugin_controller.h"
 
 /* definitions */
+#define LOG_PLUGINCTRL _oonf_plugin_controller_subsystem.logging
+
 struct _acl_config {
   struct netaddr_acl acl;
 };
@@ -88,7 +90,7 @@ static const char *_dependencies[] = {
   OONF_TELNET_SUBSYSTEM,
 };
 
-struct oonf_subsystem oonf_plugin_controller_subsystem = {
+static struct oonf_subsystem _oonf_plugin_controller_subsystem = {
   .name = OONF_PLUGIN_CONTROLLER_SUBSYSTEM,
   .dependencies = _dependencies,
   .dependencies_count = ARRAYSIZE(_dependencies),
@@ -100,7 +102,7 @@ struct oonf_subsystem oonf_plugin_controller_subsystem = {
   .init = _init,
   .cleanup = _cleanup,
 };
-DECLARE_OONF_PLUGIN(oonf_plugin_controller_subsystem);
+DECLARE_OONF_PLUGIN(_oonf_plugin_controller_subsystem);
 
 /**
  * Constructor of plugin

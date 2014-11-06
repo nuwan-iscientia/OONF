@@ -56,6 +56,7 @@
 #include "nhdp/nhdp_db.h"
 #include "nhdp/nhdp_domain.h"
 #include "nhdp/nhdp_interfaces.h"
+#include "nhdp/nhdp_internal.h"
 
 static void _apply_metric(struct nhdp_domain *domain, const char *metric_name);
 static void _remove_metric(struct nhdp_domain *);
@@ -99,8 +100,8 @@ static struct nhdp_domain_mpr _no_mprs = {
 };
 
 /* non-default routing domains registered to NHDP */
-struct list_entity nhdp_domain_list;
-struct list_entity nhdp_domain_listener_list;
+static struct list_entity _domain_list;
+static struct list_entity _domain_listener_list;
 
 static size_t _domain_counter = 0;
 
@@ -127,8 +128,8 @@ nhdp_domain_init(struct oonf_rfc5444_protocol *p) {
   _protocol = p;
 
   oonf_class_add(&_domain_class);
-  list_init_head(&nhdp_domain_list);
-  list_init_head(&nhdp_domain_listener_list);
+  list_init_head(&_domain_list);
+  list_init_head(&_domain_listener_list);
 
   avl_init(&nhdp_domain_metrics, avl_comp_strcasecmp, false);
   avl_init(&nhdp_domain_mprs, avl_comp_strcasecmp, false);
@@ -143,7 +144,7 @@ nhdp_domain_cleanup(void) {
   struct nhdp_domain_listener *listener, *l_it;
   int i;
 
-  list_for_each_element_safe(&nhdp_domain_list, domain, _node, d_it) {
+  list_for_each_element_safe(&_domain_list, domain, _node, d_it) {
     /* free allocated TLVs */
     for (i=0; i<4; i++) {
       rfc5444_writer_unregister_addrtlvtype(
@@ -155,7 +156,7 @@ nhdp_domain_cleanup(void) {
     oonf_class_free(&_domain_class, domain);
   }
 
-  list_for_each_element_safe(&nhdp_domain_listener_list, listener, _node, l_it) {
+  list_for_each_element_safe(&_domain_listener_list, listener, _node, l_it) {
     nhdp_domain_listener_remove(listener);
   }
   oonf_class_remove(&_domain_class);
@@ -222,7 +223,7 @@ void
 nhdp_domain_metric_remove(struct nhdp_domain_metric *metric) {
   struct nhdp_domain *domain;
 
-  list_for_each_element(&nhdp_domain_list, domain, _node) {
+  list_for_each_element(&_domain_list, domain, _node) {
     if (domain->metric == metric) {
       _remove_metric(domain);
       break;
@@ -248,7 +249,7 @@ nhdp_domain_mpr_add(struct nhdp_domain_mpr *mpr) {
     return -1;
   }
 
-  list_for_each_element(&nhdp_domain_list, domain, _node) {
+  list_for_each_element(&_domain_list, domain, _node) {
     if (domain->mpr == &_no_mprs) {
       _apply_mpr(domain, domain->mpr_name);
     }
@@ -264,7 +265,7 @@ void
 nhdp_domain_mpr_remove(struct nhdp_domain_mpr *mpr) {
   struct nhdp_domain *domain;
 
-  list_for_each_element(&nhdp_domain_list, domain, _node) {
+  list_for_each_element(&_domain_list, domain, _node) {
     if (domain->mpr == mpr) {
       _remove_mpr(domain);
       break;
@@ -280,7 +281,7 @@ nhdp_domain_mpr_remove(struct nhdp_domain_mpr *mpr) {
  */
 void
 nhdp_domain_listener_add(struct nhdp_domain_listener *listener) {
-  list_add_tail(&nhdp_domain_listener_list, &listener->_node);
+  list_add_tail(&_domain_listener_list, &listener->_node);
 }
 
 /**
@@ -302,7 +303,7 @@ struct nhdp_domain *
 nhdp_domain_get_by_ext(uint8_t ext) {
   struct nhdp_domain *d;
 
-  list_for_each_element(&nhdp_domain_list, d, _node) {
+  list_for_each_element(&_domain_list, d, _node) {
     if (d->ext == ext) {
       return d;
     }
@@ -326,7 +327,7 @@ nhdp_domain_init_link(struct nhdp_link *lnk) {
     lnk->_domaindata[i].metric.in = RFC7181_METRIC_MAX;
     lnk->_domaindata[i].metric.out = RFC7181_METRIC_MAX;
   }
-  list_for_each_element(&nhdp_domain_list, domain, _node) {
+  list_for_each_element(&_domain_list, domain, _node) {
     data = nhdp_domain_get_linkdata(domain, lnk);
 
     data->metric.in = domain->metric->incoming_link_start;
@@ -350,7 +351,7 @@ nhdp_domain_init_l2hop(struct nhdp_l2hop *l2hop) {
     l2hop->_domaindata[i].metric.out = RFC7181_METRIC_MAX;
   }
 
-  list_for_each_element(&nhdp_domain_list, domain, _node) {
+  list_for_each_element(&_domain_list, domain, _node) {
     data = nhdp_domain_get_l2hopdata(domain, l2hop);
 
     data->metric.in = domain->metric->incoming_2hop_start;
@@ -379,7 +380,7 @@ nhdp_domain_init_neighbor(struct nhdp_neighbor *neigh) {
   }
 
   /* initialize metrics and mprs */
-  list_for_each_element(&nhdp_domain_list, domain, _node) {
+  list_for_each_element(&_domain_list, domain, _node) {
     data = nhdp_domain_get_neighbordata(domain, neigh);
 
     data->metric.in = domain->metric->incoming_link_start;
@@ -452,8 +453,8 @@ nhdp_domain_neighborhood_changed(void) {
   struct nhdp_domain *domain;
   struct nhdp_neighbor *neigh;
   
-  list_for_each_element(&nhdp_domain_list, domain, _node) {
-    list_for_each_element(&nhdp_neigh_list, neigh, _global_node) {
+  list_for_each_element(&_domain_list, domain, _node) {
+    list_for_each_element(nhdp_db_get_neigh_list(), neigh, _global_node) {
       _recalculate_neighbor_metric(domain, neigh);
     }
 
@@ -465,7 +466,7 @@ nhdp_domain_neighborhood_changed(void) {
   // TODO: flooding mpr ?
   // (Why do we need to consider flooding MPRs here?)
 
-  list_for_each_element(&nhdp_domain_listener_list, listener, _node) {
+  list_for_each_element(&_domain_listener_list, listener, _node) {
     if (listener->update) {
       listener->update(NULL);
     }
@@ -475,8 +476,8 @@ nhdp_domain_neighborhood_changed(void) {
   OONF_DEBUG(LOG_NHDP, "Checking if we still have routing MPR selectors");
   _node_is_selected_as_mpr = false;
 
-  list_for_each_element(&nhdp_domain_list, domain, _node) {
-    list_for_each_element(&nhdp_neigh_list, neigh, _global_node) {
+  list_for_each_element(&_domain_list, domain, _node) {
+    list_for_each_element(nhdp_db_get_neigh_list(), neigh, _global_node) {
       if (nhdp_domain_get_neighbordata(domain, neigh)->local_is_mpr) {
         _node_is_selected_as_mpr = true;
         return;
@@ -495,7 +496,7 @@ nhdp_domain_neighbor_changed(struct nhdp_neighbor *neigh) {
   struct nhdp_domain_listener *listener;
   struct nhdp_domain *domain;
   
-  list_for_each_element(&nhdp_domain_list, domain, _node) {
+  list_for_each_element(&_domain_list, domain, _node) {
     _recalculate_neighbor_metric(domain, neigh);
 
     if (domain->mpr->update_mpr != NULL) {
@@ -506,7 +507,7 @@ nhdp_domain_neighbor_changed(struct nhdp_neighbor *neigh) {
   // TODO: flooding mpr ?
   // (Why do we need to consider flooding MPRs here?)
 
-  list_for_each_element(&nhdp_domain_listener_list, listener, _node) {
+  list_for_each_element(&_domain_listener_list, listener, _node) {
     if (listener->update) {
       listener->update(neigh);
     }
@@ -516,8 +517,8 @@ nhdp_domain_neighbor_changed(struct nhdp_neighbor *neigh) {
   OONF_DEBUG(LOG_NHDP, "Checking if we still have routing MPR selectors");
   _node_is_selected_as_mpr = false;
 
-  list_for_each_element(&nhdp_domain_list, domain, _node) {
-    list_for_each_element(&nhdp_neigh_list, neigh, _global_node) {
+  list_for_each_element(&_domain_list, domain, _node) {
+    list_for_each_element(nhdp_db_get_neigh_list(), neigh, _global_node) {
       if (nhdp_domain_get_neighbordata(domain, neigh)->local_is_mpr) {
         _node_is_selected_as_mpr = true;
         return;
@@ -549,7 +550,7 @@ nhdp_domain_process_mprtypes_tlv(
   size_t count;
 
   if (!tlv) {
-    domain = list_first_element(&nhdp_domain_list, domain, _node);
+    domain = list_first_element(&_domain_list, domain, _node);
     mprtypes[0] = domain->ext;
 
     return 1;
@@ -558,7 +559,7 @@ nhdp_domain_process_mprtypes_tlv(
   memset(mprtypes, 255, mprtypes_size);
 
   count = 0;
-  list_for_each_element(&nhdp_domain_list, domain, _node) {
+  list_for_each_element(&_domain_list, domain, _node) {
     mprtypes[count++] = domain->ext;
     if (count >= mprtypes_size) {
       break;
@@ -582,7 +583,7 @@ nhdp_domain_process_mpr_tlv(uint8_t *mprtypes, size_t mprtypes_size,
   size_t i;
 
   neigh->local_is_flooding_mpr = false;
-  list_for_each_element(&nhdp_domain_list, domain, _node) {
+  list_for_each_element(&_domain_list, domain, _node) {
     nhdp_domain_get_neighbordata(domain, neigh)->local_is_mpr = false;
   }
 
@@ -633,7 +634,7 @@ nhdp_domain_process_willingness_tlv(uint8_t *mprtypes, size_t mprtypes_size,
   uint8_t value;
 
   _flooding_mpr->willingness = RFC7181_WILLINGNESS_NEVER;
-  list_for_each_element(&nhdp_domain_list, domain, _node) {
+  list_for_each_element(&_domain_list, domain, _node) {
     domain->mpr->willingness = RFC7181_WILLINGNESS_NEVER;
   }
 
@@ -685,7 +686,7 @@ nhdp_domain_encode_mprtypes_tlvvalue(
   size_t count;
 
   count = 0;
-  list_for_each_element(&nhdp_domain_list, domain, _node) {
+  list_for_each_element(&_domain_list, domain, _node) {
     mprtypes[count++] = domain->ext;
 
     if (count >= mprtypes_size) {
@@ -720,7 +721,7 @@ nhdp_domain_encode_mpr_tlvvalue(
   OONF_DEBUG(LOG_NHDP_W, "Set flooding MPR: %s",
       neigh->neigh_is_flooding_mpr ? "true" : "false");
 
-  list_for_each_element(&nhdp_domain_list, domain, _node) {
+  list_for_each_element(&_domain_list, domain, _node) {
     bit_idx = (domain->index + 1) & 7;
     byte_idx = (domain->index + 1) >> 3;
 
@@ -762,7 +763,7 @@ nhdp_domain_encode_willingness_tlvvalue(uint8_t *tlvvalue, size_t tlvsize) {
       _flooding_mpr->willingness);
 
   /* set routing willingness */
-  list_for_each_element(&nhdp_domain_list, domain, _node) {
+  list_for_each_element(&_domain_list, domain, _node) {
     idx = (domain->index + 1) / 2;
     if (idx >= tlvsize) {
       return -1;
@@ -823,6 +824,17 @@ nhdp_domain_set_incoming_metric(struct nhdp_domain *domain,
 
   return old_metric != metric_in;
 }
+
+struct list_entity *
+nhdp_domain_get_list(void) {
+  return &_domain_list;
+}
+
+struct list_entity *
+nhdp_domain_get_listener_list(void) {
+  return &_domain_listener_list;
+}
+
 
 /**
  * Recalculate the 'best link/metric' values of a neighbor
@@ -917,7 +929,7 @@ nhdp_domain_add(uint8_t ext) {
   }
 
   /* add to domain list */
-  list_add_tail(&nhdp_domain_list, &domain->_node);
+  list_add_tail(&_domain_list, &domain->_node);
 
   oonf_class_event(&_domain_class, domain,OONF_OBJECT_ADDED);
   return domain;

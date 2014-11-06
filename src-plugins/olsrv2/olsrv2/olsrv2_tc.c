@@ -85,8 +85,8 @@ static struct oonf_timer_class _validity_info = {
 };
 
 /* global trees for tc nodes and endpoints */
-struct avl_tree olsrv2_tc_tree;
-struct avl_tree olsrv2_tc_endpoint_tree;
+static struct avl_tree _tc_tree;
+static struct avl_tree _tc_endpoint_tree;
 
 /**
  * Initialize tc database
@@ -98,8 +98,8 @@ olsrv2_tc_init(void) {
   oonf_class_add(&_tc_attached_class);
   oonf_class_add(&_tc_endpoint_class);
 
-  avl_init(&olsrv2_tc_tree, avl_comp_netaddr, false);
-  avl_init(&olsrv2_tc_endpoint_tree, avl_comp_netaddr, true);
+  avl_init(&_tc_tree, avl_comp_netaddr, false);
+  avl_init(&_tc_endpoint_tree, avl_comp_netaddr, true);
 }
 
 /**
@@ -111,7 +111,7 @@ olsrv2_tc_cleanup(void) {
   struct olsrv2_tc_edge *edge, *e_it;
   struct olsrv2_tc_attachment *a_end, *ae_it;
 
-  avl_for_each_element(&olsrv2_tc_tree, node, _originator_node) {
+  avl_for_each_element(&_tc_tree, node, _originator_node) {
     avl_for_each_element_safe(&node->_edges, edge, _node, e_it) {
       /* remove edge without cleaning up the node */
       _remove_edge(edge, false);
@@ -122,7 +122,7 @@ olsrv2_tc_cleanup(void) {
     }
   }
 
-  avl_for_each_element_safe(&olsrv2_tc_tree, node, _originator_node, n_it) {
+  avl_for_each_element_safe(&_tc_tree, node, _originator_node, n_it) {
     olsrv2_tc_node_remove(node);
   }
 
@@ -145,7 +145,7 @@ olsrv2_tc_node_add(struct netaddr *originator,
   struct olsrv2_tc_node *node;
 
   node = avl_find_element(
-      &olsrv2_tc_tree, originator, node, _originator_node);
+      &_tc_tree, originator, node, _originator_node);
   if (!node) {
     node = oonf_class_malloc(&_tc_node_class);
     if (node == NULL) {
@@ -169,7 +169,7 @@ olsrv2_tc_node_add(struct netaddr *originator,
     olsrv2_routing_dijkstra_node_init(&node->target._dijkstra);
 
     /* hook into global tree */
-    avl_insert(&olsrv2_tc_tree, &node->_originator_node);
+    avl_insert(&_tc_tree, &node->_originator_node);
 
     /* fire event */
     oonf_class_event(&_tc_node_class, node, OONF_OBJECT_ADDED);
@@ -213,7 +213,7 @@ olsrv2_tc_node_remove(struct olsrv2_tc_node *node) {
 
   /* remove from global tree and free memory if node is not needed anymore*/
   if (node->_edges.count == 0) {
-    avl_remove(&olsrv2_tc_tree, &node->_originator_node);
+    avl_remove(&_tc_tree, &node->_originator_node);
     oonf_class_free(&_tc_node_class, node);
   }
 }
@@ -253,7 +253,7 @@ olsrv2_tc_edge_add(struct olsrv2_tc_node *src, struct netaddr *addr) {
   }
 
   /* find or allocate destination node */
-  dst = avl_find_element(&olsrv2_tc_tree, addr, dst, _originator_node);
+  dst = avl_find_element(&_tc_tree, addr, dst, _originator_node);
   if (dst == NULL) {
     /* create virtual node */
     dst = olsrv2_tc_node_add(addr, 0, 0);
@@ -329,7 +329,7 @@ olsrv2_tc_endpoint_add(struct olsrv2_tc_node *node,
     return NULL;
   }
 
-  end = avl_find_element(&olsrv2_tc_endpoint_tree, prefix, end, _node);
+  end = avl_find_element(&_tc_endpoint_tree, prefix, end, _node);
   if (end == NULL) {
     /* create new endpoint */
     end = oonf_class_malloc(&_tc_endpoint_class);
@@ -345,7 +345,7 @@ olsrv2_tc_endpoint_add(struct olsrv2_tc_node *node,
     /* attach to global tree */
     memcpy(&end->target.addr, prefix, sizeof(*prefix));
     end->_node.key = &end->target.addr;
-    avl_insert(&olsrv2_tc_endpoint_tree, &end->_node);
+    avl_insert(&_tc_endpoint_tree, &end->_node);
 
     oonf_class_event(&_tc_endpoint_class, end, OONF_OBJECT_ADDED);
   }
@@ -391,13 +391,24 @@ olsrv2_tc_endpoint_remove(
     oonf_class_event(&_tc_endpoint_class, net->dst, OONF_OBJECT_REMOVED);
 
     /* remove endpoint */
-    avl_remove(&olsrv2_tc_endpoint_tree, &net->dst->_node);
+    avl_remove(&_tc_endpoint_tree, &net->dst->_node);
     oonf_class_free(&_tc_endpoint_class, net->dst);
   }
 
   /* free attached network */
   oonf_class_free(&_tc_attached_class, net);
 }
+
+struct avl_tree *
+olsrv2_tc_get_tree(void) {
+  return &_tc_tree;
+}
+
+struct avl_tree *
+olsrv2_tc_get_endpoint_tree(void) {
+  return &_tc_endpoint_tree;
+}
+
 
 /**
  * Callback triggered when a tc node times out

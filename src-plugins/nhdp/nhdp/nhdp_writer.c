@@ -49,8 +49,9 @@
 #include "subsystems/oonf_rfc5444.h"
 
 #include "nhdp/nhdp.h"
-#include "nhdp/nhdp_interfaces.h"
 #include "nhdp/nhdp_domain.h"
+#include "nhdp/nhdp_interfaces.h"
+#include "nhdp/nhdp_internal.h"
 #include "nhdp/nhdp_writer.h"
 
 /* constants */
@@ -415,7 +416,7 @@ _add_link_address(struct rfc5444_writer *writer, struct rfc5444_writer_content_p
   }
 
   /* add linkcost TLVs */
-  list_for_each_element(&nhdp_domain_list, domain, _node) {
+  list_for_each_element(nhdp_domain_get_list(), domain, _node) {
     struct nhdp_link *lnk = NULL;
     struct nhdp_neighbor *neigh = NULL;
 
@@ -544,7 +545,7 @@ _cb_addAddresses(struct rfc5444_writer *writer) {
   interf = nhdp_interface_get(target->interface->name);
 
   /* transmit interface addresses first */
-  avl_for_each_element(&nhdp_ifaddr_tree, addr, _global_node) {
+  avl_for_each_element(nhdp_interface_get_address_tree(), addr, _global_node) {
     if (addr->removed) {
       continue;
     }
@@ -555,7 +556,7 @@ _cb_addAddresses(struct rfc5444_writer *writer) {
   }
 
   /* then transmit neighbor addresses */
-  avl_for_each_element(&nhdp_naddr_tree, naddr, _global_node) {
+  avl_for_each_element(nhdp_db_get_naddr_tree(), naddr, _global_node) {
     if (netaddr_get_address_family(&naddr->neigh_addr)
         == netaddr_get_address_family(&target->dst)) {
       _add_link_address(writer, &_nhdp_msgcontent_provider, interf, naddr);

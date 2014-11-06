@@ -94,10 +94,6 @@ struct oonf_interface_listener {
   struct list_entity _node;
 };
 
-#define LOG_INTERFACE oonf_interface_subsystem.logging
-EXPORT extern struct oonf_subsystem oonf_interface_subsystem;
-EXPORT extern struct avl_tree oonf_interface_tree;
-
 EXPORT int oonf_interface_add_listener(struct oonf_interface_listener *);
 EXPORT void oonf_interface_remove_listener(struct oonf_interface_listener *);
 
@@ -115,5 +111,7 @@ EXPORT const struct netaddr *oonf_interface_get_bindaddress(int af_type,
     struct netaddr_acl *filter, struct oonf_interface_data *ifdata);
 EXPORT const struct netaddr *oonf_interface_get_prefix_from_dst(
     struct netaddr *destination, struct oonf_interface_data *ifdata);
+
+EXPORT struct avl_tree *oonf_interface_get_tree(void);
 
 #endif /* INTERFACE_H_ */

@@ -138,13 +138,7 @@ struct oonf_class_extension {
 /* percentage of blocks kept in the free list compared to allocated blocks */
 #define OONF_CLASS_FREE_THRESHOLD 10   /* Blocks / Percent  */
 
-#define LOG_CLASS (oonf_class_subsystem.logging)
-EXPORT extern struct oonf_subsystem oonf_class_subsystem;
-EXPORT extern struct avl_tree oonf_classes;
-EXPORT extern const char *OONF_CLASS_EVENT_NAME[];
-
 /* Externals. */
-
 EXPORT void oonf_class_add(struct oonf_class *);
 EXPORT void oonf_class_remove(struct oonf_class *);
 EXPORT int oonf_class_resize(struct oonf_class *)
@@ -158,6 +152,9 @@ EXPORT int oonf_class_extension_add(struct oonf_class_extension *);
 EXPORT void oonf_class_extension_remove(struct oonf_class_extension *);
 
 EXPORT void oonf_class_event(struct oonf_class *, void *, enum oonf_class_event);
+
+EXPORT struct avl_tree *oonf_class_get_tree(void);
+EXPORT const char *oonf_class_get_event_name(enum oonf_class_event);
 
 /**
  * @param ci pointer to class

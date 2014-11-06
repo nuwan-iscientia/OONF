@@ -65,8 +65,6 @@ struct olsrv2_lan_entry {
   struct olsrv2_lan_domaindata _domaindata[NHDP_MAXIMUM_DOMAINS];
 };
 
-EXPORT extern struct avl_tree olsrv2_lan_tree;
-
 void olsrv2_lan_init(void);
 void olsrv2_lan_cleanup(void);
 
@@ -79,6 +77,9 @@ EXPORT void olsrv2_lan_remove(struct nhdp_domain *,
 EXPORT int olsrv2_lan_validate(const struct cfg_schema_entry *entry,
     const char *section_name, const char *value, struct autobuf *out);
 
+EXPORT struct avl_tree *olsrv2_lan_get_tree(void);
+
+
 /**
  * @param addr originator address
  * @return pointer to LAN set entry, NULL if not found
@@ -86,7 +87,7 @@ EXPORT int olsrv2_lan_validate(const struct cfg_schema_entry *entry,
 static INLINE struct olsrv2_lan_entry *
 olsrv2_lan_get(struct netaddr *addr) {
   struct olsrv2_lan_entry *entry;
-  return avl_find_element(&olsrv2_lan_tree, addr, entry, _node);
+  return avl_find_element(olsrv2_lan_get_tree(), addr, entry, _node);
 }
 
 /**

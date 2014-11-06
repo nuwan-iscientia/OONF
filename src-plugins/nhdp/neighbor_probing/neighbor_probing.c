@@ -58,6 +58,8 @@
 #include "neighbor_probing/neighbor_probing.h"
 
 /* definitions and constants */
+#define LOG_PROBING _olsrv2_neighbor_probing_subsystem.logging
+
 struct _config {
   /* Interval between two link probes */
   uint64_t interval;
@@ -113,7 +115,7 @@ static const char *_dependencies[] = {
   OONF_RFC5444_SUBSYSTEM,
   OONF_TIMER_SUBSYSTEM,
 };
-struct oonf_subsystem olsrv2_neighbor_probing_subsystem = {
+static struct oonf_subsystem _olsrv2_neighbor_probing_subsystem = {
   .name = OONF_NEIGHBOR_PROBING_SUBSYSTEM,
   .dependencies = _dependencies,
   .dependencies_count = ARRAYSIZE(_dependencies),
@@ -125,9 +127,9 @@ struct oonf_subsystem olsrv2_neighbor_probing_subsystem = {
   .init = _init,
   .cleanup = _cleanup,
 };
-DECLARE_OONF_PLUGIN(olsrv2_neighbor_probing_subsystem);
+DECLARE_OONF_PLUGIN(_olsrv2_neighbor_probing_subsystem);
 
-struct _config _probe_config;
+static struct _config _probe_config;
 
 /* storage extension and listeners */
 static struct oonf_class_extension _link_extenstion = {
@@ -149,10 +151,10 @@ static struct oonf_timer_instance _probe_timer = {
 };
 
 /* rfc5444 message handing for probing */
-struct oonf_rfc5444_protocol *_protocol;
-struct rfc5444_writer_message *_probing_message;
+static struct oonf_rfc5444_protocol *_protocol;
+static struct rfc5444_writer_message *_probing_message;
 
-struct rfc5444_writer_content_provider _probing_msg_provider = {
+static struct rfc5444_writer_content_provider _probing_msg_provider = {
   .msg_type = RFC5444_MSGTYPE_PROBING,
   .addMessageTLVs = _cb_addMessageTLVs,
 };
@@ -246,7 +248,7 @@ _cb_probe_link(void *ptr __attribute__((unused))) {
 
   l2neigh = NULL;
 
-  avl_for_each_element(&nhdp_interface_tree, ninterf, _node) {
+  avl_for_each_element(nhdp_interface_get_tree(), ninterf, _node) {
     interf = nhdp_interface_get_coreif(ninterf);
 
     l2net = oonf_layer2_net_get(interf->data.name);

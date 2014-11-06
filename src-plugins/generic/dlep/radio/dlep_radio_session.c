@@ -55,6 +55,7 @@
 #include "dlep/dlep_writer.h"
 #include "dlep/radio/dlep_radio.h"
 #include "dlep/radio/dlep_radio_interface.h"
+#include "dlep/radio/dlep_radio_internal.h"
 #include "dlep/radio/dlep_radio_session.h"
 
 static int _cb_incoming_tcp(struct oonf_stream_session *);
