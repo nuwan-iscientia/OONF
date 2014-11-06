@@ -53,6 +53,8 @@
 
 #define OONF_SUBSYSTEM_NAMESIZE 32
 
+#define DECLARE_OONF_PLUGIN(subsystem) EXPORT void hookup_plugin_ ## subsystem (void) __attribute__ ((constructor)); void hookup_plugin_ ## subsystem (void) { oonf_plugins_hook(&subsystem); }
+
 /*
  * description of a subsystem of the OONF-API.
  * In theory, ALL fields except for name are optional.
@@ -60,6 +62,10 @@
 struct oonf_subsystem {
   /* name of the subsystem */
   const char *name;
+
+  /* list of dependencies of this subsystem */
+  const char **dependencies;
+  size_t dependencies_count;
 
   /* description of the subsystem */
   const char *descr;
@@ -115,12 +121,21 @@ struct oonf_subsystem {
   enum oonf_log_source logging;
 
   /* true if the subsystem is initialized */
-  bool _initialized, _unload_initiated;
+  bool _initialized;
+
+  /* true if unload of plugin is in progress */
+  bool _unload_initiated;
+
+  /* temporary variable to detect circular dependencies */
+  bool _dependency_missing;
 
   /* pointer to dlopen handle */
   void *_dlhandle;
 
-  /* tree for dynamic subsystems */
+  /* which template was used to load plugin */
+  int _dlpath_index;
+
+  /* hook into subsystem tree */
   struct avl_node _node;
 };
 
@@ -128,6 +143,41 @@ EXPORT void oonf_subsystem_configure(struct cfg_schema *schema,
     struct oonf_subsystem *subsystem);
 EXPORT void oonf_subsystem_unconfigure(struct cfg_schema *schema,
     struct oonf_subsystem *subsystem);
+
+struct oonf_plugin_namebuf {
+  char name[OONF_SUBSYSTEM_NAMESIZE];
+};
+
+EXPORT extern struct avl_tree oonf_plugin_tree;
+
+EXPORT int oonf_plugins_init(void);
+EXPORT void oonf_plugins_initiate_shutdown(void);
+EXPORT void oonf_plugins_cleanup(void);
+EXPORT void oonf_plugins_set_path(const char *path);
+
+EXPORT void oonf_plugins_hook(struct oonf_subsystem *subsystem);
+
+EXPORT int oonf_plugins_call_init(struct oonf_subsystem *plugin);
+EXPORT void oonf_plugins_call_cleanup(struct oonf_subsystem *plugin);
+
+EXPORT void oonf_plugins_extract_name(
+    struct oonf_plugin_namebuf *buf, const char *libname);
+
+EXPORT struct oonf_subsystem *oonf_plugins_load(const char *);
+EXPORT void oonf_plugins_initiate_unload(struct oonf_subsystem *);
+EXPORT int oonf_plugins_unload(struct oonf_subsystem *);
+
+/**
+ * Query for a certain plugin name
+ * @param libname name of plugin
+ * @return pointer to plugin db entry, NULL if not found
+ */
+static INLINE struct oonf_subsystem *
+oonf_plugins_get(const char *libname) {
+  struct oonf_subsystem *plugin;
+
+  return avl_find_element(&oonf_plugin_tree, libname, plugin, _node);
+}
 
 static INLINE bool
 oonf_subsystem_is_initialized(struct oonf_subsystem *subsystem) {

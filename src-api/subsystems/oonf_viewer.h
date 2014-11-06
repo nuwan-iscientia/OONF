@@ -47,6 +47,8 @@
 
 #include "core/oonf_subsystem.h"
 
+#define OONF_VIEWER_SUBSYSTEM "viewer"
+
 #define OONF_VIEWER_RAW_FORMAT      "raw"
 #define OONF_VIEWER_HEAD_FORMAT     "head"
 #define OONF_VIEWER_JSON_FORMAT     "json"

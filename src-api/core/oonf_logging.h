@@ -96,7 +96,6 @@ struct oonf_log_parameters {
 
 struct oonf_appdata {
   const char *app_name;
-  const char *app_version;
   const char *versionstring_trailer;
   const char *help_prefix;
   const char *help_suffix;

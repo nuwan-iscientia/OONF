@@ -52,9 +52,10 @@
 #include "core/oonf_subsystem.h"
 #include "core/os_core.h"
 #include "subsystems/oonf_class.h"
+#include "subsystems/oonf_duplicate_set.h"
 #include "subsystems/oonf_packet_socket.h"
 #include "subsystems/oonf_timer.h"
-#include "subsystems/oonf_duplicate_set.h"
+
 #include "subsystems/oonf_rfc5444.h"
 
 /* constants and definitions */
@@ -239,12 +240,22 @@ static struct oonf_rfc5444_protocol *_rfc5444_protocol = NULL;
 static struct oonf_rfc5444_interface *_rfc5444_unicast = NULL;
 
 /* subsystem definition */
+static const char *_dependencies[] = {
+  OONF_CLASS_SUBSYSTEM,
+  OONF_DUPSET_SUBSYSTEM,
+  OONF_PACKET_SUBSYSTEM,
+  OONF_TIMER_SUBSYSTEM,
+};
+
 struct oonf_subsystem oonf_rfc5444_subsystem = {
   .name = "rfc5444",
+  .dependencies = _dependencies,
+  .dependencies_count = ARRAYSIZE(_dependencies),
   .init = _init,
   .cleanup = _cleanup,
   .cfg_section = &_interface_section,
 };
+DECLARE_OONF_PLUGIN(oonf_rfc5444_subsystem);
 
 /**
  * Initialize RFC5444 handling system

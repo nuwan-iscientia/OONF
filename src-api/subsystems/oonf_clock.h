@@ -47,6 +47,8 @@
 #include "config/cfg.h"
 #include "config/cfg_schema.h"
 
+#define OONF_CLOCK_SUBSYSTEM "clock"
+
 /* Some defs for juggling with timers */
 #define MSEC_PER_SEC 1000
 #define USEC_PER_SEC 1000000

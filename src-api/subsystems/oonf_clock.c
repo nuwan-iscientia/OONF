@@ -54,6 +54,7 @@
 #include "core/oonf_logging.h"
 #include "core/oonf_subsystem.h"
 #include "subsystems/os_clock.h"
+
 #include "subsystems/oonf_clock.h"
 
 /* prototypes */
@@ -65,10 +66,18 @@ static uint64_t now_times;
 /* arbitrary timestamp that represents the time oonf_clock_init() was called */
 static uint64_t start_time;
 
+/* subsystem definition */
+static const char *_dependencies[] = {
+  OONF_OS_CLOCK_SUBSYSTEM,
+};
+
 struct oonf_subsystem oonf_clock_subsystem = {
-  .name = "clock",
+  .name = OONF_CLOCK_SUBSYSTEM,
+  .dependencies = _dependencies,
+  .dependencies_count = ARRAYSIZE(_dependencies),
   .init = _init,
 };
+DECLARE_OONF_PLUGIN(oonf_clock_subsystem);
 
 /**
  * Initialize olsr clock system

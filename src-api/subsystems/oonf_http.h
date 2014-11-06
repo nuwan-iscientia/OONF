@@ -49,6 +49,8 @@
 #include "common/string.h"
 #include "subsystems/oonf_stream_socket.h"
 
+#define OONF_HTTP_SUBSYSTEM "http"
+
 /* built in parameters for header parser */
 enum {
   OONF_HTTP_MAX_HEADERS = 16,

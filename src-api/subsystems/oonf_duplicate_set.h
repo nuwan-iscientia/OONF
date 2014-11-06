@@ -47,6 +47,8 @@
 #include "common/netaddr.h"
 #include "subsystems/oonf_timer.h"
 
+#define OONF_DUPSET_SUBSYSTEM "dupset"
+
 enum { OONF_DUPSET_MAXIMUM_TOO_OLD = 8 };
 
 enum oonf_duplicate_result {

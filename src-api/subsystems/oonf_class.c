@@ -46,6 +46,7 @@
 #include "common/avl_comp.h"
 #include "core/oonf_logging.h"
 #include "core/oonf_subsystem.h"
+
 #include "subsystems/oonf_class.h"
 
 /* prototypes */
@@ -69,10 +70,11 @@ const char *OONF_CLASS_EVENT_NAME[] = {
 
 /* subsystem definition */
 struct oonf_subsystem oonf_class_subsystem = {
-  .name = "class",
+  .name = OONF_CLASS_SUBSYSTEM,
   .init = _init,
   .cleanup = _cleanup,
 };
+DECLARE_OONF_PLUGIN(oonf_class_subsystem);
 
 /**
  * Initialize the class system

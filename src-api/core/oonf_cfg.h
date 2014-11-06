@@ -67,7 +67,8 @@ struct oonf_config_global {
 EXPORT extern struct oonf_subsystem oonf_cfg_subsystem;
 EXPORT extern struct oonf_config_global config_global;
 
-EXPORT int oonf_cfg_init(int argc, char **argv, const char *) __attribute__((warn_unused_result));
+EXPORT int oonf_cfg_init(int argc, char **argv,
+    const char *) __attribute__((warn_unused_result));
 EXPORT void oonf_cfg_cleanup(void);
 EXPORT int oonf_cfg_loadplugins(void) __attribute__((warn_unused_result));
 EXPORT struct oonf_subsystem *oonf_cfg_load_plugin(const char *name);
@@ -89,7 +90,7 @@ EXPORT struct cfg_db *oonf_cfg_get_rawdb(void);
 EXPORT struct cfg_schema *oonf_cfg_get_schema(void);
 
 EXPORT int oonf_cfg_get_argc(void);
-EXPORT const char **oonf_cfg_get_argv(void);
+EXPORT char **oonf_cfg_get_argv(void);
 
 /* do not use this in plugins */
 EXPORT int oonf_cfg_update_globalcfg(bool) __attribute__((warn_unused_result));

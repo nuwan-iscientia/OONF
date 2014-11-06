@@ -48,8 +48,9 @@
 
 #include "common/common_types.h"
 #include "core/oonf_subsystem.h"
-#include "subsystems/os_routing.h"
 #include "subsystems/os_system.h"
+
+#include "subsystems/os_routing.h"
 
 /* prototypes */
 static int _init(void);
@@ -75,11 +76,18 @@ struct os_system_netlink _rtnetlink_socket = {
 struct list_entity _rtnetlink_feedback;
 
 /* subsystem definition */
+static const char *_dependencies[] = {
+  OONF_OS_SYSTEM_SUBSYSTEM,
+};
+
 struct oonf_subsystem oonf_os_routing_subsystem = {
-  .name = "os_routing",
+  .name = OONF_OS_ROUTING_SUBSYSTEM,
+  .dependencies = _dependencies,
+  .dependencies_count = ARRAYSIZE(_dependencies),
   .init = _init,
   .cleanup = _cleanup,
 };
+DECLARE_OONF_PLUGIN(oonf_os_routing_subsystem);
 
 /* default wildcard route */
 const struct os_route OS_ROUTE_WILDCARD = {

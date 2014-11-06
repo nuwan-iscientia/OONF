@@ -56,6 +56,8 @@
 #define IF_NAMESIZE 16
 #endif
 
+#define OONF_PACKET_SUBSYSTEM "packet"
+
 struct oonf_packet_socket;
 
 struct oonf_packet_config {

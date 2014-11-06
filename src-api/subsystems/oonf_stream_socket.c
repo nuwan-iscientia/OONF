@@ -53,6 +53,7 @@
 #include "subsystems/oonf_socket.h"
 #include "subsystems/oonf_timer.h"
 #include "subsystems/os_net.h"
+
 #include "subsystems/oonf_stream_socket.h"
 
 /* prototypes */
@@ -88,11 +89,22 @@ static struct oonf_timer_class _connection_timeout = {
 };
 
 /* subsystem definition */
+static const char *_dependencies[] = {
+  OONF_CLASS_SUBSYSTEM,
+  OONF_INTERFACE_SUBSYSTEM,
+  OONF_SOCKET_SUBSYSTEM,
+  OONF_TIMER_SUBSYSTEM,
+  OONF_OS_NET_SUBSYSTEM,
+};
+
 struct oonf_subsystem oonf_stream_socket_subsystem = {
-  .name = "stream",
+  .name = OONF_STREAM_SUBSYSTEM,
+  .dependencies = _dependencies,
+  .dependencies_count = ARRAYSIZE(_dependencies),
   .init = _init,
   .cleanup = _cleanup,
 };
+DECLARE_OONF_PLUGIN(oonf_stream_socket_subsystem);
 
 /**
  * Initialize the stream socket handlers

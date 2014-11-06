@@ -48,6 +48,8 @@
 
 #include "subsystems/oonf_clock.h"
 
+#define OONF_TIMER_SUBSYSTEM "timer"
+
 struct oonf_timer_instance;
 
 /*

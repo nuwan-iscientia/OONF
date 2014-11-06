@@ -46,7 +46,8 @@
 #include "common/common_types.h"
 #include "core/oonf_subsystem.h"
 #include "subsystems/oonf_interface.h"
-#include "subsystems/oonf_timer.h"
+
+#define OONF_LAYER2_SUBSYSTEM "layer2"
 
 #define LAYER2_CLASS_NEIGHBOR    "layer2_neighbor"
 #define LAYER2_CLASS_NETWORK     "layer2_network"

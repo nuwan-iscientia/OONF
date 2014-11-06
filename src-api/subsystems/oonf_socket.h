@@ -48,9 +48,7 @@
 #include "common/netaddr_acl.h"
 #include "subsystems/os_net.h"
 
-/* prototype for socket handler */
-typedef void (*socket_handler_func) (int fd, void *data,
-    bool event_read, bool event_write);
+#define OONF_SOCKET_SUBSYSTEM "socket"
 
 /* This struct represents a single registered socket handler */
 struct oonf_socket_entry {
@@ -58,7 +56,8 @@ struct oonf_socket_entry {
   int fd;
 
   /* socket handler */
-  socket_handler_func process;
+  void (*process) (int fd, void *data,
+      bool event_read, bool event_write);
 
   /* custom data pointer for sockets */
   void *data;
@@ -73,8 +72,6 @@ struct oonf_socket_entry {
 #define LOG_SOCKET oonf_socket_subsystem.logging
 EXPORT extern struct oonf_subsystem oonf_socket_subsystem;
 EXPORT extern struct list_entity oonf_socket_head;
-
-EXPORT int oonf_socket_handle(bool (*stop_scheduler)(void), uint64_t) __attribute__((warn_unused_result));
 
 EXPORT void oonf_socket_add(struct oonf_socket_entry *);
 EXPORT void oonf_socket_remove(struct oonf_socket_entry *);

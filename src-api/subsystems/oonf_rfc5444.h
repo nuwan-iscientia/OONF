@@ -48,12 +48,12 @@
 #include "rfc5444/rfc5444_reader.h"
 #include "rfc5444/rfc5444_writer.h"
 #include "subsystems/oonf_duplicate_set.h"
-#include "subsystems/oonf_interface.h"
 #include "subsystems/oonf_packet_socket.h"
 #include "subsystems/oonf_timer.h"
 
-/* suggested priorities for RFC5444 readers */
+#define OONF_RFC5444_SUBSYSTEM "rfc5444"
 
+/* suggested priorities for RFC5444 readers */
 enum {
   RFC5444_VALIDATOR_PRIORITY = -256,
   RFC5444_MAIN_PARSER_PRIORITY = 0,

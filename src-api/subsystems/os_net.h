@@ -52,6 +52,8 @@
 #include "core/oonf_logging.h"
 #include "subsystems/oonf_timer.h"
 
+#define OONF_OS_NET_SUBSYSTEM "os_net"
+
 struct oonf_interface_data {
   /* Interface addresses with mesh-wide scope (at least) */
   const struct netaddr *if_v4, *if_v6;

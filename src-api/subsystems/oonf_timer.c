@@ -50,6 +50,7 @@
 #include "core/oonf_subsystem.h"
 #include "core/os_core.h"
 #include "subsystems/oonf_clock.h"
+
 #include "subsystems/oonf_timer.h"
 
 /* prototypes */
@@ -72,11 +73,18 @@ static bool _scheduling_now;
 struct list_entity oonf_timer_info_list;
 
 /* subsystem definition */
+static const char *_dependencies[] = {
+  OONF_CLOCK_SUBSYSTEM,
+};
+
 struct oonf_subsystem oonf_timer_subsystem = {
-  .name = "timer",
+  .name = OONF_TIMER_SUBSYSTEM,
+  .dependencies = _dependencies,
+  .dependencies_count = ARRAYSIZE(_dependencies),
   .init = _init,
   .cleanup = _cleanup,
 };
+DECLARE_OONF_PLUGIN(oonf_timer_subsystem);
 
 /**
  * Initialize timer scheduler subsystem

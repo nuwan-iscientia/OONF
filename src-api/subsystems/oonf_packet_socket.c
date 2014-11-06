@@ -48,11 +48,11 @@
 #include "common/netaddr_acl.h"
 #include "core/oonf_logging.h"
 #include "core/oonf_subsystem.h"
-#include "rfc5444/rfc5444_iana.h"
-#include "subsystems/os_net.h"
-#include "subsystems/oonf_packet_socket.h"
 #include "subsystems/oonf_interface.h"
 #include "subsystems/oonf_socket.h"
+#include "subsystems/os_net.h"
+
+#include "subsystems/oonf_packet_socket.h"
 
 /* prototypes */
 static int _init(void);
@@ -75,11 +75,20 @@ static void _cb_packet_event(int fd, void *data, bool r, bool w, bool mc);
 static void _cb_interface_listener(struct oonf_interface_listener *l);
 
 /* subsystem definition */
+static const char *_dependencies[] = {
+  OONF_INTERFACE_SUBSYSTEM,
+  OONF_SOCKET_SUBSYSTEM,
+  OONF_OS_NET_SUBSYSTEM,
+};
+
 struct oonf_subsystem oonf_packet_socket_subsystem = {
   .name = "packet",
+  .dependencies = _dependencies,
+  .dependencies_count = ARRAYSIZE(_dependencies),
   .init = _init,
   .cleanup = _cleanup,
 };
+DECLARE_OONF_PLUGIN(oonf_packet_socket_subsystem);
 
 /* other global variables */
 static struct list_entity _packet_sockets = { NULL, NULL };

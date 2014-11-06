@@ -51,8 +51,9 @@
 #include "core/oonf_subsystem.h"
 #include "subsystems/oonf_class.h"
 #include "subsystems/oonf_stream_socket.h"
-#include "subsystems/oonf_telnet.h"
 #include "subsystems/oonf_timer.h"
+
+#include "subsystems/oonf_telnet.h"
 
 /* static function prototypes */
 static int _init(void);
@@ -92,7 +93,7 @@ static struct cfg_schema_entry _telnet_entries[] = {
 };
 
 static struct cfg_schema_section _telnet_section = {
-  .type = "telnet",
+  .type = OONF_TELNET_SUBSYSTEM,
   .mode = CFG_SSMODE_UNNAMED,
   .help = "Settings for the telnet interface",
   .cb_delta_handler = _cb_config_changed,
@@ -116,12 +117,21 @@ static struct oonf_telnet_command _builtin[] = {
 };
 
 /* subsystem definition */
+static const char *_dependencies[] = {
+  OONF_CLASS_SUBSYSTEM,
+  OONF_STREAM_SUBSYSTEM,
+  OONF_TIMER_SUBSYSTEM,
+};
+
 struct oonf_subsystem oonf_telnet_subsystem = {
-  .name = "telnet",
+  .name = OONF_TELNET_SUBSYSTEM,
+  .dependencies = _dependencies,
+  .dependencies_count = ARRAYSIZE(_dependencies),
   .init = _init,
   .cleanup = _cleanup,
   .cfg_section = &_telnet_section,
 };
+DECLARE_OONF_PLUGIN(oonf_telnet_subsystem);
 
 /* telnet session handling */
 static struct oonf_class _telnet_memcookie = {

@@ -49,24 +49,40 @@
 #include "common/avl_comp.h"
 #include "subsystems/oonf_clock.h"
 #include "core/oonf_logging.h"
+#include "core/oonf_main.h"
 #include "core/oonf_subsystem.h"
 #include "subsystems/os_net.h"
-#include "subsystems/oonf_socket.h"
 #include "subsystems/oonf_timer.h"
+
+#include "subsystems/oonf_socket.h"
 
 /* prototypes */
 static int _init(void);
 static void _cleanup(void);
+static void _initiate_shutdown(void);
+static int _handle_scheduling(void);
+
+/* time until the scheduler should run */
+uint64_t _scheduler_time_limit;
 
 /* List of all active sockets in scheduler */
 struct list_entity oonf_socket_head;
 
 /* subsystem definition */
+static const char *_dependencies[] = {
+  OONF_TIMER_SUBSYSTEM,
+  OONF_OS_NET_SUBSYSTEM,
+};
+
 struct oonf_subsystem oonf_socket_subsystem = {
-  .name = "socket",
+  .name = OONF_SOCKET_SUBSYSTEM,
+  .dependencies = _dependencies,
+  .dependencies_count = ARRAYSIZE(_dependencies),
   .init = _init,
   .cleanup = _cleanup,
+  .initiate_shutdown = _initiate_shutdown,
 };
+DECLARE_OONF_PLUGIN(oonf_socket_subsystem);
 
 /**
  * Initialize olsr socket scheduler
@@ -74,6 +90,10 @@ struct oonf_subsystem oonf_socket_subsystem = {
  */
 static int
 _init(void) {
+  if (oonf_main_set_scheduler(_handle_scheduling)) {
+    return -1;
+  }
+
   list_init_head(&oonf_socket_head);
   return 0;
 }
@@ -91,6 +111,12 @@ _cleanup(void)
     list_remove(&entry->_node);
     os_net_close(entry->fd);
   }
+}
+
+static void
+_initiate_shutdown(void) {
+  /* stop within 500 ms */
+  _scheduler_time_limit = oonf_clock_get_absolute(500);
 }
 
 /**
@@ -123,26 +149,18 @@ oonf_socket_remove(struct oonf_socket_entry *entry)
 }
 
 /**
- * Handle all incoming socket events until a certain time
- * @param stop_scheduler pointer to a callback function that tells
- *   the scheduler if it should return to the mainloop. Might be NULL.
- * @param stop_time timestamp when the handler should stop,
- *   0 if it should keep running
+ * Handle all incoming socket events and timer events
  * @return -1 if an error happened, 0 otherwise
  */
 int
-oonf_socket_handle(bool (*stop_scheduler)(void), uint64_t stop_time)
+_handle_scheduling(void)
 {
   struct oonf_socket_entry *entry, *iterator;
-  uint64_t next_event;
+  uint64_t next_event, stop_time;
   struct timeval tv, *tv_ptr;
   int n = 0;
   bool fd_read;
   bool fd_write;
-
-  if (stop_time == 0) {
-    stop_time = ~0ull;
-  }
 
   while (true) {
     fd_set ibits, obits;
@@ -153,13 +171,20 @@ oonf_socket_handle(bool (*stop_scheduler)(void), uint64_t stop_time)
       return -1;
     }
 
+    if (_scheduler_time_limit > 0) {
+      stop_time = _scheduler_time_limit;
+    }
+    else {
+      stop_time = ~0ull;
+    }
+
     if (oonf_clock_getNow() >= stop_time) {
       return 0;
     }
 
     oonf_timer_walk();
 
-    if (stop_scheduler != NULL && stop_scheduler()) {
+    if (!_scheduler_time_limit && oonf_main_shall_stop_scheduler()) {
       return 0;
     }
 
@@ -208,7 +233,7 @@ oonf_socket_handle(bool (*stop_scheduler)(void), uint64_t stop_time)
     }
 
     do {
-      if (stop_scheduler != NULL && stop_scheduler()) {
+      if (!_scheduler_time_limit && oonf_main_shall_stop_scheduler()) {
         return 0;
       }
       n = os_net_select(hfd,

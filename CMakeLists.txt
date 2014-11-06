@@ -7,6 +7,7 @@ cmake_minimum_required(VERSION 2.8.5 FATAL_ERROR)
 
 # set cached variables
 include (./cmake/lib_config.cmake)
+include (./cmake/app_config.cmake)
 
 # include compiler flags
 include (./cmake/cc_flags.cmake)
@@ -47,7 +48,6 @@ include (cmake/OONFBuildLibrary.cmake)
 include_directories(${PROJECT_BINARY_DIR})
 include_directories(external)
 include_directories(src-api)
-include_directories(src-plugins)
 
 if (NOT OONF_NO_TESTING)
     ENABLE_TESTING()
@@ -58,6 +58,7 @@ add_subdirectory(src-api)
 add_subdirectory(src-plugins)
 add_subdirectory(external)
 add_subdirectory(examples)
+add_subdirectory(src)
 
 get_property (targets GLOBAL PROPERTY OONF_TARGETS)
 export (TARGETS ${targets} FILE "${PROJECT_BINARY_DIR}/OONFLibraryDepends_api.cmake")

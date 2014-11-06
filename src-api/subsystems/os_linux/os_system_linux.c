@@ -59,6 +59,7 @@
 #include "common/string.h"
 #include "core/oonf_subsystem.h"
 #include "subsystems/oonf_socket.h"
+
 #include "subsystems/os_system.h"
 
 #ifndef SOL_NETLINK
@@ -144,11 +145,18 @@ const uint32_t _rtnetlink_mcast[] = {
 struct list_entity _ifchange_listener;
 
 /* subsystem definition */
+static const char *_dependencies[] = {
+  OONF_SOCKET_SUBSYSTEM,
+};
+
 struct oonf_subsystem oonf_os_system_subsystem = {
-  .name = "os_system",
+  .name = OONF_OS_SYSTEM_SUBSYSTEM,
+  .dependencies = _dependencies,
+  .dependencies_count = ARRAYSIZE(_dependencies),
   .init = _init,
   .cleanup = _cleanup,
 };
+DECLARE_OONF_PLUGIN(oonf_os_system_subsystem);
 
 /* tracking of used netlink sequence numbers */
 static uint32_t _seq_used = 0;

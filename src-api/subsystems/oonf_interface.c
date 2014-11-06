@@ -52,10 +52,11 @@
 #include "core/oonf_logging.h"
 #include "core/oonf_subsystem.h"
 #include "subsystems/oonf_class.h"
-#include "subsystems/oonf_interface.h"
 #include "subsystems/oonf_timer.h"
 #include "subsystems/os_net.h"
 #include "subsystems/os_system.h"
+
+#include "subsystems/oonf_interface.h"
 
 /* timeinterval to delay change in interface to trigger actions */
 #define OONF_INTERFACE_CHANGE_INTERVAL 100
@@ -80,11 +81,21 @@ static void _trigger_change_timer(struct oonf_interface *);
 struct avl_tree oonf_interface_tree;
 
 /* subsystem definition */
+static const char *_dependencies[] = {
+  OONF_CLASS_SUBSYSTEM,
+  OONF_TIMER_SUBSYSTEM,
+  OONF_OS_NET_SUBSYSTEM,
+  OONF_OS_SYSTEM_SUBSYSTEM,
+};
+
 struct oonf_subsystem oonf_interface_subsystem = {
-  .name = "interface",
+  .name = OONF_INTERFACE_SUBSYSTEM,
+  .dependencies = _dependencies,
+  .dependencies_count = ARRAYSIZE(_dependencies),
   .init = _init,
   .cleanup = _cleanup,
 };
+DECLARE_OONF_PLUGIN(oonf_interface_subsystem);
 
 static struct list_entity _interface_listener;
 static struct oonf_timer_class _change_timer_info = {

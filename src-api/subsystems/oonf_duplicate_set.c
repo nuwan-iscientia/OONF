@@ -47,6 +47,7 @@
 #include "core/oonf_subsystem.h"
 #include "subsystems/oonf_class.h"
 #include "subsystems/oonf_timer.h"
+
 #include "subsystems/oonf_duplicate_set.h"
 
 /* prototypes */
@@ -80,11 +81,19 @@ const char *OONF_DUPSET_RESULT_STR[OONF_DUPSET_MAX] = {
 };
 
 /* subsystem definition */
+static const char *_dependencies[] = {
+  OONF_CLASS_SUBSYSTEM,
+  OONF_TIMER_SUBSYSTEM,
+};
+
 struct oonf_subsystem oonf_duplicate_set_subsystem = {
-  .name = "duplicate_set",
+  .name = OONF_DUPSET_SUBSYSTEM,
+  .dependencies = _dependencies,
+  .dependencies_count = ARRAYSIZE(_dependencies),
   .init = _init,
   .cleanup = _cleanup,
 };
+DECLARE_OONF_PLUGIN(oonf_duplicate_set_subsystem);
 
 /**
  * Initialize duplicate set subsystem

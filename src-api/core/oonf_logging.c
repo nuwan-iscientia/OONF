@@ -270,7 +270,7 @@ oonf_log_printversion(struct autobuf *abuf) {
   abuf_appendf(abuf," %s version %s\n"
             " Application commit: %s\n",
             _appdata->app_name,
-            _appdata->app_version,
+            _libdata->lib_version,
             _appdata->git_commit);
   abuf_appendf(abuf, " Library commit: %s\n", _libdata->git_commit);
   abuf_puts(abuf, _appdata->versionstring_trailer);

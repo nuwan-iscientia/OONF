@@ -48,7 +48,6 @@
 
 #include "core/oonf_cfg.h"
 #include "core/oonf_logging.h"
-#include "core/oonf_plugins.h"
 #include "core/oonf_subsystem.h"
 
 /* global config */
@@ -270,6 +269,12 @@ oonf_cfg_loadplugins(void) {
     }
   }
 
+  /* initialize all plugins */
+  avl_for_each_element_safe(&oonf_plugin_tree, plugin, _node, plugin_it) {
+    if (oonf_plugins_call_init(plugin)) {
+      return -1;
+    }
+  }
   return 0;
 }
 
@@ -514,7 +519,7 @@ oonf_cfg_get_argc(void) {
 /**
  * @return argument vector of original main() function
  */
-const char **
+char **
 oonf_cfg_get_argv(void) {
-  return (const char **) _argv;
+  return _argv;
 }

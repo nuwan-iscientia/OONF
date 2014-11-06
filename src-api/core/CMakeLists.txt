@@ -25,13 +25,14 @@ ADD_CUSTOM_COMMAND (
 SET(OONF_CORE_SRCS oonf_cfg.c
                    oonf_logging.c
                    oonf_logging_cfg.c
-                   oonf_plugins.c
+                   oonf_main.c
                    oonf_subsystem.c
                    ${GEN_DATA_C})
 
 SET(OONF_CORE_INCLUDES oonf_cfg.h
                        oonf_logging.h
                        oonf_logging_cfg.h
+                       oonf_main.h
                        oonf_plugins.h
                        oonf_subsystem.h
                        oonf_libdata.h

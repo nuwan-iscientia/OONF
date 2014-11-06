@@ -46,6 +46,8 @@
 #include "config/cfg_schema.h"
 #include "core/oonf_subsystem.h"
 #include "subsystems/oonf_class.h"
+#include "subsystems/oonf_interface.h"
+
 #include "subsystems/oonf_layer2.h"
 
 /* prototypes */
@@ -56,11 +58,19 @@ static void _net_remove(struct oonf_layer2_net *l2net);
 static void _neigh_remove(struct oonf_layer2_neigh *l2neigh);
 
 /* subsystem definition */
-struct oonf_subsystem oonf_layer2_subsystem = {
-    .name = "layer2",
-    .init = _init,
-    .cleanup = _cleanup,
+static const char *_dependencies[] = {
+  OONF_CLASS_SUBSYSTEM,
+  OONF_INTERFACE_SUBSYSTEM,
 };
+
+struct oonf_subsystem oonf_layer2_subsystem = {
+  .name = OONF_LAYER2_SUBSYSTEM,
+  .dependencies = _dependencies,
+  .dependencies_count = ARRAYSIZE(_dependencies),
+  .init = _init,
+  .cleanup = _cleanup,
+};
+DECLARE_OONF_PLUGIN(oonf_layer2_subsystem);
 
 /* layer2 neighbor metadata */
 const struct oonf_layer2_metadata oonf_layer2_metadata_neigh[OONF_LAYER2_NEIGH_COUNT] = {

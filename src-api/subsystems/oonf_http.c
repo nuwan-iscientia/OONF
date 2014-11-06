@@ -52,8 +52,9 @@
 #include "core/oonf_logging.h"
 #include "core/oonf_subsystem.h"
 #include "core/os_core.h"
-#include "subsystems/oonf_http.h"
 #include "subsystems/oonf_stream_socket.h"
+
+#include "subsystems/oonf_http.h"
 
 /* Http text constants */
 static const char HTTP_VERSION_1_0[] = "HTTP/1.0";
@@ -111,7 +112,7 @@ static struct cfg_schema_entry _http_entries[] = {
 };
 
 static struct cfg_schema_section _http_section = {
-  .type = "http",
+  .type = OONF_HTTP_SUBSYSTEM,
   .mode = CFG_SSMODE_UNNAMED_OPTIONAL_STARTUP_TRIGGER,
   .entries = _http_entries,
   .entry_count = ARRAYSIZE(_http_entries),
@@ -134,12 +135,19 @@ static struct oonf_stream_managed _http_managed_socket = {
 };
 
 /* subsystem definition */
+static const char *_dependencies[] = {
+  OONF_STREAM_SUBSYSTEM,
+};
+
 struct oonf_subsystem oonf_http_subsystem = {
-  .name = "http",
+  .name = OONF_HTTP_SUBSYSTEM,
+  .dependencies = _dependencies,
+  .dependencies_count = ARRAYSIZE(_dependencies),
   .init = _init,
   .cleanup = _cleanup,
   .cfg_section = &_http_section,
 };
+DECLARE_OONF_PLUGIN(oonf_http_subsystem);
 
 /**
  * Initialize http subsystem
@@ -423,7 +431,7 @@ _create_http_error(struct oonf_stream_session *session,
     enum oonf_http_result error) {
   abuf_appendf(&session->out, "<html><head><title>%s %s http server</title></head>"
       "<body><h1>HTTP error %d: %s</h1></body></html>",
-      oonf_log_get_appdata()->app_name, oonf_log_get_appdata()->app_version,
+      oonf_log_get_appdata()->app_name, oonf_log_get_libdata()->lib_version,
       error, _get_headertype_string(error));
   _create_http_header(session, error, NULL);
 }
@@ -522,7 +530,7 @@ _create_http_header(struct oonf_stream_session *session,
 
   /* Server version */
   abuf_appendf(&buf, "Server: %s\r\n",
-      oonf_log_get_appdata()->app_version);
+      oonf_log_get_libdata()->lib_version);
 
   /* connection-type */
   abuf_puts(&buf, "Connection: closed\r\n");

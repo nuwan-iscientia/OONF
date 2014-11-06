@@ -48,6 +48,8 @@
 #include "common/common_types.h"
 #include "core/oonf_subsystem.h"
 
+#define OONF_OS_CLOCK_SUBSYSTEM "os_clock"
+
 #define MSEC_PER_SEC 1000
 #define USEC_PER_MSEC 1000
 

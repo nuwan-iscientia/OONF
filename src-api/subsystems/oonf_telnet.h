@@ -49,6 +49,8 @@
 #include "common/netaddr_acl.h"
 #include "subsystems/oonf_stream_socket.h"
 
+#define OONF_TELNET_SUBSYSTEM "telnet"
+
 enum oonf_telnet_result {
   TELNET_RESULT_ACTIVE,
   TELNET_RESULT_CONTINOUS,

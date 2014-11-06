@@ -46,6 +46,8 @@
 #include "common/list.h"
 #include "common/avl.h"
 
+#define OONF_CLASS_SUBSYSTEM "class"
+
 enum oonf_class_event {
   OONF_OBJECT_CHANGED,
   OONF_OBJECT_ADDED,

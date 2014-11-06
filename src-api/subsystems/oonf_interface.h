@@ -51,6 +51,8 @@
 #include "subsystems/oonf_timer.h"
 #include "subsystems/os_net.h"
 
+#define OONF_INTERFACE_SUBSYSTEM "interface"
+
 /* memory class for oonf interfaces */
 #define OONF_CLASS_INTERFACE             "oonf_interface"
 

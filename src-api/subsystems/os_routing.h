@@ -52,6 +52,8 @@
 #include "core/oonf_logging.h"
 #include "subsystems/os_system.h"
 
+#define OONF_OS_ROUTING_SUBSYSTEM "os_routing"
+
 /* include os-specific headers */
 #if defined(__linux__)
 #include "subsystems/os_linux/os_routing_linux.h"

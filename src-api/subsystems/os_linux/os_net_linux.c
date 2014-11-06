@@ -48,9 +48,10 @@
 #include <unistd.h>
 
 #include "common/common_types.h"
-
 #include "core/oonf_logging.h"
 #include "core/oonf_subsystem.h"
+#include "subsystems/oonf_timer.h"
+
 #include "subsystems/os_net.h"
 
 /* ip forwarding */
@@ -81,11 +82,18 @@ static unsigned _os_linux_get_base_ifindex(const char *interf);
 static int _ioctl_v4, _ioctl_v6;
 
 /* subsystem definition */
+static const char *_dependencies[] = {
+  OONF_TIMER_SUBSYSTEM,
+};
+
 struct oonf_subsystem oonf_os_net_subsystem = {
-  .name = "os_net",
+  .name = OONF_OS_NET_SUBSYSTEM,
+  .dependencies = _dependencies,
+  .dependencies_count = ARRAYSIZE(_dependencies),
   .init = _init,
   .cleanup = _cleanup,
 };
+DECLARE_OONF_PLUGIN(oonf_os_net_subsystem);
 
 /* global procfile state before initialization */
 static char _original_rp_filter;

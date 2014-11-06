@@ -66,10 +66,11 @@ static const char _telnet_help[] =
 
 /* subsystem definition */
 struct oonf_subsystem oonf_viewer_subsystem = {
-  .name = "viewer",
+  .name = OONF_VIEWER_SUBSYSTEM,
   .init = _init,
   .cleanup = _cleanup,
 };
+DECLARE_OONF_PLUGIN(oonf_viewer_subsystem);
 
 /**
  * Initialize telnet subsystem
