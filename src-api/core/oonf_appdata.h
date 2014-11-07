@@ -39,20 +39,19 @@
  *
  */
 
-#ifndef BUILDDATA_H_
-#define BUILDDATA_H_
+#ifndef OONF_APPDATA_H_
+#define OONF_APPDATA_H_
 
 #include "common/common_types.h"
 
-struct oonf_libdata {
-  const char *version;
+struct oonf_appdata {
+  const char *app_name;
+  const char *versionstring_trailer;
+  const char *help_prefix;
+  const char *help_suffix;
 
-  const char *git_commit;
-
-  const char *sharedlibrary_prefix;
-  const char *sharedlibrary_postfix;
+  const char *default_lockfile;
+  const char *default_cfg_handler;
 };
 
-EXPORT extern const struct oonf_libdata *oonf_libdata_get(void);
-
-#endif /* BUILDDATA_H_ */
+#endif /* OONF_APPDATA_H_ */

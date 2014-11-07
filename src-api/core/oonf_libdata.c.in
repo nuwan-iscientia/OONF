@@ -42,7 +42,7 @@
 #include "core/oonf_libdata.h"
 
 static struct oonf_libdata _libdata = {
-  .lib_version = "${OONF_VERSION}",
+  .version = "${OONF_VERSION}",
   
   .git_commit = "${OONF_LIB_GIT}",
   

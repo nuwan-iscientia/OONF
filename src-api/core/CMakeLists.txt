@@ -29,7 +29,8 @@ SET(OONF_CORE_SRCS oonf_cfg.c
                    oonf_subsystem.c
                    ${GEN_DATA_C})
 
-SET(OONF_CORE_INCLUDES oonf_cfg.h
+SET(OONF_CORE_INCLUDES oonf_appdata.h
+                       oonf_cfg.h
                        oonf_logging.h
                        oonf_logging_cfg.h
                        oonf_main.h

@@ -61,9 +61,7 @@ enum {
   IDX_DLOPEN_LIB,
   IDX_DLOPEN_PATH,
   IDX_DLOPEN_PRE,
-  IDX_DLOPEN_PRELIB,
   IDX_DLOPEN_POST,
-  IDX_DLOPEN_POSTLIB,
   IDX_DLOPEN_VER,
 };
 
@@ -82,23 +80,15 @@ static void *_open_plugin_template(const char *filename, int template, int mode)
  * %LIB%:  name of the plugin
  * %PATH%: local path (linux: ".")
  *
- * %PRE%:  shared library prefix defined by the app (linux: "lib<app>_")
- * %POST%: shared library postfix defined by the app (linux: ".so")
- * %VER:   version number as defined by the app (e.g. "0.1.0")
- *
- * %PRELIB%: shared library prefix defined by the API (linux: "liboonf_")
- * %POST%:   shared library postfix defined by the app (linux: ".so")
- * %VER:     version number as defined by the app (e.g. "0.1.0")
+ * %PRE%:  shared library prefix  (linux: "liboonf_")
+ * %POST%: shared library postfix (linux: ".so")
+ * %VER:   version number (e.g. "0.1.0")
  */
 static const char *DLOPEN_PATTERNS[] = {
   "%PATH%/%PRE%%LIB%%POST%.%VER%",
-  "%PATH%/%PRELIB%%LIB%%POSTLIB%.%VER%",
   "%PATH%/%PRE%%LIB%%POST%",
-  "%PATH%/%PRELIB%%LIB%%POSTLIB%",
   "%PRE%%LIB%%POST%.%VER%",
-  "%PRELIB%%LIB%%POSTLIB%.%VER%",
   "%PRE%%LIB%%POST%",
-  "%PRELIB%%LIB%%POSTLIB%",
 };
 
 /* Local functions */
@@ -110,9 +100,7 @@ static struct abuf_template_data_entry _dlopen_data[] = {
   [IDX_DLOPEN_LIB]     =  { .key = "LIB" },
   [IDX_DLOPEN_PATH]    =  { .key = "PATH", .value = "." },
   [IDX_DLOPEN_PRE]     =  { .key = "PRE" },
-  [IDX_DLOPEN_PRELIB]  =  { .key = "PRELIB" },
   [IDX_DLOPEN_POST]    =  { .key = "POST" },
-  [IDX_DLOPEN_POSTLIB] =  { .key = "POSTLIB" },
   [IDX_DLOPEN_VER]     =  { .key = "VER" },
 };
 
@@ -131,17 +119,11 @@ oonf_plugins_init(void) {
 
   /* load predefined values for dlopen templates */
   _dlopen_data[IDX_DLOPEN_PRE].value =
-      oonf_log_get_appdata()->sharedlibrary_prefix;
-  _dlopen_data[IDX_DLOPEN_POST].value =
-      oonf_log_get_appdata()->sharedlibrary_postfix;
-
-  _dlopen_data[IDX_DLOPEN_PRELIB].value =
       oonf_log_get_libdata()->sharedlibrary_prefix;
-  _dlopen_data[IDX_DLOPEN_POSTLIB].value =
+  _dlopen_data[IDX_DLOPEN_POST].value =
       oonf_log_get_libdata()->sharedlibrary_postfix;
-
   _dlopen_data[IDX_DLOPEN_VER].value =
-      oonf_log_get_libdata()->lib_version;
+      oonf_log_get_libdata()->version;
   return 0;
 }
 
@@ -286,19 +268,11 @@ oonf_plugins_extract_name(
       oonf_log_get_libdata()->sharedlibrary_prefix)) {
     start += strlen(oonf_log_get_libdata()->sharedlibrary_prefix);
   }
-  else if (str_startswith_nocase(&libname[start],
-      oonf_log_get_appdata()->sharedlibrary_prefix)) {
-    start += strlen(oonf_log_get_appdata()->sharedlibrary_prefix);
-  }
 
   /* remove (oonf/app) lib postfix */
   if (str_endswith_nocase(&libname[start],
       oonf_log_get_libdata()->sharedlibrary_postfix)) {
     end -= strlen(oonf_log_get_libdata()->sharedlibrary_prefix);
-  }
-  else if (str_endswith_nocase(&libname[start],
-      oonf_log_get_appdata()->sharedlibrary_postfix)) {
-    end -= strlen(oonf_log_get_appdata()->sharedlibrary_prefix);
   }
 
   if (end-start+1 <= sizeof(*pluginname)) {

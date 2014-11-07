@@ -49,6 +49,7 @@ struct oonf_log_handler_entry;
 #include "common/common_types.h"
 #include "common/autobuf.h"
 #include "common/list.h"
+#include "core/oonf_appdata.h"
 #include "core/oonf_libdata.h"
 
 /**
@@ -92,21 +93,6 @@ struct oonf_log_parameters {
   char *buffer;
   int timeLength;
   int prefixLength;
-};
-
-struct oonf_appdata {
-  const char *app_name;
-  const char *versionstring_trailer;
-  const char *help_prefix;
-  const char *help_suffix;
-
-  const char *default_lockfile;
-  const char *default_cfg_handler;
-
-  const char *git_commit;
-
-  const char *sharedlibrary_prefix;
-  const char *sharedlibrary_postfix;
 };
 
 /*

@@ -431,7 +431,7 @@ _create_http_error(struct oonf_stream_session *session,
     enum oonf_http_result error) {
   abuf_appendf(&session->out, "<html><head><title>%s %s http server</title></head>"
       "<body><h1>HTTP error %d: %s</h1></body></html>",
-      oonf_log_get_appdata()->app_name, oonf_log_get_libdata()->lib_version,
+      oonf_log_get_appdata()->app_name, oonf_log_get_libdata()->version,
       error, _get_headertype_string(error));
   _create_http_header(session, error, NULL);
 }
@@ -530,7 +530,7 @@ _create_http_header(struct oonf_stream_session *session,
 
   /* Server version */
   abuf_appendf(&buf, "Server: %s\r\n",
-      oonf_log_get_libdata()->lib_version);
+      oonf_log_get_libdata()->version);
 
   /* connection-type */
   abuf_puts(&buf, "Connection: closed\r\n");
