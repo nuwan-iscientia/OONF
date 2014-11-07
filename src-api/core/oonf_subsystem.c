@@ -254,8 +254,6 @@ oonf_plugins_hook(struct oonf_subsystem *plugin) {
   /* hook plugin into avl tree */
   plugin->_node.key = plugin->name;
   avl_insert(&oonf_plugin_tree, &plugin->_node);
-
-  fprintf(stderr, "plugin: %s\n", plugin->name);
 }
 
 /**
@@ -537,9 +535,6 @@ _open_plugin_template(const char *filename, int template, int mode) {
 
   abuf_clear(&_dlopen_data_buffer);
   abuf_add_template(&_dlopen_data_buffer, &table, false);
-
-  OONF_DEBUG(LOG_PLUGINS, "dlopen (%s,0x%x)...",
-        abuf_getptr(&_dlopen_data_buffer), mode);
 
   result = dlopen(abuf_getptr(&_dlopen_data_buffer), mode);
   if (!result) {
