@@ -117,6 +117,7 @@ static struct cfg_schema_section _domain_section = {
 };
 
 static const char *_dependencies[] = {
+  OONF_CLOCK_SUBSYSTEM,
   OONF_CLASS_SUBSYSTEM,
   OONF_INTERFACE_SUBSYSTEM,
   OONF_RFC5444_SUBSYSTEM,

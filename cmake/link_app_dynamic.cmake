@@ -1,8 +1,7 @@
 # link static plugins
-string(REPLACE " " ";" PLUGIN_LIST "${OONF_STATIC_PLUGINS}")
 message ("Compiling project with dynamic libraries")
-message ("Static plugins: ${PLUGIN_LIST}")
-FOREACH(plugin ${PLUGIN_LIST})
+message ("Static plugins:")
+FOREACH(plugin ${OONF_STATIC_PLUGINS})
     IF(TARGET oonf_static_${plugin})
         message ("    Found target: oonf_static_${plugin}")  
         TARGET_LINK_LIBRARIES(${OONF_EXE} -Wl,--whole-archive oonf_static_${plugin} -Wl,--no-whole-archive)

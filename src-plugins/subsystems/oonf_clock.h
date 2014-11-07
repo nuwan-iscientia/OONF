@@ -56,28 +56,21 @@
 #define USEC_PER_MSEC 1000
 
 /* definitions for config parser usage */
-#define CFG_VALIDATE_CLOCK(p_name, p_def, p_help, args...)                      _CFG_VALIDATE(p_name, p_def, p_help, .cb_validate = oonf_clock_validate, .cb_valhelp = oonf_clock_help, .validate_param = {{.u64 = 0}, {.u64 = UINT64_MAX}}, ##args )
-#define CFG_VALIDATE_CLOCK_MIN(p_name, p_def, p_help, p_min, args...)           _CFG_VALIDATE(p_name, p_def, p_help, .cb_validate = oonf_clock_validate, .cb_valhelp = oonf_clock_help, .validate_param = {{.u64 = p_min}, {.u64 = UINT64_MAX}},##args )
-#define CFG_VALIDATE_CLOCK_MAX(p_name, p_def, p_help, p_min, args...)           _CFG_VALIDATE(p_name, p_def, p_help, .cb_validate = oonf_clock_validate, .cb_valhelp = oonf_clock_help, .validate_param = {{.u64 = 0}, {.u64 = p_max}},##args )
-#define CFG_VALIDATE_CLOCK_MINMAX(p_name, p_def, p_help, p_min, p_max, args...) _CFG_VALIDATE(p_name, p_def, p_help, .cb_validate = oonf_clock_validate, .cb_valhelp = oonf_clock_help, .validate_param = {{.u64 = p_min}, {.u64 = p_max}},##args )
+#define CFG_VALIDATE_CLOCK(p_name, p_def, p_help, args...)                  CFG_VALIDATE_INT64_MINMAX(p_name, p_def, p_help, 3, false, 0, INT64_MAX, ##args)
+#define CFG_VALIDATE_CLOCK_MIN(p_name, p_def, p_help, min, args...)         CFG_VALIDATE_INT64_MINMAX(p_name, p_def, p_help, 3, false, min, INT64_MAX, ##args)
+#define CFG_VALIDATE_CLOCK_MAX(p_name, p_def, p_help, max, args...)         CFG_VALIDATE_INT64_MINMAX(p_name, p_def, p_help, 3, false, 0, max, ##args)
+#define CFG_VALIDATE_CLOCK_MINMAX(p_name, p_def, p_help, min, max, args...) CFG_VALIDATE_INT64_MINMAX(p_name, p_def, p_help, 3, false, min, max, ##args)
 
-#define CFG_MAP_CLOCK(p_reference, p_field, p_name, p_def, p_help, args...)                      CFG_VALIDATE_CLOCK(p_name, p_def, p_help, .cb_to_binary = oonf_clock_tobin, .bin_offset = offsetof(struct p_reference, p_field), ##args)
-#define CFG_MAP_CLOCK_MIN(p_reference, p_field, p_name, p_def, p_help, p_min, args...)           CFG_VALIDATE_CLOCK_MIN(p_name, p_def, p_help, p_min, .cb_to_binary = oonf_clock_tobin, .bin_offset = offsetof(struct p_reference, p_field), ##args)
-#define CFG_MAP_CLOCK_MAX(p_reference, p_field, p_name, p_def, p_help, p_max, args...)           CFG_VALIDATE_CLOCK_MAX(p_name, p_def, p_help, p_max, .cb_to_binary = oonf_clock_tobin, .bin_offset = offsetof(struct p_reference, p_field), ##args)
-#define CFG_MAP_CLOCK_MINMAX(p_reference, p_field, p_name, p_def, p_help, p_min, p_max, args...) CFG_VALIDATE_CLOCK_MINMAX(p_name, p_def, p_help, p_min, p_max, .cb_to_binary = oonf_clock_tobin, .bin_offset = offsetof(struct p_reference, p_field), ##args)
+#define CFG_MAP_CLOCK(p_reference, p_field, p_name, p_def, p_help, args...)                  CFG_MAP_INT64_MINMAX(p_reference, p_field, p_name, p_def, p_help, 3, false, 0, INT64_MAX, ##args)
+#define CFG_MAP_CLOCK_MIN(p_reference, p_field, p_name, p_def, p_help, min, args...)         CFG_MAP_INT64_MINMAX(p_reference, p_field, p_name, p_def, p_help, 3, false, min, INT64_MAX, ##args)
+#define CFG_MAP_CLOCK_MAX(p_reference, p_field, p_name, p_def, p_help, max, args...)         CFG_MAP_INT64_MINMAX(p_reference, p_field, p_name, p_def, p_help, 3, false, 0, max, ##args)
+#define CFG_MAP_CLOCK_MINMAX(p_reference, p_field, p_name, p_def, p_help, min, max, args...) CFG_MAP_INT64_MINMAX(p_reference, p_field, p_name, p_def, p_help, 3, false, min, max, ##args)
 
 EXPORT int oonf_clock_update(void) __attribute__((warn_unused_result));
 
 EXPORT uint64_t oonf_clock_getNow(void);
 
 EXPORT const char *oonf_clock_toClockString(struct isonumber_str *, uint64_t);
-
-EXPORT int oonf_clock_validate(const struct cfg_schema_entry *entry,
-    const char *section_name, const char *value, struct autobuf *out);
-EXPORT int oonf_clock_tobin(const struct cfg_schema_entry *s_entry,
-    const struct const_strarray *value, void *reference);
-EXPORT void  oonf_clock_help(
-    const struct cfg_schema_entry *entry, struct autobuf *out);
 
 /**
  * Converts an internal time value into a string representation with

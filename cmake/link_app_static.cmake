@@ -5,7 +5,7 @@
 # link static plugins
 message ("Compiling project with static libraries")
 message ("Static plugins:")
-FOREACH(plugin ${PLUGIN_LIST})
+FOREACH(plugin ${OONF_STATIC_PLUGINS})
     IF(TARGET oonf_static_${plugin})
         message ("    Found target: oonf_static_${plugin}")  
         TARGET_LINK_LIBRARIES(${OONF_EXE} -Wl,--whole-archive oonf_static_${plugin} -Wl,--no-whole-archive)
