@@ -46,7 +46,7 @@
 #include "core/oonf_logging.h"
 #include "core/oonf_subsystem.h"
 #include "subsystems/oonf_class.h"
-#include "rfc5444/rfc5444.h"
+#include "subsystems/oonf_rfc5444.h"
 
 #include "nhdp/nhdp.h"
 #include "olsrv2/olsrv2.h"

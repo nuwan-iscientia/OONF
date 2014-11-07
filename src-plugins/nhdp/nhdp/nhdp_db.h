@@ -46,7 +46,7 @@
 #include "common/avl.h"
 #include "common/list.h"
 #include "common/netaddr.h"
-#include "rfc5444/rfc5444_iana.h"
+#include "subsystems/oonf_rfc5444.h"
 #include "subsystems/oonf_timer.h"
 
 #include "nhdp/nhdp.h"

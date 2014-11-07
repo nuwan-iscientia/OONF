@@ -42,15 +42,14 @@
 #include <assert.h>
 #include <stdlib.h>
 #include <string.h>
-// #include <stdio.h>
 
 #include "common/avl.h"
 #include "common/avl_comp.h"
 #include "common/common_types.h"
 #include "common/list.h"
-#include "rfc5444/rfc5444_context.h"
-#include "rfc5444/rfc5444_writer.h"
-#include "rfc5444/rfc5444_api_config.h"
+#include "rfc5444_context.h"
+#include "rfc5444_writer.h"
+#include "rfc5444_api_config.h"
 
 static void _register_addrtlvtype(struct rfc5444_writer *writer,
     struct rfc5444_writer_message *msg,

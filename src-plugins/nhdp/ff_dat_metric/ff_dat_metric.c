@@ -48,10 +48,6 @@
 #include "common/common_types.h"
 #include "common/isonumber.h"
 #include "common/autobuf.h"
-#include "rfc5444/rfc5444_iana.h"
-#include "rfc5444/rfc5444.h"
-#include "rfc5444/rfc5444_reader.h"
-
 #include "core/oonf_cfg.h"
 #include "core/oonf_logging.h"
 #include "core/oonf_subsystem.h"

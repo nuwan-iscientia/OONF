@@ -46,11 +46,10 @@
 #include "common/common_types.h"
 #include "common/list.h"
 #include "common/netaddr.h"
-#include "rfc5444/rfc5444.h"
-#include "rfc5444/rfc5444_reader.h"
 #include "core/oonf_cfg.h"
 #include "core/oonf_logging.h"
 #include "subsystems/oonf_class.h"
+#include "subsystems/oonf_rfc5444.h"
 
 #include "nhdp/nhdp.h"
 #include "nhdp/nhdp_db.h"

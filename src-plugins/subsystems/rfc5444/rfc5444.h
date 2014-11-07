@@ -42,7 +42,7 @@
 #define RFC5444_CONVERSION_H_
 
 #include "common/common_types.h"
-#include "rfc5444/rfc5444_iana.h"
+#include "rfc5444_iana.h"
 
 enum {
   /* timetlv_max = 14 * 2^28 * 1000 / 1024 = 14000 << 18 = 3 670 016 000 ms */

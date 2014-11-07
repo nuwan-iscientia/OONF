@@ -47,12 +47,11 @@
 #include "common/container_of.h"
 #include "common/netaddr.h"
 #include "common/netaddr_acl.h"
-#include "rfc5444/rfc5444_iana.h"
-#include "rfc5444/rfc5444_writer.h"
 #include "core/oonf_cfg.h"
 #include "core/oonf_logging.h"
 #include "subsystems/oonf_class.h"
 #include "subsystems/oonf_interface.h"
+#include "subsystems/oonf_rfc5444.h"
 #include "subsystems/oonf_timer.h"
 
 #include "nhdp/nhdp.h"

@@ -42,9 +42,6 @@
 #include "common/common_types.h"
 #include "common/avl.h"
 #include "common/avl_comp.h"
-#include "rfc5444/rfc5444_iana.h"
-#include "rfc5444/rfc5444.h"
-#include "rfc5444/rfc5444_writer.h"
 #include "core/oonf_logging.h"
 #include "subsystems/oonf_rfc5444.h"
 

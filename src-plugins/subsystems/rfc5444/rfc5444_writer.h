@@ -49,9 +49,9 @@ struct rfc5444_writer_message;
 #include "common/common_types.h"
 #include "common/list.h"
 #include "common/netaddr.h"
-#include "rfc5444/rfc5444_context.h"
-#include "rfc5444/rfc5444_reader.h"
-#include "rfc5444/rfc5444_tlv_writer.h"
+#include "rfc5444_context.h"
+#include "rfc5444_reader.h"
+#include "rfc5444_tlv_writer.h"
 /*
  * Macros to iterate over existing addresses in a message(fragment)
  * during message generation (finishMessageHeader/finishMessageTLVs

@@ -18,11 +18,6 @@ ENDFOREACH(plugin)
 # link core
 TARGET_LINK_LIBRARIES(${OONF_EXE} -Wl,--whole-archive oonf_static_core -Wl,--no-whole-archive)
 
-# link packetbb if necessary
-IF(OONF_NEED_PACKETBB)
-    TARGET_LINK_LIBRARIES(${OONF_EXE} -Wl,--whole-archive oonf_static_rfc5444 -Wl,--no-whole-archive)
-ENDIF(OONF_NEED_PACKETBB)
-
 # link config and common API
 TARGET_LINK_LIBRARIES(${OONF_EXE} -Wl,--whole-archive oonf_static_config -Wl,--no-whole-archive)
 TARGET_LINK_LIBRARIES(${OONF_EXE} -Wl,--whole-archive oonf_static_common -Wl,--no-whole-archive)

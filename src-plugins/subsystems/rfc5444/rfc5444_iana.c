@@ -1,7 +1,7 @@
 
 /*
- * The olsr.org Optimized Link-State Routing daemon(olsrd)
- * Copyright (c) 2004-2012, the olsr.org team - see HISTORY file
+ * The olsr.org Optimized Link-State Routing daemon version 2 (olsrd2)
+ * Copyright (c) 2004-2013, the olsr.org team - see HISTORY file
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -38,13 +38,19 @@
  * the copyright holders.
  *
  */
+#include "common/common_types.h"
+#include "common/netaddr.h"
 
-#ifndef RFC5444_API_CONFIG_H_
-#define RFC5444_API_CONFIG_H_
+#include "rfc5444_iana.h"
 
-#define DISALLOW_CONSUMER_CONTEXT_DROP ${RFC5444_DISALLOW_CONSUMER_CONTEXT_DROP}
-#define WRITER_STATE_MACHINE ${RFC5444_WRITER_STATE_MACHINE}
-#define DEBUG_CLEANUP ${RFC5444_DEBUG_CLEANUP}
-#define DO_ADDR_COMPRESSION ${RFC5444_DO_ADDR_COMPRESSION}
+const struct netaddr RFC5444_MANET_MULTICAST_V4 = {
+  ._addr = { 224,0,0,109, 0,0,0,0,0,0,0,0,0,0,0,0 },
+  ._type = AF_INET,
+  ._prefix_len = 32,
+};
 
-#endif /* RFC5444_API_CONFIG_H_ */
+const struct netaddr RFC5444_MANET_MULTICAST_V6 = {
+  ._addr = { 0xff,0x02,0,0,0,0,0,0,0,0,0,0,0,0,0,0x6D },
+  ._type = AF_INET6,
+  ._prefix_len = 128,
+};

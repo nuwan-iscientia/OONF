@@ -43,7 +43,7 @@
 
 #include "common/common_types.h"
 #include "common/autobuf.h"
-#include "rfc5444/rfc5444_reader.h"
+#include "rfc5444_reader.h"
 
 struct rfc5444_print_session {
   struct autobuf *output;

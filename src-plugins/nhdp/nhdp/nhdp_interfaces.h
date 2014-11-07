@@ -50,7 +50,6 @@ struct nhdp_interface_addr;
 #include "common/list.h"
 #include "common/netaddr.h"
 #include "common/netaddr_acl.h"
-#include "rfc5444/rfc5444_iana.h"
 #include "subsystems/oonf_interface.h"
 #include "subsystems/oonf_rfc5444.h"
 #include "subsystems/oonf_timer.h"

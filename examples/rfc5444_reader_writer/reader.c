@@ -44,7 +44,7 @@
 
 #include "common/common_types.h"
 #include "common/netaddr.h"
-#include "rfc5444/rfc5444_reader.h"
+#include "subsystems/rfc5444/rfc5444_reader.h"
 
 #include "rfc5444_reader_writer/reader.h"
 

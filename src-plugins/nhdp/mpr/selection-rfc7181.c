@@ -41,7 +41,6 @@
 #include "nhdp/nhdp.h"
 #include "nhdp/nhdp_db.h"
 #include "nhdp/nhdp_domain.h"
-#include "rfc5444/rfc5444.h"
 #include "nhdp/nhdp_interfaces.h"
 
 #include "common/common_types.h"
@@ -51,7 +50,7 @@
 #include "common/container_of.h"
 #include "config/cfg_schema.h"
 #include "core/oonf_logging.h"
-#include "rfc5444/rfc5444.h"
+#include "subsystems/oonf_rfc5444.h"
 #include "subsystems/oonf_class.h"
 #include "subsystems/oonf_timer.h"
 

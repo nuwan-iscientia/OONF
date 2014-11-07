@@ -43,8 +43,8 @@
 #include "common/avl_comp.h"
 #include "common/common_types.h"
 #include "common/netaddr.h"
-#include "rfc5444/rfc5444.h"
 #include "subsystems/oonf_class.h"
+#include "subsystems/oonf_rfc5444.h"
 #include "subsystems/oonf_timer.h"
 
 #include "nhdp/nhdp_domain.h"

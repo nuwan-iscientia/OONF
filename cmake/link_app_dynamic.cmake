@@ -17,11 +17,6 @@ TARGET_LINK_LIBRARIES(${OONF_EXE} oonf_subsystems)
 # link core
 TARGET_LINK_LIBRARIES(${OONF_EXE} oonf_core)
 
-# link packetbb if necessary
-IF(OONF_NEED_PACKETBB)
-    TARGET_LINK_LIBRARIES(${OONF_EXE} oonf_rfc5444)
-ENDIF(OONF_NEED_PACKETBB)
-
 # link config and common API
 TARGET_LINK_LIBRARIES(${OONF_EXE} oonf_config)
 TARGET_LINK_LIBRARIES(${OONF_EXE} oonf_common)

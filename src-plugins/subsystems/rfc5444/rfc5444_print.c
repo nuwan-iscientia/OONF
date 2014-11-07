@@ -45,8 +45,8 @@
 #include <arpa/inet.h>
 
 #include "common/netaddr.h"
-#include "rfc5444/rfc5444_reader.h"
-#include "rfc5444/rfc5444_print.h"
+#include "rfc5444_reader.h"
+#include "rfc5444_print.h"
 
 static enum rfc5444_result _cb_print_pkt_start(
     struct rfc5444_reader_tlvblock_context *context);

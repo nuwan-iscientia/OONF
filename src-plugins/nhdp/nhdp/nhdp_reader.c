@@ -41,9 +41,6 @@
 
 #include "common/common_types.h"
 #include "common/netaddr.h"
-#include "rfc5444/rfc5444_iana.h"
-#include "rfc5444/rfc5444.h"
-#include "rfc5444/rfc5444_reader.h"
 #include "core/oonf_logging.h"
 #include "core/oonf_subsystem.h"
 #include "subsystems/oonf_rfc5444.h"

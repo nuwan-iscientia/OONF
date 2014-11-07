@@ -41,7 +41,7 @@
 #include <assert.h>
 
 #include "common/common_types.h"
-#include "rfc5444/rfc5444.h"
+#include "rfc5444.h"
 
 /**
  * Retrieve a timetlv value from a vector of hopcount/value sequences.

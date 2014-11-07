@@ -43,7 +43,7 @@
 #define NHDP_HYSTERESIS_H_
 
 #include "common/common_types.h"
-#include "rfc5444/rfc5444_reader.h"
+#include "subsystems/oonf_rfc5444.h"
 
 #include "nhdp/nhdp_db.h"
 

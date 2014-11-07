@@ -55,7 +55,7 @@ function (oonf_create_library libname source include linkto_internal linkto_exte
 endfunction (oonf_create_library)
 
 function (oonf_create_plugin libname source include linkto_external)
-    SET (linkto_internal oonf_core oonf_config oonf_rfc5444 oonf_common)
+    SET (linkto_internal oonf_core oonf_config oonf_common)
     
     oonf_create_library("${libname}" "${source}" "" "${linkto_internal}" "${linkto_external}")
 endfunction (oonf_create_plugin)

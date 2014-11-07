@@ -40,8 +40,8 @@
  */
 
 #include "common/common_types.h"
-#include "rfc5444/rfc5444_reader.h"
 #include "core/oonf_logging.h"
+#include "subsystems/oonf_rfc5444.h"
 
 #include "nhdp/nhdp_db.h"
 #include "nhdp/nhdp_hysteresis.h"

@@ -47,7 +47,6 @@
 #include "common/netaddr.h"
 #include "common/netaddr_acl.h"
 #include "config/cfg_schema.h"
-#include "rfc5444/rfc5444.h"
 #include "core/oonf_logging.h"
 #include "core/oonf_subsystem.h"
 #include "core/os_core.h"

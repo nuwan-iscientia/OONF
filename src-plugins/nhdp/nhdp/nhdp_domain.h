@@ -44,7 +44,6 @@
 
 #include "common/common_types.h"
 #include "common/list.h"
-#include "rfc5444/rfc5444_writer.h"
 #include "subsystems/oonf_rfc5444.h"
 
 #include "nhdp/nhdp_db.h"
