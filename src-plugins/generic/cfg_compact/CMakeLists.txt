@@ -1,5 +1,5 @@
 # set library parameters
-SET (source cfg_compact.c)
+SET (name cfg_compact)
 
 # use generic plugin maker
-oonf_create_plugin("cfg_compact" "${source}" "")
+oonf_create_plugin("${name}" "${name}.c" "${name}.h" "")

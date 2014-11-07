@@ -1,5 +1,5 @@
-# set library name
-SET (source "layer2_generator.c")
+# set library parameters
+SET (name layer2_generator)
 
 # use generic plugin maker
-oonf_create_plugin("layer2_generator" "${source}" "" "")
+oonf_create_plugin("${name}" "${name}.c" "${name}.h" "")

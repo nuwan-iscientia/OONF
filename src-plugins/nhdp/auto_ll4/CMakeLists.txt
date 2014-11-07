@@ -1,5 +1,5 @@
 # set library parameters
-SET (source auto_ll4.c)
+SET (name auto_ll4)
 
 # use generic plugin maker
-oonf_create_app_plugin("auto_ll4" "${source}" "")
+oonf_create_plugin("${name}" "${name}.c" "${name}.h" "")

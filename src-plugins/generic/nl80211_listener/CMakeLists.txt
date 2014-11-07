@@ -19,7 +19,9 @@ SET (source nl80211_listener.c
             nl80211_get_station_dump.c
             genl_get_family.c)
 
+SET (include nl80211_listener.h)
+
 message("Using '${LIBNL3_LIBRARIES}' for nl80211 access")
 
 # use generic plugin maker
-oonf_create_plugin("nl80211_listener" "${source}" "${LIBNL3_LIBRARIES}")
+oonf_create_plugin("nl80211_listener" "${source}" "${include}" "${LIBNL3_LIBRARIES}")

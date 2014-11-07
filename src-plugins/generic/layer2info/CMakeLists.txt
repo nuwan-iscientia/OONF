@@ -1,5 +1,5 @@
-# set library name
-SET (source layer2info.c)
+# set library parameters
+SET (name layer2info)
 
 # use generic plugin maker
-oonf_create_plugin("layer2info" "${source}" "")
+oonf_create_plugin("${name}" "${name}.c" "${name}.h" "")

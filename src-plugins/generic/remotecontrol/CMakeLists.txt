@@ -1,5 +1,5 @@
 # set library parameters
-SET (source remotecontrol.c)
+SET (name remotecontrol)
 
 # use generic plugin maker
-oonf_create_plugin("remotecontrol" "${source}" "")
+oonf_create_plugin("${name}" "${name}.c" "${name}.h" "")

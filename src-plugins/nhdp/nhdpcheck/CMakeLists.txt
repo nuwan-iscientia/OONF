@@ -1,5 +1,5 @@
 # set library parameters
-SET (source nhdpcheck.c)
+SET (name nhdpcheck)
 
 # use generic plugin maker
-oonf_create_app_plugin("nhdpcheck" "${source}" "")
+oonf_create_plugin("${name}" "${name}.c" "${name}.h" "")

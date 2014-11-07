@@ -45,7 +45,6 @@ function (oonf_create_library libname source include linkto_internal linkto_exte
         EXPORT OONFLibraryDepends
         ARCHIVE DESTINATION "${INSTALL_LIB_DIR}" COMPONENT stlib
             COMPONENT dev)
-    #
    
     get_property (targets GLOBAL PROPERTY OONF_TARGETS)
     SET (targets ${targets} oonf_${libname} oonf_static_${libname})
@@ -55,28 +54,8 @@ function (oonf_create_library libname source include linkto_internal linkto_exte
 #            FILE "${PROJECT_BINARY_DIR}/OONFLibraryDepends_${libname}.cmake")
 endfunction (oonf_create_library)
 
-function (oonf_create_plugin libname source linkto_external)
-    SET (linkto_internal oonf_subsystems oonf_core oonf_config oonf_rfc5444 oonf_common)
+function (oonf_create_plugin libname source include linkto_external)
+    SET (linkto_internal oonf_core oonf_config oonf_rfc5444 oonf_common)
     
     oonf_create_library("${libname}" "${source}" "" "${linkto_internal}" "${linkto_external}")
-    
-    set_source_files_properties(${source} PROPERTIES COMPILE_FLAGS "-DPLUGIN_FULLNAME=${libname}")
 endfunction (oonf_create_plugin)
-
-function (oonf_create_app_plugin libname source linkto_external)
-    SET (linkto_internal oonf_subsystems oonf_core oonf_config oonf_rfc5444 oonf_common)
-    
-    oonf_internal_create_plugin("${OONF_APP_LIBPREFIX}" "${libname}" "${source}" "" "${linkto_internal}" "${linkto_external}")
-    
-    set_source_files_properties(${source} PROPERTIES COMPILE_FLAGS "-DPLUGIN_FULLNAME=${libname}")
-    
-    install (TARGETS ${OONF_APP_LIBPREFIX}_${libname}
-        LIBRARY DESTINATION "${INSTALL_LIB_DIR}" COMPONENT shlib
-        PUBLIC_HEADER DESTINATION "${INSTALL_INCLUDE_DIR}/${libname}"
-            COMPONENT dev)
-
-    install (TARGETS ${OONF_APP_LIBPREFIX}_static_${libname}
-        ARCHIVE DESTINATION "${INSTALL_LIB_DIR}" COMPONENT stlib
-        PUBLIC_HEADER DESTINATION "${INSTALL_INCLUDE_DIR}/${libname}"
-            COMPONENT dev)
-endfunction (oonf_create_app_plugin)

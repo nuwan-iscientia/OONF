@@ -1,5 +1,5 @@
 # set library parameters
-SET (source plugin_controller.c)
+SET (name plugin_controller)
 
 # use generic plugin maker
-oonf_create_plugin("plugin_controller" "${source}" "")
+oonf_create_plugin("${name}" "${name}.c" "${name}.h" "")

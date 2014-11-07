@@ -48,7 +48,22 @@ set (OONF_NEED_PACKETBB true)
 
 # use default static plugins if custom variable not set
 IF (NOT OONF_CUSTOM_STATIC_PLUGINS OR OONF_CUSTOM_STATIC_PLUGINS STREQUAL "")
-	set (OONF_STATIC_PLUGINS "") # cfg_compact nl80211_listener layer2info")
+	set (OONF_STATIC_PLUGINS oonf_class
+	                         oonf_clock
+	                         oonf_duplicate_set
+	                         oonf_interface
+	                         oonf_layer2
+	                         oonf_packet_socket
+	                         oonf_rfc5444
+	                         oonf_socket
+	                         oonf_stream_socket
+	                         oonf_telnet
+	                         oonf_timer
+	                         oonf_viewer
+	                         os_clock
+	                         os_net
+	                         os_routing
+	                         os_system)
 ELSE ()
 	set (OONF_STATIC_PLUGINS "${OONF_CUSTOM_STATIC_PLUGINS}")
 ENDIF ()

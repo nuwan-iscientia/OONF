@@ -1,5 +1,5 @@
 # set library parameters
-SET (source httptelnet.c)
+SET (name httptelnet)
 
 # use generic plugin maker
-oonf_create_plugin("httptelnet" "${source}" "")
+oonf_create_plugin("${name}" "${name}.c" "${name}.h" "")

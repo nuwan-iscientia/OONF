@@ -1,5 +1,5 @@
-# set library name
-SET (source link_config.c)
+# set library parameters
+SET (name link_config)
 
 # use generic plugin maker
-oonf_create_plugin("link_config" "${source}" "")
+oonf_create_plugin("${name}" "${name}.c" "${name}.h" "")

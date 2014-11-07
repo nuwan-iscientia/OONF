@@ -1,5 +1,5 @@
 # set library parameters
-SET (source route_modifier.c)
+SET (name route_modifier)
 
 # use generic plugin maker
-oonf_create_app_plugin("route_modifier" "${source}" "")
+oonf_create_plugin("${name}" "${name}.c" "${name}.h" "")

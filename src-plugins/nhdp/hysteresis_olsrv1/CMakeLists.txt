@@ -1,5 +1,5 @@
 # set library parameters
-SET (source hysteresis_olsrv1.c)
+SET (name hysteresis_olsrv1)
 
 # use generic plugin maker
-oonf_create_app_plugin("hysteresis_olsrv1" "${source}" "" "")
+oonf_create_plugin("${name}" "${name}.c" "${name}.h" "")

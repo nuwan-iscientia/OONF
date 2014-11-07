@@ -1,5 +1,5 @@
 # set library parameters
-SET (source constant_metric.c)
+SET (name constant_metric)
 
 # use generic plugin maker
-oonf_create_app_plugin("constant_metric" "${source}" "")
+oonf_create_plugin("${name}" "${name}.c" "${name}.h" "")
