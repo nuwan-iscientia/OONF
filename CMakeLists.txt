@@ -7,7 +7,6 @@ cmake_minimum_required(VERSION 2.8.5 FATAL_ERROR)
 
 # set cached variables
 include (./cmake/lib_config.cmake)
-include (./cmake/app_config.cmake)
 
 # include compiler flags
 include (./cmake/cc_flags.cmake)

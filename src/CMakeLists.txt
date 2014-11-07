@@ -1,10 +1,13 @@
 # create application data for including
-include (../cmake/prepare_app.cmake)
+include (./app_config.cmake)
+
+# generate configuration files
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/app_data.h.in ${PROJECT_BINARY_DIR}/app_data.h)
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/app_data.c.in ${PROJECT_BINARY_DIR}/app_data.c)
 
 # add main program
 set(OONF_SRCS main.c 
-              ${PROJECT_BINARY_DIR}/app_data.c
-              )
+              ${PROJECT_BINARY_DIR}/app_data.c)
 
 # create executable
 ADD_EXECUTABLE(${OONF_EXE} ${OONF_SRCS})
@@ -18,6 +21,3 @@ IF (OONF_FRAMEWORD_DYNAMIC)
 ELSE (OONF_FRAMEWORD_DYNAMIC)
     include(../cmake/link_app_static.cmake)
 endif(OONF_FRAMEWORD_DYNAMIC)
-
-# remove git commit cache entry
-UNSET (OONF_APP_GIT CACHE)

@@ -49,8 +49,8 @@ static struct oonf_appdata _appdata = {
   .help_prefix = "${OONF_HELP_PREFIX}",
   .help_suffix = "${OONF_HELP_SUFFIX}",
 
-  .default_lockfile = OS_CORE_LOCKFILE_FOLDER "${OONF_APP_LIBPREFIX}.lock",
-  .default_cfg_handler = ${OONF_APP_DEFAULT_CFG_HANDLER},
+  .default_lockfile = OS_CORE_LOCKFILE_FOLDER "${OONF_APP}.lock",
+  .default_cfg_handler = "${OONF_APP_DEFAULT_CFG_HANDLER}",
 
   .need_root = ${OONF_NEED_ROOT}
 };

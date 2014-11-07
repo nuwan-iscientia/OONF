@@ -4,8 +4,7 @@
 
 # link static plugins
 message ("Compiling project with static libraries")
-message ("Static plugins: ${PLUGIN_LIST}")
-string(REPLACE " " ";" PLUGIN_LIST "${OONF_STATIC_PLUGINS}")
+message ("Static plugins:")
 FOREACH(plugin ${PLUGIN_LIST})
     IF(TARGET oonf_static_${plugin})
         message ("    Found target: oonf_static_${plugin}")  
@@ -15,10 +14,8 @@ FOREACH(plugin ${PLUGIN_LIST})
     ENDIF(TARGET oonf_static_${plugin})
 ENDFOREACH(plugin)
 
-# link core
+# link core, config and common API
 TARGET_LINK_LIBRARIES(${OONF_EXE} -Wl,--whole-archive oonf_static_core -Wl,--no-whole-archive)
-
-# link config and common API
 TARGET_LINK_LIBRARIES(${OONF_EXE} -Wl,--whole-archive oonf_static_config -Wl,--no-whole-archive)
 TARGET_LINK_LIBRARIES(${OONF_EXE} -Wl,--whole-archive oonf_static_common -Wl,--no-whole-archive)
 

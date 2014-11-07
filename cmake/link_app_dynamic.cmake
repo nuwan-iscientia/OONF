@@ -11,13 +11,8 @@ FOREACH(plugin ${PLUGIN_LIST})
     ENDIF(TARGET oonf_static_${plugin})
 ENDFOREACH(plugin)
 
-# link subsystems
-TARGET_LINK_LIBRARIES(${OONF_EXE} oonf_subsystems)
-
-# link core
+# link core, config and common
 TARGET_LINK_LIBRARIES(${OONF_EXE} oonf_core)
-
-# link config and common API
 TARGET_LINK_LIBRARIES(${OONF_EXE} oonf_config)
 TARGET_LINK_LIBRARIES(${OONF_EXE} oonf_common)
 
