@@ -1,19 +1,19 @@
 # create plugins for single-file (source plus header) subsystems
-SET(SINGLE_FILE_NAMES    oonf_class
-                         oonf_clock
-                         oonf_duplicate_set
-                         oonf_http
-                         oonf_interface
-                         oonf_layer2
-                         oonf_packet_socket
-                         oonf_socket
-                         oonf_stream_socket
-                         oonf_telnet
-                         oonf_timer
-                         oonf_viewer)
+SET(SINGLE_FILE_NAMES    class
+                         clock
+                         duplicate_set
+                         http
+                         interface
+                         layer2
+                         packet_socket
+                         socket
+                         stream_socket
+                         telnet
+                         timer
+                         viewer)
 
 foreach(name ${SINGLE_FILE_NAMES})
-    oonf_create_plugin("${name}" "${name}.c" "${name.h}" "")
+    oonf_create_plugin("${name}" "oonf_${name}.c" "oonf_${name.h}" "")
 endforeach(name)
 
 # generate rfc5444 plugin
@@ -35,7 +35,7 @@ SET(RFC5444_INCLUDE oonf_rfc5444.h
                     rfc5444/rfc5444_reader.h
                     rfc5444/rfc5444_tlv_writer.h
                     rfc5444/rfc5444_writer.h)
-oonf_create_plugin("oonf_rfc5444" "${RFC5444_SOURCE}" "${RFC5444_INCLUDE}" "")
+oonf_create_plugin("rfc5444" "${RFC5444_SOURCE}" "${RFC5444_INCLUDE}" "")
 
 # generate the os-specific plugins
 # TODO: add BSD and WIN32

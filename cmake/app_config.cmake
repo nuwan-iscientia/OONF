@@ -36,31 +36,28 @@ set (OONF_FRAMEWORD_DYNAMIC false CACHE BOOL
 # set to true to stop application running without root privileges (true/false)
 set (OONF_NEED_ROOT true)
 
-# set to true to link packetbb API to application
-set (OONF_NEED_PACKETBB true)
-
 ##############################
 #### Handle default cases ####
 ##############################
 
 # use default static plugins if custom variable not set
 IF (NOT OONF_CUSTOM_STATIC_PLUGINS OR OONF_CUSTOM_STATIC_PLUGINS STREQUAL "")
-	set (OONF_STATIC_PLUGINS oonf_class
-	                         oonf_clock
-	                         oonf_duplicate_set
-	                         oonf_interface
-	                         oonf_layer2
-	                         oonf_packet_socket
-	                         oonf_rfc5444
-	                         oonf_socket
-	                         oonf_stream_socket
-	                         oonf_telnet
-	                         oonf_timer
-	                         oonf_viewer
-	                         os_clock
-	                         os_net
-	                         os_routing
-	                         os_system)
+    set (OONF_STATIC_PLUGINS class
+                             clock
+                             duplicate_set
+                             interface
+                             layer2
+                             packet_socket
+                             rfc5444
+                             socket
+                             stream_socket
+                             telnet
+                             timer
+                             viewer
+                             os_clock
+                             os_net
+                             os_routing
+                             os_system)
 ELSE ()
 	set (OONF_STATIC_PLUGINS "${OONF_CUSTOM_STATIC_PLUGINS}")
 ENDIF ()
