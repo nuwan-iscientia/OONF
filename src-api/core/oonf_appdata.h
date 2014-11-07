@@ -52,6 +52,8 @@ struct oonf_appdata {
 
   const char *default_lockfile;
   const char *default_cfg_handler;
+
+  const bool need_root;
 };
 
 #endif /* OONF_APPDATA_H_ */

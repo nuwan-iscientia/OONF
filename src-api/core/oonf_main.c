@@ -209,13 +209,13 @@ oonf_main(int argc, char **argv, const struct oonf_appdata *appdata) {
   }
 
   /* check if we are root, otherwise stop */
-#if defined OONF_NEED_ROOT && OONF_NEED_ROOT == true
-  if (geteuid() != 0) {
-    OONF_WARN(LOG_MAIN, "You must be root(uid = 0) to run %s!\n",
-        oonf_appdata_get()->app_name);
-    goto olsrd_cleanup;
+  if (appdata->need_root) {
+    if (geteuid() != 0) {
+      OONF_WARN(LOG_MAIN, "You must be root(uid = 0) to run %s!\n",
+          appdata->app_name);
+      goto olsrd_cleanup;
+    }
   }
-#endif
 
   if (config_global.lockfile != NULL && *config_global.lockfile != 0) {
     /* create application lock */
@@ -267,15 +267,6 @@ oonf_main(int argc, char **argv, const struct oonf_appdata *appdata) {
 
   /* wait for 500 milliseconds and process socket events */
   _handle_scheduling();
-#if 0
-  if (oonf_clock_update()) {
-    OONF_WARN(LOG_MAIN, "Clock update for shutdown failed");
-  }
-  next_interval = oonf_clock_get_absolute(500);
-  if (oonf_socket_handle(NULL, next_interval)) {
-    OONF_WARN(LOG_MAIN, "Grace period for shutdown failed.");
-  }
-#endif
 
 olsrd_cleanup:
   /* free plugins */
