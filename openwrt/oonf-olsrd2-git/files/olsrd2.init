@@ -1,0 +1,144 @@
+#!/bin/sh /etc/rc.common
+
+START=82
+
+. /usr/share/libubox/jshn.sh
+
+olsrd2_log()
+{
+	logger -s -t olsrd2 -p daemon.info "$1"
+}
+
+olsrd2_get_layer3_device()
+{
+	local interface="$1"	# e.g. 'mywifi'
+	local status dev proto
+	local query="{ \"interface\" : \"$interface\" }"
+
+	status="$( ubus -S call network.interface status "$query" )" && {
+		json_load "$status"
+		json_get_var 'dev' l3_device
+		json_get_var 'proto' proto
+
+		case "$proto" in
+			pppoe)
+				# TODO: otherwise it segfaults
+				olsrd2_log "refusing to add '$interface', because of proto '$proto'"
+			;;
+			*)
+				echo "$dev"	# e.g. 'wlan0-1'
+			;;
+		esac
+	}
+}
+
+olsrd2_add_devices_to_configuration()
+{
+	local i=0
+	local j=0
+	local device_name= dummy= interface= single_interface=
+
+	# make a copy of configuration and
+	# replace all 'interface-names' (e.g. mywifi)
+	# with the real devices (e.g. wlan0-1)
+	#
+	# look over original interfaces, e.g.
+	#
+	# olsrd2.@interface[2]=interface
+	# olsrd2.@interface[2].ifname='wan lan wlanadhoc wlanadhocRADIO1'
+
+	# /var is in ramdisc/tmpfs
+	cp /etc/config/olsrd2 /var/etc/olsrd2_dev
+
+	while dummy="$( uci -q -c /etc/config get "olsrd2.@interface[$i]" )"; do {
+		interface="$( uci -q -c /etc/config get "olsrd2.@interface[$i].ifname" )" || {
+			i=$(( $i + 1 ))
+			j=$(( $j + 1 ))
+
+			continue
+		}
+
+		case "$( uci -q get "olsrd2.@interface[$i].ignore" )" in
+			1|on|true|enabled|yes)
+				olsrd2_log "removing/ignore interface '$interface'"
+				uci -q -c /var/etc delete "olsrd2_dev.@interface[$j]"
+				i=$(( $i + 1 ))
+
+				continue
+			;;
+		esac
+
+		for single_interface in $interface; do {
+			device_name="$( olsrd2_get_layer3_device "$single_interface" )"
+
+			[ -z "$device_name" ] && {
+				# remove from copy
+				uci -q -c /var/etc delete "olsrd2_dev.@interface[$j]"
+				i=$(( $i + 1 ))
+
+				continue
+			}
+
+			# replace option 'ifname' (e.g. 'mywifi')
+			# with the option 'name' (e.g. 'wlan0-1')
+
+			# var 'ifname' is not needed anymore, but we keep it for readability
+			uci -q -c /var/etc set    "olsrd2_dev.@interface[$j].ifname=$single_interface"
+
+			uci -q -c /var/etc set    "olsrd2_dev.@interface[$j].name=$device_name" || {
+				# fails if index '$j' is wrong (multiple interface for 1 section)
+				uci -q -c /var/etc add olsrd2_dev 'interface' >/dev/null
+				uci -q -c /var/etc set olsrd2_dev.@interface[-1].ifname="$single_interface"
+				uci -q -c /var/etc set olsrd2_dev.@interface[-1].name="$device_name"
+			}
+
+			i=$(( $i + 1 ))
+			j=$(( $j + 1 ))
+		} done
+	} done
+
+	uci -q -c /var/etc commit olsrd2_dev
+
+	# hide our old vars 'ifname' - it confuses the daemon parser
+	sed -i 's/option ifname /# &/' /var/etc/olsrd2_dev
+
+	olsrd2_log "wrote '/var/etc/olsrd2_dev'"
+}
+
+olsrd2_reread_config()
+{
+	local pid
+	local pidfile='/var/run/olsrd2.pid'
+
+	if   [ -e "$pidfile" ]; then
+		read pid <"$pidfile"
+	elif pidfile="$( uci -q get 'olsrd2.@global[0].pidfile' )"; then
+		read pid <"$pidfile"
+	fi
+
+	# if empty, ask kernel
+	pid="${pid:-$( pidof olsrd2 )}"
+
+	[ -n "$pid" ] && kill -SIGHUP $pid
+}
+
+start()
+{
+	olsrd2_add_devices_to_configuration
+
+	# produce coredumps
+	ulimit -c unlimited
+
+	service_start /usr/sbin/olsrd2 --set global.fork=true --load uci:///var/etc/olsrd2_dev
+}
+
+stop()
+{
+	service_stop /usr/sbin/olsrd2
+}
+
+reload()
+{
+	olsrd2_add_devices_to_configuration
+	olsrd2_reread_config
+}

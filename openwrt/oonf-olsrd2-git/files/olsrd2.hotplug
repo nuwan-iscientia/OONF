@@ -1,0 +1,10 @@
+#!/bin/sh
+
+case "$ACTION" in
+	ifup)
+		. /etc/rc.common /etc/init.d/olsrd2 enabled && {
+			logger -t 'OLSRd2[hotplug]' -p daemon.info 'reloading configuration'
+			. /etc/rc.common /etc/init.d/olsrd2 reload
+		}
+	;;
+esac
