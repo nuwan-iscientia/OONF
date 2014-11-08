@@ -1,21 +1,26 @@
 # generic oonf library creation
 
-function (oonf_internal_create_plugin prefix libname source include link_internal linkto_external)
-    add_library(${prefix}_${libname} SHARED ${source})
-    add_library(${prefix}_static_${libname} STATIC ${source})
+function (oonf_internal_create_plugin libname source include link_internal linkto_external)
+    # create static and dynamic library
+    add_library(oonf_${libname} SHARED ${source})
+    add_library(oonf_static_${libname} OBJECT ${source})
 
+    # add libraries to global static/dynamic target
+    add_dependencies(dynamic oonf_${libname})
+    add_dependencies(static oonf_static_${libname})
+    
+    # and link their dependencies
     if(WIN32)
-        target_link_libraries(${prefix}_${libname} ws2_32 iphlpapi)
+        target_link_libraries(oonf_${libname} ws2_32 iphlpapi)
     endif(WIN32)
 
-    set_target_properties(${prefix}_${libname} PROPERTIES SOVERSION "${OONF_VERSION}")
+    set_target_properties(oonf_${libname} PROPERTIES SOVERSION "${OONF_VERSION}")
 
     if (linkto_internal)
-        target_link_libraries(${prefix}_${libname} ${linkto_internal})
+        target_link_libraries(oonf_${libname} ${linkto_internal})
     endif (linkto_internal)
     if (linkto_external)
-        target_link_libraries(${prefix}_${libname} ${linkto_external})
-        target_link_libraries(${prefix}_static_${libname} ${linkto_external})
+        target_link_libraries(oonf_${libname} ${linkto_external})
     endif (linkto_external)
     
     foreach(inc ${include})
@@ -32,26 +37,7 @@ function (oonf_internal_create_plugin prefix libname source include link_interna
 endfunction (oonf_internal_create_plugin)
 
 function (oonf_create_library libname source include linkto_internal linkto_external)
-    oonf_internal_create_plugin("oonf" "${libname}" "${source}" "${include}" "${linkto_internal}" "${linkto_external}")
-    
-    install (TARGETS oonf_${libname}
-        # IMPORTANT: Add the library to the "export-set"
-        EXPORT OONFLibraryDepends
-        LIBRARY DESTINATION "${INSTALL_LIB_DIR}" COMPONENT shlib
-            COMPONENT dev)
-
-    install (TARGETS oonf_static_${libname}
-        # IMPORTANT: Add the static library to the "export-set"
-        EXPORT OONFLibraryDepends
-        ARCHIVE DESTINATION "${INSTALL_LIB_DIR}" COMPONENT stlib
-            COMPONENT dev)
-   
-    get_property (targets GLOBAL PROPERTY OONF_TARGETS)
-    SET (targets ${targets} oonf_${libname} oonf_static_${libname})
-    set_property(GLOBAL PROPERTY OONF_TARGETS "${targets}") 
-    
-#    export (TARGETS oonf_${libname} oonf_static_${libname} ${linkto_internal}
-#            FILE "${PROJECT_BINARY_DIR}/OONFLibraryDepends_${libname}.cmake")
+    oonf_internal_create_plugin("${libname}" "${source}" "${include}" "${linkto_internal}" "${linkto_external}")
 endfunction (oonf_create_library)
 
 function (oonf_create_plugin libname source include linkto_external)

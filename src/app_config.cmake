@@ -13,15 +13,11 @@ set (OONF_HELP_SUFFIX "Visit http://www.olsr.org\\n")
 # setup custom text after version string
 set (OONF_VERSION_TRAILER "Visit http://www.olsr.org\\n")
 
-# choose if framework should be linked static or dynamic
-set (OONF_FRAMEWORD_DYNAMIC false)
-
 # set to true to stop application running without root privileges (true/false)
 set (OONF_NEED_ROOT true)
 
 # name of default configuration handler
-set (OONF_APP_DEFAULT_CFG_HANDLER Compact CACHE STRING
-     "Name of default configuration handler")
+set (OONF_APP_DEFAULT_CFG_HANDLER Compact)
 
 #################################
 ####  set static subsystems  ####
@@ -42,4 +38,5 @@ set (OONF_STATIC_PLUGINS class
                          os_clock
                          os_net
                          os_routing
-                         os_system)
+                         os_system
+                         )

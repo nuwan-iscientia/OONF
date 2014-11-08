@@ -85,7 +85,7 @@ static const char *_dependencies[] = {
 };
 
 static struct oonf_subsystem _oonf_packet_socket_subsystem = {
-  .name = "packet",
+  .name = OONF_PACKET_SUBSYSTEM,
   .dependencies = _dependencies,
   .dependencies_count = ARRAYSIZE(_dependencies),
   .init = _init,

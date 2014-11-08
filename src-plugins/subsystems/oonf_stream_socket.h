@@ -53,7 +53,7 @@
 #include "subsystems/oonf_socket.h"
 #include "subsystems/oonf_timer.h"
 
-#define OONF_STREAM_SUBSYSTEM "stream"
+#define OONF_STREAM_SUBSYSTEM "stream_socket"
 
 enum oonf_stream_session_state {
   STREAM_SESSION_ACTIVE,
