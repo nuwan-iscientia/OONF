@@ -126,7 +126,7 @@ nl80211_process_get_interface_result(struct nl80211_if *interf,
     int len;
 
     len = nla_len(tb_msg[NL80211_ATTR_SSID]);
-    if (len+1 > (int)sizeof(ssid)) {
+    if (len > (int)sizeof(ssid) - 1) {
       len = sizeof(ssid)-1;
     }
     memcpy(ssid, nla_data(tb_msg[NL80211_ATTR_SSID]), len);

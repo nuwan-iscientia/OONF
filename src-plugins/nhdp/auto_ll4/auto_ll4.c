@@ -428,9 +428,11 @@ _cb_update_timer(void *ptr) {
   struct oonf_interface_data *ifdata;
   struct _nhdp_if_autoll4 *auto_ll4;
   struct netaddr current_ll4;
-  struct netaddr_str nbuf;
   int count;
   uint16_t hash;
+#ifdef OONF_LOG_DEBUG_INFO
+  struct netaddr_str nbuf;
+#endif
 
   /* get pointer to interface data */
   ifdata = &(nhdp_interface_get_coreif(nhdp_if)->data);
@@ -533,7 +535,9 @@ _cb_update_timer(void *ptr) {
 static void
 _generate_default_address(struct _nhdp_if_autoll4 *auto_ll4, const struct netaddr *ipv6_ll) {
   uint16_t host_part;
+#ifdef OONF_LOG_DEBUG_INFO
   struct netaddr_str nbuf1, nbuf2;
+#endif
 
   if (netaddr_get_address_family(ipv6_ll) == AF_UNSPEC) {
     /* no ipv6 linklocal address */

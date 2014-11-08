@@ -109,7 +109,9 @@ nl80211_process_get_mpp_result(struct nl80211_if *interf,
   struct oonf_layer2_destination *l2dst;
   struct oonf_layer2_neigh *l2neigh;
   struct netaddr remote_mac, destination_mac;
+#ifdef OONF_LOG_DEBUG_INFO
   struct netaddr_str nbuf1, nbuf2;
+#endif
 
   struct nlattr *tb[NL80211_ATTR_MAX + 1];
   struct genlmsghdr *gnlh;

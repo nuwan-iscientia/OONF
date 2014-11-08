@@ -554,7 +554,9 @@ _handle_destination_up(struct dlep_router_session *session,
   int pos;
   struct oonf_layer2_net *l2net;
   struct oonf_layer2_neigh *l2neigh;
+#ifdef OONF_LOG_INFO
   struct netaddr_str nbuf;
+#endif
 
   buffer = ptr;
 
@@ -590,7 +592,9 @@ _handle_destination_update(struct dlep_router_session *session,
   int pos;
   struct oonf_layer2_net *l2net;
   struct oonf_layer2_neigh *l2neigh;
+#ifdef OONF_LOG_INFO
   struct netaddr_str nbuf;
+#endif
 
   buffer = ptr;
 
@@ -626,8 +630,9 @@ _handle_destination_down(struct dlep_router_session *session,
   int pos;
   struct oonf_layer2_net *l2net;
   struct oonf_layer2_neigh *l2neigh;
+#ifdef OONF_LOG_INFO
   struct netaddr_str nbuf;
-
+#endif
   buffer = ptr;
 
   /* get mac address of new destination */

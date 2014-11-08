@@ -166,10 +166,12 @@ _cleanup(void) {
  */
 static enum rfc5444_result
 _cb_message_start_callback(struct rfc5444_reader_tlvblock_context *context) {
+#ifdef OONF_LOG_INFO
   struct nhdp_interface *interf;
 
   interf = nhdp_interface_get(_protocol->input_interface->name);
   assert(interf);
+#endif
 
   /* check address length */
   if (context->addr_len != 4 && context->addr_len != 16) {

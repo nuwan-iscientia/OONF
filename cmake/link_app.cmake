@@ -48,7 +48,7 @@ ADD_DEPENDENCIES(static  ${OONF_EXE}_static)
 
 # add path to install target
 INSTALL (TARGETS ${OONF_EXE}_dynamic DESTINATION bin)
-INSTALL (TARGETS ${OONF_EXE}_static  DESTINATION bin)
+INSTALL (TARGETS ${OONF_EXE}_static  DESTINATION bin COMPONENT static_exe)
 
 # link framework libraries to dynamic executable
 TARGET_LINK_LIBRARIES(${OONF_EXE}_dynamic PUBLIC oonf_core

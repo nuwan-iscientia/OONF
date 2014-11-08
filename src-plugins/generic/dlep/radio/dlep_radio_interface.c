@@ -278,7 +278,9 @@ static void
 _handle_peer_discovery(struct dlep_radio_if *interface,
     union netaddr_socket *dst, uint8_t *buffer, struct dlep_parser_index *idx) {
   int pos;
+#ifdef OONF_LOG_INFO
   struct netaddr_str nbuf;
+#endif
 
   /* get heartbeat interval */
   pos = idx->idx[DLEP_HEARTBEAT_INTERVAL_TLV];

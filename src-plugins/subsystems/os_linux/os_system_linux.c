@@ -593,7 +593,7 @@ _netlink_handler(int fd, void *data, bool event_read, bool event_write) {
   ssize_t ret;
   size_t len;
   int flags;
-  uint32_t current_seq;
+  uint32_t current_seq = 0;
   bool trigger_is_done;
 
 #if defined(OONF_LOG_DEBUG_INFO)

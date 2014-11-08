@@ -499,7 +499,9 @@ _prepare_routes(struct nhdp_domain *domain) {
   struct nhdp_neighbor *neigh;
   struct nhdp_neighbor_domaindata *neigh_metric;
 
+#ifdef OONF_LOG_DEBUG_INFO
   struct netaddr_str nbuf;
+#endif
 
   /* prepare all existing routing entries and put them into the working queue */
   avl_for_each_element(&_routing_tree[domain->index], rtentry, _node) {

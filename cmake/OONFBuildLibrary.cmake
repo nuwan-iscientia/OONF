@@ -34,7 +34,7 @@ function (oonf_create_library libname source include link_internal linkto_extern
                      DESTINATION ${INSTALL_INCLUDE_DIR}/${libname}/${path})
         ENDIF(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/${inc}")
     endforeach(inc)
-endfunction (oonf_internal_create_plugin)
+endfunction (oonf_create_library)
 
 function (oonf_create_plugin libname source include linkto_external)
     SET (linkto_internal oonf_core oonf_config oonf_common)

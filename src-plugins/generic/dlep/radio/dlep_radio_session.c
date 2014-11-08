@@ -275,7 +275,9 @@ static void
 _cb_tcp_lost(struct oonf_stream_session *tcp_session) {
   struct dlep_radio_session *session;
   struct dlep_radio_if *interface;
+#ifdef OONF_LOG_DEBUG_INFO
   struct netaddr_str nbuf;
+#endif
 
   session = container_of(tcp_session, struct dlep_radio_session, stream);
   interface = container_of(tcp_session->comport->managed, struct dlep_radio_if, tcp);
@@ -516,7 +518,9 @@ _cb_l2_neigh_added(void *ptr) {
   struct dlep_radio_if *dlep_if;
   struct dlep_radio_session *dlep_session;
 
+#ifdef OONF_LOG_DEBUG_INFO
   struct netaddr_str nbuf1;
+#endif
 
   /* get l2neighbor and l2network */
   l2neigh = ptr;
@@ -549,7 +553,9 @@ _cb_l2_neigh_changed(void *ptr) {
   struct dlep_radio_if *dlep_if;
   struct dlep_radio_session *dlep_session;
 
+#ifdef OONF_LOG_DEBUG_INFO
   struct netaddr_str nbuf1;
+#endif
 
   /* get l2neighbor and l2network */
   l2neigh = ptr;
@@ -591,7 +597,9 @@ _cb_l2_neigh_removed(void *ptr) {
   struct dlep_radio_if *dlep_if;
   struct dlep_radio_session *dlep_session;
 
+#ifdef OONF_LOG_DEBUG_INFO
   struct netaddr_str nbuf1;
+#endif
 
   /* get l2neighbor and l2network */
   l2neigh = ptr;
@@ -624,7 +632,9 @@ _cb_l2_dst_added(void *ptr) {
   struct dlep_radio_if *dlep_if;
   struct dlep_radio_session *dlep_session;
 
+#ifdef OONF_LOG_DEBUG_INFO
   struct netaddr_str nbuf1, nbuf2;
+#endif
 
   /* get l2neighbor and l2network */
   l2dst = ptr;
@@ -659,7 +669,9 @@ _cb_l2_dst_removed(void *ptr) {
   struct dlep_radio_if *dlep_if;
   struct dlep_radio_session *dlep_session;
 
+#ifdef OONF_LOG_DEBUG_INFO
   struct netaddr_str nbuf1, nbuf2;
+#endif
 
   /* get l2neighbor and l2network */
   l2dst = ptr;
@@ -853,9 +865,11 @@ _generate_destination_down(struct dlep_radio_session *session,
 
 static bool
 _start_destination_signal(struct dlep_radio_session *session,
-    enum dlep_signals dlep_sig, const char *sig_name,
+    enum dlep_signals dlep_sig, const char *sig_name __attribute__((unused)),
     const struct oonf_layer2_neigh *l2neigh, const struct oonf_layer2_destination *l2dst) {
+#ifdef OONF_LOG_DEBUG_INFO
   struct netaddr_str nbuf1, nbuf2;
+#endif
   /* test if we should send signal */
   if (l2dst) {
     if (!session->interface->use_proxied_dst) {

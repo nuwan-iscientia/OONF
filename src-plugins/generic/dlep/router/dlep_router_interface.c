@@ -322,8 +322,10 @@ _get_local_tcp_address(struct netaddr *remote_addr,
     struct oonf_interface_data *ifdata,
     struct dlep_parser_index *idx, uint8_t *buffer, size_t length) {
   const struct netaddr *ipv6 = NULL, *result = NULL;
-  struct netaddr_str nbuf;
   uint16_t pos;
+#ifdef OONF_LOG_DEBUG_INFO
+  struct netaddr_str nbuf;
+#endif
 
   /* start parsing IPv6 */
   pos = idx->idx[DLEP_IPV6_ADDRESS_TLV];
