@@ -23,7 +23,7 @@ CMAKE_OPTIONS=-D OONF_DO_NOT_REGISTER_PACKAGE:Bool=true \
               -D OONF_NO_TESTING:Bool=true \
               -D UCI:Bool=true \
               -D OONF_APP_DEFAULT_CFG_HANDLER:String=uci \
-              -D OONF_CUSTOM_STATIC_PLUGINS:String="class clock duplicate_set interface layer2 packet_socket rfc5444 socket stream_socket telnet timer viewer os_clock os_net os_routing os_systemcfg_compact ff_dat_metric neighbor_probing nl80211_listener link_config layer2info cfg_uciloader nhdpinfo olsrv2info" \
+              -D OONF_CUSTOM_STATIC_PLUGINS:String="class clock duplicate_set interface layer2 packet_socket rfc5444 socket stream_socket telnet timer viewer os_clock os_net os_routing os_system ff_dat_metric neighbor_probing nl80211_listener link_config layer2info cfg_uciloader nhdpinfo olsrv2info" \
               -D INSTALL_LIB_DIR:Path=lib/oonf \
               -D INSTALL_INCLUDE_DIR:Path=include/oonf \
               -D INSTALL_CMAKE_DIR:Path=lib/oonf \
@@ -43,27 +43,20 @@ define Package/olsrd2-git
 	DEPENDS:=+librt +libnl-tiny +libuci
 endef
 
+Build/Compile=$(call Build/Compile/Default,static)
+Build/Install=
+
+define Build/Install
+	$(INSTALL_BIN) -D $(PKG_BUILD_DIR)/$(MAKE_PATH)/olsrd2_static $(PKG_INSTALL_DIR)/usr/sbin/olsrd2;
+endef
+
 TARGET_CFLAGS += -I$(STAGING_DIR)/usr/include -I${STAGING_DIR}/usr/include/libnl-tiny
 
 define Package/olsrd2-git/install
-	$(INSTALL_DIR) $(1)/etc
-	$(INSTALL_DIR) $(1)/etc/init.d
-	$(INSTALL_DIR) $(1)/etc/hotplug.d/iface
-	$(INSTALL_DIR) $(1)/etc/config
-	$(INSTALL_DIR) $(1)/usr
-	$(INSTALL_DIR) $(1)/usr/sbin
-	$(INSTALL_BIN) \
-		$(PKG_BUILD_DIR)/olsrd2 \
-		$(1)/usr/sbin
-	$(INSTALL_BIN) \
-		./files/olsrd2.init \
-		$(1)/etc/init.d/olsrd2
-	$(INSTALL_BIN) \
-		./files/olsrd2.hotplug \
-		$(1)/etc/hotplug.d/iface/50-olsrd2
-	$(INSTALL_DATA) \
-		./files/olsrd2.uci \
-		$(1)/etc/config/olsrd2
+	$(INSTALL_BIN)  -D $(PKG_BUILD_DIR)/olsrd2_static $(1)/usr/sbin/olsrd2
+	$(INSTALL_DATA) -D ./files/olsrd2.init            $(1)/etc/init.d/olsrd2
+	$(INSTALL_DATA) -D ./files/olsrd2.hotplug         $(1)/etc/hotplug.d/iface/50-olsrd2
+	$(INSTALL_DATA) -D ./files/olsrd2.uci             $(1)/etc/config/olsrd2
 endef
 
 define Package/olsrd2-git/conffiles
