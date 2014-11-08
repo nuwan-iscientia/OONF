@@ -1,6 +1,6 @@
 # generic oonf library creation
 
-function (oonf_internal_create_plugin libname source include link_internal linkto_external)
+function (oonf_create_library libname source include link_internal linkto_external)
     # create static and dynamic library
     add_library(oonf_${libname} SHARED ${source})
     add_library(oonf_static_${libname} OBJECT ${source})
@@ -35,10 +35,6 @@ function (oonf_internal_create_plugin libname source include link_internal linkt
         ENDIF(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/${inc}")
     endforeach(inc)
 endfunction (oonf_internal_create_plugin)
-
-function (oonf_create_library libname source include linkto_internal linkto_external)
-    oonf_internal_create_plugin("${libname}" "${source}" "${include}" "${linkto_internal}" "${linkto_external}")
-endfunction (oonf_create_library)
 
 function (oonf_create_plugin libname source include linkto_external)
     SET (linkto_internal oonf_core oonf_config oonf_common)
