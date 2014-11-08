@@ -34,7 +34,6 @@ SET(OONF_CORE_INCLUDES oonf_appdata.h
                        oonf_logging.h
                        oonf_logging_cfg.h
                        oonf_main.h
-                       oonf_plugins.h
                        oonf_subsystem.h
                        oonf_libdata.h
                        os_core.h
