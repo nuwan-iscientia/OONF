@@ -69,7 +69,7 @@ struct oonf_subsystem oonf_os_core_subsystem = {
 static int
 _init(void) {
   /* seed random number generator */
-  srandom(times(NULL));
+  srandom(times(NULL) + getpid());
 
   /* open logfile */
   openlog(oonf_log_get_appdata()->app_name, LOG_PID | LOG_ODELAY, LOG_DAEMON);

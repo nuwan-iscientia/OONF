@@ -146,7 +146,7 @@ struct oonf_log_parameters {
 #ifdef OONF_LOG_INFO
 #define OONF_INFO(source, format, args...) _OONF_LOG(LOG_SEVERITY_INFO, source, false, NULL, 0, format, ##args)
 #define OONF_INFO_NH(source, format, args...) _OONF_LOG(LOG_SEVERITY_INFO, source, true, NULL, 0, format, ##args)
-#define OONF_INFO_HEX(source, hexptr, hexlen, format, args...) _OONF_LOG(LOG_SEVERITY_INFO, source, false, NULL, 0, format, ##args)
+#define OONF_INFO_HEX(source, hexptr, hexlen, format, args...) _OONF_LOG(LOG_SEVERITY_INFO, source, false, hexptr, hexlen, format, ##args)
 #define OONF_TEST_INFO(source) oonf_log_mask_test(log_global_mask, source, LOG_SEVERITY_INFO)
 #else
 #define OONF_INFO(source, format, args...) do { } while(0)
@@ -157,7 +157,7 @@ struct oonf_log_parameters {
 
 #define OONF_WARN(source, format, args...) _OONF_LOG(LOG_SEVERITY_WARN, source, false, NULL, 0, format, ##args)
 #define OONF_WARN_NH(source, format, args...) _OONF_LOG(LOG_SEVERITY_WARN, source, true, NULL, 0, format, ##args)
-#define OONF_WARN_HEX(source, hexptr, hexlen, format, args...) _OONF_LOG(LOG_SEVERITY_WARN, source, false, NULL, 0, format, ##args)
+#define OONF_WARN_HEX(source, hexptr, hexlen, format, args...) _OONF_LOG(LOG_SEVERITY_WARN, source, false, hexptr, hexlen, format, ##args)
 
 typedef void log_handler_cb(struct oonf_log_handler_entry *, struct oonf_log_parameters *);
 

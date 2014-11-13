@@ -313,7 +313,7 @@ _cb_tcp_receive_data(struct oonf_stream_session *tcp_session) {
     if (signal != DLEP_PARSER_INCOMPLETE_HEADER
         && signal != DLEP_PARSER_INCOMPLETE_SIGNAL) {
       OONF_WARN_HEX(LOG_DLEP_RADIO,
-          abuf_getptr(&tcp_session->in), abuf_getlen(&tcp_session->in)
+          abuf_getptr(&tcp_session->in), abuf_getlen(&tcp_session->in),
           "Could not parse incoming TCP signal from %s: %d",
           netaddr_to_string(&nbuf, &tcp_session->remote_address), signal);
 
