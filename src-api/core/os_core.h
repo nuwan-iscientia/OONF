@@ -44,7 +44,6 @@
 
 #include "common/common_types.h"
 #include "core/oonf_logging.h"
-#include "core/oonf_subsystem.h"
 
 #if defined(__linux__)
 #include "core/os_generic/os_core_generic.h"
@@ -61,8 +60,8 @@
 static INLINE int os_core_gettimeofday(struct timeval *tv);
 static INLINE unsigned int os_core_random(void);
 
-#define LOG_OS_CORE (oonf_os_core_subsystem.logging)
-EXPORT extern struct oonf_subsystem oonf_os_core_subsystem;
+void os_core_init(const char *appname);
+void os_core_cleanup(void);
 
 EXPORT void os_core_syslog(enum oonf_log_severity, const char *);
 EXPORT int os_core_create_lockfile(const char *);

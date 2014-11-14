@@ -47,42 +47,26 @@
 
 #include "core/oonf_libdata.h"
 #include "core/oonf_logging.h"
-#include "core/oonf_subsystem.h"
 #include "core/os_core.h"
 
-/* prototypes */
-static int _init(void);
-static void _cleanup(void);
-
-/* subsystem definition */
-struct oonf_subsystem oonf_os_core_subsystem = {
-  .name = "os_core",
-  .init = _init,
-  .cleanup = _cleanup,
-  .no_logging = true,
-};
-
 /**
- * Initialize core system
- * @return always returns 0
+ * Initialize core
  */
-static int
-_init(void) {
+void
+os_core_init(const char *appname) {
   /* seed random number generator */
   srandom(times(NULL) + getpid());
 
   /* open logfile */
-  openlog(oonf_log_get_appdata()->app_name, LOG_PID | LOG_ODELAY, LOG_DAEMON);
+  openlog(appname, LOG_PID | LOG_ODELAY, LOG_DAEMON);
   setlogmask(LOG_UPTO(LOG_DEBUG));
-
-  return 0;
 }
 
 /**
- * Cleanup syslog system
+ * Cleanup core
  */
-static void
-_cleanup(void) {
+void
+os_core_cleanup(void) {
   closelog();
 }
 

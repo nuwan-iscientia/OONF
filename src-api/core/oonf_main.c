@@ -160,6 +160,9 @@ oonf_main(int argc, char **argv, const struct oonf_appdata *appdata) {
   /* parse "early" command line arguments */
   parse_early_commandline(argc, argv);
 
+  /* initialize core */
+  os_core_init(appdata->app_name);
+
   /* initialize logger */
   if (oonf_log_init(appdata, _debug_early ? LOG_SEVERITY_DEBUG : LOG_SEVERITY_WARN)) {
     goto olsrd_cleanup;
@@ -281,6 +284,9 @@ olsrd_cleanup:
 
   /* free logger resources */
   oonf_log_cleanup();
+
+  /* free core resources */
+  os_core_cleanup();
 
   return return_code;
 }
