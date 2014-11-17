@@ -84,6 +84,7 @@ static enum oonf_telnet_result _cb_telnet_echo(struct oonf_telnet_data *data);
 static enum oonf_telnet_result _cb_telnet_repeat(struct oonf_telnet_data *data);
 static enum oonf_telnet_result _cb_telnet_timeout(struct oonf_telnet_data *data);
 static enum oonf_telnet_result _cb_telnet_version(struct oonf_telnet_data *data);
+static enum oonf_telnet_result _cb_telnet_time(struct oonf_telnet_data *data);
 
 /* configuration of telnet server */
 static struct cfg_schema_entry _telnet_entries[] = {
@@ -116,6 +117,8 @@ static struct oonf_telnet_command _builtin[] = {
   TELNET_CMD("timeout", _cb_telnet_timeout,
       "timeout <seconds> :Sets telnet session timeout"),
   TELNET_CMD("version", _cb_telnet_version, "Displays version of the program"),
+  TELNET_CMD("time", _cb_telnet_time, "Displays the current system and internal time,"
+      " use 'json' parameter to get JSON output"),
 
 };
 
@@ -756,5 +759,23 @@ _cb_telnet_repeat(struct oonf_telnet_data *data) {
 static enum oonf_telnet_result
 _cb_telnet_version(struct oonf_telnet_data *data) {
   oonf_log_printversion(data->out);
+  return TELNET_RESULT_ACTIVE;
+}
+
+static enum oonf_telnet_result
+_cb_telnet_time(struct oonf_telnet_data *data) {
+  if (data->parameter && strcasecmp(data->parameter, "json") == 0) {
+    /* JSON time output */
+    abuf_puts(data->out, "time: {\n\t\"system\": \"");
+    oonf_log_get_walltime(data->out);
+    abuf_appendf(data->out, "\",\n\t\"internal\": %" PRIu64"\n}\n",
+        oonf_clock_getNow());
+  }
+  else {
+    abuf_puts(data->out, "system time: ");
+    oonf_log_get_walltime(data->out);
+    abuf_appendf(data->out, "\ninternal time: %" PRIu64 "\n",
+        oonf_clock_getNow());
+  }
   return TELNET_RESULT_ACTIVE;
 }

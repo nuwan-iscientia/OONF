@@ -198,8 +198,7 @@ EXPORT void oonf_log_updatemask(void);
 EXPORT const struct oonf_appdata *oonf_log_get_appdata(void);
 EXPORT const struct oonf_libdata *oonf_log_get_libdata(void);
 EXPORT void oonf_log_printversion(struct autobuf *abuf);
-
-EXPORT const char *oonf_log_get_walltime(void);
+EXPORT int oonf_log_get_walltime(struct autobuf *abuf);
 
 EXPORT void oonf_log(enum oonf_log_severity, enum oonf_log_source, bool, const char *, int, const void *, size_t, const char *,  ...)
   __attribute__ ((format(printf, 8, 9)));

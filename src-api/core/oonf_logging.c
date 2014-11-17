@@ -321,24 +321,22 @@ oonf_log_updatemask(void)
 /**
  * @return pointer to string containing the current walltime
  */
-const char *
-oonf_log_get_walltime(void) {
-  static char buf[sizeof("00:00:00.000")];
+int
+oonf_log_get_walltime(struct autobuf *out) {
   struct timeval now;
   struct tm *tm;
 
   if (os_core_gettimeofday(&now)) {
-    return NULL;
+    return -1;
   }
 
   tm = localtime(&now.tv_sec);
   if (tm == NULL) {
-    return NULL;
+    return -1;
   }
-  snprintf(buf, sizeof(buf), "%02d:%02d:%02d.%03ld",
+  abuf_appendf(out, "%02d:%02d:%02d.%03ld",
       tm->tm_hour, tm->tm_min, tm->tm_sec, now.tv_usec / 1000);
-
-  return buf;
+  return 0;
 }
 
 /**
@@ -361,20 +359,23 @@ oonf_log(enum oonf_log_severity severity, enum oonf_log_source source, bool no_h
   struct oonf_log_parameters param;
   char *last;
   va_list ap;
-  int p1 = 0, p2 = 0, p3 = 0;
+  int p1,p2;
 
   va_start(ap, format);
 
   /* generate log string */
   abuf_clear(&_logbuffer);
   if (!no_header) {
-    p1 = abuf_appendf(&_logbuffer, "%s ", oonf_log_get_walltime());
-    p2 = abuf_appendf(&_logbuffer, "%s(%s) %s %d: ",
-        LOG_SEVERITY_NAMES[severity], LOG_SOURCE_NAMES[source], file, line);
-  }
-  p3 = abuf_vappendf(&_logbuffer, format, ap);
+    oonf_log_get_walltime(&_logbuffer);
+    p1 = abuf_getlen(&_logbuffer);
 
-  last = &abuf_getptr(&_logbuffer)[p1 + p2 + p3 - 1];
+    abuf_appendf(&_logbuffer, " %s(%s) %s %d: ",
+        LOG_SEVERITY_NAMES[severity], LOG_SOURCE_NAMES[source], file, line);
+    p2 = abuf_getlen(&_logbuffer) - p1;
+  }
+  abuf_vappendf(&_logbuffer, format, ap);
+
+  last = &abuf_getptr(&_logbuffer)[abuf_getlen(&_logbuffer)-1];
   if (hexptr) {
     /* append \n at the end of the line if necessary */
     if (*last != '\n') {
