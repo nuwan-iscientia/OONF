@@ -45,7 +45,6 @@
 #include "core/oonf_subsystem.h"
 #include "subsystems/oonf_class.h"
 #include "subsystems/oonf_interface.h"
-#include "subsystems/oonf_layer2.h"
 #include "subsystems/oonf_rfc5444.h"
 #include "nhdp/nhdp_hysteresis.h"
 #include "nhdp/nhdp_interfaces.h"

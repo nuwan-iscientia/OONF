@@ -42,11 +42,7 @@
 #ifndef CFG_UCILOADER_H_
 #define CFG_UCILOADER_H_
 
-#include "common/common_types.h"
-#include "core/oonf_subsystem.h"
-
 #define OONF_CFG_UCILOADER_SUBSYSTEM "cfg_uciloader"
-
 #define UCI_OPTION_FOR_SECTION_NAME "name"
 
 #endif /* CFG_UCILOADER_H_ */

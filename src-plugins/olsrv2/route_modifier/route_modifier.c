@@ -117,8 +117,8 @@ static struct cfg_schema_section _modifier_section = {
 };
 
 static const char *_dependencies[] = {
-  OONF_OLSRV2_SUBSYSTEM,
   OONF_CLASS_SUBSYSTEM,
+  OONF_OLSRV2_SUBSYSTEM,
 };
 struct oonf_subsystem olsrv2_routemodifier_subsystem = {
   .name = OONF_ROUTE_MODIFIER_SUBSYSTEM,

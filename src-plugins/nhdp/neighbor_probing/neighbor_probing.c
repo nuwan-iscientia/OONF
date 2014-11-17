@@ -114,6 +114,7 @@ static const char *_dependencies[] = {
   OONF_LAYER2_SUBSYSTEM,
   OONF_RFC5444_SUBSYSTEM,
   OONF_TIMER_SUBSYSTEM,
+  OONF_NHDP_SUBSYSTEM,
 };
 static struct oonf_subsystem _olsrv2_neighbor_probing_subsystem = {
   .name = OONF_NEIGHBOR_PROBING_SUBSYSTEM,

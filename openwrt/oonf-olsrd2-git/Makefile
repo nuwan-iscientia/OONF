@@ -17,13 +17,12 @@ include $(INCLUDE_DIR)/package.mk
 include $(INCLUDE_DIR)/cmake.mk
 
 CMAKE_SOURCE_DIR=$(CURDIR)/../../
-CMAKE_OPTIONS=-D OONF_DO_NOT_REGISTER_PACKAGE:Bool=true \
-              -D OONF_NO_WERROR:Bool=true \
+CMAKE_OPTIONS=-D OONF_NO_WERROR:Bool=true \
               -D OONF_LOGGING_LEVEL:String=debug \
               -D OONF_NO_TESTING:Bool=true \
               -D UCI:Bool=true \
               -D OONF_APP_DEFAULT_CFG_HANDLER:String=uci \
-              -D OONF_CUSTOM_STATIC_PLUGINS:String="class clock duplicate_set interface layer2 packet_socket rfc5444 socket stream_socket telnet timer viewer os_clock os_net os_routing os_system cfg_uciloader ff_dat_metric neighbor_probing nl80211_listener link_config layer2info cfg_uciloader nhdpinfo olsrv2info" \
+              -D OONF_STATIC_PLUGINS:String="class;clock;duplicate_set;interface;layer2;packet_socket;rfc5444;socket;stream_socket;telnet;timer;viewer;os_clock;os_net;os_routing;os_system;nhdp;olsrv2;ff_dat_metric;neighbor_probing;nl80211_listener;link_config;layer2info;cfg_uciloader;nhdpinfo;olsrv2info" \
               -D INSTALL_LIB_DIR:Path=lib/oonf \
               -D INSTALL_INCLUDE_DIR:Path=include/oonf \
               -D INSTALL_CMAKE_DIR:Path=lib/oonf \

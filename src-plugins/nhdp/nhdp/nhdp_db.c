@@ -47,7 +47,6 @@
 
 #include "core/oonf_logging.h"
 #include "subsystems/oonf_class.h"
-#include "subsystems/oonf_rfc5444.h"
 #include "subsystems/oonf_timer.h"
 
 #include "nhdp/nhdp_internal.h"

@@ -97,6 +97,7 @@ static struct cfg_schema_section _mpr_rfc_section = {
 static const char *_dependencies[] = {
   OONF_CLASS_SUBSYSTEM,
   OONF_TIMER_SUBSYSTEM,
+  OONF_NHDP_SUBSYSTEM,
 };
 static struct oonf_subsystem _olsrv2_mpr_subsystem = {
   .name = OONF_MPR_SUBSYSTEM,

@@ -23,20 +23,31 @@ set (OONF_APP_DEFAULT_CFG_HANDLER Compact)
 ####  set static subsystems  ####
 #################################
 
-set (OONF_STATIC_PLUGINS class
-                         clock
-                         duplicate_set
-                         interface
-                         layer2
-                         packet_socket
-                         rfc5444
-                         socket
-                         stream_socket
-                         telnet
-                         timer
-                         viewer
-                         os_clock
-                         os_net
-                         os_routing
-                         os_system
-                         )
+IF (NOT OONF_STATIC_PLUGINS)
+    set (OONF_STATIC_PLUGINS class
+                             clock
+                             duplicate_set
+                             interface
+                             layer2
+                             packet_socket
+                             rfc5444
+                             socket
+                             stream_socket
+                             telnet
+                             timer
+                             viewer
+                             os_clock
+                             os_net
+                             os_routing
+                             os_system
+                             layer2info
+                             nl80211_listener
+                             nhdp
+                             ff_dat_metric
+                             link_config
+                             neighbor_probing
+                             nhdpinfo
+                             olsrv2
+                             olsrv2info
+                             )
+ENDIF (NOT OONF_STATIC_PLUGINS)
