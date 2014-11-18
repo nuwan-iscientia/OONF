@@ -42,6 +42,7 @@ IF (NOT OONF_STATIC_PLUGINS)
                              os_system
                              layer2info
                              nl80211_listener
+                             systeminfo
                              nhdp
                              ff_dat_metric
                              link_config

@@ -84,7 +84,6 @@ static enum oonf_telnet_result _cb_telnet_echo(struct oonf_telnet_data *data);
 static enum oonf_telnet_result _cb_telnet_repeat(struct oonf_telnet_data *data);
 static enum oonf_telnet_result _cb_telnet_timeout(struct oonf_telnet_data *data);
 static enum oonf_telnet_result _cb_telnet_version(struct oonf_telnet_data *data);
-static enum oonf_telnet_result _cb_telnet_time(struct oonf_telnet_data *data);
 
 /* configuration of telnet server */
 static struct cfg_schema_entry _telnet_entries[] = {
@@ -117,9 +116,6 @@ static struct oonf_telnet_command _builtin[] = {
   TELNET_CMD("timeout", _cb_telnet_timeout,
       "timeout <seconds> :Sets telnet session timeout"),
   TELNET_CMD("version", _cb_telnet_version, "Displays version of the program"),
-  TELNET_CMD("time", _cb_telnet_time, "Displays the current system and internal time,"
-      " use 'json' parameter to get JSON output"),
-
 };
 
 /* subsystem definition */
@@ -762,14 +758,31 @@ _cb_telnet_version(struct oonf_telnet_data *data) {
   return TELNET_RESULT_ACTIVE;
 }
 
+#if 0
 static enum oonf_telnet_result
 _cb_telnet_time(struct oonf_telnet_data *data) {
-  if (data->parameter && strcasecmp(data->parameter, "json") == 0) {
+  bool json = false, only_data = false;
+
+  json = data->parameter && strcasecmp(data->parameter, "json") == 0;
+  only_data = data->parameter && strcasecmp(data->parameter, "data") == 0;
+
+  if (json || only_data) {
     /* JSON time output */
-    abuf_puts(data->out, "time: {\n\t\"system\": \"");
+    if (!only_data) {
+      abuf_puts(data->out, "{\n");
+    }
+    abuf_puts(data->out,
+        "\"time\": {\n"
+        "\t\"system\": \"");
     oonf_log_get_walltime(data->out);
-    abuf_appendf(data->out, "\",\n\t\"internal\": %" PRIu64"\n}\n",
+    abuf_appendf(data->out,
+        "\",\n"
+        "\t\"internal\": %" PRIu64"\n"
+        "}\n",
         oonf_clock_getNow());
+    if (!only_data) {
+      abuf_puts(data->out, "}\n");
+    }
   }
   else {
     abuf_puts(data->out, "system time: ");
@@ -779,3 +792,5 @@ _cb_telnet_time(struct oonf_telnet_data *data) {
   }
   return TELNET_RESULT_ACTIVE;
 }
+
+#endif

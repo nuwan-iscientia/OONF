@@ -140,7 +140,7 @@ nl80211_process_get_interface_result(struct nl80211_if *interf,
   if (tb_msg[NL80211_ATTR_WIPHY_FREQ]) {
     uint64_t freq[2], bandwidth[2];
 
-    freq[0] = nla_get_u32(tb_msg[NL80211_ATTR_WIPHY_FREQ]) * 1000000;
+    freq[0] = nla_get_u32(tb_msg[NL80211_ATTR_WIPHY_FREQ]);
     freq[1] = 0;
 
     if (tb_msg[NL80211_ATTR_CHANNEL_WIDTH]) {
@@ -158,6 +158,10 @@ nl80211_process_get_interface_result(struct nl80211_if *interf,
 
       bandwidth[1] = bandwidth[0];
     }
+
+    /* transform from MHz to Hz*/
+    freq[0] *= 1000000ull;
+    freq[0] *= 1000000ull;
 
     interf->ifdata_changed |= nl80211_change_l2net_data(interf->l2net,
         OONF_LAYER2_NET_FREQUENCY_1, freq[0]);
@@ -181,21 +185,21 @@ static uint64_t
 _get_bandwidth(uint32_t width) {
   switch (width) {
     case NL80211_CHAN_WIDTH_5:
-      return 5 * 1000000;
+      return 5ull * 1000000ull;
     case NL80211_CHAN_WIDTH_10:
-      return 10 * 1000000;
+      return 10ull * 1000000ull;
     case NL80211_CHAN_WIDTH_20_NOHT:
-      return 20 * 1000000;
+      return 20ull * 1000000ull;
     case NL80211_CHAN_WIDTH_20:
-      return 20 * 1000000;
+      return 20ull * 1000000ull;
     case NL80211_CHAN_WIDTH_40:
-      return 40 * 1000000;
+      return 40ull * 1000000ull;
     case NL80211_CHAN_WIDTH_80:
-      return 80 * 1000000;
+      return 80ull * 1000000ull;
     case NL80211_CHAN_WIDTH_80P80:
-      return 80 * 1000000;
+      return 80ull * 1000000ull;
     case NL80211_CHAN_WIDTH_160:
-      return 160 * 1000000;
+      return 160ull * 1000000ull;
     default:
       return 0;
   }

@@ -114,7 +114,9 @@ oonf_viewer_output_prepare(struct oonf_viewer_template *template,
     oonf_viewer_json_init_session(&template->_json, out);
 
     /* start wrapper object */
-    oonf_viewer_json_start_object(&template->_json);
+    if (!template->create_only_data) {
+      oonf_viewer_json_start_object(&template->_json);
+    }
 
     /* start object with array */
     oonf_viewer_json_start_array(&template->_json, template->json_name);
@@ -161,7 +163,9 @@ void
 oonf_viewer_output_finish(struct oonf_viewer_template *template) {
   if (template->create_json) {
     oonf_viewer_json_end_array(&template->_json);
-    oonf_viewer_json_end_object(&template->_json);
+    if (!template->create_only_data) {
+      oonf_viewer_json_end_object(&template->_json);
+    }
   }
 }
 
@@ -236,6 +240,7 @@ oonf_viewer_call_subcommands(struct autobuf *out,
   bool head = false;
   bool json = false;
   bool raw = false;
+  bool data = false;
 
   if ((next = str_hasnextword(param, OONF_VIEWER_HEAD_FORMAT))) {
     head = true;
@@ -250,6 +255,15 @@ oonf_viewer_call_subcommands(struct autobuf *out,
     json = true;
     raw = true;
   }
+  else if ((next = str_hasnextword(param, OONF_VIEWER_DATA_FORMAT))) {
+    json = true;
+    data = true;
+  }
+  else if ((next = str_hasnextword(param, OONF_VIEWER_DATA_RAW_FORMAT))) {
+    json = true;
+    raw = true;
+    data = true;
+  }
   else {
     next = param;
   }
@@ -258,6 +272,7 @@ oonf_viewer_call_subcommands(struct autobuf *out,
     if ((ptr = str_hasnextword(next, templates[i].json_name))) {
       templates[i].create_json = json;
       templates[i].create_raw = raw;
+      templates[i].create_only_data = data;
 
       if (oonf_viewer_output_prepare(&templates[i], storage, out, ptr)) {
         return -1;

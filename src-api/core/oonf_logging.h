@@ -175,6 +175,10 @@ struct oonf_log_handler_entry {
   void *custom;
 };
 
+struct oonf_walltime_str {
+  char buf[sizeof("00:00:00.000")];
+};
+
 #define OONF_FOR_ALL_LOGSEVERITIES(sev) for (sev = LOG_SEVERITY_MIN; sev <= LOG_SEVERITY_MAX; sev <<= 1)
 
 EXPORT extern uint8_t log_global_mask[LOG_MAXIMUM_SOURCES];
@@ -198,7 +202,7 @@ EXPORT void oonf_log_updatemask(void);
 EXPORT const struct oonf_appdata *oonf_log_get_appdata(void);
 EXPORT const struct oonf_libdata *oonf_log_get_libdata(void);
 EXPORT void oonf_log_printversion(struct autobuf *abuf);
-EXPORT int oonf_log_get_walltime(struct autobuf *abuf);
+EXPORT const char *oonf_log_get_walltime(struct oonf_walltime_str *);
 
 EXPORT void oonf_log(enum oonf_log_severity, enum oonf_log_source, bool, const char *, int, const void *, size_t, const char *,  ...)
   __attribute__ ((format(printf, 8, 9)));

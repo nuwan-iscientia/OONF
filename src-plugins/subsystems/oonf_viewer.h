@@ -53,6 +53,8 @@
 #define OONF_VIEWER_HEAD_FORMAT     "head"
 #define OONF_VIEWER_JSON_FORMAT     "json"
 #define OONF_VIEWER_JSON_RAW_FORMAT "jsonraw"
+#define OONF_VIEWER_DATA_FORMAT     "data"
+#define OONF_VIEWER_DATA_RAW_FORMAT "dataraw"
 
 /* This struct contains the session variables for JSON generation */
 struct oonf_viewer_json_session {
@@ -82,6 +84,9 @@ struct oonf_viewer_template {
 
   /* true if isonumbers should be raw */
   bool create_raw;
+
+  /* true if skips the enclosing JSON brackets */
+  bool create_only_data;
 
   /* pointer to template data array to get key/value pairs */
   struct abuf_template_data *data;
