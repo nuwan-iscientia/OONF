@@ -161,7 +161,7 @@ nl80211_process_get_interface_result(struct nl80211_if *interf,
 
     /* transform from MHz to Hz*/
     freq[0] *= 1000000ull;
-    freq[0] *= 1000000ull;
+    freq[1] *= 1000000ull;
 
     interf->ifdata_changed |= nl80211_change_l2net_data(interf->l2net,
         OONF_LAYER2_NET_FREQUENCY_1, freq[0]);
