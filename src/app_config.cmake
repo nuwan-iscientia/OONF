@@ -40,6 +40,7 @@ IF (NOT OONF_STATIC_PLUGINS)
                              os_net
                              os_routing
                              os_system
+                             cfg_compact
                              layer2info
                              nl80211_listener
                              systeminfo
