@@ -79,6 +79,7 @@ static bool _end_oonf_signal, _display_schema, _debug_early, _ignore_unknown;
 static char *_schema_name;
 
 static int (*_handle_scheduling)(void) = NULL;
+static int (*_handle_unused_argument)(const char *) = NULL;
 
 enum argv_short_options {
   argv_option_schema = 256,
@@ -301,6 +302,15 @@ oonf_main_set_scheduler(int (*scheduler)(void)) {
   return 0;
 }
 
+int
+oonf_main_set_parameter_handler(int (*parameter_handler)(const char *)) {
+  if (_handle_unused_argument) {
+    return -1;
+  }
+  _handle_unused_argument = parameter_handler;
+  return 0;
+}
+
 bool
 oonf_main_shall_stop_scheduler(void) {
   return oonf_cfg_is_commit_set()
@@ -374,22 +384,6 @@ mainloop(int argc, char **argv, const struct oonf_appdata *appdata) {
       exit_code = 1;
       break;
     }
-#if 0
-    /*
-     * Update the global timestamp. We are using a non-wallclock timer here
-     * to avoid any undesired side effects if the system clock changes.
-     */
-    if (oonf_clock_update()) {
-      exit_code = 1;
-      break;
-    }
-
-    /* Read incoming data and handle it immediately */
-    if (oonf_socket_handle(_cb_stop_scheduler, 0)) {
-      exit_code = 1;
-      break;
-    }
-#endif
 
     /* reload configuration if triggered */
     if (oonf_cfg_is_reload_set()) {
@@ -575,15 +569,13 @@ parse_commandline(int argc, char **argv,
         }
         break;
       case 1:
-        /* ignore the rest of the parameters for now */
-#if 0
-        if (cfg_db_add_namedsection(db, CFG_INTERFACE_SECTION, optarg) == NULL) {
-          abuf_appendf(&log, "Could not add named section for interface %s", optarg);
-          return_code = 1;
+        /* string that is not part of an option */
+        if (_handle_unused_argument) {
+          _handle_unused_argument(optarg);
         }
-#endif
         break;
 
+      case '?':
       default:
         if (!(reload_only ||_ignore_unknown)) {
           abuf_appendf(&log, "Unknown parameter: '%c' (%d)\n", opt, opt);
@@ -594,6 +586,10 @@ parse_commandline(int argc, char **argv,
   }
 
   while (return_code == -1 && optind < argc) {
+    /* handle the end of the command line */
+    if (_handle_unused_argument) {
+      _handle_unused_argument(argv[optind]);
+    }
     optind++;
   }
 

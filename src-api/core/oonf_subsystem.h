@@ -104,10 +104,6 @@ struct oonf_subsystem {
    * line arguments are parsed and the configuration is loaded. The
    * callback is meant for cfgio/cfgparser implementations to hook
    * themselves into the core.
-   *
-   * It is only called for subsystems statically bound to the app,
-   * not for plugins. The configuration subsystem is initialized before
-   * the call, but most other subsystems are still unavailable.
    */
   void (*early_cfg_init) (void);
 

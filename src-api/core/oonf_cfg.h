@@ -64,10 +64,9 @@ struct oonf_config_global {
 /* name of parameter in 'global' section to load plugins */
 #define CFG_GLOBAL_PLUGIN    "plugin"
 
-EXPORT extern struct oonf_subsystem oonf_cfg_subsystem;
 EXPORT extern struct oonf_config_global config_global;
 
-EXPORT int oonf_cfg_init(int argc, char **argv,
+int oonf_cfg_init(int argc, char **argv,
     const char *) __attribute__((warn_unused_result));
 EXPORT void oonf_cfg_cleanup(void);
 EXPORT int oonf_cfg_loadplugins(void) __attribute__((warn_unused_result));

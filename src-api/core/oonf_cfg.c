@@ -50,6 +50,15 @@
 #include "core/oonf_logging.h"
 #include "core/oonf_subsystem.h"
 
+/* definitions */
+enum {
+  IDX_FORK,
+  IDX_FAILFAST,
+  IDX_PIDFILE,
+  IDX_PLUGINPATH,
+  IDX_LOCKFILE,
+  IDX_PLUGINS,
+};
 /* global config */
 struct oonf_config_global config_global;
 
@@ -69,22 +78,17 @@ static int _argc;
 
 /* define global configuration template */
 static struct cfg_schema_entry _global_entries[] = {
-  CFG_MAP_BOOL(oonf_config_global, fork, "fork", "no",
+  [IDX_FORK]       = CFG_MAP_BOOL(oonf_config_global, fork, "fork", "no",
       "Set to true to fork daemon into background."),
-  CFG_MAP_BOOL(oonf_config_global, failfast, "failfast", "no",
+  [IDX_FAILFAST]   = CFG_MAP_BOOL(oonf_config_global, failfast, "failfast", "no",
       "Set to true to stop daemon startup if at least one plugin doesn't load."),
-  CFG_MAP_STRING(oonf_config_global, pidfile, "pidfile", "",
+  [IDX_PIDFILE]    = CFG_MAP_STRING(oonf_config_global, pidfile, "pidfile", "",
       "Write the process id of the forced child into a file"),
-  CFG_MAP_STRING(oonf_config_global, plugin_path, "plugin_path", "",
+  [IDX_LOCKFILE]   = CFG_MAP_STRING(oonf_config_global, lockfile, "lockfile", "",
+      "Write the process id of the forced child into a file"),
+  [IDX_PLUGINPATH] = CFG_MAP_STRING(oonf_config_global, plugin_path, "plugin_path", "",
       "Additional user defined path to look for plugins"),
-
-  /*
-   * this array entry is accessed in oonf_cfg_init(),
-   * be careful when changing position in array!
-   */
-  CFG_MAP_STRING(oonf_config_global, lockfile, "lockfile", "",
-      "Write the process id of the forced child into a file"),
-  CFG_MAP_STRINGLIST(oonf_config_global, plugin, CFG_GLOBAL_PLUGIN, "",
+  [IDX_PLUGINS]    =CFG_MAP_STRINGLIST(oonf_config_global, plugin, CFG_GLOBAL_PLUGIN, "",
       "Set list of plugins to be loaded by daemon. Some might need configuration options."),
 };
 
@@ -106,12 +110,11 @@ oonf_cfg_init(int argc, char **argv, const char *default_cfg_handler) {
   _oonf_cfg_instance.default_io = default_cfg_handler;
   cfg_add(&_oonf_cfg_instance);
 
-  /*
-   * initialize default for lockfile, make sure that index stays correct!
-   *
-    */
-  _global_entries[4].def.value = oonf_log_get_appdata()->default_lockfile;
-  _global_entries[4].def.length = strlen(oonf_log_get_appdata()->default_lockfile) + 1;
+  /* initialize default for lockfile */
+  _global_entries[IDX_LOCKFILE].def.value =
+      oonf_log_get_appdata()->default_lockfile;
+  _global_entries[IDX_LOCKFILE].def.length =
+      strlen(oonf_log_get_appdata()->default_lockfile) + 1;
 
   /* initialize schema */
   cfg_schema_add(&_oonf_schema);

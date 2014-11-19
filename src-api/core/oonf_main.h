@@ -47,6 +47,7 @@
 
 EXPORT int oonf_main(int argc, char **argv, const struct oonf_appdata *);
 EXPORT int oonf_main_set_scheduler(int (*scheduler)(void));
+EXPORT int oonf_main_set_parameter_handler(int (*parameter_handler)(const char *));
 EXPORT bool oonf_main_shall_stop_scheduler(void);
 
 #endif /* OONF_MAIN_H_ */

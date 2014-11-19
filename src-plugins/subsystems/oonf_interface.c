@@ -49,7 +49,9 @@
 #include "common/netaddr_acl.h"
 #include "common/string.h"
 
+#include "core/oonf_cfg.h"
 #include "core/oonf_logging.h"
+#include "core/oonf_main.h"
 #include "core/oonf_subsystem.h"
 #include "subsystems/oonf_class.h"
 #include "subsystems/oonf_timer.h"
@@ -67,6 +69,7 @@
 /* prototypes */
 static int _init(void);
 static void _cleanup(void);
+static void _early_cfg_init(void);
 
 static const struct netaddr *_get_fixed_prefix(
     int af_type, struct netaddr_acl *filter);
@@ -77,6 +80,7 @@ static const struct netaddr *_get_matching_bindaddress(
 
 static struct oonf_interface *_interface_add(const char *, bool mesh);
 static void _interface_remove(struct oonf_interface *interf, bool mesh);
+static int _handle_unused_parameter(const char *);
 static void _cb_change_handler(void *);
 static void _trigger_change_timer(struct oonf_interface *);
 
@@ -95,6 +99,7 @@ static struct oonf_subsystem _oonf_interface_subsystem = {
   .name = OONF_INTERFACE_SUBSYSTEM,
   .dependencies = _dependencies,
   .dependencies_count = ARRAYSIZE(_dependencies),
+  .early_cfg_init = _early_cfg_init,
   .init = _init,
   .cleanup = _cleanup,
 };
@@ -121,6 +126,7 @@ static struct oonf_class _if_class = {
  */
 static int
 _init(void) {
+  /* initialize data structures */
   oonf_timer_add(&_change_timer_info);
   oonf_class_add(&_if_class);
 
@@ -145,6 +151,11 @@ _cleanup(void) {
   os_system_iflistener_remove(&_iflistener);
   oonf_class_remove(&_if_class);
   oonf_timer_remove(&_change_timer_info);
+}
+
+static
+void _early_cfg_init(void) {
+  oonf_main_set_parameter_handler(_handle_unused_parameter);
 }
 
 /**
@@ -656,4 +667,10 @@ _cb_change_handler(void *ptr) {
 static void
 _trigger_change_timer(struct oonf_interface *interf) {
   oonf_timer_set(&interf->_change_timer, OONF_INTERFACE_CHANGE_INTERVAL);
+}
+
+static int
+_handle_unused_parameter(const char *arg) {
+  cfg_db_add_namedsection(oonf_cfg_get_rawdb(), CFG_INTERFACE_SECTION, arg);
+  return 0;
 }
