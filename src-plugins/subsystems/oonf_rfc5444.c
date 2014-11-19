@@ -588,15 +588,15 @@ oonf_rfc5444_remove_interface(struct oonf_rfc5444_interface *interf,
   OONF_INFO(LOG_RFC5444, "Remove interface %s from protocol %s (refcount was %d)",
       interf->name, interf->protocol->name, interf->_refcount);
 
-  if (listener != NULL && listener->interface != NULL) {
-    list_remove(&listener->_node);
-    listener->interface = NULL;
-  }
-
   if (interf->_refcount > 1) {
     /* still users left for this interface */
     interf->_refcount--;
     return;
+  }
+
+  if (listener != NULL && listener->interface != NULL) {
+    list_remove(&listener->_node);
+    listener->interface = NULL;
   }
 
   /* remove all remaining targets */

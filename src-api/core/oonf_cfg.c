@@ -158,9 +158,10 @@ oonf_cfg_init(int argc, char **argv, const char *default_cfg_handler) {
  */
 void
 oonf_cfg_cleanup(void) {
-  free(config_global.plugin.value);
+  strarray_free(&config_global.plugin);
   free(config_global.pidfile);
   free(config_global.lockfile);
+  free(config_global.plugin_path);
 
   cfg_db_remove(_oonf_raw_db);
   cfg_db_remove(_oonf_work_db);

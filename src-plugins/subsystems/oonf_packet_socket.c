@@ -289,7 +289,7 @@ oonf_packet_remove_managed(struct oonf_packet_managed *managed, bool forced) {
   oonf_packet_remove(&managed->multicast_v6, forced);
 
   oonf_interface_remove_listener(&managed->_if_listener);
-  netaddr_acl_remove(&managed->_managed_config.acl);
+  oonf_packet_free_managed_config(&managed->_managed_config);
 }
 
 /**
