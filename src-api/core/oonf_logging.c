@@ -361,7 +361,7 @@ oonf_log(enum oonf_log_severity severity, enum oonf_log_source source, bool no_h
   struct oonf_walltime_str tbuf;
   char *last;
   va_list ap;
-  int p1,p2;
+  int p1 = 0, p2 = 0;
 
   va_start(ap, format);
 

@@ -870,7 +870,7 @@ _compress_address(struct _rfc5444_internal_addr_compress_session *acs,
 
 #if DO_ADDR_COMPRESSION == true
     closed = first;
-    if (i > common_head) {
+    if (common_head <= i) {
       closed = true;
     }
 #else
