@@ -43,6 +43,7 @@
 #include "common/autobuf.h"
 #include "common/template.h"
 #include "core/oonf_subsystem.h"
+#include "subsystems/oonf_telnet.h" /* compile-time dependency */
 #include "subsystems/oonf_viewer.h"
 
 /* Definitions */
@@ -292,6 +293,69 @@ oonf_viewer_call_subcommands(struct autobuf *out,
     }
   }
   return 1;
+}
+
+/**
+ * Handles a telnet command for a viewer including error handling
+ * @param out output buffer
+ * @param storage template storage object
+ * @param cmd telnet command
+ * @param param telnet parameter(s)
+ * @param templates template viewer array
+ * @param count number of template viewer entries
+ * @return telnet return code
+ */
+enum oonf_telnet_result
+oonf_viewer_telnet_handler(struct autobuf *out,
+    struct abuf_template_storage *storage, const char *cmd, const char *param,
+    struct oonf_viewer_template *templates, size_t count) {
+  int result;
+
+  /* sanity check */
+  if (param == NULL || *param == 0) {
+    abuf_appendf(out, "Error, '%s' command needs a parameter\n", cmd);
+  }
+
+  /* call template based subcommands */
+  result = oonf_viewer_call_subcommands(out, storage, param, templates, count);
+  if (result == 0) {
+    return TELNET_RESULT_ACTIVE;
+  }
+  if (result < 0) {
+    return TELNET_RESULT_INTERNAL_ERROR;
+  }
+
+  abuf_appendf(out, "Unknown parameter for command '%s': %s\n", cmd, param);
+  return TELNET_RESULT_ACTIVE;
+}
+
+/**
+ * Handles a telnet help command for a viewer including error handling
+ * @param out output buffer
+ * @param cmd telnet command
+ * @param parameter telnet parameter(s)
+ * @param template viewer template array
+ * @param count number of template viewer entries
+ * @return telnet return coce
+ */
+enum oonf_telnet_result
+oonf_viewer_telnet_help(struct autobuf *out,
+    const char *cmd, const char *parameter,
+    struct oonf_viewer_template *template, size_t count) {
+  const char *next;
+
+  /* skip the layer2info command */
+  next = str_hasnextword(parameter, cmd);
+  if (!next) {
+    /* sanity check failed */
+    return TELNET_RESULT_INTERNAL_ERROR;
+  }
+
+  /* print out own help text */
+  abuf_appendf(out, "%s command:\n", cmd);
+  oonf_viewer_print_help(out, next, template, count);
+
+  return TELNET_RESULT_ACTIVE;
 }
 
 /**

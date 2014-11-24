@@ -46,6 +46,7 @@
 #include "common/template.h"
 
 #include "core/oonf_subsystem.h"
+#include "subsystems/oonf_telnet.h" /* compile-time dependency */
 
 #define OONF_VIEWER_SUBSYSTEM "viewer"
 
@@ -123,6 +124,12 @@ EXPORT void oonf_viewer_print_help(struct autobuf *out,
 EXPORT int oonf_viewer_call_subcommands(struct autobuf *out,
     struct abuf_template_storage *storage, const char *param,
     struct oonf_viewer_template *templates, size_t count);
+EXPORT enum oonf_telnet_result oonf_viewer_telnet_handler(struct autobuf *out,
+    struct abuf_template_storage *storage, const char *cmd, const char *param,
+    struct oonf_viewer_template *templates, size_t count);
+EXPORT enum oonf_telnet_result oonf_viewer_telnet_help(struct autobuf *out,
+    const char *cmd, const char *parameter,
+    struct oonf_viewer_template *template, size_t count);
 
 EXPORT void oonf_viewer_json_init_session(struct oonf_viewer_json_session *,
     struct autobuf *out);

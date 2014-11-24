@@ -421,23 +421,9 @@ _cleanup(void) {
  */
 static enum oonf_telnet_result
 _cb_nhdpinfo(struct oonf_telnet_data *con) {
-  int result;
-
-  /* call template based subcommands first */
-  result = oonf_viewer_call_subcommands(con->out, &_template_storage,
-      con->parameter, _templates, ARRAYSIZE(_templates));
-  if (result == 0) {
-    return TELNET_RESULT_ACTIVE;
-  }
-  if (result < 0) {
-    return TELNET_RESULT_INTERNAL_ERROR;
-  }
-
-  if (con->parameter == NULL || *con->parameter == 0) {
-    abuf_puts(con->out, "Error, '" OONF_NHDPINFO_SUBSYSTEM "' needs a parameter\n");
-  }
-  abuf_appendf(con->out, "Wrong parameter in command: %s\n", con->parameter);
-  return TELNET_RESULT_ACTIVE;
+  return oonf_viewer_telnet_handler(con->out, &_template_storage,
+      OONF_NHDPINFO_SUBSYSTEM, con->parameter,
+      _templates, ARRAYSIZE(_templates));
 }
 
 /**
@@ -447,16 +433,8 @@ _cb_nhdpinfo(struct oonf_telnet_data *con) {
  */
 static enum oonf_telnet_result
 _cb_nhdpinfo_help(struct oonf_telnet_data *con) {
-  const char *next;
-
-  /* skip the nhdpinfo command */
-  next = str_hasnextword(con->parameter, OONF_NHDPINFO_SUBSYSTEM);
-
-  /* print out own help text */
-  abuf_puts(con->out, "NHDP database information command\n");
-  oonf_viewer_print_help(con->out, next, _templates, ARRAYSIZE(_templates));
-
-  return TELNET_RESULT_ACTIVE;
+  return oonf_viewer_telnet_help(con->out, OONF_NHDPINFO_SUBSYSTEM,
+      con->parameter, _templates, ARRAYSIZE(_templates));
 }
 
 /**
