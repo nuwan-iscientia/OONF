@@ -5,8 +5,8 @@ LEN=`cat ./files/default_licence.txt |wc -c`
 OKAY=0
 BAD=0
 
-EXCEPT="-not -wholename ./src-plugins/nl80211_listener/nl80211.h"
-EXCEPT="${EXCEPT} -not -wholename ./src-plugins/eth_listener/ethtool-copy.h"
+EXCEPT="-not -wholename ./src-plugins/generic/nl80211_listener/nl80211.h"
+EXCEPT="${EXCEPT} -not -wholename ./src-plugins/generic/eth_listener/ethtool-copy.h"
 for file in $(eval find ./src* ./tests ./examples -type f -name *[.][ch] ${EXCEPT})
 do
 	cmp --bytes ${LEN} ${file} ./files/default_licence.txt
