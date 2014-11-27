@@ -562,7 +562,8 @@ _parse_tlvblock(struct rfc5444_reader *parser,
   /* parse tlvs */
   while (*ptr < end) {
     /* parse next TLV into static buffer */
-    if ((result = _parse_tlv(&entry, ptr, eob, addr_count)) != RFC5444_OKAY) {
+    result = _parse_tlv(&entry, ptr, eob, addr_count);
+    if (result != RFC5444_OKAY) {
       /* error while parsing TLV */
       goto cleanup_parse_tlvblock;
     }
