@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# this script checks out the current revision of the oonf.git repository and builds nine variantes of the source
+# this script checks out the current revision of the oonf.git repository and builds nine variants of the source
 
 function build_oonf {
 	echo ""
