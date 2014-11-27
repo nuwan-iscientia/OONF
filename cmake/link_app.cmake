@@ -3,7 +3,7 @@
 # other way around
 
 # link static plugins
-message ("Static plugins for executables:")
+message (STATUS "Static plugins for executables:")
 
 # standard static linked targets
 SET(OBJECT_TARGETS )
@@ -12,7 +12,7 @@ SET(EXTERNAL_LIBRARIES )
 # run through list of static plugins
 FOREACH(plugin ${OONF_STATIC_PLUGINS})
     IF(TARGET oonf_static_${plugin})
-        message ("    Found target: oonf_static_${plugin}")  
+        message (STATUS "    Found target: oonf_static_${plugin}")  
 
         # Remember object targets for static plugin
         SET(OBJECT_TARGETS ${OBJECT_TARGETS} $<TARGET_OBJECTS:oonf_static_${plugin}>)
@@ -24,7 +24,7 @@ FOREACH(plugin ${OONF_STATIC_PLUGINS})
         get_property(value TARGET oonf_${plugin} PROPERTY LINK_LIBRARIES)
         FOREACH(lib ${value})
             IF(NOT "${lib}" MATCHES "^oonf_")
-                message ("        Library: ${lib}")
+                message (STATUS "        Library: ${lib}")
                 SET(EXTERNAL_LIBRARIES ${EXTERNAL_LIBRARIES} ${lib})
             ENDIF()
         ENDFOREACH(lib)
