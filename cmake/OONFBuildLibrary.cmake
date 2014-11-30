@@ -23,6 +23,8 @@ function (oonf_create_library libname source include link_internal linkto_extern
         target_link_libraries(oonf_${libname} ${linkto_external})
     endif (linkto_external)
     
+    install(TARGETS oonf_${libname} DESTINATION lib)
+
     foreach(inc ${include})
         get_filename_component(path "${inc}" PATH)
         
