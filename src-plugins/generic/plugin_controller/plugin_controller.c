@@ -148,6 +148,7 @@ _cb_telnet_plugin(struct oonf_telnet_data *data) {
   plugin_name = strchr(data->parameter, ' ');
   if (plugin_name == NULL) {
     abuf_appendf(data->out, "Error, missing or unknown parameter\n");
+    return TELNET_RESULT_ACTIVE;
   }
 
   /* skip whitespaces */
@@ -197,6 +198,10 @@ _cb_telnet_plugin(struct oonf_telnet_data *data) {
 static void
 _cb_config_changed(void) {
   /* generate binary config */
-  cfg_schema_tobin(&_config, _plugin_controller_section.post,
-      _plugin_controller_entries, ARRAYSIZE(_plugin_controller_entries));
+  if (cfg_schema_tobin(&_config, _plugin_controller_section.post,
+      _plugin_controller_entries, ARRAYSIZE(_plugin_controller_entries))) {
+    OONF_WARN(LOG_PLUGINCTRL, "Could not convert "
+        OONF_PLUGIN_CONTROLLER_SUBSYSTEM " config to bin");
+    return;
+  }
 }

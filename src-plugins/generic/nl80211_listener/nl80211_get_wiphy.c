@@ -332,7 +332,7 @@ _process_ht_mcs_array(struct nl80211_if *interf, uint8_t *mcs,
   uint64_t max_rx_supp_data_rate;
   uint64_t rate_tx, rate_rx;
 
-  max_rx_supp_data_rate = (mcs[10] & ((mcs[11] & 0x3) << 8));
+  max_rx_supp_data_rate = (mcs[10] | ((mcs[11] & 0x3) << 8));
 
   rate_tx = 1024ull * 1024ull
       * _get_max_bitrate(interf, mcs, ht20_sgi, ht40_sgi) / 10ull;

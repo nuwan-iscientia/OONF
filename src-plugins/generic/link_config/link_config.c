@@ -292,8 +292,8 @@ static void
 _cb_config_changed(void) {
   struct cfg_schema_entry *schema_entry;
   enum oonf_layer2_neighbor_index l2idx;
-  struct oonf_layer2_neigh *l2neigh;
-  struct oonf_layer2_net *l2net;
+  struct oonf_layer2_neigh *l2neigh, *l2neigh_it;
+  struct oonf_layer2_net *l2net, *l2net_it;
   struct cfg_entry *entry;
   uint32_t l2origin;
   size_t idx;
@@ -314,20 +314,20 @@ _cb_config_changed(void) {
   oonf_layer2_cleanup_origin(_l2_origin_old);
 
   /* trigger change events */
-  avl_for_each_element(oonf_layer2_get_network_tree(), l2net, _node) {
-    for (idx = 0; idx < OONF_LAYER2_NET_COUNT; idx++) {
-      if (oonf_layer2_get_origin(&l2net->neighdata[idx]) == _l2_origin_current) {
-        oonf_layer2_net_commit(l2net);
-        break;
-      }
-    }
-
-    avl_for_each_element(&l2net->neighbors, l2neigh, _node) {
+  avl_for_each_element_safe(oonf_layer2_get_network_tree(), l2net, _node, l2net_it) {
+    avl_for_each_element_safe(&l2net->neighbors, l2neigh, _node, l2neigh_it) {
       for (idx = 0; idx < OONF_LAYER2_NEIGH_COUNT; idx++) {
         if (oonf_layer2_get_origin(&l2neigh->data[idx]) == _l2_origin_current) {
           oonf_layer2_neigh_commit(l2neigh);
           break;
         }
+      }
+    }
+
+    for (idx = 0; idx < OONF_LAYER2_NET_COUNT; idx++) {
+      if (oonf_layer2_get_origin(&l2net->neighdata[idx]) == _l2_origin_current) {
+        oonf_layer2_net_commit(l2net);
+        break;
       }
     }
   }

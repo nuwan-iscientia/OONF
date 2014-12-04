@@ -80,7 +80,7 @@ static void _cb_l2_dst_added(void *);
 static void _cb_l2_dst_removed(void *);
 
 static uint64_t _get_l2neigh_default_value(const struct oonf_layer2_net *l2net,
-    enum oonf_layer2_network_index idx, uint64_t def);
+    enum oonf_layer2_neighbor_index idx, uint64_t def);
 static uint64_t _get_l2neigh_value(const struct oonf_layer2_neigh *l2neigh,
     enum oonf_layer2_neighbor_index idx, uint64_t def);
 
@@ -700,7 +700,7 @@ _cb_l2_dst_removed(void *ptr) {
 
 static uint64_t
 _get_l2neigh_default_value(const struct oonf_layer2_net *l2net,
-    enum oonf_layer2_network_index idx, uint64_t def) {
+    enum oonf_layer2_neighbor_index idx, uint64_t def) {
   const struct oonf_layer2_data *data;
 
   if (!l2net) {

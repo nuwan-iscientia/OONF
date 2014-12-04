@@ -655,7 +655,7 @@ _cb_handle_route(struct oonf_telnet_data *data) {
           abuf_appendf(data->out, "Error, illegal source-prefix: %s", buf.buf);
           return TELNET_RESULT_ACTIVE;
         }
-        route.family = netaddr_get_address_family(&route.src_ip);
+        route.family = netaddr_get_address_family(&route.src_prefix);
       }
       else if ((next = str_hasnextword(ptr, "table"))) {
         ptr = str_cpynextword(buf.buf, next, sizeof(buf));

@@ -343,7 +343,8 @@ _get_local_tcp_address(struct netaddr *remote_addr,
         return result;
       }
     }
-    else if (ipv6 != NULL) {
+    else if (ipv6 == NULL) {
+      /* we still want an IPv6 prefix */
       ipv6 = oonf_interface_get_prefix_from_dst(remote_addr, NULL);
     }
 

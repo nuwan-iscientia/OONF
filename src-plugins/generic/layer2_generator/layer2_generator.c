@@ -196,7 +196,10 @@ _cb_l2gen_event(void *ptr __attribute((unused))) {
     oonf_layer2_set_value(&net->neighdata[neigh_idx], _origin, event_counter);
   }
 
-  oonf_layer2_net_commit(net);
+  if (oonf_layer2_net_commit(net)) {
+    /* something bad has happened, l2net was removed */
+    return;
+  }
 
   neigh = oonf_layer2_neigh_add(net, &_l2gen_config.neighbor);
   if (neigh == NULL) {
