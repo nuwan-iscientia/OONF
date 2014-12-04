@@ -415,12 +415,12 @@ _add_link_address(struct rfc5444_writer *writer, struct rfc5444_writer_content_p
     struct nhdp_link *lnk = NULL;
     struct nhdp_neighbor *neigh = NULL;
 
-    if (linkstatus == RFC6130_LINKSTATUS_HEARD
-        || linkstatus == RFC6130_LINKSTATUS_SYMMETRIC) {
+    if (linkstatus == NHDP_LINK_HEARD
+        || linkstatus == NHDP_LINK_SYMMETRIC) {
       lnk = laddr->link;
     }
     if (naddr->neigh->symmetric > 0
-        && (linkstatus == RFC6130_LINKSTATUS_SYMMETRIC
+        && (linkstatus == NHDP_LINK_SYMMETRIC
             || otherneigh_sym == RFC6130_OTHERNEIGHB_SYMMETRIC)) {
       neigh = naddr->neigh;
     }
