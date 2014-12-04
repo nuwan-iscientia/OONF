@@ -491,7 +491,7 @@ olsrv2_validate_lan(const struct cfg_schema_entry *entry,
   const char *ptr, *result;
 
   if (value == NULL) {
-    cfg_schema_validate_netaddr(entry, section_name, value, out);
+    cfg_schema_help_netaddr(entry, out);
     cfg_append_printable_line(out,
         "    This value is followed by a list of three optional parameters.");
     cfg_append_printable_line(out,
