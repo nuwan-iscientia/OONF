@@ -182,7 +182,10 @@ oonf_timer_start_ext(struct oonf_timer_instance *timer, uint64_t first, uint64_t
    * Compute random numbers only once.
    */
   if (!timer->_random) {
-    timer->_random = os_core_random();
+    if (os_core_get_random(&timer->_random, sizeof(timer->_random))) {
+      OONF_WARN(LOG_TIMER, "Could not get random data");
+      timer->_random = 0;
+    }
   }
 
   /* Fill entry */
@@ -301,7 +304,10 @@ oonf_timer_walk(void)
        * Timer has been not been stopped, so its periodic.
        * rehash the random number and restart.
        */
-      timer->_random = os_core_random();
+      if (os_core_get_random(&timer->_random, sizeof(timer->_random))) {
+        OONF_WARN(LOG_TIMER, "Could not get random data");
+        timer->_random = 0;
+      }
       oonf_timer_start(timer, timer->_period);
     }
   }

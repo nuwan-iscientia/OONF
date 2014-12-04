@@ -523,10 +523,16 @@ struct oonf_rfc5444_interface *
 oonf_rfc5444_add_interface(struct oonf_rfc5444_protocol *protocol,
     struct oonf_rfc5444_interface_listener *listener, const char *name) {
   struct oonf_rfc5444_interface *interf;
+  uint16_t rnd;
 
   interf = avl_find_element(&protocol->_interface_tree,
       name, interf, _node);
   if (interf == NULL) {
+    if (os_core_get_random(&rnd, sizeof(rnd))) {
+      OONF_WARN(LOG_RFC5444, "Could not get random data");
+      return NULL;
+    }
+
     interf = oonf_class_malloc(&_interface_memcookie);
     if (interf == NULL) {
       return NULL;
@@ -552,7 +558,7 @@ oonf_rfc5444_add_interface(struct oonf_rfc5444_protocol *protocol,
     oonf_packet_add_managed(&interf->_socket);
 
     /* initialize message sequence number */
-    protocol->_msg_seqno = os_core_random() & 0xffff;
+    protocol->_msg_seqno = rnd;
 
     /* initialize listener list */
     list_init_head(&interf->_listener);
@@ -820,6 +826,12 @@ static struct oonf_rfc5444_target *
 _create_target(struct oonf_rfc5444_interface *interf,
     struct netaddr *dst, bool unicast) {
   static struct oonf_rfc5444_target *target;
+  uint16_t rnd;
+
+  if (os_core_get_random(&rnd, sizeof(rnd))) {
+    OONF_WARN(LOG_RFC5444, "Could not get random data");
+    return NULL;
+  }
 
   target = oonf_class_malloc(&_target_memcookie);
   if (target == NULL) {
@@ -853,7 +865,7 @@ _create_target(struct oonf_rfc5444_interface *interf,
   target->_refcount = 1;
 
   /* initialize pktseqno */
-  target->_pktseqno = os_core_random() & 0xffff;
+  target->_pktseqno = rnd;
 
   return target;
 }

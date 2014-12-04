@@ -223,6 +223,10 @@ _early_cfg_init(void) {
  */
 static int
 _init(void) {
+  if (os_core_get_random(&_ansn, sizeof(_ansn))) {
+    return -1;
+  }
+
   _protocol = oonf_rfc5444_add_protocol(RFC5444_PROTOCOL, true);
   if (_protocol == NULL) {
     return -1;
@@ -246,7 +250,6 @@ _init(void) {
   /* initialize timer */
   oonf_timer_add(&_tc_timer_class);
 
-  _ansn = os_core_random() & 0xffff;
   return 0;
 }
 

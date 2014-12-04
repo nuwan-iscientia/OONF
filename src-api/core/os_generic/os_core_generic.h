@@ -59,9 +59,4 @@ os_core_gettimeofday(struct timeval *tv) {
   return gettimeofday(tv, NULL);
 }
 
-static INLINE unsigned int
-os_core_random(void) {
-  return random();
-}
-
 #endif /* OS_CORE_GENERIC_H_ */

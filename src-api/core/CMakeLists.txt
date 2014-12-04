@@ -45,6 +45,7 @@ IF(LINUX)
     SET(OONF_CORE_SRCS ${OONF_CORE_SRCS}
                        os_generic/os_core_generic.c
                        os_linux/os_core_linux_locking_file.c
+                       os_linux/os_core_linux_get_random.c
                        )
     SET(OONF_CORE_INCLUDES ${OONF_CORE_INCLUDES}
                        os_generic/os_core_generic.h

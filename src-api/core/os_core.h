@@ -58,12 +58,12 @@
 
 /* pre-decleare inlines */
 static INLINE int os_core_gettimeofday(struct timeval *tv);
-static INLINE unsigned int os_core_random(void);
 
 void os_core_init(const char *appname);
 void os_core_cleanup(void);
 
 EXPORT void os_core_syslog(enum oonf_log_severity, const char *);
 EXPORT int os_core_create_lockfile(const char *);
+EXPORT int os_core_get_random(void *dst, size_t length);
 
 #endif /* OS_CORE_H_ */

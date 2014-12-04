@@ -47,25 +47,34 @@
 
 
 /**
- * Create a lock file of a certain name
- * @param path name of lockfile including path
- * @return 0 if the lock was created successfully, false otherwise
+ * Get some random data
+ * @param dst pointer to destination buffer
+ * @param length number of random bytes requested
+ * @return 0 if the random data was generated, -1 if an error happened
  */
 int
-os_core_create_lockfile(const char *path) {
-  int lock_fd;
+os_core_get_random(void *dst, size_t length) {
+  int random_fd;
+  ssize_t result;
+  uint8_t *u8ptr;
 
-  /* create file for lock */
-  lock_fd = open(path, O_RDWR | O_CREAT, S_IRWXU);
-  if (lock_fd == -1) {
+  u8ptr = dst;
+
+  /* open urandom */
+  random_fd = open("/dev/urandom", O_RDONLY);
+  if (random_fd == -1) {
     return -1;
   }
 
-  if (flock(lock_fd, LOCK_EX | LOCK_NB)) {
-    close(lock_fd);
-    return -1;
-  }
+  while (length > 0) {
+    result = read(random_fd, u8ptr, length);
+    if (result < 0) {
+      close (random_fd);
+      return -1;
+    }
 
-  /* lock will be released when process ends */
+    u8ptr += result;
+    length -= result;
+  }
   return 0;
 }

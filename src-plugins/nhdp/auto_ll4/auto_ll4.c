@@ -429,6 +429,7 @@ _cb_update_timer(void *ptr) {
   struct _nhdp_if_autoll4 *auto_ll4;
   struct netaddr current_ll4;
   int count;
+  uint32_t rnd;
   uint16_t hash;
 #ifdef OONF_LOG_DEBUG_INFO
   struct netaddr_str nbuf;
@@ -502,7 +503,11 @@ _cb_update_timer(void *ptr) {
 
   while (_nhdp_if_has_collision(nhdp_if, &auto_ll4->auto_ll4_addr)) {
     /* roll up a random address */
-    hash = htons((os_core_random() % (256 * 254)) + 256);
+    if (os_core_get_random(&rnd, sizeof(rnd))) {
+      OONF_WARN(LOG_AUTO_LL4, "Could not get random data");
+      return;
+    }
+    hash = htons((rnd % (256 * 254)) + 256);
     netaddr_create_host_bin(&auto_ll4->auto_ll4_addr,
         &NETADDR_IPV4_LINKLOCAL, &hash, sizeof(hash));
   }
