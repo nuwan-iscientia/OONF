@@ -370,16 +370,10 @@ _add_link_address(struct rfc5444_writer *writer, struct rfc5444_writer_content_p
       linkstatus = laddr->link->status;
     }
 
-    if (naddr->neigh != NULL && naddr->neigh->symmetric > 0
+    if (naddr->neigh->symmetric > 0
         && linkstatus != NHDP_LINK_SYMMETRIC) {
       otherneigh_sym = NHDP_LINK_SYMMETRIC;
     }
-  }
-
-  /* sanity check */
-  if(laddr != NULL && naddr->neigh == NULL) {
-    OONF_WARN(LOG_NHDP_W, "Inconsistent NHDP naddr entry");
-    return;
   }
 
   /* generate RFC5444 address */

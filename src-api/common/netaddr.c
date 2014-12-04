@@ -441,7 +441,7 @@ netaddr_to_prefixstring(struct netaddr_str *dst,
   int maxprefix;
 
   if (!src) {
-    return strcpy(dst->buf, NONE);
+    return strscpy(dst->buf, NONE, sizeof(*dst));
   }
 
   maxprefix = netaddr_get_maxprefix(src);
