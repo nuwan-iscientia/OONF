@@ -247,8 +247,8 @@ rfc5444_writer_create_message(struct rfc5444_writer *writer, uint8_t msgid,
     }
 
     /* remember first mandatory address */
-    if (first_addr == NULL && addr->_mandatory_addr) {
-      first_addr = addr;
+    if (first_mandatory == NULL && addr->_mandatory_addr) {
+      first_mandatory = addr;
     }
 
     addr->index = idx++;

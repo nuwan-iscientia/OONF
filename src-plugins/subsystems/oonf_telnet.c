@@ -721,7 +721,7 @@ _cb_telnet_repeat(struct oonf_telnet_data *data) {
 
   timer->cb_context = data;
   timer->class = &_telnet_repeat_timerinfo;
-  oonf_timer_start(timer, interval * 1000);
+  oonf_timer_start(timer, MSEC_PER_SEC * interval);
 
   data->stop_handler = _cb_telnet_repeat_stophandler;
   data->stop_data[0] = timer;

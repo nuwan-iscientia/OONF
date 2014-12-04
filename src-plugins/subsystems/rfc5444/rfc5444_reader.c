@@ -649,7 +649,7 @@ _schedule_tlvblock(struct rfc5444_reader_tlvblock_consumer *consumer, struct rfc
       size_t offset;
 
       /* calculate value pointer for multivalue tlv */
-      offset = (idx - tlv->index1) * tlv->length;
+      offset = (size_t)(idx - tlv->index1) * tlv->length;
       tlv->single_value = &tlv->_value[offset];
     }
 

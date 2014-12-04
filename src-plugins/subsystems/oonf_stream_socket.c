@@ -628,7 +628,7 @@ _create_session(struct oonf_stream_socket *stream_socket,
   session = oonf_class_malloc(stream_socket->config.memcookie);
   if (session == NULL) {
     OONF_WARN(LOG_STREAM, "Cannot allocate memory for comport session");
-    goto parse_request_error;
+    return NULL;
   }
 
   if (abuf_init(&session->in)) {

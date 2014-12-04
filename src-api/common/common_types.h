@@ -59,6 +59,10 @@
 #define STRINGIFY(x) #x
 #endif
 
+/* time constants */
+#define MSEC_PER_SEC 1000ull
+#define USEC_PER_MSEC 1000ull
+
 /*
  * This force gcc to always inline, which prevents errors
  * with option -Os

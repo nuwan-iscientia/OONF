@@ -408,15 +408,18 @@ _os_linux_get_base_ifindex(const char *interf) {
     OONF_WARN(LOG_OS_NET,
       "Error, cannot read proc entry %s: %s (%d)\n",
       sysfile, strerror(errno), errno);
+    close(fd);
     return 0;
   }
 
   if (len >= (ssize_t)sizeof(ifnumber)) {
 	  OONF_WARN(LOG_OS_NET, "Content of %s too long", sysfile);
+    close(fd);
 	  return 0;
   }
 
   ifnumber[len] = 0;
+  close(fd);
   return atoi(ifnumber);
 }
 
@@ -510,6 +513,7 @@ _os_linux_writeToFile(const char *file, char *old, char value) {
     OONF_WARN(LOG_OS_NET,
       "Error, cannot read proc entry %s: %s (%d)\n",
       file, strerror(errno), errno);
+    close(fd);
     return -1;
   }
 
@@ -518,6 +522,7 @@ _os_linux_writeToFile(const char *file, char *old, char value) {
       OONF_WARN(LOG_OS_NET,
         "Error, cannot rewind to start on proc entry %s: %s (%d)\n",
         file, strerror(errno), errno);
+      close(fd);
       return -1;
     }
 

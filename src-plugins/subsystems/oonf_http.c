@@ -616,10 +616,6 @@ _parse_http_header(char *header_data, size_t header_len,
   }
 
   for(header_index = 0; true; header_index++) {
-    if (header_len < 1) {
-      goto unexpected_end;
-    }
-
     if (*header_data == '\n') {
       break;
     }

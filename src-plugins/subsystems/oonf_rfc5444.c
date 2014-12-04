@@ -642,8 +642,6 @@ oonf_rfc5444_reconfigure_interface(struct oonf_rfc5444_interface *interf,
   uint16_t port;
   struct netaddr_str buf;
 
-  old = NULL;
-
   if (config != NULL) {
     /* copy socket configuration */
     oonf_packet_copy_managed_config(&interf->_socket_config, config);
@@ -703,6 +701,9 @@ oonf_rfc5444_reconfigure_interface(struct oonf_rfc5444_interface *interf,
     old = interf->multicast4;
     interf->multicast4 = NULL;
   }
+  else {
+    old = NULL;
+  }
   if (netaddr_get_address_family(&config->multicast_v4) != AF_UNSPEC) {
     target = _create_target(interf, &config->multicast_v4, false);
     if (target == NULL) {
@@ -723,6 +724,9 @@ oonf_rfc5444_reconfigure_interface(struct oonf_rfc5444_interface *interf,
   if (interf->multicast6) {
     old = interf->multicast6;
     interf->multicast6 = NULL;
+  }
+  else {
+    old = NULL;
   }
   if (netaddr_get_address_family(&config->multicast_v6) != AF_UNSPEC) {
     target = _create_target(interf, &config->multicast_v6, false);

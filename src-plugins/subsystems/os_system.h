@@ -51,9 +51,6 @@
 
 #define OONF_OS_SYSTEM_SUBSYSTEM "os_system"
 
-#define MSEC_PER_SEC 1000
-#define USEC_PER_MSEC 1000
-
 struct os_system_if_listener {
   void (*if_changed)(unsigned if_index, bool up);
 
