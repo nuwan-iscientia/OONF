@@ -103,7 +103,11 @@ static struct cfg_schema_entry _radio_entries[] = {
 static struct cfg_schema_section _radio_section = {
   .type = OONF_DLEP_RADIO_SUBSYSTEM,
   .mode = CFG_SSMODE_NAMED,
+
+  .help = "The name of this section must be the interface DLEP radio listens on",
+
   .cb_delta_handler = _cb_config_changed,
+
   .entries = _radio_entries,
   .entry_count = ARRAYSIZE(_radio_entries),
 };

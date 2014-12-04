@@ -95,7 +95,11 @@ static struct cfg_schema_entry _router_entries[] = {
 static struct cfg_schema_section _router_section = {
   .type = OONF_DLEP_ROUTER_SUBSYSTEM,
   .mode = CFG_SSMODE_NAMED,
+
+  .help = "The name of this section must be the interface DLEP radio listens on",
+
   .cb_delta_handler = _cb_config_changed,
+
   .entries = _router_entries,
   .entry_count = ARRAYSIZE(_router_entries),
 };

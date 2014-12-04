@@ -404,6 +404,11 @@ _print_schema_section(struct autobuf *log, struct cfg_db *db, const char *sectio
     cfg_append_printable_line(log, "Section '%s' has default name '%s'",
         s_entry->_parent->type, s_entry->_parent->def_name);
   }
+
+  if (s_entry->_parent->help) {
+    cfg_append_printable_line(log, "%s", s_entry->_parent->help);
+  }
+
   cfg_append_printable_line(log, "List of entries in section type '%s':", section);
   abuf_puts(log, "(use this command with 'type.name' as parameter for more information)\n");
 
