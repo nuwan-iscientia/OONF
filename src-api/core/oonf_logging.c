@@ -403,13 +403,13 @@ oonf_log(enum oonf_log_severity severity, enum oonf_log_source source, bool no_h
   /* use stderr logger if nothing has been configured */
   if (list_is_empty(&_handler_list)) {
     oonf_log_stderr(NULL, &param);
-    return;
   }
-
-  /* call all log handlers */
-  FOR_ALL_LOGHANDLERS(h, iterator) {
-    if (oonf_log_mask_test(h->_processed_bitmask, source, severity)) {
-      h->handler(h, &param);
+  else {
+    /* call all log handlers */
+    FOR_ALL_LOGHANDLERS(h, iterator) {
+      if (oonf_log_mask_test(h->_processed_bitmask, source, severity)) {
+        h->handler(h, &param);
+      }
     }
   }
   va_end(ap);

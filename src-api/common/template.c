@@ -93,8 +93,10 @@ abuf_template_init_ext(struct abuf_template_storage *storage,
       }
     }
 
-    storage->indices[0].start = 0;
-    storage->indices[storage->count-1].end = 1;
+    if (storage->count) {
+      storage->indices[0].start = 0;
+      storage->indices[storage->count-1].end = 1;
+    }
     return;
   }
 

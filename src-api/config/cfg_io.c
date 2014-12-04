@@ -133,7 +133,7 @@ cfg_io_save(struct cfg_instance *instance,
 
   io = _find_io(instance, url, &io_param, log);
   if (io == NULL) {
-    cfg_append_printable_line(log, "Error, unknown config io '%s'.", io->name);
+    cfg_append_printable_line(log, "Error, unknown config io '%s'.", url);
     return -1;
   }
 

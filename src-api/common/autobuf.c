@@ -66,6 +66,8 @@ ROUND_UP_TO_POWER_OF_2(size_t val, size_t pow2) {
 
 static int _autobuf_enlarge(struct autobuf *autobuf, size_t new_size);
 static void _print_hexline(struct autobuf *out, const void *buffer, size_t length);
+static int _vappendf(struct autobuf *autobuf,
+    const char *format, va_list ap, va_list ap2) __attribute__ ((format(printf, 2, 0)));
 
 /**
  * Initialize an autobuffer and allocate a chunk of memory
@@ -111,34 +113,18 @@ int
 abuf_vappendf(struct autobuf *autobuf,
     const char *format, va_list ap)
 {
-  int rc;
-  size_t min_size;
+  int result;
   va_list ap2;
 
-  if (autobuf == NULL) return 0;
+  if (!autobuf) {
+    return 0;
+  }
 
   va_copy(ap2, ap);
-  rc = vsnprintf(autobuf->_buf + autobuf->_len, autobuf->_total - autobuf->_len, format, ap);
-  if (rc < 0) {
-    autobuf->_error = true;
-    return rc;
-  }
-  va_end(ap);
-  min_size = autobuf->_len + (size_t)rc;
-  if (min_size >= autobuf->_total) {
-    if (_autobuf_enlarge(autobuf, min_size) < 0) {
-      autobuf->_buf[autobuf->_len] = '\0';
-      return -1;
-    }
-    rc = vsnprintf(autobuf->_buf + autobuf->_len, autobuf->_total - autobuf->_len, format, ap2);
-    if (rc < 0) {
-      autobuf->_error = true;
-      return rc;
-    }
-  }
+  result = _vappendf(autobuf, format, ap, ap2);
   va_end(ap2);
-  autobuf->_len = min_size;
-  return rc;
+
+  return result;
 }
 
 /**
@@ -213,7 +199,7 @@ abuf_strftime(struct autobuf *autobuf, const char *format, const struct tm *tm)
     rc = strftime(autobuf->_buf + autobuf->_len, autobuf->_total - autobuf->_len, format, tm);
     if (rc == 0) {
       /* make sure we are null-terminated */
-      autobuf->_buf[autobuf->_len + rc] = 0;
+      autobuf->_buf[autobuf->_len] = 0;
 
       return -1;
     }
@@ -221,10 +207,6 @@ abuf_strftime(struct autobuf *autobuf, const char *format, const struct tm *tm)
 
   /* add data to length field */
   autobuf->_len += rc;
-
-  if (rc == 0) {
-    return -1;
-  }
   return rc;
 }
 
@@ -409,4 +391,43 @@ _autobuf_enlarge(struct autobuf *autobuf, size_t new_size)
     autobuf->_total = roundUpSize;
   }
   return 0;
+}
+
+/**
+ * vprintf()-style function that appends the output to an autobuffer
+ * @param autobuf pointer to autobuf object
+ * @param format printf format string
+ * @param ap variable argument list pointer
+ * @param ap2 copy of variable argument list pointer
+ * @return -1 if an out-of-memory error happened,
+ *   otherwise it returns the number of written characters
+ *   (excluding the \0)
+ */
+static int
+_vappendf(struct autobuf *autobuf,
+    const char *format, va_list ap, va_list ap2) {
+  int rc;
+  size_t min_size;
+
+  if (autobuf == NULL) return 0;
+
+  rc = vsnprintf(autobuf->_buf + autobuf->_len, autobuf->_total - autobuf->_len, format, ap);
+  if (rc < 0) {
+    autobuf->_error = true;
+    return rc;
+  }
+  min_size = autobuf->_len + (size_t)rc;
+  if (min_size >= autobuf->_total) {
+    if (_autobuf_enlarge(autobuf, min_size) < 0) {
+      autobuf->_buf[autobuf->_len] = '\0';
+      return -1;
+    }
+    rc = vsnprintf(autobuf->_buf + autobuf->_len, autobuf->_total - autobuf->_len, format, ap2);
+    if (rc < 0) {
+      autobuf->_error = true;
+      return rc;
+    }
+  }
+  autobuf->_len = min_size;
+  return rc;
 }

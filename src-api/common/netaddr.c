@@ -461,7 +461,7 @@ netaddr_to_prefixstring(struct netaddr_str *dst,
     case AF_UNSPEC:
       /* fall through */
     default:
-      return strcpy(dst->buf, NONE);
+      return strscpy(dst->buf, NONE, sizeof(*dst));
   }
   if (forceprefix || src->_prefix_len < maxprefix) {
     /* append prefix */
