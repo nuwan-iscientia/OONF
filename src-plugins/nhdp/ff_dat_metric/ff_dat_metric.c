@@ -796,8 +796,8 @@ _cb_cfg_validate(const char *section_name,
   /* convert configuration to binary */
   if (cfg_schema_tobin(&cfg, named,
       _datff_entries, ARRAYSIZE(_datff_entries))) {
-    cfg_append_printable_line(out, "Could not parse hysteresis configuration in section %s",
-        section_name);
+    OONF_WARN(LOG_FF_DAT, "Could not convert "
+        OONF_FF_DAT_METRIC_SUBSYSTEM " plugin configuration");
     return -1;
   }
 

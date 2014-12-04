@@ -754,7 +754,7 @@ _cb_ll4_cfg_changed(void) {
   memset(&cfg, 0, sizeof(cfg));
   if (cfg_schema_tobin(&cfg, _auto_ll4_section.post,
       _auto_ll4_entries, ARRAYSIZE(_auto_ll4_entries))) {
-    OONF_WARN(LOG_AUTO_LL4, "Cannot convert plugin configuration.");
+    OONF_WARN(LOG_AUTO_LL4, "Cannot convert " OONF_AUTO_LL4_SUBSYSTEM " configuration.");
     return;
   }
 

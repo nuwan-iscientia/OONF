@@ -220,8 +220,8 @@ static void
 _cb_config_changed(void) {
   if (cfg_schema_tobin(&_l2gen_config, _l2gen_section.post,
       _l2gen_entries, ARRAYSIZE(_l2gen_entries))) {
-    OONF_WARN(LOG_L2GEN, "Could not convert %s section to bin",
-        OONF_L2GEN_SUBSYSTEM);
+    OONF_WARN(LOG_L2GEN, "Could not convert " OONF_L2GEN_SUBSYSTEM
+        " plugin configuration");
     return;
   }
 

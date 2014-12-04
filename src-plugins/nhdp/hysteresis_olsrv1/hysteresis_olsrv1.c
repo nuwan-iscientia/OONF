@@ -56,7 +56,7 @@
 #include "hysteresis_olsrv1/hysteresis_olsrv1.h"
 
 /* definitions and constants */
-#define LOG_HYSTERESIS_OLSRV1 olsrv2_hysteresis_olsrv1_subsystem.logging
+#define LOG_HYSTERESIS_OLSRV1 _olsrv2_hysteresis_olsrv1_subsystem.logging
 
 struct _config {
   int accept;
@@ -352,8 +352,11 @@ _cb_timer_hello_lost(void *ptr) {
  */
 static void
 _cb_cfg_changed(void) {
-  cfg_schema_tobin(&_hysteresis_config, _hysteresis_section.post,
-      _hysteresis_entries, ARRAYSIZE(_hysteresis_entries));
+  if (cfg_schema_tobin(&_hysteresis_config, _hysteresis_section.post,
+      _hysteresis_entries, ARRAYSIZE(_hysteresis_entries))) {
+    OONF_WARN(LOG_HYSTERESIS_OLSRV1, "Could not convert "
+        OONF_HYSTERESIS_OLSRV1_SUBSYSTEM " plugin configuration");
+  }
 }
 
 /**

@@ -924,7 +924,7 @@ _cb_link_vtime(void *ptr) {
     nhdp_domain_neighborhood_changed();
   }
   else {
-    nhdp_domain_neighbor_changed(lnk->neigh);
+    nhdp_domain_neighbor_changed(neigh);
   }
 }
 

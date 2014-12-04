@@ -96,6 +96,7 @@ static struct rfc5444_writer_tlvtype _nhdp_addrtlvs[] = {
 static struct oonf_rfc5444_protocol *_protocol;
 
 static bool _cleanedup = false;
+static struct nhdp_interface *_nhdp_if = NULL;
 
 /**
  * Initialize nhdp writer
@@ -163,6 +164,9 @@ nhdp_writer_send_hello(struct nhdp_interface *ninterf) {
 
   OONF_DEBUG(LOG_NHDP_W, "Sending Hello to interface %s",
       nhdp_interface_get_name(ninterf));
+
+  /* store NHDP interface */
+  _nhdp_if = ninterf;
 
   /* send IPv4 (if socket is active) */
   result = oonf_rfc5444_send_if(ninterf->rfc5444_if.interface->multicast4, RFC5444_MSGTYPE_HELLO);
@@ -237,7 +241,6 @@ static void
 _cb_addMessageTLVs(struct rfc5444_writer *writer) {
   uint8_t vtime_encoded, itime_encoded;
   struct oonf_rfc5444_target *target;
-  struct nhdp_interface *interf;
   const struct netaddr *v4_originator;
   struct oonf_interface_data *ifdata;
   uint8_t willingness[NHDP_MAXIMUM_DOMAINS];
@@ -255,13 +258,8 @@ _cb_addMessageTLVs(struct rfc5444_writer *writer) {
     assert(0);
   }
 
-  interf = nhdp_interface_get(target->interface->name);
-  if (interf == NULL) {
-    OONF_WARN(LOG_NHDP_W, "Unknown interface for nhdp message: %s", target->interface->name);
-    assert(0);
-  }
-  itime_encoded = rfc5497_timetlv_encode(interf->refresh_interval);
-  vtime_encoded = rfc5497_timetlv_encode(interf->h_hold_time);
+  itime_encoded = rfc5497_timetlv_encode(_nhdp_if->refresh_interval);
+  vtime_encoded = rfc5497_timetlv_encode(_nhdp_if->h_hold_time);
 
   rfc5444_writer_add_messagetlv(writer, RFC5497_MSGTLV_INTERVAL_TIME, 0,
       &itime_encoded, sizeof(itime_encoded));
@@ -373,9 +371,15 @@ _add_link_address(struct rfc5444_writer *writer, struct rfc5444_writer_content_p
     }
 
     if (naddr->neigh != NULL && naddr->neigh->symmetric > 0
-        && linkstatus != RFC6130_LINKSTATUS_SYMMETRIC) {
-      otherneigh_sym = RFC6130_OTHERNEIGHB_SYMMETRIC;
+        && linkstatus != NHDP_LINK_SYMMETRIC) {
+      otherneigh_sym = NHDP_LINK_SYMMETRIC;
     }
+  }
+
+  /* sanity check */
+  if(laddr != NULL && naddr->neigh == NULL) {
+    OONF_WARN(LOG_NHDP_W, "Inconsistent NHDP naddr entry");
+    return;
   }
 
   /* generate RFC5444 address */
@@ -451,10 +455,9 @@ _write_metric_tlv(struct rfc5444_writer *writer, struct rfc5444_writer_address *
   };
   struct nhdp_link_domaindata *linkdata;
   struct nhdp_neighbor_domaindata *neighdata;
-  bool unsent[4];
-  uint32_t metrics[4];
   struct rfc7181_metric_field metric_encoded[4], tlv_value;
   int i,j,k;
+  uint32_t metrics[4] = { 0,0,0,0 };
 
   if (lnk == NULL && neigh == NULL) {
     /* nothing to do */
@@ -462,18 +465,14 @@ _write_metric_tlv(struct rfc5444_writer *writer, struct rfc5444_writer_address *
   }
 
   /* get link metrics if available */
-  unsent[0] = unsent[1] =
-      (lnk != NULL && (lnk->status == NHDP_LINK_HEARD || lnk->status == NHDP_LINK_SYMMETRIC));
-
-  if (unsent[0]) {
+  if (lnk != NULL && (lnk->status == NHDP_LINK_HEARD || lnk->status == NHDP_LINK_SYMMETRIC)) {
     linkdata = nhdp_domain_get_linkdata(domain, lnk);
     metrics[0] = linkdata->metric.in;
     metrics[1] = linkdata->metric.out;
   }
 
   /* get neighbor metrics if available */
-  unsent[2] = unsent[3] = (neigh != NULL && neigh->symmetric > 0);
-  if (unsent[2]) {
+  if (neigh != NULL && neigh->symmetric > 0) {
     neighdata = nhdp_domain_get_neighbordata(domain, neigh);
     metrics[2] = neighdata->metric.in;
     metrics[3] = neighdata->metric.out;
@@ -481,14 +480,14 @@ _write_metric_tlv(struct rfc5444_writer *writer, struct rfc5444_writer_address *
 
   /* check if metric is infinite */
   for (i=0; i<4; i++) {
-    if (unsent[i] && metrics[i] >= RFC7181_METRIC_INFINITE) {
-      unsent[i] = false;
+    if (metrics[i] >= RFC7181_METRIC_INFINITE) {
+      metrics[i] = 0;
     }
   }
 
   /* encode metrics */
   for (i=0; i<4; i++) {
-    if (unsent[i]) {
+    if (metrics[i] > 0) {
       if (rfc7181_metric_encode(&metric_encoded[i], metrics[i])) {
         OONF_WARN(LOG_NHDP_W, "Metric encoding for %u failed", metrics[i]);
         return;
@@ -500,7 +499,7 @@ _write_metric_tlv(struct rfc5444_writer *writer, struct rfc5444_writer_address *
   k = 0;
   for (i=0; i<4; i++) {
     /* find first metric value which still must be sent */
-    if (!unsent[i]) {
+    if (metrics[i] == 0) {
       continue;
     }
 
@@ -509,10 +508,10 @@ _write_metric_tlv(struct rfc5444_writer *writer, struct rfc5444_writer_address *
 
     /* mark all metric pair that have the same linkmetric */
     for (j=3; j>=i; j--) {
-      if (unsent[j] &&
+      if (metrics[i] > 0 &&
           memcmp(&metric_encoded[i], &metric_encoded[j], sizeof(metric_encoded[0])) == 0) {
         rfc7181_metric_set_flag(&tlv_value, flags[j]);
-        unsent[j] = false;
+        metrics[j] = 0;
       }
     }
 
