@@ -473,7 +473,7 @@ parse_early_commandline(int argc, char **argv) {
  */
 static int
 parse_commandline(int argc, char **argv,
-    const struct oonf_appdata *appdata, bool reload_only) {
+    const struct oonf_appdata *appdata __attribute((unused)), bool reload_only) {
   struct oonf_subsystem *plugin;
   const char *parameters;
   struct autobuf log;
