@@ -62,8 +62,7 @@
  */
 int
 os_net_configsocket(int sock, const union netaddr_socket *bind_to, int recvbuf,
-    bool rawip, const struct oonf_interface_data *interf __attribute__((unused)),
-    enum oonf_log_source log_src __attribute__((unused))) {
+    bool rawip, const struct oonf_interface_data *interf, enum oonf_log_source log_src) {
   int yes;
   socklen_t addrlen;
   union netaddr_socket bindto;
@@ -89,7 +88,7 @@ os_net_configsocket(int sock, const union netaddr_socket *bind_to, int recvbuf,
 #endif
 
 #if defined(SO_BINDTODEVICE)
-  /* this is no multicast */
+  /* this is binding the socket, not a multicast address */
   if (interf != NULL && setsockopt(sock, SOL_SOCKET, SO_BINDTODEVICE,
       interf->name, strlen(interf->name) + 1) < 0) {
     OONF_WARN(log_src, "Cannot bind socket to interface %s: %s (%d)\n",
