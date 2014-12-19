@@ -17,19 +17,18 @@ nl80211_listener and layer2info plugin for a single-radio DLEP implementation.
 
 
 [global]
-        fork            no
-        failfast        no
         plugin          dlep_radio
         plugin          layer2info
         plugin          nl80211_listener
+
+[layer2info]
+
+[nl80211_listener]
+        if              wlan0
+        interval        1.0
 
 [dlep_radio=br-lan]
         source          wlan0
         not_proxied     false
         proxied         true
 
-[nl80211_listener]
-        if              wlan0
-        interval        1.0
-
-[layer2_viewer]

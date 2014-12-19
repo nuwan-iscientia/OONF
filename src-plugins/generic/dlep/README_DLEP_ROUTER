@@ -18,5 +18,8 @@ OLSRv2 application for receiving linklayer information.
 
 [global]
         plugins         dlep_router
+        plugins         layer2info
+
+[layer2info]
 
 [dlep_router=eth0.101]
