@@ -424,9 +424,11 @@ _print_schema_section(struct autobuf *log, struct cfg_db *db, const char *sectio
           strarray_is_empty_c(&s_entry_it->def) ? " (mandatory)" : "",
               s_entry_it->list ? " (list)" : "");
     }
+#if !defined(REMOVE_HELPTEXT)
     if (s_entry_it->help) {
       cfg_append_printable_line(log, "        %s", s_entry_it->help);
     }
+#endif
   }
   return 0;
 }
@@ -434,10 +436,9 @@ _print_schema_section(struct autobuf *log, struct cfg_db *db, const char *sectio
 static int
 _print_schema_entry(struct autobuf *log, struct cfg_db *db,
     const char *section, const char *entry) {
-  struct cfg_schema_entry *s_entry, *s_entry_it, *s_entry_last;
+  struct cfg_schema_entry *s_entry_it, *s_entry_first, *s_entry_last;
   struct cfg_schema_entry_key key;
   const char *c_ptr;
-  bool first;
 
   /* show all schema entries of a type/entry pair */
   key.type = section;
@@ -445,18 +446,18 @@ _print_schema_entry(struct autobuf *log, struct cfg_db *db,
 
   s_entry_last = NULL;
 
-  avl_for_each_elements_with_key(&db->schema->entries, s_entry_it, _node, s_entry, &key) {
-    if (!s_entry_it->_node.follower) {
+  avl_for_each_elements_with_key(&db->schema->entries, s_entry_it, _node, s_entry_first, &key) {
+    if (s_entry_it == s_entry_first) {
       /* print type/parameter */
       cfg_append_printable_line(log, "    %s%s%s",
-          s_entry->key.entry,
-          strarray_is_empty_c(&s_entry->def) ? " (mandatory)" : "",
-          s_entry->list ? " (list)" : "");
+          s_entry_it->key.entry,
+          strarray_is_empty_c(&s_entry_it->def) ? " (mandatory)" : "",
+              s_entry_it->list ? " (list)" : "");
 
       /* print defaults */
-      if (!strarray_is_empty_c(&s_entry->def)) {
+      if (!strarray_is_empty_c(&s_entry_it->def)) {
         cfg_append_printable_line(log, "    Default value:");
-        strarray_for_each_element(&s_entry->def, c_ptr) {
+        strarray_for_each_element(&s_entry_it->def, c_ptr) {
           cfg_append_printable_line(log, "        '%s'", c_ptr);
         }
       }
@@ -472,18 +473,18 @@ _print_schema_entry(struct autobuf *log, struct cfg_db *db,
       }
     }
   }
-  first = true;
 
-  avl_for_each_elements_with_key(&db->schema->entries, s_entry_it, _node, s_entry, &key) {
+#if !defined(REMOVE_HELPTEXT)
+  avl_for_each_elements_with_key(&db->schema->entries, s_entry_it, _node, s_entry_first, &key) {
     /* print help text */
     if (s_entry_it->help) {
-      if (first) {
+      if (s_entry_it == s_entry_first) {
         abuf_puts(log, "    Description:\n");
-        first = false;
       }
       cfg_append_printable_line(log, "        %s", s_entry_it->help);
     }
   }
+#endif
   return 0;
 }
 
