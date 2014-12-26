@@ -43,29 +43,48 @@
 #include <fcntl.h>
 
 #include "common/common_types.h"
+#include "common/netaddr.h"
 #include "core/oonf_logging.h"
-#include "subsystems/os_net.h"
+
+#include "../os_socket.h"
 
 /**
- * Raw IP sockets sometimes deliver the whole IP header instead of just
- * the content. This function skips the IP header and modifies the length
- * of the buffer.
- * @param ptr pointer to the beginning of the buffer
- * @param len pointer to length of buffer
- * @param af_type address family of data in buffer
- * @return pointer to transport layer data
+ * Creates a new raw socket and configures it
+ * @param bind_to address to bind the socket to
+ * @param protocol IP protocol number
+ * @param recvbuf size of input buffer for socket
+ * @param interf pointer to interface to bind socket on,
+ *   NULL if socket should not be bound to an interface
+ * @param log_src logging source for error messages
+ * @return socket filedescriptor, -1 if an error happened
  */
-uint8_t *
-os_net_skip_rawsocket_prefix(uint8_t *ptr, ssize_t *len, int af_type) {
-  int header_size;
+int
+os_socket_getrawsocket(const union netaddr_socket *bind_to,
+    int protocol, int recvbuf, const struct os_interface_data *interf,
+    enum oonf_log_source log_src __attribute__((unused))) {
 
-  if (af_type != AF_INET) {
-    return ptr;
+  static const int zero = 0;
+  int sock;
+  int family;
+
+  family = bind_to->std.sa_family;
+  sock = socket(family, SOCK_RAW, protocol);
+  if (sock < 0) {
+    OONF_WARN(log_src, "Cannot open socket: %s (%d)", strerror(errno), errno);
+    return -1;
   }
 
-  /* skip IPv4 header */
-  header_size = (ptr[0] & 0x0f) << 2;
+  if (family == AF_INET) {
+    if (setsockopt (sock, IPPROTO_IP, IP_HDRINCL, &zero, sizeof(zero)) < 0) {
+      OONF_WARN(log_src, "Cannot disable IP_HDRINCL for socket: %s (%d)", strerror(errno), errno);
+      os_socket_close(sock);
+      return -1;
+    }
+  }
 
-  *len -= header_size;
-  return ptr + header_size;
+  if (os_socket_configsocket(sock, bind_to, recvbuf, true, interf, log_src)) {
+    os_socket_close(sock);
+    return -1;
+  }
+  return sock;
 }

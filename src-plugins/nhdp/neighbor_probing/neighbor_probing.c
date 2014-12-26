@@ -231,7 +231,7 @@ _cb_probe_link(void *ptr __attribute__((unused))) {
   struct _probing_link_data *ldata, *best_ldata;
   struct nhdp_interface *ninterf;
 
-  struct oonf_interface *interf;
+  struct os_interface *interf;
   struct oonf_layer2_net *l2net;
   struct oonf_layer2_neigh *l2neigh;
 

@@ -46,8 +46,9 @@
 #include "common/netaddr.h"
 #include "common/string.h"
 #include "core/oonf_logging.h"
-#include "subsystems/oonf_interface.h"
-#include "subsystems/os_net.h"
+#include "subsystems/os_interface.h"
+
+#include "../os_socket.h"
 
 /**
  * Join a socket into a multicast group
@@ -58,8 +59,8 @@
  * @return -1 if an error happened, 0 otherwise
  */
 int
-os_net_join_mcast_recv(int sock, const struct netaddr *multicast,
-    const struct oonf_interface_data *oif,
+os_socket_join_mcast_recv(int sock, const struct netaddr *multicast,
+    const struct os_interface_data *oif,
     enum oonf_log_source log_src __attribute__((unused))) {
   struct netaddr_str buf1, buf2;
   struct ip_mreq   v4_mreq;
@@ -126,9 +127,9 @@ os_net_join_mcast_recv(int sock, const struct netaddr *multicast,
  * @return -1 if an error happened, 0 otherwise
  */
 int
-os_net_join_mcast_send(int sock,
+os_socket_join_mcast_send(int sock,
     const struct netaddr *multicast,
-    const struct oonf_interface_data *oif, bool loop,
+    const struct os_interface_data *oif, bool loop,
     enum oonf_log_source log_src __attribute__((unused))) {
   struct netaddr_str buf1, buf2;
   unsigned i;

@@ -346,7 +346,7 @@ _cb_link_removed(void *ptr) {
 static uint64_t
 _get_rx_linkspeed(struct nhdp_link *lnk) {
   // const struct oonf_linkconfig_data *linkdata;
-  struct oonf_interface_data *ifdata;
+  struct os_interface_data *ifdata;
   const struct oonf_layer2_data *l2data;
 
 #ifdef OONF_LOG_DEBUG_INFO

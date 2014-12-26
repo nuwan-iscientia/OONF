@@ -394,7 +394,7 @@ _get_median_rx_linkspeed(struct link_datff_data *ldata) {
 static int
 _get_scaled_rx_linkspeed(struct nhdp_link *lnk) {
   // const struct oonf_linkconfig_data *linkdata;
-  struct oonf_interface_data *ifdata;
+  struct os_interface_data *ifdata;
   const struct oonf_layer2_data *l2data;
   int rate;
 

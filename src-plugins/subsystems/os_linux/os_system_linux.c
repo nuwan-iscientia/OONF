@@ -76,16 +76,7 @@ static void _cleanup(void);
 static void _cb_handle_netlink_timeout(void *);
 static void _netlink_handler(int fd, void *data,
     bool event_read, bool event_write);
-static void _cb_rtnetlink_message(struct nlmsghdr *hdr);
-static void _cb_rtnetlink_error(uint32_t seq, int error);
-static void _cb_rtnetlink_done(uint32_t seq);
-static void _cb_rtnetlink_timeout(void);
-static void _address_finished(struct os_system_address *addr, int error);
-
 static void _handle_nl_err(struct os_system_netlink *, struct nlmsghdr *);
-
-/* ioctl socket */
-static int _ioctl_fd = -1;
 
 /* static buffers for receiving/sending a netlink message */
 static struct sockaddr_nl _netlink_nladdr = {
@@ -129,9 +120,6 @@ static struct oonf_timer_class _netlink_timer= {
   .callback = _cb_handle_netlink_timeout,
 };
 
-/* list of interface change listeners */
-static struct list_entity _ifchange_listener;
-
 /* subsystem definition */
 static const char *_dependencies[] = {
   OONF_SOCKET_SUBSYSTEM,
@@ -146,23 +134,13 @@ static struct oonf_subsystem _oonf_os_system_subsystem = {
 };
 DECLARE_OONF_PLUGIN(_oonf_os_system_subsystem);
 
-/* built in rtnetlink receiver */
-static struct os_system_netlink _rtnetlink_receiver = {
-  .used_by = &_oonf_os_system_subsystem,
-  .cb_message = _cb_rtnetlink_message,
-  .cb_error = _cb_rtnetlink_error,
-  .cb_done = _cb_rtnetlink_done,
-  .cb_timeout = _cb_rtnetlink_timeout,
-};
-
 static struct list_entity _rtnetlink_feedback;
-
-static const uint32_t _rtnetlink_mcast[] = {
-  RTNLGRP_LINK, RTNLGRP_IPV4_IFADDR, RTNLGRP_IPV6_IFADDR
-};
 
 /* tracking of used netlink sequence numbers */
 static uint32_t _seq_used = 0;
+
+/* global ioctl sockets for ipv4 and ipv6 */
+static int _ioctl_v4, _ioctl_v6;
 
 /**
  * Initialize os-specific subsystem
@@ -170,26 +148,19 @@ static uint32_t _seq_used = 0;
  */
 static int
 _init(void) {
-  _ioctl_fd = socket(AF_INET, SOCK_DGRAM, 0);
-  if (_ioctl_fd == -1) {
-    OONF_WARN(LOG_OS_SYSTEM, "Cannot open ioctl socket: %s (%d)",
+  _ioctl_v4 = socket(AF_INET, SOCK_DGRAM, 0);
+  if (_ioctl_v4 == -1) {
+    OONF_WARN(LOG_OS_SYSTEM, "Cannot open ipv4 ioctl socket: %s (%d)",
         strerror(errno), errno);
     return -1;
   }
 
-  if (os_system_netlink_add(&_rtnetlink_receiver, NETLINK_ROUTE)) {
-    close(_ioctl_fd);
-    return -1;
-  }
-
-  if (os_system_netlink_add_mc(&_rtnetlink_receiver, _rtnetlink_mcast, ARRAYSIZE(_rtnetlink_mcast))) {
-    os_system_netlink_remove(&_rtnetlink_receiver);
-    close(_ioctl_fd);
-    return -1;
+  _ioctl_v6 = socket(AF_INET6, SOCK_DGRAM, 0);
+  if (_ioctl_v6 == -1) {
+    OONF_INFO(LOG_OS_SYSTEM, "Node is not IPv6 capable");
   }
 
   oonf_timer_add(&_netlink_timer);
-  list_init_head(&_ifchange_listener);
   list_init_head(&_rtnetlink_feedback);
   return 0;
 }
@@ -200,61 +171,35 @@ _init(void) {
 static void
 _cleanup(void) {
   oonf_timer_remove(&_netlink_timer);
-  os_system_netlink_remove(&_rtnetlink_receiver);
-  close(_ioctl_fd);
+  close (_ioctl_v4);
+  if (_ioctl_v6 != -1) {
+    close (_ioctl_v6);
+  }
 }
 
 /**
- * Set interface up or down
- * @param dev pointer to name of interface
- * @param up true if interface should be up, false if down
- * @return -1 if an error happened, 0 otherwise
+ * @return true if IPv6 is supported, false otherwise
+ */
+bool
+os_system_is_ipv6_supported(void) {
+  return _ioctl_v6 != -1;
+}
+
+/**
+ * Returns an operation system socket for ioctl usage
+ * @param af_type address family type
+ * @return socket file descriptor, -1 if not surrported
  */
 int
-os_system_set_interface_state(const char *dev, bool up) {
-  int oldflags;
-  struct ifreq ifr;
-
-  memset(&ifr, 0, sizeof(ifr));
-  strscpy(ifr.ifr_name, dev, IFNAMSIZ);
-
-  if (ioctl(_ioctl_fd, SIOCGIFFLAGS, &ifr) < 0) {
-    OONF_WARN(LOG_OS_SYSTEM,
-        "ioctl SIOCGIFFLAGS (get flags) error on device %s: %s (%d)\n",
-        dev, strerror(errno), errno);
-    return -1;
+os_system_linux_get_ioctl_fd(int af_type) {
+  switch (af_type) {
+    case AF_INET:
+      return _ioctl_v4;
+    case AF_INET6:
+      return _ioctl_v6;
+    default:
+      return -1;
   }
-
-  oldflags = ifr.ifr_flags;
-  if (up) {
-    ifr.ifr_flags |= IFF_UP;
-  }
-  else {
-    ifr.ifr_flags &= ~IFF_UP;
-  }
-
-  if (oldflags == ifr.ifr_flags) {
-    /* interface is already up/down */
-    return 0;
-  }
-
-  if (ioctl(_ioctl_fd, SIOCSIFFLAGS, &ifr) < 0) {
-    OONF_WARN(LOG_OS_SYSTEM,
-        "ioctl SIOCSIFFLAGS (set flags %s) error on device %s: %s (%d)\n",
-        up ? "up" : "down", dev, strerror(errno), errno);
-    return -1;
-  }
-  return 0;
-}
-
-void
-os_system_iflistener_add(struct os_system_if_listener *listener) {
-  list_add_tail(&_ifchange_listener, &listener->_node);
-}
-
-void
-os_system_iflistener_remove(struct os_system_if_listener *listener) {
-  list_remove(&listener->_node);
 }
 
 /**
@@ -446,69 +391,6 @@ os_system_netlink_addreq(struct nlmsghdr *n,
     memcpy((char *)nl_attr + NLA_HDRLEN, data, len);
   }
   return 0;
-}
-
-int
-os_system_ifaddr_set(struct os_system_address *addr) {
-  uint8_t buffer[UIO_MAXIOV];
-  struct nlmsghdr *msg;
-  struct ifaddrmsg *ifaddrreq;
-  int seq;
-#if defined(OONF_LOG_DEBUG_INFO)
-  struct netaddr_str nbuf;
-#endif
-
-  memset(buffer, 0, sizeof(buffer));
-
-  /* get pointers for netlink message */
-  msg = (void *)&buffer[0];
-
-  if (addr->set) {
-    msg->nlmsg_flags = NLM_F_REQUEST | NLM_F_CREATE | NLM_F_REPLACE | NLM_F_ACK;
-    msg->nlmsg_type = RTM_NEWADDR;
-  }
-  else {
-    msg->nlmsg_flags = NLM_F_REQUEST | NLM_F_ACK;
-    msg->nlmsg_type = RTM_DELADDR;
-  }
-
-  /* set length of netlink message with ifaddrmsg payload */
-  msg->nlmsg_len = NLMSG_LENGTH(sizeof(struct ifaddrmsg));
-
-  OONF_DEBUG(LOG_OS_SYSTEM, "%sset address on if %d: %s",
-      addr->set ? "" : "re", addr->if_index,
-      netaddr_to_string(&nbuf, &addr->address));
-
-  ifaddrreq = NLMSG_DATA(msg);
-  ifaddrreq->ifa_family = netaddr_get_address_family(&addr->address);
-  ifaddrreq->ifa_prefixlen = netaddr_get_prefix_length(&addr->address);
-  ifaddrreq->ifa_index= addr->if_index;
-  ifaddrreq->ifa_scope = addr->scope;
-
-  if (os_system_netlink_addnetaddr(msg, IFA_LOCAL, &addr->address)) {
-    return -1;
-  }
-
-  /* cannot fail */
-  seq = os_system_netlink_send(&_rtnetlink_receiver, msg);
-
-  if (addr->cb_finished) {
-    list_add_tail(&_rtnetlink_feedback, &addr->_internal._node);
-    addr->_internal.nl_seq = seq;
-  }
-  return 0;
-}
-
-void
-os_system_ifaddr_interrupt(struct os_system_address *addr) {
-  if (list_is_node_added(&addr->_internal._node)) {
-    /* remove first to prevent any kind of recursive cleanup */
-    list_remove(&addr->_internal._node);
-
-    if (addr->cb_finished) {
-      addr->cb_finished(addr, -1);
-    }
-  }
 }
 
 /**
@@ -708,106 +590,6 @@ netlink_rcv_retry:
   /* reset timeout if necessary */
   if (oonf_timer_is_active(&nl->timeout)) {
     oonf_timer_set(&nl->timeout, OS_SYSTEM_NETLINK_TIMEOUT);
-  }
-}
-
-/**
- * Handle incoming rtnetlink multicast messages for interface listeners
- * @param hdr pointer to netlink message
- */
-static void
-_cb_rtnetlink_message(struct nlmsghdr *hdr) {
-  struct ifinfomsg *ifi;
-  struct ifaddrmsg *ifa;
-
-  struct os_system_if_listener *listener;
-
-  if (hdr->nlmsg_type == RTM_NEWLINK || hdr->nlmsg_type == RTM_DELLINK) {
-    ifi = (struct ifinfomsg *) NLMSG_DATA(hdr);
-
-    OONF_DEBUG(LOG_OS_SYSTEM, "Linkstatus of interface %d changed", ifi->ifi_index);
-    list_for_each_element(&_ifchange_listener, listener, _node) {
-      listener->if_changed(ifi->ifi_index, (ifi->ifi_flags & IFF_UP) == 0);
-    }
-  }
-
-  else if (hdr->nlmsg_type == RTM_NEWADDR || hdr->nlmsg_type == RTM_DELADDR) {
-    ifa = (struct ifaddrmsg *) NLMSG_DATA(hdr);
-
-    OONF_DEBUG(LOG_OS_SYSTEM, "Address of interface %u changed", ifa->ifa_index);
-    list_for_each_element(&_ifchange_listener, listener, _node) {
-      listener->if_changed(ifa->ifa_index, (ifa->ifa_flags & IFF_UP) == 0);
-    }
-  }
-}
-
-/**
- * Handle feedback from netlink socket
- * @param seq
- * @param error
- */
-static void
-_cb_rtnetlink_error(uint32_t seq, int error) {
-  struct os_system_address *addr;
-
-  OONF_INFO(LOG_OS_SYSTEM, "Netlink socket provided feedback: %d %d", seq, error);
-
-  /* transform into errno number */
-  list_for_each_element(&_rtnetlink_feedback, addr, _internal._node) {
-    if (seq == addr->_internal.nl_seq) {
-      _address_finished(addr, error);
-      break;
-    }
-  }
-}
-
-/**
- * Handle ack timeout from netlink socket
- */
-static void
-_cb_rtnetlink_timeout(void) {
-  struct os_system_address *addr;
-
-  OONF_INFO(LOG_OS_SYSTEM, "Netlink socket timed out");
-
-  list_for_each_element(&_rtnetlink_feedback, addr, _internal._node) {
-    _address_finished(addr, -1);
-  }
-}
-
-/**
- * Handle done from multipart netlink messages
- * @param seq
- */
-static void
-_cb_rtnetlink_done(uint32_t seq) {
-  struct os_system_address *addr;
-
-  OONF_INFO(LOG_OS_SYSTEM, "Netlink operation finished: %u", seq);
-
-  list_for_each_element(&_rtnetlink_feedback, addr, _internal._node) {
-    if (seq == addr->_internal.nl_seq) {
-      _address_finished(addr, 0);
-      break;
-    }
-  }
-}
-
-/**
- * Stop processing of an ip address command and set error code
- * for callback
- * @param addr pointer to os_system_address
- * @param error error code, 0 if no error
- */
-static void
-_address_finished(struct os_system_address *addr, int error) {
-  if (list_is_node_added(&addr->_internal._node)) {
-    /* remove first to prevent any kind of recursive cleanup */
-    list_remove(&addr->_internal._node);
-
-    if (addr->cb_finished) {
-      addr->cb_finished(addr, error);
-    }
   }
 }
 

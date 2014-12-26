@@ -53,7 +53,7 @@
 #include "subsystems/oonf_class.h"
 #include "subsystems/oonf_interface.h"
 #include "subsystems/oonf_timer.h"
-#include "subsystems/os_system.h"
+#include "subsystems/os_interface.h"
 
 #include "nhdp/nhdp.h"
 #include "nhdp/nhdp_domain.h"
@@ -81,7 +81,7 @@ struct _nhdp_if_autoll4 {
   bool plugin_generated;
 
   /* data structure for setting and resetting auto-configured address */
-  struct os_system_address os_addr;
+  struct os_interface_address os_addr;
 
   /* currently configured address */
   struct netaddr auto_ll4_addr;
@@ -94,10 +94,10 @@ static void _cleanup(void);
 
 static void _cb_add_nhdp_interface(void *);
 static void _cb_remove_nhdp_interface(void *);
-static void _cb_address_finished(struct os_system_address *, int);
+static void _cb_address_finished(struct os_interface_address *, int);
 static void _cb_update_timer(void *);
 static int _get_current_if_ipv4_addresscount(
-    struct oonf_interface_data *ifdata,
+    struct os_interface_data *ifdata,
     struct netaddr *ll4_addr, struct netaddr *current_ll4);
 static void _generate_default_address(
     struct _nhdp_if_autoll4 *auto_ll4, const struct netaddr *ipv6_ll);
@@ -147,7 +147,7 @@ static const char *_dependencies[] = {
   OONF_CLASS_SUBSYSTEM,
   OONF_TIMER_SUBSYSTEM,
   OONF_INTERFACE_SUBSYSTEM,
-  OONF_OS_SYSTEM_SUBSYSTEM,
+  OONF_OS_INTERFACE_SUBSYSTEM,
   OONF_NHDP_SUBSYSTEM,
 };
 static struct oonf_subsystem _olsrv2_auto_ll4_subsystem = {
@@ -293,7 +293,7 @@ _cb_remove_nhdp_interface(void *ptr) {
 
   /* stop running address setting feedback */
   auto_ll4->os_addr.cb_finished = NULL;
-  os_system_ifaddr_interrupt(&auto_ll4->os_addr);
+  os_interface_address_interrupt(&auto_ll4->os_addr);
 
   /* cleanup address if necessary */
   auto_ll4->active = false;
@@ -310,7 +310,7 @@ _cb_remove_nhdp_interface(void *ptr) {
  * @param error 0 if address was set, otherwise an error happened
  */
 static void
-_cb_address_finished(struct os_system_address *os_addr, int error) {
+_cb_address_finished(struct os_interface_address *os_addr, int error) {
   struct _nhdp_if_autoll4 *auto_ll4;
 #ifdef OONF_LOG_DEBUG_INFO
   struct netaddr_str nbuf;
@@ -425,7 +425,7 @@ _cb_2hop_change(void *ptr) {
 static void
 _cb_update_timer(void *ptr) {
   struct nhdp_interface *nhdp_if = ptr;
-  struct oonf_interface_data *ifdata;
+  struct os_interface_data *ifdata;
   struct _nhdp_if_autoll4 *auto_ll4;
   struct netaddr current_ll4;
   int count;
@@ -573,7 +573,7 @@ _generate_default_address(struct _nhdp_if_autoll4 *auto_ll4, const struct netadd
  * @return number of IPv4 addresses on interface
  */
 static int
-_get_current_if_ipv4_addresscount(struct oonf_interface_data *ifdata,
+_get_current_if_ipv4_addresscount(struct os_interface_data *ifdata,
     struct netaddr *ll4_addr, struct netaddr *current_ll4) {
   struct netaddr *ifaddr;
   bool match;
@@ -640,7 +640,7 @@ _commit_address(struct _nhdp_if_autoll4 *auto_ll4, struct netaddr *addr, bool se
   netaddr_set_prefix_length(&auto_ll4->os_addr.address, 16);
 
   /* call operation system */
-  os_system_ifaddr_set(&auto_ll4->os_addr);
+  os_interface_address_set(&auto_ll4->os_addr);
 }
 
 /**

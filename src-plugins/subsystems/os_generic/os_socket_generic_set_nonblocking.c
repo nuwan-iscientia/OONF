@@ -41,7 +41,7 @@
 
 #include <fcntl.h>
 
-#include "subsystems/os_net.h"
+#include "../os_socket.h"
 
 /**
  * Set a socket to non-blocking mode
@@ -49,7 +49,7 @@
  * @return -1 if an error happened, 0 otherwise
  */
 int
-os_net_set_nonblocking(int sock) {
+os_socket_set_nonblocking(int sock) {
   int state;
 
   /* put socket into non-blocking mode */

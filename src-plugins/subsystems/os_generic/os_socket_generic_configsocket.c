@@ -46,8 +46,9 @@
 #include "common/netaddr.h"
 #include "common/string.h"
 #include "core/oonf_logging.h"
-#include "subsystems/oonf_interface.h"
-#include "subsystems/os_net.h"
+#include "subsystems/os_interface_data.h"
+
+#include "../os_socket.h"
 
 /**
  * Configure a network socket
@@ -61,8 +62,8 @@
  * @return -1 if an error happened, 0 otherwise
  */
 int
-os_net_configsocket(int sock, const union netaddr_socket *bind_to, int recvbuf,
-    bool rawip, const struct oonf_interface_data *interf, enum oonf_log_source log_src) {
+os_socket_configsocket(int sock, const union netaddr_socket *bind_to, int recvbuf,
+    bool rawip, const struct os_interface_data *interf, enum oonf_log_source log_src) {
   int yes;
   socklen_t addrlen;
   union netaddr_socket bindto;
@@ -71,7 +72,7 @@ os_net_configsocket(int sock, const union netaddr_socket *bind_to, int recvbuf,
   /* temporary copy bindto address */
   memcpy(&bindto, bind_to, sizeof(bindto));
 
-  if (os_net_set_nonblocking(sock)) {
+  if (os_socket_set_nonblocking(sock)) {
     OONF_WARN(log_src, "Cannot make socket non-blocking %s: %s (%d)\n",
         netaddr_socket_to_string(&buf, &bindto), strerror(errno), errno);
     return -1;

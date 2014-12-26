@@ -39,29 +39,42 @@
  *
  */
 
-#ifndef OS_SYSTEM_H_
-#define OS_SYSTEM_H_
-
-#include <stdio.h>
-#include <sys/time.h>
+#include <errno.h>
+#include <fcntl.h>
 
 #include "common/common_types.h"
-#include "common/list.h"
+#include "common/netaddr.h"
 #include "core/oonf_logging.h"
 
-#define OONF_OS_SYSTEM_SUBSYSTEM "os_system"
+#include "../os_socket.h"
 
-/* include os-specific headers */
-#if defined(__linux__)
-#include "subsystems/os_linux/os_system_linux.h"
-#elif defined (BSD)
-#include "subsystems/os_bsd/os_system_bsd.h"
-#elif defined (_WIN32)
-#include "subsystems/os_win32/os_system_win32.h"
-#else
-#error "Unknown operation system"
-#endif
+/**
+ * Creates a new socket and configures it
+ * @param bind_to address to bind the socket to
+ * @param tcp true for a TCP socket, false for UDP
+ * @param recvbuf size of input buffer for socket
+ * @param interf pointer to interface to bind socket on,
+ *   NULL if socket should not be bound to an interface
+ * @param log_src logging source for error messages
+ * @return socket filedescriptor, -1 if an error happened
+ */
+int
+os_socket_getsocket(const union netaddr_socket *bind_to,
+    bool tcp, int recvbuf, const struct os_interface_data *interf,
+    enum oonf_log_source log_src __attribute__((unused))) {
 
-EXPORT bool os_system_is_ipv6_supported(void);
+  int sock;
 
-#endif /* OS_SYSTEM_H_ */
+  sock = socket(bind_to->std.sa_family,
+      tcp ? SOCK_STREAM : SOCK_DGRAM, 0);
+  if (sock < 0) {
+    OONF_WARN(log_src, "Cannot open socket: %s (%d)", strerror(errno), errno);
+    return -1;
+  }
+
+  if (os_socket_configsocket(sock, bind_to, recvbuf, false, interf, log_src)) {
+    os_socket_close(sock);
+    return -1;
+  }
+  return sock;
+}

@@ -443,7 +443,7 @@ _cb_nhdpinfo_help(struct oonf_telnet_data *con) {
  */
 static void
 _initialize_interface_values(struct nhdp_interface *nhdp_if) {
-  struct oonf_interface *core_if;
+  struct os_interface *core_if;
   struct netaddr temp_addr;
 
   core_if = nhdp_interface_get_coreif(nhdp_if);

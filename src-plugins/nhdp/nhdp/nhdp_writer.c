@@ -148,7 +148,7 @@ nhdp_writer_cleanup(void) {
 void
 nhdp_writer_send_hello(struct nhdp_interface *ninterf) {
   enum rfc5444_result result;
-  struct oonf_interface *interf;
+  struct os_interface *interf;
   struct netaddr_str buf;
 
   if (_cleanedup) {
@@ -242,7 +242,7 @@ _cb_addMessageTLVs(struct rfc5444_writer *writer) {
   uint8_t vtime_encoded, itime_encoded;
   struct oonf_rfc5444_target *target;
   const struct netaddr *v4_originator;
-  struct oonf_interface_data *ifdata;
+  struct os_interface_data *ifdata;
   uint8_t willingness[NHDP_MAXIMUM_DOMAINS];
   size_t willingness_size;
   uint8_t mprtypes[NHDP_MAXIMUM_DOMAINS];

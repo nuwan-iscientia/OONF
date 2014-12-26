@@ -42,38 +42,30 @@
 #include <errno.h>
 #include <fcntl.h>
 
+#include "../os_socket.h"
 #include "common/common_types.h"
-#include "common/netaddr.h"
 #include "core/oonf_logging.h"
-#include "subsystems/os_net.h"
 
 /**
- * Creates a new socket and configures it
- * @param bind_to address to bind the socket to
- * @param tcp true for a TCP socket, false for UDP
- * @param recvbuf size of input buffer for socket
- * @param interf pointer to interface to bind socket on,
- *   NULL if socket should not be bound to an interface
- * @param log_src logging source for error messages
- * @return socket filedescriptor, -1 if an error happened
+ * Raw IP sockets sometimes deliver the whole IP header instead of just
+ * the content. This function skips the IP header and modifies the length
+ * of the buffer.
+ * @param ptr pointer to the beginning of the buffer
+ * @param len pointer to length of buffer
+ * @param af_type address family of data in buffer
+ * @return pointer to transport layer data
  */
-int
-os_net_getsocket(const union netaddr_socket *bind_to,
-    bool tcp, int recvbuf, const struct oonf_interface_data *interf,
-    enum oonf_log_source log_src __attribute__((unused))) {
+uint8_t *
+os_socket_skip_rawsocket_prefix(uint8_t *ptr, ssize_t *len, int af_type) {
+  int header_size;
 
-  int sock;
-
-  sock = socket(bind_to->std.sa_family,
-      tcp ? SOCK_STREAM : SOCK_DGRAM, 0);
-  if (sock < 0) {
-    OONF_WARN(log_src, "Cannot open socket: %s (%d)", strerror(errno), errno);
-    return -1;
+  if (af_type != AF_INET) {
+    return ptr;
   }
 
-  if (os_net_configsocket(sock, bind_to, recvbuf, false, interf, log_src)) {
-    os_net_close(sock);
-    return -1;
-  }
-  return sock;
+  /* skip IPv4 header */
+  header_size = (ptr[0] & 0x0f) << 2;
+
+  *len -= header_size;
+  return ptr + header_size;
 }

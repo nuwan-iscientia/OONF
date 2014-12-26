@@ -37,7 +37,8 @@ IF (NOT OONF_STATIC_PLUGINS)
                              timer
                              viewer
                              os_clock
-                             os_net
+                             os_socket
+                             os_interface
                              os_routing
                              os_system
                              cfg_compact

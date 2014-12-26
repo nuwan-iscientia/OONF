@@ -228,8 +228,8 @@ _parse_strarray(struct strarray *array, const char *ifname,
     enum oonf_layer2_neighbor_index idx) {
   struct oonf_layer2_neigh *l2neigh;
   struct oonf_layer2_net *l2net;
-  struct oonf_interface_data ifdata;
-  struct oonf_interface_data *ifptr;
+  struct os_interface_data ifdata;
+  struct os_interface_data *ifptr;
   struct netaddr_str nbuf;
   struct netaddr linkmac;
   struct isonumber_str hbuf;

@@ -40,38 +40,44 @@ oonf_create_plugin("rfc5444" "${RFC5444_SOURCE}" "${RFC5444_INCLUDE}" "")
 # generate the os-specific plugins
 # TODO: add BSD and WIN32
 
-SET(OS_CLOCK_INCLUDE   os_clock.h)
-SET(OS_NET_INCLUDE     os_net.h)
-SET(OS_ROUTING_INCLUDE os_routing.h)
-SET(OS_SYSTEM_INCLUDE  os_system.h)
+SET(OS_CLOCK_INCLUDE     os_clock.h)
+SET(OS_SOCKET_INCLUDE    os_socket.h)
+SET(OS_ROUTING_INCLUDE   os_routing.h)
+SET(OS_INTERFACE_INCLUDE os_system.h)
+SET(OS_SYSTEM_INCLUDE    os_system.h)
 
 IF(LINUX)
-    SET(OS_CLOCK_SOURCE    os_linux/os_clock_linux.c)
-    SET(OS_CLOCK_INCLUDE   ${OS_CLOCK_INCLUDE}
-                           os_linus/os_clock_linux.h)
+    SET(OS_CLOCK_SOURCE      os_linux/os_clock_linux.c)
+    SET(OS_CLOCK_INCLUDE     ${OS_CLOCK_INCLUDE}
+                             os_linus/os_clock_linux.h)
     
-    SET(OS_NET_SOURCE      os_generic/os_net_generic_configsocket.c
-                           os_generic/os_net_generic_getsocket.c
-                           os_generic/os_net_generic_getrawsocket.c
-                           os_generic/os_net_generic_join_mcast.c
-                           os_generic/os_net_generic_set_nonblocking.c
-                           os_generic/os_net_generic_set_dscp.c
-                           os_linux/os_net_linux.c
-                           os_linux/os_net_linux_skip_rawsocket_prefix.c)
-    SET(OS_NET_INCLUDE     ${OS_NET_INCLUDE}
-                           os_linux/os_net_linux.h)
+    SET(OS_SOCKET_SOURCE     os_generic/os_socket_generic_configsocket.c
+                             os_generic/os_socket_generic_getsocket.c
+                             os_generic/os_socket_generic_getrawsocket.c
+                             os_generic/os_socket_generic_join_mcast.c
+                             os_generic/os_socket_generic_set_nonblocking.c
+                             os_generic/os_socket_generic_set_dscp.c
+                             os_linux/os_socket_linux.c
+                             os_linux/os_socket_linux_skip_rawsocket_prefix.c)
+    SET(OS_SOCKET_INCLUDE    ${OS_SOCKET_INCLUDE}
+                             os_linux/os_net_linux.h)
 
-    SET(OS_ROUTING_SOURCE  os_generic/os_routing_generic_rt_to_string.c
-                           os_linux/os_routing_linux.c)
-    SET(OS_ROUTING_INCLUDE ${OS_ROUTING_INCLUDE}
-                           os_linux/os_routing_linux.h)
+    SET(OS_ROUTING_SOURCE    os_generic/os_routing_generic_rt_to_string.c
+                             os_linux/os_routing_linux.c)
+    SET(OS_ROUTING_INCLUDE   ${OS_ROUTING_INCLUDE}
+                             os_linux/os_routing_linux.h)
 
-    SET(OS_SYSTEM_SOURCE   os_linux/os_system_linux.c)
-    SET(OS_SYSTEM_INCLUDE  ${OS_SYSTEM_INCLUDE}
-                           os_linux/os_system_linux.h)
+    SET(OS_INTERFACE_SOURCE  os_linux/os_interface_linux.c)
+    SET(OS_INTERFACE_INCLUDE ${OS_INTERFACE_INCLUDE}
+                             os_linux/os_interface_linux.h)
+
+    SET(OS_SYSTEM_SOURCE     os_linux/os_system_linux.c)
+    SET(OS_SYSTEM_INCLUDE    ${OS_SYSTEM_INCLUDE}
+                             os_linux/os_system_linux.h)
 ENDIF(LINUX)
 
 oonf_create_plugin("os_clock" "${OS_CLOCK_SOURCE}" "${OS_CLOCK_INCLUDE}" "")
-oonf_create_plugin("os_net" "${OS_NET_SOURCE}" "${OS_NET_INCLUDE}" "")
+oonf_create_plugin("os_socket" "${OS_SOCKET_SOURCE}" "${OS_SOCKET_INCLUDE}" "")
 oonf_create_plugin("os_routing" "${OS_ROUTING_SOURCE}" "${OS_ROUTING_INCLUDE}" "")
+oonf_create_plugin("os_interface" "${OS_INTERFACE_SOURCE}" "${OS_INTERFACE_INCLUDE}" "")
 oonf_create_plugin("os_system" "${OS_SYSTEM_SOURCE}" "${OS_SYSTEM_INCLUDE}" "")

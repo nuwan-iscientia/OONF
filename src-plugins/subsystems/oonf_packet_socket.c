@@ -50,8 +50,6 @@
 #include "core/oonf_subsystem.h"
 #include "subsystems/oonf_interface.h"
 #include "subsystems/oonf_socket.h"
-#include "subsystems/os_net.h"
-
 #include "subsystems/oonf_packet_socket.h"
 
 /* Defintions */
@@ -62,16 +60,16 @@ static int _init(void);
 static void _cleanup(void);
 
 static void _packet_add(struct oonf_packet_socket *pktsocket, int sock,
-    union netaddr_socket *local, struct oonf_interface_data *interf);
+    union netaddr_socket *local, struct os_interface_data *interf);
 static int _apply_managed(struct oonf_packet_managed *managed);
 static int _apply_managed_socketpair(int af_type,
     struct oonf_packet_managed *managed,
-    struct oonf_interface_data *data, bool *changed,
+    struct os_interface_data *data, bool *changed,
     struct oonf_packet_socket *sock,
     struct oonf_packet_socket *mc_sock, struct netaddr *mc_ip);
 static int _apply_managed_socket(struct oonf_packet_managed *managed,
     struct oonf_packet_socket *stream, const struct netaddr *bindto,
-    int port, uint8_t dscp, int protocol, struct oonf_interface_data *data);
+    int port, uint8_t dscp, int protocol, struct os_interface_data *data);
 static void _cb_packet_event_unicast(int fd, void *data, bool r, bool w);
 static void _cb_packet_event_multicast(int fd, void *data, bool r, bool w);
 static void _cb_packet_event(int fd, void *data, bool r, bool w, bool mc);
@@ -81,7 +79,6 @@ static void _cb_interface_listener(struct oonf_interface_listener *l);
 static const char *_dependencies[] = {
   OONF_INTERFACE_SUBSYSTEM,
   OONF_SOCKET_SUBSYSTEM,
-  OONF_OS_NET_SUBSYSTEM,
 };
 
 static struct oonf_subsystem _oonf_packet_socket_subsystem = {
@@ -131,11 +128,11 @@ _cleanup(void) {
  */
 int
 oonf_packet_add(struct oonf_packet_socket *pktsocket,
-    union netaddr_socket *local, struct oonf_interface_data *interf) {
+    union netaddr_socket *local, struct os_interface_data *interf) {
   int s = -1;
 
   /* Init socket */
-  s = os_net_getsocket(local, false, 0, interf, LOG_PACKET);
+  s = os_socket_getsocket(local, false, 0, interf, LOG_PACKET);
   if (s < 0) {
     return -1;
   }
@@ -155,11 +152,11 @@ oonf_packet_add(struct oonf_packet_socket *pktsocket,
  */
 int
 oonf_packet_raw_add(struct oonf_packet_socket *pktsocket, int protocol,
-    union netaddr_socket *local, struct oonf_interface_data *interf) {
+    union netaddr_socket *local, struct os_interface_data *interf) {
   int s = -1;
 
   /* Init socket */
-  s = os_net_getrawsocket(local, protocol, 0, interf, LOG_PACKET);
+  s = os_socket_getrawsocket(local, protocol, 0, interf, LOG_PACKET);
   if (s < 0) {
     return -1;
   }
@@ -172,7 +169,7 @@ oonf_packet_raw_add(struct oonf_packet_socket *pktsocket, int protocol,
 
 static void
 _packet_add(struct oonf_packet_socket *pktsocket, int sock,
-    union netaddr_socket *local, struct oonf_interface_data *interf) {
+    union netaddr_socket *local, struct os_interface_data *interf) {
   pktsocket->interface = interf;
   pktsocket->scheduler_entry.fd = sock;
   pktsocket->scheduler_entry.process = _cb_packet_event_unicast;
@@ -204,7 +201,7 @@ oonf_packet_remove(struct oonf_packet_socket *pktsocket,
   // TODO: implement non-force behavior for UDP sockets
   if (list_is_node_added(&pktsocket->node)) {
     oonf_socket_remove(&pktsocket->scheduler_entry);
-    os_net_close(pktsocket->scheduler_entry.fd);
+    os_socket_close(pktsocket->scheduler_entry.fd);
     abuf_free(&pktsocket->out);
 
     list_remove(&pktsocket->node);
@@ -230,7 +227,7 @@ oonf_packet_send(struct oonf_packet_socket *pktsocket, union netaddr_socket *rem
 
   if (abuf_getlen(&pktsocket->out) == 0) {
     /* no backlog of outgoing packets, try to send directly */
-    result = os_net_sendto(pktsocket->scheduler_entry.fd, data, length, remote);
+    result = os_socket_sendto(pktsocket->scheduler_entry.fd, data, length, remote);
     if (result > 0) {
       /* successful */
       OONF_DEBUG(LOG_PACKET, "Sent %d bytes to %s %s",
@@ -441,7 +438,7 @@ oonf_packet_free_managed_config(struct oonf_packet_managed_config *config) {
  */
 static int
 _apply_managed(struct oonf_packet_managed *managed) {
-  struct oonf_interface_data *data = NULL;
+  struct os_interface_data *data = NULL;
   bool changed = false;
   int result = 0;
 
@@ -480,7 +477,7 @@ _apply_managed(struct oonf_packet_managed *managed) {
  */
 static int
 _apply_managed_socketpair(int af_type, struct oonf_packet_managed *managed,
-    struct oonf_interface_data *data, bool *changed,
+    struct os_interface_data *data, bool *changed,
     struct oonf_packet_socket *sock,
     struct oonf_packet_socket *mc_sock, struct netaddr *mc_ip) {
   struct netaddr_acl *bind_ip_acl;
@@ -537,7 +534,7 @@ _apply_managed_socketpair(int af_type, struct oonf_packet_managed *managed,
     *changed = true;
 
     if (real_multicast && data != NULL && data->up) {
-      os_net_join_mcast_send(sock->scheduler_entry.fd,
+      os_socket_join_mcast_send(sock->scheduler_entry.fd,
           mc_ip, data, managed->_managed_config.loop_multicast, LOG_PACKET);
     }
   }
@@ -560,7 +557,7 @@ _apply_managed_socketpair(int af_type, struct oonf_packet_managed *managed,
       mc_sock->scheduler_entry.process = _cb_packet_event_multicast;
 
       /* join multicast group */
-      os_net_join_mcast_recv(mc_sock->scheduler_entry.fd,
+      os_socket_join_mcast_recv(mc_sock->scheduler_entry.fd,
           mc_ip, data, LOG_PACKET);
     }
     else if (sockstate < 0) {
@@ -599,7 +596,7 @@ static int
 _apply_managed_socket(struct oonf_packet_managed *managed,
     struct oonf_packet_socket *packet,
     const struct netaddr *bindto, int port, uint8_t dscp,
-    int protocol, struct oonf_interface_data *data) {
+    int protocol, struct os_interface_data *data) {
   union netaddr_socket sock;
   struct netaddr_str buf;
 
@@ -653,7 +650,7 @@ _apply_managed_socket(struct oonf_packet_managed *managed,
     }
   }
 
-  if (os_net_set_dscp(packet->scheduler_entry.fd, dscp,
+  if (os_socket_set_dscp(packet->scheduler_entry.fd, dscp,
       netaddr_get_address_family(bindto) == AF_INET6)) {
     OONF_WARN(LOG_PACKET, "Could not set DSCP value for socket: %s (%d)",
         strerror(errno), errno);
@@ -726,12 +723,12 @@ _cb_packet_event(int fd, void *data, bool event_read, bool event_write,
     /* handle incoming data */
     buf = pktsocket->config.input_buffer;
 
-    result = os_net_recvfrom(fd, buf, pktsocket->config.input_buffer_length-1, &sock,
+    result = os_socket_recvfrom(fd, buf, pktsocket->config.input_buffer_length-1, &sock,
         pktsocket->interface);
     if (result > 0 && pktsocket->config.receive_data != NULL) {
       /* handle raw socket */
       if (pktsocket->protocol) {
-        buf = os_net_skip_rawsocket_prefix(buf, &result, pktsocket->local_socket.std.sa_family);
+        buf = os_socket_skip_rawsocket_prefix(buf, &result, pktsocket->local_socket.std.sa_family);
         if (!buf) {
           OONF_WARN(LOG_PACKET, "Error while skipping IP header for socket %s:",
               netaddr_socket_to_string(&netbuf, &pktsocket->local_socket));
@@ -767,7 +764,7 @@ _cb_packet_event(int fd, void *data, bool event_read, bool event_write,
     pkt += 2;
 
     /* try to send packet */
-    result = os_net_sendto(fd, data, length, skt);
+    result = os_socket_sendto(fd, data, length, skt);
     if (result < 0 && (errno == EINTR || errno == EAGAIN || errno == EWOULDBLOCK)) {
       /* try again later */
       OONF_DEBUG(LOG_PACKET, "Sending to %s %s could block, try again later",

@@ -39,29 +39,21 @@
  *
  */
 
-#ifndef OS_SYSTEM_H_
-#define OS_SYSTEM_H_
+#ifndef OS_INTERFACE_LINUX_H_
+#define OS_INTERFACE_LINUX_H_
 
-#include <stdio.h>
-#include <sys/time.h>
+#include <linux/netlink.h>
+#include <linux/rtnetlink.h>
 
-#include "common/common_types.h"
-#include "common/list.h"
-#include "core/oonf_logging.h"
+enum os_addr_scope {
+  OS_ADDR_SCOPE_LINK = RT_SCOPE_LINK,
+  OS_ADDR_SCOPE_GLOBAL = RT_SCOPE_UNIVERSE,
+};
 
-#define OONF_OS_SYSTEM_SUBSYSTEM "os_system"
+struct os_interface_address_internal {
+  struct list_entity _node;
 
-/* include os-specific headers */
-#if defined(__linux__)
-#include "subsystems/os_linux/os_system_linux.h"
-#elif defined (BSD)
-#include "subsystems/os_bsd/os_system_bsd.h"
-#elif defined (_WIN32)
-#include "subsystems/os_win32/os_system_win32.h"
-#else
-#error "Unknown operation system"
-#endif
+  uint32_t nl_seq;
+};
 
-EXPORT bool os_system_is_ipv6_supported(void);
-
-#endif /* OS_SYSTEM_H_ */
+#endif /* OS_INTERFACE_LINUX_H_ */

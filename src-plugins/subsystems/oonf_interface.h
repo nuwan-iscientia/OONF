@@ -47,9 +47,9 @@
 #include "common/list.h"
 #include "common/netaddr.h"
 #include "common/netaddr_acl.h"
+#include "os_socket.h"
 
 #include "subsystems/oonf_timer.h"
-#include "subsystems/os_net.h"
 
 #define OONF_INTERFACE_SUBSYSTEM "interface"
 
@@ -82,13 +82,13 @@ struct oonf_interface_listener {
   /*
    * pointer to the interface this listener is registered to
    */
-  struct oonf_interface *interface;
+  struct os_interface *interface;
 
   /*
    * pointer to the interface data before the change happened, will be
    * set by the core while process() is called
    */
-  struct oonf_interface_data *old;
+  struct os_interface_data *old;
 
   /* hook into list of listeners */
   struct list_entity _node;
@@ -97,20 +97,20 @@ struct oonf_interface_listener {
 EXPORT int oonf_interface_add_listener(struct oonf_interface_listener *);
 EXPORT void oonf_interface_remove_listener(struct oonf_interface_listener *);
 
-EXPORT struct oonf_interface_data *oonf_interface_get_data(
-    const char *name, struct oonf_interface_data *buffer);
-EXPORT struct oonf_interface_data *oonf_interface_get_data_by_ifindex(
+EXPORT struct os_interface_data *oonf_interface_get_data(
+    const char *name, struct os_interface_data *buffer);
+EXPORT struct os_interface_data *oonf_interface_get_data_by_ifindex(
     unsigned ifindex);
-EXPORT struct oonf_interface_data *oonf_interface_get_data_by_ifbaseindex(
+EXPORT struct os_interface_data *oonf_interface_get_data_by_ifbaseindex(
 		unsigned ifindex);
 
 EXPORT void oonf_interface_trigger_change(unsigned if_index, bool down);
-EXPORT void oonf_interface_trigger_handler(struct oonf_interface *interf);
+EXPORT void oonf_interface_trigger_handler(struct os_interface *interf);
 
 EXPORT const struct netaddr *oonf_interface_get_bindaddress(int af_type,
-    struct netaddr_acl *filter, struct oonf_interface_data *ifdata);
+    struct netaddr_acl *filter, struct os_interface_data *ifdata);
 EXPORT const struct netaddr *oonf_interface_get_prefix_from_dst(
-    struct netaddr *destination, struct oonf_interface_data *ifdata);
+    struct netaddr *destination, struct os_interface_data *ifdata);
 
 EXPORT struct avl_tree *oonf_interface_get_tree(void);
 

@@ -39,29 +39,50 @@
  *
  */
 
-#ifndef OS_SYSTEM_H_
-#define OS_SYSTEM_H_
+#include <net/if.h>
+#include <netinet/in.h>
+#include <sys/ioctl.h>
+#include <errno.h>
 
-#include <stdio.h>
-#include <sys/time.h>
-
+#include "../os_socket.h"
 #include "common/common_types.h"
-#include "common/list.h"
 #include "core/oonf_logging.h"
+#include "core/oonf_subsystem.h"
+#include "subsystems/oonf_timer.h"
 
-#define OONF_OS_SYSTEM_SUBSYSTEM "os_system"
 
-/* include os-specific headers */
-#if defined(__linux__)
-#include "subsystems/os_linux/os_system_linux.h"
-#elif defined (BSD)
-#include "subsystems/os_bsd/os_system_bsd.h"
-#elif defined (_WIN32)
-#include "subsystems/os_win32/os_system_win32.h"
-#else
-#error "Unknown operation system"
-#endif
+/* Defintions */
+#define LOG_OS_SOCKET _oonf_os_socket_subsystem.logging
 
-EXPORT bool os_system_is_ipv6_supported(void);
+/* prototypes */
+static int _init(void);
+static void _cleanup(void);
 
-#endif /* OS_SYSTEM_H_ */
+/* subsystem definition */
+static const char *_dependencies[] = {
+};
+
+static struct oonf_subsystem _oonf_os_socket_subsystem = {
+  .name = OONF_OS_SOCKET_SUBSYSTEM,
+  .dependencies = _dependencies,
+  .dependencies_count = ARRAYSIZE(_dependencies),
+  .init = _init,
+  .cleanup = _cleanup,
+};
+DECLARE_OONF_PLUGIN(_oonf_os_socket_subsystem);
+
+/**
+ * Initialize os_net subsystem
+ * @return -1 if an error happened, 0 otherwise
+ */
+static int
+_init(void) {
+  return 0;
+}
+
+/**
+ * Cleanup os_net subsystem
+ */
+static void
+_cleanup(void) {
+}

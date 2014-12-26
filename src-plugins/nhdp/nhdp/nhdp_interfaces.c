@@ -467,7 +467,7 @@ _cb_interface_event(struct oonf_rfc5444_interface_listener *ifl,
     bool changed __attribute__((unused))) {
   struct nhdp_interface *interf;
   struct nhdp_interface_addr *addr, *addr_it;
-  struct oonf_interface *oonf_interf;
+  struct os_interface *oonf_interf;
   struct nhdp_link *nhdp_link, *nhdp_link_it;
   int active_addr_count;
   bool ipv4, ipv6;

@@ -140,7 +140,7 @@ _cleanup(void) {
 static void
 _cb_transmission_event(void *ptr __attribute((unused))) {
   struct oonf_layer2_net *l2net;
-  struct oonf_interface *interf;
+  struct os_interface *interf;
   struct ethtool_cmd cmd;
   struct ifreq req;
   int64_t ethspeed;
@@ -172,7 +172,7 @@ _cb_transmission_event(void *ptr __attribute((unused))) {
     }
 
     /* request ethernet information from kernel */
-    err = ioctl(os_net_linux_get_ioctl_fd(AF_INET), SIOCETHTOOL, &req);
+    err = ioctl(os_socket_linux_get_ioctl_fd(AF_INET), SIOCETHTOOL, &req);
     if (err != 0) {
       continue;
     }

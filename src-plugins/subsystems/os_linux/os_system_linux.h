@@ -52,11 +52,6 @@
 
 #define OS_SYSTEM_NETLINK_TIMEOUT 500
 
-enum os_addr_scope {
-  OS_ADDR_SCOPE_LINK = RT_SCOPE_LINK,
-  OS_ADDR_SCOPE_GLOBAL = RT_SCOPE_UNIVERSE,
-};
-
 struct os_system_netlink {
   struct oonf_socket_entry socket;
   struct autobuf out;
@@ -76,12 +71,6 @@ struct os_system_netlink {
   struct oonf_timer_instance timeout;
 };
 
-struct os_system_address_internal {
-  struct list_entity _node;
-
-  uint32_t nl_seq;
-};
-
 EXPORT int os_system_netlink_add(struct os_system_netlink *,
     int protocol);
 EXPORT void os_system_netlink_remove(struct os_system_netlink *);
@@ -95,9 +84,12 @@ EXPORT int os_system_netlink_drop_mc(struct os_system_netlink *,
 EXPORT int os_system_netlink_addreq(struct nlmsghdr *n,
     int type, const void *data, int len);
 
+EXPORT int os_system_linux_get_ioctl_fd(int af_type);
+
 static INLINE int
 os_system_netlink_addnetaddr(struct nlmsghdr *n,
     int type, const struct netaddr *addr) {
   return os_system_netlink_addreq(n, type, netaddr_get_binptr(addr), netaddr_get_maxprefix(addr)/8);
 }
+
 #endif /* OS_SYSTEM_LINUX_H_ */

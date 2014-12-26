@@ -307,7 +307,7 @@ _cb_layer2info_help(struct oonf_telnet_data *con) {
  */
 static void
 _initialize_interface_values(struct oonf_layer2_net *net) {
-  struct oonf_interface_data *data;
+  struct os_interface_data *data;
 
   data = &net->if_listener.interface->data;
 

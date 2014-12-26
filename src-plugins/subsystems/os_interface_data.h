@@ -39,31 +39,47 @@
  *
  */
 
-#include <errno.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <netinet/ip.h>
+#ifndef OS_INTERFACE_DATA_H_
+#define OS_INTERFACE_DATA_H_
 
 #include "common/common_types.h"
-#include "subsystems/os_net.h"
+#include "common/netaddr.h"
 
-/**
- * Sets the DSCP value for outgoing packets on a socket
- * @param sock socket file descriptor
- * @param dscp dscp value
- * @return -1 if an error happened, 0 otherwise
- */
-int
-os_net_set_dscp(int sock, int dscp, bool ipv6) {
-  if (ipv6) {
-    if (setsockopt(sock, IPPROTO_IPV6, IPV6_TCLASS, (char *) &dscp, sizeof(dscp)) < 0 ) {
-      return -1;
-    }
-  }
-  else {
-    if (setsockopt(sock, IPPROTO_IP, IP_TOS, (char *) &dscp, sizeof(dscp)) < 0 ) {
-      return -1;
-    }
-  }
-  return 0;
-}
+struct os_interface_data {
+  /* Interface addresses with mesh-wide scope (at least) */
+  const struct netaddr *if_v4, *if_v6;
+
+  /* IPv6 Interface address with global scope */
+  const struct netaddr *linklocal_v6_ptr;
+
+  /* mac address of interface */
+  struct netaddr mac;
+
+  /* list of all addresses of the interface */
+  struct netaddr *addresses;
+  size_t addrcount;
+
+  /* list of all prefixes of the interface */
+  struct netaddr *prefixes;
+  size_t prefixcount;
+
+  /* interface name */
+  char name[IF_NAMESIZE];
+
+  /* interface index */
+  unsigned index;
+
+  /*
+   * interface index of base interface (for vlan),
+   * same for normal interface
+   */
+  unsigned base_index;
+
+  /* true if the interface exists and is up */
+  bool up;
+
+  /* true if this is a loopback interface */
+  bool loopback;
+};
+
+#endif /* OS_INTERFACE_DATA_H_ */

@@ -55,7 +55,8 @@
 #include "core/oonf_subsystem.h"
 #include "subsystems/oonf_class.h"
 #include "subsystems/oonf_timer.h"
-#include "subsystems/os_net.h"
+#include "subsystems/os_interface.h"
+#include "subsystems/os_socket.h"
 #include "subsystems/os_system.h"
 
 #include "subsystems/oonf_interface.h"
@@ -74,15 +75,15 @@ static void _early_cfg_init(void);
 static const struct netaddr *_get_fixed_prefix(
     int af_type, struct netaddr_acl *filter);
 static const struct netaddr *_get_exact_match_bindaddress(
-    int af_type, struct netaddr_acl *filter, struct oonf_interface_data *ifdata);
+    int af_type, struct netaddr_acl *filter, struct os_interface_data *ifdata);
 static const struct netaddr *_get_matching_bindaddress(
-    int af_type, struct netaddr_acl *filter, struct oonf_interface_data *ifdata);
+    int af_type, struct netaddr_acl *filter, struct os_interface_data *ifdata);
 
-static struct oonf_interface *_interface_add(const char *, bool mesh);
-static void _interface_remove(struct oonf_interface *interf, bool mesh);
+static struct os_interface *_interface_add(const char *, bool mesh);
+static void _interface_remove(struct os_interface *interf, bool mesh);
 static int _handle_unused_parameter(const char *);
 static void _cb_change_handler(void *);
-static void _trigger_change_timer(struct oonf_interface *);
+static void _trigger_change_timer(struct os_interface *);
 
 /* global tree of known interfaces */
 static struct avl_tree _oonf_interface_tree;
@@ -91,8 +92,9 @@ static struct avl_tree _oonf_interface_tree;
 static const char *_dependencies[] = {
   OONF_CLASS_SUBSYSTEM,
   OONF_TIMER_SUBSYSTEM,
-  OONF_OS_NET_SUBSYSTEM,
   OONF_OS_SYSTEM_SUBSYSTEM,
+  OONF_OS_INTERFACE_SUBSYSTEM,
+  OONF_OS_SOCKET_SUBSYSTEM,
 };
 
 static struct oonf_subsystem _oonf_interface_subsystem = {
@@ -111,13 +113,13 @@ static struct oonf_timer_class _change_timer_info = {
   .callback = _cb_change_handler,
 };
 
-static struct os_system_if_listener _iflistener = {
+static struct os_interface_if_listener _iflistener = {
   .if_changed = oonf_interface_trigger_change,
 };
 
 static struct oonf_class _if_class = {
   .name = OONF_CLASS_INTERFACE,
-  .size = sizeof(struct oonf_interface),
+  .size = sizeof(struct os_interface),
 };
 
 /**
@@ -133,7 +135,7 @@ _init(void) {
   avl_init(&_oonf_interface_tree, avl_comp_strcasecmp, false);
   list_init_head(&_interface_listener);
 
-  os_system_iflistener_add(&_iflistener);
+  os_interface_listener_add(&_iflistener);
   return 0;
 }
 
@@ -148,7 +150,7 @@ _cleanup(void) {
     oonf_interface_remove_listener(listener);
   }
 
-  os_system_iflistener_remove(&_iflistener);
+  os_interface_listener_remove(&_iflistener);
   oonf_class_remove(&_if_class);
   oonf_timer_remove(&_change_timer_info);
 }
@@ -212,7 +214,7 @@ oonf_interface_remove_listener(
 void
 oonf_interface_trigger_change(unsigned if_index, bool down) {
   char if_name[IF_NAMESIZE];
-  struct oonf_interface *interf = NULL, *if_ptr;
+  struct os_interface *interf = NULL, *if_ptr;
 
   if (if_indextoname(if_index, if_name) != NULL) {
     interf = avl_find_element(&_oonf_interface_tree, if_name, interf, _node);
@@ -243,7 +245,7 @@ oonf_interface_trigger_change(unsigned if_index, bool down) {
  * @param interf pointer to olsr interface
  */
 void
-oonf_interface_trigger_handler(struct oonf_interface *interf) {
+oonf_interface_trigger_handler(struct os_interface *interf) {
   /* trigger interface reload in 100 ms */
   OONF_DEBUG(LOG_INTERFACE, "Change of interface %s was triggered", interf->data.name);
 
@@ -257,14 +259,14 @@ oonf_interface_trigger_handler(struct oonf_interface *interf) {
  *   buffer directly.
  * @return pointer to olsr interface data, NULL if not found
  */
-struct oonf_interface_data *
-oonf_interface_get_data(const char *name, struct oonf_interface_data *buf) {
-  struct oonf_interface *interf;
+struct os_interface_data *
+oonf_interface_get_data(const char *name, struct os_interface_data *buf) {
+  struct os_interface *interf;
 
   interf = avl_find_element(&_oonf_interface_tree, name, interf, _node);
   if (interf == NULL) {
     if (buf) {
-      if (os_net_update_interface(buf, name)) {
+      if (os_interface_update(buf, name)) {
         return NULL;
       }
       return buf;
@@ -280,9 +282,9 @@ oonf_interface_get_data(const char *name, struct oonf_interface_data *buf) {
  * @param ifindex index of the interface
  * @return interface data, NULL if not found
  */
-struct oonf_interface_data *
+struct os_interface_data *
 oonf_interface_get_data_by_ifindex(unsigned ifindex) {
-  struct oonf_interface *interf;
+  struct os_interface *interf;
 
   avl_for_each_element(&_oonf_interface_tree, interf, _node) {
     if (interf->data.index == ifindex) {
@@ -297,9 +299,9 @@ oonf_interface_get_data_by_ifindex(unsigned ifindex) {
  * @param ifindex index of the interface
  * @return first fitting interface data, NULL if not found
  */
-struct oonf_interface_data *
+struct os_interface_data *
 oonf_interface_get_data_by_ifbaseindex(unsigned ifindex) {
-  struct oonf_interface *interf;
+  struct os_interface *interf;
 
   avl_for_each_element(&_oonf_interface_tree, interf, _node) {
     if (interf->data.base_index == ifindex) {
@@ -317,8 +319,8 @@ oonf_interface_get_data_by_ifbaseindex(unsigned ifindex) {
  */
 const struct netaddr *
 oonf_interface_get_prefix_from_dst(
-    struct netaddr *destination, struct oonf_interface_data *ifdata) {
-  struct oonf_interface *interf;
+    struct netaddr *destination, struct os_interface_data *ifdata) {
+  struct os_interface *interf;
   const struct netaddr *result;
   size_t i;
 
@@ -350,7 +352,7 @@ oonf_interface_get_prefix_from_dst(
  */
 const struct netaddr *
 oonf_interface_get_bindaddress(int af_type,
-    struct netaddr_acl *filter, struct oonf_interface_data *ifdata) {
+    struct netaddr_acl *filter, struct os_interface_data *ifdata) {
   const struct netaddr *result;
   size_t i;
 #ifdef OONF_LOG_DEBUG_INFO
@@ -450,8 +452,8 @@ _get_fixed_prefix(int af_type, struct netaddr_acl *filter) {
  */
 static const struct netaddr *
 _get_exact_match_bindaddress(int af_type, struct netaddr_acl *filter,
-    struct oonf_interface_data *ifdata) {
-  struct oonf_interface *interf;
+    struct os_interface_data *ifdata) {
+  struct os_interface *interf;
   const struct netaddr *result;
   size_t i,j;
 
@@ -494,8 +496,8 @@ _get_exact_match_bindaddress(int af_type, struct netaddr_acl *filter,
  */
 static const struct netaddr *
 _get_matching_bindaddress(int af_type, struct netaddr_acl *filter,
-    struct oonf_interface_data *ifdata) {
-  struct oonf_interface *interf;
+    struct os_interface_data *ifdata) {
+  struct os_interface *interf;
   const struct netaddr *result;
   size_t i;
 
@@ -528,9 +530,9 @@ _get_matching_bindaddress(int af_type, struct netaddr_acl *filter,
  * @param mesh true if interface is used for mesh traffic
  * @return pointer to interface struct, NULL if an error happened
  */
-static struct oonf_interface *
+static struct os_interface *
 _interface_add(const char *name, bool mesh) {
-  struct oonf_interface *interf;
+  struct os_interface *interf;
 
   interf = avl_find_element(&_oonf_interface_tree, name, interf, _node);
   if (!interf) {
@@ -551,14 +553,14 @@ _interface_add(const char *name, bool mesh) {
     interf->_change_timer.cb_context = interf;
 
     /* initialize data of interface */
-    os_net_update_interface(&interf->data, name);
+    os_interface_update(&interf->data, name);
   }
 
   /* update reference counters */
   interf->usage_counter++;
   if(mesh) {
     if (interf->mesh_counter == 0) {
-      os_net_init_mesh_if(interf);
+      os_interface_init_mesh(interf);
     }
     interf->mesh_counter++;
   }
@@ -581,17 +583,17 @@ _interface_add(const char *name, bool mesh) {
 /**
  * Remove an interface from the listener system. If multiple listeners
  * share an interface, this will only decrease the reference counter.
- * @param interf pointer to oonf_interface
+ * @param interf pointer to os_interface
  */
 static void
-_interface_remove(struct oonf_interface *interf, bool mesh) {
+_interface_remove(struct os_interface *interf, bool mesh) {
   /* handle mesh interface flag */
   if (mesh) {
     interf->mesh_counter--;
 
     if (interf->mesh_counter < 1) {
       /* no mesh interface anymore, remove routing settings */
-      os_net_cleanup_mesh_if(interf);
+      os_interface_cleanup_mesh(interf);
     }
   }
 
@@ -617,9 +619,9 @@ _interface_remove(struct oonf_interface *interf, bool mesh) {
  */
 static void
 _cb_change_handler(void *ptr) {
-  struct oonf_interface_data old_data, new_data;
+  struct os_interface_data old_data, new_data;
   struct oonf_interface_listener *listener, *l_it;
-  struct oonf_interface *interf;
+  struct os_interface *interf;
 
   interf = ptr;
 
@@ -627,7 +629,7 @@ _cb_change_handler(void *ptr) {
 
   /* read interface data */
   memset(&new_data, 0, sizeof(new_data));
-  if (os_net_update_interface(&new_data, interf->data.name)) {
+  if (os_interface_update(&new_data, interf->data.name)) {
     /* an error happened, try again */
     OONF_INFO(LOG_INTERFACE, "Could not query os network interface %s, trying again soon",
         interf->data.name);
@@ -665,7 +667,7 @@ _cb_change_handler(void *ptr) {
  * @param interf pointer to interface object
  */
 static void
-_trigger_change_timer(struct oonf_interface *interf) {
+_trigger_change_timer(struct os_interface *interf) {
   oonf_timer_set(&interf->_change_timer, OONF_INTERFACE_CHANGE_INTERVAL);
 }
 

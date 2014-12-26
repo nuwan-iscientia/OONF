@@ -319,7 +319,7 @@ _cb_receive_udp(struct oonf_packet_socket *pkt,
  */
 static const struct netaddr *
 _get_local_tcp_address(struct netaddr *remote_addr,
-    struct oonf_interface_data *ifdata,
+    struct os_interface_data *ifdata,
     struct dlep_parser_index *idx, uint8_t *buffer, size_t length) {
   const struct netaddr *ipv6 = NULL, *result = NULL;
   uint16_t pos;
@@ -392,7 +392,7 @@ static void
 _handle_peer_offer(struct dlep_router_if *interface,
     uint8_t *buffer, size_t length, struct dlep_parser_index *idx) {
   const struct netaddr *local_addr;
-  struct oonf_interface_data *ifdata;
+  struct os_interface_data *ifdata;
   struct netaddr remote_addr;
   union netaddr_socket local_socket, remote_socket;
   uint16_t port, pos;

@@ -39,8 +39,8 @@
  *
  */
 
-#ifndef OS_NET_LINUX_H_
-#define OS_NET_LINUX_H_
+#ifndef OS_SOCKET_LINUX_H_
+#define OS_SOCKET_LINUX_H_
 
 #include <sys/select.h>
 #include <unistd.h>
@@ -48,12 +48,12 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 
-#include "subsystems/os_net.h"
+#include "../os_socket.h"
 
 /* name of the loopback interface */
 #define IF_LOOPBACK_NAME "lo"
 
-EXPORT int os_net_linux_get_ioctl_fd(int af_type);
+EXPORT int os_socket_linux_get_ioctl_fd(int af_type);
 
 /**
  * Close a file descriptor
@@ -61,7 +61,7 @@ EXPORT int os_net_linux_get_ioctl_fd(int af_type);
  * @return -1 if an error happened, 0 otherwise
  */
 static INLINE int
-os_net_close(int fd) {
+os_socket_close(int fd) {
   return close(fd);
 }
 
@@ -72,7 +72,7 @@ os_net_close(int fd) {
  * @return -1 if an error happened, 0 otherwise
  */
 static INLINE int
-os_net_listen(int fd, int n) {
+os_socket_listen(int fd, int n) {
   return listen(fd, n);
 }
 
@@ -88,7 +88,7 @@ os_net_listen(int fd, int n) {
  * @return
  */
 static INLINE int
-os_net_select(int num, fd_set *r,fd_set *w,fd_set *e, struct timeval *timeout) {
+os_socket_select(int num, fd_set *r,fd_set *w,fd_set *e, struct timeval *timeout) {
   return select(num, r, w, e, timeout);
 }
 
@@ -99,18 +99,18 @@ os_net_select(int num, fd_set *r,fd_set *w,fd_set *e, struct timeval *timeout) {
  * @return -1 if an error happened, 0 otherwise
  */
 static INLINE int
-os_net_connect(int sockfd, const union netaddr_socket *remote) {
+os_socket_connect(int sockfd, const union netaddr_socket *remote) {
   return connect(sockfd, &remote->std, sizeof(*remote));
 }
 
 static INLINE int
-os_net_accept(int sockfd, union netaddr_socket *incoming) {
+os_socket_accept(int sockfd, union netaddr_socket *incoming) {
   socklen_t len = sizeof(*incoming);
   return accept(sockfd, &incoming->std, &len);
 }
 
 static INLINE int
-os_net_get_socket_error(int fd, int *value) {
+os_socket_get_socket_error(int fd, int *value) {
   socklen_t len = sizeof(*value);
   return getsockopt(fd, SOL_SOCKET, SO_ERROR, value, &len);
 }
@@ -124,7 +124,7 @@ os_net_get_socket_error(int fd, int *value) {
  * @return same as sendto()
  */
 static INLINE ssize_t
-os_net_sendto(int fd, const void *buf, size_t length, const union netaddr_socket *dst) {
+os_socket_sendto(int fd, const void *buf, size_t length, const union netaddr_socket *dst) {
   return sendto(fd, buf, length, 0, &dst->std, sizeof(*dst));
 }
 
@@ -139,8 +139,8 @@ os_net_sendto(int fd, const void *buf, size_t length, const union netaddr_socket
  * @return same as recvfrom()
  */
 static INLINE ssize_t
-os_net_recvfrom(int fd, void *buf, size_t length, union netaddr_socket *source,
-    const struct oonf_interface_data *interf __attribute__((unused))) {
+os_socket_recvfrom(int fd, void *buf, size_t length, union netaddr_socket *source,
+    const struct os_interface_data *interf __attribute__((unused))) {
   socklen_t len = sizeof(*source);
   return recvfrom(fd, buf, length, 0, &source->std, &len);
 }
@@ -152,7 +152,7 @@ os_net_recvfrom(int fd, void *buf, size_t length, union netaddr_socket *source,
  * @return -1 if an error happened, 0 otherwise
  */
 static INLINE int
-os_net_bindto_interface(int sock, struct oonf_interface_data *data) {
+os_socket_bindto_interface(int sock, struct os_interface_data *data) {
   return setsockopt(sock, SOL_SOCKET, SO_BINDTODEVICE, data->name, strlen(data->name) + 1);
 }
 
@@ -160,8 +160,8 @@ os_net_bindto_interface(int sock, struct oonf_interface_data *data) {
  * @return name of loopback interface
  */
 static INLINE const char *
-on_net_get_loopback_name(void) {
+os_socket_get_loopback_name(void) {
   return "lo";
 }
 
-#endif /* OS_NET_LINUX_H_ */
+#endif /* OS_SOCKET_LINUX_H_ */

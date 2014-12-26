@@ -79,7 +79,7 @@ struct oonf_packet_socket {
 
   struct autobuf out;
 
-  struct oonf_interface_data *interface;
+  struct os_interface_data *interface;
 
   struct oonf_packet_config config;
 };
@@ -110,9 +110,9 @@ struct oonf_packet_managed {
 };
 
 EXPORT int oonf_packet_add(struct oonf_packet_socket *,
-    union netaddr_socket *local, struct oonf_interface_data *);
+    union netaddr_socket *local, struct os_interface_data *);
 EXPORT int oonf_packet_raw_add(struct oonf_packet_socket *, int protocol,
-    union netaddr_socket *local, struct oonf_interface_data *interf);
+    union netaddr_socket *local, struct os_interface_data *interf);
 EXPORT void oonf_packet_remove(struct oonf_packet_socket *, bool);
 
 EXPORT int oonf_packet_send(struct oonf_packet_socket *,

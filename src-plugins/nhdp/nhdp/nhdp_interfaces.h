@@ -287,9 +287,9 @@ nhdp_interface_link_get_by_originator(
 
 /**
  * @param nhdp_if pointer to nhdp interface
- * @return pointer to corresponding oonf_interface
+ * @return pointer to corresponding os_interface
  */
-static INLINE struct oonf_interface *
+static INLINE struct os_interface *
 nhdp_interface_get_coreif(struct nhdp_interface *nhdp_if) {
   return nhdp_if->core_if_listener.interface;
 }

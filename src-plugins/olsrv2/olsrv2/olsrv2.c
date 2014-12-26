@@ -651,7 +651,7 @@ static void
 _update_originators(void) {
   const struct netaddr *originator_v4, *originator_v6;
   struct nhdp_interface *n_interf;
-  struct oonf_interface *interf;
+  struct os_interface *interf;
   struct netaddr new_v4, new_v6;
   bool keep_v4, keep_v6;
   size_t i;

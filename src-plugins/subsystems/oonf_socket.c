@@ -51,10 +51,10 @@
 #include "core/oonf_logging.h"
 #include "core/oonf_main.h"
 #include "core/oonf_subsystem.h"
-#include "subsystems/os_net.h"
 #include "subsystems/oonf_timer.h"
 
 #include "subsystems/oonf_socket.h"
+#include "os_socket.h"
 
 /* Definitions */
 #define LOG_SOCKET _oonf_socket_subsystem.logging
@@ -74,7 +74,7 @@ static struct list_entity _socket_head;
 /* subsystem definition */
 static const char *_dependencies[] = {
   OONF_TIMER_SUBSYSTEM,
-  OONF_OS_NET_SUBSYSTEM,
+  OONF_OS_SOCKET_SUBSYSTEM,
 };
 
 static struct oonf_subsystem _oonf_socket_subsystem = {
@@ -112,7 +112,7 @@ _cleanup(void)
 
   list_for_each_element_safe(&_socket_head, entry, _node, iterator) {
     list_remove(&entry->_node);
-    os_net_close(entry->fd);
+    os_socket_close(entry->fd);
   }
 }
 
@@ -239,7 +239,7 @@ _handle_scheduling(void)
       if (!_scheduler_time_limit && oonf_main_shall_stop_scheduler()) {
         return 0;
       }
-      n = os_net_select(hfd,
+      n = os_socket_select(hfd,
           fd_read ? &ibits : NULL,
           fd_write ? &obits : NULL,
           NULL, tv_ptr);
