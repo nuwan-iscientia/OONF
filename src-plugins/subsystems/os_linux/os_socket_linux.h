@@ -44,7 +44,6 @@
 
 #include <sys/select.h>
 #include <unistd.h>
-#include <ifaddrs.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 

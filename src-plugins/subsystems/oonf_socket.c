@@ -52,9 +52,9 @@
 #include "core/oonf_main.h"
 #include "core/oonf_subsystem.h"
 #include "subsystems/oonf_timer.h"
+#include "subsystems/os_socket.h"
 
 #include "subsystems/oonf_socket.h"
-#include "os_socket.h"
 
 /* Definitions */
 #define LOG_SOCKET _oonf_socket_subsystem.logging

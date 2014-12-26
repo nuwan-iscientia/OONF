@@ -48,6 +48,7 @@
 #include <linux/rtnetlink.h>
 #include <linux/socket.h>
 #include <fcntl.h>
+#include <ifaddrs.h>
 #include <net/if.h>
 #include <netinet/in.h>
 #include <sys/ioctl.h>

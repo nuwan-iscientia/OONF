@@ -46,8 +46,6 @@
 #include "common/list.h"
 #include "common/avl.h"
 #include "common/netaddr_acl.h"
-#include "subsystems/os_interface.h"
-#include "subsystems/os_socket.h"
 
 #define OONF_SOCKET_SUBSYSTEM "socket"
 
@@ -72,9 +70,6 @@ struct oonf_socket_entry {
 
 EXPORT void oonf_socket_add(struct oonf_socket_entry *);
 EXPORT void oonf_socket_remove(struct oonf_socket_entry *);
-
-EXPORT const struct netaddr *oonf_socket_get_bindaddress(int af_type,
-    struct netaddr_acl *filter, struct os_interface_data *ifdata);
 
 /**
  * Enable one or both flags of a socket handler
