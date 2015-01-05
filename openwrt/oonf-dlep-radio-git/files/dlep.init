@@ -1,0 +1,15 @@
+#!/bin/sh /etc/rc.common
+
+START=82
+
+. /usr/share/libubox/jshn.sh
+
+start()
+{
+	service_start /usr/sbin/dlep-radio --set global.fork=true --load /etc/dlep.conf
+}
+
+stop()
+{
+	service_stop /usr/sbin/dlep-radio
+}
