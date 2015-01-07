@@ -113,7 +113,7 @@ static struct cfg_schema_entry _http_entries[] = {
 
 static struct cfg_schema_section _http_section = {
   .type = OONF_HTTP_SUBSYSTEM,
-  .mode = CFG_SSMODE_UNNAMED_OPTIONAL_STARTUP_TRIGGER,
+  .mode = CFG_SSMODE_UNNAMED,
   .entries = _http_entries,
   .entry_count = ARRAYSIZE(_http_entries),
   .help = "Settings for the http interface",

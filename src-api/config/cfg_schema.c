@@ -77,7 +77,6 @@ const char *CFGLIST_BOOL_TRUE[] = { CFGLIST_BOOL_TRUE_VALUES };
 const char *CFGLIST_BOOL[] = { CFGLIST_BOOL_VALUES };
 const char *CFG_SCHEMA_SECTIONMODE[CFG_SSMODE_MAX] = {
   [CFG_SSMODE_UNNAMED] = "unnamed",
-  [CFG_SSMODE_UNNAMED_OPTIONAL_STARTUP_TRIGGER] = "unnamed, optional",
   [CFG_SSMODE_NAMED] = "named",
   [CFG_SSMODE_NAMED_MANDATORY] = "named, mandatory",
   [CFG_SSMODE_NAMED_WITH_DEFAULT] = "named, default name",
@@ -239,8 +238,7 @@ cfg_schema_validate(struct cfg_db *db,
         hasName = cfg_db_is_named_section(named);
 
         if (hasName) {
-          if (schema_section->mode == CFG_SSMODE_UNNAMED
-              || schema_section->mode == CFG_SSMODE_UNNAMED_OPTIONAL_STARTUP_TRIGGER) {
+          if (schema_section->mode == CFG_SSMODE_UNNAMED) {
             cfg_append_printable_line(out, "The section type '%s'"
                 " has to be used without a name"
                 " ('%s' was given as a name)", section->type, named->name);

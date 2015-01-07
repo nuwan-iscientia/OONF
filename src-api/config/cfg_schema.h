@@ -195,12 +195,6 @@ enum cfg_schema_section_mode {
   CFG_SSMODE_UNNAMED = 0,
 
   /*
-   * unnamed section, delta handler will only trigger if one value
-   * is set to a non-default value
-   */
-  CFG_SSMODE_UNNAMED_OPTIONAL_STARTUP_TRIGGER,
-
-  /*
    * named section, delta handlers will always trigger for this
    */
   CFG_SSMODE_NAMED,
