@@ -566,6 +566,7 @@ _cb_l2_neigh_changed(void *ptr) {
 
   dlep_if = dlep_radio_get_source_if(l2net->name);
   if (!dlep_if) {
+    OONF_WARN(LOG_DLEP_RADIO, "Unknown dlep interface: %s", l2net->name);
     return;
   }
 
