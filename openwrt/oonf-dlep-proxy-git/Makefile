@@ -1,7 +1,7 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=oonf-git
-PKG_VERSION:=2014-11-07
+PKG_VERSION:=2015-01-05
 #PKG_REV:=ec2bca8f28b4d14df049fc81e177160ca0e3c3a3
 #PKG_RELEASE:=$(PKG_REV)
 
@@ -21,8 +21,8 @@ CMAKE_OPTIONS=-D OONF_NO_WERROR:Bool=true \
               -D OONF_LOGGING_LEVEL:String=debug \
               -D OONF_NO_TESTING:Bool=true \
               -D UCI:Bool=true \
-              -D OONF_APP_DEFAULT_CFG_HANDLER:String=uci \
-              -D OONF_STATIC_PLUGINS:String="class;clock;duplicate_set;interface;layer2;packet_socket;rfc5444;socket;stream_socket;telnet;timer;viewer;os_clock;os_socket;os_interface;os_routing;os_system;nhdp;olsrv2;ff_dat_metric;neighbor_probing;nl80211_listener;link_config;layer2info;systeminfo;cfg_uciloader;nhdpinfo;olsrv2info;cfg_compact;dlep_radio;dlep_router" \
+              -D OONF_APP_DEFAULT_CFG_HANDLER:String=compact \
+              -D OONF_STATIC_PLUGINS:String="class;clock;interface;layer2;packet_socket;socket;stream_socket;telnet;timer;viewer;os_clock;os_socket;os_interface;os_system;nl80211_listener;layer2info;systeminfo;cfg_compact;dlep_proxy" \
               -D INSTALL_LIB_DIR:Path=lib/oonf \
               -D INSTALL_INCLUDE_DIR:Path=include/oonf \
               -D INSTALL_CMAKE_DIR:Path=lib/oonf \
@@ -36,9 +36,9 @@ define Package/oonf-git/template
 	URL:=http://www.olsr.org/
 endef
 
-define Package/olsrd2-dlep-git
+define Package/dlep-proxy-git
 	$(call Package/oonf-git/template) 
-	TITLE:= Build Olsrd V2 Routing Agent with DLEP plugins
+	TITLE:= Build DLEP Radio+Router Agent
 	DEPENDS:=+librt +libnl-tiny +libuci
 endef
 
@@ -46,20 +46,19 @@ Build/Compile=$(call Build/Compile/Default,static)
 Build/Install=
 
 define Build/Install
-	$(INSTALL_BIN) -D $(PKG_BUILD_DIR)/$(MAKE_PATH)/olsrd2_static $(PKG_INSTALL_DIR)/usr/sbin/olsrd2;
+	$(INSTALL_BIN) -D $(PKG_BUILD_DIR)/$(MAKE_PATH)/olsrd2_static $(PKG_INSTALL_DIR)/usr/sbin/dlep_proxy;
 endef
 
 TARGET_CFLAGS += -I$(STAGING_DIR)/usr/include -I${STAGING_DIR}/usr/include/libnl-tiny
 
-define Package/olsrd2-git/install
-	$(INSTALL_BIN)  -D $(PKG_BUILD_DIR)/olsrd2_static $(1)/usr/sbin/olsrd2
-	#$(INSTALL_BIN)  -D ./files/olsrd2.init            $(1)/etc/init.d/olsrd2
-	#$(INSTALL_BIN)  -D ./files/olsrd2.hotplug         $(1)/etc/hotplug.d/iface/50-olsrd2
-	#$(INSTALL_DATA) -D ./files/olsrd2.uci             $(1)/etc/config/olsrd2
+define Package/dlep-proxy-git/install
+	$(INSTALL_BIN)  -D $(PKG_BUILD_DIR)/olsrd2_static $(1)/usr/sbin/dlep_proxy
+	$(INSTALL_BIN)  -D ./files/dlep.init              $(1)/etc/init.d/dlep
+	$(INSTALL_DATA) -D ./files/dlep.conf              $(1)/etc/dlep.conf
 endef
 
-#define Package/olsrd2-git/conffiles
-#/etc/config/olsrd2
-#endef
+define Package/dlep-proxy-git/conffiles
+/etc/dlep.conf
+endef
 
-$(eval $(call BuildPackage,olsrd2-git))
+$(eval $(call BuildPackage,dlep-proxy-git))

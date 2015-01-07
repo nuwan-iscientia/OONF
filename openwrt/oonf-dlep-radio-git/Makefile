@@ -22,7 +22,7 @@ CMAKE_OPTIONS=-D OONF_NO_WERROR:Bool=true \
               -D OONF_NO_TESTING:Bool=true \
               -D UCI:Bool=true \
               -D OONF_APP_DEFAULT_CFG_HANDLER:String=compact \
-              -D OONF_STATIC_PLUGINS:String="class;clock;duplicate_set;interface;layer2;packet_socket;rfc5444;socket;stream_socket;telnet;timer;viewer;os_clock;os_socket;os_interface;os_routing;os_system;nl80211_listener;layer2info;systeminfo;cfg_compact;dlep_radio" \
+              -D OONF_STATIC_PLUGINS:String="class;clock;interface;layer2;packet_socket;socket;stream_socket;telnet;timer;viewer;os_clock;os_socket;os_interface;os_system;nl80211_listener;layer2info;systeminfo;cfg_compact;dlep_radio" \
               -D INSTALL_LIB_DIR:Path=lib/oonf \
               -D INSTALL_INCLUDE_DIR:Path=include/oonf \
               -D INSTALL_CMAKE_DIR:Path=lib/oonf \
@@ -57,7 +57,7 @@ define Package/dlep-radio-git/install
 	$(INSTALL_DATA) -D ./files/dlep.conf              $(1)/etc/dlep.conf
 endef
 
-define Package/olsrd2-git/conffiles
+define Package/dlep-radio-git/conffiles
 /etc/dlep.conf
 endef
 
