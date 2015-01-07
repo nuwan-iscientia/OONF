@@ -6,7 +6,7 @@ START=82
 
 start()
 {
-	service_start /usr/sbin/dlep_proxy --set global.fork=true --load /etc/dlep.conf
+	service_start /usr/sbin/dlep_proxy --load /etc/dlep.conf --set global.fork=true 
 }
 
 stop()

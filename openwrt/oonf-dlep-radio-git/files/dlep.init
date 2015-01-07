@@ -6,7 +6,7 @@ START=82
 
 start()
 {
-	service_start /usr/sbin/dlep_radio --set global.fork=true --load /etc/dlep.conf
+	service_start /usr/sbin/dlep_radio --load /etc/dlep.conf --set global.fork=true
 }
 
 stop()
