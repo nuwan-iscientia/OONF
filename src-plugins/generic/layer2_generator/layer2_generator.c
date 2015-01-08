@@ -72,6 +72,7 @@ struct _l2_generator_config {
   bool active;
   char interface[64];
   struct netaddr neighbor;
+  struct netaddr destination;
 };
 
 static struct oonf_timer_class _l2gen_timer_info = {
@@ -95,6 +96,8 @@ static struct cfg_schema_entry _l2gen_entries[] = {
       "Mac address of example radio", 64),
   CFG_MAP_NETADDR_MAC48(_l2_generator_config, neighbor, "neighbor", "02:00:00:00:00:00",
       "Mac address of example radio", false, false),
+  CFG_MAP_NETADDR_MAC48(_l2_generator_config, destination, "destination", "02:00:00:00:00:00",
+      "Mac address of example radio destination", false, true),
   CFG_MAP_BOOL(_l2_generator_config, active, "active", "false",
       "Activates artificially generated layer2 data"),
 };
@@ -207,6 +210,9 @@ _cb_l2gen_event(void *ptr __attribute((unused))) {
     return;
   }
 
+  if (netaddr_get_address_family(&_l2gen_config.destination) == AF_MAC48) {
+    oonf_layer2_destination_add(neigh, &_l2gen_config.destination, _origin);
+  }
   memcpy(&neigh->addr, &_l2gen_config.neighbor, sizeof(neigh->addr));
   neigh->last_seen = oonf_clock_getNow();
 

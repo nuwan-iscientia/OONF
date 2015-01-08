@@ -526,17 +526,14 @@ _cb_l2_neigh_added(void *ptr) {
   l2neigh = ptr;
   l2net = l2neigh->network;
 
+  dlep_if = dlep_radio_get_by_source_if(l2net->name);
+  if (!dlep_if) {
+    /* this is not a dlep source */
+    return;
+  }
+
   OONF_DEBUG(LOG_DLEP_RADIO, "Received neighbor addition for %s on interface %s",
       netaddr_to_string(&nbuf1, &l2neigh->addr), l2net->name);
-
-  dlep_if = dlep_radio_get_source_if(l2net->name);
-  if (!dlep_if) {
-    return;
-  }
-
-  if (!dlep_if->use_nonproxied_dst) {
-    return;
-  }
 
   avl_for_each_element(&dlep_if->session_tree, dlep_session, _node) {
     if (dlep_session->state == DLEP_RADIO_SESSION_ACTIVE) {
@@ -561,16 +558,14 @@ _cb_l2_neigh_changed(void *ptr) {
   l2neigh = ptr;
   l2net = l2neigh->network;
 
-  OONF_DEBUG(LOG_DLEP_RADIO, "Received neighbor change for %s on interface %s",
-      netaddr_to_string(&nbuf1, &l2neigh->addr), l2net->name);
-
-  dlep_if = dlep_radio_get_source_if(l2net->name);
+  dlep_if = dlep_radio_get_by_source_if(l2net->name);
   if (!dlep_if) {
-    OONF_WARN(LOG_DLEP_RADIO, "Unknown dlep interface: %s", l2net->name);
+    /* this is not a dlep source */
     return;
   }
 
-  OONF_DEBUG(LOG_DLEP_RADIO, "Send change notifications change");
+  OONF_DEBUG(LOG_DLEP_RADIO, "Received neighbor change for %s on interface %s",
+      netaddr_to_string(&nbuf1, &l2neigh->addr), l2net->name);
 
   avl_for_each_element(&dlep_if->session_tree, dlep_session, _node) {
     if (dlep_session->state == DLEP_RADIO_SESSION_ACTIVE) {
@@ -606,17 +601,14 @@ _cb_l2_neigh_removed(void *ptr) {
   l2neigh = ptr;
   l2net = l2neigh->network;
 
+  dlep_if = dlep_radio_get_by_source_if(l2net->name);
+  if (!dlep_if) {
+    /* this is not a dlep source */
+    return;
+  }
+
   OONF_DEBUG(LOG_DLEP_RADIO, "Received neighbor removal for %s on interface %s",
       netaddr_to_string(&nbuf1, &l2neigh->addr), l2net->name);
-
-  dlep_if = dlep_radio_get_source_if(l2net->name);
-  if (!dlep_if) {
-    return;
-  }
-
-  if (!dlep_if->use_nonproxied_dst) {
-    return;
-  }
 
   avl_for_each_element(&dlep_if->session_tree, dlep_session, _node) {
     if (dlep_session->state == DLEP_RADIO_SESSION_ACTIVE) {
@@ -642,18 +634,15 @@ _cb_l2_dst_added(void *ptr) {
   l2neigh = l2dst->neighbor;
   l2net = l2neigh->network;
 
+  dlep_if = dlep_radio_get_by_source_if(l2net->name);
+  if (!dlep_if) {
+    /* this is not a dlep source */
+    return;
+  }
+
   OONF_DEBUG(LOG_DLEP_RADIO, "Received neighbor addition for %s (%s) on interface %s",
       netaddr_to_string(&nbuf1, &l2dst->destination),
       netaddr_to_string(&nbuf2, &l2neigh->addr), l2net->name);
-
-  dlep_if = dlep_radio_get_source_if(l2net->name);
-  if (!dlep_if) {
-    return;
-  }
-
-  if (!dlep_if->use_proxied_dst) {
-    return;
-  }
 
   avl_for_each_element(&dlep_if->session_tree, dlep_session, _node) {
     if (dlep_session->state == DLEP_RADIO_SESSION_ACTIVE) {
@@ -679,18 +668,15 @@ _cb_l2_dst_removed(void *ptr) {
   l2neigh = l2dst->neighbor;
   l2net = l2neigh->network;
 
+  dlep_if = dlep_radio_get_by_source_if(l2net->name);
+  if (!dlep_if) {
+    /* this is not a dlep source */
+    return;
+  }
+
   OONF_DEBUG(LOG_DLEP_RADIO, "Received neighbor removal for %s (%s) on interface %s",
       netaddr_to_string(&nbuf1, &l2dst->destination),
       netaddr_to_string(&nbuf2, &l2neigh->addr), l2net->name);
-
-  dlep_if = dlep_radio_get_source_if(l2net->name);
-  if (!dlep_if) {
-    return;
-  }
-
-  if (!dlep_if->use_proxied_dst) {
-    return;
-  }
 
   avl_for_each_element(&dlep_if->session_tree, dlep_session, _node) {
     if (dlep_session->state == DLEP_RADIO_SESSION_ACTIVE) {

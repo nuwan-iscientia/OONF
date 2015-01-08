@@ -91,7 +91,7 @@ struct dlep_radio_if *dlep_radio_get_interface(const char *ifname);
 struct dlep_radio_if *dlep_radio_add_interface(const char *ifname);
 void dlep_radio_remove_interface(struct dlep_radio_if *);
 
-struct dlep_radio_if *dlep_radio_get_source_if(const char *ifname);
+struct dlep_radio_if *dlep_radio_get_by_source_if(const char *ifname);
 
 void dlep_radio_apply_interface_settings(struct dlep_radio_if *interface);
 

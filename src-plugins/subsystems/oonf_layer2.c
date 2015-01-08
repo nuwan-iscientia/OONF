@@ -413,12 +413,6 @@ oonf_layer2_destination_add(struct oonf_layer2_neigh *l2neigh,
 
   l2dst = oonf_layer2_destination_get(l2neigh, destination);
   if (l2dst) {
-    if (!memcmp(&l2dst->destination, destination, sizeof(*destination))) {
-      memcpy(&l2dst->destination, destination, sizeof(*destination));
-      l2dst->origin = origin;
-
-      oonf_class_event(&_l2dst_class, l2dst, OONF_OBJECT_CHANGED);
-    }
     return l2dst;
   }
 
