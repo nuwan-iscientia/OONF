@@ -153,8 +153,8 @@ dlep_router_add_interface(const char *ifname) {
   }
 
   /* initialize key */
-  strscpy(interface->name, ifname, sizeof(interface->name));
-  interface->_node.key = interface->name;
+  strscpy(interface->dlepif_name, ifname, sizeof(interface->dlepif_name));
+  interface->_node.key = interface->dlepif_name;
 
   /* initialize timer */
   interface->discovery_timer.cb_context = interface;
@@ -180,7 +180,7 @@ dlep_router_add_interface(const char *ifname) {
  */
 void
 dlep_router_remove_interface(struct dlep_router_if *interface) {
-  OONF_DEBUG(LOG_DLEP_ROUTER, "remove session %s", interface->name);
+  OONF_DEBUG(LOG_DLEP_ROUTER, "remove session %s", interface->dlepif_name);
 
   _cleanup_interface(interface);
 

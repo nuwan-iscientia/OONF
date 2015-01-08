@@ -90,6 +90,10 @@ static struct cfg_schema_entry _router_entries[] = {
 
   CFG_MAP_BOOL(dlep_router_if, single_session, "single_session", "true",
       "Restrict DLEP router to single session per interface"),
+
+  CFG_MAP_STRING_ARRAY(dlep_router_if, layer2if_name, "layer2if_name", "",
+      "Overwrite layer2 database name for incoming dlep traffic, used for"
+      " receiving DLEP data through out-of-band channel.", IF_NAMESIZE)
 };
 
 static struct cfg_schema_section _router_section = {
@@ -194,6 +198,12 @@ _cb_config_changed(void) {
     OONF_WARN(LOG_DLEP_ROUTER, "Could not convert "
         OONF_DLEP_ROUTER_SUBSYSTEM " config to bin");
     return;
+  }
+
+  /* use section name as default for layer2if_name */
+  if (!interface->layer2if_name[0]) {
+    strscpy(interface->layer2if_name, _router_section.section_name,
+        sizeof(interface->layer2if_name));
   }
 
   /* apply interface name to socket */

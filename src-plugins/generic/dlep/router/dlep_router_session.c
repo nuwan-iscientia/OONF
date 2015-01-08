@@ -185,7 +185,7 @@ dlep_router_add_session(struct dlep_router_if *interf,
   if (oonf_stream_add(&session->tcp, local)) {
     OONF_WARN(LOG_DLEP_ROUTER,
         "Could not open TCP client on %s for %s",
-        interf->name, netaddr_socket_to_string(&nbuf1, local));
+        interf->dlepif_name, netaddr_socket_to_string(&nbuf1, local));
     oonf_class_free(&_router_stream_class, session);
     return NULL;
   }
@@ -194,7 +194,7 @@ dlep_router_add_session(struct dlep_router_if *interf,
   if (!session->stream) {
     OONF_WARN(LOG_DLEP_ROUTER,
         "Could not open TCP client on %s for %s to %s",
-        interf->name,
+        interf->dlepif_name,
         netaddr_socket_to_string(&nbuf1, local),
         netaddr_socket_to_string(&nbuf2, remote));
     oonf_stream_remove(&session->tcp, true);
@@ -379,7 +379,7 @@ _cb_tcp_lost(struct oonf_stream_session *tcp_session) {
   session->stream = NULL;
 
   /* cleanup layer2 data */
-  l2net = oonf_layer2_net_get(session->interface->name);
+  l2net = oonf_layer2_net_get(session->interface->layer2if_name);
   if (l2net) {
     avl_for_each_element_safe(&l2net->neighbors, l2neigh, _node, l2neigh_it) {
       avl_for_each_element_safe(&l2neigh->destinations, l2dst, _node, l2dst_it) {
@@ -477,9 +477,9 @@ _handle_peer_initialization_ack(struct dlep_router_session *session,
   dlep_parser_get_optional_tlv(&session->supported_tlvs, &buffer[pos]);
 
   OONF_DEBUG(LOG_DLEP_ROUTER, "Received default metrics for interface %s",
-      session->interface->name);
+      session->interface->dlepif_name);
 
-  l2net = oonf_layer2_net_add(session->interface->name);
+  l2net = oonf_layer2_net_add(session->interface->layer2if_name);
   if (!l2net) {
     /* out of memory, terminate dlep session */
     dlep_router_terminate_session(session);
@@ -566,7 +566,7 @@ _handle_destination_up(struct dlep_router_session *session,
   OONF_INFO(LOG_DLEP_ROUTER, "New destination came up: %s",
       netaddr_to_string(&nbuf, &mac));
 
-  l2net = oonf_layer2_net_add(session->interface->name);
+  l2net = oonf_layer2_net_add(session->interface->layer2if_name);
   if (!l2net) {
     _generate_destination_up_ack(session, DLEP_STATUS_ERROR);
     return;
@@ -604,17 +604,17 @@ _handle_destination_update(struct dlep_router_session *session,
   OONF_INFO(LOG_DLEP_ROUTER, "Update for destination: %s",
       netaddr_to_string(&nbuf, &mac));
 
-  l2net = oonf_layer2_net_get(session->interface->name);
+  l2net = oonf_layer2_net_get(session->interface->layer2if_name);
   if (!l2net) {
     OONF_INFO(LOG_DLEP_ROUTER, "L2 network for interface %s is not there",
-        session->interface->name);
+        session->interface->dlepif_name);
     return;
   }
 
   l2neigh = oonf_layer2_neigh_get(l2net, &mac);
   if (!l2neigh) {
     OONF_INFO(LOG_DLEP_ROUTER, "L2 neighbor %s for interface %s is not there",
-        netaddr_to_string(&nbuf, &mac), session->interface->name);
+        netaddr_to_string(&nbuf, &mac), session->interface->dlepif_name);
     return;
   }
 
@@ -641,7 +641,7 @@ _handle_destination_down(struct dlep_router_session *session,
   OONF_INFO(LOG_DLEP_ROUTER, "New destination came up: %s",
       netaddr_to_string(&nbuf, &mac));
 
-  l2net = oonf_layer2_net_get(session->interface->name);
+  l2net = oonf_layer2_net_get(session->interface->layer2if_name);
   if (!l2net) {
     return;
   }
