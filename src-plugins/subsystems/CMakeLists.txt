@@ -45,6 +45,7 @@ SET(OS_SOCKET_INCLUDE    os_socket.h)
 SET(OS_ROUTING_INCLUDE   os_routing.h)
 SET(OS_INTERFACE_INCLUDE os_system.h)
 SET(OS_SYSTEM_INCLUDE    os_system.h)
+SET(OS_VIF_INCLUDE       os_vif.h)
 
 IF(LINUX)
     SET(OS_CLOCK_SOURCE      os_linux/os_clock_linux.c)
@@ -74,6 +75,9 @@ IF(LINUX)
     SET(OS_SYSTEM_SOURCE     os_linux/os_system_linux.c)
     SET(OS_SYSTEM_INCLUDE    ${OS_SYSTEM_INCLUDE}
                              os_linux/os_system_linux.h)
+
+    SET(OS_VIF_SOURCE        os_linux/os_vif_linux.c)
+    SET(OS_VIF_INCLUDE       os_linux/os_vif_linux.h)
 ENDIF(LINUX)
 
 oonf_create_plugin("os_clock" "${OS_CLOCK_SOURCE}" "${OS_CLOCK_INCLUDE}" "")
@@ -81,3 +85,4 @@ oonf_create_plugin("os_socket" "${OS_SOCKET_SOURCE}" "${OS_SOCKET_INCLUDE}" "")
 oonf_create_plugin("os_routing" "${OS_ROUTING_SOURCE}" "${OS_ROUTING_INCLUDE}" "")
 oonf_create_plugin("os_interface" "${OS_INTERFACE_SOURCE}" "${OS_INTERFACE_INCLUDE}" "")
 oonf_create_plugin("os_system" "${OS_SYSTEM_SOURCE}" "${OS_SYSTEM_INCLUDE}" "")
+oonf_create_plugin("os_vif" "${OS_VIF_SOURCE}" "${OS_VIF_INCLUDE}" "")

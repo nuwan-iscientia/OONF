@@ -126,9 +126,15 @@ EXPORT void os_interface_listener_remove(struct os_interface_if_listener *);
 EXPORT int os_interface_state_set(const char *dev, bool up);
 EXPORT int os_interface_address_set(struct os_interface_address *addr);
 EXPORT void os_interface_address_interrupt(struct os_interface_address *addr);
+EXPORT int os_interface_mac_set_by_name(const char *, struct netaddr *mac);
 
 EXPORT int os_interface_update(struct os_interface_data *, const char *);
 EXPORT int os_interface_init_mesh(struct os_interface *);
 EXPORT void os_interface_cleanup_mesh(struct os_interface *);
+
+static INLINE int
+os_interface_mac_set(struct os_interface_data *ifdata, struct netaddr *mac) {
+  return os_interface_mac_set_by_name(ifdata->name, mac);
+}
 
 #endif /* OS_INTERFACE_H_ */
