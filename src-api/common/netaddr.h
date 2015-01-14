@@ -143,6 +143,9 @@ EXPORT extern const struct netaddr NETADDR_IPV6_IPV4COMPATIBLE;
 EXPORT extern const struct netaddr NETADDR_IPV6_IPV4MAPPED;
 EXPORT extern const struct netaddr NETADDR_IPV6_LOOPBACK;
 
+EXPORT extern const union netaddr_socket NETADDR_SOCKET_IPV4_ANY;
+EXPORT extern const union netaddr_socket NETADDR_SOCKET_IPV6_ANY;
+
 EXPORT int netaddr_from_binary_prefix(struct netaddr *dst,
     const void *binary, size_t len, uint8_t addr_type, uint8_t prefix_len);
 EXPORT int netaddr_to_binary(void *dst, const struct netaddr *src, size_t len);

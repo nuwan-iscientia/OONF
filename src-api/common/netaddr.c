@@ -81,8 +81,24 @@ const struct netaddr NETADDR_IPV6_IPV4MAPPED = { {0,0,0,0,0,0,0,0,0,0,0xff,0xff,
 const struct netaddr NETADDR_IPV4_LOOPBACK_NET = { {127,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0}, AF_INET, 8 };
 const struct netaddr NETADDR_IPV6_LOOPBACK = { {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1}, AF_INET6, 128 };
 
+const union netaddr_socket NETADDR_SOCKET_IPV4_ANY = {
+  .v4 = {
+      .sin_family = AF_INET,
+      .sin_port = 0,
+      .sin_addr.s_addr = 0,
+  }
+};
+const union netaddr_socket NETADDR_SOCKET_IPV6_ANY = {
+  .v6 = {
+      .sin6_family = AF_INET6,
+      .sin6_port = 0,
+      .sin6_addr.s6_addr32 = { 0,0,0,0 },
+      .sin6_scope_id = 0,
+  }
+};
+
 /* List of predefined address prefixes */
-const struct {
+static const struct {
   const char *name;
   const struct netaddr *prefix;
 } _known_prefixes[] = {
