@@ -182,6 +182,10 @@ dlep_router_add_session(struct dlep_router_if *interf,
   session->tcp.config.cleanup = _cb_tcp_lost;
   session->tcp.config.receive_data = _cb_tcp_receive_data;
 
+  OONF_DEBUG(LOG_DLEP_ROUTER, "Connect DLEP session from %s to %s",
+      netaddr_socket_to_string(&nbuf1, local),
+      netaddr_socket_to_string(&nbuf2, remote));
+
   if (oonf_stream_add(&session->tcp, local)) {
     OONF_WARN(LOG_DLEP_ROUTER,
         "Could not open TCP client on %s for %s",

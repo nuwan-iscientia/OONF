@@ -323,6 +323,9 @@ oonf_interface_get_prefix_from_dst(
   struct os_interface *interf;
   const struct netaddr *result;
   size_t i;
+#ifdef OONF_LOG_DEBUG_INFO
+  struct netaddr_str nbuf1, nbuf2;
+#endif
 
   if (ifdata == NULL) {
     avl_for_each_element(&_oonf_interface_tree, interf, _node) {
@@ -336,6 +339,10 @@ oonf_interface_get_prefix_from_dst(
 
   for (i=0; i<ifdata->prefixcount; i++) {
     if (netaddr_is_in_subnet(&ifdata->prefixes[i], destination)) {
+      OONF_DEBUG(LOG_INTERFACE, "destination %s query matched if prefix: %s",
+          netaddr_to_string(&nbuf1, destination),
+          netaddr_to_string(&nbuf2, &ifdata->prefixes[i]));
+
       return &ifdata->prefixes[i];
     }
   }

@@ -313,7 +313,10 @@ os_interface_update(struct os_interface_data *ifdata,
   union netaddr_socket *sock;
   struct netaddr *addr, *prefix, netmask;
 #ifdef OONF_LOG_INFO
-  struct netaddr_str nbuf;
+  struct netaddr_str nbuf1;
+#endif
+#ifdef OONF_LOG_DEBUG_INFO
+  struct netaddr_str nbuf2, nbuf3;
 #endif
 
   /* cleanup data structure */
@@ -358,7 +361,7 @@ os_interface_update(struct os_interface_data *ifdata,
 
   netaddr_from_binary(&ifdata->mac, ifr.ifr_hwaddr.sa_data, 6, AF_MAC48);
   OONF_INFO(LOG_OS_INTERFACE, "Interface %s has mac address %s",
-      ifdata->name, netaddr_to_string(&nbuf, &ifdata->mac));
+      ifdata->name, netaddr_to_string(&nbuf1, &ifdata->mac));
 
   /* get ip addresses */
   ifaddrs = NULL;
@@ -408,6 +411,10 @@ os_interface_update(struct os_interface_data *ifdata,
         /* get corresponding prefix if possible */
         if (!netaddr_from_socket(&netmask, sock)) {
           if (!netaddr_create_prefix(prefix, addr, &netmask, false)) {
+            OONF_DEBUG(LOG_OS_INTERFACE, "Address %s and Netmask %s produce prefix %s",
+                netaddr_to_string(&nbuf1, addr),
+                netaddr_to_string(&nbuf2, &netmask),
+                netaddr_to_string(&nbuf3, prefix));
             ifdata->prefixcount++;
           }
         }

@@ -271,7 +271,14 @@ oonf_stream_connect_to(struct oonf_stream_socket *stream_socket,
   struct netaddr remote_addr;
   bool wait_for_connect = false;
   int s;
-  struct netaddr_str buf;
+  struct netaddr_str nbuf1;
+#ifdef OONF_LOG_DEBUG_INFO
+  struct netaddr_str nbuf2;
+#endif
+
+  OONF_DEBUG(LOG_STREAM, "Connect TCP socket from %s to %s",
+      netaddr_socket_to_string(&nbuf1, &stream_socket->local_socket),
+      netaddr_socket_to_string(&nbuf2, remote));
 
   s = os_socket_getsocket(&stream_socket->local_socket,
       true, 0, NULL, LOG_STREAM);
@@ -282,7 +289,7 @@ oonf_stream_connect_to(struct oonf_stream_socket *stream_socket,
   if (os_socket_connect(s, remote)) {
     if (errno != EINPROGRESS) {
       OONF_WARN(LOG_STREAM, "Cannot connect outgoing tcp connection to %s: %s (%d)",
-          netaddr_socket_to_string(&buf, remote), strerror(errno), errno);
+          netaddr_socket_to_string(&nbuf1, remote), strerror(errno), errno);
       goto connect_to_error;
     }
     wait_for_connect = true;

@@ -339,7 +339,7 @@ netaddr_create_prefix(struct netaddr *prefix, const struct netaddr *host,
   }
 
   /* get address length */
-  maxlen = netaddr_get_af_maxprefix(prefix->_type) / 8;
+  maxlen = netaddr_get_af_maxprefix(host->_type) / 8;
 
   /* initialize prefix */
   prefix->_prefix_len = 0;
