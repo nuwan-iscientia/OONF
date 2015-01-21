@@ -294,19 +294,19 @@ _cb_tcp_lost(struct oonf_stream_session *tcp_session) {
 }
 
 /**
- * Callback to receive data over oonf_stream_socket
- * @param tcp_session pointer to tcp session
- * @return tcp session state
+ *
+ * @param tcp_session
+ * @param session
+ * @return -1 if an error happened, 0 if signal was parsed,
+ *    1 if buffer needs more bytes for a signal
  */
-static enum oonf_stream_session_state
-_cb_tcp_receive_data(struct oonf_stream_session *tcp_session) {
-  struct dlep_radio_session *session;
+static int
+_parse_signal(struct oonf_stream_session *tcp_session,
+    struct dlep_radio_session *session) {
   struct dlep_parser_index idx;
   uint16_t siglen;
   int signal, result;
   struct netaddr_str nbuf;
-
-  session = container_of(tcp_session, struct dlep_radio_session, stream);
 
   if ((signal = dlep_parser_read(&idx, abuf_getptr(&tcp_session->in),
       abuf_getlen(&tcp_session->in), &siglen)) < 0) {
@@ -317,16 +317,16 @@ _cb_tcp_receive_data(struct oonf_stream_session *tcp_session) {
           "Could not parse incoming TCP signal from %s: %d",
           netaddr_to_string(&nbuf, &tcp_session->remote_address), signal);
 
-      return STREAM_SESSION_CLEANUP;
+      return -1;
     }
-    return STREAM_SESSION_ACTIVE;
+    return 1;
   }
 
   if (session->state == DLEP_RADIO_SESSION_INIT
       && signal != DLEP_PEER_INITIALIZATION) {
     OONF_WARN(LOG_DLEP_RADIO,
         "Received TCP signal %d before Peer Initialization", signal);
-    return STREAM_SESSION_CLEANUP;
+    return -1;
   }
 
   if (session->state == DLEP_RADIO_SESSION_TERMINATE
@@ -337,7 +337,7 @@ _cb_tcp_receive_data(struct oonf_stream_session *tcp_session) {
     /* remove signal from input buffer */
     abuf_pull(&tcp_session->in, siglen);
 
-    return STREAM_SESSION_ACTIVE;
+    return 0;
   }
 
   OONF_INFO(LOG_DLEP_RADIO, "Received TCP signal %d", signal);
@@ -369,11 +369,28 @@ _cb_tcp_receive_data(struct oonf_stream_session *tcp_session) {
       OONF_WARN(LOG_DLEP_RADIO,
           "Received illegal signal in TCP from %s: %u",
           netaddr_to_string(&nbuf, &tcp_session->remote_address), signal);
-      return STREAM_SESSION_CLEANUP;
+      return -1;
   }
 
   /* remove signal from input buffer */
   abuf_pull(&tcp_session->in, siglen);
+
+  return result != 0 ? -1 : 0;
+}
+
+/**
+ * Callback to receive data over oonf_stream_socket
+ * @param tcp_session pointer to tcp session
+ * @return tcp session state
+ */
+static enum oonf_stream_session_state
+_cb_tcp_receive_data(struct oonf_stream_session *tcp_session) {
+  struct dlep_radio_session *session;
+  int result;
+
+  session = container_of(tcp_session, struct dlep_radio_session, stream);
+
+  while ((result = _parse_signal(tcp_session, session)) == 0);
 
   return result != 0 ? STREAM_SESSION_CLEANUP :STREAM_SESSION_ACTIVE;
 }

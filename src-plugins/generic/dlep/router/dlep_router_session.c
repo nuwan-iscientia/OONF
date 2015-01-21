@@ -274,19 +274,19 @@ dlep_router_terminate_session(struct dlep_router_session *session) {
 }
 
 /**
- * Receive tcp data via oonf_stream_socket
+ *
  * @param tcp_session
- * @return
+ * @param session
+ * @return -1 if an error happened, 0 if signal was parsed,
+ *    1 if buffer needs more bytes for a signal
  */
-static enum oonf_stream_session_state
-_cb_tcp_receive_data(struct oonf_stream_session *tcp_session) {
-  struct dlep_router_session *session;
+static int
+_parse_signal(struct oonf_stream_session *tcp_session,
+    struct dlep_router_session *session) {
   struct dlep_parser_index idx;
   uint16_t siglen;
   int signal, result;
   struct netaddr_str nbuf;
-
-  session = container_of(tcp_session->comport, struct dlep_router_session, tcp);
 
   if ((signal = dlep_parser_read(&idx, abuf_getptr(&tcp_session->in),
       abuf_getlen(&tcp_session->in), &siglen)) < 0) {
@@ -297,15 +297,16 @@ _cb_tcp_receive_data(struct oonf_stream_session *tcp_session) {
           "Could not parse incoming TCP signal from %s: %d",
           netaddr_socket_to_string(&nbuf, &tcp_session->remote_socket),
           signal);
-      return STREAM_SESSION_CLEANUP;
+      return -1;
     }
+    return 1;
   }
 
   if (session->state == DLEP_ROUTER_SESSION_INIT
       && signal != DLEP_PEER_INITIALIZATION_ACK) {
     OONF_WARN(LOG_DLEP_ROUTER,
         "Received TCP signal %d before Peer Initialization", signal);
-    return STREAM_SESSION_CLEANUP;
+    return -1;
   }
 
   if (session->state == DLEP_ROUTER_SESSION_TERMINATE
@@ -316,7 +317,7 @@ _cb_tcp_receive_data(struct oonf_stream_session *tcp_session) {
     /* remove signal from input buffer */
     abuf_pull(&tcp_session->in, siglen);
 
-    return STREAM_SESSION_ACTIVE;
+    return 0;
   }
 
   OONF_INFO(LOG_DLEP_ROUTER, "Received TCP signal %d", signal);
@@ -360,7 +361,24 @@ _cb_tcp_receive_data(struct oonf_stream_session *tcp_session) {
   /* remove signal from input buffer */
   abuf_pull(&tcp_session->in, siglen);
 
-  return result != 0 ? STREAM_SESSION_CLEANUP : STREAM_SESSION_ACTIVE;
+  return result != 0 ? -1 : 0;
+}
+
+/**
+ * Receive tcp data via oonf_stream_socket
+ * @param tcp_session
+ * @return
+ */
+static enum oonf_stream_session_state
+_cb_tcp_receive_data(struct oonf_stream_session *tcp_session) {
+  struct dlep_router_session *session;
+  int result;
+
+  session = container_of(tcp_session->comport, struct dlep_router_session, tcp);
+
+  while ((result = _parse_signal(tcp_session, session)) == 0);
+
+  return result == -1 ? STREAM_SESSION_CLEANUP : STREAM_SESSION_ACTIVE;
 }
 
 /**

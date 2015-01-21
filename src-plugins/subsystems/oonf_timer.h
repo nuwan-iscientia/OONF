@@ -52,6 +52,9 @@
 
 struct oonf_timer_instance;
 
+/* timeslice is 100 ms */
+#define OONF_TIMER_SLICE 100ull
+
 /*
  * This struct defines a class of timers which have the same
  * type (periodic/non-periodic) and callback.

@@ -53,7 +53,7 @@
 #include "core/oonf_subsystem.h"
 #include "subsystems/oonf_timer.h"
 #include "subsystems/os_socket.h"
-
+#include "subsystems/os_clock.h"
 #include "subsystems/oonf_socket.h"
 
 /* Definitions */
@@ -265,7 +265,16 @@ _handle_scheduling(void)
       fd_read = FD_ISSET(entry->fd, &ibits) != 0;
       fd_write = FD_ISSET(entry->fd, &obits) != 0;
       if (fd_read || fd_write) {
+        uint64_t start_time, end_time;
+
+        os_clock_gettime64(&start_time);
         entry->process(entry->fd, entry->data, fd_read, fd_write);
+        os_clock_gettime64(&end_time);
+
+        if (end_time - start_time > OONF_TIMER_SLICE) {
+          OONF_WARN(LOG_SOCKET, "Socket %d scheduling took %"PRIu64" ms",
+              entry->fd, end_time - start_time);
+        }
       }
     }
   }

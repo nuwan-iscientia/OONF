@@ -50,6 +50,7 @@
 #include "core/oonf_subsystem.h"
 #include "core/os_core.h"
 #include "subsystems/oonf_clock.h"
+#include "subsystems/os_clock.h"
 
 #include "subsystems/oonf_timer.h"
 
@@ -62,9 +63,6 @@ static void _cleanup(void);
 
 static void _calc_clock(struct oonf_timer_instance *timer, uint64_t rel_time);
 static int _avlcomp_timer(const void *p1, const void *p2);
-
-/* minimal granularity of the timer system in milliseconds */
-static const uint64_t TIMESLICE = 100;
 
 /* tree of all timers */
 static struct avl_tree _timer_tree;
@@ -264,6 +262,7 @@ oonf_timer_walk(void)
 {
   struct oonf_timer_instance *timer;
   struct oonf_timer_class *info;
+  uint64_t start_time, end_time;
 
   _scheduling_now = true;
 
@@ -293,7 +292,14 @@ oonf_timer_walk(void)
     }
 
     /* This timer is expired, call into the provided callback function */
+    os_clock_gettime64(&start_time);
     timer->class->callback(timer->cb_context);
+    os_clock_gettime64(&end_time);
+
+    if (end_time - start_time > OONF_TIMER_SLICE) {
+      OONF_WARN(LOG_TIMER, "Timer %s scheduling took %"PRIu64" ms",
+          timer->class->name, end_time - start_time);
+    }
 
     /*
      * Only act on actually running timers, the callback might have
@@ -364,8 +370,8 @@ _calc_clock(struct oonf_timer_instance *timer, uint64_t rel_time)
   timer->_clock = oonf_clock_get_absolute(rel_time - t);
 
   /* round up to next timeslice */
-  timer->_clock += TIMESLICE;
-  timer->_clock -= (timer->_clock % TIMESLICE);
+  timer->_clock += OONF_TIMER_SLICE;
+  timer->_clock -= (timer->_clock % OONF_TIMER_SLICE);
 }
 
 /**
