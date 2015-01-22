@@ -161,9 +161,6 @@ nl80211_process_get_station_dump_result(struct nl80211_if *interf,
     return;
   }
 
-  /* remove old data, but do not commit */
-  nl80211_cleanup_l2neigh_data(l2neigh);
-
   if (sinfo[NL80211_STA_INFO_INACTIVE_TIME]) {
     l2neigh->last_seen = oonf_clock_get_absolute(
       -((int64_t)(nla_get_u32(sinfo[NL80211_STA_INFO_INACTIVE_TIME]))));
@@ -223,6 +220,9 @@ nl80211_process_get_station_dump_result(struct nl80211_if *interf,
     nl80211_change_l2neigh_data(l2neigh,
               OONF_LAYER2_NEIGH_TX_THROUGHPUT, rate * 1024ll);
   }
+
+  /* remove old data */
+  nl80211_cleanup_l2neigh_data(l2neigh);
 
   oonf_layer2_neigh_commit(l2neigh);
 }

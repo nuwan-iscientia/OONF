@@ -255,16 +255,22 @@ oonf_layer2_net_cleanup(struct oonf_layer2_net *l2net, uint32_t origin) {
  * object. Remove the object if its empty and has no neighbors anymore.
  * @param l2net layer-2 addr object
  * @param origin originator number
+ * @return true if something changed, false otherwise
  */
-void
+bool
 oonf_layer2_net_remove(struct oonf_layer2_net *l2net, uint32_t origin) {
   struct oonf_layer2_neigh *l2neigh, *l2neigh_it;
+  bool changed = false;
+
   avl_for_each_element_safe(&l2net->neighbors, l2neigh, _node, l2neigh_it) {
-    oonf_layer2_neigh_remove(l2neigh, origin);
+    changed |= oonf_layer2_neigh_remove(l2neigh, origin);
   }
 
-  oonf_layer2_net_cleanup(l2net, origin);
-  oonf_layer2_net_commit(l2net);
+  changed |= oonf_layer2_net_cleanup(l2net, origin);
+  if (changed) {
+    oonf_layer2_net_commit(l2net);
+  }
+  return changed;
 }
 
 /**
@@ -365,19 +371,25 @@ oonf_layer2_neigh_cleanup(struct oonf_layer2_neigh *l2neigh, uint32_t origin) {
  * object. Remove the object if its empty.
  * @param l2neigh layer-2 neighbor object
  * @param origin originator number
+ * @return true if something was change, false otherwise
  */
-void
+bool
 oonf_layer2_neigh_remove(struct oonf_layer2_neigh *l2neigh, uint32_t origin) {
   struct oonf_layer2_destination *l2dst, *l2dst_it;
+  bool changed = false;
 
   avl_for_each_element_safe(&l2neigh->destinations, l2dst, _node, l2dst_it) {
     if (l2dst->origin == origin) {
       oonf_layer2_destination_remove(l2dst);
+      changed = true;
     }
   }
 
-  oonf_layer2_neigh_cleanup(l2neigh, origin);
-  oonf_layer2_neigh_commit(l2neigh);
+  changed |= oonf_layer2_neigh_cleanup(l2neigh, origin);
+  if (changed) {
+    oonf_layer2_neigh_commit(l2neigh);
+  }
+  return changed;
 }
 
 /**

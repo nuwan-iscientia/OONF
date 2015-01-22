@@ -130,8 +130,9 @@ nl80211_process_get_mpp_result(struct nl80211_if *interf,
   netaddr_from_binary(&destination_mac,
       nla_data(tb[NL80211_ATTR_MAC]), 6, AF_MAC48);
 
-  l2neigh = oonf_layer2_neigh_add(interf->l2net, &remote_mac);
+  l2neigh = oonf_layer2_neigh_get(interf->l2net, &remote_mac);
   if (!l2neigh) {
+    /* don't create a neighbor, just ignore the MPP data */
     return;
   }
 
