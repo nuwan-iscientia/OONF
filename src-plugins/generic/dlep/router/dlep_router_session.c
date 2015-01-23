@@ -277,8 +277,8 @@ dlep_router_terminate_session(struct dlep_router_session *session) {
  *
  * @param tcp_session
  * @param session
- * @return -1 if an error happened, 0 if signal was parsed,
- *    1 if buffer needs more bytes for a signal
+ * @return -1 if an error happened, 1 if signal was parsed,
+ *    0 if buffer needs more bytes for a signal
  */
 static int
 _parse_signal(struct oonf_stream_session *tcp_session,
@@ -299,7 +299,7 @@ _parse_signal(struct oonf_stream_session *tcp_session,
           signal);
       return -1;
     }
-    return 1;
+    return 0;
   }
 
   if (session->state == DLEP_ROUTER_SESSION_INIT
@@ -317,7 +317,7 @@ _parse_signal(struct oonf_stream_session *tcp_session,
     /* remove signal from input buffer */
     abuf_pull(&tcp_session->in, siglen);
 
-    return 0;
+    return 1;
   }
 
   OONF_INFO(LOG_DLEP_ROUTER, "Received TCP signal %d", signal);
@@ -361,7 +361,7 @@ _parse_signal(struct oonf_stream_session *tcp_session,
   /* remove signal from input buffer */
   abuf_pull(&tcp_session->in, siglen);
 
-  return result != 0 ? -1 : 0;
+  return result != 0 ? -1 : 1;
 }
 
 /**
@@ -376,7 +376,7 @@ _cb_tcp_receive_data(struct oonf_stream_session *tcp_session) {
 
   session = container_of(tcp_session->comport, struct dlep_router_session, tcp);
 
-  while ((result = _parse_signal(tcp_session, session)) == 0);
+  while ((result = _parse_signal(tcp_session, session)) == 1);
 
   return result == -1 ? STREAM_SESSION_CLEANUP : STREAM_SESSION_ACTIVE;
 }
