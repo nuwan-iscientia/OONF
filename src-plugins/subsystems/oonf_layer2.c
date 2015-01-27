@@ -535,6 +535,9 @@ oonf_layer2_change_value(struct oonf_layer2_data *l2data,
   if (changed) {
     oonf_layer2_set_value(l2data, origin, value);
   }
+  else {
+    l2data->_origin = origin;
+  }
   return changed;
 }
 

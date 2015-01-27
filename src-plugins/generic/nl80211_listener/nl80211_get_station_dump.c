@@ -131,6 +131,9 @@ nl80211_process_get_station_dump_result(struct nl80211_if *interf,
     [NL80211_STA_INFO_STA_FLAGS] =
       { .minlen = sizeof(struct nl80211_sta_flag_update) },
   };
+#ifdef OONF_LOG_DEBUG_INFO
+  struct netaddr_str nbuf;
+#endif
 
   gnlh = nlmsg_data(hdr);
 
@@ -154,6 +157,9 @@ nl80211_process_get_station_dump_result(struct nl80211_if *interf,
   }
 
   netaddr_from_binary(&l2neigh_mac, nla_data(tb[NL80211_ATTR_MAC]), 6, AF_MAC48);
+
+  OONF_DEBUG(LOG_NL80211, "Received Station Dump for %s",
+      netaddr_to_string(&nbuf, &l2neigh_mac));
 
   l2neigh = oonf_layer2_neigh_add(interf->l2net, &l2neigh_mac);
   if (!l2neigh) {
@@ -224,6 +230,7 @@ nl80211_process_get_station_dump_result(struct nl80211_if *interf,
   /* remove old data */
   nl80211_cleanup_l2neigh_data(l2neigh);
 
+  /* and commit the changes */
   oonf_layer2_neigh_commit(l2neigh);
 }
 
