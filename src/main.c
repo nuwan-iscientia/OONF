@@ -42,7 +42,7 @@
 #include "common/common_types.h"
 #include "core/oonf_main.h"
 
-#include "app_data.h"
+#include "core/app_data.h"
 
 int
 main(int argc, char **argv) {

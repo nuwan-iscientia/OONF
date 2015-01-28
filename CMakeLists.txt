@@ -11,9 +11,6 @@ include (./cmake/lib_config.cmake)
 # include compiler flags
 include (./cmake/cc_flags.cmake)
 
-# set version
-SET(OONF_VERSION 0.6.0)
-
 ########################
 #### Doxygen target ####
 ########################

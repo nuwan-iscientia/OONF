@@ -42,19 +42,19 @@ define Package/dlep-radio-git
 	DEPENDS:=+librt +libnl-tiny +libuci
 endef
 
-Build/Compile=$(call Build/Compile/Default,static)
+Build/Compile=$(call Build/Compile/Default,dlep_radio_static)
 Build/Install=
 
 define Build/Install
-	$(INSTALL_BIN) -D $(PKG_BUILD_DIR)/$(MAKE_PATH)/olsrd2_static $(PKG_INSTALL_DIR)/usr/sbin/dlep_radio;
+	$(INSTALL_BIN) -D $(PKG_BUILD_DIR)/$(MAKE_PATH)/dlep_radio_static $(PKG_INSTALL_DIR)/usr/sbin/dlep_radio;
 endef
 
 TARGET_CFLAGS += -I$(STAGING_DIR)/usr/include -I${STAGING_DIR}/usr/include/libnl-tiny
 
 define Package/dlep-radio-git/install
-	$(INSTALL_BIN)  -D $(PKG_BUILD_DIR)/olsrd2_static $(1)/usr/sbin/dlep_radio
-	$(INSTALL_BIN)  -D ./files/dlep.init              $(1)/etc/init.d/dlep
-	$(INSTALL_DATA) -D ./files/dlep.conf              $(1)/etc/dlep.conf
+	$(INSTALL_BIN)  -D $(PKG_BUILD_DIR)/dlep_radio_static $(1)/usr/sbin/dlep_radio
+	$(INSTALL_BIN)  -D ./files/dlep.init                  $(1)/etc/init.d/dlep
+	$(INSTALL_DATA) -D ./files/dlep.conf                  $(1)/etc/dlep.conf
 endef
 
 define Package/dlep-radio-git/conffiles

@@ -166,7 +166,7 @@ oonf_main(int argc, char **argv, const struct oonf_appdata *appdata) {
 
   /* initialize logger */
   if (oonf_log_init(appdata, _debug_early ? LOG_SEVERITY_DEBUG : LOG_SEVERITY_WARN)) {
-    goto olsrd_cleanup;
+    goto oonf_cleanup;
   }
 
   /* prepare plugin initialization */
@@ -174,7 +174,7 @@ oonf_main(int argc, char **argv, const struct oonf_appdata *appdata) {
 
   /* initialize configuration system */
   if (oonf_cfg_init(argc, argv, appdata->default_cfg_handler)) {
-    goto olsrd_cleanup;
+    goto oonf_cleanup;
   }
 
   /* add custom configuration definitions */
@@ -184,7 +184,7 @@ oonf_main(int argc, char **argv, const struct oonf_appdata *appdata) {
   return_code = parse_commandline(argc, argv, appdata, false);
   if (return_code != -1) {
     /* end OONFd now */
-    goto olsrd_cleanup;
+    goto oonf_cleanup;
   }
 
   /* prepare for an error during initialization */
@@ -193,23 +193,23 @@ oonf_main(int argc, char **argv, const struct oonf_appdata *appdata) {
   /* read global section early */
   if (oonf_cfg_update_globalcfg(true)) {
     OONF_WARN(LOG_MAIN, "Cannot read global configuration section");
-    goto olsrd_cleanup;
+    goto oonf_cleanup;
   }
 
   /* configure logger */
   if (oonf_logcfg_apply(oonf_cfg_get_rawdb())) {
-    goto olsrd_cleanup;
+    goto oonf_cleanup;
   }
 
   /* load plugins */
   if (oonf_cfg_loadplugins()) {
-    goto olsrd_cleanup;
+    goto oonf_cleanup;
   }
 
   /* show schema if necessary */
   if (_display_schema) {
     return_code = display_schema();
-    goto olsrd_cleanup;
+    goto oonf_cleanup;
   }
 
   /* check if we are root, otherwise stop */
@@ -217,7 +217,7 @@ oonf_main(int argc, char **argv, const struct oonf_appdata *appdata) {
     if (geteuid() != 0) {
       OONF_WARN(LOG_MAIN, "You must be root(uid = 0) to run %s!\n",
           appdata->app_name);
-      goto olsrd_cleanup;
+      goto oonf_cleanup;
     }
   }
 
@@ -226,7 +226,7 @@ oonf_main(int argc, char **argv, const struct oonf_appdata *appdata) {
     if (os_core_create_lockfile(config_global.lockfile)) {
       OONF_WARN(LOG_MAIN, "Could not acquire application lock '%s'",
           config_global.lockfile);
-      goto olsrd_cleanup;
+      goto oonf_cleanup;
     }
   }
 
@@ -235,7 +235,7 @@ oonf_main(int argc, char **argv, const struct oonf_appdata *appdata) {
 
   /* apply configuration */
   if (oonf_cfg_apply()) {
-    goto olsrd_cleanup;
+    goto oonf_cleanup;
   }
 
   if (!oonf_cfg_is_running()) {
@@ -244,21 +244,26 @@ oonf_main(int argc, char **argv, const struct oonf_appdata *appdata) {
      * or maybe the user decided otherwise and pressed CTRL-C
      */
     return_code = _end_oonf_signal ? 0 : 1;
-    goto olsrd_cleanup;
+    goto oonf_cleanup;
   }
 
+  if (!_handle_scheduling) {
+    OONF_WARN(LOG_MAIN, "No event scheduler present");
+    return_code = 1;
+    goto oonf_cleanup;
+  }
   /* see if we need to fork */
   if (config_global.fork && !_display_schema) {
     /* tell main process that we are finished with initialization */
     if (daemon(0,0) < 0) {
       OONF_WARN(LOG_MAIN, "Could not fork into background: %s (%d)",
           strerror(errno), errno);
-      goto olsrd_cleanup;
+      goto oonf_cleanup;
     }
 
     if (config_global.pidfile && *config_global.pidfile != 0) {
       if (_write_pidfile(config_global.pidfile)) {
-        goto olsrd_cleanup;
+        goto oonf_cleanup;
       }
     }
   }
@@ -272,7 +277,7 @@ oonf_main(int argc, char **argv, const struct oonf_appdata *appdata) {
   /* wait for 500 milliseconds and process socket events */
   _handle_scheduling();
 
-olsrd_cleanup:
+oonf_cleanup:
   /* free plugins */
   oonf_cfg_unconfigure_plugins();
   oonf_plugins_cleanup();

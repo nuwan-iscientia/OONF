@@ -42,7 +42,7 @@ define Package/olsrd2-git
 	DEPENDS:=+librt +libnl-tiny +libuci
 endef
 
-Build/Compile=$(call Build/Compile/Default,static)
+Build/Compile=$(call Build/Compile/Default,olsrd2_static)
 Build/Install=
 
 define Build/Install

@@ -41,7 +41,7 @@
 
 #include "core/oonf_appdata.h"
 #include "core/os_core.h"
-#include "app_data.h"
+#include "core/app_data.h"
 
 static struct oonf_appdata _appdata = {
   .app_name = "${OONF_APP}",
