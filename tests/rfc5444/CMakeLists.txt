@@ -1,8 +1,7 @@
 function(compile_rfc5444_test executable source)
     # create executable
-    ADD_EXECUTABLE(${executable} ${source})
+    ADD_EXECUTABLE(${executable} ${source} $<TARGET_OBJECTS:oonf_static_rfc5444_api>)
 
-    TARGET_LINK_LIBRARIES(${executable} oonf_rfc5444)
     TARGET_LINK_LIBRARIES(${executable} oonf_common)
     TARGET_LINK_LIBRARIES(${executable} static_cunit)
 
@@ -17,6 +16,8 @@ function(compile_rfc5444_test executable source)
         TARGET_LINK_LIBRARIES(${executable} ws2_32 iphlpapi)
     ENDIF(WIN32)
 endfunction(compile_rfc5444_test)
+
+include_directories(${CMAKE_SOURCE_DIR}/src-plugins/subsystems)
 
 set(TESTS test_rfc5444_reader_blockcb
           test_rfc5444_reader_dropcontext

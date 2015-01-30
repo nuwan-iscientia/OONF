@@ -1,8 +1,8 @@
 function(compile_rfc5444_test executable source)
     # create executable
-    ADD_EXECUTABLE(${executable} ${source})
+    ADD_EXECUTABLE(${executable} ${source}
+                                 $<TARGET_OBJECTS:oonf_static_rfc5444_api>)
 
-    TARGET_LINK_LIBRARIES(${executable} oonf_rfc5444)
     TARGET_LINK_LIBRARIES(${executable} oonf_common)
     TARGET_LINK_LIBRARIES(${executable} static_cunit)
 

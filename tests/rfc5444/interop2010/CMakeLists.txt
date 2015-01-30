@@ -41,9 +41,10 @@ set(TEST test_rfc5444_interop2010_01.c
          )
 
 # create executable
-ADD_EXECUTABLE(test_rfc5444_interop2010 ${TEST} test_rfc5444_interop2010.c)
+ADD_EXECUTABLE(test_rfc5444_interop2010 ${TEST}
+                                        test_rfc5444_interop2010.c 
+                                        $<TARGET_OBJECTS:oonf_static_rfc5444_api>)
 
-TARGET_LINK_LIBRARIES(test_rfc5444_interop2010 oonf_rfc5444)
 TARGET_LINK_LIBRARIES(test_rfc5444_interop2010 oonf_common)
 TARGET_LINK_LIBRARIES(test_rfc5444_interop2010 static_cunit)
 

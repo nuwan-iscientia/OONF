@@ -62,5 +62,5 @@ add_subdirectory(external)
 add_subdirectory(src)
 
 if (NOT OONF_NO_TESTING)
-#    add_subdirectory(tests)
+    add_subdirectory(tests)
 endif (NOT OONF_NO_TESTING)

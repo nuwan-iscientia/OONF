@@ -1,3 +1,6 @@
+# add static library for testing
+add_subdirectory(rfc5444)
+
 # create plugins for single-file (source plus header) subsystems
 SET(SINGLE_FILE_NAMES    class
                          clock
