@@ -441,7 +441,7 @@ _cb_dat_sampling(void *ptr __attribute__((unused))) {
   struct rfc7181_metric_field encoded_metric;
   struct link_datff_data *ldata;
   struct nhdp_link *lnk;
-  uint32_t total, received, loss_cost_multiplier;
+  uint32_t total, received;
   uint64_t metric;
   uint32_t metric_value;
   int rx_bitrate;
@@ -472,7 +472,6 @@ _cb_dat_sampling(void *ptr __attribute__((unused))) {
     /* initialize counter */
     total = 0;
     received = 0;
-    loss_cost_multiplier = 1;
 
     /* calculate metric */
     for (i=0; i<_datff_config.window; i++) {
@@ -554,11 +553,10 @@ _cb_dat_sampling(void *ptr __attribute__((unused))) {
     change_happened |= nhdp_domain_set_incoming_metric(_datff_handler.domain, lnk, metric_value);
 
     OONF_DEBUG(LOG_FF_DAT, "New sampling rate for link %s (%s):"
-        " %d/%d (%d) = %u (speed=%"PRIu64 ")\n",
+        " %d/%d = %u (speed=%"PRIu64 ")\n",
         netaddr_to_string(&nbuf, &avl_first_element(&lnk->_addresses, laddr, _link_node)->link_addr),
         nhdp_interface_get_name(lnk->local_if),
-        received, total, loss_cost_multiplier,
-        metric_value, (uint64_t)(rx_bitrate) * DATFF_LINKSPEED_MINIMUM);
+        received, total, metric_value, (uint64_t)(rx_bitrate) * DATFF_LINKSPEED_MINIMUM);
 
     /* update rolling buffer */
     ldata->activePtr++;
