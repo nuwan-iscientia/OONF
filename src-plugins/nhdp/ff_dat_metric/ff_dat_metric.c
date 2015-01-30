@@ -77,10 +77,15 @@ static void _cb_link_changed(void *);
 static void _cb_link_removed(void *);
 
 static void _cb_dat_sampling(void *);
+static uint32_t _apply_packet_loss(struct link_datff_data *ldata,
+    uint32_t metric, uint32_t received, uint32_t total);
+
 static void _cb_hello_lost(void *);
 
 static enum rfc5444_result _cb_process_packet(
       struct rfc5444_reader_tlvblock_context *context);
+
+static void _reset_missed_hello_timer(struct link_datff_data *);
 
 static const char *_to_string(
     struct nhdp_metric_str *buf, uint32_t metric);
@@ -329,9 +334,7 @@ _cb_link_changed(void *ptr) {
     data->hello_interval = lnk->vtime_value;
   }
 
-  oonf_timer_set(&data->hello_lost_timer, (data->hello_interval * 3) / 2);
-
-  data->missed_hellos = 0;
+  _reset_missed_hello_timer(data);
 }
 
 /**
@@ -425,6 +428,9 @@ _get_scaled_rx_linkspeed(struct nhdp_link *lnk) {
   }
   return rate;
 }
+
+static void
+_reset_missed_hello_timer(struct link_datff_data *);
 
 /**
  * Timer callback to sample new metric values into bucket
@@ -520,9 +526,11 @@ _cb_dat_sampling(void *ptr __attribute__((unused))) {
     }
 
     /* calculate frame loss, use discrete values */
-    if (received < total) {
-      loss_cost_multiplier = DATFF_FRAME_SUCCESS_RANGE - (DATFF_FRAME_SUCCESS_RANGE * received) / total;
-      metric *= loss_cost_multiplier;
+    if (received * DATFF_FRAME_SUCCESS_RANGE <= total) {
+      metric *= DATFF_FRAME_SUCCESS_RANGE;
+    }
+    else {
+      metric = _apply_packet_loss(ldata, metric, received, total);
     }
 
     /* convert into something that can be transmitted over the network */
@@ -565,6 +573,32 @@ _cb_dat_sampling(void *ptr __attribute__((unused))) {
   if (change_happened) {
     nhdp_domain_neighborhood_changed();
   }
+}
+
+/**
+ * Select discrete packet loss values and apply a hysteresis
+ * @param ldata link data object
+ * @param metric metric based on linkspeed
+ * @param received received packets
+ * @param total total packets
+ * @return metric including linkspeed and packet loss
+ */
+static uint32_t
+_apply_packet_loss(struct link_datff_data *ldata, uint32_t metric,
+    uint32_t received, uint32_t total) {
+  int success;
+  int last;
+
+  last = ldata->last_packet_success_rate;
+  success = (DATFF_FRAME_SUCCESS_RANGE * 4) * received / total;
+
+  if (success > 4 * last - 3 && success < 4*last + 3) {
+    /* keep old metric */
+    return metric;
+  }
+
+  ldata->last_packet_success_rate = success/4;
+  return (metric * DATFF_FRAME_SUCCESS_RANGE * 4) / success;
 }
 
 /**
@@ -679,7 +713,16 @@ _cb_process_packet(struct rfc5444_reader_tlvblock_context *context) {
   ldata->buckets[ldata->activePtr].total += total;
   ldata->last_seq_nr = context->pkt_seqno;
 
+  _reset_missed_hello_timer(ldata);
+
   return RFC5444_OKAY;
+}
+
+static void
+_reset_missed_hello_timer(struct link_datff_data *data) {
+  oonf_timer_set(&data->hello_lost_timer, (data->hello_interval * 3) / 2);
+
+  data->missed_hellos = 0;
 }
 
 /**
@@ -690,17 +733,20 @@ _cb_process_packet(struct rfc5444_reader_tlvblock_context *context) {
  */
 static const char *
 _to_string(struct nhdp_metric_str *buf, uint32_t metric) {
+  uint64_t value;
+
   if (metric < DATFF_LINKCOST_MINIMUM) {
-    strscpy(buf->buf, "unknown", sizeof (*buf));
+    value = (uint32_t)DATFF_LINKSPEED_MINIMUM
+        * (uint32_t)DATFF_LINKSPEED_RANGE;
   }
   else if (metric > DATFF_LINKCOST_MAXIMUM) {
-    strscpy(buf->buf, "infinite", sizeof(*buf));
+    value = 0;
   }
   else {
-    isonumber_from_u64((struct isonumber_str *)buf,
-        (uint32_t)(DATFF_LINKSPEED_MINIMUM) * (uint32_t)(DATFF_LINKSPEED_RANGE) / metric,
-        "bit/s", 0, true, false);
+    value = (uint32_t)(DATFF_LINKSPEED_MINIMUM) * (uint32_t)(DATFF_LINKSPEED_RANGE) / metric;
   }
+  isonumber_from_u64((struct isonumber_str *)buf,
+      value, "bit/s", 0, true, false);
   return buf->buf;
 }
 
@@ -719,9 +765,9 @@ _int_to_string(struct nhdp_metric_str *buf,
     total += ldata->buckets[i].total;
   }
 
-  snprintf(buf->buf, sizeof(*buf), "%"PRId64"/%"PRId64",%d kbit/s(missed=%d,lastseq=%u)",
+  snprintf(buf->buf, sizeof(*buf), "%"PRId64"/%"PRId64",%d kbit/s(pktsuccess=%d/8,missed_hello=%d,lastseq=%u)",
       received, total, _get_median_rx_linkspeed(ldata),
-      ldata->missed_hellos, ldata->last_seq_nr);
+      ldata->last_packet_success_rate, ldata->missed_hellos, ldata->last_seq_nr);
 
   return buf->buf;
 }

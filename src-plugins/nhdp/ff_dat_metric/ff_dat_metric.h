@@ -114,6 +114,9 @@ struct link_datff_data {
   /* last received packet sequence number */
   uint16_t last_seq_nr;
 
+  /* remember the last transmitted packet loss for hysteresis */
+  uint32_t last_packet_success_rate;
+
   /* timer for measuring lost hellos when no further packets are received */
   struct oonf_timer_instance hello_lost_timer;
 

@@ -133,6 +133,7 @@ static int _cb_create_text_neighbor_address(struct oonf_viewer_template *);
 #define KEY_NEIGHBOR_FLOOD_LOCAL    "neighbor_flood_local"
 #define KEY_NEIGHBOR_FLOOD_REMOTE   "neighbor_flood_remote"
 #define KEY_NEIGHBOR_SYMMETRIC      "neighbor_symmetric"
+#define KEY_NEIGHBOR_LINKCOUNT      "neighbor_linkcount"
 #define KEY_NEIGHBOR_ADDRESS        "neighbor_address"
 #define KEY_NEIGHBOR_ADDRESS_LOST   "neighbor_address_lost"
 #define KEY_NEIGHBOR_ADDRESS_VTIME  "neighbor_address_lost_vtime"
@@ -183,7 +184,7 @@ static struct netaddr_str         _value_neighbor_dualstack;
 static char                       _value_neighbor_flood_local[TEMPLATE_JSON_BOOL_LENGTH];
 static char                       _value_neighbor_flood_remote[TEMPLATE_JSON_BOOL_LENGTH];
 static char                       _value_neighbor_symmetric[TEMPLATE_JSON_BOOL_LENGTH];
-
+static char                       _value_neighbor_linkcount[10];
 static struct netaddr_str         _value_neighbor_address;
 static char                       _value_neighbor_address_lost[TEMPLATE_JSON_BOOL_LENGTH];
 static struct isonumber_str       _value_neighbor_address_lost_vtime;
@@ -276,6 +277,7 @@ static struct abuf_template_data_entry _tde_neigh[] = {
     { KEY_NEIGHBOR_FLOOD_LOCAL, _value_neighbor_flood_local, true },
     { KEY_NEIGHBOR_FLOOD_REMOTE, _value_neighbor_flood_remote, true },
     { KEY_NEIGHBOR_SYMMETRIC, _value_neighbor_symmetric, true },
+    { KEY_NEIGHBOR_LINKCOUNT, _value_neighbor_linkcount, false },
 };
 
 static struct abuf_template_data_entry _tde_neigh_key[] = {
@@ -624,6 +626,8 @@ _initialize_nhdp_neighbor_values(struct nhdp_neighbor *neigh) {
   strscpy(_value_neighbor_symmetric,
       abuf_json_getbool(neigh->symmetric > 0),
       sizeof(_value_neighbor_symmetric));
+  snprintf(_value_neighbor_linkcount, sizeof(_value_neighbor_linkcount),
+      "%d", neigh->symmetric);
 }
 
 /**

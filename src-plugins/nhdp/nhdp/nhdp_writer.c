@@ -474,7 +474,7 @@ _write_metric_tlv(struct rfc5444_writer *writer, struct rfc5444_writer_address *
 
   /* check if metric is infinite */
   for (i=0; i<4; i++) {
-    if (metrics[i] >= RFC7181_METRIC_INFINITE) {
+    if (metrics[i] > RFC7181_METRIC_MAX) {
       metrics[i] = 0;
     }
   }
@@ -500,9 +500,12 @@ _write_metric_tlv(struct rfc5444_writer *writer, struct rfc5444_writer_address *
     /* create value */
     tlv_value = metric_encoded[i];
 
+    /* mark first metric value */
+    rfc7181_metric_set_flag(&tlv_value, flags[i]);
+
     /* mark all metric pair that have the same linkmetric */
-    for (j=3; j>=i; j--) {
-      if (metrics[i] > 0 &&
+    for (j=3; j>i; j--) {
+      if (metrics[j] > 0 &&
           memcmp(&metric_encoded[i], &metric_encoded[j], sizeof(metric_encoded[0])) == 0) {
         rfc7181_metric_set_flag(&tlv_value, flags[j]);
         metrics[j] = 0;

@@ -85,6 +85,8 @@ static void _handle_originator(struct rfc5444_reader_tlvblock_context *context);
 
 static enum rfc5444_result
 _cb_messagetlvs(struct rfc5444_reader_tlvblock_context *context);
+enum rfc5444_result _cb_failed_constraints(
+      struct rfc5444_reader_tlvblock_context *context);
 
 static enum rfc5444_result
 _cb_addresstlvs_pass1(struct rfc5444_reader_tlvblock_context *context);
@@ -101,6 +103,7 @@ static struct rfc5444_reader_tlvblock_consumer _nhdp_message_pass1_consumer = {
   .order = RFC5444_MAIN_PARSER_PRIORITY,
   .msg_id = RFC5444_MSGTYPE_HELLO,
   .block_callback = _cb_messagetlvs,
+  .block_callback_failed_constraints = _cb_failed_constraints,
   .end_callback = _cb_addresstlvs_pass1_end,
 };
 
@@ -125,6 +128,7 @@ static struct rfc5444_reader_tlvblock_consumer _nhdp_address_pass1_consumer = {
   .msg_id = RFC5444_MSGTYPE_HELLO,
   .addrblock_consumer = true,
   .block_callback = _cb_addresstlvs_pass1,
+  .block_callback_failed_constraints = _cb_failed_constraints,
 };
 
 static struct rfc5444_reader_tlvblock_consumer_entry _nhdp_address_pass1_tlvs[] = {
@@ -138,6 +142,7 @@ static struct rfc5444_reader_tlvblock_consumer _nhdp_message_pass2_consumer = {
   .order = RFC5444_MAIN_PARSER_PRIORITY + 1,
   .msg_id = RFC5444_MSGTYPE_HELLO,
   .end_callback = _cb_msg_pass2_end,
+  .block_callback_failed_constraints = _cb_failed_constraints,
 };
 
 static struct rfc5444_reader_tlvblock_consumer _nhdp_address_pass2_consumer= {
@@ -145,6 +150,7 @@ static struct rfc5444_reader_tlvblock_consumer _nhdp_address_pass2_consumer= {
   .msg_id = RFC5444_MSGTYPE_HELLO,
   .addrblock_consumer = true,
   .block_callback = _cb_addr_pass2_block,
+  .block_callback_failed_constraints = _cb_failed_constraints,
 };
 
 static struct rfc5444_reader_tlvblock_consumer_entry _nhdp_address_pass2_tlvs[] = {
@@ -370,7 +376,7 @@ _cb_messagetlvs(struct rfc5444_reader_tlvblock_context *context) {
    */
   memset(&_current, 0, sizeof(_current));
 
-  OONF_DEBUG(LOG_NHDP_R,
+  OONF_INFO(LOG_NHDP_R,
       "Incoming message type %d from %s through %s (addrlen = %u), got message tlvs",
       context->msg_type, netaddr_socket_to_string(&buf, _protocol->input_socket),
       _protocol->input_interface->name, context->addr_len);
@@ -459,6 +465,17 @@ _cb_messagetlvs(struct rfc5444_reader_tlvblock_context *context) {
   }
 
   return RFC5444_OKAY;
+}
+
+enum rfc5444_result
+_cb_failed_constraints(struct rfc5444_reader_tlvblock_context *context) {
+  struct netaddr_str nbuf;
+
+  OONF_INFO(LOG_NHDP_R,
+      "Incoming message type %d from %s through %s (addrlen = %u) failed constraints",
+      context->msg_type, netaddr_socket_to_string(&nbuf, _protocol->input_socket),
+      _protocol->input_interface->name, context->addr_len);
+  return RFC5444_DROP_MESSAGE;
 }
 
 /**
@@ -857,6 +874,7 @@ _cb_msg_pass2_end(struct rfc5444_reader_tlvblock_context *context, bool dropped)
   struct nhdp_laddr *laddr, *la_it;
   struct nhdp_l2hop *twohop, *twohop_it;
   uint64_t t;
+  struct netaddr_str nbuf;
 
   if (dropped) {
     _cleanup_error();
@@ -894,11 +912,17 @@ _cb_msg_pass2_end(struct rfc5444_reader_tlvblock_context *context, bool dropped)
   /* Section 12.5.4: update link */
   if (_current.link_heard) {
     /* Section 12.5.4.1.1: we have been heard, so the link is symmetric */
-    oonf_timer_set(&_current.link->sym_time, _current.vtime);
+    nhdp_db_link_set_symtime(_current.link, _current.vtime);
+
+    OONF_DEBUG(LOG_NHDP_R, "Reset link timer for link to %s to %" PRIu64,
+        netaddr_to_string(&nbuf, &_current.link->if_addr), _current.vtime);
   }
   else if (_current.link_lost) {
     /* Section 12.5.4.1.2 */
     if (oonf_timer_is_active(&_current.link->sym_time)) {
+      OONF_DEBUG(LOG_NHDP_R, "Stop link timer for link to %s",
+          netaddr_to_string(&nbuf, &_current.link->if_addr));
+
       oonf_timer_stop(&_current.link->sym_time);
 
       /*
