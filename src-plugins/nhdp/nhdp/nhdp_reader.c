@@ -468,7 +468,7 @@ _cb_messagetlvs(struct rfc5444_reader_tlvblock_context *context) {
 }
 
 enum rfc5444_result
-_cb_failed_constraints(struct rfc5444_reader_tlvblock_context *context) {
+_cb_failed_constraints(struct rfc5444_reader_tlvblock_context *context __attribute__((unused))) {
 #ifdef OONF_LOG_INFO
   struct netaddr_str nbuf;
 #endif
@@ -876,7 +876,9 @@ _cb_msg_pass2_end(struct rfc5444_reader_tlvblock_context *context, bool dropped)
   struct nhdp_laddr *laddr, *la_it;
   struct nhdp_l2hop *twohop, *twohop_it;
   uint64_t t;
+#ifdef OONF_LOG_DEBUG_INFO
   struct netaddr_str nbuf;
+#endif
 
   if (dropped) {
     _cleanup_error();
