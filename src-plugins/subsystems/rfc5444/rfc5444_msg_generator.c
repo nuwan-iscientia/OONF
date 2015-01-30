@@ -247,8 +247,9 @@ rfc5444_writer_create_message(struct rfc5444_writer *writer, uint8_t msgid,
     }
 
     /* remember first mandatory address */
-    if (first_mandatory == NULL && addr->_mandatory_addr) {
-      first_mandatory = addr;
+    /* TODO: comment doesn't make sense, but with the "fix" two testcases fail */
+    if (first_addr == NULL && addr->_mandatory_addr) {
+      first_addr = addr;
     }
 
     addr->index = idx++;
@@ -870,7 +871,7 @@ _compress_address(struct _rfc5444_internal_addr_compress_session *acs,
 
 #if DO_ADDR_COMPRESSION == true
     closed = first;
-    if (common_head <= i) {
+    if (common_head < i) {
       closed = true;
     }
 #else
