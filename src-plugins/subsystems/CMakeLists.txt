@@ -80,7 +80,9 @@ IF(LINUX)
     SET(OS_VIF_INCLUDE       os_linux/os_vif_linux.h)
 ENDIF(LINUX)
 
-oonf_create_plugin("os_clock" "${OS_CLOCK_SOURCE}" "${OS_CLOCK_INCLUDE}" "")
+# link librt to os_clock plugin to allow building with older GLIBC versions
+# we need librt in the pluginloader anyways
+oonf_create_plugin("os_clock" "${OS_CLOCK_SOURCE}" "${OS_CLOCK_INCLUDE}" "rt")
 oonf_create_plugin("os_socket" "${OS_SOCKET_SOURCE}" "${OS_SOCKET_INCLUDE}" "")
 oonf_create_plugin("os_routing" "${OS_ROUTING_SOURCE}" "${OS_ROUTING_INCLUDE}" "")
 oonf_create_plugin("os_interface" "${OS_INTERFACE_SOURCE}" "${OS_INTERFACE_INCLUDE}" "")
