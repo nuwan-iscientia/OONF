@@ -90,26 +90,4 @@ function (oonf_create_app executable static_plugins)
     # add custom install targets
     oonf_create_install_target("${executable}_dynamic")
     oonf_create_install_target("${executable}_static")
-    
-#    ADD_CUSTOM_TARGET(install_${executable}_dynamic
-#                      COMMAND ${CMAKE_COMMAND} 
-#                      -DBUILD_TYPE=${CMAKE_BUILD_TYPE}
-#                      -DCOMPONENT=component_${executable}_dynamic 
-#                      -P ${CMAKE_BINARY_DIR}/cmake_install.cmake)
-#    ADD_DEPENDENCIES(install_${executable}_dynamic  ${executable}_dynamic
-#                                                    oonf_core
-#                                                    oonf_config
-#                                                    oonf_common)
-#    get_property(value TARGET ${executable}_dynamic PROPERTY LINK_LIBRARIES)
-#    message("${executable}_dynamic dependencies: ${value}")
-
-#    ADD_CUSTOM_TARGET(install_${executable}_static
-#                      COMMAND ${CMAKE_COMMAND} 
-#                      -DBUILD_TYPE=${CMAKE_BUILD_TYPE}
-#                      -DCOMPONENT=component_${executable}_static 
-#                      -P ${CMAKE_BINARY_DIR}/cmake_install.cmake)
-#    ADD_DEPENDENCIES(install_${executable}_static   ${executable}_static)
-#    
-#    get_property(value TARGET ${executable}_static PROPERTY LINK_LIBRARIES)
-#    message("${executable}_static dependencies: ${value}")
 endfunction(oonf_create_app)
