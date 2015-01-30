@@ -7,7 +7,7 @@ set (OONF_APP "Minimal OONF Daemon")
 set (OONF_EXE oonf)
 
 # setup custom text before and after default help message
-set (OONF_HELP_PREFIX "OONF Daemon daemon\\n")
+set (OONF_HELP_PREFIX "OONF daemon\\n")
 set (OONF_HELP_SUFFIX "Visit http://www.olsr.org\\n")
 
 # setup custom text after version string
@@ -23,7 +23,9 @@ set (OONF_APP_DEFAULT_CFG_HANDLER Compact)
 ####  set static subsystems  ####
 #################################
 
-set (OONF_STATIC_PLUGINS cfg_compact)
+IF (NOT OONF_STATIC_PLUGINS)
+    set (OONF_STATIC_PLUGINS cfg_compact)
+ENDIF (NOT OONF_STATIC_PLUGINS)
 
 ##################################
 #### link framework libraries ####

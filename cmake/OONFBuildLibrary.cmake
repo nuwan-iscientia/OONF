@@ -4,11 +4,11 @@ function (oonf_create_library libname source include link_internal linkto_extern
     # create static and dynamic library
     add_library(oonf_${libname} SHARED ${source})
     add_library(oonf_static_${libname} OBJECT ${source})
-
+    
     # add libraries to global static/dynamic target
     add_dependencies(dynamic oonf_${libname})
     add_dependencies(static oonf_static_${libname})
-    
+
     # and link their dependencies
     if(WIN32)
         target_link_libraries(oonf_${libname} ws2_32 iphlpapi)
@@ -23,23 +23,27 @@ function (oonf_create_library libname source include link_internal linkto_extern
         target_link_libraries(oonf_${libname} ${linkto_external})
     endif (linkto_external)
     
-    install(TARGETS oonf_${libname} DESTINATION lib)
-
-    foreach(inc ${include})
-        get_filename_component(path "${inc}" PATH)
-        
-        if (EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/${inc}")
-            install (FILES ${CMAKE_CURRENT_SOURCE_DIR}/${inc}
-                     DESTINATION ${INSTALL_INCLUDE_DIR}/${libname}/${path})
-        ELSE (EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/${inc}")
-            install (FILES ${CMAKE_BINARY_DIR}/${libname}/${inc}
-                     DESTINATION ${INSTALL_INCLUDE_DIR}/${libname}/${path})
-        ENDIF(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/${inc}")
-    endforeach(inc)
+    install(TARGETS oonf_${libname} LIBRARY
+                                    DESTINATION lib
+                                    COMPONENT component_oonf_${libname})
+    
+    ADD_CUSTOM_TARGET(install_oonf_${libname}
+                      COMMAND ${CMAKE_COMMAND} 
+                      -DBUILD_TYPE=${CMAKE_BUILD_TYPE}
+                      -DCOMPONENT=component_oonf_${libname}
+                      -P ${CMAKE_BINARY_DIR}/cmake_install.cmake)
+    ADD_DEPENDENCIES(install_oonf_${libname}   oonf_${libname})
+    
+    if (linkto_internal)
+        FOREACH(lib ${linkto_internal})
+            ADD_DEPENDENCIES(install_oonf_${libname} ${lib})
+            ADD_DEPENDENCIES(install_oonf_${libname} install_${lib})
+        ENDFOREACH(lib)
+    endif (linkto_internal)
 endfunction (oonf_create_library)
 
 function (oonf_create_plugin libname source include linkto_external)
     SET (linkto_internal oonf_core oonf_config oonf_common)
     
-    oonf_create_library("${libname}" "${source}" "" "${linkto_internal}" "${linkto_external}")
+    oonf_create_library("${libname}" "${source}" "${include}" "${linkto_internal}" "${linkto_external}")
 endfunction (oonf_create_plugin)

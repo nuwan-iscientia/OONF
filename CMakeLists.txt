@@ -1,5 +1,5 @@
 project (OONF C)
-cmake_minimum_required(VERSION 2.8.8 FATAL_ERROR)
+cmake_minimum_required(VERSION 2.8.12 FATAL_ERROR)
 
 ###########################
 #### API configuration ####
@@ -29,6 +29,10 @@ endif(DOXYGEN_FOUND)
 #########################
 #### Compile targets ####
 #########################
+
+# get repository tag and version
+include (cmake/get_version.cmake)
+include (${PROJECT_BINARY_DIR}/version.cmake)
 
 # add define for length of base path
 string(LENGTH "${CMAKE_SOURCE_DIR}/" BASELENGTH)

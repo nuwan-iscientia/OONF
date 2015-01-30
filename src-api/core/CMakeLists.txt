@@ -1,25 +1,6 @@
 # make sure that oonf_libdata is rebuild everytimes 
 SET(GEN_DATA_C ${PROJECT_BINARY_DIR}/oonf_libdata.c)
-
-ADD_CUSTOM_TARGET(LibCleanData ALL
-    COMMAND ${CMAKE_COMMAND} -E remove ${GEN_DATA_C}
-    COMMENT "Remove old library builddata"
-)
-
-ADD_CUSTOM_COMMAND (
-    OUTPUT ${GEN_DATA_C}
-    COMMAND ${CMAKE_COMMAND}
-        -DSRC=${CMAKE_CURRENT_SOURCE_DIR}/oonf_libdata.c.in
-        -DDST=${GEN_DATA_C}
-        -DOONF_VERSION=${OONF_VERSION}
-        -DCMAKE_SHARED_LIBRARY_PREFIX=${CMAKE_SHARED_LIBRARY_PREFIX}
-        -DCMAKE_SHARED_LIBRARY_SUFFIX=${CMAKE_SHARED_LIBRARY_SUFFIX}
-        -DOONF_LIB_GIT=${OONF_LIB_GIT}
-        -P ${CMAKE_SOURCE_DIR}/cmake/generate_builddata.cmake
-    DEPENDS LibCleanData
-    WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
-    COMMENT "Create new library builddata"
-)
+configure_file (${CMAKE_CURRENT_SOURCE_DIR}/oonf_libdata.c.in ${GEN_DATA_C})
 
 SET(OONF_CORE_SRCS oonf_cfg.c
                    oonf_logging.c

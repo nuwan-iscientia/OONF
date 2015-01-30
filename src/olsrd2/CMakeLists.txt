@@ -23,35 +23,37 @@ set (OONF_APP_DEFAULT_CFG_HANDLER Compact)
 ####  set static subsystems  ####
 #################################
 
-set (OONF_STATIC_PLUGINS class
-                         clock
-                         duplicate_set
-                         interface
-                         layer2
-                         packet_socket
-                         rfc5444
-                         socket
-                         stream_socket
-                         telnet
-                         timer
-                         viewer
-                         os_clock
-                         os_socket
-                         os_interface
-                         os_routing
-                         os_system
-                         cfg_compact
-                         layer2info
-                         nl80211_listener
-                         systeminfo
-                         nhdp
-                         ff_dat_metric
-                         link_config
-                         neighbor_probing
-                         nhdpinfo
-                         olsrv2
-                         olsrv2info
-                         )
+IF (NOT OONF_STATIC_PLUGINS)
+    set (OONF_STATIC_PLUGINS class
+                             clock
+                             duplicate_set
+                             interface
+                             layer2
+                             packet_socket
+                             rfc5444
+                             socket
+                             stream_socket
+                             telnet
+                             timer
+                             viewer
+                             os_clock
+                             os_socket
+                             os_interface
+                             os_routing
+                             os_system
+                             cfg_compact
+                             layer2info
+                             nl80211_listener
+                             systeminfo
+                             nhdp
+                             ff_dat_metric
+                             link_config
+                             neighbor_probing
+                             nhdpinfo
+                             olsrv2
+                             olsrv2info
+                             )
+ENDIF (NOT OONF_STATIC_PLUGINS)
 
 ##################################
 #### link framework libraries ####
