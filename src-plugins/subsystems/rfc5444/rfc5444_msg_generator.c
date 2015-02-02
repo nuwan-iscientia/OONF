@@ -823,7 +823,7 @@ _compress_address(struct _rfc5444_internal_addr_compress_session *acs,
     int same_prefixlen, bool first) {
   struct rfc5444_writer_address *last_addr = NULL;
   struct rfc5444_writer_addrtlv *tlv;
-  int i, common_head;
+  uint32_t i, common_head;
   const uint8_t *addrptr, *last_addrptr;
   uint8_t addrlen;
   bool special_prefixlen;

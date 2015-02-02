@@ -584,7 +584,7 @@ _cb_dat_sampling(void *ptr __attribute__((unused))) {
 static uint32_t
 _apply_packet_loss(struct link_datff_data *ldata, uint32_t metric,
     uint32_t received, uint32_t total) {
-  int success;
+  int64_t success;
   int last;
 
   last = ldata->last_packet_success_rate;
