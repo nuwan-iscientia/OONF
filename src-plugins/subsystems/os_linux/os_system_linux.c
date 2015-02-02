@@ -478,10 +478,6 @@ _netlink_handler(int fd, void *data, bool event_read, bool event_write) {
   uint32_t current_seq = 0;
   bool trigger_is_done;
 
-#if defined(OONF_LOG_DEBUG_INFO)
-  struct autobuf hexbuf;
-#endif
-
   nl = data;
   if (event_write) {
     _flush_netlink_buffer(nl);
@@ -531,14 +527,7 @@ netlink_rcv_retry:
 
   OONF_INFO(nl->used_by->logging, "Got netlink message of %"
       PRINTF_SSIZE_T_SPECIFIER" bytes", ret);
-
-#if defined(OONF_LOG_DEBUG_INFO)
-  abuf_init(&hexbuf);
-  abuf_hexdump(&hexbuf, "", nl->in, ret);
-  
-  OONF_DEBUG(nl->used_by->logging, "Content of netlink message:\n%s", abuf_getptr(&hexbuf));
-  abuf_free(&hexbuf);
-#endif
+  OONF_DEBUG_HEX(nl->used_by->logging, nl->in, ret, "Content of netlink message:");
   
   trigger_is_done = false;
 

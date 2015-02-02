@@ -478,7 +478,6 @@ _send_netlink_message(struct nl80211_if *interf, enum _if_query query) {
   }
 
   os_system_netlink_send(&_netlink_handler, _nl_msg);
-
 }
 
 static void
@@ -523,8 +522,15 @@ _get_next_query(void) {
 static void
 _trigger_next_netlink_query(void) {
   if (!_nl80211_id || !_nl80211_multicast_group) {
+    if (_current_query_in_progress) {
+      /* wait for the next timer */
+      _current_query_in_progress = false;
+      return;
+    }
+
     /* first we need to get the ID and multicast group */
     OONF_DEBUG(LOG_NL80211, "Get nl80211 family and multicast id");
+    _current_query_in_progress = true;
     _send_netlink_message(NULL, QUERY_GET_FAMILY);
     return;
   }
@@ -598,6 +604,7 @@ _cb_nl_done(uint32_t seq __attribute((unused))) {
   if (_if_query_ops[_current_query_number].finalize) {
     _if_query_ops[_current_query_number].finalize(_current_query_if);
   }
+
   _trigger_next_netlink_query();
 }
 
