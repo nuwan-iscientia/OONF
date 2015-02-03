@@ -1223,8 +1223,8 @@ cleanup_parse_message:
   _free_tlvblock(parser, &tlv_entries);
   *ptr = end;
 #if DISALLOW_CONSUMER_CONTEXT_DROP == false
-  if (result == RFC5444_DROP_MESSAGE) {
-    /* do not propagate message drop */
+  if (result > RFC5444_OKAY && result != RFC5444_DROP_PACKET) {
+    /* do not propagate message/address/tlv drops */
     return RFC5444_OKAY;
   }
 #endif
