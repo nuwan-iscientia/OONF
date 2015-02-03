@@ -253,30 +253,36 @@ _generate_neighbor_metric_tlvs(struct rfc5444_writer *writer,
     memset(&metric_out_encoded, 0, sizeof(metric_out_encoded));
     second_tlv = false;
 
-    if (nhdp_domain_get_neighbordata(domain, neigh)->local_is_mpr) {
-      /* neighbor has selected us as an MPR */
-      OONF_DEBUG(LOG_OLSRV2_W, "Neighbor is chosen by domain %u as MPR", domain->index);
+    if (!nhdp_domain_get_neighbordata(domain, neigh)->local_is_mpr) {
+      /* not an MPR, do not mention it in the TC */
+      continue;
+    }
 
-      metric_in = neigh_domain->metric.in;
-      if (rfc7181_metric_encode(&metric_in_encoded, metric_in)) {
-        OONF_DEBUG(LOG_OLSRV2_W, "Encoding of metric %u failed", metric_in);
-      }
+    /* neighbor has selected us as an MPR */
+    OONF_DEBUG(LOG_OLSRV2_W, "Neighbor is chosen by domain %u as MPR", domain->index);
 
-      metric_out = neigh_domain->metric.out;
-      if (rfc7181_metric_encode(&metric_out_encoded, metric_out)) {
-        OONF_DEBUG(LOG_OLSRV2_W, "Encoding of metric %u failed", metric_in);
-      }
+    metric_in = neigh_domain->metric.in;
+    if (rfc7181_metric_encode(&metric_in_encoded, metric_in)) {
+      OONF_DEBUG(LOG_OLSRV2_W, "Encoding of metric %u failed", metric_in);
+      /* invalid incoming metric, do not mention it in the TC */
+      continue;
+    }
 
-      rfc7181_metric_set_flag(&metric_in_encoded, RFC7181_LINKMETRIC_INCOMING_NEIGH);
-      if (memcmp(&metric_in_encoded, &metric_out_encoded, sizeof(metric_in_encoded)) == 0) {
-        /* incoming and outgoing metric are the same */
-        rfc7181_metric_set_flag(&metric_in_encoded, RFC7181_LINKMETRIC_OUTGOING_NEIGH);
-      }
-      else {
-        /* two different link metrics */
-        rfc7181_metric_set_flag(&metric_out_encoded, RFC7181_LINKMETRIC_OUTGOING_NEIGH);
-        second_tlv = true;
-      }
+    /* set flag for incoming metric */
+    rfc7181_metric_set_flag(&metric_in_encoded, RFC7181_LINKMETRIC_INCOMING_NEIGH);
+
+    metric_out = neigh_domain->metric.out;
+    if (rfc7181_metric_encode(&metric_out_encoded, metric_out)) {
+      OONF_DEBUG(LOG_OLSRV2_W, "Encoding of metric %u failed", metric_in);
+    }
+    else if (memcmp(&metric_in_encoded, &metric_out_encoded, sizeof(metric_in_encoded)) == 0) {
+      /* incoming and outgoing metric are the same */
+      rfc7181_metric_set_flag(&metric_in_encoded, RFC7181_LINKMETRIC_OUTGOING_NEIGH);
+    }
+    else {
+      /* two different link metrics */
+      rfc7181_metric_set_flag(&metric_out_encoded, RFC7181_LINKMETRIC_OUTGOING_NEIGH);
+      second_tlv = true;
     }
 
     OONF_DEBUG(LOG_OLSRV2_W, "Add Linkmetric (ext %u) TLV with value 0x%02x%02x",
