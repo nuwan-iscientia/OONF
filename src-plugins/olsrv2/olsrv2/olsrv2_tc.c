@@ -234,6 +234,11 @@ olsrv2_tc_edge_add(struct olsrv2_tc_node *src, struct netaddr *addr) {
   if (edge != NULL) {
     edge->virtual = false;
 
+    /* cleanup metric data from other side of the edge */
+    for (i=0; i<NHDP_MAXIMUM_DOMAINS; i++) {
+      edge->cost[i] = RFC7181_METRIC_INFINITE;
+    }
+
     /* fire event */
     oonf_class_event(&_tc_edge_class, edge, OONF_OBJECT_ADDED);
     return edge;

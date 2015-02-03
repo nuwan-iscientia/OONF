@@ -431,7 +431,6 @@ _initialize_domain_metric_values(struct nhdp_domain *domain,
 
   snprintf(_value_domain_metric_out_raw,
       sizeof(_value_domain_metric_out_raw), "%u", metric);
-
 }
 
 /**

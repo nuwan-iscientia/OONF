@@ -334,10 +334,12 @@ _cb_addresstlvs(struct rfc5444_reader_tlvblock_context *context __attribute__((u
 
     if (rfc7181_metric_has_flag(&metric_value, RFC7181_LINKMETRIC_INCOMING_NEIGH)) {
       cost_in[domain->index] = rfc7181_metric_decode(&metric_value);
+      OONF_DEBUG(LOG_OLSRV2_R, "Incoming metric: %d", cost_in[domain->index]);
      }
 
     if (rfc7181_metric_has_flag(&metric_value, RFC7181_LINKMETRIC_OUTGOING_NEIGH)) {
       cost_out[domain->index] = rfc7181_metric_decode(&metric_value);
+      OONF_DEBUG(LOG_OLSRV2_R, "Outgoing metric: %d", cost_out[domain->index]);
     }
   }
 

@@ -236,7 +236,7 @@ olsrv2_tc_attachment_get_distance(struct nhdp_domain *domain,
   return attached->distance[domain->index];
 }
 
-static INLINE uint8_t
+static INLINE uint32_t
 olsrv2_tc_edge_get_metric(struct nhdp_domain *domain,
     struct olsrv2_tc_edge *edge) {
   return edge->cost[domain->index];
