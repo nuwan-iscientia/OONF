@@ -150,6 +150,13 @@ oonf_subsystem_configure(struct cfg_schema *schema,
 
   OONF_INFO(LOG_SUBSYSTEMS, "Configure subsystem %s", subsystem->name);
 
+  /* early configuration */
+  if (subsystem->early_cfg_init) {
+    OONF_DEBUG(LOG_SUBSYSTEMS, "(%s) Call 'early_cfg_init() callback",
+        subsystem->name);
+    subsystem->early_cfg_init();
+  }
+
   /* add schema sections to global schema */
   schema_section = subsystem->cfg_section;
   while (schema_section) {
@@ -168,13 +175,6 @@ oonf_subsystem_configure(struct cfg_schema *schema,
   }
   else {
     subsystem->logging = LOG_MAIN;
-  }
-
-  /* early configuration */
-  if (subsystem->early_cfg_init) {
-    OONF_DEBUG(LOG_SUBSYSTEMS, "(%s) Call 'early_cfg_init() callback",
-        subsystem->name);
-    subsystem->early_cfg_init();
   }
 }
 

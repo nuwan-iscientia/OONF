@@ -228,8 +228,6 @@ _parse_strarray(struct strarray *array, const char *ifname,
     enum oonf_layer2_neighbor_index idx) {
   struct oonf_layer2_neigh *l2neigh;
   struct oonf_layer2_net *l2net;
-  struct os_interface_data ifdata;
-  struct os_interface_data *ifptr;
   struct netaddr_str nbuf;
   struct netaddr linkmac;
   struct isonumber_str hbuf;
@@ -237,13 +235,7 @@ _parse_strarray(struct strarray *array, const char *ifname,
   char *entry;
   const char *ptr;
 
-  ifptr = oonf_interface_get_data(ifname, &ifdata);
-  if (!ifptr) {
-    OONF_INFO(LOG_LINK_CONFIG, "Interface '%s' does not exist", ifname);
-    return;
-  }
-
-  l2net = oonf_layer2_net_add(ifptr->name);
+  l2net = oonf_layer2_net_add(ifname);
   if (l2net == NULL) {
     return;
   }
