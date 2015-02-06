@@ -284,6 +284,11 @@ _cb_probe_link(void *ptr __attribute__((unused))) {
         interf->data.name);
 
     list_for_each_element(&ninterf->_links, lnk, _if_node) {
+      if (lnk->status != NHDP_LINK_SYMMETRIC) {
+        /* only probe symmetric neighbors */
+        continue;
+      }
+
       /* get layer2 data */
       l2neigh = oonf_layer2_neigh_get(l2net, &lnk->remote_mac);
       if (l2neigh == NULL
