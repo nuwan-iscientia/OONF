@@ -96,7 +96,7 @@ static void _cb_cfg_changed(void);
 
 /* plugin declaration */
 static struct cfg_schema_entry _probing_entries[] = {
-  CFG_MAP_CLOCK_MIN(_config, interval, "interval", "1.0",
+  CFG_MAP_CLOCK_MIN(_config, interval, "interval", "0.2",
       "Time interval between link probing", 100),
   CFG_MAP_INT32_MINMAX(_config, probe_size, "size", "512",
       "Number of bytes used for neighbor probe",
