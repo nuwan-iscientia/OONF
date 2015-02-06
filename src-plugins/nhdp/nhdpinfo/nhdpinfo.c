@@ -271,17 +271,16 @@ static struct abuf_template_data_entry _tde_twohop_addr[] = {
     { KEY_TWOHOP_VTIME, _value_twohop_vtime.buf, false },
 };
 
-static struct abuf_template_data_entry _tde_neigh[] = {
+static struct abuf_template_data_entry _tde_neigh_key[] = {
     { KEY_NEIGHBOR_ORIGINATOR, _value_neighbor_originator.buf, true },
+};
+
+static struct abuf_template_data_entry _tde_neigh[] = {
     { KEY_NEIGHBOR_DUALSTACK, _value_neighbor_dualstack.buf, true },
     { KEY_NEIGHBOR_FLOOD_LOCAL, _value_neighbor_flood_local, true },
     { KEY_NEIGHBOR_FLOOD_REMOTE, _value_neighbor_flood_remote, true },
     { KEY_NEIGHBOR_SYMMETRIC, _value_neighbor_symmetric, true },
     { KEY_NEIGHBOR_LINKCOUNT, _value_neighbor_linkcount, false },
-};
-
-static struct abuf_template_data_entry _tde_neigh_key[] = {
-    { KEY_NEIGHBOR_ORIGINATOR, _value_neighbor_originator.buf, true },
 };
 
 static struct abuf_template_data_entry _tde_neigh_addr[] = {
@@ -318,6 +317,7 @@ static struct abuf_template_data _td_twohop_addr[] = {
     { _tde_twohop_addr, ARRAYSIZE(_tde_twohop_addr) },
 };
 static struct abuf_template_data _td_neigh[] = {
+    { _tde_neigh_key, ARRAYSIZE(_tde_neigh_key) },
     { _tde_neigh, ARRAYSIZE(_tde_neigh) },
     { _tde_domain, ARRAYSIZE(_tde_domain) },
     { _tde_domain_metric, ARRAYSIZE(_tde_domain_metric) },
