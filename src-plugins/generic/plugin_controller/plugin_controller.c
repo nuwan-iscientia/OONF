@@ -73,7 +73,7 @@ struct oonf_telnet_command _telnet_commands[] = {
 
 /* configuration */
 static struct cfg_schema_entry _plugin_controller_entries[] = {
-  CFG_MAP_ACL(_acl_config, acl, "acl", "+127.0.0.1 " ACL_DEFAULT_REJECT, "acl for plugin controller"),
+  CFG_MAP_ACL(_acl_config, acl, "acl", ACL_LOCALHOST_ONLY, "acl for plugin controller"),
 };
 
 static struct cfg_schema_section _plugin_controller_section = {

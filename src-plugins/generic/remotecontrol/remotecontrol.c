@@ -108,7 +108,7 @@ static void _cb_handle_session_cleanup(struct oonf_telnet_cleanup *cleanup);
 
 /* configuration */
 static struct cfg_schema_entry _remotecontrol_entries[] = {
-  CFG_MAP_ACL(_remotecontrol_cfg, acl, "acl", "+127.0.0.1\0+::1\0default_reject", "acl for remote control commands"),
+  CFG_MAP_ACL(_remotecontrol_cfg, acl, "acl", ACL_LOCALHOST_ONLY, "acl for remote control commands"),
 };
 
 static struct cfg_schema_section _remotecontrol_section = {

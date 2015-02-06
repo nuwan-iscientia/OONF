@@ -174,6 +174,9 @@ struct cfg_schema_entry;
 #define CFG_MAP_STRINGLIST(p_reference, p_field, p_name, p_def, p_help, args...)                              _CFG_VALIDATE(p_name, p_def, p_help, .cb_to_binary = cfg_schema_tobin_stringlist, .bin_offset = offsetof(struct p_reference, p_field), .list = true, ##args )
 
 
+/* convenience definition for configuration that only allows access from loopback */
+#define ACL_LOCALHOST_ONLY "+127.0.0.1/8\0+::1/128\0" ACL_DEFAULT_REJECT
+
 struct cfg_schema {
   /* tree of sections of this schema */
   struct avl_tree sections;
