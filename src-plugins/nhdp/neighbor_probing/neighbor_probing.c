@@ -66,6 +66,9 @@ struct _config {
 
   /* size of probe */
   int32_t probe_size;
+
+  /* true to probe all DLEP interfaces */
+  bool probe_dlep;
 };
 
 struct _probing_link_data {
@@ -98,6 +101,8 @@ static struct cfg_schema_entry _probing_entries[] = {
   CFG_MAP_INT32_MINMAX(_config, probe_size, "size", "512",
       "Number of bytes used for neighbor probe",
       0, false, 1, 1500),
+  CFG_MAP_BOOL(_config, probe_dlep, "probe_dlep", "true",
+      "Probe DLEP interfaces in addition to wireless interfaces"),
 };
 
 static struct cfg_schema_section _probing_section = {
@@ -225,6 +230,18 @@ _cb_link_removed(void *ptr) {
   }
 }
 
+static bool
+_check_if_type(struct oonf_layer2_net *net) {
+  if (net->if_type == OONF_LAYER2_TYPE_WIRELESS) {
+    return true;
+  }
+
+  if (_probe_config.probe_dlep && net->if_type == OONF_LAYER2_TYPE_DLEP) {
+    return true;
+  }
+  return false;
+}
+
 static void
 _cb_probe_link(void *ptr __attribute__((unused))) {
   struct nhdp_link *lnk, *best_lnk;
@@ -253,7 +270,11 @@ _cb_probe_link(void *ptr __attribute__((unused))) {
     interf = nhdp_interface_get_coreif(ninterf);
 
     l2net = oonf_layer2_net_get(interf->data.name);
-    if (!l2net || l2net->if_type != OONF_LAYER2_TYPE_WIRELESS) {
+    if (!l2net) {
+      continue;
+    }
+
+    if(!_check_if_type(l2net)) {
       OONF_DEBUG(LOG_PROBING, "Drop interface %s (not wireless)",
           interf->data.name);
       continue;

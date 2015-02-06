@@ -594,6 +594,10 @@ _handle_destination_up(struct dlep_router_session *session,
     return;
   }
 
+  if (l2net->if_type == OONF_LAYER2_TYPE_UNDEFINED) {
+    l2net->if_type = OONF_LAYER2_TYPE_DLEP;
+  }
+
   l2neigh = oonf_layer2_neigh_add(l2net, &mac);
   if (!l2neigh) {
     _generate_destination_up_ack(session, DLEP_STATUS_ERROR);

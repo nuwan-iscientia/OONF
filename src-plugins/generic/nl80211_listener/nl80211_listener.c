@@ -386,6 +386,10 @@ _nl80211_if_add(const char *name) {
     return NULL;
   }
 
+  if (interf->l2net->if_type == OONF_LAYER2_TYPE_UNDEFINED) {
+    interf->l2net->if_type = OONF_LAYER2_TYPE_WIRELESS;
+  }
+
   /* initialize interface listener */
   interf->if_listener.name = interf->name;
   if (oonf_interface_add_listener(&interf->if_listener)) {
