@@ -599,7 +599,7 @@ _apply_packet_loss(struct link_datff_data *ldata, uint32_t metric,
     /* remember new loss rate */
     ldata->last_packet_success_rate = success_scaled_by_1000/1000;
   }
-  return ((int64_t)metric * (int64_t)DATFF_FRAME_SUCCESS_RANGE * 1000ll) / success_scaled_by_1000;
+  return ((int64_t)metric * (int64_t)DATFF_FRAME_SUCCESS_RANGE * 1000ll + 500ll) / success_scaled_by_1000;
 }
 
 /**
