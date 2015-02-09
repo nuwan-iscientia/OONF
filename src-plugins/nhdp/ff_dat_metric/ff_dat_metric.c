@@ -584,22 +584,22 @@ _cb_dat_sampling(void *ptr __attribute__((unused))) {
 static uint32_t
 _apply_packet_loss(struct link_datff_data *ldata, uint32_t metric,
     uint32_t received, uint32_t total) {
-  int64_t success_scaled_by_4;
-  int last_scaled_by_4;
+  int64_t success_scaled_by_1000;
+  int last_scaled_by_1000;
 
-  last_scaled_by_4 = ldata->last_packet_success_rate * 4;
-  success_scaled_by_4 = (DATFF_FRAME_SUCCESS_RANGE * 4) * received / total;
+  last_scaled_by_1000 = (int64_t)ldata->last_packet_success_rate * 1000ll;
+  success_scaled_by_1000 = ((int64_t)DATFF_FRAME_SUCCESS_RANGE * 1000ll) * received / total;
 
-  if (success_scaled_by_4 > last_scaled_by_4 - 3
-      && success_scaled_by_4 < last_scaled_by_4 + 3) {
+  if (success_scaled_by_1000 > last_scaled_by_1000 - 750
+      && success_scaled_by_1000 < last_scaled_by_1000 + 750) {
     /* keep old loss rate */
-    success_scaled_by_4 = last_scaled_by_4;
+    success_scaled_by_1000 = last_scaled_by_1000;
   }
   else {
     /* remember new loss rate */
-    ldata->last_packet_success_rate = success_scaled_by_4/4;
+    ldata->last_packet_success_rate = success_scaled_by_1000/1000;
   }
-  return (metric * DATFF_FRAME_SUCCESS_RANGE * 4) / success_scaled_by_4;
+  return ((int64_t)metric * (int64_t)DATFF_FRAME_SUCCESS_RANGE * 1000ll) / success_scaled_by_1000;
 }
 
 /**
