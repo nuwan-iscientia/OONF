@@ -763,8 +763,8 @@ _int_to_string(struct nhdp_metric_str *buf,
     total += ldata->buckets[i].total;
   }
 
-  snprintf(buf->buf, sizeof(*buf), "%"PRId64"/%"PRId64",%d kbit/s(pktsuccess=%d/8,missed_hello=%d,lastseq=%u)",
-      received, total, _get_median_rx_linkspeed(ldata),
+  snprintf(buf->buf, sizeof(*buf), "p_recv=%"PRId64",p_lost=%"PRId64",speed=%"PRId64",success=%u,missed_hello=%d,lastseq=%u",
+      received, total, (int64_t)_get_median_rx_linkspeed(ldata) * (int64_t)1024,
       ldata->last_packet_success_rate, ldata->missed_hellos, ldata->last_seq_nr);
 
   return buf->buf;
