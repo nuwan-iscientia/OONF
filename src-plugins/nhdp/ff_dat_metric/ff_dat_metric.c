@@ -584,19 +584,22 @@ _cb_dat_sampling(void *ptr __attribute__((unused))) {
 static uint32_t
 _apply_packet_loss(struct link_datff_data *ldata, uint32_t metric,
     uint32_t received, uint32_t total) {
-  int64_t success;
-  int last;
+  int64_t success_scaled_by_4;
+  int last_scaled_by_4;
 
-  last = ldata->last_packet_success_rate;
-  success = (DATFF_FRAME_SUCCESS_RANGE * 4) * received / total;
+  last_scaled_by_4 = ldata->last_packet_success_rate * 4;
+  success_scaled_by_4 = (DATFF_FRAME_SUCCESS_RANGE * 4) * received / total;
 
-  if (success > 4 * last - 3 && success < 4*last + 3) {
-    /* keep old metric */
-    return metric;
+  if (success_scaled_by_4 > last_scaled_by_4 - 3
+      && success_scaled_by_4 < last_scaled_by_4 + 3) {
+    /* keep old loss rate */
+    success_scaled_by_4 = last_scaled_by_4;
   }
-
-  ldata->last_packet_success_rate = success/4;
-  return (metric * DATFF_FRAME_SUCCESS_RANGE * 4) / success;
+  else {
+    /* remember new loss rate */
+    ldata->last_packet_success_rate = success_scaled_by_4/4;
+  }
+  return (metric * DATFF_FRAME_SUCCESS_RANGE * 4) / success_scaled_by_4;
 }
 
 /**
