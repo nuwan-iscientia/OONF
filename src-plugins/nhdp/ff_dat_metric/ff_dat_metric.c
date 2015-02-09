@@ -585,7 +585,7 @@ static uint32_t
 _apply_packet_loss(struct link_datff_data *ldata, uint32_t metric,
     uint32_t received, uint32_t total) {
   int64_t success_scaled_by_1000;
-  int last_scaled_by_1000;
+  int64_t last_scaled_by_1000;
 
   last_scaled_by_1000 = (int64_t)ldata->last_packet_success_rate * 1000ll;
   success_scaled_by_1000 = ((int64_t)DATFF_FRAME_SUCCESS_RANGE * 1000ll) * received / total;
