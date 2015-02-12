@@ -590,8 +590,8 @@ _apply_packet_loss(struct link_datff_data *ldata, uint32_t metric,
   last_scaled_by_1000 = (int64_t)ldata->last_packet_success_rate * 1000ll;
   success_scaled_by_1000 = ((int64_t)DATFF_FRAME_SUCCESS_RANGE * 1000ll) * received / total;
 
-  if (success_scaled_by_1000 > last_scaled_by_1000 - 750
-      && success_scaled_by_1000 < last_scaled_by_1000 + 750) {
+  if (success_scaled_by_1000 >= last_scaled_by_1000 - 750
+      && success_scaled_by_1000 <= last_scaled_by_1000 + 750) {
     /* keep old loss rate */
     success_scaled_by_1000 = last_scaled_by_1000;
   }
