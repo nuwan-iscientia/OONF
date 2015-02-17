@@ -76,6 +76,9 @@ struct ff_dat_config {
   /* true if metric should include link speed */
   bool ett;
 
+  /* true if packet loss value should be squared */
+  bool squared;
+
 #ifdef COLLECT_RAW_DATA
   /* filename to store raw data into */
   char *rawdata_file;

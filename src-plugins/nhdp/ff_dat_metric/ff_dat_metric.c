@@ -105,7 +105,8 @@ static struct cfg_schema_entry _datff_entries[] = {
   CFG_MAP_BOOL(ff_dat_config, ett, "ett", "true",
       "Activates the handling of linkspeed within the metric, set to false to"
       " downgrade to ETX metric"),
-
+  CFG_MAP_BOOL(ff_dat_config, squared, "squared_loss", "false",
+      "Square the packet loss influence on the metric"),
 #ifdef COLLECT_RAW_DATA
   CFG_MAP_STRING(ff_dat_config, rawdata_file, "raw_filename", "/tmp/olsrv2_dat_metric.txt",
       "File to write recorded data into"),
@@ -598,6 +599,10 @@ _apply_packet_loss(struct link_datff_data *ldata, uint32_t metric,
   else {
     /* remember new loss rate */
     ldata->last_packet_success_rate = success_scaled_by_1000/1000;
+  }
+
+  if (_datff_config.squared) {
+    metric = ((int64_t)metric * (int64_t)DATFF_FRAME_SUCCESS_RANGE * 1000ll + 500ll) / success_scaled_by_1000;
   }
   return ((int64_t)metric * (int64_t)DATFF_FRAME_SUCCESS_RANGE * 1000ll + 500ll) / success_scaled_by_1000;
 }
