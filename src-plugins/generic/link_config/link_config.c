@@ -55,12 +55,6 @@
 /* definitions and constants */
 #define LOG_LINK_CONFIG _oonf_link_config_subsystem.logging
 
-#define CFG_RX_LINKSPEED_KEY          "rx_linkspeed"
-
-enum {
-  CFG_RX_LINKSPEED_DEFAULT = 0,
-};
-
 /* Prototypes */
 static void _early_cfg_init(void);
 static int _init(void);
