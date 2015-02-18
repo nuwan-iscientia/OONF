@@ -72,11 +72,11 @@ static void _cb_config_changed(void);
 /* configuration */
 static struct cfg_schema_entry _router_entries[] = {
   CFG_MAP_NETADDR_V4(dlep_router_if, udp_config.multicast_v4, "discovery_mc_v4",
-    "224.0.0.1", "IPv4 address to send discovery UDP packet to", false, false),
+    DLEP_WELL_KNOWN_MULTICAST_ADDRESS, "IPv4 address to send discovery UDP packet to", false, false),
   CFG_MAP_NETADDR_V6(dlep_router_if, udp_config.multicast_v6, "discovery_mc_v6",
-    "ff02::1", "IPv6 address to send discovery UDP packet to", false, false),
+    DLEP_WELL_KNOWN_MULTICAST_ADDRESS_6, "IPv6 address to send discovery UDP packet to", false, false),
   CFG_MAP_INT32_MINMAX(dlep_router_if, udp_config.multicast_port, "discovery_port",
-    "12345", "UDP port for discovery packets", 0, false, 1, 65535),
+    DLEP_WELL_KNOWN_MULTICAST_PORT_TXT, "UDP port for discovery packets", 0, false, 1, 65535),
 
   CFG_MAP_ACL_V46(dlep_router_if, udp_config.bindto, "discovery_bindto", "fe80::/10",
     "Filter to determine the binding of the UDP discovery socket"),
