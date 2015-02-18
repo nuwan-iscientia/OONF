@@ -104,9 +104,9 @@ static void  _decode_uri(char *src);
 /* configuration variables */
 static struct cfg_schema_entry _http_entries[] = {
   CFG_MAP_ACL_V46(oonf_stream_managed_config,
-      acl, "acl", "127.0.0.1", "Access control list for http interface"),
-  CFG_MAP_ACL(oonf_stream_managed_config,
-      bindto, "bindto", "127.0.0.1\0" "::1", "Bind http socket to this address"),
+      acl, "acl", ACL_DEFAULT_ACCEPT, "Access control list for http interface"),
+  CFG_MAP_ACL_V46(oonf_stream_managed_config,
+      bindto, "bindto", "127.0.0.1\0" "::1" ACL_DEFAULT_REJECT, "Bind http socket to this address"),
   CFG_MAP_INT32_MINMAX(oonf_stream_managed_config,
       port, "port", "1980", "Network port for http interface", 0, false, 1, 65535),
 };
