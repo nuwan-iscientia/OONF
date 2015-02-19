@@ -131,7 +131,7 @@ static struct cfg_schema_section _interface_section = {
 
 static struct cfg_schema_entry _auto_ll4_entries[] = {
   CFG_MAP_CLOCK(_config, startup_delay, "startup", "10",
-      "Startup time until first auto-configuredIPv4 linklocal should be selected."),
+      "Startup time until first auto-configured IPv4 linklocal should be selected."),
 };
 
 static struct cfg_schema_section _auto_ll4_section = {
