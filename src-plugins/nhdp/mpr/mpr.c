@@ -81,10 +81,10 @@ static struct cfg_schema_entry _mpr_rfc_entries[] = {
   CFG_MAP_INT32_MINMAX(nhdp_domain_mpr, willingness, "willingness",
       RFC7181_WILLINGNESS_DEFAULT_STRING, "Routing willingness", 0, false,
       RFC7181_WILLINGNESS_MIN, RFC7181_WILLINGNESS_MAX),
-  CFG_MAP_BOOL(nhdp_domain_mpr, mpr_start, "mpr_start",
-      "false", "Default value for neighbor MPR setting"),
-  CFG_MAP_BOOL(nhdp_domain_mpr, mprs_start, "mprs_start",
-      "false", "Default value for local MPR (selector) setting"),
+//  CFG_MAP_BOOL(nhdp_domain_mpr, mpr_start, "mpr_start",
+//    "false", "Default value for neighbor MPR setting"),
+//  CFG_MAP_BOOL(nhdp_domain_mpr, mprs_start, "mprs_start",
+//      "false", "Default value for local MPR (selector) setting"),
 };
 
 static struct cfg_schema_section _mpr_rfc_section = {

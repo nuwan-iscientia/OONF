@@ -102,7 +102,7 @@ static struct cfg_schema_entry _datff_entries[] = {
       "Time interval between recalculations of metric", 100),
   CFG_MAP_INT32_MINMAX(ff_dat_config, window, "window", "64",
       "Number of intervals to calculate average metric", 0, false, 2, 65535),
-  CFG_MAP_BOOL(ff_dat_config, ett, "ett", "true",
+  CFG_MAP_BOOL(ff_dat_config, ett, "airtime", "true",
       "Activates the handling of linkspeed within the metric, set to false to"
       " downgrade to ETX metric"),
   CFG_MAP_BOOL(ff_dat_config, squared, "squared_loss", "false",
