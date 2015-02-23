@@ -90,7 +90,7 @@ static struct cfg_schema_entry _telnet_entries[] = {
   CFG_MAP_ACL_V46(oonf_stream_managed_config,
       acl, "acl", ACL_DEFAULT_ACCEPT, "Access control list for telnet interface"),
   CFG_MAP_ACL(oonf_stream_managed_config,
-      bindto, "bindto", "127.0.0.1\0" "::1" ACL_DEFAULT_REJECT, "Allowed addressed to bind telnet socket to"),
+      bindto, "bindto", "127.0.0.1\0" "::1\0" ACL_DEFAULT_REJECT, "Allowed addressed to bind telnet socket to"),
   CFG_MAP_INT32_MINMAX(oonf_stream_managed_config,
       port, "port", "2009", "Network port for telnet interface", 0, false, 1, 65535),
 };
