@@ -120,11 +120,12 @@ os_socket_get_socket_error(int fd, int *value) {
  * @param buf buffer for target data
  * @param length length of buffer
  * @param dst pointer to netaddr socket to send packet to
+ * @param dont_route true to suppress routing of data
  * @return same as sendto()
  */
 static INLINE ssize_t
-os_socket_sendto(int fd, const void *buf, size_t length, const union netaddr_socket *dst) {
-  return sendto(fd, buf, length, 0, &dst->std, sizeof(*dst));
+os_socket_sendto(int fd, const void *buf, size_t length, const union netaddr_socket *dst, bool dont_route) {
+  return sendto(fd, buf, length, dont_route ? MSG_DONTROUTE : 0, &dst->std, sizeof(*dst));
 }
 
 /**

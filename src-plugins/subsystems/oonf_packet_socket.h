@@ -67,6 +67,7 @@ struct oonf_packet_config {
   void (*receive_data)(struct oonf_packet_socket *,
       union netaddr_socket *from, void *ptr, size_t length);
 
+  bool dont_route;
   void *user;
 };
 

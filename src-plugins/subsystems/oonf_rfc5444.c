@@ -551,10 +551,15 @@ oonf_rfc5444_add_interface(struct oonf_rfc5444_protocol *protocol,
     /* initialize target subtree */
     avl_init(&interf->_target_tree, avl_comp_netaddr, false);
 
-    /* initialize socket */
+    /* initialize socket config */
     memcpy (&interf->_socket.config, &_socket_config, sizeof(_socket_config));
     interf->_socket.config.user = interf;
     interf->_socket.cb_settings_change = _cb_interface_changed;
+
+    /* prevent routing of RFC5444 packets */
+    interf->_socket.config.dont_route = true;
+
+    /* initialize socket */
     oonf_packet_add_managed(&interf->_socket);
 
     /* initialize message sequence number */

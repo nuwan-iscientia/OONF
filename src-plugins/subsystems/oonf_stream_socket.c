@@ -797,7 +797,7 @@ _cb_parse_connection(int fd, void *data, bool event_read, bool event_write) {
   /* send data if necessary */
   if (session->state != STREAM_SESSION_CLEANUP && abuf_getlen(&session->out) > 0) {
     if (event_write) {
-      len = os_socket_sendto(fd, abuf_getptr(&session->out), abuf_getlen(&session->out), NULL);
+      len = os_socket_sendto(fd, abuf_getptr(&session->out), abuf_getlen(&session->out), NULL, false);
 
       if (len > 0) {
         OONF_DEBUG(LOG_STREAM, "  send returned %d\n", len);

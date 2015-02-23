@@ -65,7 +65,7 @@ static INLINE int os_socket_connect(int sockfd, const union netaddr_socket *remo
 static INLINE int os_socket_accept(int sockfd, union netaddr_socket *incoming);
 static INLINE int os_socket_get_socket_error(int sockfd, int *value);
 static INLINE ssize_t os_socket_sendto(int fd, const void *buf, size_t length,
-    const union netaddr_socket *dst);
+    const union netaddr_socket *dst, bool dont_route);
 static INLINE ssize_t os_socket_recvfrom(int fd, void *buf, size_t length,
     union netaddr_socket *source, const struct os_interface_data *interf);
 static INLINE const char *os_socket_get_loopback_name(void);

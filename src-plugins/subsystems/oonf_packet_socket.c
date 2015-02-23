@@ -227,7 +227,8 @@ oonf_packet_send(struct oonf_packet_socket *pktsocket, union netaddr_socket *rem
 
   if (abuf_getlen(&pktsocket->out) == 0) {
     /* no backlog of outgoing packets, try to send directly */
-    result = os_socket_sendto(pktsocket->scheduler_entry.fd, data, length, remote);
+    result = os_socket_sendto(pktsocket->scheduler_entry.fd, data, length, remote,
+        pktsocket->config.dont_route);
     if (result > 0) {
       /* successful */
       OONF_DEBUG(LOG_PACKET, "Sent %d bytes to %s %s",
@@ -765,7 +766,7 @@ _cb_packet_event(int fd, void *data, bool event_read, bool event_write,
     pkt += 2;
 
     /* try to send packet */
-    result = os_socket_sendto(fd, data, length, skt);
+    result = os_socket_sendto(fd, data, length, skt, pktsocket->config.dont_route);
     if (result < 0 && (errno == EINTR || errno == EAGAIN || errno == EWOULDBLOCK)) {
       /* try again later */
       OONF_DEBUG(LOG_PACKET, "Sending to %s %s could block, try again later",
