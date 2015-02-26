@@ -50,10 +50,10 @@
 #include "core/oonf_subsystem.h"
 #include "subsystems/oonf_class.h"
 #include "subsystems/oonf_interface.h"
-#include "subsystems/oonf_socket.h"
 #include "subsystems/oonf_timer.h"
 #include "subsystems/oonf_stream_socket.h"
 #include "subsystems/os_system.h"
+#include "subsystems/os_socket.h"
 
 /* Definitions */
 #define LOG_STREAM _oonf_stream_socket_subsystem.logging
@@ -97,6 +97,7 @@ static const char *_dependencies[] = {
   OONF_SOCKET_SUBSYSTEM,
   OONF_TIMER_SUBSYSTEM,
   OONF_OS_SYSTEM_SUBSYSTEM,
+  OONF_OS_SOCKET_SUBSYSTEM,
 };
 
 static struct oonf_subsystem _oonf_stream_socket_subsystem = {

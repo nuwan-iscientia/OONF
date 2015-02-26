@@ -50,6 +50,7 @@
 #include "core/oonf_subsystem.h"
 #include "subsystems/oonf_interface.h"
 #include "subsystems/oonf_socket.h"
+#include "subsystems/os_socket.h"
 #include "subsystems/oonf_packet_socket.h"
 
 /* Defintions */
@@ -79,6 +80,7 @@ static void _cb_interface_listener(struct oonf_interface_listener *l);
 static const char *_dependencies[] = {
   OONF_INTERFACE_SUBSYSTEM,
   OONF_SOCKET_SUBSYSTEM,
+  OONF_OS_SOCKET_SUBSYSTEM,
 };
 
 static struct oonf_subsystem _oonf_packet_socket_subsystem = {

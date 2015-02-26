@@ -56,7 +56,6 @@
 #include "subsystems/oonf_class.h"
 #include "subsystems/oonf_timer.h"
 #include "subsystems/os_interface.h"
-#include "subsystems/os_socket.h"
 #include "subsystems/os_system.h"
 
 #include "subsystems/oonf_interface.h"
@@ -94,7 +93,6 @@ static const char *_dependencies[] = {
   OONF_TIMER_SUBSYSTEM,
   OONF_OS_SYSTEM_SUBSYSTEM,
   OONF_OS_INTERFACE_SUBSYSTEM,
-  OONF_OS_SOCKET_SUBSYSTEM,
 };
 
 static struct oonf_subsystem _oonf_interface_subsystem = {
