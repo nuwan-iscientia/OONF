@@ -77,7 +77,11 @@ static void _cb_link_changed(void *);
 static void _cb_link_removed(void *);
 
 static void _cb_dat_sampling(void *);
-static uint32_t _apply_packet_loss(struct link_datff_data *ldata,
+void _calculate_link_neighborhood(struct nhdp_link *lnk,
+    struct link_datff_data *ldata);
+int _calculate_loss_exponent(int link_neigborhood);
+static uint32_t _apply_packet_loss(struct nhdp_link *lnk,
+    struct link_datff_data *ldata,
     uint32_t metric, uint32_t received, uint32_t total);
 
 static void _cb_hello_lost(void *);
@@ -97,6 +101,19 @@ static int _cb_cfg_validate(const char *section_name,
 static void _cb_cfg_changed(void);
 
 /* plugin declaration */
+enum idx_loss_scaling {
+  IDX_LOSS_LINEAR,
+  IDX_LOSS_QUADRATIC,
+  IDX_LOSS_CUBIC,
+  IDX_LOSS_DYNAMIC,
+};
+const char *LOSS_SCALING[] = {
+  [IDX_LOSS_LINEAR]    = "linear",
+  [IDX_LOSS_QUADRATIC] = "quadratic",
+  [IDX_LOSS_CUBIC]     = "cubic",
+  [IDX_LOSS_DYNAMIC]   = "dynamic",
+};
+
 static struct cfg_schema_entry _datff_entries[] = {
   CFG_MAP_CLOCK_MIN(ff_dat_config, interval, "interval", "1.0",
       "Time interval between recalculations of metric", 100),
@@ -105,8 +122,10 @@ static struct cfg_schema_entry _datff_entries[] = {
   CFG_MAP_BOOL(ff_dat_config, ett, "airtime", "true",
       "Activates the handling of linkspeed within the metric, set to false to"
       " downgrade to ETX metric"),
-  CFG_MAP_BOOL(ff_dat_config, squared, "squared_loss", "false",
-      "Square the packet loss influence on the metric"),
+  CFG_MAP_CHOICE(ff_dat_config, loss_exponent, "loss_exponent", "linear",
+      "scaling of the packet loss influence on the metric", LOSS_SCALING),
+  CFG_MAP_BOOL(ff_dat_config, mic, "mic", "false",
+      "Activates the MIC penalty-factor for link metrics"),
 #ifdef COLLECT_RAW_DATA
   CFG_MAP_STRING(ff_dat_config, rawdata_file, "raw_filename", "/tmp/olsrv2_dat_metric.txt",
       "File to write recorded data into"),
@@ -530,7 +549,7 @@ _cb_dat_sampling(void *ptr __attribute__((unused))) {
       metric *= DATFF_FRAME_SUCCESS_RANGE;
     }
     else {
-      metric = _apply_packet_loss(ldata, metric, received, total);
+      metric = _apply_packet_loss(lnk, ldata, metric, received, total);
     }
 
     /* convert into something that can be transmitted over the network */
@@ -574,8 +593,43 @@ _cb_dat_sampling(void *ptr __attribute__((unused))) {
   }
 }
 
+void
+_calculate_link_neighborhood(struct nhdp_link *lnk, struct link_datff_data *data) {
+  struct nhdp_l2hop *l2hop;
+  struct nhdp_laddr *laddr;
+  int count;
+
+  /* local link neighbors */
+  count = lnk->local_if->_link_originators.count;
+
+  /* links twohop neighbors */
+  avl_for_each_element(&lnk->_2hop, l2hop, _link_node) {
+    if (l2hop->same_interface
+        && !avl_find_element(&lnk->local_if->_link_addresses, &l2hop->twohop_addr, laddr, _if_node)) {
+      count ++;
+    }
+  }
+
+  data->link_neigborhood = count;
+}
+
+int
+_calculate_loss_exponent(int link_neigborhood) {
+  if (link_neigborhood < 4) {
+    return 1;
+  }
+  if (link_neigborhood < 9) {
+    return 2;
+  }
+  if (link_neigborhood < 15) {
+    return 3;
+  }
+  return 4;
+}
+
 /**
  * Select discrete packet loss values and apply a hysteresis
+ * @param lnk nhdp link
  * @param ldata link data object
  * @param metric metric based on linkspeed
  * @param received received packets
@@ -583,10 +637,12 @@ _cb_dat_sampling(void *ptr __attribute__((unused))) {
  * @return metric including linkspeed and packet loss
  */
 static uint32_t
-_apply_packet_loss(struct link_datff_data *ldata, uint32_t metric,
+_apply_packet_loss(struct nhdp_link *lnk,
+    struct link_datff_data *ldata, uint32_t metric,
     uint32_t received, uint32_t total) {
   int64_t success_scaled_by_1000;
   int64_t last_scaled_by_1000;
+  int loss_exponent;
 
   last_scaled_by_1000 = (int64_t)ldata->last_packet_success_rate * 1000ll;
   success_scaled_by_1000 = ((int64_t)DATFF_FRAME_SUCCESS_RANGE * 1000ll) * received / total;
@@ -601,10 +657,35 @@ _apply_packet_loss(struct link_datff_data *ldata, uint32_t metric,
     ldata->last_packet_success_rate = success_scaled_by_1000/1000;
   }
 
-  if (_datff_config.squared) {
-    metric = ((int64_t)metric * (int64_t)DATFF_FRAME_SUCCESS_RANGE * 1000ll + 500ll) / success_scaled_by_1000;
+  _calculate_link_neighborhood(lnk, ldata);
+
+  switch (_datff_config.loss_exponent) {
+    case IDX_LOSS_LINEAR:
+      loss_exponent = 1;
+      break;
+    case IDX_LOSS_QUADRATIC:
+      loss_exponent = 2;
+      break;
+    case IDX_LOSS_CUBIC:
+      loss_exponent = 3;
+      break;
+    case IDX_LOSS_DYNAMIC:
+      loss_exponent = _calculate_loss_exponent(ldata->link_neigborhood);
+      break;
+    default:
+      loss_exponent = 1;
+      break;
   }
-  return ((int64_t)metric * (int64_t)DATFF_FRAME_SUCCESS_RANGE * 1000ll + 500ll) / success_scaled_by_1000;
+
+  while (loss_exponent) {
+    metric = ((int64_t)metric * (int64_t)DATFF_FRAME_SUCCESS_RANGE * 1000ll + 500ll) / success_scaled_by_1000;
+    loss_exponent--;
+  }
+
+  if (_datff_config.mic) {
+    metric = metric * (int64_t)ldata->link_neigborhood;
+  }
+  return metric;
 }
 
 /**
@@ -771,10 +852,11 @@ _int_to_string(struct nhdp_metric_str *buf,
     total += ldata->buckets[i].total;
   }
 
-  snprintf(buf->buf, sizeof(*buf), "p_recv=%"PRId64",p_total=%"PRId64",speed=%"PRId64",success=%u,missed_hello=%d,lastseq=%u",
+  snprintf(buf->buf, sizeof(*buf), "p_recv=%"PRId64",p_total=%"PRId64","
+      "speed=%"PRId64",success=%u,missed_hello=%d,lastseq=%u,lneigh=%d",
       received, total, (int64_t)_get_median_rx_linkspeed(ldata) * (int64_t)1024,
-      ldata->last_packet_success_rate, ldata->missed_hellos, ldata->last_seq_nr);
-
+      ldata->last_packet_success_rate, ldata->missed_hellos,
+      ldata->last_seq_nr, ldata->link_neigborhood);
   return buf->buf;
 }
 

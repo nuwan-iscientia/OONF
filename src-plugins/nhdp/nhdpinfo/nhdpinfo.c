@@ -126,6 +126,7 @@ static int _cb_create_text_neighbor_address(struct oonf_viewer_template *);
 #define KEY_LINK_ADDRESS            "link_address"
 
 #define KEY_TWOHOP_ADDRESS          "twohop_address"
+#define KEY_TWOHOP_SAMEIF           "twohop_same_interface"
 #define KEY_TWOHOP_VTIME            "twohop_vtime"
 
 #define KEY_NEIGHBOR_ORIGINATOR     "neighbor_originator"
@@ -177,6 +178,7 @@ static struct netaddr_str         _value_link_mac;
 static struct netaddr_str         _value_link_address;
 
 static struct netaddr_str         _value_twohop_address;
+static char                       _value_twohop_sameif[TEMPLATE_JSON_BOOL_LENGTH];
 static struct isonumber_str       _value_twohop_vtime;
 
 static struct netaddr_str         _value_neighbor_originator;
@@ -268,6 +270,7 @@ static struct abuf_template_data_entry _tde_link_addr[] = {
 
 static struct abuf_template_data_entry _tde_twohop_addr[] = {
     { KEY_TWOHOP_ADDRESS, _value_twohop_address.buf, true },
+    { KEY_TWOHOP_SAMEIF, _value_twohop_sameif, true },
     { KEY_TWOHOP_VTIME, _value_twohop_vtime.buf, false },
 };
 
@@ -596,6 +599,10 @@ _initialize_nhdp_link_address_values(struct nhdp_laddr *laddr) {
 static void
 _initialize_nhdp_link_twohop_values(struct nhdp_l2hop *twohop) {
   netaddr_to_string(&_value_twohop_address, &twohop->twohop_addr);
+
+  strscpy(_value_twohop_sameif,
+      abuf_json_getbool(twohop->same_interface),
+      sizeof(_value_twohop_sameif));
 
   oonf_clock_toIntervalString(&_value_twohop_vtime,
       oonf_timer_get_due(&twohop->_vtime));

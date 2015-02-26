@@ -846,6 +846,9 @@ _cb_addr_pass2_block(struct rfc5444_reader_tlvblock_context *context) {
         }
       }
 
+      /* remember if 2hop is same interface */
+      l2hop->same_interface = link_status == RFC6130_LINKSTATUS_SYMMETRIC;
+
       /* refresh validity time of 2hop address */
       nhdp_db_link_2hop_set_vtime(l2hop, _current.vtime);
 

@@ -210,6 +210,9 @@ struct nhdp_l2hop {
   /* address of two-hop neighbor */
   struct netaddr twohop_addr;
 
+  /* true if neighbor is on the same interface as the link */
+  bool same_interface;
+
   /* link entry for two-hop address */
   struct nhdp_link *link;
 

@@ -76,8 +76,11 @@ struct ff_dat_config {
   /* true if metric should include link speed */
   bool ett;
 
-  /* true if packet loss value should be squared */
-  bool squared;
+  /* selects how loss should be scaled */
+  int loss_exponent;
+
+  /* true if MIC factor should be applied to metric */
+  bool mic;
 
 #ifdef COLLECT_RAW_DATA
   /* filename to store raw data into */
@@ -125,6 +128,9 @@ struct link_datff_data {
 
   /* last known hello interval */
   uint64_t hello_interval;
+
+  /* estimated number of neighbors of this link */
+  uint32_t link_neigborhood;
 
   /* history ringbuffer */
   struct link_datff_bucket buckets[0];
