@@ -75,7 +75,8 @@ static void _process_dijkstra_result(struct nhdp_domain *);
 static void _process_kernel_queue(void);
 static void _cb_trigger_dijkstra(void *);
 static void _cb_nhdp_update(struct nhdp_neighbor *);
-static void _cb_route_finished(struct os_route *route, int error);
+static void _cb_route_new_finished(struct os_route *route, int error);
+static void _cb_route_current_finished(struct os_route *route, int error);
 
 /* Domain parameter of dijkstra algorithm */
 static struct olsrv2_routing_domain _domain_parameter[NHDP_MAXIMUM_DOMAINS];
@@ -146,8 +147,8 @@ olsrv2_routing_initiate_shutdown(void) {
   /* remove all routes */
   for (i=0; i<NHDP_MAXIMUM_DOMAINS; i++) {
     avl_for_each_element_safe(&_routing_tree[i], entry, _node, e_it) {
-      if (entry->set) {
-        entry->set = false;
+      if (entry->state_current) {
+        entry->state_new = false;
         _add_route_to_kernel_queue(entry);
       }
     }
@@ -172,8 +173,11 @@ olsrv2_routing_cleanup(void) {
   for (i=0; i<NHDP_MAXIMUM_DOMAINS; i++) {
     avl_for_each_element_safe(&_routing_tree[i], entry, _node, e_it) {
       /* make sure route processing has stopped */
-      entry->route.cb_finished = NULL;
-      os_routing_interrupt(&entry->route);
+      entry->route_new.cb_finished = NULL;
+      os_routing_interrupt(&entry->route_new);
+
+      entry->route_current.cb_finished = NULL;
+      os_routing_interrupt(&entry->route_current);
 
       /* remove entry from database */
       _remove_entry(entry);
@@ -289,14 +293,15 @@ olsrv2_routing_set_domain_parameter(struct nhdp_domain *domain,
 
   /* remove old kernel routes */
   avl_for_each_element(&_routing_tree[domain->index], rtentry, _node) {
-    if (rtentry->set) {
-      rtentry->set = false;
-
+    if (rtentry->state_current) {
       if (rtentry->in_processing) {
-        os_routing_interrupt(&rtentry->route);
-        rtentry->set = false;
+        /* stop current processing */
+        os_routing_interrupt(&rtentry->route_new);
+        os_routing_interrupt(&rtentry->route_current);
       }
 
+      /* remove current route */
+      rtentry->state_new = false;
       _add_route_to_kernel_queue(rtentry);
     }
   }
@@ -340,16 +345,19 @@ _add_entry(struct nhdp_domain *domain, struct netaddr *prefix) {
   }
 
   /* set key */
-  memcpy(&rtentry->route.dst, prefix, sizeof(struct netaddr));
-  rtentry->_node.key = &rtentry->route.dst;
+  memcpy(&rtentry->route_new.dst, prefix, sizeof(struct netaddr));
+  memcpy(&rtentry->route_current.dst, prefix, sizeof(struct netaddr));
+  rtentry->_node.key = &rtentry->route_new.dst;
 
   /* set domain */
   rtentry->domain = domain;
 
   /* initialize path costs and os-route callback */
   rtentry->cost = RFC7181_METRIC_INFINITE_PATH;
-  rtentry->route.cb_finished = _cb_route_finished;
-  rtentry->route.family = netaddr_get_address_family(prefix);
+  rtentry->route_new.cb_finished = _cb_route_new_finished;
+  rtentry->route_new.family = netaddr_get_address_family(prefix);
+  rtentry->route_current.cb_finished = _cb_route_current_finished;
+  rtentry->route_current.family = netaddr_get_address_family(prefix);
 
   avl_insert(&_routing_tree[domain->index], &rtentry->_node);
   return rtentry;
@@ -458,31 +466,31 @@ _update_routing_entry(struct nhdp_domain *domain,
    * routing entry might already be present because it can be set by
    * a tc node AND by attached networks with a maximum prefix length
    */
-  if (rtentry->set && rtentry->cost < pathcost) {
+  if (rtentry->state_current && rtentry->cost < pathcost) {
     /* active routing entry is already cheaper, ignore new one */
     return;
   }
 
   neighdata = nhdp_domain_get_neighbordata(domain, first_hop);
   OONF_DEBUG(LOG_OLSRV2_ROUTING, "Initialize route entry dst %s with pathcost %u",
-      netaddr_to_string(&buf, &rtentry->route.dst), pathcost);
+      netaddr_to_string(&buf, &rtentry->route_new.dst), pathcost);
 
   /* copy route parameters into data structure */
-  rtentry->route.if_index = neighdata->best_link_ifindex;
+  rtentry->route_new.if_index = neighdata->best_link_ifindex;
   rtentry->cost = pathcost;
-  rtentry->route.metric = distance;
+  rtentry->route_new.metric = distance;
 
   /* mark route as set */
-  rtentry->set = true;
+  rtentry->state_new = true;
 
   /* copy gateway if necessary */
   if (single_hop
       && netaddr_cmp(&neighdata->best_link->if_addr,
-          &rtentry->route.dst) == 0) {
-    netaddr_invalidate(&rtentry->route.gw);
+          &rtentry->route_new.dst) == 0) {
+    netaddr_invalidate(&rtentry->route_new.gw);
   }
   else {
-    memcpy(&rtentry->route.gw, &neighdata->best_link->if_addr,
+    memcpy(&rtentry->route_new.gw, &neighdata->best_link->if_addr,
         sizeof(struct netaddr));
   }
 }
@@ -505,10 +513,7 @@ _prepare_routes(struct nhdp_domain *domain) {
 
   /* prepare all existing routing entries and put them into the working queue */
   avl_for_each_element(&_routing_tree[domain->index], rtentry, _node) {
-    rtentry->set = false;
-    rtentry->_old_if_index = rtentry->route.if_index;
-    rtentry->_old_distance = rtentry->route.metric;
-    memcpy(&rtentry->_old_next_hop, &rtentry->route.gw, sizeof(struct netaddr));
+    rtentry->state_new = false;
   }
 
   /* initialize private dijkstra data on nodes */
@@ -684,24 +689,22 @@ _handle_nhdp_routes(struct nhdp_domain *domain) {
 static void
 _add_route_to_kernel_queue(struct olsrv2_routing_entry *rtentry) {
 #ifdef OONF_LOG_INFO
-  struct os_route_str rbuf;
-  struct netaddr_str nbuf;
+  struct os_route_str rbuf1, rbuf2;
 #endif
 
-  if (rtentry->set) {
+  if (rtentry->state_new) {
     OONF_INFO(LOG_OLSRV2_ROUTING,
-        "Set route %s (%u %u %s)",
-        os_routing_to_string(&rbuf, &rtentry->route),
-        rtentry->_old_if_index, rtentry->_old_distance,
-        netaddr_to_string(&nbuf, &rtentry->_old_next_hop));
+        "Set route %s (%s)",
+        os_routing_to_string(&rbuf1, &rtentry->route_new),
+        os_routing_to_string(&rbuf2, &rtentry->route_current));
 
     if (_domain_parameter[rtentry->domain->index].use_srcip_in_routes
-        && netaddr_get_address_family(&rtentry->route.dst) == AF_INET) {
-      memcpy(&rtentry->route.src_ip, olsrv2_originator_get(AF_INET),
-          sizeof(rtentry->route.src_ip));
+        && netaddr_get_address_family(&rtentry->route_new.dst) == AF_INET) {
+      memcpy(&rtentry->route_new.src_ip, olsrv2_originator_get(AF_INET),
+          sizeof(rtentry->route_new.src_ip));
     }
 
-    if (netaddr_get_address_family(&rtentry->route.gw) == AF_UNSPEC) {
+    if (netaddr_get_address_family(&rtentry->route_new.gw) == AF_UNSPEC) {
       /* insert/update single-hop routes early */
       list_add_head(&_kernel_queue, &rtentry->_working_node);
     }
@@ -713,10 +716,10 @@ _add_route_to_kernel_queue(struct olsrv2_routing_entry *rtentry) {
   else {
     OONF_INFO(LOG_OLSRV2_ROUTING,
         "Dijkstra result: remove route %s",
-        os_routing_to_string(&rbuf, &rtentry->route));
+        os_routing_to_string(&rbuf1, &rtentry->route_current));
 
 
-    if (netaddr_get_address_family(&rtentry->route.gw) == AF_UNSPEC) {
+    if (netaddr_get_address_family(&rtentry->route_current.gw) == AF_UNSPEC) {
       /* remove single-hop routes late */
       list_add_tail(&_kernel_queue, &rtentry->_working_node);
     }
@@ -739,21 +742,19 @@ _process_dijkstra_result(struct nhdp_domain *domain) {
 
   avl_for_each_element(&_routing_tree[domain->index], rtentry, _node) {
     /* initialize rest of route parameters */
-    rtentry->route.table = _domain_parameter[rtentry->domain->index].table;
-    rtentry->route.protocol = _domain_parameter[rtentry->domain->index].protocol;
-    rtentry->route.metric = _domain_parameter[rtentry->domain->index].distance;
+    rtentry->route_new.table = _domain_parameter[rtentry->domain->index].table;
+    rtentry->route_new.protocol = _domain_parameter[rtentry->domain->index].protocol;
+    rtentry->route_new.metric = _domain_parameter[rtentry->domain->index].distance;
 
     list_for_each_element(&_routing_filter_list, filter, _node) {
-      if (!filter->filter(domain, &rtentry->route)) {
+      if (!filter->filter(domain, &rtentry->route_new)) {
         /* route was dropped by filter */
         continue;
       }
     }
 
-    if (rtentry->set
-        && rtentry->_old_if_index == rtentry->route.if_index
-        && rtentry->_old_distance == rtentry->route.metric
-        && netaddr_cmp(&rtentry->_old_next_hop, &rtentry->route.gw) == 0) {
+    if (rtentry->state_new && rtentry->state_current
+        && memcpy(&rtentry->route_new, &rtentry->route_current, sizeof(rtentry->route_new)) == 0) {
       /* no change, ignore this entry */
       continue;
     }
@@ -776,18 +777,18 @@ _process_kernel_queue(void) {
     /* mark route as in kernel processing */
     rtentry->in_processing = true;
 
-    if (rtentry->set) {
-      /* add to kernel */
-      if (os_routing_set(&rtentry->route, true, true)) {
-        OONF_WARN(LOG_OLSRV2_ROUTING, "Could not set route %s",
-            os_routing_to_string(&rbuf, &rtentry->route));
+    if (rtentry->state_current) {
+      /* if the route exists, we must remove it anyways */
+      if (os_routing_set(&rtentry->route_current, false, false)) {
+        OONF_WARN(LOG_OLSRV2_ROUTING, "Could not remove route %s",
+            os_routing_to_string(&rbuf, &rtentry->route_current));
       }
     }
-    else  {
-      /* remove from kernel */
-      if (os_routing_set(&rtentry->route, false, false)) {
-        OONF_WARN(LOG_OLSRV2_ROUTING, "Could not remove route %s",
-            os_routing_to_string(&rbuf, &rtentry->route));
+    if (rtentry->state_new) {
+      /* add new to kernel */
+      if (os_routing_set(&rtentry->route_new, true, false)) {
+        OONF_WARN(LOG_OLSRV2_ROUTING, "Could not set route %s",
+            os_routing_to_string(&rbuf, &rtentry->route_new));
       }
     }
   }
@@ -821,46 +822,82 @@ _cb_nhdp_update(struct nhdp_neighbor *neigh __attribute__((unused))) {
  * @param error 0 if no error happened
  */
 static void
-_cb_route_finished(struct os_route *route, int error) {
+_cb_route_current_finished(struct os_route *route, int error) {
   struct olsrv2_routing_entry *rtentry;
   struct os_route_str rbuf;
 
-  rtentry = container_of(route, struct olsrv2_routing_entry, route);
+  rtentry = container_of(route, struct olsrv2_routing_entry, route_current);
 
   /* kernel is not processing this route anymore */
   rtentry->in_processing = false;
 
-  if (!rtentry->set && error == ESRCH) {
+  if (error == ESRCH) {
     OONF_DEBUG(LOG_OLSRV2_ROUTING, "Route %s was already gone",
-        os_routing_to_string(&rbuf, &rtentry->route));
+        os_routing_to_string(&rbuf, &rtentry->route_current));
   }
   else if (error) {
     /* an error happened, try again later */
-    if (error != EPERM) {
+    if (error != -1) {
       /* do not display a os_routing_interrupt() caused error */
-      OONF_WARN(LOG_OLSRV2_ROUTING, "Error in route %s %s: %s (%d)",
-          rtentry->set ? "setting" : "removal",
-              os_routing_to_string(&rbuf, &rtentry->route),
-              strerror(error), error);
+      OONF_WARN(LOG_OLSRV2_ROUTING, "Error while removing route %s: %s (%d)",
+          os_routing_to_string(&rbuf, &rtentry->route_current),
+          strerror(error), error);
+    }
+
+    /* prevent a followup route add */
+    os_routing_interrupt(&rtentry->route_new);
+    return;
+  }
+  OONF_INFO(LOG_OLSRV2_ROUTING, "Successfully removed route %s",
+      os_routing_to_string(&rbuf, &rtentry->route_current));
+
+
+  if (rtentry->state_new) {
+    /* apply intermediate state */
+    rtentry->state_current = false;
+  }
+  else {
+    /* remove routing entry */
+    _remove_entry(rtentry);
+  }
+}
+
+/**
+ * Callback for kernel route processing results
+ * @param route pointer to kernel route
+ * @param error 0 if no error happened
+ */
+static void
+_cb_route_new_finished(struct os_route *route, int error) {
+  struct olsrv2_routing_entry *rtentry;
+  struct os_route_str rbuf;
+
+  rtentry = container_of(route, struct olsrv2_routing_entry, route_new);
+
+  /* kernel is not processing this route anymore */
+  rtentry->in_processing = false;
+
+  if (error) {
+    /* an error happened, try again later */
+    if (error != -1) {
+      /* do not display a os_routing_interrupt() caused error */
+      OONF_WARN(LOG_OLSRV2_ROUTING, "Error while adding route %s: %s (%d)",
+          os_routing_to_string(&rbuf, &rtentry->route_new),
+          strerror(error), error);
     }
 
     /* revert attempted change */
-    if (rtentry->set) {
-      _remove_entry(rtentry);
-    }
-    else {
-      rtentry->set = true;
-    }
+    _remove_entry(rtentry);
     return;
   }
-  if (rtentry->set) {
-    /* route was set/updated successfully */
-    OONF_INFO(LOG_OLSRV2_ROUTING, "Successfully set route %s",
-        os_routing_to_string(&rbuf, &rtentry->route));
-  }
-  else {
-    OONF_INFO(LOG_OLSRV2_ROUTING, "Successfully removed route %s",
-        os_routing_to_string(&rbuf, &rtentry->route));
-    _remove_entry(rtentry);
-  }
+  /* route was set/updated successfully */
+  OONF_INFO(LOG_OLSRV2_ROUTING, "Successfully set route %s",
+      os_routing_to_string(&rbuf, &rtentry->route_new));
+
+  /* update current state */
+  rtentry->state_current = true;
+  memcpy(&rtentry->route_current, &rtentry->route_new, sizeof(rtentry->route_new));
+
+  /* fix callback we overwrote with memcpy */
+  rtentry->route_current.cb_finished = _cb_route_current_finished;
 }

@@ -82,7 +82,8 @@ struct olsrv2_dijkstra_node {
 /* representation of one target in the routing entry set */
 struct olsrv2_routing_entry {
   /* Settings for the kernel route */
-  struct os_route route;
+  struct os_route route_new;
+  struct os_route route_current;
 
   /* nhdp domain of route */
   struct nhdp_domain *domain;
@@ -94,15 +95,11 @@ struct olsrv2_routing_entry {
    * true if the entry represents a route that should be in the kernel,
    * false if the entry should be removed from the kernel
    */
-  bool set;
+  bool state_new;
+  bool state_current;
 
   /* true if this route is being processed by the kernel at the moment */
   bool in_processing;
-
-  /* forwarding information before the current dijkstra run */
-  unsigned _old_if_index;
-  struct netaddr _old_next_hop;
-  uint8_t _old_distance;
 
   /* hook into working queues */
   struct list_entity _working_node;

@@ -171,7 +171,7 @@ os_routing_set(struct os_route *route, bool set, bool del_similar) {
   scope = RT_SCOPE_UNIVERSE;
 
   if (set) {
-    msg->nlmsg_flags |= NLM_F_CREATE | NLM_F_REPLACE;
+    msg->nlmsg_flags |= NLM_F_CREATE;
     msg->nlmsg_type = RTM_NEWROUTE;
   } else {
     msg->nlmsg_type = RTM_DELROUTE;
