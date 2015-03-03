@@ -887,7 +887,9 @@ _cb_route_new_finished(struct os_route *route, int error) {
     }
 
     /* revert attempted change */
-    _remove_entry(rtentry);
+    if (!rtentry->state_current) {
+      _remove_entry(rtentry);
+    }
     return;
   }
   /* route was set/updated successfully */
