@@ -370,7 +370,7 @@ _add_entry(struct nhdp_domain *domain, struct netaddr *prefix) {
 static void
 _remove_entry(struct olsrv2_routing_entry *entry) {
   /* remove entry from database if its still there */
-  if (list_is_node_added(&entry->_node.list)) {
+  if (avl_is_node_added(&entry->_node)) {
     avl_remove(&_routing_tree[entry->domain->index], &entry->_node);
   }
   oonf_class_free(&_rtset_entry, entry);
@@ -692,6 +692,8 @@ _add_route_to_kernel_queue(struct olsrv2_routing_entry *rtentry) {
   struct os_route_str rbuf1, rbuf2;
 #endif
 
+  assert(!list_is_node_added(&rtentry->_working_node));
+
   if (rtentry->state_new) {
     OONF_INFO(LOG_OLSRV2_ROUTING,
         "Set route %s (%s)",
@@ -739,6 +741,7 @@ static void
 _process_dijkstra_result(struct nhdp_domain *domain) {
   struct olsrv2_routing_entry *rtentry;
   struct olsrv2_routing_filter *filter;
+  bool filtered;
 
   avl_for_each_element(&_routing_tree[domain->index], rtentry, _node) {
     /* initialize rest of route parameters */
@@ -746,19 +749,23 @@ _process_dijkstra_result(struct nhdp_domain *domain) {
     rtentry->route_new.protocol = _domain_parameter[rtentry->domain->index].protocol;
     rtentry->route_new.metric = _domain_parameter[rtentry->domain->index].distance;
 
+    filtered = false;
     list_for_each_element(&_routing_filter_list, filter, _node) {
       if (!filter->filter(domain, &rtentry->route_new)) {
         /* route was dropped by filter */
-        continue;
+        filtered = true;
+        break;
       }
     }
 
-    if (rtentry->state_new && rtentry->state_current
-        && memcpy(&rtentry->route_new, &rtentry->route_current, sizeof(rtentry->route_new)) == 0) {
-      /* no change, ignore this entry */
-      continue;
+    if (!filtered) {
+      if (rtentry->state_new && rtentry->state_current
+          && memcmp(&rtentry->route_new, &rtentry->route_current, sizeof(rtentry->route_new)) == 0) {
+        /* no change, ignore this entry */
+        continue;
+      }
+      _add_route_to_kernel_queue(rtentry);
     }
-    _add_route_to_kernel_queue(rtentry);
   }
 }
 
