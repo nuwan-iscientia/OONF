@@ -55,15 +55,15 @@ os_routing_to_string(struct os_route_str *buf, struct os_route *route) {
   int result;
   result = snprintf(buf->buf, sizeof(*buf),
       "'src-ip %s gw %s dst %s src-prefix %s metric %u table %u protocol %u if %s (%u)'",
-      netaddr_to_string(&buf1, &route->src_ip),
-      netaddr_to_string(&buf2, &route->gw),
-      netaddr_to_string(&buf3, &route->dst),
-      netaddr_to_string(&buf4, &route->src_prefix),
-      route->metric,
-      (unsigned int)(route->table),
-      (unsigned int)(route->protocol),
-      if_indextoname(route->if_index, ifbuf),
-      route->if_index);
+      netaddr_to_string(&buf1, &route->data.src_ip),
+      netaddr_to_string(&buf2, &route->data.gw),
+      netaddr_to_string(&buf3, &route->data.dst),
+      netaddr_to_string(&buf4, &route->data.src_prefix),
+      route->data.metric,
+      (unsigned int)(route->data.table),
+      (unsigned int)(route->data.protocol),
+      if_indextoname(route->data.if_index, ifbuf),
+      route->data.if_index);
 
   if (result < 0 || result > (int)sizeof(*buf)) {
     return NULL;

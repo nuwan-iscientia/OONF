@@ -94,10 +94,7 @@ struct os_route_str {
            + 2];
 };
 
-struct os_route {
-  /* used for delivering feedback about netlink commands */
-  struct os_route_internal _internal;
-
+struct os_route_data {
   /* address family */
   unsigned char family;
 
@@ -118,6 +115,14 @@ struct os_route {
 
   /* index of outgoing interface */
   unsigned int if_index;
+};
+
+struct os_route {
+  /* used for delivering feedback about netlink commands */
+  struct os_route_internal _internal;
+
+  /* route to be set/removed */
+  struct os_route_data data;
 
   /* callback when operation is finished */
   void (*cb_finished)(struct os_route *, int error);
@@ -134,6 +139,6 @@ EXPORT void os_routing_interrupt(struct os_route *);
 EXPORT const char *os_routing_to_string(
     struct os_route_str *buf, struct os_route *route);
 
-EXPORT const struct os_route *os_routing_get_wildcard_route(void);
+EXPORT const struct os_route_data *os_routing_get_wildcard_route(void);
 
 #endif /* OS_ROUTING_H_ */

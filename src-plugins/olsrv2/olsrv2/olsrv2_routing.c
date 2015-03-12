@@ -345,9 +345,9 @@ _add_entry(struct nhdp_domain *domain, struct netaddr *prefix) {
   }
 
   /* set key */
-  memcpy(&rtentry->route_new.dst, prefix, sizeof(struct netaddr));
-  memcpy(&rtentry->route_current.dst, prefix, sizeof(struct netaddr));
-  rtentry->_node.key = &rtentry->route_new.dst;
+  memcpy(&rtentry->route_new.data.dst, prefix, sizeof(struct netaddr));
+  memcpy(&rtentry->route_current.data.dst, prefix, sizeof(struct netaddr));
+  rtentry->_node.key = &rtentry->route_new.data.dst;
 
   /* set domain */
   rtentry->domain = domain;
@@ -355,9 +355,9 @@ _add_entry(struct nhdp_domain *domain, struct netaddr *prefix) {
   /* initialize path costs and os-route callback */
   rtentry->cost = RFC7181_METRIC_INFINITE_PATH;
   rtentry->route_new.cb_finished = _cb_route_new_finished;
-  rtentry->route_new.family = netaddr_get_address_family(prefix);
+  rtentry->route_new.data.family = netaddr_get_address_family(prefix);
   rtentry->route_current.cb_finished = _cb_route_current_finished;
-  rtentry->route_current.family = netaddr_get_address_family(prefix);
+  rtentry->route_current.data.family = netaddr_get_address_family(prefix);
 
   avl_insert(&_routing_tree[domain->index], &rtentry->_node);
   return rtentry;
@@ -473,12 +473,12 @@ _update_routing_entry(struct nhdp_domain *domain,
 
   neighdata = nhdp_domain_get_neighbordata(domain, first_hop);
   OONF_DEBUG(LOG_OLSRV2_ROUTING, "Initialize route entry dst %s with pathcost %u",
-      netaddr_to_string(&buf, &rtentry->route_new.dst), pathcost);
+      netaddr_to_string(&buf, &rtentry->route_new.data.dst), pathcost);
 
   /* copy route parameters into data structure */
-  rtentry->route_new.if_index = neighdata->best_link_ifindex;
+  rtentry->route_new.data.if_index = neighdata->best_link_ifindex;
   rtentry->cost = pathcost;
-  rtentry->route_new.metric = distance;
+  rtentry->route_new.data.metric = distance;
 
   /* mark route as set */
   rtentry->state_new = true;
@@ -486,11 +486,11 @@ _update_routing_entry(struct nhdp_domain *domain,
   /* copy gateway if necessary */
   if (single_hop
       && netaddr_cmp(&neighdata->best_link->if_addr,
-          &rtentry->route_new.dst) == 0) {
-    netaddr_invalidate(&rtentry->route_new.gw);
+          &rtentry->route_new.data.dst) == 0) {
+    netaddr_invalidate(&rtentry->route_new.data.gw);
   }
   else {
-    memcpy(&rtentry->route_new.gw, &neighdata->best_link->if_addr,
+    memcpy(&rtentry->route_new.data.gw, &neighdata->best_link->if_addr,
         sizeof(struct netaddr));
   }
 }
@@ -701,12 +701,12 @@ _add_route_to_kernel_queue(struct olsrv2_routing_entry *rtentry) {
         os_routing_to_string(&rbuf2, &rtentry->route_current));
 
     if (_domain_parameter[rtentry->domain->index].use_srcip_in_routes
-        && netaddr_get_address_family(&rtentry->route_new.dst) == AF_INET) {
-      memcpy(&rtentry->route_new.src_ip, olsrv2_originator_get(AF_INET),
-          sizeof(rtentry->route_new.src_ip));
+        && netaddr_get_address_family(&rtentry->route_new.data.dst) == AF_INET) {
+      memcpy(&rtentry->route_new.data.src_ip, olsrv2_originator_get(AF_INET),
+          sizeof(rtentry->route_new.data.src_ip));
     }
 
-    if (netaddr_get_address_family(&rtentry->route_new.gw) == AF_UNSPEC) {
+    if (netaddr_get_address_family(&rtentry->route_new.data.gw) == AF_UNSPEC) {
       /* insert/update single-hop routes early */
       list_add_head(&_kernel_queue, &rtentry->_working_node);
     }
@@ -721,7 +721,7 @@ _add_route_to_kernel_queue(struct olsrv2_routing_entry *rtentry) {
         os_routing_to_string(&rbuf1, &rtentry->route_current));
 
 
-    if (netaddr_get_address_family(&rtentry->route_current.gw) == AF_UNSPEC) {
+    if (netaddr_get_address_family(&rtentry->route_current.data.gw) == AF_UNSPEC) {
       /* remove single-hop routes late */
       list_add_tail(&_kernel_queue, &rtentry->_working_node);
     }
@@ -745,9 +745,9 @@ _process_dijkstra_result(struct nhdp_domain *domain) {
 
   avl_for_each_element(&_routing_tree[domain->index], rtentry, _node) {
     /* initialize rest of route parameters */
-    rtentry->route_new.table = _domain_parameter[rtentry->domain->index].table;
-    rtentry->route_new.protocol = _domain_parameter[rtentry->domain->index].protocol;
-    rtentry->route_new.metric = _domain_parameter[rtentry->domain->index].distance;
+    rtentry->route_new.data.table = _domain_parameter[rtentry->domain->index].table;
+    rtentry->route_new.data.protocol = _domain_parameter[rtentry->domain->index].protocol;
+    rtentry->route_new.data.metric = _domain_parameter[rtentry->domain->index].distance;
 
     filtered = false;
     list_for_each_element(&_routing_filter_list, filter, _node) {
@@ -760,7 +760,8 @@ _process_dijkstra_result(struct nhdp_domain *domain) {
 
     if (!filtered) {
       if (rtentry->state_new && rtentry->state_current
-          && memcmp(&rtentry->route_new, &rtentry->route_current, sizeof(rtentry->route_new)) == 0) {
+          && memcmp(&rtentry->route_new.data, &rtentry->route_current.data,
+              sizeof(rtentry->route_new.data)) == 0) {
         /* no change, ignore this entry */
         continue;
       }
@@ -905,8 +906,6 @@ _cb_route_new_finished(struct os_route *route, int error) {
 
   /* update current state */
   rtentry->state_current = true;
-  memcpy(&rtentry->route_current, &rtentry->route_new, sizeof(rtentry->route_new));
-
-  /* fix callback we overwrote with memcpy */
-  rtentry->route_current.cb_finished = _cb_route_current_finished;
+  memcpy(&rtentry->route_current.data, &rtentry->route_new.data,
+      sizeof(rtentry->route_new.data));
 }

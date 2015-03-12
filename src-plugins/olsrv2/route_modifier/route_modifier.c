@@ -196,30 +196,30 @@ _cb_rt_filter(struct nhdp_domain *domain, struct os_route *route) {
 
     /* check prefix length */
     if (modifier->prefix_length != -1
-        && modifier->prefix_length != netaddr_get_prefix_length(&route->dst)) {
+        && modifier->prefix_length != netaddr_get_prefix_length(&route->data.dst)) {
       continue;
     }
 
     /* check if destination matches */
-    if (!netaddr_acl_check_accept(&modifier->filter, &route->dst)) {
+    if (!netaddr_acl_check_accept(&modifier->filter, &route->data.dst)) {
       continue;
     }
 
     /* apply modifiers */
     if (modifier->table) {
       OONF_DEBUG(LOG_ROUTE_MODIFIER, "Modify routing table for route to %s: %d",
-          netaddr_to_string(&nbuf, &route->dst), modifier->table);
-      route->table = modifier->table;
+          netaddr_to_string(&nbuf, &route->data.dst), modifier->table);
+      route->data.table = modifier->table;
     }
     if (modifier->protocol) {
       OONF_DEBUG(LOG_ROUTE_MODIFIER, "Modify routing protocol for route to %s: %d",
-          netaddr_to_string(&nbuf, &route->dst), modifier->protocol);
-      route->protocol = modifier->protocol;
+          netaddr_to_string(&nbuf, &route->data.dst), modifier->protocol);
+      route->data.protocol = modifier->protocol;
     }
     if (modifier->distance) {
       OONF_DEBUG(LOG_ROUTE_MODIFIER, "Modify routing distance for route to %s: %d",
-          netaddr_to_string(&nbuf, &route->dst), modifier->distance);
-      route->metric = modifier->distance;
+          netaddr_to_string(&nbuf, &route->data.dst), modifier->distance);
+      route->data.metric = modifier->distance;
     }
     break;
   }
