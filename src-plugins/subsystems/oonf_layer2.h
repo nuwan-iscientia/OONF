@@ -305,6 +305,16 @@ oonf_layer2_get_origin(const struct oonf_layer2_data *l2data) {
 }
 
 /**
+ * Sets the originator of a layer-2 data object
+ * @param l2data layer-2 data object
+ * @param origin originator of data value
+ */
+static INLINE void
+oonf_layer2_set_origin(struct oonf_layer2_data *l2data, uint32_t origin) {
+  l2data->_origin = origin;
+}
+
+/**
  * Set the value of a layer-2 data object
  * @param l2data layer-2 data object
  * @param origin originator of value

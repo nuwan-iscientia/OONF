@@ -279,10 +279,10 @@ _cb_config_changed(void) {
   struct cfg_schema_entry *schema_entry;
   enum oonf_layer2_neighbor_index l2idx;
   struct oonf_layer2_neigh *l2neigh, *l2neigh_it;
-  struct oonf_layer2_net *l2net, *l2net_it;
+  struct oonf_layer2_net *l2net;
   struct cfg_entry *entry;
-  uint32_t l2origin;
   size_t idx;
+  bool commit;
 
   if (_link_config_section.post) {
     for (idx = 0; idx < ARRAYSIZE(_link_config_if_entries); idx++) {
@@ -296,30 +296,38 @@ _cb_config_changed(void) {
     }
   }
 
-  /* remove old entries and trigger remove events */
-  oonf_layer2_cleanup_origin(_l2_origin_old);
+  l2net = oonf_layer2_net_get(_link_config_section.section_name);
+  if (l2net) {
+    /* remove old entries and trigger remove events */
+    oonf_layer2_net_cleanup(l2net, _l2_origin_old);
 
-  /* trigger change events */
-  avl_for_each_element_safe(oonf_layer2_get_network_tree(), l2net, _node, l2net_it) {
+    commit = false;
+    /* detect changes and relabel the origin */
     avl_for_each_element_safe(&l2net->neighbors, l2neigh, _node, l2neigh_it) {
       for (idx = 0; idx < OONF_LAYER2_NEIGH_COUNT; idx++) {
         if (oonf_layer2_get_origin(&l2neigh->data[idx]) == _l2_origin_current) {
-          oonf_layer2_neigh_commit(l2neigh);
-          break;
+          oonf_layer2_set_origin(&l2neigh->data[idx], _l2_origin_old);
+          commit = true;
         }
       }
     }
 
+    if (commit) {
+      /* trigger change event */
+     oonf_layer2_neigh_commit(l2neigh);
+    }
+
+    commit = false;
+    /* detect changes and relabel the origin */
     for (idx = 0; idx < OONF_LAYER2_NET_COUNT; idx++) {
       if (oonf_layer2_get_origin(&l2net->neighdata[idx]) == _l2_origin_current) {
-        oonf_layer2_net_commit(l2net);
-        break;
+        oonf_layer2_set_origin(&l2net->neighdata[idx], _l2_origin_old);
+        commit = true;
       }
     }
+    if (commit) {
+      /* trigger change event */
+      oonf_layer2_net_commit(l2net);
+    }
   }
-
-  /* switch l2orgigin numbers */
-  l2origin = _l2_origin_old;
-  _l2_origin_old = _l2_origin_current;
-  _l2_origin_current = l2origin;
 }
