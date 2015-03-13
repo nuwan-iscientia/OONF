@@ -77,6 +77,7 @@ struct _olsrv2_data {
   bool complete_tc;
   uint8_t mprtypes[NHDP_MAXIMUM_DOMAINS];
   size_t mprtypes_size;
+  bool changed;
 };
 
 /* Prototypes */
@@ -304,6 +305,7 @@ _cb_addresstlvs(struct rfc5444_reader_tlvblock_context *context __attribute__((u
   uint32_t cost_out[NHDP_MAXIMUM_DOMAINS];
   struct rfc7181_metric_field metric_value;
   size_t i;
+  uint8_t distance;
 #ifdef OONF_LOG_DEBUG_INFO
   struct netaddr_str buf;
 #endif
@@ -359,8 +361,10 @@ _cb_addresstlvs(struct rfc5444_reader_tlvblock_context *context __attribute__((u
         edge->ansn = _current.node->ansn;
         edge->cost[domain->index] = cost_out[domain->index];
 
-        if (edge->inverse->virtual) {
+        if (edge->inverse->virtual
+            && edge->inverse->cost[domain->index] != cost_in[domain->index]) {
           edge->inverse->cost[domain->index] = cost_in[domain->index];
+          _current.changed = true;
         }
       }
     }
@@ -370,7 +374,10 @@ _cb_addresstlvs(struct rfc5444_reader_tlvblock_context *context __attribute__((u
       if (end) {
         OONF_DEBUG(LOG_OLSRV2_R, "Address is routable, but not originator");
         end->ansn = _current.node->ansn;
-        end->cost[domain->index] = cost_out[domain->index];
+        if (end->cost[domain->index] != cost_out[domain->index]) {
+          end->cost[domain->index] = cost_out[domain->index];
+          _current.changed = true;
+        }
       }
     }
   }
@@ -404,13 +411,21 @@ _cb_addresstlvs(struct rfc5444_reader_tlvblock_context *context __attribute__((u
         continue;
       }
 
-      end->cost[domain->index] = cost_out[domain->index];
+      if (end->cost[domain->index] != cost_out[domain->index]) {
+        end->cost[domain->index] = cost_out[domain->index];
+        _current.changed = true;
+      }
 
       if (tlv->length == 1) {
-        end->distance[domain->index] = tlv->single_value[0];
+         distance = tlv->single_value[0];
       }
       else {
-        end->distance[domain->index] = tlv->single_value[i];
+        distance = tlv->single_value[i];
+      }
+
+      if (distance != end->distance[domain->index]) {
+        end->distance[domain->index] = distance;
+        _current.changed = true;
       }
 
       OONF_DEBUG(LOG_OLSRV2_R, "Address is Attached Network: dist=%u",
@@ -440,19 +455,23 @@ _cb_messagetlvs_end(struct rfc5444_reader_tlvblock_context *context __attribute_
   avl_for_each_element_safe(&_current.node->_edges, edge, _node, edge_it) {
     if (edge->ansn != _current.node->ansn) {
       olsrv2_tc_edge_remove(edge);
+      _current.changed = true;
     }
   }
 
   avl_for_each_element_safe(&_current.node->_endpoints, end, _src_node, end_it) {
     if (end->ansn != _current.node->ansn) {
       olsrv2_tc_endpoint_remove(end);
+      _current.changed = true;
     }
   }
 
   _current.node = NULL;
 
   /* recalculate routing table */
-  olsrv2_routing_trigger_update();
+  if (_current.changed) {
+    olsrv2_routing_trigger_update();
+  }
 
   return RFC5444_OKAY;
 }

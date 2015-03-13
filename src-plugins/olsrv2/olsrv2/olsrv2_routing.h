@@ -98,9 +98,6 @@ struct olsrv2_routing_entry {
   bool state_new;
   bool state_current;
 
-  /* true if this route is being processed by the kernel at the moment */
-  bool in_processing;
-
   /* hook into working queues */
   struct list_entity _working_node;
 

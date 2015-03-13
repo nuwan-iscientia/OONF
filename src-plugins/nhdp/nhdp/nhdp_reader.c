@@ -187,6 +187,8 @@ static struct {
 
   uint8_t mprtypes[NHDP_MAXIMUM_DOMAINS];
   size_t mprtypes_size;
+
+  bool changed;
 } _current;
 
 /**

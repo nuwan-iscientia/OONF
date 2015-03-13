@@ -294,11 +294,9 @@ olsrv2_routing_set_domain_parameter(struct nhdp_domain *domain,
   /* remove old kernel routes */
   avl_for_each_element(&_routing_tree[domain->index], rtentry, _node) {
     if (rtentry->state_current) {
-      if (rtentry->in_processing) {
-        /* stop current processing */
-        os_routing_interrupt(&rtentry->route_new);
-        os_routing_interrupt(&rtentry->route_current);
-      }
+      /* stop current processing */
+      os_routing_interrupt(&rtentry->route_new);
+      os_routing_interrupt(&rtentry->route_current);
 
       /* remove current route */
       rtentry->state_new = false;
@@ -462,6 +460,9 @@ _update_routing_entry(struct nhdp_domain *domain,
     return;
   }
 
+  /* mark route as set */
+  rtentry->state_new = true;
+
   /*
    * routing entry might already be present because it can be set by
    * a tc node AND by attached networks with a maximum prefix length
@@ -479,9 +480,6 @@ _update_routing_entry(struct nhdp_domain *domain,
   rtentry->route_new.data.if_index = neighdata->best_link_ifindex;
   rtentry->cost = pathcost;
   rtentry->route_new.data.metric = distance;
-
-  /* mark route as set */
-  rtentry->state_new = true;
 
   /* copy gateway if necessary */
   if (single_hop
@@ -782,9 +780,6 @@ _process_kernel_queue(void) {
     /* remove from routing queue */
     list_remove(&rtentry->_working_node);
 
-    /* mark route as in kernel processing */
-    rtentry->in_processing = true;
-
     if (rtentry->state_current) {
       /* if the route exists, we must remove it anyways */
       if (os_routing_set(&rtentry->route_current, false, false)) {
@@ -836,29 +831,32 @@ _cb_route_current_finished(struct os_route *route, int error) {
 
   rtentry = container_of(route, struct olsrv2_routing_entry, route_current);
 
-  /* kernel is not processing this route anymore */
-  rtentry->in_processing = false;
-
   if (error == ESRCH) {
     OONF_DEBUG(LOG_OLSRV2_ROUTING, "Route %s was already gone",
         os_routing_to_string(&rbuf, &rtentry->route_current));
   }
   else if (error) {
     /* an error happened, try again later */
-    if (error != -1) {
-      /* do not display a os_routing_interrupt() caused error */
-      OONF_WARN(LOG_OLSRV2_ROUTING, "Error while removing route %s: %s (%d)",
-          os_routing_to_string(&rbuf, &rtentry->route_current),
-          strerror(error), error);
+    if (error != ESRCH) {
+      if (error != -1) {
+        /* do not display a os_routing_interrupt() caused error */
+        OONF_WARN(LOG_OLSRV2_ROUTING, "Error while removing route %s: %s (%d)",
+            os_routing_to_string(&rbuf, &rtentry->route_current),
+            strerror(error), error);
+      }
+
+      /* prevent a followup route add */
+      os_routing_interrupt(&rtentry->route_new);
+      return;
     }
 
-    /* prevent a followup route add */
-    os_routing_interrupt(&rtentry->route_new);
-    return;
+    /*
+     * we ignore "no such process" (error 13/ESRCH).
+     * the route wasn't there anyways, so pretend we succeeded removing it
+     */
   }
   OONF_INFO(LOG_OLSRV2_ROUTING, "Successfully removed route %s",
       os_routing_to_string(&rbuf, &rtentry->route_current));
-
 
   if (rtentry->state_new) {
     /* apply intermediate state */
@@ -867,6 +865,38 @@ _cb_route_current_finished(struct os_route *route, int error) {
   else {
     /* remove routing entry */
     _remove_entry(rtentry);
+  }
+}
+
+/**
+ * file exists error, there is already a route similar to this one
+ * @param rtentry route object that failed to set a new route
+ */
+static void
+_handle_file_exists(struct olsrv2_routing_entry* rtentry) {
+  struct os_route_str rbuf;
+
+  /* initialize with wildcard route */
+  memcpy(&rtentry->route_current.data, os_routing_get_wildcard_route(),
+      sizeof(rtentry->route_current.data));
+
+  /* add family, table and destination */
+  rtentry->route_current.data.family = rtentry->route_new.data.family;
+  rtentry->route_current.data.table = rtentry->route_new.data.table;
+  memcpy(&rtentry->route_current.data.dst, &rtentry->route_new.data.dst,
+      sizeof(rtentry->route_current.data.dst));
+
+  /* remove existing route */
+  if (os_routing_set(&rtentry->route_current, false, true)) {
+    OONF_WARN(LOG_OLSRV2_ROUTING, "Could not remove route %s",
+        os_routing_to_string(&rbuf, &rtentry->route_current));
+    return;
+  }
+
+  /* add new one again */
+  if (os_routing_set(&rtentry->route_new, true, false)) {
+    OONF_WARN(LOG_OLSRV2_ROUTING, "Could not add route %s",
+        os_routing_to_string(&rbuf, &rtentry->route_new));
   }
 }
 
@@ -882,11 +912,13 @@ _cb_route_new_finished(struct os_route *route, int error) {
 
   rtentry = container_of(route, struct olsrv2_routing_entry, route_new);
 
-  /* kernel is not processing this route anymore */
-  rtentry->in_processing = false;
-
   if (error) {
     /* an error happened, try again later */
+    if (error == EEXIST) {
+      /* file exists error, there is already a route similar to this one */
+      _handle_file_exists(rtentry);
+      return;
+    }
     if (error != -1) {
       /* do not display a os_routing_interrupt() caused error */
       OONF_WARN(LOG_OLSRV2_ROUTING, "Error while adding route %s: %s (%d)",
