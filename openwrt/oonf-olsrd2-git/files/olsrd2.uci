@@ -1,7 +1,5 @@
 config global
 	option 'failfast'	'no'
-	option 'table'		'234'
-#	option 'protocol'	'100'
 	option 'pidfile'	'/var/run/olsrd2.pid'
 	option 'lockfile'	'/var/lock/olsrd2'
 
