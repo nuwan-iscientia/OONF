@@ -13,11 +13,11 @@ config log
 config telnet
 #	option 'port' '2009'
 
-config dlep_radio
-  option 'name' 'eth1'
-  option 'source' eth0'
-  option 'not_proxied' 'false'
-  option 'proxied' 'true'
+#config dlep_radio
+#  option 'name' 'eth1'
+#  option 'source' eth0'
+#  option 'not_proxied' 'false'
+#  option 'proxied' 'true'
 
-config dlep-router
-  option 'name' 'eth0'
+#config dlep-router
+#  option 'name' 'eth0'
