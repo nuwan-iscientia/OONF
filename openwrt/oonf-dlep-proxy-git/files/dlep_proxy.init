@@ -50,7 +50,7 @@ oonf_add_devices_to_configuration()
 	# olsrd2.@interface[2].ifname='wan lan wlanadhoc wlanadhocRADIO1'
 
 	# /var is in ramdisc/tmpfs
-	cp /etc/config/${daemon} /var/etc${daemon}_dev
+	cp /etc/config/${daemon} /var/etc/${daemon}_dev
 
 	while dummy="$( uci -q -c /etc/config get "${daemon}.@interface[$i]" )"; do {
 		interface="$( uci -q -c /etc/config get "${daemon}.@interface[$i].ifname" )" || {
