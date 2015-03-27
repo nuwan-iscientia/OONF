@@ -6,107 +6,6 @@ daemon=dlep_proxy
 
 . /usr/share/libubox/jshn.sh
 
-oonf_log()
-{
-	logger -s -t ${daemon} -p daemon.info "$1"
-}
-
-oonf_get_layer3_device()
-{
-	local interface="$1"	# e.g. 'mywifi'
-	local status dev proto
-	local query="{ \"interface\" : \"$interface\" }"
-
-	status="$( ubus -S call network.interface status "$query" )" && {
-		json_load "$status"
-		json_get_var 'dev' l3_device
-		json_get_var 'proto' proto
-
-		case "$proto" in
-			pppoe)
-				# TODO: otherwise it segfaults
-				oonf__log "refusing to add '$interface', because of proto '$proto'"
-			;;
-			*)
-				echo "$dev"	# e.g. 'wlan0-1'
-			;;
-		esac
-	}
-}
-
-oonf_add_devices_to_configuration()
-{
-	local i=0
-	local j=0
-	local device_name= dummy= interface= single_interface=
-
-	# make a copy of configuration and
-	# replace all 'interface-names' (e.g. mywifi)
-	# with the real devices (e.g. wlan0-1)
-	#
-	# look over original interfaces, e.g.
-	#
-	# olsrd2.@interface[2]=interface
-	# olsrd2.@interface[2].ifname='wan lan wlanadhoc wlanadhocRADIO1'
-
-	# /var is in ramdisc/tmpfs
-	cp /etc/config/${daemon} /var/etc/${daemon}_dev
-
-	while dummy="$( uci -q -c /etc/config get "${daemon}.@interface[$i]" )"; do {
-		interface="$( uci -q -c /etc/config get "${daemon}.@interface[$i].ifname" )" || {
-			i=$(( $i + 1 ))
-			j=$(( $j + 1 ))
-
-			continue
-		}
-
-		case "$( uci -q get "${daemon}.@interface[$i].ignore" )" in
-			1|on|true|enabled|yes)
-				oonf_log "removing/ignore interface '$interface'"
-				uci -q -c /var/etc delete "${daemon}_dev.@interface[$j]"
-				i=$(( $i + 1 ))
-
-				continue
-			;;
-		esac
-
-		for single_interface in $interface; do {
-			device_name="$( oonf_get_layer3_device "$single_interface" )"
-
-			[ -z "$device_name" ] && {
-				# remove from copy
-				uci -q -c /var/etc delete "${daemon}_dev.@interface[$j]"
-				i=$(( $i + 1 ))
-
-				continue
-			}
-
-			# replace option 'ifname' (e.g. 'mywifi')
-			# with the option 'name' (e.g. 'wlan0-1')
-
-			# var 'ifname' is not needed anymore, but we keep it for readability
-			uci -q -c /var/etc set    "${daemon}_dev.@interface[$j].ifname=$single_interface"
-
-			uci -q -c /var/etc set    "${daemon}_dev.@interface[$j].name=$device_name" || {
-				# fails if index '$j' is wrong (multiple interface for 1 section)
-				uci -q -c /var/etc add ${daemon}_dev 'interface' >/dev/null
-				uci -q -c /var/etc set ${daemon}_dev.@interface[-1].ifname="$single_interface"
-				uci -q -c /var/etc set ${daemon}_dev.@interface[-1].name="$device_name"
-			}
-
-			i=$(( $i + 1 ))
-			j=$(( $j + 1 ))
-		} done
-	} done
-
-	uci -q -c /var/etc commit ${daemon}_dev
-
-	# hide our old vars 'ifname' - it confuses the daemon parser
-	sed -i 's/option ifname /# &/' /var/etc/${daemon}_dev
-
-	oonf_log "wrote '/var/etc/${daemon}_dev'"
-}
-
 oonf_reread_config()
 {
 	local pid
@@ -126,12 +25,10 @@ oonf_reread_config()
 
 start()
 {
-	oonf_add_devices_to_configuration
-
 	# produce coredumps
 	ulimit -c unlimited
 
-	service_start /usr/sbin/${daemon} --set global.fork=true --load uci:///var/etc/${daemon}_dev
+	service_start /usr/sbin/${daemon} --set global.fork=true --load uci:///etc/config/${daemon}
 }
 
 stop()
@@ -141,6 +38,5 @@ stop()
 
 reload()
 {
-	oonf_add_devices_to_configuration
 	oonf_reread_config
 }
