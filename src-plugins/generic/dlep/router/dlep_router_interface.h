@@ -48,11 +48,8 @@
 #include "subsystems/oonf_timer.h"
 
 struct dlep_router_if {
-  /* interface name to talk with DLEP radio */
-  char dlepif_name[IF_NAMESIZE];
-
   /* name of interface for layer2 database */
-  char layer2if_name[IF_NAMESIZE];
+  char l2_destination[IF_NAMESIZE];
 
   /* UDP socket for discovery */
   struct oonf_packet_managed udp;

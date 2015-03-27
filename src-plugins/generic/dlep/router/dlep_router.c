@@ -91,16 +91,16 @@ static struct cfg_schema_entry _router_entries[] = {
   CFG_MAP_BOOL(dlep_router_if, single_session, "single_session", "true",
       "Restrict DLEP router to single session per interface"),
 
-  CFG_MAP_STRING_ARRAY(dlep_router_if, layer2if_name, "layer2if_name", "",
-      "Overwrite layer2 database name for incoming dlep traffic, used for"
-      " receiving DLEP data through out-of-band channel.", IF_NAMESIZE)
+  CFG_MAP_STRING_ARRAY(dlep_router_if, udp_config.interface, "datapath_if", "",
+      "Overwrite datapath interface for incoming dlep traffic, used for"
+      " receiving DLEP data through out-of-band channel.", IF_NAMESIZE),
 };
 
 static struct cfg_schema_section _router_section = {
   .type = OONF_DLEP_ROUTER_SUBSYSTEM,
   .mode = CFG_SSMODE_NAMED,
 
-  .help = "The name of this section must be the interface DLEP radio listens on",
+  .help = "name of the layer2 interface DLEP router will put its data into",
 
   .cb_delta_handler = _cb_config_changed,
 
@@ -200,15 +200,11 @@ _cb_config_changed(void) {
     return;
   }
 
-  /* use section name as default for layer2if_name */
-  if (!interface->layer2if_name[0]) {
-    strscpy(interface->layer2if_name, _router_section.section_name,
-        sizeof(interface->layer2if_name));
+  /* use section name as default for datapath interface */
+  if (!interface->udp_config.interface[0]) {
+    strscpy(interface->udp_config.interface, _router_section.section_name,
+        sizeof(interface->udp_config.interface));
   }
-
-  /* apply interface name to socket */
-  strscpy(interface->udp_config.interface, _router_section.section_name,
-      sizeof(interface->udp_config.interface));
 
   /* apply settings */
   dlep_router_apply_interface_settings(interface);

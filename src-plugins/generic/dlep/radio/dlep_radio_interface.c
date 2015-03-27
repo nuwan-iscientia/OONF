@@ -114,7 +114,7 @@ struct dlep_radio_if *
 dlep_radio_get_interface(const char *ifname) {
   struct dlep_radio_if *interf;
 
-  return avl_find_element(&dlep_radio_if_tree, ifname, interf, name);
+  return avl_find_element(&dlep_radio_if_tree, ifname, interf, l2_source);
 }
 
 /**
@@ -127,7 +127,7 @@ dlep_radio_get_by_source_if(const char *ifname) {
   struct dlep_radio_if *interf;
 
   avl_for_each_element(&dlep_radio_if_tree, interf, _node) {
-    if (strcmp(interf->source, ifname) == 0) {
+    if (strcmp(interf->l2_source, ifname) == 0) {
       return interf;
     }
   }
@@ -155,8 +155,8 @@ dlep_radio_add_interface(const char *ifname) {
   }
 
   /* initialize key */
-  strscpy(interface->name, ifname, sizeof(interface->name));
-  interface->_node.key = interface->name;
+  strscpy(interface->l2_source, ifname, sizeof(interface->l2_source));
+  interface->_node.key = interface->l2_source;
 
   /* add to global tree of sessions */
   avl_insert(&dlep_radio_if_tree, &interface->_node);
