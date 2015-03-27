@@ -73,8 +73,8 @@ static void _cb_config_changed(void);
 
 /* configuration */
 static struct cfg_schema_entry _radio_entries[] = {
-  CFG_MAP_STRING_ARRAY(dlep_radio_if, source, "source", "wlan0",
-     "Name of interface which layer2 data should be transmitted", IF_NAMESIZE),
+  CFG_MAP_STRING_ARRAY(dlep_radio_if, udp_config.interface, "datapath_if", NULL,
+     "Name of interface to talk to dlep router", IF_NAMESIZE),
 
   CFG_MAP_NETADDR_V4(dlep_radio_if, udp_config.multicast_v4, "discovery_mc_v4",
     DLEP_WELL_KNOWN_MULTICAST_ADDRESS, "IPv4 address to send discovery UDP packet to", false, false),
@@ -103,7 +103,7 @@ static struct cfg_schema_section _radio_section = {
   .type = OONF_DLEP_RADIO_SUBSYSTEM,
   .mode = CFG_SSMODE_NAMED,
 
-  .help = "The name of this section must be the interface DLEP radio listens on",
+  .help = "name of the layer2 interface DLEP radio will take its data from",
 
   .cb_delta_handler = _cb_config_changed,
 
@@ -182,7 +182,7 @@ _cb_config_changed(void) {
   struct dlep_radio_if *interface;
 
   if (!_radio_section.post) {
-    /* remove old tcp object */
+    /* remove old interface object */
     interface = dlep_radio_get_interface(_radio_section.section_name);
     if (interface) {
       dlep_radio_remove_interface(interface);
@@ -190,7 +190,7 @@ _cb_config_changed(void) {
     return;
   }
 
-  /* get tcp object or create one */
+  /* get interface object or create one */
   interface = dlep_radio_add_interface(_radio_section.section_name);
   if (!interface) {
     return;
@@ -204,10 +204,8 @@ _cb_config_changed(void) {
     return;
   }
 
-  /* apply interface name to sockets */
-  strscpy(interface->udp_config.interface, _radio_section.section_name,
-      sizeof(interface->udp_config.interface));
-  strscpy(interface->tcp_config.interface, _radio_section.section_name,
+  /* apply interface name also to TCP socket */
+  strscpy(interface->tcp_config.interface, interface->udp_config.interface,
       sizeof(interface->tcp_config.interface));
 
   /* apply settings */

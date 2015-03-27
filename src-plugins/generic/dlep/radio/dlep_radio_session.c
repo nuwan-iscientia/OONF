@@ -424,7 +424,7 @@ _handle_peer_initialization(struct dlep_radio_session *session,
   }
 
   /* get reference to l2 network data */
-  l2net = oonf_layer2_net_add(session->interface->source);
+  l2net = oonf_layer2_net_add(session->interface->l2_source);
   if (!l2net) {
     return -1;
   }

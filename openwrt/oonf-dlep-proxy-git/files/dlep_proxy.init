@@ -1,0 +1,42 @@
+#!/bin/sh /etc/rc.common
+
+START=82
+
+daemon=dlep_proxy
+
+. /usr/share/libubox/jshn.sh
+
+oonf_reread_config()
+{
+	local pid
+	local pidfile='/var/run/${daemon}.pid'
+
+	if   [ -e "$pidfile" ]; then
+		read pid <"$pidfile"
+	elif pidfile="$( uci -q get '${daemon}.@global[0].pidfile' )"; then
+		read pid <"$pidfile"
+	fi
+
+	# if empty, ask kernel
+	pid="${pid:-$( pidof ${daemon} )}"
+
+	[ -n "$pid" ] && kill -SIGHUP $pid
+}
+
+start()
+{
+	# produce coredumps
+	ulimit -c unlimited
+
+	service_start /usr/sbin/${daemon} --set global.fork=true --load uci:///etc/config/${daemon}
+}
+
+stop()
+{
+	service_stop /usr/sbin/${daemon}
+}
+
+reload()
+{
+	oonf_reread_config
+}
