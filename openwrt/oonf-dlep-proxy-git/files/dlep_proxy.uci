@@ -14,11 +14,11 @@ config telnet
 #	option 'port' '2009'
 
 #config dlep_radio
-#  option 'name' 'eth0'
+#  list 'name' 'eth0'
 #  option 'datapath_if' 'eth1'
 #  option 'not_proxied' 'false'
 #  option 'proxied' 'true'
 
 #config dlep-router
-#  option 'name' 'eth0'
+#  list 'name' 'eth0'
 #  option 'datapath_if' 'eth0'
