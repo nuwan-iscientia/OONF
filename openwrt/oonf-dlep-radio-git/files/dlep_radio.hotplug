@@ -1,6 +1,6 @@
 #!/bin/sh
 
-daemon=olsrd2
+daemon=dlep_radio
 
 case "$ACTION" in
 	ifup)

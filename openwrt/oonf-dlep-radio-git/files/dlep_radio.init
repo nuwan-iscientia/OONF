@@ -2,7 +2,7 @@
 
 START=82
 
-daemon=olsrd2
+daemon=dlep_radio
 
 . /usr/share/libubox/jshn.sh
 

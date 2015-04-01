@@ -21,8 +21,8 @@ CMAKE_OPTIONS=-D OONF_NO_WERROR:Bool=true \
               -D OONF_LOGGING_LEVEL:String=debug \
               -D OONF_NO_TESTING:Bool=true \
               -D UCI:Bool=true \
-              -D OONF_APP_DEFAULT_CFG_HANDLER:String=compact \
-              -D OONF_STATIC_PLUGINS:String="class;clock;interface;layer2;packet_socket;socket;stream_socket;telnet;timer;viewer;os_clock;os_socket;os_interface;os_system;nl80211_listener;layer2info;systeminfo;cfg_compact;dlep_radio" \
+              -D OONF_APP_DEFAULT_CFG_HANDLER:String=uci \
+              -D OONF_STATIC_PLUGINS:String="class;clock;interface;layer2;packet_socket;socket;stream_socket;telnet;timer;viewer;os_clock;os_socket;os_interface;os_system;nl80211_listener;layer2info;systeminfo;cfg_uciloader;cfg_compact;dlep_radio" \
               -D INSTALL_LIB_DIR:Path=lib/oonf \
               -D INSTALL_INCLUDE_DIR:Path=include/oonf \
               -D INSTALL_CMAKE_DIR:Path=lib/oonf \
@@ -53,12 +53,13 @@ TARGET_CFLAGS += -I$(STAGING_DIR)/usr/include -I${STAGING_DIR}/usr/include/libnl
 
 define Package/dlep-radio-git/install
 	$(INSTALL_BIN)  -D $(PKG_BUILD_DIR)/dlep_radio_static $(1)/usr/sbin/dlep_radio
-	$(INSTALL_BIN)  -D ./files/dlep.init                  $(1)/etc/init.d/dlep
-	$(INSTALL_DATA) -D ./files/dlep.conf                  $(1)/etc/dlep.conf
+	$(INSTALL_BIN)  -D ./files/dlep_radio.init            $(1)/etc/init.d/dlep_radio
+	$(INSTALL_BIN)  -D ./files/dlep_radio.hotplug         $(1)/etc/hotplug.d/iface/50-dlep_radio
+	$(INSTALL_DATA) -D ./files/dlep_radio.uci             $(1)/etc/config/dlep_radio
 endef
 
 define Package/dlep-radio-git/conffiles
-/etc/dlep.conf
+/etc/config/dlep_radio
 endef
 
 $(eval $(call BuildPackage,dlep-radio-git))
