@@ -3,5 +3,8 @@
 /.settings
 /html
 /cmake/version.cmake
-.kdev4/
+/.kdev4/
 /*.kdev4
+/*.tar.gz
+/*.tar.bz2
+/*.zip

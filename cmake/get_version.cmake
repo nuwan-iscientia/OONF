@@ -1,7 +1,7 @@
 #!/bin/cmake
-IF(EXISTS "${CMAKE_SOURCE_DIR}/cmake/version.cmake")
+IF(EXISTS "${CMAKE_SOURCE_DIR}/version.cmake")
   # preconfigured version data
-  FILE (COPY ${CMAKE_SOURCE_DIR}/cmake/version.cmake DESTINATION ${PROJECT_BINARY_DIR})
+  FILE (COPY ${CMAKE_SOURCE_DIR}/version.cmake DESTINATION ${PROJECT_BINARY_DIR})
 ELSEIF(NOT OONF_LIB_GIT AND NOT OONF_VERSION)
   # look for git executable
   SET(found_git false) 

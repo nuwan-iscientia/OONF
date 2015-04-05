@@ -26,13 +26,40 @@ if(DOXYGEN_FOUND)
     )
 endif(DOXYGEN_FOUND)
 
+########################################
+#### get repository tag and version ####
+########################################
+
+include (cmake/get_version.cmake)
+include (${PROJECT_BINARY_DIR}/version.cmake)
+
+#############################
+#### add tarball targets ####
+#############################
+
+ADD_CUSTOM_TARGET(targz  COMMAND ${CMAKE_COMMAND}
+                                 -D SOURCE:STRING=${CMAKE_SOURCE_DIR}
+                                 -D BINARY:STRING=${PROJECT_BINARY_DIR}
+                                 -D VERSION:STRING=${VERSION}
+                                 -D FORMAT:STRING=tar.gz
+                                 -P ${CMAKE_SOURCE_DIR}/cmake/generate_archive.cmake)
+                                
+ADD_CUSTOM_TARGET(tarbz2 COMMAND ${CMAKE_COMMAND}
+                                 -D SOURCE:STRING=${CMAKE_SOURCE_DIR}
+                                 -D BINARY:STRING=${PROJECT_BINARY_DIR}
+                                 -D VERSION:STRING=${VERSION}
+                                 -D FORMAT:STRING=tar.bz2
+                                 -P ${CMAKE_SOURCE_DIR}/cmake/generate_archive.cmake)
+ADD_CUSTOM_TARGET(zip    COMMAND ${CMAKE_COMMAND}
+                                 -D SOURCE:STRING=${CMAKE_SOURCE_DIR}
+                                 -D BINARY:STRING=${PROJECT_BINARY_DIR}
+                                 -D VERSION:STRING=${VERSION}
+                                 -D FORMAT:STRING=zip
+                                 -P ${CMAKE_SOURCE_DIR}/cmake/generate_archive.cmake)
+
 #########################
 #### Compile targets ####
 #########################
-
-# get repository tag and version
-include (cmake/get_version.cmake)
-include (${PROJECT_BINARY_DIR}/version.cmake)
 
 # add define for length of base path
 string(LENGTH "${CMAKE_SOURCE_DIR}/" BASELENGTH)
