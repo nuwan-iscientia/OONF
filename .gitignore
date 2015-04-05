@@ -2,6 +2,6 @@
 /.project
 /.settings
 /html
-
+/cmake/version.cmake
 .kdev4/
-olsrd-api.kdev4
+/*.kdev4

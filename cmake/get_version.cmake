@@ -1,7 +1,9 @@
 #!/bin/cmake
-
-# look for git executable
-IF(NOT OONF_LIB_GIT AND NOT OONF_VERSION)
+IF(EXISTS "${CMAKE_SOURCE_DIR}/cmake/version.cmake")
+  # preconfigured version data
+  FILE (COPY ${CMAKE_SOURCE_DIR}/cmake/version.cmake DESTINATION ${PROJECT_BINARY_DIR})
+ELSEIF(NOT OONF_LIB_GIT AND NOT OONF_VERSION)
+  # look for git executable
   SET(found_git false) 
   find_program(found_git git)
 
@@ -21,7 +23,7 @@ IF(NOT OONF_LIB_GIT AND NOT OONF_VERSION)
     # strip "v" from tag
     string(SUBSTRING ${VERSION_TAG} 1 -1 VERSION)
   ENDIF()
+  
+  message ("Git commit: ${LIB_GIT}, Git version: ${VERSION}")
+  configure_file (${CMAKE_SOURCE_DIR}/cmake/version.cmake.in ${PROJECT_BINARY_DIR}/version.cmake)
 ENDIF()
-
-message ("Git commit: ${LIB_GIT}, Git version: ${VERSION}")
-configure_file (${CMAKE_SOURCE_DIR}/cmake/version.cmake.in ${PROJECT_BINARY_DIR}/version.cmake)
