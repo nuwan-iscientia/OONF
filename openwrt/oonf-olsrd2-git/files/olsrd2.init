@@ -49,6 +49,8 @@ oonf_add_devices_to_configuration()
   cp /etc/config/${daemon} /var/etc/${daemon}_dev
 
   while section="$( uci -q -c /etc/config get "${daemon}.@[$i]" )"; do {
+    echo "section: $section"
+
     interface="$( uci -q -c /etc/config get "${daemon}.@[$i].ifname" )" || {
       i=$(( $i + 1 ))
       continue
@@ -67,18 +69,15 @@ oonf_add_devices_to_configuration()
     for single_interface in $interface; do {
       device_name="$( oonf_get_layer3_device "$single_interface" )"
 
-      [ -z "$device_name" ] && {
-        # remove from copy
-        i=$(( $i + 1 ))
+      echo "Interface: $single_interface = $device_name"
 
-        continue
-      }
-
-      # add option 'name' for 'ifname' (e.g. 'mywifi')
-      uci -q -c /var/etc add_list "${daemon}_dev.@[$i].name=$device_name"
-      
-      i=$(( $i + 1 ))
+      if [ ! -z "$device_name" ]
+      then
+        # add option 'name' for 'ifname' (e.g. 'mywifi')
+        uci -q -c /var/etc add_list "${daemon}_dev.@[$i].name=$device_name"
+      fi
     } done
+    i=$(( $i + 1 ))
   } done
 
   uci -q -c /var/etc commit ${daemon}_dev
