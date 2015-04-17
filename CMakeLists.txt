@@ -31,7 +31,9 @@ endif(DOXYGEN_FOUND)
 ########################################
 
 include (cmake/get_version.cmake)
-include (${PROJECT_BINARY_DIR}/version.cmake)
+IF(EXISTS "${PROJECT_BINARY_DIR}/version.cmake")
+  include (${PROJECT_BINARY_DIR}/version.cmake)
+ENDIF()
 
 #############################
 #### add tarball targets ####
