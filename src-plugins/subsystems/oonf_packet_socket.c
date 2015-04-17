@@ -802,17 +802,12 @@ _cb_packet_event(int fd, void *data, bool event_read, bool event_write,
 static int
 _cb_interface_listener(struct oonf_interface_listener *l) {
   struct oonf_packet_managed *managed;
-#ifdef OONF_LOG_DEBUG_INFO
   int result;
-#endif
 
   /* calculate managed socket for this event */
   managed = container_of(l, struct oonf_packet_managed, _if_listener);
 
-#ifdef OONF_LOG_DEBUG_INFO
-  result =
-#endif
-      _apply_managed(managed);
+  result = _apply_managed(managed);
 
   OONF_DEBUG(LOG_PACKET,
       "Result from interface triggered socket reconfiguration: %d", result);
