@@ -368,6 +368,7 @@ int
 oonf_stream_apply_managed(struct oonf_stream_managed *managed,
     struct oonf_stream_managed_config *config) {
   bool if_changed;
+  int result;
 
   if_changed = strcmp(config->interface, managed->_managed_config.interface) != 0
       || !list_is_node_added(&managed->_if_listener._node);
@@ -391,7 +392,11 @@ oonf_stream_apply_managed(struct oonf_stream_managed *managed,
       config->interface == NULL || config->interface[0] == 0 ? "any" : config->interface,
       config->port);
 
-  return _apply_managed(managed);
+  result = _apply_managed(managed);
+  if (result) {
+    oonf_interface_trigger_handler(&managed->_if_listener);
+  }
+  return result;
 }
 
 /**

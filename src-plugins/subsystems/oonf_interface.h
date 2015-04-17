@@ -113,8 +113,9 @@ EXPORT struct os_interface_data *oonf_interface_get_data_by_ifindex(
 EXPORT struct os_interface_data *oonf_interface_get_data_by_ifbaseindex(
 		unsigned ifindex);
 
-EXPORT void oonf_interface_trigger_change(unsigned if_index, bool down);
-EXPORT void oonf_interface_trigger_handler(struct os_interface *interf);
+EXPORT void oonf_interface_trigger(struct os_interface *interf);
+EXPORT void oonf_interface_trigger_ifindex(unsigned if_index, bool down);
+EXPORT void oonf_interface_trigger_handler(struct oonf_interface_listener *listener);
 
 EXPORT const struct netaddr *oonf_interface_get_bindaddress(int af_type,
     struct netaddr_acl *filter, struct os_interface_data *ifdata);

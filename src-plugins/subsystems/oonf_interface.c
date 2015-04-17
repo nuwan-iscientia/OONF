@@ -117,7 +117,7 @@ static struct oonf_timer_instance _other_if_change_timer = {
 static uint64_t _other_retrigger_timeout;
 
 static struct os_interface_if_listener _iflistener = {
-  .if_changed = oonf_interface_trigger_change,
+  .if_changed = oonf_interface_trigger_ifindex,
 };
 
 static struct oonf_class _if_class = {
@@ -215,7 +215,7 @@ oonf_interface_remove_listener(
  * @param down true if interface is going down
  */
 void
-oonf_interface_trigger_change(unsigned if_index, bool down) {
+oonf_interface_trigger_ifindex(unsigned if_index, bool down) {
   char if_name[IF_NAMESIZE];
   struct os_interface *interf = NULL, *if_ptr;
 
@@ -240,7 +240,7 @@ oonf_interface_trigger_change(unsigned if_index, bool down) {
     interf->data.up = false;
   }
 
-  oonf_interface_trigger_handler(interf);
+  oonf_interface_trigger(interf);
 }
 
 /**
@@ -249,11 +249,32 @@ oonf_interface_trigger_change(unsigned if_index, bool down) {
  * @param interf pointer to olsr interface
  */
 void
-oonf_interface_trigger_handler(struct os_interface *interf) {
+oonf_interface_trigger(struct os_interface *interf) {
   /* trigger interface reload in 100 ms */
   OONF_DEBUG(LOG_INTERFACE, "Change of interface %s was triggered", interf->data.name);
 
   _trigger_ifspecific_change_timer(interf);
+}
+
+/**
+ * Trigger the interface change handler after a short waiting period
+ * to accumulate multiple change events.
+ * @param interf pointer to olsr interface
+ */
+void
+oonf_interface_trigger_handler(struct oonf_interface_listener *listener) {
+  /* trigger interface reload in 100 ms */
+  OONF_DEBUG(LOG_INTERFACE, "Change of interface listener was triggered");
+
+  listener->trigger_again = true;
+  if (listener->interface) {
+    listener->interface->retrigger_timeout = IF_RETRIGGER_INTERVAL;
+    oonf_timer_set(&listener->interface->_change_timer, IF_RETRIGGER_INTERVAL);
+  }
+  else {
+    _other_retrigger_timeout = IF_RETRIGGER_INTERVAL;
+    oonf_timer_set(&_other_if_change_timer, IF_RETRIGGER_INTERVAL);
+  }
 }
 
 /**

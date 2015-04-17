@@ -303,6 +303,7 @@ int
 oonf_packet_apply_managed(struct oonf_packet_managed *managed,
     struct oonf_packet_managed_config *config) {
   bool if_changed;
+  int result;
 
   if_changed = strcmp(config->interface, managed->_managed_config.interface) != 0
       || !list_is_node_added(&managed->_if_listener._node);
@@ -322,7 +323,12 @@ oonf_packet_apply_managed(struct oonf_packet_managed *managed,
   OONF_DEBUG(LOG_PACKET, "Apply changes for managed socket (if %s) with port %d/%d",
       config->interface == NULL || config->interface[0] == 0 ? "any" : config->interface,
       config->port, config->multicast_port);
-  return _apply_managed(managed);
+
+  result = _apply_managed(managed);
+  if (result) {
+    oonf_interface_trigger_handler(&managed->_if_listener);
+  }
+  return result;
 }
 
 /**
