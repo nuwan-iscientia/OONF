@@ -110,6 +110,9 @@ static struct oonf_timer_class _change_timer_info = {
   .name = "Interface change",
   .callback = _cb_change_handler,
 };
+static struct oonf_timer_instance _other_if_change_timer = {
+  .class = &_change_timer_info,
+};
 
 static struct os_interface_if_listener _iflistener = {
   .if_changed = oonf_interface_trigger_change,
@@ -172,7 +175,7 @@ oonf_interface_add_listener(
 
   OONF_DEBUG(LOG_INTERFACE, "Add listener for interface %s", listener->name);
 
-  if (listener->name) {
+  if (listener->name && listener->name[0]) {
     listener->interface = _interface_add(listener->name, listener->mesh);
     if (listener->interface == NULL) {
       return -1;
@@ -228,6 +231,7 @@ oonf_interface_trigger_change(unsigned if_index, bool down) {
 
   if (interf == NULL) {
     OONF_INFO(LOG_INTERFACE, "Unknown interface update: %d", if_index);
+    oonf_timer_set(&_other_if_change_timer, OONF_INTERFACE_CHANGE_INTERVAL);
     return;
   }
   if (down) {
@@ -391,7 +395,7 @@ oonf_interface_get_bindaddress(int af_type,
     OONF_DEBUG(LOG_INTERFACE, "Look for prefix match");
     result = _get_matching_bindaddress(af_type, filter, ifdata);
   }
-  OONF_DEBUG_NH(LOG_INTERFACE, "Bind to '%s'", netaddr_to_string(&nbuf, result));
+  OONF_DEBUG(LOG_INTERFACE, "Bind to '%s'", netaddr_to_string(&nbuf, result));
   return result;
 }
 
@@ -630,7 +634,19 @@ _cb_change_handler(void *ptr) {
 
   interf = ptr;
 
-  OONF_DEBUG(LOG_INTERFACE, "Change of interface %s in progress", interf->data.name);
+  OONF_DEBUG(LOG_INTERFACE, "Change of interface %s in progress",
+      interf == NULL ? "any" : interf->data.name);
+
+  if (!interf) {
+    /* call generic listeners */
+    list_for_each_element_safe(&_interface_listener, listener, _node, l_it) {
+      if (listener->process != NULL &&
+          (listener->name == NULL || listener->name[0] == 0)) {
+        listener->process(listener);
+      }
+    }
+    return;
+  }
 
   /* read interface data */
   memset(&new_data, 0, sizeof(new_data));
@@ -642,11 +658,6 @@ _cb_change_handler(void *ptr) {
     return;
   }
 
-  /* something changed ?
-  if (memcmp(&interf->data, &new_data, sizeof(new_data)) == 0) {
-    return;
-  }
-*/
   /* copy data to interface object, but remember the old data */
   memcpy(&old_data, &interf->data, sizeof(old_data));
   memcpy(&interf->data, &new_data, sizeof(interf->data));
@@ -654,7 +665,7 @@ _cb_change_handler(void *ptr) {
   /* call listeners */
   list_for_each_element_safe(&_interface_listener, listener, _node, l_it) {
     if (listener->process != NULL
-        && (listener->name == NULL
+        && (listener->name == NULL || listener->name[0] == 0
             || strcasecmp(listener->name, interf->data.name) == 0)) {
       listener->old = &old_data;
       listener->process(listener);

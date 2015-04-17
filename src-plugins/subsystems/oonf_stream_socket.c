@@ -369,7 +369,8 @@ oonf_stream_apply_managed(struct oonf_stream_managed *managed,
     struct oonf_stream_managed_config *config) {
   bool if_changed;
 
-  if_changed = strcmp(config->interface, managed->_managed_config.interface) != 0;
+  if_changed = strcmp(config->interface, managed->_managed_config.interface) != 0
+      || !list_is_node_added(&managed->_if_listener._node);
 
   oonf_stream_copy_managed_config(&managed->_managed_config, config);
 
@@ -382,10 +383,8 @@ oonf_stream_apply_managed(struct oonf_stream_managed *managed,
     /* interface changed, remove old listener if necessary */
     oonf_interface_remove_listener(&managed->_if_listener);
 
-    if (managed->_managed_config.interface[0]) {
-      /* create new interface listener */
-      oonf_interface_add_listener(&managed->_if_listener);
-    }
+    /* create new interface listener */
+    oonf_interface_add_listener(&managed->_if_listener);
   }
 
   OONF_DEBUG(LOG_STREAM, "Apply changes for managed socket (if %s) with port %d",
