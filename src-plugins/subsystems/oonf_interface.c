@@ -656,8 +656,8 @@ _should_process_ifgeneric_listener(struct oonf_interface_listener *l) {
 
 static bool
 _match_ifspecific_listener(struct oonf_interface_listener *l, const char *ifname) {
-  return l->process && l->name != NULL
-      && strcmp(l->name, ifname) == 0;
+  return (l->process && l->name != NULL && strcmp(l->name, ifname) == 0)
+      || _match_ifgeneric_listener(l);
 }
 
 static bool
