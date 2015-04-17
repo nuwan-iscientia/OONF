@@ -98,13 +98,20 @@ struct os_interface {
    * usage counter to allow multiple instances to add the same
    * interface
    */
-  int usage_counter;
+  uint32_t usage_counter;
 
   /*
    * usage counter to keep track of the number of users on
    * this interface who want to send mesh traffic
    */
-  int mesh_counter;
+  uint32_t mesh_counter;
+
+  /*
+   * When an interface change handler triggers a 'interface not ready'
+   * error the interface should be triggered again. The variable stores
+   * the last interval until the next trigger.
+   */
+  uint64_t retrigger_timeout;
 
   /*
    * used to store internal state of interfaces before

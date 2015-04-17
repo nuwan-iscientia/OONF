@@ -74,7 +74,7 @@ static int _apply_managed_socket(struct oonf_packet_managed *managed,
 static void _cb_packet_event_unicast(int fd, void *data, bool r, bool w);
 static void _cb_packet_event_multicast(int fd, void *data, bool r, bool w);
 static void _cb_packet_event(int fd, void *data, bool r, bool w, bool mc);
-static void _cb_interface_listener(struct oonf_interface_listener *l);
+static int _cb_interface_listener(struct oonf_interface_listener *l);
 
 /* subsystem definition */
 static const char *_dependencies[] = {
@@ -797,9 +797,9 @@ _cb_packet_event(int fd, void *data, bool event_read, bool event_write,
 /**
  * Callbacks for events on the interface
  * @param l
- * @param old
+ * @return -1 if an error happened, 0 otherwise
  */
-static void
+static int
 _cb_interface_listener(struct oonf_interface_listener *l) {
   struct oonf_packet_managed *managed;
 #ifdef OONF_LOG_DEBUG_INFO
@@ -816,4 +816,6 @@ _cb_interface_listener(struct oonf_interface_listener *l) {
 
   OONF_DEBUG(LOG_PACKET,
       "Result from interface triggered socket reconfiguration: %d", result);
+
+  return result;
 }

@@ -74,7 +74,7 @@ static struct oonf_stream_session *_create_session(
 static void _cb_parse_connection(int fd, void *data, bool r,bool w);
 
 static void _cb_timeout_handler(void *);
-static void _cb_interface_listener(struct oonf_interface_listener *l);
+static int _cb_interface_listener(struct oonf_interface_listener *l);
 
 /* list of olsr stream sockets */
 static struct list_entity _stream_head;
@@ -847,9 +847,9 @@ _cb_parse_connection(int fd, void *data, bool event_read, bool event_write) {
 /**
  * Callbacks for events on the interface
  * @param l
- * @param old
+ * @return -1 if an error happened, 0 otherwise
  */
-static void
+static int
 _cb_interface_listener(struct oonf_interface_listener *l) {
   struct oonf_stream_managed *managed;
 #ifdef OONF_LOG_DEBUG_INFO
@@ -866,4 +866,6 @@ _cb_interface_listener(struct oonf_interface_listener *l) {
 
   OONF_DEBUG(LOG_STREAM,
       "Result from interface triggered socket reconfiguration: %d", result);
+
+  return result;
 }

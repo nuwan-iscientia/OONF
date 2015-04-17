@@ -99,7 +99,7 @@ static void _parse_lan_array(struct cfg_named_section *section, bool add);
 static void _cb_generate_tc(void *);
 
 static void _update_originators(void);
-static void _cb_if_event(struct oonf_interface_listener *);
+static int _cb_if_event(struct oonf_interface_listener *);
 
 static void _cb_cfg_olsrv2_changed(void);
 static void _cb_cfg_domain_changed(void);
@@ -709,10 +709,12 @@ _update_originators(void) {
 /**
  * Callback for interface events
  * @param listener pointer to interface listener
+ * @return always 0
  */
-static void
+static int
 _cb_if_event(struct oonf_interface_listener *listener __attribute__((unused))) {
   _update_originators();
+  return 0;
 }
 
 /**

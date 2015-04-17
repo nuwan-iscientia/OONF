@@ -65,6 +65,9 @@
 /* wildcard name for interfaces */
 #define OONF_INTERFACE_WILDCARD "any"
 
+/* interval after a failed interface change listener should be triggered again */
+#define IF_RETRIGGER_INTERVAL 1000ull
+
 struct oonf_interface_listener {
   /* name of interface */
   const char *name;
@@ -76,8 +79,14 @@ struct oonf_interface_listener {
    */
   bool mesh;
 
-  /* callback for interface change */
-  void (*process)(struct oonf_interface_listener *);
+  /*
+   * callback for interface change, should return -1 if the interface
+   * was not ready and the callback should be triggered again
+   */
+  int (*process)(struct oonf_interface_listener *);
+
+  /* true if process should be triggered again */
+  bool trigger_again;
 
   /*
    * pointer to the interface this listener is registered to

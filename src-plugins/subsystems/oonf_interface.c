@@ -82,7 +82,8 @@ static struct os_interface *_interface_add(const char *, bool mesh);
 static void _interface_remove(struct os_interface *interf, bool mesh);
 static int _handle_unused_parameter(const char *);
 static void _cb_change_handler(void *);
-static void _trigger_change_timer(struct os_interface *);
+static void _trigger_ifgeneric_change_timer(void);
+static void _trigger_ifspecific_change_timer(struct os_interface *);
 
 /* global tree of known interfaces */
 static struct avl_tree _oonf_interface_tree;
@@ -113,6 +114,7 @@ static struct oonf_timer_class _change_timer_info = {
 static struct oonf_timer_instance _other_if_change_timer = {
   .class = &_change_timer_info,
 };
+static uint64_t _other_retrigger_timeout;
 
 static struct os_interface_if_listener _iflistener = {
   .if_changed = oonf_interface_trigger_change,
@@ -231,7 +233,7 @@ oonf_interface_trigger_change(unsigned if_index, bool down) {
 
   if (interf == NULL) {
     OONF_INFO(LOG_INTERFACE, "Unknown interface update: %d", if_index);
-    oonf_timer_set(&_other_if_change_timer, OONF_INTERFACE_CHANGE_INTERVAL);
+    _trigger_ifgeneric_change_timer();
     return;
   }
   if (down) {
@@ -251,7 +253,7 @@ oonf_interface_trigger_handler(struct os_interface *interf) {
   /* trigger interface reload in 100 ms */
   OONF_DEBUG(LOG_INTERFACE, "Change of interface %s was triggered", interf->data.name);
 
-  _trigger_change_timer(interf);
+  _trigger_ifspecific_change_timer(interf);
 }
 
 /**
@@ -583,7 +585,7 @@ _interface_add(const char *name, bool mesh) {
   }
   else {
     /* existing one, delay update */
-    _trigger_change_timer(interf);
+    _trigger_ifspecific_change_timer(interf);
   }
 
   return interf;
@@ -622,6 +624,44 @@ _interface_remove(struct os_interface *interf, bool mesh) {
   oonf_class_free(&_if_class, interf);
 }
 
+static bool
+_match_ifgeneric_listener(struct oonf_interface_listener *l) {
+  return l->process && (l->name == NULL || l->name[0] == 0);
+}
+static bool
+_should_process_ifgeneric_listener(struct oonf_interface_listener *l) {
+  return _match_ifgeneric_listener(l) && l->trigger_again;
+}
+
+static bool
+_match_ifspecific_listener(struct oonf_interface_listener *l, const char *ifname) {
+  return l->process && l->name != NULL
+      && strcmp(l->name, ifname) == 0;
+}
+
+static bool
+_should_process_ifspecific_listener(struct oonf_interface_listener *l, const char *ifname) {
+  return _match_ifspecific_listener(l, ifname) && l->trigger_again;
+}
+
+static bool
+_trigger_listener(struct oonf_interface_listener *l, struct os_interface_data *old) {
+  bool trouble = false;
+
+  if (l->process) {
+    l->old = old;
+
+    if (l->process(l)) {
+      trouble = true;
+    }
+    else {
+      l->trigger_again = false;
+    }
+    l->old = false;
+  }
+  return trouble;
+}
+
 /**
  * Timer callback to handle potential change of data of an interface
  * @param ptr pointer to interface object
@@ -631,6 +671,7 @@ _cb_change_handler(void *ptr) {
   struct os_interface_data old_data, new_data;
   struct oonf_interface_listener *listener, *l_it;
   struct os_interface *interf;
+  bool trouble = false;
 
   interf = ptr;
 
@@ -640,10 +681,21 @@ _cb_change_handler(void *ptr) {
   if (!interf) {
     /* call generic listeners */
     list_for_each_element_safe(&_interface_listener, listener, _node, l_it) {
-      if (listener->process != NULL &&
-          (listener->name == NULL || listener->name[0] == 0)) {
-        listener->process(listener);
+
+      if (_should_process_ifgeneric_listener(listener)) {
+        if (_trigger_listener(listener, NULL)) {
+          trouble = true;
+        }
       }
+    }
+
+    if (trouble) {
+      /* trigger callback again after a timeout */
+      _other_retrigger_timeout *= 2ull;
+      oonf_timer_set(&_other_if_change_timer, _other_retrigger_timeout);
+    }
+    else {
+      _other_retrigger_timeout = IF_RETRIGGER_INTERVAL;
     }
     return;
   }
@@ -654,7 +706,7 @@ _cb_change_handler(void *ptr) {
     /* an error happened, try again */
     OONF_INFO(LOG_INTERFACE, "Could not query os network interface %s, trying again soon",
         interf->data.name);
-    _trigger_change_timer(interf);
+    _trigger_ifspecific_change_timer(interf);
     return;
   }
 
@@ -664,13 +716,17 @@ _cb_change_handler(void *ptr) {
 
   /* call listeners */
   list_for_each_element_safe(&_interface_listener, listener, _node, l_it) {
-    if (listener->process != NULL
-        && (listener->name == NULL || listener->name[0] == 0
-            || strcasecmp(listener->name, interf->data.name) == 0)) {
-      listener->old = &old_data;
-      listener->process(listener);
-      listener->old = NULL;
+    if (_should_process_ifspecific_listener(listener, interf->data.name)) {
+      if (_trigger_listener(listener, &old_data)) {
+        trouble = true;
+      }
     }
+  }
+
+  if (trouble) {
+    /* trigger callback again after a timeout */
+    interf->retrigger_timeout *= 2ull;
+    oonf_timer_set(&interf->_change_timer, interf->retrigger_timeout);
   }
 
   if (old_data.addresses) {
@@ -679,11 +735,35 @@ _cb_change_handler(void *ptr) {
 }
 
 /**
+ * Activate the change timer of an unknown interface
+ */
+static void
+_trigger_ifgeneric_change_timer(void) {
+  struct oonf_interface_listener *listener;
+
+  list_for_each_element(&_interface_listener, listener, _node) {
+    if (_match_ifgeneric_listener(listener)) {
+      listener->trigger_again = true;
+    }
+  }
+  _other_retrigger_timeout = IF_RETRIGGER_INTERVAL;
+  oonf_timer_set(&_other_if_change_timer, OONF_INTERFACE_CHANGE_INTERVAL);
+}
+
+/**
  * Activate the change timer of an interface object
  * @param interf pointer to interface object
  */
 static void
-_trigger_change_timer(struct os_interface *interf) {
+_trigger_ifspecific_change_timer(struct os_interface *interf) {
+  struct oonf_interface_listener *listener;
+
+  list_for_each_element(&_interface_listener, listener, _node) {
+    if (_match_ifspecific_listener(listener, interf->data.name)) {
+      listener->trigger_again = true;
+    }
+  }
+  interf->retrigger_timeout = IF_RETRIGGER_INTERVAL;
   oonf_timer_set(&interf->_change_timer, OONF_INTERFACE_CHANGE_INTERVAL);
 }
 
