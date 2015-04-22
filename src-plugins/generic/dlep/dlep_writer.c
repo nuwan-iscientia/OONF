@@ -169,6 +169,16 @@ dlep_writer_send_tcp_unicast(struct oonf_stream_session *session,
 }
 
 void
+dlep_writer_add_version_tlv(uint16_t major, uint16_t minor) {
+  uint16_t value[2];
+
+  value[0] = htons(major);
+  value[1] = htons(minor);
+
+  dlep_writer_add_tlv(DLEP_VERSION_TLV, &value, sizeof(value));
+}
+
+void
 dlep_writer_add_heartbeat_tlv(uint64_t interval) {
   uint16_t value;
 
@@ -222,12 +232,39 @@ dlep_writer_add_ipv6_tlv(const struct netaddr *ipv6, bool add) {
 }
 
 void
-dlep_writer_add_port_tlv(uint16_t port) {
-  uint16_t value;
+dlep_writer_add_ipv4_conpoint_tlv(const struct netaddr *addr, uint16_t port) {
+  uint8_t value[6];
 
-  value = htons(port);
+  if (netaddr_get_address_family(addr) != AF_INET) {
+    return;
+  }
 
-  dlep_writer_add_tlv(DLEP_PORT_TLV, &value, sizeof(value));
+  /* convert port to network byte order */
+  port = htons(port);
+
+  /* copy data into value buffer */
+  netaddr_to_binary(&value[0], addr, sizeof(value));
+  memcpy(&value[4], &port, sizeof(port));
+
+  dlep_writer_add_tlv(DLEP_IPV4_CONPOINT_TLV, &value, sizeof(value));
+}
+
+void
+dlep_writer_add_ipv6_conpoint_tlv(const struct netaddr *addr, uint16_t port) {
+  uint8_t value[18];
+
+  if (netaddr_get_address_family(addr) != AF_INET6) {
+    return;
+  }
+
+  /* convert port to network byte order */
+  port = htons(port);
+
+  /* copy data into value buffer */
+  netaddr_to_binary(&value[0], addr, sizeof(value));
+  memcpy(&value[16], &port, sizeof(port));
+
+  dlep_writer_add_tlv(DLEP_IPV6_CONPOINT_TLV, &value, sizeof(value));
 }
 
 void
@@ -247,7 +284,7 @@ dlep_writer_add_status(enum dlep_status status) {
 }
 
 void
-dlep_writer_add_optional_signals(void) {
+dlep_writer_add_extensions_supported(void) {
   uint8_t value[DLEP_SIGNAL_COUNT];
   size_t i,j;
 
@@ -257,21 +294,7 @@ dlep_writer_add_optional_signals(void) {
     }
   }
 
-  dlep_writer_add_tlv(DLEP_OPTIONAL_SIGNALS_TLV, &value[0], j);
-}
-
-void
-dlep_writer_add_optional_data_items(void) {
-  uint8_t value[DLEP_TLV_COUNT];
-  size_t i,j;
-
-  for (i=0,j=0; i<DLEP_TLV_COUNT; i++) {
-    if (dlep_bitmap_get(&dlep_supported_optional_tlvs, i)) {
-      value[j++] = i;
-    }
-  }
-
-  dlep_writer_add_tlv(DLEP_OPTIONAL_DATA_ITEMS_TLV, &value[0], j);
+  dlep_writer_add_tlv(DLEP_EXTENSIONS_SUPPORTED, &value[0], j);
 }
 
 void

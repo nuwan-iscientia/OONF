@@ -229,8 +229,7 @@ dlep_router_add_session(struct dlep_router_if *interf,
   }
 
   /* start heartbeat timeout */
-  oonf_timer_set(&session->heartbeat_timeout,
-      interf->remote_heartbeat_interval * 2);
+  oonf_timer_set(&session->heartbeat_timeout, 2000);
 
   /* start heartbeat */
   oonf_timer_set(&session->heartbeat_timer,
@@ -463,8 +462,18 @@ _handle_peer_initialization_ack(struct dlep_router_session *session,
   uint8_t *buffer;
   char peer[256];
   int pos;
+  uint16_t version[2];
 
   buffer = ptr;
+
+  /* get version */
+  pos = idx->idx[DLEP_VERSION_TLV];
+  dlep_parser_get_version(&version[0], &version[1], &buffer[pos]);
+  if (version[0] == DLEP_VERSION_MAJOR && version[1] < DLEP_VERSION_MINOR) {
+    OONF_WARN(LOG_DLEP_ROUTER, "Received peer discovery with version: %u/%u",
+        version[0], version[1]);
+    return;
+  }
 
   /* activate session */
   session->state = DLEP_ROUTER_SESSION_ACTIVE;
@@ -488,14 +497,6 @@ _handle_peer_initialization_ack(struct dlep_router_session *session,
 
   /* reset heartbeat timeout */
   oonf_timer_set(&session->heartbeat_timeout, session->remote_heartbeat_interval*2);
-
-  /* add supported signals */
-  pos = idx->idx[DLEP_OPTIONAL_SIGNALS_TLV];
-  dlep_parser_get_optional_signal(&session->supported_signals, &buffer[pos]);
-
-  /* add supported tlvs */
-  pos = idx->idx[DLEP_OPTIONAL_DATA_ITEMS_TLV];
-  dlep_parser_get_optional_tlv(&session->supported_tlvs, &buffer[pos]);
 
   OONF_DEBUG(LOG_DLEP_ROUTER, "Received default metrics for interface %s",
       session->interface->l2_destination);
@@ -765,9 +766,8 @@ _generate_peer_initialization(struct dlep_router_session *session) {
   dlep_writer_start_signal(DLEP_PEER_INITIALIZATION, &dlep_mandatory_tlvs);
 
   /* add tlvs */
+  dlep_writer_add_version_tlv(DLEP_VERSION_MAJOR, DLEP_VERSION_MINOR);
   dlep_writer_add_heartbeat_tlv(session->interface->local_heartbeat_interval);
-  dlep_writer_add_optional_signals();
-  dlep_writer_add_optional_data_items();
 
   if (dlep_writer_finish_signal(LOG_DLEP_ROUTER)) {
     OONF_DEBUG(LOG_DLEP_ROUTER, "bad peer discovery, do not send");

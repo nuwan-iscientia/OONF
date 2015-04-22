@@ -277,18 +277,20 @@ _cb_receive_udp(struct oonf_packet_socket *pkt,
 static void
 _handle_peer_discovery(struct dlep_radio_if *interface,
     union netaddr_socket *dst, uint8_t *buffer, struct dlep_parser_index *idx) {
+  uint16_t version[2];
   int pos;
 #ifdef OONF_LOG_INFO
   struct netaddr_str nbuf;
 #endif
 
-  /* get heartbeat interval */
-  pos = idx->idx[DLEP_HEARTBEAT_INTERVAL_TLV];
-  dlep_parser_get_heartbeat_interval(
-      &interface->remote_heartbeat_interval, &buffer[pos]);
-
-  OONF_DEBUG(LOG_DLEP_RADIO, "Heartbeat interval is %"PRIu64,
-      interface->remote_heartbeat_interval);
+  /* get version */
+  pos = idx->idx[DLEP_VERSION_TLV];
+  dlep_parser_get_version(&version[0], &version[1], &buffer[pos]);
+  if (version[0] == DLEP_VERSION_MAJOR && version[1] < DLEP_VERSION_MINOR) {
+    OONF_WARN(LOG_DLEP_RADIO, "Received peer discovery with version: %u/%u",
+        version[0], version[1]);
+    return;
+  }
 
   /* create Peer Offer */
   OONF_INFO(LOG_DLEP_RADIO, "Send UDP Peer Offer to %s",
@@ -300,22 +302,18 @@ _handle_peer_discovery(struct dlep_radio_if *interface,
 static void
 _generate_peer_offer(struct dlep_radio_if *interface, union netaddr_socket *dst) {
   struct netaddr addr;
-  int ipv4, ipv6;
 
   dlep_writer_start_signal(DLEP_PEER_OFFER, &dlep_mandatory_tlvs);
-  dlep_writer_add_heartbeat_tlv(interface->local_heartbeat_interval);
-  dlep_writer_add_port_tlv(interface->tcp_config.port);
+  dlep_writer_add_version_tlv(DLEP_VERSION_MAJOR, DLEP_VERSION_MINOR);
 
   netaddr_from_socket(&addr, &interface->tcp.socket_v4.local_socket);
-  ipv4 = dlep_writer_add_ipv4_tlv(&addr, true);
+  if (netaddr_get_address_family(&addr) == AF_INET) {
+    dlep_writer_add_ipv4_conpoint_tlv(&addr, interface->tcp_config.port);
+  }
 
   netaddr_from_socket(&addr, &interface->tcp.socket_v6.local_socket);
-  ipv6 = dlep_writer_add_ipv6_tlv(&addr, true);
-
-  if (ipv4 != 0 && ipv6 != 0) {
-    /* we did not offer any address */
-    OONF_DEBUG(LOG_DLEP_RADIO, "Peer Offer without IP addresses");
-    return;
+  if (netaddr_get_address_family(&addr) == AF_INET6) {
+    dlep_writer_add_ipv6_conpoint_tlv(&addr, interface->tcp_config.port);
   }
 
   if (dlep_writer_finish_signal(LOG_DLEP_RADIO)) {

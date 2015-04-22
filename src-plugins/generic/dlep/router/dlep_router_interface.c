@@ -310,7 +310,7 @@ _cb_receive_udp(struct oonf_packet_socket *pkt,
 
 /**
  * Get a matching local IP address for a list of remote IP addresses
- * @param remote_addr remote IP address
+ * @param remote_socket socket to connect to
  * @param ifdata interface required for local IP address
  * @param idx dlep parser index
  * @param buffer dlep signal buffer
@@ -318,67 +318,71 @@ _cb_receive_udp(struct oonf_packet_socket *pkt,
  * @return matching local IP address, NULL if no match
  */
 static const struct netaddr *
-_get_local_tcp_address(struct netaddr *remote_addr,
+_get_local_tcp_address(union netaddr_socket *remote_socket,
     struct os_interface_data *ifdata,
     struct dlep_parser_index *idx, uint8_t *buffer, size_t length) {
-  const struct netaddr *ipv6 = NULL, *result = NULL;
-  uint16_t pos;
+  const struct netaddr *result = NULL;
+  struct netaddr remote_addr;
+  uint16_t pos, port;
 #ifdef OONF_LOG_DEBUG_INFO
   struct netaddr_str nbuf;
 #endif
 
   /* start parsing IPv6 */
-  pos = idx->idx[DLEP_IPV6_ADDRESS_TLV];
+  pos = idx->idx[DLEP_IPV6_CONPOINT_TLV];
   while (pos) {
-    dlep_parser_get_ipv6_addr(remote_addr, NULL, &buffer[pos]);
+    dlep_parser_get_ipv6_conpoint(&remote_addr, &port, &buffer[pos]);
 
-    OONF_DEBUG(LOG_DLEP_ROUTER, "Router offered %s on interface %s",
-        netaddr_to_string(&nbuf, remote_addr), ifdata->name);
+    OONF_DEBUG(LOG_DLEP_ROUTER, "Router offered %s:%u on interface %s",
+        netaddr_to_string(&nbuf, &remote_addr), port, ifdata->name);
 
-    if (netaddr_is_in_subnet(&NETADDR_IPV6_LINKLOCAL, remote_addr)) {
-      result = oonf_interface_get_prefix_from_dst(remote_addr, ifdata);
+    if (netaddr_is_in_subnet(&NETADDR_IPV6_LINKLOCAL, &remote_addr)) {
+      result = oonf_interface_get_prefix_from_dst(&remote_addr, ifdata);
 
       if (result) {
         /* we prefer IPv6 linklocal */
-        return result;
+        break;
       }
     }
-    else if (ipv6 == NULL) {
+    else if (result == NULL) {
       /* we still want an IPv6 prefix */
-      ipv6 = oonf_interface_get_prefix_from_dst(remote_addr, NULL);
+      result = oonf_interface_get_prefix_from_dst(&remote_addr, NULL);
     }
 
     pos = dlep_parser_get_next_tlv(buffer, length, pos);
   }
 
-  if (ipv6) {
-    /* No linklocal? then we prefer IPv6 */
-    return ipv6;
-  }
+  if (!result) {
+    /* parse all IPv4 addresses */
+    pos = idx->idx[DLEP_IPV4_CONPOINT_TLV];
+    while (pos) {
+      dlep_parser_get_ipv4_conpoint(&remote_addr, &port, &buffer[pos]);
 
-  /* parse all IPv4 addresses */
-  pos = idx->idx[DLEP_IPV4_ADDRESS_TLV];
-  while (pos) {
-    dlep_parser_get_ipv4_addr(remote_addr, NULL, &buffer[pos]);
+      OONF_DEBUG(LOG_DLEP_ROUTER, "Router offered %s:%u on interface %s",
+          netaddr_to_string(&nbuf, &remote_addr), port, ifdata->name);
 
-    OONF_DEBUG(LOG_DLEP_ROUTER, "Router offered %s on interface %s",
-        netaddr_to_string(&nbuf, remote_addr), ifdata->name);
-
-    result = oonf_interface_get_prefix_from_dst(remote_addr, NULL);
-    if (result) {
-      /* at last, take an IPv4 address */
-      return result;
+      result = oonf_interface_get_prefix_from_dst(&remote_addr, NULL);
+      if (result) {
+        /* at last, take an IPv4 address */
+        break;
+      }
     }
   }
 
-  /*
-   * no valid address, hit the manufacturers over the head for not
-   * supporting IPv6 linklocal addresses
-   */
-  OONF_WARN(LOG_DLEP_ROUTER, "No compatible address to router on interface %s",
-      ifdata->name);
+  if (result && netaddr_socket_init(remote_socket, &remote_addr, port, ifdata->index) != 0) {
+    result = NULL;
+  }
 
-  return NULL;
+  if (!result) {
+    /*
+     * no valid address, hit the manufacturers over the head for not
+     * supporting IPv6 linklocal addresses
+     */
+    OONF_WARN(LOG_DLEP_ROUTER, "No compatible address to router on interface %s",
+        ifdata->name);
+  }
+
+  return result;
 }
 
 /**
@@ -393,9 +397,8 @@ _handle_peer_offer(struct dlep_router_if *interface,
     uint8_t *buffer, size_t length, struct dlep_parser_index *idx) {
   const struct netaddr *local_addr;
   struct os_interface_data *ifdata;
-  struct netaddr remote_addr;
   union netaddr_socket local_socket, remote_socket;
-  uint16_t port, pos;
+  uint16_t pos;
   char peer[256];
   struct netaddr_str nbuf1;
 
@@ -414,20 +417,11 @@ _handle_peer_offer(struct dlep_router_if *interface,
     OONF_INFO(LOG_DLEP_ROUTER, "Radio peer type: %s", peer);
   }
 
-  /* get heartbeat interval */
-  pos = idx->idx[DLEP_HEARTBEAT_INTERVAL_TLV];
-  dlep_parser_get_heartbeat_interval(
-      &interface->remote_heartbeat_interval, &buffer[pos]);
-
-  /* get dlep port */
-  pos = idx->idx[DLEP_PORT_TLV];
-  dlep_parser_get_dlep_port(&port, &buffer[pos]);
-
   /* get interface data for IPv6 LL */
   ifdata = &interface->udp._if_listener.interface->data;
 
   /* get prefix for local tcp socket */
-  local_addr = _get_local_tcp_address(&remote_addr, ifdata, idx, buffer, length);
+  local_addr = _get_local_tcp_address(&remote_socket, ifdata, idx, buffer, length);
   if (!local_addr) {
     return;
   }
@@ -441,22 +435,14 @@ _handle_peer_offer(struct dlep_router_if *interface,
     return;
   }
 
-  if (netaddr_socket_init(&remote_socket, &remote_addr, port, ifdata->index)) {
-    OONF_WARN(LOG_DLEP_ROUTER,
-        "Malformed socket data for DLEP session for %s (%u): %s (%u)",
-        ifdata->name, ifdata->index,
-        netaddr_to_string(&nbuf1, local_addr), port);
-    return;
-  }
-
   dlep_router_add_session(interface, &local_socket, &remote_socket);
 }
 
 static void
 _generate_peer_discovery(struct dlep_router_if *interface) {
   dlep_writer_start_signal(DLEP_PEER_DISCOVERY, &dlep_mandatory_tlvs);
-  dlep_writer_add_heartbeat_tlv(interface->local_heartbeat_interval);
 
+  dlep_writer_add_version_tlv(DLEP_VERSION_MAJOR, DLEP_VERSION_MINOR);
   if (dlep_writer_finish_signal(LOG_DLEP_ROUTER)) {
     return;
   }

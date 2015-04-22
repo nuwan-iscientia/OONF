@@ -59,8 +59,6 @@
 static int _check_tlv_length(uint8_t type, uint8_t length);
 static int _check_mandatory_tlvs(struct dlep_parser_index *idx,
     uint8_t signal);
-static void _remove_unknown_tlvs(struct dlep_parser_index *idx,
-    uint8_t signal);
 
 int
 dlep_parser_read(struct dlep_parser_index *idx,
@@ -137,8 +135,6 @@ dlep_parser_read(struct dlep_parser_index *idx,
     return DLEP_PARSER_MISSING_MANDATORY_TLV;
   }
 
-  _remove_unknown_tlvs(idx, signal_type);
-
   return signal[0];
 }
 
@@ -164,16 +160,36 @@ dlep_parser_get_next_tlv(const uint8_t *buffer, size_t len, size_t offset) {
 }
 
 void
-dlep_parser_get_dlep_port(uint16_t *port, const uint8_t *tlv) {
-  uint16_t tmp;
-  memcpy(&tmp, &tlv[2], 2);
-  *port = ntohs(tmp);
+dlep_parser_get_version(uint16_t *major, uint16_t *minor, const uint8_t *tlv) {
+  memcpy(major, &tlv[0], sizeof(*major));
+  memcpy(minor, &tlv[2], sizeof(*minor));
+
+  *major = ntohs(*major);
+  *minor = ntohs(*minor);
 }
 
 void
 dlep_parser_get_peer_type(char *string, const uint8_t *tlv) {
   memcpy(string, &tlv[2], tlv[1]);
   string[tlv[2]] = 0;
+}
+
+void
+dlep_parser_get_ipv4_conpoint(struct netaddr *ipv4, uint16_t *port, const uint8_t *tlv) {
+  /* length was already checked */
+  netaddr_from_binary(ipv4, &tlv[2], tlv[1]-3, AF_INET);
+
+  memcpy(port, &tlv[6], sizeof(*port));
+  *port = ntohs(*port);
+}
+
+void
+dlep_parser_get_ipv6_conpoint(struct netaddr *ipv6, uint16_t *port, const uint8_t *tlv) {
+  /* length was already checked */
+  netaddr_from_binary(ipv6, &tlv[2], tlv[1]-3, AF_INET6);
+
+  memcpy(port, &tlv[18], sizeof(*port));
+  *port = ntohs(*port);
 }
 
 void
@@ -251,17 +267,7 @@ dlep_parser_get_status(enum dlep_status *status, const uint8_t *tlv) {
 }
 
 void
-dlep_parser_get_optional_signal(struct dlep_bitmap *bitmap, const uint8_t *tlv) {
-  unsigned i;
-
-  memset(bitmap, 0, sizeof(*bitmap));
-  for (i=0; i<tlv[1]; i++) {
-    dlep_bitmap_set(bitmap, tlv[2+i]);
-  }
-}
-
-void
-dlep_parser_get_optional_tlv(struct dlep_bitmap *bitmap, const uint8_t *tlv) {
+dlep_parser_get_extensions_supported(struct dlep_bitmap *bitmap, const uint8_t *tlv) {
   unsigned i;
 
   memset(bitmap, 0, sizeof(*bitmap));
@@ -327,29 +333,4 @@ _check_mandatory_tlvs(struct dlep_parser_index *idx,
     }
   }
   return 0;
-}
-
-static void
-_remove_unknown_tlvs(struct dlep_parser_index *idx,
-    uint8_t signal) {
-  struct dlep_bitmap *mandatory, *optional;
-  int i;
-
-  if (signal >= DLEP_SIGNAL_COUNT) {
-    /* unsupported custom signal */
-    memset(idx, 0, sizeof(*idx));
-
-    return;
-  }
-
-  mandatory = &dlep_mandatory_tlvs_per_signal[signal];
-  optional = &dlep_supported_optional_tlvs_per_signal[signal];
-
-  for (i=0; i<DLEP_TLV_COUNT; i++) {
-    if (!dlep_bitmap_get(mandatory, i)
-        && !dlep_bitmap_get(optional, i)) {
-      idx->idx[i] = 0;
-    }
-  }
-  return;
 }

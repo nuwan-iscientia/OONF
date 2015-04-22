@@ -411,8 +411,17 @@ _handle_peer_initialization(struct dlep_radio_session *session,
   uint8_t *buffer;
   char peer[256];
   int pos;
-
+  uint16_t version[2];
   buffer = ptr;
+
+  /* get version */
+  pos = idx->idx[DLEP_VERSION_TLV];
+  dlep_parser_get_version(&version[0], &version[1], &buffer[pos]);
+  if (version[0] == DLEP_VERSION_MAJOR && version[1] < DLEP_VERSION_MINOR) {
+    OONF_WARN(LOG_DLEP_RADIO, "Received peer discovery with version: %u/%u",
+        version[0], version[1]);
+    return -1;
+  }
 
   /* get peer type */
   peer[0] = 0;
@@ -435,15 +444,7 @@ _handle_peer_initialization(struct dlep_radio_session *session,
       &session->remote_heartbeat_interval, &buffer[pos]);
 
   /* reset heartbeat timeout */
-  oonf_timer_set(&session->heartbeat_timeout, session->remote_heartbeat_interval*2);
-
-  /* add supported signals */
-  pos = idx->idx[DLEP_OPTIONAL_SIGNALS_TLV];
-  dlep_parser_get_optional_signal(&session->supported_signals, &buffer[pos]);
-
-  /* add supported tlvs */
-  pos = idx->idx[DLEP_OPTIONAL_DATA_ITEMS_TLV];
-  dlep_parser_get_optional_tlv(&session->supported_tlvs, &buffer[pos]);
+  oonf_timer_set(&session->heartbeat_timeout, 2000);
 
   if (_generate_peer_initialization_ack(session, l2net)) {
     return -1;
@@ -798,8 +799,6 @@ _generate_peer_initialization_ack(struct dlep_radio_session *session,
 
   /* add mandatory TLVs */
   dlep_writer_add_heartbeat_tlv(session->interface->local_heartbeat_interval);
-  dlep_writer_add_optional_signals();
-  dlep_writer_add_optional_data_items();
 
   /* add metrics */
   _handle_metrics(l2net, NULL);

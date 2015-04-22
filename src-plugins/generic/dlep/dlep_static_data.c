@@ -45,80 +45,77 @@
 #include "dlep/dlep_static_data.h"
 
 struct dlep_bitmap dlep_mandatory_signals = { .b = {
-  (1 << DLEP_PEER_DISCOVERY )
-  | (1 << DLEP_PEER_OFFER )
-  | (1 << DLEP_PEER_INITIALIZATION )
-  | (1 << DLEP_PEER_INITIALIZATION_ACK )
-  | (1 << DLEP_PEER_TERMINATION )
-  | (1 << DLEP_PEER_TERMINATION_ACK )
-  | (1 << DLEP_DESTINATION_UP )
-  | (1 << DLEP_DESTINATION_UPDATE )
-  | (1 << DLEP_DESTINATION_DOWN )
-  | (1 << DLEP_HEARTBEAT),
+  (1ull << DLEP_PEER_DISCOVERY )
+  | (1ull << DLEP_PEER_OFFER )
+  | (1ull << DLEP_PEER_INITIALIZATION )
+  | (1ull << DLEP_PEER_INITIALIZATION_ACK )
+  | (1ull << DLEP_PEER_TERMINATION )
+  | (1ull << DLEP_PEER_TERMINATION_ACK )
+  | (1ull << DLEP_DESTINATION_UP )
+  | (1ull << DLEP_DESTINATION_UPDATE )
+  | (1ull << DLEP_DESTINATION_DOWN )
+  | (1ull << DLEP_HEARTBEAT),
   0,0,0
 }};
 
 struct dlep_bitmap dlep_mandatory_tlvs = { .b = {
-  (1 << DLEP_HEARTBEAT_INTERVAL_TLV)
-  | (1 << DLEP_IPV4_ADDRESS_TLV )
-  | (1 << DLEP_IPV6_ADDRESS_TLV )
-  | (1 << DLEP_PORT_TLV )
-  | (1 << DLEP_MDRR_TLV )
-  | (1 << DLEP_MDRT_TLV )
-  | (1 << DLEP_CDRR_TLV )
-  | (1 << DLEP_CDRT_TLV )
-  | (1 << DLEP_OPTIONAL_DATA_ITEMS_TLV )
-  | (1 << DLEP_OPTIONAL_SIGNALS_TLV )
-  | (1 << DLEP_STATUS_TLV )
-  | (1 << DLEP_MAC_ADDRESS_TLV )
-  | (1 << DLEP_PEER_TYPE_TLV),
+  (1ull << DLEP_HEARTBEAT_INTERVAL_TLV)
+  | (1ull << DLEP_IPV4_ADDRESS_TLV )
+  | (1ull << DLEP_IPV6_ADDRESS_TLV )
+  | (1ull << DLEP_IPV4_CONPOINT_TLV )
+  | (1ull << DLEP_IPV6_CONPOINT_TLV )
+  | (1ull << DLEP_MDRR_TLV )
+  | (1ull << DLEP_MDRT_TLV )
+  | (1ull << DLEP_CDRR_TLV )
+  | (1ull << DLEP_CDRT_TLV )
+  | (1ull << DLEP_LATENCY_TLV)
+  | (1ull << DLEP_EXTENSIONS_SUPPORTED )
+  | (1ull << DLEP_MAC_ADDRESS_TLV ),
   0,0,0
 }};
 
 struct dlep_bitmap dlep_supported_optional_signals = { .b = {
-  (1 << DLEP_PEER_TERMINATION)
-  | (1 << DLEP_PEER_TERMINATION_ACK)
-  | (1 << DLEP_DESTINATION_UP_ACK)
-  | (1 << DLEP_DESTINATION_DOWN_ACK),
+  (1ull << DLEP_PEER_TERMINATION)
+  | (1ull << DLEP_PEER_TERMINATION_ACK)
+  | (1ull << DLEP_DESTINATION_UP_ACK)
+  | (1ull << DLEP_DESTINATION_DOWN_ACK),
   0,0,0
 }};
 
 struct dlep_bitmap dlep_supported_optional_tlvs = { .b = {
-  (1 << DLEP_FRAMES_R_TLV)
-  | (1 << DLEP_FRAMES_T_TLV)
-  | (1 << DLEP_BYTES_R_TLV)
-  | (1 << DLEP_BYTES_T_TLV)
-  | (1 << DLEP_FRAMES_RETRIES_TLV)
-  | (1 << DLEP_FRAMES_FAILED_TLV)
-  | (1 << DLEP_TX_SIGNAL_TLV)
-  | (1 << DLEP_RX_SIGNAL_TLV),
+  (1ull << DLEP_FRAMES_R_TLV)
+  | (1ull << DLEP_FRAMES_T_TLV)
+  | (1ull << DLEP_BYTES_R_TLV)
+  | (1ull << DLEP_BYTES_T_TLV)
+  | (1ull << DLEP_FRAMES_RETRIES_TLV)
+  | (1ull << DLEP_FRAMES_FAILED_TLV)
+  | (1ull << DLEP_TX_SIGNAL_TLV)
+  | (1ull << DLEP_RX_SIGNAL_TLV),
   0,0,0
 }};
 
 struct dlep_bitmap dlep_mandatory_tlvs_per_signal[DLEP_SIGNAL_COUNT] = {
   [DLEP_PEER_DISCOVERY] = { .b = {
-      (1 << DLEP_HEARTBEAT_INTERVAL_TLV),
+      (1ull << DLEP_VERSION_TLV),
       0,0,0
   }},
   [DLEP_PEER_OFFER] = { .b = {
-      (1 << DLEP_HEARTBEAT_INTERVAL_TLV)
-      | (1 << DLEP_PORT_TLV),
+      (1ull << DLEP_VERSION_TLV),
       0,0,0
   }},
   [DLEP_PEER_INITIALIZATION] = { .b = {
-      (1 << DLEP_HEARTBEAT_INTERVAL_TLV)
-      | (1 << DLEP_OPTIONAL_SIGNALS_TLV)
-      | (1 << DLEP_OPTIONAL_DATA_ITEMS_TLV),
+      (1ull << DLEP_VERSION_TLV)
+      | (1ull << DLEP_HEARTBEAT_INTERVAL_TLV),
       0,0,0
   }},
   [DLEP_PEER_INITIALIZATION_ACK] = { .b = {
-      (1 << DLEP_HEARTBEAT_INTERVAL_TLV)
-      | (1 << DLEP_MDRR_TLV)
-      | (1 << DLEP_MDRT_TLV)
-      | (1 << DLEP_CDRR_TLV)
-      | (1 << DLEP_CDRT_TLV)
-      | (1 << DLEP_OPTIONAL_SIGNALS_TLV)
-      | (1 << DLEP_OPTIONAL_DATA_ITEMS_TLV),
+      (1ull << DLEP_VERSION_TLV)
+      | (1ull << DLEP_HEARTBEAT_INTERVAL_TLV)
+      | (1ull << DLEP_MDRR_TLV)
+      | (1ull << DLEP_MDRT_TLV)
+      | (1ull << DLEP_CDRR_TLV)
+      | (1ull << DLEP_CDRT_TLV)
+      | (1ull << DLEP_LATENCY_TLV),
       0,0,0
   }},
   [DLEP_PEER_TERMINATION] = { .b = {
@@ -128,91 +125,120 @@ struct dlep_bitmap dlep_mandatory_tlvs_per_signal[DLEP_SIGNAL_COUNT] = {
       0,0,0,0
   }},
   [DLEP_DESTINATION_UP] = { .b = {
-      (1 << DLEP_MAC_ADDRESS_TLV)
-      | (1 << DLEP_MDRR_TLV)
-      | (1 << DLEP_MDRT_TLV)
-      | (1 << DLEP_CDRR_TLV)
-      | (1 << DLEP_CDRT_TLV)
+      (1ull << DLEP_MAC_ADDRESS_TLV)
   }},
-  [DLEP_DESTINATION_UPDATE] = { .b = {
-      (1 << DLEP_MAC_ADDRESS_TLV)
-      | (1 << DLEP_MDRR_TLV)
-      | (1 << DLEP_MDRT_TLV)
-      | (1 << DLEP_CDRR_TLV)
-      | (1 << DLEP_CDRT_TLV)
+  [DLEP_DESTINATION_UP_ACK] = { .b = {
+      (1ull << DLEP_MAC_ADDRESS_TLV)
   }},
   [DLEP_DESTINATION_DOWN] = { .b = {
-      (1 << DLEP_MAC_ADDRESS_TLV)
+      (1ull << DLEP_MAC_ADDRESS_TLV)
+  }},
+  [DLEP_DESTINATION_DOWN_ACK] = { .b = {
+      (1ull << DLEP_MAC_ADDRESS_TLV)
+  }},
+  [DLEP_DESTINATION_UPDATE] = { .b = {
+      (1ull << DLEP_MAC_ADDRESS_TLV)
   }},
 };
 
 struct dlep_bitmap dlep_supported_optional_tlvs_per_signal[DLEP_SIGNAL_COUNT] = {
   [DLEP_PEER_DISCOVERY] = { .b = {
-      0,0,0,0
+      (1ull << DLEP_PEER_TYPE_TLV),
+      0,0,0
   }},
   [DLEP_PEER_OFFER] = { .b = {
-      (1 << DLEP_IPV4_ADDRESS_TLV)
-      | (1 << DLEP_IPV6_ADDRESS_TLV),
+      (1ull << DLEP_PEER_TYPE_TLV)
+      | (1ull << DLEP_IPV4_CONPOINT_TLV)
+      | (1ull << DLEP_IPV6_CONPOINT_TLV),
       0,0,0
   }},
   [DLEP_PEER_INITIALIZATION] = { .b = {
-      (1 << DLEP_PEER_TYPE_TLV),
+      (1ull << DLEP_PEER_TYPE_TLV)
+      | (1ull << DLEP_EXTENSIONS_SUPPORTED)
+      | (1ull << DLEP_EXPERIMENTAL_DEFINITION),
       0,0,0
   }},
   [DLEP_PEER_INITIALIZATION_ACK] = { .b = {
-      (1 << DLEP_PEER_TYPE_TLV)
-      | (1 << DLEP_VENDOR_EXTENSION_TLV)
-      | (1 << DLEP_FRAMES_R_TLV)
-      | (1 << DLEP_FRAMES_T_TLV)
-      | (1 << DLEP_BYTES_R_TLV)
-      | (1 << DLEP_BYTES_T_TLV)
-      | (1 << DLEP_FRAMES_RETRIES_TLV)
-      | (1 << DLEP_FRAMES_FAILED_TLV)
-      | (1 << DLEP_RX_SIGNAL_TLV)
-      | (1 << DLEP_TX_SIGNAL_TLV),
+      (1ull << DLEP_PEER_TYPE_TLV)
+      | (1ull << DLEP_EXTENSIONS_SUPPORTED)
+      | (1ull << DLEP_STATUS_TLV)
+      | (1ull << DLEP_FRAMES_R_TLV)
+      | (1ull << DLEP_FRAMES_T_TLV)
+      | (1ull << DLEP_BYTES_R_TLV)
+      | (1ull << DLEP_BYTES_T_TLV)
+      | (1ull << DLEP_FRAMES_RETRIES_TLV)
+      | (1ull << DLEP_FRAMES_FAILED_TLV)
+      | (1ull << DLEP_RX_SIGNAL_TLV)
+      | (1ull << DLEP_TX_SIGNAL_TLV),
       0,0,0
   }},
   [DLEP_PEER_TERMINATION] = { .b = {
-      (1 << DLEP_STATUS_TLV),
+      (1ull << DLEP_STATUS_TLV),
       0,0,0
   }},
   [DLEP_PEER_TERMINATION_ACK] = { .b = {
-      (1 << DLEP_STATUS_TLV),
+      (1ull << DLEP_STATUS_TLV),
       0,0,0
   }},
   [DLEP_DESTINATION_UP] = { .b = {
-      (1 << DLEP_FRAMES_R_TLV)
-      | (1 << DLEP_FRAMES_T_TLV)
-      | (1 << DLEP_BYTES_R_TLV)
-      | (1 << DLEP_BYTES_T_TLV)
-      | (1 << DLEP_FRAMES_RETRIES_TLV)
-      | (1 << DLEP_FRAMES_FAILED_TLV)
-      | (1 << DLEP_TX_SIGNAL_TLV)
-      | (1 << DLEP_RX_SIGNAL_TLV),
+      (1ull << DLEP_MDRR_TLV)
+      | (1ull << DLEP_MDRT_TLV)
+      | (1ull << DLEP_CDRR_TLV)
+      | (1ull << DLEP_CDRT_TLV)
+      | (1ull << DLEP_LATENCY_TLV)
+      | (1ull << DLEP_FRAMES_R_TLV)
+      | (1ull << DLEP_FRAMES_T_TLV)
+      | (1ull << DLEP_BYTES_R_TLV)
+      | (1ull << DLEP_BYTES_T_TLV)
+      | (1ull << DLEP_FRAMES_RETRIES_TLV)
+      | (1ull << DLEP_FRAMES_FAILED_TLV)
+      | (1ull << DLEP_TX_SIGNAL_TLV)
+      | (1ull << DLEP_RX_SIGNAL_TLV),
       0,0,0
   }},
-  [DLEP_DESTINATION_UPDATE] = { .b = {
-      (1 << DLEP_FRAMES_R_TLV)
-      | (1 << DLEP_FRAMES_T_TLV)
-      | (1 << DLEP_BYTES_R_TLV)
-      | (1 << DLEP_BYTES_T_TLV)
-      | (1 << DLEP_FRAMES_RETRIES_TLV)
-      | (1 << DLEP_FRAMES_FAILED_TLV)
-      | (1 << DLEP_TX_SIGNAL_TLV)
-      | (1 << DLEP_RX_SIGNAL_TLV),
+  [DLEP_DESTINATION_UP_ACK] = { .b = {
+      (1ull << DLEP_STATUS_TLV),
       0,0,0
   }},
   [DLEP_DESTINATION_DOWN] = { .b = {
       0,0,0,0
   }},
+  [DLEP_DESTINATION_DOWN_ACK] = { .b = {
+      (1ull << DLEP_STATUS_TLV),
+      0,0,0
+  }},
+  [DLEP_DESTINATION_UPDATE] = { .b = {
+      (1ull << DLEP_MDRR_TLV)
+      | (1ull << DLEP_MDRT_TLV)
+      | (1ull << DLEP_CDRR_TLV)
+      | (1ull << DLEP_CDRT_TLV)
+      | (1ull << DLEP_LATENCY_TLV)
+      | (1ull << DLEP_FRAMES_R_TLV)
+      | (1ull << DLEP_FRAMES_T_TLV)
+      | (1ull << DLEP_BYTES_R_TLV)
+      | (1ull << DLEP_BYTES_T_TLV)
+      | (1ull << DLEP_FRAMES_RETRIES_TLV)
+      | (1ull << DLEP_FRAMES_FAILED_TLV)
+      | (1ull << DLEP_TX_SIGNAL_TLV)
+      | (1ull << DLEP_RX_SIGNAL_TLV),
+      0,0,0
+  }},
 };
 
 struct dlep_tlvdata dlep_tlv_constraints[DLEP_TLV_COUNT] = {
-    [DLEP_PORT_TLV] = { 2,2 },
+    [DLEP_VERSION_TLV] = { 4,4 },
+    [DLEP_STATUS_TLV] = { 1,255 },
+    [DLEP_IPV4_CONPOINT_TLV] = { 6,6 },
+    [DLEP_IPV6_CONPOINT_TLV] = { 18,18 },
     [DLEP_PEER_TYPE_TLV] = { 1,255 },
+    [DLEP_HEARTBEAT_INTERVAL_TLV] = { 2,2 },
+    [DLEP_EXTENSIONS_SUPPORTED] = { 1,255 },
+    [DLEP_EXPERIMENTAL_DEFINITION] = { 1,255 },
     [DLEP_MAC_ADDRESS_TLV] = { 6,6 },
     [DLEP_IPV4_ADDRESS_TLV] = { 5,5 },
     [DLEP_IPV6_ADDRESS_TLV] = { 17,17 },
+    [DLEP_IPV4_SUBNET_TLV] = { 5,5 },
+    [DLEP_IPV6_SUBNET_TLV] = { 17,17 },
     [DLEP_MDRR_TLV] = { 8,8 },
     [DLEP_MDRT_TLV] = { 8,8 },
     [DLEP_CDRR_TLV] = { 8,8 },
@@ -222,15 +248,10 @@ struct dlep_tlvdata dlep_tlv_constraints[DLEP_TLV_COUNT] = {
     [DLEP_REST_TLV] = { 1,1 },
     [DLEP_RLQR_TLV] = { 1,1 },
     [DLEP_RLQT_TLV] = { 1,1 },
-    [DLEP_STATUS_TLV] = { 1,1 },
-    [DLEP_HEARTBEAT_INTERVAL_TLV] = { 2,2 },
     [DLEP_LINK_CHAR_ACK_TIMER_TLV] = { 1,1 },
+    [DLEP_CREDIT_GRANT_TLV] = { 8,8 },
     [DLEP_CREDIT_WIN_STATUS_TLV] = { 16,16 },
-    [DLEP_CREDIT_GRANT_REQ_TLV] = { 8,8 },
     [DLEP_CREDIT_REQUEST_TLV] = { 1,1 },
-    [DLEP_OPTIONAL_SIGNALS_TLV] = { 0,255 },
-    [DLEP_OPTIONAL_DATA_ITEMS_TLV] = { 0,255 },
-    [DLEP_VENDOR_EXTENSION_TLV] = { 3,255 },
 
     [DLEP_FRAMES_R_TLV] = { 8,8 },
     [DLEP_FRAMES_T_TLV] = { 8,8 },
