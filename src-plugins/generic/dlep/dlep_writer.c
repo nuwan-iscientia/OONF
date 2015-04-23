@@ -148,7 +148,8 @@ dlep_writer_send_udp_unicast(struct oonf_packet_managed *managed,
 }
 
 void
-dlep_writer_send_tcp_unicast(struct oonf_stream_session *session, enum oonf_log_source source) {
+dlep_writer_send_tcp_unicast(struct oonf_stream_session *session,
+    enum oonf_log_source source __attribute__((unused))) {
   OONF_DEBUG_HEX(source, abuf_getptr(&_signal_buf), abuf_getlen(&_signal_buf),
       "Send signal via TCP");
   abuf_memcpy(&session->out,
