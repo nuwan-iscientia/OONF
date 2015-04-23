@@ -326,6 +326,7 @@ oonf_packet_apply_managed(struct oonf_packet_managed *managed,
 
   result = _apply_managed(managed);
   if (result) {
+    /* did not work, trigger interface handler to try later again */
     oonf_interface_trigger_handler(&managed->_if_listener);
   }
   return result;
