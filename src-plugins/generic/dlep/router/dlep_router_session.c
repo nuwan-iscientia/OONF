@@ -208,11 +208,6 @@ dlep_router_add_session(struct dlep_router_if *interf,
   /* initialize back pointer */
   session->interface = interf;
 
-  /* copy timer remote interval */
-  OONF_DEBUG(LOG_DLEP_ROUTER, "Heartbeat interval is %"PRIu64,
-      interf->remote_heartbeat_interval);
-  session->remote_heartbeat_interval = interf->remote_heartbeat_interval;
-
   /* initialize timers */
   session->heartbeat_timer.cb_context = session;
   session->heartbeat_timer.class = &_heartbeat_timer_class;
@@ -751,6 +746,16 @@ _handle_metrics(struct oonf_layer2_data *neighbor_data,
 
     oonf_layer2_set_value(&neighbor_data[OONF_LAYER2_NEIGH_RX_SIGNAL], _l2_origin, sig);
   }
+
+  pos = idx->idx[DLEP_LATENCY_TLV];
+  if (pos) {
+    uint32_t latency;
+    dlep_parser_get_latency(&latency, &buffer[pos]);
+
+    OONF_DEBUG(LOG_DLEP_ROUTER, "Received latency: %d", latency);
+
+    oonf_layer2_set_value(&neighbor_data[OONF_LAYER2_NEIGH_LATENCY], _l2_origin, latency);
+  }
 }
 
 /**
@@ -763,38 +768,37 @@ _generate_peer_initialization(struct dlep_router_session *session) {
   /* create Peer Initialization */
   OONF_INFO(LOG_DLEP_ROUTER, "Send Peer Initialization");
 
-  dlep_writer_start_signal(DLEP_PEER_INITIALIZATION, &dlep_mandatory_tlvs);
+  dlep_writer_start_signal(DLEP_PEER_INITIALIZATION);
 
   /* add tlvs */
   dlep_writer_add_version_tlv(DLEP_VERSION_MAJOR, DLEP_VERSION_MINOR);
   dlep_writer_add_heartbeat_tlv(session->interface->local_heartbeat_interval);
 
   if (dlep_writer_finish_signal(LOG_DLEP_ROUTER)) {
-    OONF_DEBUG(LOG_DLEP_ROUTER, "bad peer discovery, do not send");
     return -1;
   }
 
-  dlep_writer_send_tcp_unicast(session->stream, &dlep_mandatory_signals);
+  dlep_writer_send_tcp_unicast(session->stream, LOG_DLEP_ROUTER);
   return 0;
 }
 
 static void
 _generate_heartbeat(struct dlep_router_session *session) {
-  dlep_writer_start_signal(DLEP_HEARTBEAT, &session->supported_tlvs);
+  dlep_writer_start_signal(DLEP_HEARTBEAT);
 
   if (dlep_writer_finish_signal(LOG_DLEP_ROUTER)) {
     return;
   }
 
-  dlep_writer_send_tcp_unicast(session->stream, &session->supported_signals);
+  dlep_writer_send_tcp_unicast(session->stream, LOG_DLEP_ROUTER);
 }
 
 static void
 _generate_peer_termination(struct dlep_router_session *session) {
-  dlep_writer_start_signal(DLEP_PEER_TERMINATION, &session->supported_tlvs);
+  dlep_writer_start_signal(DLEP_PEER_TERMINATION);
   dlep_writer_add_status(DLEP_STATUS_OKAY);
   if (!dlep_writer_finish_signal(LOG_DLEP_ROUTER)) {
-    dlep_writer_send_tcp_unicast(session->stream, &session->supported_signals);
+    dlep_writer_send_tcp_unicast(session->stream, LOG_DLEP_ROUTER);
 
     session->state = DLEP_ROUTER_SESSION_TERMINATE;
   }
@@ -803,35 +807,35 @@ _generate_peer_termination(struct dlep_router_session *session) {
 static int
 _generate_peer_termination_ack(struct dlep_router_session *session) {
   /* send Peer Termination Ack */
-  dlep_writer_start_signal(DLEP_PEER_TERMINATION_ACK, &session->supported_tlvs);
+  dlep_writer_start_signal(DLEP_PEER_TERMINATION_ACK);
   dlep_writer_add_status(DLEP_STATUS_OKAY);
 
   if (dlep_writer_finish_signal(LOG_DLEP_ROUTER)) {
     return -1;
   }
 
-  dlep_writer_send_tcp_unicast(session->stream, &session->supported_signals);
+  dlep_writer_send_tcp_unicast(session->stream, LOG_DLEP_ROUTER);
   return 0;
 }
 
 static void
 _generate_destination_up_ack(struct dlep_router_session *session,
     enum dlep_status status) {
-  dlep_writer_start_signal(DLEP_DESTINATION_UP_ACK, &session->supported_tlvs);
+  dlep_writer_start_signal(DLEP_DESTINATION_UP_ACK);
   dlep_writer_add_status(status);
 
   if (!dlep_writer_finish_signal(LOG_DLEP_ROUTER)) {
-    dlep_writer_send_tcp_unicast(session->stream, &session->supported_signals);
+    dlep_writer_send_tcp_unicast(session->stream, LOG_DLEP_ROUTER);
   }
 }
 
 static void
 _generate_destination_down_ack(struct dlep_router_session *session,
     enum dlep_status status) {
-  dlep_writer_start_signal(DLEP_DESTINATION_DOWN_ACK, &session->supported_tlvs);
+  dlep_writer_start_signal(DLEP_DESTINATION_DOWN_ACK);
   dlep_writer_add_status(status);
 
   if (!dlep_writer_finish_signal(LOG_DLEP_ROUTER)) {
-    dlep_writer_send_tcp_unicast(session->stream, &session->supported_signals);
+    dlep_writer_send_tcp_unicast(session->stream, LOG_DLEP_ROUTER);
   }
 }

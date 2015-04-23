@@ -402,7 +402,7 @@ _handle_peer_offer(struct dlep_router_if *interface,
   char peer[256];
   struct netaddr_str nbuf1;
 
-  if (idx->idx[DLEP_IPV4_ADDRESS_TLV] == 0 && idx->idx[DLEP_IPV6_ADDRESS_TLV] == 0) {
+  if (idx->idx[DLEP_IPV4_CONPOINT_TLV] == 0 && idx->idx[DLEP_IPV6_CONPOINT_TLV] == 0) {
     OONF_WARN(LOG_DLEP_ROUTER,
         "Got UDP Peer Offer without IP TLVs");
     return;
@@ -440,13 +440,12 @@ _handle_peer_offer(struct dlep_router_if *interface,
 
 static void
 _generate_peer_discovery(struct dlep_router_if *interface) {
-  dlep_writer_start_signal(DLEP_PEER_DISCOVERY, &dlep_mandatory_tlvs);
+  dlep_writer_start_signal(DLEP_PEER_DISCOVERY);
 
   dlep_writer_add_version_tlv(DLEP_VERSION_MAJOR, DLEP_VERSION_MINOR);
   if (dlep_writer_finish_signal(LOG_DLEP_ROUTER)) {
     return;
   }
 
-  dlep_writer_send_udp_multicast(
-      &interface->udp, &dlep_mandatory_signals, LOG_DLEP_ROUTER);
+  dlep_writer_send_udp_multicast(&interface->udp, LOG_DLEP_ROUTER);
 }

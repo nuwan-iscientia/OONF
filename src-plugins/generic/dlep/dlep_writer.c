@@ -59,7 +59,7 @@
 #include <endian.h> /* htobe64 */
 
 static struct autobuf _signal_buf;
-static struct dlep_bitmap *_supported_tlvs;
+static uint8_t _signal_id;
 
 int
 dlep_writer_init(void) {
@@ -72,18 +72,17 @@ dlep_writer_cleanup(void) {
 }
 
 void
-dlep_writer_start_signal(uint8_t signal, struct dlep_bitmap *supported_tlvs) {
+dlep_writer_start_signal(uint8_t signal) {
+  _signal_id = signal;
   abuf_clear(&_signal_buf);
   abuf_append_uint8(&_signal_buf, signal);
   abuf_append_uint16(&_signal_buf, 0);
-
-  _supported_tlvs = supported_tlvs;
 }
 
 void
 dlep_writer_add_tlv(uint8_t type, void *data, uint8_t len) {
-  if (dlep_bitmap_get(_supported_tlvs, type)
-      || dlep_bitmap_get(&dlep_mandatory_tlvs, type)) {
+  if (dlep_bitmap_get(&dlep_mandatory_tlvs_per_signal[_signal_id], type)
+      || dlep_bitmap_get(&dlep_supported_optional_tlvs_per_signal[_signal_id], type)) {
     abuf_append_uint8(&_signal_buf, type);
     abuf_append_uint8(&_signal_buf, len);
     abuf_memcpy(&_signal_buf, data, len);
@@ -119,53 +118,42 @@ dlep_writer_finish_signal(enum oonf_log_source source) {
 
 void
 dlep_writer_send_udp_multicast(struct oonf_packet_managed *managed,
-    struct dlep_bitmap *supported_signals, enum oonf_log_source source) {
-  uint8_t signal;
+    enum oonf_log_source source) {
+  OONF_DEBUG_HEX(source, abuf_getptr(&_signal_buf), abuf_getlen(&_signal_buf),
+      "Send signal via UDP multicast");
 
-  signal = abuf_getptr(&_signal_buf)[0];
-  if (dlep_bitmap_get(supported_signals, signal)
-      || dlep_bitmap_get(&dlep_mandatory_signals, signal)) {
-    if (oonf_packet_send_managed_multicast(
-        managed, abuf_getptr(&_signal_buf), abuf_getlen(&_signal_buf), AF_INET)) {
-      OONF_WARN(source, "Could not send ipv4 multicast signal");
-    }
-    if (oonf_packet_send_managed_multicast(
-        managed, abuf_getptr(&_signal_buf), abuf_getlen(&_signal_buf), AF_INET6)) {
-      OONF_WARN(source, "Could not send ipv6 multicast signal");
-    }
+  if (oonf_packet_send_managed_multicast(
+      managed, abuf_getptr(&_signal_buf), abuf_getlen(&_signal_buf), AF_INET)) {
+    OONF_WARN(source, "Could not send ipv4 multicast signal");
+  }
+  if (oonf_packet_send_managed_multicast(
+      managed, abuf_getptr(&_signal_buf), abuf_getlen(&_signal_buf), AF_INET6)) {
+    OONF_WARN(source, "Could not send ipv6 multicast signal");
   }
 }
 
 void
 dlep_writer_send_udp_unicast(struct oonf_packet_managed *managed,
-    union netaddr_socket *dst, struct dlep_bitmap *supported_signals,
-    enum oonf_log_source source) {
+    union netaddr_socket *dst, enum oonf_log_source source) {
   struct netaddr_str nbuf;
-  uint8_t signal;
 
-  signal = abuf_getptr(&_signal_buf)[0];
-  if (dlep_bitmap_get(supported_signals, signal)
-      || dlep_bitmap_get(&dlep_mandatory_signals, signal)) {
-    if (oonf_packet_send_managed(
-        managed, dst, abuf_getptr(&_signal_buf), abuf_getlen(&_signal_buf))) {
-      OONF_WARN(source, "Could not send udp unicast to %s",
-          netaddr_socket_to_string(&nbuf, dst));
-    }
+  OONF_DEBUG_HEX(source, abuf_getptr(&_signal_buf), abuf_getlen(&_signal_buf),
+      "Send signal via udp unicast");
+
+  if (oonf_packet_send_managed(
+      managed, dst, abuf_getptr(&_signal_buf), abuf_getlen(&_signal_buf))) {
+    OONF_WARN(source, "Could not send udp unicast to %s",
+        netaddr_socket_to_string(&nbuf, dst));
   }
 }
 
 void
-dlep_writer_send_tcp_unicast(struct oonf_stream_session *session,
-    struct dlep_bitmap *supported_signals) {
-  uint8_t signal;
-
-  signal = abuf_getptr(&_signal_buf)[0];
-  if (dlep_bitmap_get(supported_signals, signal)
-      || dlep_bitmap_get(&dlep_mandatory_signals, signal)) {
-    abuf_memcpy(&session->out,
-        abuf_getptr(&_signal_buf), abuf_getlen(&_signal_buf));
-    oonf_stream_flush(session);
-  }
+dlep_writer_send_tcp_unicast(struct oonf_stream_session *session, enum oonf_log_source source) {
+  OONF_DEBUG_HEX(source, abuf_getptr(&_signal_buf), abuf_getlen(&_signal_buf),
+      "Send signal via TCP");
+  abuf_memcpy(&session->out,
+      abuf_getptr(&_signal_buf), abuf_getlen(&_signal_buf));
+  oonf_stream_flush(session);
 }
 
 void
@@ -265,6 +253,13 @@ dlep_writer_add_ipv6_conpoint_tlv(const struct netaddr *addr, uint16_t port) {
   memcpy(&value[16], &port, sizeof(port));
 
   dlep_writer_add_tlv(DLEP_IPV6_CONPOINT_TLV, &value, sizeof(value));
+}
+
+void
+dlep_writer_add_latency(uint32_t latency) {
+  latency = htonl(latency);
+
+  dlep_writer_add_tlv(DLEP_LATENCY_TLV, &latency, sizeof(latency));
 }
 
 void

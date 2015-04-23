@@ -177,7 +177,7 @@ dlep_parser_get_peer_type(char *string, const uint8_t *tlv) {
 void
 dlep_parser_get_ipv4_conpoint(struct netaddr *ipv4, uint16_t *port, const uint8_t *tlv) {
   /* length was already checked */
-  netaddr_from_binary(ipv4, &tlv[2], tlv[1]-3, AF_INET);
+  netaddr_from_binary(ipv4, &tlv[2], tlv[1]-2, AF_INET);
 
   memcpy(port, &tlv[6], sizeof(*port));
   *port = ntohs(*port);
@@ -186,7 +186,7 @@ dlep_parser_get_ipv4_conpoint(struct netaddr *ipv4, uint16_t *port, const uint8_
 void
 dlep_parser_get_ipv6_conpoint(struct netaddr *ipv6, uint16_t *port, const uint8_t *tlv) {
   /* length was already checked */
-  netaddr_from_binary(ipv6, &tlv[2], tlv[1]-3, AF_INET6);
+  netaddr_from_binary(ipv6, &tlv[2], tlv[1]-2, AF_INET6);
 
   memcpy(port, &tlv[18], sizeof(*port));
   *port = ntohs(*port);
@@ -274,6 +274,14 @@ dlep_parser_get_extensions_supported(struct dlep_bitmap *bitmap, const uint8_t *
   for (i=0; i<tlv[1]; i++) {
     dlep_bitmap_set(bitmap, tlv[2+i]);
   }
+}
+
+void
+dlep_parser_get_latency(uint32_t *latency, const uint8_t *tlv) {
+  uint32_t value;
+
+  memcpy(&value, &tlv[2], sizeof(value));
+  *latency = ntohl(value);
 }
 
 void

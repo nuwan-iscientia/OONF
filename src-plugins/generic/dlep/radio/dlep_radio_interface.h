@@ -65,9 +65,6 @@ struct dlep_radio_if {
   /* local timer settings */
   uint64_t local_heartbeat_interval;
 
-  /* heartbeat settings from the other side of the session (from UDP) */
-  uint64_t remote_heartbeat_interval;
-
   /* decide to publish proxied/non-proxied destinations */
   bool use_proxied_dst;
   bool use_nonproxied_dst;

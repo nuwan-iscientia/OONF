@@ -77,12 +77,6 @@ struct dlep_radio_session {
   /* heartbeat settings from the other side of the session */
   uint64_t remote_heartbeat_interval;
 
-  /* supported signals of the other side */
-  struct dlep_bitmap supported_signals;
-
-  /* supported tlv data items of the other side */
-  struct dlep_bitmap supported_tlvs;
-
   /* node for session tree of interface */
   struct avl_node _node;
 };

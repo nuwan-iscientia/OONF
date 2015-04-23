@@ -62,9 +62,6 @@ struct dlep_router_if {
   uint64_t local_discovery_interval;
   uint64_t local_heartbeat_interval;
 
-  /* heartbeat settings from the other side of the session */
-  uint64_t remote_heartbeat_interval;
-
   /* true if router should not accept further sessions */
   bool single_session;
 

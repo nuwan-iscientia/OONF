@@ -176,10 +176,10 @@ dlep_radio_terminate_session(struct dlep_radio_session *session) {
     return;
   }
 
-  dlep_writer_start_signal(DLEP_PEER_TERMINATION, &session->supported_tlvs);
+  dlep_writer_start_signal(DLEP_PEER_TERMINATION);
   dlep_writer_add_status(DLEP_STATUS_OKAY);
   if (!dlep_writer_finish_signal(LOG_DLEP_RADIO)) {
-    dlep_writer_send_tcp_unicast(&session->stream, &session->supported_signals);
+    dlep_writer_send_tcp_unicast(&session->stream, LOG_DLEP_RADIO);
 
     session->state = DLEP_RADIO_SESSION_TERMINATE;
   }
@@ -196,12 +196,12 @@ _cb_send_heartbeat(void *ptr) {
   OONF_DEBUG(LOG_DLEP_RADIO, "Send Heartbeat (%"PRIu64")",
       stream->interface->local_heartbeat_interval);
 
-  dlep_writer_start_signal(DLEP_HEARTBEAT, &stream->supported_tlvs);
+  dlep_writer_start_signal(DLEP_HEARTBEAT);
   if (dlep_writer_finish_signal(LOG_DLEP_RADIO)) {
     return;
   }
 
-  dlep_writer_send_tcp_unicast(&stream->stream, &stream->supported_signals);
+  dlep_writer_send_tcp_unicast(&stream->stream, LOG_DLEP_RADIO);
 }
 
 /**
@@ -242,20 +242,8 @@ _cb_incoming_tcp(struct oonf_stream_session *tcp_session) {
   session->heartbeat_timeout.cb_context = session;
   session->heartbeat_timeout.class = &_heartbeat_timeout_class;
 
-  /* initialize mandatory signals */
-  memcpy(&session->supported_signals, &dlep_mandatory_signals,
-      sizeof(struct dlep_bitmap));
-
-  /* initialize mandatory tlvs */
-  memcpy(&session->supported_tlvs, &dlep_mandatory_tlvs,
-      sizeof(struct dlep_bitmap));
-
-  /* copy timer remote interval */
-  session->remote_heartbeat_interval = interface->remote_heartbeat_interval;
-  OONF_DEBUG(LOG_DLEP_RADIO, "Heartbeat interval is: %"PRIu64"\n", interface->remote_heartbeat_interval);
-
   /* start heartbeat timeout */
-  oonf_timer_set(&session->heartbeat_timeout, session->remote_heartbeat_interval * 2);
+  oonf_timer_set(&session->heartbeat_timeout, 2000);
 
   /* start heartbeat */
   oonf_timer_set(&session->heartbeat_timer, session->interface->local_heartbeat_interval);
@@ -486,14 +474,14 @@ _handle_peer_termination(struct dlep_radio_session *session,
   }
 
   /* send Peer Termination Ack */
-  dlep_writer_start_signal(DLEP_PEER_TERMINATION_ACK, &session->supported_tlvs);
+  dlep_writer_start_signal(DLEP_PEER_TERMINATION_ACK);
   dlep_writer_add_status(DLEP_STATUS_OKAY);
 
   if (dlep_writer_finish_signal(LOG_DLEP_RADIO)) {
     return -1;
   }
 
-  dlep_writer_send_tcp_unicast(&session->stream, &session->supported_signals);
+  dlep_writer_send_tcp_unicast(&session->stream, LOG_DLEP_RADIO);
   return 0;
 }
 
@@ -795,13 +783,17 @@ static int
 _generate_peer_initialization_ack(struct dlep_radio_session *session,
     const struct oonf_layer2_net *l2net) {
   /* create PEER initialization ACK */
-  dlep_writer_start_signal(DLEP_PEER_INITIALIZATION_ACK, &session->supported_tlvs);
+  dlep_writer_start_signal(DLEP_PEER_INITIALIZATION_ACK);
 
   /* add mandatory TLVs */
   dlep_writer_add_heartbeat_tlv(session->interface->local_heartbeat_interval);
+  dlep_writer_add_version_tlv(DLEP_VERSION_MAJOR, DLEP_VERSION_MINOR);
 
   /* add metrics */
   _handle_metrics(l2net, NULL);
+
+  /* report a fixed latency because we cannot measure it */
+  dlep_writer_add_latency(1000);
 
   /* assemble signal */
   if (dlep_writer_finish_signal(LOG_DLEP_RADIO)) {
@@ -809,7 +801,7 @@ _generate_peer_initialization_ack(struct dlep_radio_session *session,
   }
 
   /* send signal */
-  dlep_writer_send_tcp_unicast(&session->stream, &session->supported_signals);
+  dlep_writer_send_tcp_unicast(&session->stream, LOG_DLEP_RADIO);
 
   return 0;
 }
@@ -829,7 +821,7 @@ _generate_destination_up(struct dlep_radio_session *session,
     return;
   }
 
-  dlep_writer_send_tcp_unicast(&session->stream, &session->supported_signals);
+  dlep_writer_send_tcp_unicast(&session->stream, LOG_DLEP_RADIO);
 }
 
 static void
@@ -847,7 +839,7 @@ _generate_destination_update(struct dlep_radio_session *session,
     return;
   }
 
-  dlep_writer_send_tcp_unicast(&session->stream, &session->supported_signals);
+  dlep_writer_send_tcp_unicast(&session->stream, LOG_DLEP_RADIO);
 }
 
 static void
@@ -863,7 +855,7 @@ _generate_destination_down(struct dlep_radio_session *session,
     return;
   }
 
-  dlep_writer_send_tcp_unicast(&session->stream, &session->supported_signals);
+  dlep_writer_send_tcp_unicast(&session->stream, LOG_DLEP_RADIO);
 }
 
 static bool
@@ -892,7 +884,7 @@ _start_destination_signal(struct dlep_radio_session *session,
         sig_name, l2neigh->network->name, netaddr_to_string(&nbuf1, &l2neigh->addr));
   }
 
-  dlep_writer_start_signal(dlep_sig, &session->supported_tlvs);
+  dlep_writer_start_signal(dlep_sig);
 
   if (l2dst) {
     dlep_writer_add_mac_tlv(&l2dst->destination);

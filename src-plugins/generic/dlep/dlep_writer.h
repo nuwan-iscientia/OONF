@@ -54,18 +54,17 @@
 int dlep_writer_init(void);
 void dlep_writer_cleanup(void);
 
-void dlep_writer_start_signal(uint8_t signal, struct dlep_bitmap *supported_tlvs);
+void dlep_writer_start_signal(uint8_t signal);
 void dlep_writer_add_tlv(uint8_t type, void *data,
     uint8_t len);
 int dlep_writer_finish_signal(enum oonf_log_source);
 
 void dlep_writer_send_udp_multicast(struct oonf_packet_managed *managed,
-    struct dlep_bitmap *supported_signals, enum oonf_log_source source);
-void dlep_writer_send_udp_unicast(struct oonf_packet_managed *managed,
-    union netaddr_socket *dst, struct dlep_bitmap *supported_signals,
     enum oonf_log_source source);
+void dlep_writer_send_udp_unicast(struct oonf_packet_managed *managed,
+    union netaddr_socket *dst, enum oonf_log_source source);
 void dlep_writer_send_tcp_unicast(struct oonf_stream_session *session,
-    struct dlep_bitmap *supported_signals);
+    enum oonf_log_source source);
 
 void dlep_writer_add_version_tlv(uint16_t major, uint16_t minor);
 void dlep_writer_add_ipv4_conpoint_tlv(const struct netaddr *addr, uint16_t port);
@@ -74,6 +73,7 @@ void dlep_writer_add_heartbeat_tlv(uint64_t interval);
 int dlep_writer_add_mac_tlv(const struct netaddr *mac);
 int dlep_writer_add_ipv4_tlv(const struct netaddr *, bool add);
 int dlep_writer_add_ipv6_tlv(const struct netaddr *, bool add);
+void dlep_writer_add_latency(uint32_t latency);
 void dlep_writer_add_uint64(uint64_t number, enum dlep_tlvs tlv);
 void dlep_writer_add_status(enum dlep_status status);
 void dlep_writer_add_extensions_supported(void);

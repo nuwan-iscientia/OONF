@@ -73,8 +73,8 @@ static void _cb_config_changed(void);
 
 /* configuration */
 static struct cfg_schema_entry _radio_entries[] = {
-  CFG_MAP_STRING_ARRAY(dlep_radio_if, udp_config.interface, "datapath_if", NULL,
-     "Name of interface to talk to dlep router", IF_NAMESIZE),
+  CFG_MAP_STRING_ARRAY(dlep_radio_if, udp_config.interface, "datapath_if", "",
+     "Name of interface to talk to dlep router (default is section name)", IF_NAMESIZE),
 
   CFG_MAP_NETADDR_V4(dlep_radio_if, udp_config.multicast_v4, "discovery_mc_v4",
     DLEP_WELL_KNOWN_MULTICAST_ADDRESS, "IPv4 address to send discovery UDP packet to", false, false),
@@ -202,6 +202,11 @@ _cb_config_changed(void) {
     OONF_WARN(LOG_DLEP_RADIO, "Could not convert "
         OONF_DLEP_RADIO_SUBSYSTEM " config to bin");
     return;
+  }
+
+  if (!interface->udp_config.interface[0]) {
+    strscpy(interface->udp_config.interface, _radio_section.section_name,
+        sizeof(interface->udp_config.interface));
   }
 
   /* apply interface name also to TCP socket */

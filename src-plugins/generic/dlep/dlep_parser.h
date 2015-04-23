@@ -79,7 +79,7 @@ int dlep_parser_get_ipv6_addr(struct netaddr *ipv6, bool *add, const uint8_t *tl
 void dlep_parser_get_uint64(uint64_t *mdrr, const uint8_t *tlv);
 void dlep_parser_get_status(enum dlep_status *status, const uint8_t *tlv);
 void dlep_parser_get_extensions_supported(struct dlep_bitmap *bitmap, const uint8_t *tlv);
-
+void dlep_parser_get_latency(uint32_t *latency, const uint8_t *tlv);
 void dlep_parser_get_tx_signal(int32_t *sig, const uint8_t *tlv);
 void dlep_parser_get_rx_signal(int32_t *sig, const uint8_t *tlv);
 

@@ -303,7 +303,7 @@ static void
 _generate_peer_offer(struct dlep_radio_if *interface, union netaddr_socket *dst) {
   struct netaddr addr;
 
-  dlep_writer_start_signal(DLEP_PEER_OFFER, &dlep_mandatory_tlvs);
+  dlep_writer_start_signal(DLEP_PEER_OFFER);
   dlep_writer_add_version_tlv(DLEP_VERSION_MAJOR, DLEP_VERSION_MINOR);
 
   netaddr_from_socket(&addr, &interface->tcp.socket_v4.local_socket);
@@ -319,6 +319,5 @@ _generate_peer_offer(struct dlep_radio_if *interface, union netaddr_socket *dst)
   if (dlep_writer_finish_signal(LOG_DLEP_RADIO)) {
     return;
   }
-  dlep_writer_send_udp_unicast(&interface->udp, dst,
-      &dlep_mandatory_signals, LOG_DLEP_RADIO);
+  dlep_writer_send_udp_unicast(&interface->udp, dst, LOG_DLEP_RADIO);
 }

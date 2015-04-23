@@ -79,12 +79,6 @@ struct dlep_router_session {
   /* keep track of various timeouts */
   struct oonf_timer_instance heartbeat_timeout;
 
-  /* supported signals of the other side */
-  struct dlep_bitmap supported_signals;
-
-  /* supported optional tlv data items of the other side */
-  struct dlep_bitmap supported_tlvs;
-
   /* heartbeat settings from the other side of the session */
   uint64_t remote_heartbeat_interval;
 

@@ -58,39 +58,11 @@ struct dlep_bitmap dlep_mandatory_signals = { .b = {
   0,0,0
 }};
 
-struct dlep_bitmap dlep_mandatory_tlvs = { .b = {
-  (1ull << DLEP_HEARTBEAT_INTERVAL_TLV)
-  | (1ull << DLEP_IPV4_ADDRESS_TLV )
-  | (1ull << DLEP_IPV6_ADDRESS_TLV )
-  | (1ull << DLEP_IPV4_CONPOINT_TLV )
-  | (1ull << DLEP_IPV6_CONPOINT_TLV )
-  | (1ull << DLEP_MDRR_TLV )
-  | (1ull << DLEP_MDRT_TLV )
-  | (1ull << DLEP_CDRR_TLV )
-  | (1ull << DLEP_CDRT_TLV )
-  | (1ull << DLEP_LATENCY_TLV)
-  | (1ull << DLEP_EXTENSIONS_SUPPORTED )
-  | (1ull << DLEP_MAC_ADDRESS_TLV ),
-  0,0,0
-}};
-
 struct dlep_bitmap dlep_supported_optional_signals = { .b = {
   (1ull << DLEP_PEER_TERMINATION)
   | (1ull << DLEP_PEER_TERMINATION_ACK)
   | (1ull << DLEP_DESTINATION_UP_ACK)
   | (1ull << DLEP_DESTINATION_DOWN_ACK),
-  0,0,0
-}};
-
-struct dlep_bitmap dlep_supported_optional_tlvs = { .b = {
-  (1ull << DLEP_FRAMES_R_TLV)
-  | (1ull << DLEP_FRAMES_T_TLV)
-  | (1ull << DLEP_BYTES_R_TLV)
-  | (1ull << DLEP_BYTES_T_TLV)
-  | (1ull << DLEP_FRAMES_RETRIES_TLV)
-  | (1ull << DLEP_FRAMES_FAILED_TLV)
-  | (1ull << DLEP_TX_SIGNAL_TLV)
-  | (1ull << DLEP_RX_SIGNAL_TLV),
   0,0,0
 }};
 

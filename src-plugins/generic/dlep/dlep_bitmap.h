@@ -54,12 +54,12 @@ bool dlep_bitmap_is_subset(struct dlep_bitmap *set, struct dlep_bitmap *subset);
 
 static INLINE bool
 dlep_bitmap_get(struct dlep_bitmap *map, uint8_t bit) {
-  return ((map->b[bit >> 6]) & (1 << (bit & 63))) != 0;
+  return ((map->b[bit >> 6]) & (1ull << (bit & 63ull))) != 0;
 }
 
 static INLINE void
 dlep_bitmap_set(struct dlep_bitmap *map, uint8_t bit) {
-  map->b[bit >> 6] |= 1 << (bit & 63);
+  map->b[bit >> 6] |= 1ull << (bit & 63ull);
 }
 
 #endif /* DLEP_SIGNAL_H_ */
