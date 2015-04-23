@@ -90,6 +90,7 @@ static const struct oonf_layer2_metadata _oonf_layer2_metadata_neigh[OONF_LAYER2
   [OONF_LAYER2_NEIGH_TX_THROUGHPUT]  = { .key = OONF_LAYER2_NEIGH_TX_THROUGHPUT_KEY, .unit = "bit/s", .binary = true },
   [OONF_LAYER2_NEIGH_TX_RETRIES]     = { .key = OONF_LAYER2_NEIGH_TX_RETRIES_KEY },
   [OONF_LAYER2_NEIGH_TX_FAILED]      = { .key = OONF_LAYER2_NEIGH_TX_FAILED_KEY },
+  [OONF_LAYER2_NEIGH_LATENCY]        = { .key = OONF_LAYER2_NEIGH_LATENCY_KEY, .unit = "s", .fraction = 6 },
 };
 
 /* layer2 network metadata */
