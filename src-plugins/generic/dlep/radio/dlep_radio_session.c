@@ -566,6 +566,8 @@ _cb_l2_neigh_changed(void *ptr) {
 
   dlep_if = dlep_radio_get_by_source_if(l2net->name);
   if (!dlep_if) {
+    OONF_DEBUG(LOG_DLEP_RADIO, "Received neighbor change for %s on interface %s: no dlep interface",
+          netaddr_to_string(&nbuf1, &l2neigh->addr), l2net->name);
     /* this is not a dlep source */
     return;
   }

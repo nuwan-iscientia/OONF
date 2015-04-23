@@ -88,9 +88,9 @@ static void _generate_heartbeat(struct dlep_router_session *session);
 static void _generate_peer_termination(struct dlep_router_session *session);
 static int _generate_peer_termination_ack(struct dlep_router_session *session);
 static void _generate_destination_up_ack(struct dlep_router_session *session,
-    enum dlep_status status);
+    struct netaddr *neighbor, enum dlep_status status);
 static void _generate_destination_down_ack(struct dlep_router_session *session,
-    enum dlep_status status);
+    struct netaddr *neighbor, enum dlep_status status);
 
 /* session objects */
 static struct oonf_class _router_stream_class = {
@@ -585,7 +585,7 @@ _handle_destination_up(struct dlep_router_session *session,
 
   l2net = oonf_layer2_net_add(session->interface->l2_destination);
   if (!l2net) {
-    _generate_destination_up_ack(session, DLEP_STATUS_ERROR);
+    _generate_destination_up_ack(session, &mac, DLEP_STATUS_ERROR);
     return;
   }
 
@@ -595,14 +595,14 @@ _handle_destination_up(struct dlep_router_session *session,
 
   l2neigh = oonf_layer2_neigh_add(l2net, &mac);
   if (!l2neigh) {
-    _generate_destination_up_ack(session, DLEP_STATUS_ERROR);
+    _generate_destination_up_ack(session, &mac, DLEP_STATUS_ERROR);
     return;
   }
 
   _handle_metrics(&l2neigh->data[0], buffer, idx);
   oonf_layer2_neigh_commit(l2neigh);
 
-  _generate_destination_up_ack(session, DLEP_STATUS_OKAY);
+  _generate_destination_up_ack(session, &mac, DLEP_STATUS_OKAY);
 }
 
 static void
@@ -674,7 +674,7 @@ _handle_destination_down(struct dlep_router_session *session,
 
   oonf_layer2_neigh_remove(l2neigh, _l2_origin);
 
-  _generate_destination_down_ack(session, DLEP_STATUS_OKAY);
+  _generate_destination_down_ack(session, &mac, DLEP_STATUS_OKAY);
 }
 
 static void
@@ -820,8 +820,9 @@ _generate_peer_termination_ack(struct dlep_router_session *session) {
 
 static void
 _generate_destination_up_ack(struct dlep_router_session *session,
-    enum dlep_status status) {
+    struct netaddr *neighbor, enum dlep_status status) {
   dlep_writer_start_signal(DLEP_DESTINATION_UP_ACK);
+  dlep_writer_add_mac_tlv(neighbor);
   dlep_writer_add_status(status);
 
   if (!dlep_writer_finish_signal(LOG_DLEP_ROUTER)) {
@@ -831,8 +832,9 @@ _generate_destination_up_ack(struct dlep_router_session *session,
 
 static void
 _generate_destination_down_ack(struct dlep_router_session *session,
-    enum dlep_status status) {
+    struct netaddr *neighbor, enum dlep_status status) {
   dlep_writer_start_signal(DLEP_DESTINATION_DOWN_ACK);
+  dlep_writer_add_mac_tlv(neighbor);
   dlep_writer_add_status(status);
 
   if (!dlep_writer_finish_signal(LOG_DLEP_ROUTER)) {
