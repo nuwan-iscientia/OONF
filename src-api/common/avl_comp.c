@@ -66,6 +66,26 @@ avl_comp_uint32(const void *k1, const void *k2) {
 }
 
 /**
+ * AVL tree comparator for signed 32 bit integers
+ * @param k1 pointer to key 1
+ * @param k2 pointer to key 2
+ * @return +1 if k1>k2, -1 if k1<k2, 0 if k1==k2
+ */
+int
+avl_comp_int32(const void *k1, const void *k2) {
+  const int32_t *i1 = k1;
+  const int32_t *i2 = k2;
+
+  if (*i1 > *i2) {
+    return 1;
+  }
+  if (*i2 > *i1) {
+    return -1;
+  }
+  return 0;
+}
+
+/**
  * AVL tree comparator for unsigned 16 bit integers
  * @param k1 pointer to key 1
  * @param k2 pointer to key 2

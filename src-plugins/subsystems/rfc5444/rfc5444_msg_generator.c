@@ -43,6 +43,9 @@
 #include <string.h>
 
 #include "common/common_types.h"
+#include "common/avl.h"
+#include "common/list.h"
+
 #include "rfc5444_writer.h"
 #include "rfc5444_api_config.h"
 
@@ -1280,11 +1283,12 @@ static void
 _finalize_message_fragment(struct rfc5444_writer *writer, struct rfc5444_writer_message *msg,
     struct rfc5444_writer_address *first, struct rfc5444_writer_address *last, bool not_fragmented,
     rfc5444_writer_targetselector useIf, void *param) {
+  struct rfc5444_writer_msg_postprocessor *processor;
   struct rfc5444_writer_content_provider *prv;
   struct rfc5444_writer_target *interface;
   struct rfc5444_writer_address *addr;
-  uint8_t *ptr;
-  size_t len;
+  uint8_t *ptr, *firstcopy;
+  size_t msg_minsize, firstcopy_size, msg_size;
 
   /* reset optional tlv length */
   writer->_msg.set = 0;
@@ -1338,8 +1342,11 @@ _finalize_message_fragment(struct rfc5444_writer *writer, struct rfc5444_writer_
 #endif
 
   /* precalculate number of fixed bytes of message header */
-  len = writer->_msg.header + writer->_msg.added;
+  msg_minsize = writer->_msg.header + writer->_msg.added;
+  firstcopy = NULL;
+  firstcopy_size = 0;
 
+  /* 1.) first flush all interfaces that have full buffers */
   list_for_each_element(&writer->_targets, interface, _target_node) {
     /* do we need to handle this interface ? */
     if (!useIf(writer, interface, param)) {
@@ -1357,21 +1364,51 @@ _finalize_message_fragment(struct rfc5444_writer *writer, struct rfc5444_writer_
       /* begin a new one */
       _rfc5444_writer_begin_packet(writer, interface);
     }
+  }
 
-
+  /* 2.) copy a interface-unspecific (but post-processed) message into all buffers */
+  list_for_each_element(&writer->_targets, interface, _target_node) {
     /* get pointer to end of _pkt buffer */
     ptr = &interface->_pkt.buffer[interface->_pkt.header + interface->_pkt.added
                                  + interface->_pkt.allocated + interface->_bin_msgs_size];
+    if (!firstcopy) {
+      /* first target. Assemble message and run interface-unspecific transformers */
 
-    /* copy message header and message tlvs into packet buffer */
-    memcpy(ptr, writer->_msg.buffer, len + writer->_msg.set);
+      /* copy message header and message tlvs into packet buffer */
+      memcpy(ptr, writer->_msg.buffer, msg_minsize + writer->_msg.set);
 
-    /* copy address blocks and address tlvs into packet buffer */
-    ptr += len + writer->_msg.set;
-    memcpy(ptr, &writer->_msg.buffer[len + writer->_msg.allocated], msg->_bin_addr_size);
+      /* copy address blocks and address tlvs into packet buffer */
+      ptr += msg_minsize + writer->_msg.set;
+      memcpy(ptr, &writer->_msg.buffer[msg_minsize + writer->_msg.allocated], msg->_bin_addr_size);
+
+      /* remember position of first copy */
+      firstcopy = ptr;
+      firstcopy_size = msg_minsize + writer->_msg.set + msg->_bin_addr_size;
+
+      /* run processors */
+      avl_for_each_element(&msg->_processor_tree, processor, _node) {
+        if (!processor->target_specific) {
+          firstcopy_size = processor->process(writer, msg, firstcopy, firstcopy_size);
+        }
+      }
+    }
+    else {
+      /* we already have a copy of the message in the first targets buffer */
+      memcpy(ptr, firstcopy, firstcopy_size);
+    }
+  }
+
+  /* run interface-specific processors */
+  list_for_each_element(&writer->_targets, interface, _target_node) {
+    msg_size = firstcopy_size;
+    avl_for_each_element(&msg->_processor_tree, processor, _node) {
+      if (processor->target_specific) {
+        msg_size = processor->process(writer, msg, ptr, msg_size);
+      }
+    }
 
     /* increase byte count of packet */
-    interface->_bin_msgs_size += len + writer->_msg.set + msg->_bin_addr_size;
+    interface->_bin_msgs_size += msg_size;
   }
 
   /* clear length value of message address size */
@@ -1382,6 +1419,6 @@ _finalize_message_fragment(struct rfc5444_writer *writer, struct rfc5444_writer_
 
   /* clear message buffer */
 #if DEBUG_CLEANUP == true
-  memset(&writer->_msg.buffer[len], 0, writer->_msg.max - len);
+  memset(&writer->_msg.buffer[msg_minsize], 0, writer->_msg.max - msg_minsize);
 #endif
 }

@@ -98,8 +98,9 @@ _rfc5444_writer_begin_packet(struct rfc5444_writer *writer,
 void
 rfc5444_writer_flush(struct rfc5444_writer *writer,
     struct rfc5444_writer_target *target, bool force) {
+  struct rfc5444_writer_pkt_postprocessor *processor;
   struct rfc5444_writer_pkthandler *handler;
-  size_t len;
+  size_t len, total;
 
 #if WRITER_STATE_MACHINE == true
   assert(writer->_state == RFC5444_WRITER_NONE);
@@ -152,9 +153,13 @@ rfc5444_writer_flush(struct rfc5444_writer *writer,
         target->_bin_msgs_size);
   }
 
+  /* run post-processors */
+  total = len + target->_pkt.added + target->_pkt.set + target->_bin_msgs_size;
+  avl_for_each_element(&writer->_pkt_processors, processor, _node) {
+    total = processor->process(writer, target, total);
+  }
   /* send packet */
-  target->sendPacket(writer, target, target->_pkt.buffer,
-      len + target->_pkt.added + target->_pkt.set + target->_bin_msgs_size);
+  target->sendPacket(writer, target, target->_pkt.buffer,total);
 
   /* cleanup length information */
   target->_pkt.set  = 0;

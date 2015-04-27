@@ -101,6 +101,7 @@ rfc5444_writer_init(struct rfc5444_writer *writer) {
   list_init_head(&writer->_addr_tlvtype_head);
 
   avl_init(&writer->_msgcreators, avl_comp_uint8, false);
+  avl_init(&writer->_pkt_processors, avl_comp_int32, true);
 
 #if WRITER_STATE_MACHINE == true
   writer->_state = RFC5444_WRITER_NONE;
@@ -120,6 +121,8 @@ rfc5444_writer_cleanup(struct rfc5444_writer *writer) {
   struct rfc5444_writer_content_provider *provider, *safe_prv;
   struct rfc5444_writer_tlvtype *tlvtype, *safe_tt;
   struct rfc5444_writer_target *interf, *safe_interf;
+  struct rfc5444_writer_pkt_postprocessor *processor, *safe_proc;
+  struct rfc5444_writer_msg_postprocessor *msgproc, *safe_msgproc;
 
   assert(writer);
 #if WRITER_STATE_MACHINE == true
@@ -141,6 +144,11 @@ rfc5444_writer_cleanup(struct rfc5444_writer *writer) {
     rfc5444_writer_unregister_addrtlvtype(writer, tlvtype);
   }
 
+  /* remove all packet postprocessors */
+  avl_for_each_element_safe(&writer->_pkt_processors, processor, _node, safe_proc) {
+   rfc5444_writer_unregister_pkt_postprocessor(writer, processor);
+  }
+
   /* remove all message creators */
   avl_for_each_element_safe(&writer->_msgcreators, msg, _msgcreator_node, safe_msg) {
     /* prevent message from being freed in the middle of the processing */
@@ -154,6 +162,11 @@ rfc5444_writer_cleanup(struct rfc5444_writer *writer) {
     /* remove all registered address tlvs */
     list_for_each_element_safe(&msg->_msgspecific_tlvtype_head, tlvtype, _tlvtype_node, safe_tt) {
       rfc5444_writer_unregister_addrtlvtype(writer, tlvtype);
+    }
+
+    /* remove all message postprocessors */
+    avl_for_each_element_safe(&msg->_processor_tree, msgproc, _node, safe_msgproc) {
+     rfc5444_writer_unregister_msg_postprocessor(writer, msgproc);
     }
 
     /* remove message and addresses */
@@ -445,6 +458,52 @@ rfc5444_writer_unregister_message(struct rfc5444_writer *writer,
   _lazy_free_message(writer, msg);
 }
 
+int
+rfc5444_writer_register_msg_postprocessor(struct rfc5444_writer *writer,
+    struct rfc5444_writer_msg_postprocessor *processor) {
+  struct rfc5444_writer_message *msg;
+
+#if WRITER_STATE_MACHINE == true
+  assert(writer->_state == RFC5444_WRITER_NONE);
+#endif
+  /* first allocate the message if necessary */
+  if ((msg = _get_message(writer, processor->msg_type)) == NULL) {
+    return -1;
+  }
+
+  processor->_node.key = &processor->priority;
+  processor->creator = msg;
+  avl_insert(&msg->_processor_tree, &processor->_node);
+
+  return 0;
+}
+
+void
+rfc5444_writer_unregister_msg_postprocessor(struct rfc5444_writer *writer,
+    struct rfc5444_writer_msg_postprocessor *processor){
+#if WRITER_STATE_MACHINE == true
+  assert(writer->_state == RFC5444_WRITER_NONE);
+#endif
+
+  avl_remove(&processor->creator->_processor_tree, &processor->_node);
+  _lazy_free_message(writer, processor->creator);
+
+  processor->creator = NULL;
+}
+
+void
+rfc5444_writer_register_pkt_postprocessor(struct rfc5444_writer *writer,
+    struct rfc5444_writer_pkt_postprocessor *processor) {
+  processor->_node.key = &processor->priority;
+  avl_insert(&writer->_pkt_processors, &processor->_node);
+}
+
+void
+rfc5444_writer_unregister_pkt_postprocessor(struct rfc5444_writer *writer,
+    struct rfc5444_writer_pkt_postprocessor *processor) {
+  avl_remove(&writer->_pkt_processors, &processor->_node);
+}
+
 /**
  * Registers a packet handler for the writer
  * This function must not be called outside the message_addresses callback.
@@ -555,8 +614,8 @@ _get_message(struct rfc5444_writer *writer, uint8_t msgid) {
   msg->addr_len = RFC5444_MAX_ADDRLEN;
 
   /* initialize list/tree heads */
-  avl_init(&msg->_provider_tree, avl_comp_uint32, true);
-
+  avl_init(&msg->_provider_tree, avl_comp_int32, true);
+  avl_init(&msg->_processor_tree, avl_comp_int32, true);
   list_init_head(&msg->_msgspecific_tlvtype_head);
 
   avl_init(&msg->_addr_tree, avl_comp_netaddr, false);
@@ -667,7 +726,8 @@ _lazy_free_message(struct rfc5444_writer *writer, struct rfc5444_writer_message 
   if (!msg->_registered
       && list_is_empty(&msg->_addr_head)
       && list_is_empty(&msg->_msgspecific_tlvtype_head)
-      && avl_is_empty(&msg->_provider_tree)) {
+      && avl_is_empty(&msg->_provider_tree)
+      && avl_is_empty(&msg->_processor_tree)) {
     avl_remove(&writer->_msgcreators, &msg->_msgcreator_node);
     free(msg);
   }

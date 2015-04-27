@@ -188,6 +188,10 @@ rfc5444_reader_handle_packet(struct rfc5444_reader *parser, uint8_t *buffer, siz
     }
   }
 
+  /* update packet buffer pointer */
+  context.pkt_buffer = buffer;
+  context.pkt_size = length;
+
   /* handle packet consumers, call start callbacks */
   avl_for_each_element(&parser->packet_consumer, consumer, _node) {
     last_started = consumer;
@@ -796,6 +800,9 @@ _parse_addrblock(struct rfc5444_reader_addrblock_entry *addr_entry,
   uint8_t tail_len;
   uint8_t masked;
 
+  /* store start of addr block */
+  addr_entry->addr_block_ptr = *ptr;
+
   /* read addressblock header */
   addr_entry->num_addr = _rfc5444_get_u8(ptr, eob, &result);
   if (addr_entry->num_addr == 0) {
@@ -872,6 +879,9 @@ _parse_addrblock(struct rfc5444_reader_addrblock_entry *addr_entry,
   if (*ptr > eob) {
     return RFC5444_END_OF_BUFFER;
   }
+
+  /* calculate size of address block */
+  addr_entry->addr_block_size = *ptr - addr_entry->addr_block_ptr;
   return result;
 }
 
@@ -928,8 +938,12 @@ schedule_msgaddr_consumer(struct rfc5444_reader_tlvblock_consumer *consumer,
   list_for_each_element(addr_head, addr, list_node) {
     uint8_t i, plen;
 
+    /* initialize byte context */
+    tlv_context->addr_block_buffer = addr->addr_block_ptr;
+    tlv_context->addr_block_size = addr->addr_block_size;
+    tlv_context->addr_tlv_size = addr->addr_tlv_size;
+
     /* iterate over all addresses in block */
-    // tlv_context->prefixlen = addr->prefixlen;
     for (i=0; i<addr->num_addr; i++) {
       /* test if we should skip this address */
 #if DISALLOW_CONSUMER_CONTEXT_DROP == false
@@ -950,6 +964,9 @@ schedule_msgaddr_consumer(struct rfc5444_reader_tlvblock_consumer *consumer,
       }
       netaddr_from_binary_prefix(&tlv_context->addr, addr->addr,
           tlv_context->addr_len, 0, plen);
+
+      /* remember index of address */
+      tlv_context->addr_index = i;
 
       /* call start-of-context callback */
       if (consumer->start_callback) {
@@ -988,6 +1005,10 @@ schedule_msgaddr_consumer(struct rfc5444_reader_tlvblock_consumer *consumer,
 #endif
     }
   }
+
+  /* remove context pointer */
+  tlv_context->addr_block_buffer = NULL;
+
   return result;
 }
 
@@ -1134,8 +1155,15 @@ _handle_message(struct rfc5444_reader *parser,
       goto cleanup_parse_message;
     }
 
+    /* calculate tlv block size */
+    addr->addr_tlv_size = *ptr - addr->addr_block_size - addr->addr_block_ptr;
+
     list_add_tail(&addr_head, &addr->list_node);
   }
+
+  /* update message pointer */
+  tlv_context->msg_buffer = start;
+  tlv_context->msg_size = size;
 
   /* loop through list of message/address consumers */
   avl_for_each_element(&parser->message_consumer, consumer, _node) {
@@ -1198,6 +1226,9 @@ _handle_message(struct rfc5444_reader *parser,
   }
 
 cleanup_parse_message:
+  /* cleanup message buffer pointer */
+  tlv_context->msg_buffer = NULL;
+
   /* handle message forwarding */
   if (
 #if DISALLOW_CONSUMER_CONTEXT_DROP == false

@@ -127,6 +127,9 @@ struct rfc5444_reader_tlvblock_context {
   bool has_pktseqno;
   uint16_t pkt_seqno;
 
+  const uint8_t *pkt_buffer;
+  size_t pkt_size;
+
   /*
    * message context
    * only for message and address TLV blocks
@@ -147,6 +150,9 @@ struct rfc5444_reader_tlvblock_context {
   uint16_t seqno;
   bool has_seqno;
 
+  const uint8_t *msg_buffer;
+  size_t msg_size;
+
   /* processing callbacks can set this variable to prevent forwarding */
   bool _do_not_forward;
 
@@ -155,6 +161,12 @@ struct rfc5444_reader_tlvblock_context {
    * only for address TLV blocks
    */
   struct netaddr addr;
+
+  const uint8_t *addr_block_buffer;
+  size_t addr_block_size;
+  size_t addr_tlv_size;
+
+  uint8_t addr_index;
 };
 
 /* internal representation of a parsed address block */
@@ -185,6 +197,11 @@ struct rfc5444_reader_addrblock_entry {
 
   /* storage for fixed prefix length */
   uint8_t prefixlen;
+
+  /* reference to binary data */
+  const uint8_t *addr_block_ptr;
+  size_t addr_block_size;
+  size_t addr_tlv_size;
 
   /* bitarray to mark addresses that shall be skipped by the next handler */
   struct rfc5444_reader_bitarray256 dropAddr;

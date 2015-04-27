@@ -71,8 +71,11 @@ enum {
   /* Maximum packet size for this RFC5444 multiplexer */
   RFC5444_MAX_PACKET_SIZE = 1500-20-8,
 
-  /* Maximum message size for this RFC5444 multiplexer */
-  RFC5444_MAX_MESSAGE_SIZE = 1280-40-8-3,
+  /*
+   * Maximum message size for this RFC5444 multiplexer
+   * (minimal ipv6 mtu - ipv6/udp/rfc5444packet/vlan-header)
+   */
+  RFC5444_MAX_MESSAGE_SIZE = 1280-40-8-3-4,
 
   /* Maximum buffer size for address TLVs before splitting */
   RFC5444_ADDRTLV_BUFFER = 8192,
