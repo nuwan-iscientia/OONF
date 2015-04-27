@@ -1345,6 +1345,7 @@ _finalize_message_fragment(struct rfc5444_writer *writer, struct rfc5444_writer_
   msg_minsize = writer->_msg.header + writer->_msg.added;
   firstcopy = NULL;
   firstcopy_size = 0;
+  ptr = NULL;
 
   /* 1.) first flush all interfaces that have full buffers */
   list_for_each_element(&writer->_targets, interface, _target_node) {
