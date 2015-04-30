@@ -249,6 +249,9 @@ EXPORT struct oonf_rfc5444_target *oonf_rfc5444_add_target(
     struct oonf_rfc5444_interface *interface, struct netaddr *dst);
 EXPORT void oonf_rfc5444_remove_target(struct oonf_rfc5444_target *target);
 
+EXPORT const union netaddr_socket *oonf_rfc5444_target_get_local_socket(
+    struct oonf_rfc5444_target *target);
+
 EXPORT enum rfc5444_result oonf_rfc5444_send_if(
     struct oonf_rfc5444_target *, uint8_t msgid);
 EXPORT enum rfc5444_result oonf_rfc5444_send_all(
@@ -264,6 +267,15 @@ oonf_rfc5444_get_target_from_writer(struct rfc5444_writer *writer) {
   assert (writer->msg_target);
 
   return container_of(writer->msg_target, struct oonf_rfc5444_target, rfc5444_target);
+}
+
+/**
+ * @param writer pointer to rfc5444 target
+ * @return pointer to oonf_rfc5444 target
+ */
+static INLINE struct oonf_rfc5444_target *
+oonf_rfc5444_get_target_from_rfc5444_target(struct rfc5444_writer_target *target) {
+  return container_of(target, struct oonf_rfc5444_target, rfc5444_target);
 }
 
 /**

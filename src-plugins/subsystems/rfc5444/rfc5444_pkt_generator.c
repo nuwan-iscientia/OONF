@@ -156,7 +156,7 @@ rfc5444_writer_flush(struct rfc5444_writer *writer,
   /* run post-processors */
   total = len + target->_pkt.added + target->_pkt.set + target->_bin_msgs_size;
   avl_for_each_element(&writer->_pkt_processors, processor, _node) {
-    total = processor->process(writer, target, total);
+    total = processor->process(target, processor, &target->_pkt.buffer[0], total);
   }
   /* send packet */
   target->sendPacket(writer, target, target->_pkt.buffer,total);

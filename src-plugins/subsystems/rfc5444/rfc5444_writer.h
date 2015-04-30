@@ -258,12 +258,15 @@ struct rfc5444_writer_msg_postprocessor {
   /* message type */
   uint8_t msg_type;
 
+  /* number of bytes allocated in message for postprocessor */
+  uint16_t allocate_space;
+
   /* true if post-processing must be done per target */
   bool target_specific;
 
   /* process and change message binary representation */
-  size_t (*process)(struct rfc5444_writer *writer,
-      struct rfc5444_writer_message *msg, uint8_t *message, size_t msgsize);
+  size_t (*process)(struct rfc5444_writer_target *,
+      struct rfc5444_writer_msg_postprocessor *processor, uint8_t *message, size_t msgsize);
 
   /* back pointer to message creator */
   struct rfc5444_writer_message *creator;
@@ -333,6 +336,9 @@ struct rfc5444_writer_message {
   /* number of bytes necessary for addressblocks including tlvs */
   size_t _bin_addr_size;
 
+  /* bytes allocated for post-processing */
+  size_t _postprocessor_allocation;
+
   /* custom user data */
   void *user;
 };
@@ -358,9 +364,13 @@ struct rfc5444_writer_pkt_postprocessor {
   /* order of message post-processors */
   int32_t priority;
 
+  /* number of bytes allocated in message for postprocessor */
+  uint16_t allocate_space;
+
   /* process and change message binary representation */
-  size_t (*process)(struct rfc5444_writer *writer,
-      struct rfc5444_writer_target *target, size_t length);
+  size_t (*process)(struct rfc5444_writer_target *target,
+      struct rfc5444_writer_pkt_postprocessor *processor,
+      uint8_t *buffer, size_t length);
 };
 
 /**
@@ -411,6 +421,9 @@ struct rfc5444_writer {
 
   /* number of bytes of addrtlv buffer currently used */
   size_t _addrtlv_used;
+
+  /* bytes allocated for postprocessing */
+  size_t _postprocessor_allocation;
 
   /* internal state of writer */
   enum rfc5444_internal_state _state;

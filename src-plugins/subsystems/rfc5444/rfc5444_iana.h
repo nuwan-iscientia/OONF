@@ -85,10 +85,10 @@ enum rfc5444_msgtype_iana {
  * packet TLVs and their allocated values
  */
 
-enum rfc6622_pkttlvs_iana {
-  /* RFC 6622 (rfc5444-sec) */
-  RFC6622_PKTTLV_ICV       = 5,
-  RFC6622_PKTTLV_TIMESTAMP = 6,
+enum rfc7182_pkttlvs_iana {
+  /* RFC 7182 (rfc5444-sec) */
+  RFC7182_PKTTLV_ICV       = 5,
+  RFC7182_PKTTLV_TIMESTAMP = 6,
 };
 
 /*
@@ -102,10 +102,10 @@ enum rfc5497_msgtlvs_iana {
   RFC5497_MSGTLV_VALIDITY_TIME  = 1,
 };
 
-enum rfc6622_msgtlvs_iana {
-  /* RFC 6622 (rfc5444-sec) */
-  RFC6622_MSGTLV_ICV            = 5,
-  RFC6622_MSGTLV_TIMESTAMP      = 6,
+enum rfc7182_msgtlvs_iana {
+  /* RFC 7182 (rfc5444-sec) */
+  RFC7182_MSGTLV_ICV            = 5,
+  RFC7182_MSGTLV_TIMESTAMP      = 6,
 };
 
 enum rfc7181_msgtlvs_iana {
@@ -163,10 +163,10 @@ enum rfc6130_addrtlv_iana {
   RFC6130_ADDRTLV_OTHER_NEIGHB  = 4,
 };
 
-enum rfc6622_addrtlv_iana {
-  /* RFC 6622 (rfc5444-sec) */
-  RFC6622_ADDRTLV_ICV           = 5,
-  RFC6622_ADDRTLV_TIMESTAMP     = 6,
+enum rfc7182_addrtlv_iana {
+  /* RFC 7182 (rfc5444-sec) */
+  RFC7182_ADDRTLV_ICV           = 5,
+  RFC7182_ADDRTLV_TIMESTAMP     = 6,
 };
 
 enum rfc7181_addrtlv_iana {
@@ -216,4 +216,31 @@ enum rfc7181_nbr_addr_bitmask {
   RFC7181_NBR_ADDR_TYPE_ORIGINATOR    = 1,
   RFC7181_NBR_ADDR_TYPE_ROUTABLE      = 2,
 };
+
+/* this is a list of extension types and values for RFC7182 signature TLVs */
+enum rfc7182_icv_ext {
+  RFC7182_ICV_EXT_GENERIC           = 0,
+  RFC7182_ICV_EXT_CRYPTHASH         = 1,
+  RFC7182_ICV_EXT_SRCSPEC_CRYPTHASH = 2,
+};
+
+enum rfc7182_icv_hash {
+  RFC7182_ICV_HASH_IDENTITY = 0,
+  RFC7182_ICV_HASH_SHA_1    = 1,
+  RFC7182_ICV_HASH_SHA_224  = 2,
+  RFC7182_ICV_HASH_SHA_256  = 3,
+  RFC7182_ICV_HASH_SHA_384  = 4,
+  RFC7182_ICV_HASH_SHA_512  = 5,
+};
+
+enum rfc7182_icv_crypt {
+  RFC7182_ICV_CRYPT_IDENTITY = 0,
+  RFC7182_ICV_CRYPT_RSA      = 1,
+  RFC7182_ICV_CRYPT_DSA      = 2,
+  RFC7182_ICV_CRYPT_HMAC     = 3,
+  RFC7182_ICV_CRYPT_3DES     = 4,
+  RFC7182_ICV_CRYPT_AES      = 5,
+  RFC7182_ICV_CRYPT_ECDSA    = 6,
+};
+
 #endif /* RFC5444_IANA_H_ */
