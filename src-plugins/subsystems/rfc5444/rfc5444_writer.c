@@ -486,12 +486,14 @@ rfc5444_writer_unregister_msg_postprocessor(struct rfc5444_writer *writer,
 #if WRITER_STATE_MACHINE == true
   assert(writer->_state == RFC5444_WRITER_NONE);
 #endif
-  processor->creator->_postprocessor_allocation -= processor->allocate_space;
+  if (avl_is_node_added(&processor->_node)) {
+    processor->creator->_postprocessor_allocation -= processor->allocate_space;
 
-  avl_remove(&processor->creator->_processor_tree, &processor->_node);
-  _lazy_free_message(writer, processor->creator);
+    avl_remove(&processor->creator->_processor_tree, &processor->_node);
+    _lazy_free_message(writer, processor->creator);
 
-  processor->creator = NULL;
+    processor->creator = NULL;
+  }
 }
 
 void
@@ -506,8 +508,10 @@ rfc5444_writer_register_pkt_postprocessor(struct rfc5444_writer *writer,
 void
 rfc5444_writer_unregister_pkt_postprocessor(struct rfc5444_writer *writer,
     struct rfc5444_writer_pkt_postprocessor *processor) {
-  writer->_postprocessor_allocation -= processor->allocate_space;
-  avl_remove(&writer->_pkt_processors, &processor->_node);
+  if (avl_is_node_added(&processor->_node)) {
+    writer->_postprocessor_allocation -= processor->allocate_space;
+    avl_remove(&writer->_pkt_processors, &processor->_node);
+  }
 }
 
 /**

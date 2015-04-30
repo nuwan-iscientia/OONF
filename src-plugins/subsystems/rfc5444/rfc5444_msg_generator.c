@@ -1380,6 +1380,7 @@ _finalize_message_fragment(struct rfc5444_writer *writer, struct rfc5444_writer_
                                  + target->_pkt.allocated + target->_bin_msgs_size];
     if (!firstcopy) {
       /* first target. Assemble message and run interface-unspecific transformers */
+      firstcopy = ptr;
 
       /* copy message header and message tlvs into packet buffer */
       memcpy(ptr, writer->_msg.buffer, msg_minsize + writer->_msg.set);
@@ -1389,7 +1390,6 @@ _finalize_message_fragment(struct rfc5444_writer *writer, struct rfc5444_writer_
       memcpy(ptr, &writer->_msg.buffer[msg_minsize + writer->_msg.allocated], msg->_bin_addr_size);
 
       /* remember position of first copy */
-      firstcopy = ptr;
       firstcopy_size = msg_minsize + writer->_msg.set + msg->_bin_addr_size;
 
       /* run processors */
