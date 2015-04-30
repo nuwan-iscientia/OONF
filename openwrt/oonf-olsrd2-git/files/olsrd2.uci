@@ -19,7 +19,6 @@ config olsrv2
 
 config interface
 	option 'ifname' 'loopback'
-#	option 'lan'	'10.63.21.64/26'
 
 config interface
 	list 'ifname' 'WIFI'
