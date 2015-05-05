@@ -98,7 +98,7 @@ _rfc5444_writer_begin_packet(struct rfc5444_writer *writer,
 void
 rfc5444_writer_flush(struct rfc5444_writer *writer,
     struct rfc5444_writer_target *target, bool force) {
-  struct rfc5444_writer_pkt_postprocessor *processor;
+  struct rfc5444_writer_postprocessor *processor;
   struct rfc5444_writer_pkthandler *handler;
   size_t len, total;
 

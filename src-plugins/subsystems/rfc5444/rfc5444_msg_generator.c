@@ -1284,7 +1284,7 @@ static void
 _finalize_message_fragment(struct rfc5444_writer *writer, struct rfc5444_writer_message *msg,
     struct rfc5444_writer_address *first, struct rfc5444_writer_address *last, bool not_fragmented,
     rfc5444_writer_targetselector useIf, void *param) {
-  struct rfc5444_writer_msg_postprocessor *processor;
+  struct rfc5444_writer_postprocessor *processor;
   struct rfc5444_writer_content_provider *prv;
   struct rfc5444_writer_target *target;
   struct rfc5444_writer_address *addr;

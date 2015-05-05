@@ -121,8 +121,7 @@ rfc5444_writer_cleanup(struct rfc5444_writer *writer) {
   struct rfc5444_writer_content_provider *provider, *safe_prv;
   struct rfc5444_writer_tlvtype *tlvtype, *safe_tt;
   struct rfc5444_writer_target *interf, *safe_interf;
-  struct rfc5444_writer_pkt_postprocessor *processor, *safe_proc;
-  struct rfc5444_writer_msg_postprocessor *msgproc, *safe_msgproc;
+  struct rfc5444_writer_postprocessor *processor, *safe_proc;
 
   assert(writer);
 #if WRITER_STATE_MACHINE == true
@@ -165,8 +164,8 @@ rfc5444_writer_cleanup(struct rfc5444_writer *writer) {
     }
 
     /* remove all message postprocessors */
-    avl_for_each_element_safe(&msg->_processor_tree, msgproc, _node, safe_msgproc) {
-     rfc5444_writer_unregister_msg_postprocessor(writer, msgproc);
+    avl_for_each_element_safe(&msg->_processor_tree, processor, _node, safe_proc) {
+     rfc5444_writer_unregister_msg_postprocessor(writer, processor);
     }
 
     /* remove message and addresses */
@@ -460,7 +459,7 @@ rfc5444_writer_unregister_message(struct rfc5444_writer *writer,
 
 int
 rfc5444_writer_register_msg_postprocessor(struct rfc5444_writer *writer,
-    struct rfc5444_writer_msg_postprocessor *processor) {
+    struct rfc5444_writer_postprocessor *processor) {
   struct rfc5444_writer_message *msg;
 
 #if WRITER_STATE_MACHINE == true
@@ -482,7 +481,7 @@ rfc5444_writer_register_msg_postprocessor(struct rfc5444_writer *writer,
 
 void
 rfc5444_writer_unregister_msg_postprocessor(struct rfc5444_writer *writer,
-    struct rfc5444_writer_msg_postprocessor *processor){
+    struct rfc5444_writer_postprocessor *processor){
 #if WRITER_STATE_MACHINE == true
   assert(writer->_state == RFC5444_WRITER_NONE);
 #endif
@@ -496,18 +495,19 @@ rfc5444_writer_unregister_msg_postprocessor(struct rfc5444_writer *writer,
   }
 }
 
-void
+int
 rfc5444_writer_register_pkt_postprocessor(struct rfc5444_writer *writer,
-    struct rfc5444_writer_pkt_postprocessor *processor) {
+    struct rfc5444_writer_postprocessor *processor) {
   writer->_postprocessor_allocation += processor->allocate_space;
 
   processor->_node.key = &processor->priority;
   avl_insert(&writer->_pkt_processors, &processor->_node);
+  return 0;
 }
 
 void
 rfc5444_writer_unregister_pkt_postprocessor(struct rfc5444_writer *writer,
-    struct rfc5444_writer_pkt_postprocessor *processor) {
+    struct rfc5444_writer_postprocessor *processor) {
   if (avl_is_node_added(&processor->_node)) {
     writer->_postprocessor_allocation -= processor->allocate_space;
     avl_remove(&writer->_pkt_processors, &processor->_node);
