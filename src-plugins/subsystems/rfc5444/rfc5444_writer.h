@@ -78,6 +78,11 @@ enum rfc5444_internal_state {
   RFC5444_WRITER_FINISH_PKTHEADER
 };
 
+/* msg_type id for packet post-processor */
+enum {
+  RFC5444_WRITER_PKT_POSTPROCESSOR = -1,
+};
+
 /**
  * This INTERNAL struct represents a single address tlv
  * of an address during message serialization.
@@ -258,9 +263,6 @@ struct rfc5444_writer_message {
   /* tree of message content providers */
   struct avl_tree _provider_tree;
 
-  /* tree of message post-processors */
-  struct avl_tree _processor_tree;
-
   /*
    * true if the creator has already registered
    * false if the creator was registered because of a tlvtype or content
@@ -311,9 +313,6 @@ struct rfc5444_writer_message {
   /* number of bytes necessary for addressblocks including tlvs */
   size_t _bin_addr_size;
 
-  /* bytes allocated for post-processing */
-  size_t _postprocessor_allocation;
-
   /* custom user data */
   void *user;
 };
@@ -339,9 +338,6 @@ struct rfc5444_writer_postprocessor {
   /* order of message post-processors */
   int32_t priority;
 
-  /* message type, unused for packet post-processors */
-  uint8_t msg_type;
-
   /* number of bytes allocated for post-processor */
   uint16_t allocate_space;
 
@@ -352,18 +348,24 @@ struct rfc5444_writer_postprocessor {
   bool target_specific;
 
   /**
+   * checks if post-processor applies to a message/packet
+   * @param msg_type rfc5444 message type, -1 for packet signature
+   * @return true if signature applies to message type, false otherwise
+   */
+  bool (*is_matching_signature)(int msg_type);
+
+  /**
    * Process binary data in post-processor
-   * @param target rfc5444 target
    * @param processor rfc5444 post-processor
-   * @param message pointer to binary data
-   * @param msgsize pointer to length of binary data, will be overwritten by function
+   * @param target rfc5444 target
+   * @param msg rfc5444 message, NULL for packet signature
+   * @param data pointer to binary data
+   * @param length pointer to length of binary data, will be overwritten by function
    * @return -1 if an error happened, 0 otherwise
    */
-  int (*process)(struct rfc5444_writer_target *,
-      struct rfc5444_writer_postprocessor *processor, uint8_t *message, size_t *msgsize);
-
-  /* back pointer to message creator, NULL for packet post-processors */
-  struct rfc5444_writer_message *creator;
+  int (*process)(struct rfc5444_writer_postprocessor *processor,
+      struct rfc5444_writer_target *target, struct rfc5444_writer_message *msg,
+      uint8_t *data, size_t *length);
 };
 
 /**
@@ -401,7 +403,7 @@ struct rfc5444_writer {
   struct list_entity _pkthandlers;
 
   /* tree of packet post-processors */
-  struct avl_tree _pkt_processors;
+  struct avl_tree _processors;
 
   /* list of all targets */
   struct list_entity _targets;
@@ -414,9 +416,6 @@ struct rfc5444_writer {
 
   /* number of bytes of addrtlv buffer currently used */
   size_t _addrtlv_used;
-
-  /* bytes allocated for postprocessing */
-  size_t _postprocessor_allocation;
 
   /* internal state of writer */
   enum rfc5444_internal_state _state;
@@ -482,9 +481,9 @@ EXPORT void rfc5444_writer_unregister_content_provider(
     struct rfc5444_writer *writer, struct rfc5444_writer_content_provider *cpr,
     struct rfc5444_writer_tlvtype *addrtlvs, size_t addrtlv_count);
 
-EXPORT int rfc5444_writer_register_msg_postprocessor(struct rfc5444_writer *writer,
+EXPORT void rfc5444_writer_register_postprocessor(struct rfc5444_writer *writer,
     struct rfc5444_writer_postprocessor *processor);
-EXPORT void rfc5444_writer_unregister_msg_postprocessor(struct rfc5444_writer *,
+EXPORT void rfc5444_writer_unregister_postprocessor(struct rfc5444_writer *,
     struct rfc5444_writer_postprocessor *processor);
 
 EXPORT struct rfc5444_writer_message *rfc5444_writer_register_message(
@@ -496,11 +495,6 @@ EXPORT void rfc5444_writer_register_pkthandler(struct rfc5444_writer *writer,
     struct rfc5444_writer_pkthandler *pkt);
 EXPORT void rfc5444_writer_unregister_pkthandler(struct rfc5444_writer *writer,
     struct rfc5444_writer_pkthandler *pkt);
-
-EXPORT int rfc5444_writer_register_pkt_postprocessor(struct rfc5444_writer *writer,
-    struct rfc5444_writer_postprocessor *processor);
-EXPORT void rfc5444_writer_unregister_pkt_postprocessor(struct rfc5444_writer *,
-    struct rfc5444_writer_postprocessor *processor);
 
 EXPORT void rfc5444_writer_register_target(struct rfc5444_writer *writer,
     struct rfc5444_writer_target *target);

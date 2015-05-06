@@ -93,6 +93,9 @@ rfc5444_writer_create_message(struct rfc5444_writer *writer, uint8_t msgid,
   struct rfc5444_writer_tlvtype *tlvtype;
   struct rfc5444_writer_target *interface;
 
+  struct rfc5444_writer_postprocessor *processor;
+  size_t processor_preallocation;
+
   struct _rfc5444_internal_addr_compress_session acs[RFC5444_MAX_ADDRLEN];
   int best_size, best_head, same_prefixlen = 0;
   int i, idx, non_mandatory;
@@ -150,6 +153,14 @@ rfc5444_writer_create_message(struct rfc5444_writer *writer, uint8_t msgid,
    * initialize packet buffers for all interfaces if necessary
    * and calculate message MTU
    */
+
+  /* loop over post-processors */
+  processor_preallocation = 0;
+  avl_for_each_element(&writer->_processors, processor, _node) {
+    if (processor->is_matching_signature(msg->type)) {
+      processor_preallocation += processor->allocate_space;
+    }
+  }
   max_msg_size = writer->msg_size;
   list_for_each_element(&writer->_targets, interface, _target_node) {
     size_t interface_msg_mtu;
@@ -164,7 +175,7 @@ rfc5444_writer_create_message(struct rfc5444_writer *writer, uint8_t msgid,
       _rfc5444_writer_begin_packet(writer, interface);
     }
 
-    interface_msg_mtu = interface->packet_size - writer->_postprocessor_allocation
+    interface_msg_mtu = interface->packet_size - processor_preallocation
         - (interface->_pkt.header + interface->_pkt.added + interface->_pkt.allocated);
     if (interface_msg_mtu < max_msg_size) {
       max_msg_size = interface_msg_mtu;
@@ -172,8 +183,7 @@ rfc5444_writer_create_message(struct rfc5444_writer *writer, uint8_t msgid,
   }
 
   /* initialize message tlvdata */
-  _rfc5444_tlv_writer_init(&writer->_msg,
-      max_msg_size - msg->_postprocessor_allocation, writer->msg_size);
+  _rfc5444_tlv_writer_init(&writer->_msg, max_msg_size, writer->msg_size);
 
 #if WRITER_STATE_MACHINE == true
   writer->_state = RFC5444_WRITER_ADD_HEADER;
@@ -1394,9 +1404,9 @@ _finalize_message_fragment(struct rfc5444_writer *writer, struct rfc5444_writer_
       firstcopy_size = msg_minsize + writer->_msg.set + msg->_bin_addr_size;
 
       /* run processors */
-      avl_for_each_element(&msg->_processor_tree, processor, _node) {
-        if (!processor->target_specific) {
-          if (processor->process(NULL, processor, firstcopy, &firstcopy_size)) {
+      avl_for_each_element(&writer->_processors, processor, _node) {
+        if (processor->is_matching_signature(msg->type) && !processor->target_specific) {
+          if (processor->process(processor, NULL, msg, firstcopy, &firstcopy_size)) {
             /* error, we have not modified the _bin_msgs_size, so we can just return */
             return;
           }
@@ -1419,9 +1429,9 @@ _finalize_message_fragment(struct rfc5444_writer *writer, struct rfc5444_writer_
     }
 
     msg_size = firstcopy_size;
-    avl_for_each_element(&msg->_processor_tree, processor, _node) {
-      if (processor->target_specific) {
-        if (processor->process(target, processor, ptr, &msg_size)) {
+    avl_for_each_element(&writer->_processors, processor, _node) {
+      if (processor->is_matching_signature(msg->type) && processor->target_specific) {
+        if (processor->process(processor, target, msg, ptr, &msg_size)) {
           error = true;
         }
       }

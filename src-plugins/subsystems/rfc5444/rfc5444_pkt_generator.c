@@ -58,10 +58,18 @@ static void _write_pktheader(struct rfc5444_writer_target *target);
 void
 _rfc5444_writer_begin_packet(struct rfc5444_writer *writer,
     struct rfc5444_writer_target *target) {
+  struct rfc5444_writer_postprocessor *processor;
   struct rfc5444_writer_pkthandler *handler;
 
   /* cleanup packet buffer data */
   _rfc5444_tlv_writer_init(&target->_pkt, target->packet_size, target->packet_size);
+
+  /* loop over post-processors */
+  avl_for_each_element(&writer->_processors, processor, _node) {
+    if (processor->is_matching_signature(RFC5444_WRITER_PKT_POSTPROCESSOR)) {
+      target->_pkt.allocated += processor->allocate_space;
+    }
+  }
 
 #if WRITER_STATE_MACHINE == true
   writer->_state = RFC5444_WRITER_ADD_PKTHEADER;
@@ -157,11 +165,13 @@ rfc5444_writer_flush(struct rfc5444_writer *writer,
   /* run post-processors */
   error = false;
   total = len + target->_pkt.added + target->_pkt.set + target->_bin_msgs_size;
-  avl_for_each_element(&writer->_pkt_processors, processor, _node) {
-    if (processor->process(target, processor, &target->_pkt.buffer[0], &total)) {
-      /* error, stop postprocessing and drop message */
-      error = true;
-      break;
+  avl_for_each_element(&writer->_processors, processor, _node) {
+    if (processor->is_matching_signature(RFC5444_WRITER_PKT_POSTPROCESSOR)) {
+      if (processor->process(processor, target, NULL, &target->_pkt.buffer[0], &total)) {
+        /* error, stop postprocessing and drop message */
+        error = true;
+        break;
+      }
     }
   }
 
