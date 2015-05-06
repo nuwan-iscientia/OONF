@@ -101,6 +101,7 @@ rfc5444_writer_flush(struct rfc5444_writer *writer,
   struct rfc5444_writer_postprocessor *processor;
   struct rfc5444_writer_pkthandler *handler;
   size_t len, total;
+  bool error;
 
 #if WRITER_STATE_MACHINE == true
   assert(writer->_state == RFC5444_WRITER_NONE);
@@ -154,12 +155,20 @@ rfc5444_writer_flush(struct rfc5444_writer *writer,
   }
 
   /* run post-processors */
+  error = false;
   total = len + target->_pkt.added + target->_pkt.set + target->_bin_msgs_size;
   avl_for_each_element(&writer->_pkt_processors, processor, _node) {
-    total = processor->process(target, processor, &target->_pkt.buffer[0], total);
+    if (processor->process(target, processor, &target->_pkt.buffer[0], &total)) {
+      /* error, stop postprocessing and drop message */
+      error = true;
+      break;
+    }
   }
-  /* send packet */
-  target->sendPacket(writer, target, target->_pkt.buffer,total);
+
+  if (!error) {
+    /* send packet */
+    target->sendPacket(writer, target, target->_pkt.buffer,total);
+  }
 
   /* cleanup length information */
   target->_pkt.set  = 0;

@@ -1290,6 +1290,7 @@ _finalize_message_fragment(struct rfc5444_writer *writer, struct rfc5444_writer_
   struct rfc5444_writer_address *addr;
   uint8_t *ptr, *firstcopy;
   size_t msg_minsize, firstcopy_size, msg_size;
+  bool error;
 
   /* reset optional tlv length */
   writer->_msg.set = 0;
@@ -1395,7 +1396,10 @@ _finalize_message_fragment(struct rfc5444_writer *writer, struct rfc5444_writer_
       /* run processors */
       avl_for_each_element(&msg->_processor_tree, processor, _node) {
         if (!processor->target_specific) {
-          firstcopy_size = processor->process(NULL, processor, firstcopy, firstcopy_size);
+          if (processor->process(NULL, processor, firstcopy, &firstcopy_size)) {
+            /* error, we have not modified the _bin_msgs_size, so we can just return */
+            return;
+          }
         }
       }
     }
@@ -1407,6 +1411,8 @@ _finalize_message_fragment(struct rfc5444_writer *writer, struct rfc5444_writer_
 
   /* run target-specific processors */
   list_for_each_element(&writer->_targets, target, _target_node) {
+    error = false;
+
     /* do we need to handle this interface ? */
     if (!useIf(writer, target, param)) {
       continue;
@@ -1415,12 +1421,16 @@ _finalize_message_fragment(struct rfc5444_writer *writer, struct rfc5444_writer_
     msg_size = firstcopy_size;
     avl_for_each_element(&msg->_processor_tree, processor, _node) {
       if (processor->target_specific) {
-        msg_size = processor->process(target, processor, ptr, msg_size);
+        if (processor->process(target, processor, ptr, &msg_size)) {
+          error = true;
+        }
       }
     }
 
-    /* increase byte count of packet */
-    target->_bin_msgs_size += msg_size;
+    if (!error) {
+      /* increase byte count of packet */
+      target->_bin_msgs_size += msg_size;
+    }
   }
 
   /* clear length value of message address size */

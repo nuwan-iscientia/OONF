@@ -351,9 +351,16 @@ struct rfc5444_writer_postprocessor {
    */
   bool target_specific;
 
-  /* process and change binary data */
-  size_t (*process)(struct rfc5444_writer_target *,
-      struct rfc5444_writer_postprocessor *processor, uint8_t *message, size_t msgsize);
+  /**
+   * Process binary data in post-processor
+   * @param target rfc5444 target
+   * @param processor rfc5444 post-processor
+   * @param message pointer to binary data
+   * @param msgsize pointer to length of binary data, will be overwritten by function
+   * @return -1 if an error happened, 0 otherwise
+   */
+  int (*process)(struct rfc5444_writer_target *,
+      struct rfc5444_writer_postprocessor *processor, uint8_t *message, size_t *msgsize);
 
   /* back pointer to message creator, NULL for packet post-processors */
   struct rfc5444_writer_message *creator;
