@@ -44,12 +44,12 @@
 
 #include "common/common_types.h"
 #include "common/autobuf.h"
+#include "common/bitmap256.h"
 #include "common/netaddr.h"
 
 #include "core/oonf_logging.h"
 #include "subsystems/oonf_stream_socket.h"
 
-#include "dlep/dlep_bitmap.h"
 
 int dlep_writer_init(void);
 void dlep_writer_cleanup(void);

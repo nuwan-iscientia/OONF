@@ -48,7 +48,6 @@
 #include "subsystems/oonf_stream_socket.h"
 #include "subsystems/oonf_timer.h"
 
-#include "dlep/dlep_bitmap.h"
 #include "dlep/router/dlep_router_interface.h"
 
 enum dlep_router_session_state {

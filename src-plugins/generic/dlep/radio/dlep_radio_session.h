@@ -49,7 +49,6 @@
 #include "subsystems/oonf_stream_socket.h"
 #include "subsystems/oonf_timer.h"
 
-#include "dlep/dlep_bitmap.h"
 #include "dlep/radio/dlep_radio_session.h"
 
 enum dlep_radio_session_state {

@@ -43,9 +43,9 @@
 #include <string.h>
 
 #include "common/common_types.h"
+#include "common/bitmap256.h"
 #include "common/netaddr.h"
 
-#include "dlep/dlep_bitmap.h"
 #include "dlep/dlep_iana.h"
 #include "dlep/dlep_parser.h"
 #include "dlep/dlep_static_data.h"
@@ -267,12 +267,12 @@ dlep_parser_get_status(enum dlep_status *status, const uint8_t *tlv) {
 }
 
 void
-dlep_parser_get_extensions_supported(struct dlep_bitmap *bitmap, const uint8_t *tlv) {
+dlep_parser_get_extensions_supported(struct bitmap256 *bitmap, const uint8_t *tlv) {
   unsigned i;
 
   memset(bitmap, 0, sizeof(*bitmap));
   for (i=0; i<tlv[1]; i++) {
-    dlep_bitmap_set(bitmap, tlv[2+i]);
+    bitmap256_set(bitmap, tlv[2+i]);
   }
 }
 
@@ -325,7 +325,7 @@ _check_tlv_length(uint8_t type, uint8_t length) {
 static int
 _check_mandatory_tlvs(struct dlep_parser_index *idx,
     uint8_t signal) {
-  struct dlep_bitmap *mandatory;
+  struct bitmap256 *mandatory;
   int i;
 
   if (signal >= DLEP_SIGNAL_COUNT) {
@@ -335,7 +335,7 @@ _check_mandatory_tlvs(struct dlep_parser_index *idx,
 
   mandatory = &dlep_mandatory_tlvs_per_signal[signal];
   for (i=0; i<DLEP_TLV_COUNT; i++) {
-    if (dlep_bitmap_get(mandatory, i)
+    if (bitmap256_get(mandatory, i)
         && idx->idx[i] == 0) {
       return -1;
     }

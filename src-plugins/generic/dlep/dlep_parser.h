@@ -44,9 +44,9 @@
 
 #include "common/common_types.h"
 #include "common/autobuf.h"
+#include "common/bitmap256.h"
 #include "common/netaddr.h"
 
-#include "dlep/dlep_bitmap.h"
 #include "dlep/dlep_iana.h"
 
 struct dlep_parser_index {
@@ -65,7 +65,7 @@ enum dlep_parser_errors {
 int dlep_parser_read(struct dlep_parser_index *idx,
     const void *signal, size_t len, uint16_t *siglen);
 int dlep_parser_check_mandatory_tlvs(const struct dlep_parser_index *idx,
-    const struct dlep_bitmap *mandatory);
+    const struct bitmap256 *mandatory);
 uint16_t dlep_parser_get_next_tlv(const uint8_t *buffer, size_t len, size_t offset);
 
 void dlep_parser_get_version(uint16_t *major, uint16_t *minor, const uint8_t *tlv);
@@ -78,7 +78,7 @@ int dlep_parser_get_ipv4_addr(struct netaddr *ipv4, bool *add, const uint8_t *tl
 int dlep_parser_get_ipv6_addr(struct netaddr *ipv6, bool *add, const uint8_t *tlv);
 void dlep_parser_get_uint64(uint64_t *mdrr, const uint8_t *tlv);
 void dlep_parser_get_status(enum dlep_status *status, const uint8_t *tlv);
-void dlep_parser_get_extensions_supported(struct dlep_bitmap *bitmap, const uint8_t *tlv);
+void dlep_parser_get_extensions_supported(struct bitmap256 *bitmap, const uint8_t *tlv);
 void dlep_parser_get_latency(uint32_t *latency, const uint8_t *tlv);
 void dlep_parser_get_tx_signal(int32_t *sig, const uint8_t *tlv);
 void dlep_parser_get_rx_signal(int32_t *sig, const uint8_t *tlv);

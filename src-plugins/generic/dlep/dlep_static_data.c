@@ -44,7 +44,7 @@
 #include "dlep/dlep_iana.h"
 #include "dlep/dlep_static_data.h"
 
-struct dlep_bitmap dlep_mandatory_signals = { .b = {
+struct bitmap256 dlep_mandatory_signals = { .b = {
   (1ull << DLEP_PEER_DISCOVERY )
   | (1ull << DLEP_PEER_OFFER )
   | (1ull << DLEP_PEER_INITIALIZATION )
@@ -58,7 +58,7 @@ struct dlep_bitmap dlep_mandatory_signals = { .b = {
   0,0,0
 }};
 
-struct dlep_bitmap dlep_supported_optional_signals = { .b = {
+struct bitmap256 dlep_supported_optional_signals = { .b = {
   (1ull << DLEP_PEER_TERMINATION)
   | (1ull << DLEP_PEER_TERMINATION_ACK)
   | (1ull << DLEP_DESTINATION_UP_ACK)
@@ -66,7 +66,7 @@ struct dlep_bitmap dlep_supported_optional_signals = { .b = {
   0,0,0
 }};
 
-struct dlep_bitmap dlep_mandatory_tlvs_per_signal[DLEP_SIGNAL_COUNT] = {
+struct bitmap256 dlep_mandatory_tlvs_per_signal[DLEP_SIGNAL_COUNT] = {
   [DLEP_PEER_DISCOVERY] = { .b = {
       (1ull << DLEP_VERSION_TLV),
       0,0,0
@@ -113,7 +113,7 @@ struct dlep_bitmap dlep_mandatory_tlvs_per_signal[DLEP_SIGNAL_COUNT] = {
   }},
 };
 
-struct dlep_bitmap dlep_supported_optional_tlvs_per_signal[DLEP_SIGNAL_COUNT] = {
+struct bitmap256 dlep_supported_optional_tlvs_per_signal[DLEP_SIGNAL_COUNT] = {
   [DLEP_PEER_DISCOVERY] = { .b = {
       (1ull << DLEP_PEER_TYPE_TLV),
       0,0,0

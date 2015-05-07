@@ -39,13 +39,12 @@
  *
  */
 
-#include "../example/example.h"
-
 #include "common/common_types.h"
 #include "config/cfg_schema.h"
 #include "core/oonf_subsystem.h"
 #include "subsystems/oonf_timer.h"
 
+#include "example/example.h"
 
 /* definitions */
 #define LOG_EXAMPLE _example_subsystem.logging

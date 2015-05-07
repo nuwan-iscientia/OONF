@@ -7,8 +7,7 @@ SET (router_only_source router/dlep_router.c
                         router/dlep_router_session.c)
 SET (common_source      dlep_parser.c
                         dlep_writer.c
-                        dlep_static_data.c
-                        dlep_bitmap.c)
+                        dlep_static_data.c)
 
 # sources/includes for dlep_radio                    
 SET (radio_source       ${common_source}

@@ -48,8 +48,6 @@
 #include "subsystems/oonf_stream_socket.h"
 #include "subsystems/oonf_timer.h"
 
-#include "dlep/dlep_bitmap.h"
-
 struct dlep_radio_if {
   /* interface name to get layer2 data from */
   char l2_source[IF_NAMESIZE];

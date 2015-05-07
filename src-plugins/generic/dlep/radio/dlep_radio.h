@@ -42,9 +42,6 @@
 #ifndef DLEP_RADIO_H_
 #define DLEP_RADIO_H_
 
-#include "common/common_types.h"
-#include "core/oonf_subsystem.h"
-
 #define OONF_DLEP_RADIO_SUBSYSTEM "dlep_radio"
 
 #endif /* DLEP_RADIO_H_ */

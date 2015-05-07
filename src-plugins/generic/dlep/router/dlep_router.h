@@ -42,12 +42,6 @@
 #ifndef DLEP_ROUTER_H_
 #define DLEP_ROUTER_H_
 
-#include "common/common_types.h"
-#include "common/avl.h"
-#include "core/oonf_subsystem.h"
-
-#include "dlep/dlep_bitmap.h"
-
 #define OONF_DLEP_ROUTER_SUBSYSTEM "dlep_router"
 
 #endif /* DLEP_ROUTER_H_ */

@@ -42,13 +42,13 @@
 #include <arpa/inet.h>
 
 #include "common/common_types.h"
+#include "common/bitmap256.h"
 #include "common/autobuf.h"
 
 #include "core/oonf_logging.h"
 #include "subsystems/oonf_packet_socket.h"
 #include "subsystems/oonf_stream_socket.h"
 
-#include "dlep/dlep_bitmap.h"
 #include "dlep/dlep_iana.h"
 #include "dlep/dlep_static_data.h"
 #include "dlep/dlep_writer.h"
@@ -81,8 +81,8 @@ dlep_writer_start_signal(uint8_t signal) {
 
 void
 dlep_writer_add_tlv(uint8_t type, void *data, uint8_t len) {
-  if (dlep_bitmap_get(&dlep_mandatory_tlvs_per_signal[_signal_id], type)
-      || dlep_bitmap_get(&dlep_supported_optional_tlvs_per_signal[_signal_id], type)) {
+  if (bitmap256_get(&dlep_mandatory_tlvs_per_signal[_signal_id], type)
+      || bitmap256_get(&dlep_supported_optional_tlvs_per_signal[_signal_id], type)) {
     abuf_append_uint8(&_signal_buf, type);
     abuf_append_uint8(&_signal_buf, len);
     abuf_memcpy(&_signal_buf, data, len);
@@ -285,7 +285,7 @@ dlep_writer_add_extensions_supported(void) {
   size_t i,j;
 
   for (i=0,j=0; i<DLEP_SIGNAL_COUNT; i++) {
-    if (dlep_bitmap_get(&dlep_supported_optional_signals, i)) {
+    if (bitmap256_get(&dlep_supported_optional_signals, i)) {
       value[j++] = i;
     }
   }

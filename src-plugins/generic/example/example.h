@@ -42,9 +42,6 @@
 #ifndef EXAMPLE_H_
 #define EXAMPLE_H_
 
-#include "common/common_types.h"
-#include "core/oonf_subsystem.h"
-
 #define OONF_EXAMPLE_SUBSYSTEM "example"
 
 #endif /* EXAMPLE_H_ */
