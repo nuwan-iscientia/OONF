@@ -353,7 +353,7 @@ _cb_signature_tlv(struct rfc5444_reader_tlvblock_context *context) {
     sigkey.crypt_function = tlv->single_value[1];
     key_id_len = tlv->single_value[2];
 
-    if (tlv->length < 4 + key_id_len) {
+    if (tlv->length <= 3 + key_id_len) {
       /* not enough bytes for valid signature */
       OONF_INFO_HEX(LOG_RFC5444_SIG, tlv->single_value, tlv->length,
           "Signature tlv %u/%u too short: %u bytes",
