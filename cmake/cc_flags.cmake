@@ -88,6 +88,14 @@ set(CMAKE_C_FLAGS_RELEASE "-O2 -g0 -DNDEBUG")
 set(CMAKE_C_FLAGS_MINSIZEREL "-Os -g0 -DNDEBUG")
 set(CMAKE_C_FLAGS_RELWITHDEBINFO "-DNDEBUG")
 
+# Add address sanitizer to debug compilation
+IF (OONF_SANITIZE)
+    IF (CMAKE_BUILD_TYPE STREQUAL "Debug")
+        SET(CMAKE_C_FLAGS_DEBUG       "${CMAKE_C_FLAGS_DEBUG}       -fsanitize=address -fno-omit-frame-pointer")
+        SET(CMAKE_EXE_LINKER_FLAGS    "${CMAKE_EXE_LINKER_FLAGS}    -static-libasan")
+    ENDIF()
+ENDIF()
+
 # add -Werror compiler options
 IF (OONF_NO_WERROR)
 	message ("Skip -Werror")

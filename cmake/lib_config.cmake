@@ -22,6 +22,9 @@ set (OONF_LOGGING_LEVEL debug CACHE STRING
 set (OONF_REMOVE_HELPTEXT false CACHE BOOL
      "Set if you want to remove the help texts from application to reduce size")
 
+set (OONF_SANITIZE false CACHE BOOL
+     "Activate the address sanitizer")
+
 ######################################
 #### Install target configuration ####
 ######################################
