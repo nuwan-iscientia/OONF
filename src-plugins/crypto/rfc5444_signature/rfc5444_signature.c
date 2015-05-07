@@ -303,6 +303,9 @@ _cb_signature_tlv(struct rfc5444_reader_tlvblock_context *context) {
   uint8_t *static_data;
   size_t static_length;
   bool sig_to_verify;
+#ifdef OONF_LOG_INFO_DEBUG
+  struct netaddr_str nbuf;
+#endif
 
   if (context->type == RFC5444_CONTEXT_PACKET) {
     msg_type = RFC5444_WRITER_PKT_POSTPROCESSOR;
@@ -363,7 +366,6 @@ _cb_signature_tlv(struct rfc5444_reader_tlvblock_context *context) {
 
     /* assemble static message buffer */
     if (tlv->type_ext == RFC7182_ICV_EXT_SRCSPEC_CRYPTHASH) {
-      struct netaddr_str nbuf;
       OONF_DEBUG(LOG_RFC5444_SIG, "incoming src IP: %s",
           netaddr_to_string(&nbuf, _protocol->input_address));
 
@@ -461,6 +463,10 @@ _cb_add_signature(struct rfc5444_writer_postprocessor *processor,
   const void *key_id;
   size_t key_id_length;
 
+#ifdef OONF_LOG_INFO_DEBUG
+  struct netaddr_str nbuf;
+#endif
+
   sig = container_of(processor, struct rfc5444_signature, _postprocessor);
 
   if (!msg) {
@@ -477,7 +483,6 @@ _cb_add_signature(struct rfc5444_writer_postprocessor *processor,
    * for source address and signature data
    */
   if (sig->source_specific) {
-    struct netaddr_str nbuf;
     local_socket = oonf_rfc5444_target_get_local_socket(oonf_target);
     if (netaddr_from_socket(&srcaddr, local_socket)) {
       return -1;
