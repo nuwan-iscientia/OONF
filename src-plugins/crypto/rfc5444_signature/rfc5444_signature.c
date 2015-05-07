@@ -303,7 +303,7 @@ _cb_signature_tlv(struct rfc5444_reader_tlvblock_context *context) {
   uint8_t *static_data;
   size_t static_length;
   bool sig_to_verify;
-#ifdef OONF_LOG_INFO_DEBUG
+#ifdef OONF_LOG_DEBUG_INFO
   struct netaddr_str nbuf;
 #endif
 
@@ -357,7 +357,7 @@ _cb_signature_tlv(struct rfc5444_reader_tlvblock_context *context) {
     key_id_len = tlv->single_value[2];
 
     if (tlv->length <= 3 + key_id_len) {
-      /* not enough bytes for valid signature */
+      /* not enouOONF_LOG_DEBUG_INFOgh bytes for valid signature */
       OONF_INFO_HEX(LOG_RFC5444_SIG, tlv->single_value, tlv->length,
           "Signature tlv %u/%u too short: %u bytes",
           tlv->single_value[0], tlv->single_value[1], tlv->length);
@@ -463,7 +463,7 @@ _cb_add_signature(struct rfc5444_writer_postprocessor *processor,
   const void *key_id;
   size_t key_id_length;
 
-#ifdef OONF_LOG_INFO_DEBUG
+#ifdef OONF_LOG_DEBUG_INFO
   struct netaddr_str nbuf;
 #endif
 
