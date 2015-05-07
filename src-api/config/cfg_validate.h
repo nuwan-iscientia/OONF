@@ -63,5 +63,7 @@ EXPORT int cfg_validate_netaddr(struct autobuf *out,
 EXPORT int cfg_validate_acl(struct autobuf *out,
     const char *section_name, const char *entry_name, const char *value,
     bool prefix, const int8_t *af_types, size_t af_types_count);
+EXPORT int cfg_validate_bitmap256(struct autobuf *out,
+    const char *section_name, const char *entry_name, const char *value);
 
 #endif /* CFG_VALIDATE_H_ */

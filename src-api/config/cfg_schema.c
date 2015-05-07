@@ -40,13 +40,16 @@
  */
 
 #include <assert.h>
+#include <errno.h>
 #include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
+#include "common/common_types.h"
 #include "common/avl.h"
 #include "common/avl_comp.h"
+#include "common/bitmap256.h"
 #include "common/isonumber.h"
 #include "common/netaddr.h"
 #include "common/netaddr_acl.h"
@@ -541,6 +544,21 @@ cfg_schema_validate_acl(const struct cfg_schema_entry *entry,
 }
 
 /**
+ * Schema entry validator for a bitmap256 object.
+ * See CFG_VALIDATE_BITMAP256() macros.
+ * @param entry pointer to schema entry
+ * @param section_name name of section type and name
+ * @param value value of schema entry
+ * @param out pointer to autobuffer for validator output
+ * @return 0 if validation found no problems, -1 otherwise
+ */
+int
+cfg_schema_validate_bitmap256(const struct cfg_schema_entry *entry,
+    const char *section_name, const char *value, struct autobuf *out) {
+  return cfg_validate_bitmap256(out, section_name, entry->key.entry, value);
+}
+
+/**
  * Help generator for string maximum length validator.
  * See CFG_VALIDATE_STRING_LEN() macro in cfg_schema.h
  * @param entry pointer to schema entry
@@ -607,7 +625,7 @@ cfg_schema_help_netaddr(
 }
 
 /**
- * Help generator for network addresses and prefixes validator.
+ * Help generator for access control list validator.
  * See CFG_VALIDATE_ACL*() macros in cfg_schema.h
  * @param entry pointer to schema entry
  * @param out pointer to autobuffer for validator output
@@ -617,6 +635,19 @@ cfg_schema_help_acl(
     const struct cfg_schema_entry *entry, struct autobuf *out) {
   cfg_help_acl(out, true, entry->validate_param[1].b,
       entry->validate_param[0].i8, 5);
+}
+
+/**
+ * Help generator for bit-array validator.
+ * See CFG_VALIDATE_BITMAP256() macros in cfg_schema.h
+ * @param entry pointer to schema entry
+ * @param out pointer to autobuffer for validator output
+ */
+void
+cfg_schema_help_bitmap256(
+    const struct cfg_schema_entry *entry __attribute((unused)),
+    struct autobuf *out) {
+  cfg_help_bitmap256(out, true);
 }
 
 /**
@@ -750,6 +781,47 @@ cfg_schema_tobin_acl(const struct cfg_schema_entry *s_entry __attribute__((unuse
   return netaddr_acl_from_strarray(ptr, value);
 }
 
+/**
+ * Schema entry binary converter for bitmap256 entries.
+ * See CFG_MAP_BITMAP256() macros.
+ * @param s_entry pointer to schema entry.
+ * @param value pointer to value to configuration entry
+ * @param reference pointer to binary target
+ * @return -1 if an error happened, 0 otherwise
+ */
+int
+cfg_schema_tobin_bitmap256(const struct cfg_schema_entry *s_entry __attribute__((unused)),
+     const struct const_strarray *value, void *reference) {
+  struct bitmap256 *bitmap;
+  const char *ptr;
+  int idx;
+
+  bitmap = (struct bitmap256 *)reference;
+  memset(bitmap, 0, sizeof(*bitmap));
+
+  strarray_for_each_element(value, ptr) {
+    errno = 0;
+    if (strcasecmp(ptr, BITMAP256_ALL) == 0) {
+      memset(bitmap, 255, sizeof(*bitmap));
+    }
+    else if (strcasecmp(ptr, BITMAP256_NONE) == 0) {
+      memset(bitmap, 255, sizeof(*bitmap));
+    }
+    else if (*ptr == '-') {
+      idx = strtol(&ptr[1], NULL, 10);
+      if (!errno) {
+        bitmap256_reset(bitmap, idx);
+      }
+    }
+    else {
+      idx = strtol(ptr, NULL, 10);
+      if (!errno) {
+        bitmap256_set(bitmap, idx);
+      }
+    }
+  }
+  return 0;
+}
 
  /**
   * Binary converter for booleans.

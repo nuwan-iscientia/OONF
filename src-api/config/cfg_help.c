@@ -39,8 +39,9 @@
  *
  */
 
-#include "common/autobuf.h"
 #include "common/common_types.h"
+#include "common/autobuf.h"
+#include "common/bitmap256.h"
 #include "common/isonumber.h"
 #include "common/netaddr.h"
 #include "common/netaddr_acl.h"
@@ -188,4 +189,16 @@ cfg_help_acl(struct autobuf *out, bool preamble,
       _PREFIX "    - '" ACL_DEFAULT_ACCEPT "' to accept input if it doesn't match either list\n"
       _PREFIX "    - '" ACL_DEFAULT_REJECT "' to not accept it if it doesn't match either list\n"
       _PREFIX "    (default mode is '" ACL_FIRST_ACCEPT "' and '" ACL_DEFAULT_REJECT "')\n");
+}
+
+void
+cfg_help_bitmap256(struct autobuf *out, bool preamble) {
+  if (preamble) {
+    abuf_puts(out, _PREFIX "Parameter is a list of bit-numbers to define a bit-array.");
+  }
+
+  abuf_puts(out, _PREFIX "    Each of the bit-numbers must be between 0 and 255\n"
+      _PREFIX "    In addition to this there are two keywords to configure the bit-array:\n"
+      _PREFIX "    - '" BITMAP256_ALL "' to set all bits in the bit-array\n"
+      _PREFIX "    - '" BITMAP256_NONE "' to reset all bits in the bit-array\n");
 }

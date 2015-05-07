@@ -42,15 +42,11 @@
 #ifndef RFC5444_PARSER_H_
 #define RFC5444_PARSER_H_
 
-#include "common/avl.h"
 #include "common/common_types.h"
+#include "common/avl.h"
+#include "common/bitmap256.h"
 #include "common/netaddr.h"
 #include "rfc5444_context.h"
-
-/* Bitarray with 256 elements for skipping addresses/tlvs */
-struct rfc5444_reader_bitarray256 {
-  uint32_t a[256/32];
-};
 
 /* type of context for a rfc5444_reader_tlvblock_context */
 enum rfc5444_reader_tlvblock_context_type {
@@ -106,7 +102,7 @@ struct rfc5444_reader_tlvblock_entry {
   bool _multivalue_tlv;
 
   /* internal bitarray to mark tlvs that shall be skipped by the next handler */
-  struct rfc5444_reader_bitarray256 int_drop_tlv;
+  struct bitmap256 int_drop_tlv;
 };
 
 /* common context for packet, message and address TLV block */
@@ -204,7 +200,7 @@ struct rfc5444_reader_addrblock_entry {
   size_t addr_tlv_size;
 
   /* bitarray to mark addresses that shall be skipped by the next handler */
-  struct rfc5444_reader_bitarray256 dropAddr;
+  struct bitmap256 dropAddr;
 };
 
 /**

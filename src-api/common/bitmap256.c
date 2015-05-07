@@ -39,22 +39,18 @@
  *
  */
 
-#ifndef CFG_HELP_H_
-#define CFG_HELP_H_
-
-#include "common/autobuf.h"
 #include "common/common_types.h"
 
-EXPORT void cfg_help_printable(struct autobuf *out, size_t len);
-EXPORT void cfg_help_strlen(struct autobuf *out, size_t len);
-EXPORT void cfg_help_choice(struct autobuf *out, bool preamble,
-    const char **choices, size_t choice_count);
-EXPORT void cfg_help_int(struct autobuf *out,
-    int64_t min, int64_t max, uint16_t bytelen, uint16_t fraction, bool base2);
-EXPORT void cfg_help_netaddr(struct autobuf *out, bool preamble,
-    bool prefix, const int8_t *af_types, size_t af_types_count);
-EXPORT void cfg_help_acl(struct autobuf *out, bool preamble,
-    bool prefix, const int8_t *af_types, size_t af_types_count);
-EXPORT void cfg_help_bitmap256(struct autobuf *out, bool preamble);
+#include "bitmap256.h"
 
-#endif /* CFG_HELP_H_ */
+bool
+bitmap256_is_subset(struct bitmap256 *set, struct bitmap256 *subset) {
+  size_t i;
+
+  for (i=0; i<ARRAYSIZE(set->b); i++) {
+    if (set->b[i] != (set->b[i] | subset->b[i])) {
+      return false;
+    }
+  }
+  return true;
+}

@@ -55,9 +55,6 @@ enum rfc5444_iana {
   RFC5444_MANET_UDP_PORT = 269,
 };
 
-EXPORT extern const struct netaddr RFC5444_MANET_MULTICAST_V4;
-EXPORT extern const struct netaddr RFC5444_MANET_MULTICAST_V6;
-
 /*
  * text variants of the constants above for defaults in
  * configuration sections
@@ -225,15 +222,21 @@ enum rfc7182_icv_ext {
 };
 
 enum rfc7182_icv_hash {
+  RFC7182_ICV_HASH_UNKNOWN  = -1,
+
   RFC7182_ICV_HASH_IDENTITY = 0,
   RFC7182_ICV_HASH_SHA_1    = 1,
   RFC7182_ICV_HASH_SHA_224  = 2,
   RFC7182_ICV_HASH_SHA_256  = 3,
   RFC7182_ICV_HASH_SHA_384  = 4,
   RFC7182_ICV_HASH_SHA_512  = 5,
+
+  RFC7182_ICV_HASH_COUNT,
 };
 
 enum rfc7182_icv_crypt {
+  RFC7182_ICV_CRYPT_UNKNOWN  = -1,
+
   RFC7182_ICV_CRYPT_IDENTITY = 0,
   RFC7182_ICV_CRYPT_RSA      = 1,
   RFC7182_ICV_CRYPT_DSA      = 2,
@@ -241,6 +244,17 @@ enum rfc7182_icv_crypt {
   RFC7182_ICV_CRYPT_3DES     = 4,
   RFC7182_ICV_CRYPT_AES      = 5,
   RFC7182_ICV_CRYPT_ECDSA    = 6,
+
+  RFC7182_ICV_CRYPT_COUNT,
 };
+
+EXPORT const char *rfc7182_get_hash_name(enum rfc7182_icv_hash);
+EXPORT const char *rfc7182_get_crypt_name(enum rfc7182_icv_crypt);
+
+EXPORT const char **rfc7182_get_hashes(void);
+EXPORT const char **rfc7182_get_crypto(void);
+
+EXPORT enum rfc7182_icv_hash rfc7182_get_hash(const char *name);
+EXPORT enum rfc7182_icv_crypt rfc7182_get_crypt(const char *name);
 
 #endif /* RFC5444_IANA_H_ */

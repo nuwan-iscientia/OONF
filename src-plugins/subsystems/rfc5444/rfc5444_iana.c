@@ -43,14 +43,95 @@
 
 #include "rfc5444_iana.h"
 
-const struct netaddr RFC5444_MANET_MULTICAST_V4 = {
-  ._addr = { 224,0,0,109, 0,0,0,0,0,0,0,0,0,0,0,0 },
-  ._type = AF_INET,
-  ._prefix_len = 32,
+static const char *_rfc7182_hashes[RFC7182_ICV_HASH_COUNT] = {
+  [RFC7182_ICV_HASH_IDENTITY] = "identity",
+  [RFC7182_ICV_HASH_SHA_1]    = "sha1",
+  [RFC7182_ICV_HASH_SHA_224]  = "sha224",
+  [RFC7182_ICV_HASH_SHA_256]  = "sha256",
+  [RFC7182_ICV_HASH_SHA_384]  = "sha384",
+  [RFC7182_ICV_HASH_SHA_512]  = "sha512",
 };
 
-const struct netaddr RFC5444_MANET_MULTICAST_V6 = {
-  ._addr = { 0xff,0x02,0,0,0,0,0,0,0,0,0,0,0,0,0,0x6D },
-  ._type = AF_INET6,
-  ._prefix_len = 128,
+static const char *_rfc7182_crypt[RFC7182_ICV_CRYPT_COUNT] = {
+  [RFC7182_ICV_CRYPT_IDENTITY] = "identity",
+  [RFC7182_ICV_CRYPT_RSA]      = "rsa",
+  [RFC7182_ICV_CRYPT_DSA]      = "dsa",
+  [RFC7182_ICV_CRYPT_HMAC]     = "hmac",
+  [RFC7182_ICV_CRYPT_3DES]     = "3des",
+  [RFC7182_ICV_CRYPT_AES]      = "aes",
+  [RFC7182_ICV_CRYPT_ECDSA]    = "ecdsa",
 };
+
+/**
+ * Give name of rfc 7182 hash
+ * @param hash hash-id
+ * @return name of hash
+ */
+const char *
+rfc7182_get_hash_name(enum rfc7182_icv_hash hash) {
+  if (hash < 0 || hash >= RFC7182_ICV_HASH_COUNT) {
+    return "unknown";
+  }
+  return _rfc7182_hashes[hash];
+}
+
+/**
+ * Give name of rfc 7182 crypto
+ * @param crypto crypto-id
+ * @return name of crypto
+ */
+const char *
+rfc7182_get_crypt_name(enum rfc7182_icv_crypt crypt) {
+  if (crypt < 0 || crypt >= RFC7182_ICV_CRYPT_COUNT) {
+    return "unknown";
+  }
+  return _rfc7182_crypt[crypt];
+}
+
+/**
+ * @return array of rfc7182 hash names
+ */
+const char **
+rfc7182_get_hashes(void) {
+  return _rfc7182_hashes;
+}
+
+/**
+ * @return array of rfc7182 crypto names
+ */
+const char **
+rfc7182_get_crypto(void) {
+  return _rfc7182_crypt;
+}
+
+/**
+ * @param name rfc7182 hash name
+ * @return rfc7182 hash-id
+ */
+enum rfc7182_icv_hash
+rfc7182_get_hash(const char *name) {
+  size_t i;
+
+  for (i=0; i<ARRAYSIZE(_rfc7182_hashes); i++) {
+    if (strcasecmp(_rfc7182_hashes[i], name) == 0) {
+      return i;
+    }
+  }
+  return RFC7182_ICV_HASH_UNKNOWN;
+}
+
+/**
+ * @param name rfc7182 crypto name
+ * @return rfc7182 crypto-id
+ */
+enum rfc7182_icv_crypt
+rfc7182_get_crypt(const char *name) {
+  size_t i;
+
+  for (i=0; i<ARRAYSIZE(_rfc7182_crypt); i++) {
+    if (strcasecmp(_rfc7182_crypt[i], name) == 0) {
+      return i;
+    }
+  }
+  return RFC7182_ICV_CRYPT_UNKNOWN;
+}

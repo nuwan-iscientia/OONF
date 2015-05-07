@@ -157,7 +157,7 @@ rfc5444_writer_create_message(struct rfc5444_writer *writer, uint8_t msgid,
   /* loop over post-processors */
   processor_preallocation = 0;
   avl_for_each_element(&writer->_processors, processor, _node) {
-    if (processor->is_matching_signature(msg->type)) {
+    if (processor->is_matching_signature(processor, msg->type)) {
       processor_preallocation += processor->allocate_space;
     }
   }
@@ -1405,8 +1405,9 @@ _finalize_message_fragment(struct rfc5444_writer *writer, struct rfc5444_writer_
 
       /* run processors */
       avl_for_each_element(&writer->_processors, processor, _node) {
-        if (processor->is_matching_signature(msg->type) && !processor->target_specific) {
-          if (processor->process(processor, NULL, msg, firstcopy, &firstcopy_size)) {
+        if (processor->is_matching_signature(processor, msg->type)
+            && !processor->target_specific) {
+          if (processor->process(processor, target, msg, firstcopy, &firstcopy_size)) {
             /* error, we have not modified the _bin_msgs_size, so we can just return */
             return;
           }
@@ -1430,7 +1431,8 @@ _finalize_message_fragment(struct rfc5444_writer *writer, struct rfc5444_writer_
 
     msg_size = firstcopy_size;
     avl_for_each_element(&writer->_processors, processor, _node) {
-      if (processor->is_matching_signature(msg->type) && processor->target_specific) {
+      if (processor->is_matching_signature(processor, msg->type)
+          && processor->target_specific) {
         if (processor->process(processor, target, msg, ptr, &msg_size)) {
           error = true;
         }

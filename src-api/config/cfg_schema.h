@@ -113,6 +113,7 @@ struct cfg_schema_entry;
 #define CFG_VALIDATE_ACL_V4(p_name, p_def, p_help, args...)                                  _CFG_VALIDATE(p_name, p_def, p_help, .cb_validate = cfg_schema_validate_acl, .cb_valhelp = cfg_schema_help_acl, .list = true, .validate_param = {{.i8 = {AF_INET, -1, -1, -1, -1}}, {.b = true}}, ##args )
 #define CFG_VALIDATE_ACL_V6(p_name, p_def, p_help, args...)                                  _CFG_VALIDATE(p_name, p_def, p_help, .cb_validate = cfg_schema_validate_acl, .cb_valhelp = cfg_schema_help_acl, .list = true, .validate_param = {{.i8 = {AF_INET6, -1, -1, -1, -1}}, {.b = true}}, ##args )
 #define CFG_VALIDATE_ACL_V46(p_name, p_def, p_help, args...)                                 _CFG_VALIDATE(p_name, p_def, p_help, .cb_validate = cfg_schema_validate_acl, .cb_valhelp = cfg_schema_help_acl, .list = true, .validate_param = {{.i8 = {AF_INET, AF_INET6, -1, -1, -1}}, {.b = true}}, ##args )
+#define CFG_VALIDATE_BITMAP256(p_name, p_def, p_help, args...)                               _CFG_VALIDATE(p_name, p_def, p_help, .cb_validate = cfg_schema_validate_bitmap256, .cb_valhelp = cfg_schema_help_bitmap256, .list = true, ##args )
 
 #define CFG_VALIDATE_BOOL(p_name, p_def, p_help, args...)                                    CFG_VALIDATE_CHOICE(p_name, p_def, p_help, CFGLIST_BOOL, ##args)
 
@@ -169,6 +170,7 @@ struct cfg_schema_entry;
 #define CFG_MAP_ACL_V4(p_reference, p_field, p_name, p_def, p_help, args...)                                  CFG_VALIDATE_ACL_V4(p_name, p_def, p_help, .cb_to_binary = cfg_schema_tobin_acl, .bin_offset = offsetof(struct p_reference, p_field), ##args)
 #define CFG_MAP_ACL_V6(p_reference, p_field, p_name, p_def, p_help, args...)                                  CFG_VALIDATE_ACL_V6(p_name, p_def, p_help, .cb_to_binary = cfg_schema_tobin_acl, .bin_offset = offsetof(struct p_reference, p_field), ##args)
 #define CFG_MAP_ACL_V46(p_reference, p_field, p_name, p_def, p_help, args...)                                 CFG_VALIDATE_ACL_V46(p_name, p_def, p_help, .cb_to_binary = cfg_schema_tobin_acl, .bin_offset = offsetof(struct p_reference, p_field), ##args)
+#define CFG_MAP_BITMAP256(p_reference, p_field, p_name, p_def, p_help, args...)                               CFG_VALIDATE_BITMAP256(p_name, p_def, p_help, .cb_to_binary = cfg_schema_tobin_bitmap256, .bin_offset = offsetof(struct p_reference, p_field), ##args)
 
 #define CFG_MAP_BOOL(p_reference, p_field, p_name, p_def, p_help, args...)                                    CFG_VALIDATE_BOOL(p_name, p_def, p_help, .cb_to_binary = cfg_schema_tobin_bool, .bin_offset = offsetof(struct p_reference, p_field), ##args)
 #define CFG_MAP_STRINGLIST(p_reference, p_field, p_name, p_def, p_help, args...)                              _CFG_VALIDATE(p_name, p_def, p_help, .cb_to_binary = cfg_schema_tobin_stringlist, .bin_offset = offsetof(struct p_reference, p_field), .list = true, ##args )
@@ -360,6 +362,8 @@ EXPORT int cfg_schema_validate_netaddr(const struct cfg_schema_entry *entry,
     const char *section_name, const char *value, struct autobuf *out);
 EXPORT int cfg_schema_validate_acl(const struct cfg_schema_entry *entry,
     const char *section_name, const char *value, struct autobuf *out);
+EXPORT int cfg_schema_validate_bitmap256(const struct cfg_schema_entry *entry,
+    const char *section_name, const char *value, struct autobuf *out);
 
 EXPORT void cfg_schema_help_printable(
     const struct cfg_schema_entry *entry, struct autobuf *out);
@@ -372,6 +376,8 @@ EXPORT void cfg_schema_help_int(
 EXPORT void cfg_schema_help_netaddr(
     const struct cfg_schema_entry *entry, struct autobuf *out);
 EXPORT void cfg_schema_help_acl(
+    const struct cfg_schema_entry *entry, struct autobuf *out);
+EXPORT void cfg_schema_help_bitmap256(
     const struct cfg_schema_entry *entry, struct autobuf *out);
 
 EXPORT int cfg_schema_tobin_strptr(const struct cfg_schema_entry *s_entry,
@@ -390,7 +396,8 @@ EXPORT int cfg_schema_tobin_stringlist(const struct cfg_schema_entry *s_entry,
     const struct const_strarray *value, void *reference);
 EXPORT int cfg_schema_tobin_acl(const struct cfg_schema_entry *s_entry,
     const struct const_strarray *value, void *reference);
-
+EXPORT int cfg_schema_tobin_bitmap256(const struct cfg_schema_entry *s_entry,
+     const struct const_strarray *value, void *reference);
 
 /**
  * Finds a section in a schema

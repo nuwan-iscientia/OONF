@@ -349,10 +349,12 @@ struct rfc5444_writer_postprocessor {
 
   /**
    * checks if post-processor applies to a message/packet
+   * @param processor this post-processor
    * @param msg_type rfc5444 message type, -1 for packet signature
    * @return true if signature applies to message type, false otherwise
    */
-  bool (*is_matching_signature)(int msg_type);
+  bool (*is_matching_signature)(
+      struct rfc5444_writer_postprocessor *processor, int msg_type);
 
   /**
    * Process binary data in post-processor

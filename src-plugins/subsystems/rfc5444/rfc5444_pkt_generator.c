@@ -66,7 +66,8 @@ _rfc5444_writer_begin_packet(struct rfc5444_writer *writer,
 
   /* loop over post-processors */
   avl_for_each_element(&writer->_processors, processor, _node) {
-    if (processor->is_matching_signature(RFC5444_WRITER_PKT_POSTPROCESSOR)) {
+    if (processor->is_matching_signature(
+        processor, RFC5444_WRITER_PKT_POSTPROCESSOR)) {
       target->_pkt.allocated += processor->allocate_space;
     }
   }
@@ -166,7 +167,8 @@ rfc5444_writer_flush(struct rfc5444_writer *writer,
   error = false;
   total = len + target->_pkt.added + target->_pkt.set + target->_bin_msgs_size;
   avl_for_each_element(&writer->_processors, processor, _node) {
-    if (processor->is_matching_signature(RFC5444_WRITER_PKT_POSTPROCESSOR)) {
+    if (processor->is_matching_signature(
+        processor, RFC5444_WRITER_PKT_POSTPROCESSOR)) {
       if (processor->process(processor, target, NULL, &target->_pkt.buffer[0], &total)) {
         /* error, stop postprocessing and drop message */
         error = true;

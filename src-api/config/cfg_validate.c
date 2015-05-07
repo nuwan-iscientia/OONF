@@ -39,8 +39,11 @@
  *
  */
 
-#include "common/autobuf.h"
+#include <errno.h>
+
 #include "common/common_types.h"
+#include "common/autobuf.h"
+#include "common/bitmap256.h"
 #include "common/isonumber.h"
 #include "common/netaddr.h"
 #include "common/netaddr_acl.h"
@@ -269,4 +272,35 @@ cfg_validate_acl(struct autobuf *out, const char *section_name,
 
   return cfg_validate_netaddr(out, section_name, entry_name, value,
       prefix, af_types, af_types_count);
+}
+
+/**
+ * Validates if a value is valid part of a bitmap256 definition
+ * @param out output buffer for error messages
+ * @param section_name name of configuration section
+ * @param entry_name name of configuration entry
+ * @param value value that needs to be validated
+ * @return 0 if value is valid, -1 otherwise
+ */
+int
+cfg_validate_bitmap256(struct autobuf *out,
+    const char *section_name, const char *entry_name, const char *value){
+  int num;
+  char *end;
+
+  if (strcasecmp(value, "all") == 0 || strcasecmp(value, "none") == 0) {
+    return 0;
+  }
+
+  errno = 0;
+  num = strtol(value, &end, 10);
+  if (errno != 0 || *end != 0 || num < -255 || num > 255) {
+    cfg_append_printable_line(out, "Value '%s' for entry '%s'"
+        " in section %s must be a '" BITMAP256_ALL "', '" BITMAP256_NONE
+        "' or a number between 0 and 255"
+        " (with optional '-' in front of the number)",
+        value, entry_name, section_name);
+    return -1;
+  }
+  return 0;
 }

@@ -830,22 +830,10 @@ oonf_rfc5444_target_get_local_socket(struct oonf_rfc5444_target *target) {
 
   family = netaddr_get_address_family(&target->dst);
   if (family == AF_INET) {
-    if (target->interface->multicast4 == target) {
-      /* ipv4 multicast */
-      return &target->interface->_socket.multicast_v4.local_socket;
-    }
-    else {
-      return &target->interface->_socket.socket_v4.local_socket;
-    }
+    return &target->interface->_socket.socket_v4.local_socket;
   }
   if (family == AF_INET6) {
-    if (target->interface->multicast6 == target) {
-      /* ipv4 multicast */
-      return &target->interface->_socket.multicast_v6.local_socket;
-    }
-    else {
-      return &target->interface->_socket.socket_v6.local_socket;
-    }
+    return &target->interface->_socket.socket_v6.local_socket;
   }
   return NULL;
 }

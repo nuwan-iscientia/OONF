@@ -42,9 +42,10 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "common/common_types.h"
 #include "common/avl.h"
 #include "common/avl_comp.h"
-#include "common/common_types.h"
+#include "common/bitmap256.h"
 #include "rfc5444_reader.h"
 #include "rfc5444_api_config.h"
 
@@ -81,11 +82,6 @@ static struct rfc5444_reader_addrblock_entry *_malloc_addrblock_entry(void);
 static struct rfc5444_reader_tlvblock_entry *_malloc_tlvblock_entry(void);
 
 static uint8_t rfc5444_get_pktversion(uint8_t v);
-
-#if DISALLOW_CONSUMER_CONTEXT_DROP == false
-static void _set_addr_bitarray(struct rfc5444_reader_bitarray256 *b, int idx);
-static bool _test_addrbitarray(struct rfc5444_reader_bitarray256 *b, int idx);
-#endif
 
 /**
  * Initalize the context of a parser with default values.
@@ -639,7 +635,7 @@ _schedule_tlvblock(struct rfc5444_reader_tlvblock_consumer *consumer, struct rfc
     bool index_match = false;
 
     if (tlv) {
-      index_match = RFC5444_CONSUMER_DROP_ONLY(!_test_addrbitarray(&tlv->int_drop_tlv, idx), true)
+      index_match = RFC5444_CONSUMER_DROP_ONLY(!bitmap256_get(&tlv->int_drop_tlv, idx), true)
           && idx >= tlv->index1 && idx <= tlv->index2;
     }
 
@@ -668,7 +664,7 @@ _schedule_tlvblock(struct rfc5444_reader_tlvblock_consumer *consumer, struct rfc
 #if DISALLOW_CONSUMER_CONTEXT_DROP == false
       if (result == RFC5444_DROP_TLV) {
         /* mark dropped tlv */
-        _set_addr_bitarray(&tlv->int_drop_tlv, idx);
+        bitmap256_set(&tlv->int_drop_tlv, idx);
         match = false;
         /* do not propagate result */
         result = RFC5444_OKAY;
@@ -760,7 +756,7 @@ _schedule_tlvblock(struct rfc5444_reader_tlvblock_consumer *consumer, struct rfc
   if (result == RFC5444_DROP_TLV) {
     list_for_each_element(&consumer->_consumer_list, cons_entry, _node) {
       if (cons_entry->tlv != NULL && cons_entry->drop) {
-        _set_addr_bitarray(&cons_entry->tlv->int_drop_tlv, idx);
+        bitmap256_set(&cons_entry->tlv->int_drop_tlv, idx);
         cons_entry->drop = false;
       }
     }
@@ -947,7 +943,7 @@ schedule_msgaddr_consumer(struct rfc5444_reader_tlvblock_consumer *consumer,
     for (i=0; i<addr->num_addr; i++) {
       /* test if we should skip this address */
 #if DISALLOW_CONSUMER_CONTEXT_DROP == false
-      if (_test_addrbitarray(&addr->dropAddr, i)) {
+      if (bitmap256_get(&addr->dropAddr, i)) {
         continue;
       }
 #endif
@@ -996,7 +992,7 @@ schedule_msgaddr_consumer(struct rfc5444_reader_tlvblock_consumer *consumer,
 #if DISALLOW_CONSUMER_CONTEXT_DROP == false
       /* handle result from tlvblock callbacks */
       if (result == RFC5444_DROP_ADDRESS) {
-        _set_addr_bitarray(&addr->dropAddr, i);
+        bitmap256_set(&addr->dropAddr, i);
         result = RFC5444_OKAY;
       }
       else if (result != RFC5444_OKAY) {
@@ -1355,26 +1351,3 @@ static uint8_t
 rfc5444_get_pktversion(uint8_t v) {
   return v >> 4;
 }
-
-#if DISALLOW_CONSUMER_CONTEXT_DROP == false
-/**
- * Set a bit in the bitarray256 struct
- * @param b pointer to bitarray
- * @param idx index of bit (0-255)
- */
-static void
-_set_addr_bitarray(struct rfc5444_reader_bitarray256 *b, int idx) {
-  b->a[idx >> 5] |= (1 << (idx & 31));
-}
-
-/**
- * Test a bit in the bitarray256 struct
- * @param b pointer to bitarray
- * @param idx index of bit (0-255)
- * @return true if bit was set, false otherwise
- */
-static bool
-_test_addrbitarray(struct rfc5444_reader_bitarray256 *b, int idx) {
-  return 0 != (b->a[idx >> 5] & (1 << (idx & 31)));
-}
-#endif

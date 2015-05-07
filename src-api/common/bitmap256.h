@@ -39,22 +39,33 @@
  *
  */
 
-#ifndef CFG_HELP_H_
-#define CFG_HELP_H_
+#ifndef DLEP_SIGNAL_H_
+#define DLEP_SIGNAL_H_
 
-#include "common/autobuf.h"
 #include "common/common_types.h"
 
-EXPORT void cfg_help_printable(struct autobuf *out, size_t len);
-EXPORT void cfg_help_strlen(struct autobuf *out, size_t len);
-EXPORT void cfg_help_choice(struct autobuf *out, bool preamble,
-    const char **choices, size_t choice_count);
-EXPORT void cfg_help_int(struct autobuf *out,
-    int64_t min, int64_t max, uint16_t bytelen, uint16_t fraction, bool base2);
-EXPORT void cfg_help_netaddr(struct autobuf *out, bool preamble,
-    bool prefix, const int8_t *af_types, size_t af_types_count);
-EXPORT void cfg_help_acl(struct autobuf *out, bool preamble,
-    bool prefix, const int8_t *af_types, size_t af_types_count);
-EXPORT void cfg_help_bitmap256(struct autobuf *out, bool preamble);
+#define BITMAP256_ALL  "all"
+#define BITMAP256_NONE "none"
 
-#endif /* CFG_HELP_H_ */
+struct bitmap256 {
+  uint64_t b[256/64];
+};
+
+bool bitmap256_is_subset(struct bitmap256 *set, struct bitmap256 *subset);
+
+static INLINE bool
+bitmap256_get(struct bitmap256 *map, uint8_t bit) {
+  return ((map->b[bit >> 6]) & (1ull << (bit & 63ull))) != 0;
+}
+
+static INLINE void
+bitmap256_set(struct bitmap256 *map, uint8_t bit) {
+  map->b[bit >> 6] |= 1ull << (bit & 63ull);
+}
+
+static INLINE void
+bitmap256_reset(struct bitmap256 *map, uint8_t bit) {
+  map->b[bit >> 6] &= ~(1ull << (bit & 63ull));
+}
+
+#endif /* DLEP_SIGNAL_H_ */
