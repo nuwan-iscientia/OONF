@@ -805,7 +805,7 @@ cfg_schema_tobin_bitmap256(const struct cfg_schema_entry *s_entry __attribute__(
       memset(bitmap, 255, sizeof(*bitmap));
     }
     else if (strcasecmp(ptr, BITMAP256_NONE) == 0) {
-      memset(bitmap, 255, sizeof(*bitmap));
+      memset(bitmap, 0, sizeof(*bitmap));
     }
     else if (*ptr == '-') {
       idx = strtol(&ptr[1], NULL, 10);
