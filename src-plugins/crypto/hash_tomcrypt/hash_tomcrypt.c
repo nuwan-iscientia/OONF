@@ -198,7 +198,9 @@ _cb_sha_hash(struct rfc5444_signature *sig,
   int result;
   hash = container_of(sig->hash, struct tomcrypt_hash, h);
 
-  result = hash_memory(hash->idx, src, src_len, dst, dst_len);
+  result = hash_memory(hash->idx,
+      src, (unsigned long)src_len,
+      dst, (unsigned long *)dst_len);
   if (result) {
     OONF_WARN(LOG_HASH_TOMCRYPT, "tomcrypt error: %s", error_to_string(result));
     return -1;
@@ -240,8 +242,10 @@ _cb_hmac_crypt(struct rfc5444_signature *sig,
   for (i=0; i<ARRAYSIZE(_hashes); i++) {
     if (&_hashes[i].h == sig->hash) {
       cryptokey = sig->getCryptoKey(sig, &cryptokey_length);
-      result = hmac_memory(_hashes[i].idx, cryptokey, cryptokey_length,
-          src, src_len, dst, dst_len);
+      result = hmac_memory(_hashes[i].idx,
+          cryptokey, (unsigned long)cryptokey_length,
+          src, (unsigned long)src_len,
+          dst, (unsigned long *)dst_len);
       if (result) {
         OONF_WARN(LOG_HASH_TOMCRYPT, "tomcrypt error: %s", error_to_string(result));
         return -1;
