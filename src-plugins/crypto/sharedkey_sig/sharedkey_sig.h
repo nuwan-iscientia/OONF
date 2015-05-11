@@ -42,8 +42,6 @@
 #ifndef SHAREDKEY_SIG_H
 #define SHAREDKEY_SIG_H
 
-#include "common/common_types.h"
-
 #define OONF_SHAREDKEY_SIG_SUBSYSTEM "sharedkey_sig"
 
 #endif /* SHAREDKEY_SIG_H */

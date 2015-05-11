@@ -88,7 +88,9 @@ _rfc5444_writer_begin_packet(struct rfc5444_writer *writer,
 #endif
   /* add packet tlvs */
   list_for_each_element(&writer->_pkthandlers, handler, _pkthandle_node) {
-    handler->addPacketTLVs(writer, target);
+    if (handler->addPacketTLVs) {
+      handler->addPacketTLVs(writer, target);
+    }
   }
 
   target->_is_flushed = false;
@@ -133,7 +135,9 @@ rfc5444_writer_flush(struct rfc5444_writer *writer,
 
   /* finalize packet tlvs */
   list_for_each_element_reverse(&writer->_pkthandlers, handler, _pkthandle_node) {
-    handler->finishPacketTLVs(writer, target);
+    if (handler->finishPacketTLVs) {
+      handler->finishPacketTLVs(writer, target);
+    }
   }
 
 #if WRITER_STATE_MACHINE == true

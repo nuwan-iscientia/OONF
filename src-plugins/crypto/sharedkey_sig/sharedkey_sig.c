@@ -45,6 +45,7 @@
 #include "common/avl.h"
 #include "common/avl_comp.h"
 #include "common/bitmap256.h"
+#include "config/cfg_schema.h"
 #include "core/oonf_subsystem.h"
 #include "subsystems/oonf_class.h"
 #include "subsystems/rfc5444/rfc5444_iana.h"

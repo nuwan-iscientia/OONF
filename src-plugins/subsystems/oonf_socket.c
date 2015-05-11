@@ -267,6 +267,9 @@ _handle_scheduling(void)
       if (fd_read || fd_write) {
         uint64_t start_time, end_time;
 
+        OONF_DEBUG(LOG_SOCKET, "Socket %d triggered (read=%s, write=%s)",
+            entry->fd, fd_read ? "true" : "false", fd_write ? "true" : "false");
+
         os_clock_gettime64(&start_time);
         entry->process(entry->fd, entry->data, fd_read, fd_write);
         os_clock_gettime64(&end_time);

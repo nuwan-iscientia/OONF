@@ -248,6 +248,15 @@ enum rfc7182_icv_crypt {
   RFC7182_ICV_CRYPT_COUNT,
 };
 
+/* this is a list of extension types for RFC7182 timestamp TLVs */
+enum rfc7182_timestamp_ext {
+  RFC7182_TIMESTAMP_EXT_MONOTONIC = 0,
+  RFC7182_TIMESTAMP_EXT_UNIX      = 1,
+  RFC7182_TIMESTAMP_EXT_NTP       = 2,
+  RFC7182_TIMESTAMP_EXT_RANDOM    = 3,
+};
+
+
 EXPORT const char *rfc7182_get_hash_name(enum rfc7182_icv_hash);
 EXPORT const char *rfc7182_get_crypt_name(enum rfc7182_icv_crypt);
 
