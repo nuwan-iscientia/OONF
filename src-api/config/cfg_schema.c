@@ -64,9 +64,6 @@ static bool _validate_cfg_entry(
     struct cfg_db *db, struct cfg_section_type *section,
     struct cfg_named_section *named, struct cfg_entry *entry,
     const char *section_name, bool cleanup, struct autobuf *out);
-static bool _check_missing_entries(struct cfg_schema_section *schema_section,
-    struct cfg_db *db, struct cfg_named_section *named,
-    const char *section_name, struct autobuf *out);
 static bool _section_needs_default_named_one(struct cfg_section_type *type);
 static void _handle_named_section_change(struct cfg_schema_section *s_section,
     struct cfg_db *pre_change, struct cfg_db *post_change,
@@ -200,6 +197,8 @@ cfg_schema_validate(struct cfg_db *db,
 
   struct cfg_schema_section *schema_section;
   struct cfg_schema_section *schema_section_first, *schema_section_last;
+  struct cfg_schema_entry *schema_entry;
+  size_t i;
 
   bool error = false;
   bool warning = false;
@@ -281,10 +280,6 @@ cfg_schema_validate(struct cfg_db *db,
           error |= warning;
         }
 
-        /* check for missing values */
-        warning = _check_missing_entries(schema_section, db, named, section_name, out);
-        error |= warning;
-
         /* check custom section validation if everything was fine */
         if (!error && schema_section->cb_validate != NULL) {
           if (schema_section->cb_validate(section_name, named, out)) {
@@ -299,25 +294,58 @@ cfg_schema_validate(struct cfg_db *db,
     }
   }
 
-  /* search for missing mandatory sections */
   avl_for_each_element(&db->schema->sections, schema_section, _section_node) {
-    if (schema_section->mode != CFG_SSMODE_NAMED_MANDATORY) {
-      continue;
+    section = cfg_db_find_sectiontype(db, schema_section->type);
+    if (schema_section->mode == CFG_SSMODE_NAMED_MANDATORY) {
+      /* search for missing mandatory sections */
+      if (section == NULL || avl_is_empty(&section->names)) {
+        warning = true;
+      }
+      else {
+        named = avl_first_element(&section->names, named, node);
+        warning = !cfg_db_is_named_section(named) && section->names.count < 2;
+      }
+      if (warning) {
+        cfg_append_printable_line(out, "Missing mandatory section of type '%s'",
+            schema_section->type);
+      }
+      error |= warning;
     }
 
-    section = cfg_db_find_sectiontype(db, schema_section->type);
-    if (section == NULL || avl_is_empty(&section->names)) {
-      warning = true;
+    /* check for missing values */
+    for (i=0; i<schema_section->entry_count; i++) {
+      schema_entry = &schema_section->entries[i];
+      if (strarray_is_empty_c(&schema_entry->def)) {
+        warning = true;
+        if (section) {
+          named = cfg_db_get_unnamed_section(section);
+          if (named) {
+            warning = cfg_db_get_entry(named, schema_entry->key.entry) == NULL;
+          }
+          else {
+            warning = true;
+          }
+
+          if (named->name && warning) {
+            /* no mandatory value in unnamed section, check named sections */
+            warning = false;
+
+            avl_for_each_element(&section->names, named, node) {
+              if (named->name != NULL
+                  && cfg_db_get_entry(named, schema_entry->key.entry) == NULL) {
+                warning = true;
+                break;
+              }
+            }
+          }
+        }
+        if (warning) {
+          cfg_append_printable_line(out, "Missing mandatory entry of type '%s' and key '%s'",
+              schema_section->type, schema_entry->key.entry);
+        }
+        error |= warning;
+      }
     }
-    else {
-      named = avl_first_element(&section->names, named, node);
-      warning = !cfg_db_is_named_section(named) && section->names.count < 2;
-    }
-    if (warning) {
-      cfg_append_printable_line(out, "Missing mandatory section of type '%s'",
-          schema_section->type);
-    }
-    error |= warning;
   }
   return error ? -1 : 0;
 }
@@ -1061,56 +1089,6 @@ _validate_cfg_entry(struct cfg_db *db, struct cfg_section_type *section,
     }
   }
   return warning;
-}
-
-/**
- * Checks a database section for missing mandatory _entries
- * @param schema_section pointer to schema of section
- * @param db pointer to database
- * @param section pointer to database section type
- * @param named pointer to named section
- * @param section_name name of section including type (for debug output)
- * @param out error output buffer
- * @return true if an error happened, false otherwise
- */
-static bool
-_check_missing_entries(struct cfg_schema_section *schema_section,
-    struct cfg_db *db, struct cfg_named_section *named,
-    const char *section_name, struct autobuf *out) {
-  struct cfg_schema_entry *first_schema_entry, *schema_entry;
-  struct cfg_schema_entry_key key;
-  bool warning, error;
-
-  warning = false;
-  error = false;
-
-  key.type = schema_section->type;
-  key.entry = NULL;
-
-  /* check for missing values */
-  first_schema_entry = avl_find_ge_element(&db->schema->entries, &key, schema_entry, _node);
-  if (!first_schema_entry) {
-    return 0;
-  }
-
-  avl_for_element_to_last(&db->schema->entries, first_schema_entry, schema_entry, _node) {
-    if (cfg_cmp_keys(schema_entry->key.type, schema_section->type) != 0)
-      break;
-
-    if (!strarray_is_empty_c(&schema_entry->def)) {
-      continue;
-    }
-
-    /* mandatory parameter */
-    warning = !cfg_db_find_entry(db, schema_entry->key.type,
-        named->name, schema_entry->key.entry);
-    error |= warning;
-    if (warning) {
-      cfg_append_printable_line(out, "Missing mandatory value for entry '%s' in section %s",
-          schema_entry->key.entry, section_name);
-    }
-  }
-  return error;
 }
 
 /**
