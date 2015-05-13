@@ -2,3 +2,4 @@
 add_subdirectory(hash_tomcrypt)
 add_subdirectory(rfc5444_signature)
 add_subdirectory(sharedkey_sig)
+add_subdirectory(simple_security)
