@@ -1,7 +1,7 @@
 include $(TOPDIR)/rules.mk
 
-PKG_NAME:=oonf-git
-PKG_VERSION:=2015-01-05
+PKG_NAME:=oonf-dlep-radio-git
+PKG_VERSION:=2015-16-05
 #PKG_REV:=ec2bca8f28b4d14df049fc81e177160ca0e3c3a3
 #PKG_RELEASE:=$(PKG_REV)
 
@@ -36,7 +36,7 @@ define Package/oonf-git/template
 	URL:=http://www.olsr.org/
 endef
 
-define Package/dlep-radio-git
+define Package/oonf-dlep-radio-git
 	$(call Package/oonf-git/template) 
 	TITLE:= Build DLEP Radio Agent
 	DEPENDS:=+librt +libnl-tiny +libuci
@@ -51,15 +51,15 @@ endef
 
 TARGET_CFLAGS += -I$(STAGING_DIR)/usr/include -I${STAGING_DIR}/usr/include/libnl-tiny
 
-define Package/dlep-radio-git/install
+define Package/oonf-dlep-radio-git/install
 	$(INSTALL_BIN)  -D $(PKG_BUILD_DIR)/dlep_radio_static $(1)/usr/sbin/dlep_radio
 	$(INSTALL_BIN)  -D ./files/dlep_radio.init            $(1)/etc/init.d/dlep_radio
 	$(INSTALL_BIN)  -D ./files/dlep_radio.hotplug         $(1)/etc/hotplug.d/iface/50-dlep_radio
 	$(INSTALL_DATA) -D ./files/dlep_radio.uci             $(1)/etc/config/dlep_radio
 endef
 
-define Package/dlep-radio-git/conffiles
+define Package/oonf-dlep-radio-git/conffiles
 /etc/config/dlep_radio
 endef
 
-$(eval $(call BuildPackage,dlep-radio-git))
+$(eval $(call BuildPackage,oonf-dlep-radio-git))
