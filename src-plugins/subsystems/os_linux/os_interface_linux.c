@@ -168,6 +168,7 @@ _init(void) {
   }
 
   list_init_head(&_ifchange_listener);
+  list_init_head(&_rtnetlink_feedback);
   return 0;
 }
 
