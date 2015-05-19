@@ -58,7 +58,8 @@
 /* definitions */
 #define LOG_SIMPLE_SECURITY _simple_security_subsystem.logging
 
-struct _sise_config {
+/* Plugin binary configuration */
+struct sise_config {
   char key[256];
   size_t key_length;
 
@@ -66,23 +67,32 @@ struct _sise_config {
   uint64_t trigger_delay;
 };
 
-struct timestamp_key {
+struct neighbor_key {
   struct netaddr src;
   unsigned if_index;
 };
 
-struct _timestamp_node {
-  struct timestamp_key key;
+struct neighbor_node {
+  /* key for AVL tree */
+  struct neighbor_key key;
 
-  uint32_t last_timestamp;
+  /* last counter we have received from this neighbor */
+  uint32_t last_counter;
 
   /* commands for packet generation */
   uint32_t send_query;
   uint32_t send_response;
 
+  /* reference for RFC5444 unicast communication */
   struct oonf_rfc5444_target *_target;
+
+  /* timer to remove this node from memory after some time */
   struct oonf_timer_instance _vtime;
+
+  /* timer to delay generation of a challenge/response */
   struct oonf_timer_instance _trigger;
+
+  /* node for global AVL tree */
   struct avl_node _node;
 };
 static int _init(void);
@@ -92,7 +102,7 @@ static bool _cb_is_matching_signature(struct rfc5444_signature *sig, int msg_typ
 static const void *_cb_getCryptoKey(struct rfc5444_signature *sig, size_t *length);
 static const void *_cb_getKeyId(struct rfc5444_signature *sig, size_t *length);
 
-static struct _timestamp_node *_add_timestamp(struct timestamp_key *);
+static struct neighbor_node *_add_timestamp(struct neighbor_key *);
 static void _cb_timestamp_timeout(void *);
 static void _cb_query_trigger(void *);
 
@@ -107,11 +117,11 @@ static void _cb_config_changed(void);
 
 /* configuration */
 static struct cfg_schema_entry _sise_entries[] = {
-  CFG_MAP_STRING_ARRAY(_sise_config, key, "key", NULL,
+  CFG_MAP_STRING_ARRAY(sise_config, key, "key", NULL,
       "Key for HMAC signature", 256),
-  CFG_MAP_CLOCK_MIN(_sise_config, vtime, "vtime", "60000",
+  CFG_MAP_CLOCK_MIN(sise_config, vtime, "vtime", "60000",
       "Time until replay protection counters are dropped", 60000),
-  CFG_MAP_CLOCK_MIN(_sise_config, trigger_delay, "trigger_delay", "10000",
+  CFG_MAP_CLOCK_MIN(sise_config, trigger_delay, "trigger_delay", "10000",
       "Time until a query/response will be generated ", 1000),
 };
 
@@ -144,7 +154,7 @@ static struct oonf_subsystem _simple_security_subsystem = {
 };
 DECLARE_OONF_PLUGIN(_simple_security_subsystem);
 
-static struct _sise_config _config;
+static struct sise_config _config;
 
 /* packet signature */
 static struct rfc5444_signature _signature = {
@@ -199,7 +209,7 @@ static struct avl_tree _timestamp_tree;
 
 static struct oonf_class _timestamp_class = {
   .name = "signature timestamps",
-  .size = sizeof(struct _timestamp_node),
+  .size = sizeof(struct neighbor_node),
 };
 
 static struct oonf_timer_class _timeout_class = {
@@ -238,7 +248,7 @@ _init(void) {
 
 static void
 _cleanup(void) {
-  struct _timestamp_node *node, *node_it;
+  struct neighbor_node *node, *node_it;
 
   avl_for_each_element_safe(&_timestamp_tree, node, _node, node_it) {
 
@@ -274,9 +284,9 @@ _cb_getKeyId(
   return dummy;
 }
 
-static struct _timestamp_node *
-_add_timestamp(struct timestamp_key *key) {
-  struct _timestamp_node *node;
+static struct neighbor_node *
+_add_timestamp(struct neighbor_key *key) {
+  struct neighbor_node *node;
 
   node = oonf_class_malloc(&_timestamp_class);
   if (!node) {
@@ -301,7 +311,7 @@ _add_timestamp(struct timestamp_key *key) {
 
 static void
 _cb_timestamp_timeout(void *ptr) {
-  struct _timestamp_node *node = ptr;
+  struct neighbor_node *node = ptr;
 
   oonf_timer_stop(&node->_vtime);
   oonf_rfc5444_remove_target(node->_target);
@@ -311,7 +321,7 @@ _cb_timestamp_timeout(void *ptr) {
 
 static void
 _cb_query_trigger(void *ptr) {
-  struct _timestamp_node *node = ptr;
+  struct neighbor_node *node = ptr;
 
   rfc5444_writer_flush(&_protocol->writer, &node->_target->rfc5444_target, true);
 }
@@ -320,7 +330,7 @@ static enum rfc5444_result
 _cb_timestamp_tlv(struct rfc5444_reader_tlvblock_context *context __attribute__((unused))) {
   struct oonf_rfc5444_target *target;
   struct os_interface *core_if;
-  struct _timestamp_node *node;
+  struct neighbor_node *node;
   uint32_t timestamp, query, response;
   enum rfc5444_result result;
 
@@ -328,7 +338,7 @@ _cb_timestamp_tlv(struct rfc5444_reader_tlvblock_context *context __attribute__(
   struct netaddr_str nbuf;
 #endif
 
-  struct timestamp_key key;
+  struct neighbor_key key;
 
   core_if = oonf_rfc5444_get_core_interface(_protocol->input_interface);
 
@@ -382,18 +392,18 @@ _cb_timestamp_tlv(struct rfc5444_reader_tlvblock_context *context __attribute__(
 
   OONF_DEBUG(LOG_SIMPLE_SECURITY, "Received new packet from %s/%s(%u): timestamp=%u (was %u), query=%u response=%u",
       netaddr_to_string(&nbuf, &key.src), core_if->data.name, key.if_index,
-      timestamp, node->last_timestamp, query, response);
+      timestamp, node->last_counter, query, response);
 
   /* remember querry */
   node->send_response = query;
 
   /* handle incoming timestamp and query response */
   if ((node->send_query > 0 && response == node->send_query)
-      || node->last_timestamp < timestamp) {
+      || node->last_counter < timestamp) {
     OONF_INFO(LOG_SIMPLE_SECURITY, "Received valid timestamp");
 
     /* we got a valid query/response or a valid timestamp */
-    node->last_timestamp = timestamp;
+    node->last_counter = timestamp;
     node->send_query = 0;
 
     result = RFC5444_OKAY;
@@ -441,13 +451,13 @@ static void
 _cb_addPacketTLVs(struct rfc5444_writer *writer, struct rfc5444_writer_target *rfc5444_target) {
   struct oonf_rfc5444_target *target;
   struct os_interface *core_if;
-  struct _timestamp_node *node;
+  struct neighbor_node *node;
   uint32_t query, response;
 #ifdef OONF_LOG_DEBUG_INFO
   struct netaddr_str nbuf;
 #endif
 
-  struct timestamp_key key;
+  struct neighbor_key key;
 
   /* get OONF rfc5444 target */
   target = oonf_rfc5444_get_target_from_rfc5444_target(rfc5444_target);
@@ -506,7 +516,7 @@ _cb_finishPacketTLVs(struct rfc5444_writer *writer, struct rfc5444_writer_target
 
 static int
 _avl_comp_timestamp_keys(const void *p1, const void *p2){
-  return memcmp(p1, p2, sizeof(struct timestamp_key));
+  return memcmp(p1, p2, sizeof(struct neighbor_key));
 }
 
 static void
