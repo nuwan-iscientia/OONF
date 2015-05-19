@@ -102,8 +102,8 @@ static bool _cb_is_matching_signature(struct rfc5444_signature *sig, int msg_typ
 static const void *_cb_getCryptoKey(struct rfc5444_signature *sig, size_t *length);
 static const void *_cb_getKeyId(struct rfc5444_signature *sig, size_t *length);
 
-static struct neighbor_node *_add_timestamp(struct neighbor_key *);
-static void _cb_timestamp_timeout(void *);
+static struct neighbor_node *_add_neighbor_node(struct neighbor_key *);
+static void _cb_neighbor_node_timeout(void *);
 static void _cb_query_trigger(void *);
 
 static enum rfc5444_result _cb_timestamp_tlv(struct rfc5444_reader_tlvblock_context *context);
@@ -214,7 +214,7 @@ static struct oonf_class _timestamp_class = {
 
 static struct oonf_timer_class _timeout_class = {
   .name = "signature timestamp timeout",
-  .callback = _cb_timestamp_timeout,
+  .callback = _cb_neighbor_node_timeout,
 };
 
 static struct oonf_timer_class _query_trigger_class = {
@@ -225,6 +225,10 @@ static struct oonf_timer_class _query_trigger_class = {
 /* global "timestamp" for replay protection */
 uint32_t _local_timestamp = 1;
 
+/**
+ * Constructor of subsystem
+ * @return -1 if an error happened, 0 otherwise
+ */
 static int
 _init(void) {
   _protocol = oonf_rfc5444_add_protocol(RFC5444_PROTOCOL, true);
@@ -236,7 +240,6 @@ _init(void) {
       &_pkt_consumer, _pkt_tlvs, ARRAYSIZE(_pkt_tlvs));
   rfc5444_writer_register_pkthandler(&_protocol->writer, &_pkt_handler);
 
-
   rfc5444_sig_add(&_signature);
 
   oonf_class_add(&_timestamp_class);
@@ -246,6 +249,9 @@ _init(void) {
   return 0;
 }
 
+/**
+ * Destructor of subsystem
+ */
 static void
 _cleanup(void) {
   struct neighbor_node *node, *node_it;
@@ -263,12 +269,24 @@ _cleanup(void) {
   oonf_rfc5444_remove_protocol(_protocol);
 }
 
+/**
+ * Callback to check if signature type is handled by this plugin
+ * @param sig pointer to signature
+ * @param msg_type message type, -1 if packet signature
+ * @return true if packet signature, false otherwise
+ */
 static bool
 _cb_is_matching_signature(
     struct rfc5444_signature *sig __attribute__((unused)), int msg_type) {
   return msg_type == RFC5444_WRITER_PKT_POSTPROCESSOR;
 }
 
+/**
+ * Returns length and value of cryptographic key
+ * @param sig pointer to signature
+ * @param length pointer to length of crypto key
+ * @return pointer to crypto key
+ */
 static const void *
 _cb_getCryptoKey(
     struct rfc5444_signature *sig __attribute__((unused)), size_t *length) {
@@ -276,6 +294,12 @@ _cb_getCryptoKey(
   return _config.key;
 }
 
+/**
+ * Returns key id and length of signature
+ * @param sig pointer to signature
+ * @param length pointer to length of key id (0)
+ * @returns pointer to key id
+ */
 static const void *
 _cb_getKeyId(
     struct rfc5444_signature *sig __attribute__((unused)), size_t *length) {
@@ -284,8 +308,12 @@ _cb_getKeyId(
   return dummy;
 }
 
+/**
+ * @param key neighbor key
+ * @return neighbor node for key, might be generated as a new node
+ */
 static struct neighbor_node *
-_add_timestamp(struct neighbor_key *key) {
+_add_neighbor_node(struct neighbor_key *key) {
   struct neighbor_node *node;
 
   node = oonf_class_malloc(&_timestamp_class);
@@ -309,8 +337,12 @@ _add_timestamp(struct neighbor_key *key) {
   return node;
 }
 
+/**
+ * Callback to remove a neighbor node from memory
+ * @param ptr neighbor node
+ */
 static void
-_cb_timestamp_timeout(void *ptr) {
+_cb_neighbor_node_timeout(void *ptr) {
   struct neighbor_node *node = ptr;
 
   oonf_timer_stop(&node->_vtime);
@@ -319,6 +351,10 @@ _cb_timestamp_timeout(void *ptr) {
   oonf_class_free(&_timestamp_class, node);
 }
 
+/**
+ * Callback to generate new query/response
+ * @param ptr neighbor node
+ */
 static void
 _cb_query_trigger(void *ptr) {
   struct neighbor_node *node = ptr;
@@ -326,6 +362,12 @@ _cb_query_trigger(void *ptr) {
   rfc5444_writer_flush(&_protocol->writer, &node->_target->rfc5444_target, true);
 }
 
+/**
+ * Callback to parse incoming timestamp TLV. This code will assume that the packet
+ * signature was already checked
+ * @param context rfc5444 context
+ * @return RFC5444_OKAY or RFC5444_DROP
+ */
 static enum rfc5444_result
 _cb_timestamp_tlv(struct rfc5444_reader_tlvblock_context *context __attribute__((unused))) {
   struct oonf_rfc5444_target *target;
@@ -377,7 +419,7 @@ _cb_timestamp_tlv(struct rfc5444_reader_tlvblock_context *context __attribute__(
       return RFC5444_DROP_PACKET;
     }
 
-    node = _add_timestamp(&key);
+    node = _add_neighbor_node(&key);
     if (!node) {
       oonf_rfc5444_remove_target(target);
       return RFC5444_DROP_PACKET;
@@ -441,12 +483,22 @@ _cb_timestamp_tlv(struct rfc5444_reader_tlvblock_context *context __attribute__(
   return result;
 }
 
+/**
+ * Callback for incoming packet with missing/wrong timestamp TLV
+ * @param context RFC5444 context
+ * @return always RFC5444_DROP_PACKET
+ */
 static enum rfc5444_result
 _cb_timestamp_failed(struct rfc5444_reader_tlvblock_context *context __attribute((unused))) {
   /* packet timestamp missing or wrong length */
   return RFC5444_DROP_PACKET;
 }
 
+/**
+ * Callback to add timestamp, query and/or response TLVs to RFC5444 packet
+ * @param writer rfc5444 writer
+ * @param rfc5444_target rfc5444 target
+ */
 static void
 _cb_addPacketTLVs(struct rfc5444_writer *writer, struct rfc5444_writer_target *rfc5444_target) {
   struct oonf_rfc5444_target *target;
@@ -501,6 +553,11 @@ _cb_addPacketTLVs(struct rfc5444_writer *writer, struct rfc5444_writer_target *r
   rfc5444_writer_allocate_packettlv(writer, rfc5444_target, true, 4);
 }
 
+/**
+ * Callback to add the preallocated timestamp tlv to rfc5444 packet
+ * @param writer rfc5444 writer
+ * @param rfc5444_target rfc5444 target
+ */
 static void
 _cb_finishPacketTLVs(struct rfc5444_writer *writer, struct rfc5444_writer_target *rfc5444_target) {
   uint32_t timestamp;
@@ -514,11 +571,20 @@ _cb_finishPacketTLVs(struct rfc5444_writer *writer, struct rfc5444_writer_target
 }
 
 
+/**
+ * AVL comparator for neighbor nodes
+ * @param p1
+ * @param p2
+ * @return
+ */
 static int
 _avl_comp_timestamp_keys(const void *p1, const void *p2){
   return memcmp(p1, p2, sizeof(struct neighbor_key));
 }
 
+/**
+ * Callback for configuration changes
+ */
 static void
 _cb_config_changed(void) {
   if (cfg_schema_tobin(&_config, _sise_section.post, _sise_entries, ARRAYSIZE(_sise_entries))) {
