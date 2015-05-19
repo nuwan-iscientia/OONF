@@ -62,7 +62,8 @@ struct _sise_config {
   char key[256];
   size_t key_length;
 
-  uint64_t timeout;
+  uint64_t vtime;
+  uint64_t trigger_delay;
 };
 
 struct timestamp_key {
@@ -80,7 +81,7 @@ struct _timestamp_node {
   uint32_t send_response;
 
   struct oonf_rfc5444_target *_target;
-  struct oonf_timer_instance _timeout;
+  struct oonf_timer_instance _vtime;
   struct oonf_timer_instance _trigger;
   struct avl_node _node;
 };
@@ -108,9 +109,10 @@ static void _cb_config_changed(void);
 static struct cfg_schema_entry _sise_entries[] = {
   CFG_MAP_STRING_ARRAY(_sise_config, key, "key", NULL,
       "Key for HMAC signature", 256),
-
-  CFG_MAP_CLOCK_MIN(_sise_config, timeout, "timeout", "60000",
+  CFG_MAP_CLOCK_MIN(_sise_config, vtime, "vtime", "60000",
       "Time until replay protection counters are dropped", 60000),
+  CFG_MAP_CLOCK_MIN(_sise_config, trigger_delay, "trigger_delay", "10000",
+      "Time until a query/response will be generated ", 1000),
 };
 
 static struct cfg_schema_section _sise_section = {
@@ -287,9 +289,9 @@ _add_timestamp(struct timestamp_key *key) {
   avl_insert(&_timestamp_tree, &node->_node);
 
   /* initialize timer */
-  node->_timeout.class = &_timeout_class;
-  node->_timeout.cb_context = node;
-  oonf_timer_set(&node->_timeout, _config.timeout);
+  node->_vtime.class = &_timeout_class;
+  node->_vtime.cb_context = node;
+  oonf_timer_set(&node->_vtime, _config.vtime);
 
   node->_trigger.class = &_query_trigger_class;
   node->_trigger.cb_context = node;
@@ -301,7 +303,7 @@ static void
 _cb_timestamp_timeout(void *ptr) {
   struct _timestamp_node *node = ptr;
 
-  oonf_timer_stop(&node->_timeout);
+  oonf_timer_stop(&node->_vtime);
   oonf_rfc5444_remove_target(node->_target);
   avl_remove(&_timestamp_tree, &node->_node);
   oonf_class_free(&_timestamp_class, node);
@@ -396,6 +398,8 @@ _cb_timestamp_tlv(struct rfc5444_reader_tlvblock_context *context __attribute__(
 
     result = RFC5444_OKAY;
 
+    /* stop trigger, we just received a good packet */
+    oonf_timer_stop(&node->_trigger);
   }
   else {
     /* old counter, trigger challenge */
@@ -403,21 +407,26 @@ _cb_timestamp_tlv(struct rfc5444_reader_tlvblock_context *context __attribute__(
       /* generate query */
       node->send_query = ++_local_timestamp;
     }
+
+    /* do not accept a query with a bad counter */
+    node->send_query = 0;
+
     /* and drop packet */
     result = RFC5444_DROP_PACKET;
   }
 
   if (node->send_query > 0 || node->send_response > 0) {
-    /* trigger query response */
     OONF_INFO(LOG_SIMPLE_SECURITY, "Trigger challenge message: query=%u response=%u",
         node->send_query, node->send_response);
+
     if(!oonf_timer_is_active(&node->_trigger)) {
-      oonf_timer_set(&node->_trigger, 500);
+      /* trigger query response */
+      oonf_timer_set(&node->_trigger, _config.trigger_delay);
     }
   }
 
-  /* reset timer */
-  oonf_timer_set(&node->_timeout, _config.timeout);
+  /* reset validity time */
+  oonf_timer_set(&node->_vtime, _config.vtime);
 
   return result;
 }

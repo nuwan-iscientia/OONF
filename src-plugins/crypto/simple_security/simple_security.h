@@ -45,8 +45,8 @@
 #define OONF_SIMPLE_SECURITY_SUBSYSTEM "simple_security"
 
 enum {
-  /* message specifc TLV */
-  RFC5444_PKTTLV_CHALLENGE = 128,
+  /* packet TLV */
+  RFC5444_PKTTLV_CHALLENGE = 224,
 
   /* challenge TLV extensions */
   RFC5444_CHALLENGE_QUERY = 1,
