@@ -17,8 +17,12 @@ ELSEIF(NOT OONF_LIB_GIT OR NOT OONF_VERSION)
 
     # get git description WITH dirty flag
     execute_process(COMMAND git describe --abbrev=0 --match "v[0-9]*"
-      WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+      WORKING_DIRECTORY ${CMAKE_SOURCE_DIR} RESULT_VARIABLE result
       OUTPUT_VARIABLE VERSION_TAG OUTPUT_STRIP_TRAILING_WHITESPACE)
+
+    IF(NOT ${result} STREQUAL "0")
+        SET(VERSION_TAG "v0.1")
+    ENDIF()
     
     # strip "v" from tag
     string(SUBSTRING ${VERSION_TAG} 1 -1 VERSION)
