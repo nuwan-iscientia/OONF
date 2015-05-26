@@ -362,7 +362,7 @@ _add_entry(struct nhdp_domain *domain, struct netaddr *prefix) {
 static void
 _remove_entry(struct olsrv2_routing_entry *entry) {
   /* remove entry from database if its still there */
-  if (list_is_node_added(&entry->_node.list)) {
+  if (avl_is_node_added(&entry->_node)) {
     avl_remove(&_routing_tree[entry->domain->index], &entry->_node);
   }
   oonf_class_free(&_rtset_entry, entry);
@@ -842,6 +842,11 @@ _cb_route_finished(struct os_route *route, int error) {
           rtentry->set ? "setting" : "removal",
               os_routing_to_string(&rbuf, &rtentry->route),
               strerror(error), error);
+    }
+
+    if (error == EEXIST && rtentry->set) {
+      /* exactly this route already exists */
+      return;
     }
 
     /* revert attempted change */

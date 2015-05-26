@@ -303,6 +303,7 @@ _cb_addresstlvs(struct rfc5444_reader_tlvblock_context *context __attribute__((u
   uint32_t cost_in[NHDP_MAXIMUM_DOMAINS];
   uint32_t cost_out[NHDP_MAXIMUM_DOMAINS];
   struct rfc7181_metric_field metric_value;
+  struct netaddr truncated;
   size_t i;
 #ifdef OONF_LOG_DEBUG_INFO
   struct netaddr_str buf;
@@ -383,8 +384,11 @@ _cb_addresstlvs(struct rfc5444_reader_tlvblock_context *context __attribute__((u
       continue;
     }
 
+    /* truncate address */
+    netaddr_truncate(&truncated, &context->addr);
+
     /* parse attached network */
-    end = olsrv2_tc_endpoint_add(_current.node, &context->addr, false);
+    end = olsrv2_tc_endpoint_add(_current.node, &truncated, false);
     if (!end) {
       continue;
     }

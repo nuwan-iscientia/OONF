@@ -156,6 +156,7 @@ EXPORT int netaddr_create_host_bin(struct netaddr *host, const struct netaddr *n
     const void *number, size_t num_length);
 EXPORT int netaddr_create_prefix(struct netaddr *prefix, const struct netaddr *host,
     const struct netaddr *netmask, bool truncate);
+EXPORT void netaddr_truncate(struct netaddr *dst, const struct netaddr *src);
 
 EXPORT int netaddr_socket_init(union netaddr_socket *combined,
     const struct netaddr *addr, uint16_t port, unsigned if_index);

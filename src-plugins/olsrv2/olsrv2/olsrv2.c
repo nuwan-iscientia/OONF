@@ -619,6 +619,10 @@ _parse_lan_array(struct cfg_named_section *section, bool add) {
     if (netaddr_from_string(&prefix, addr_buf.buf)) {
       continue;
     }
+
+    /* truncate address */
+    netaddr_truncate(&prefix, &prefix);
+
     if (_parse_lan_parameters(&data, ptr)) {
       continue;
     }

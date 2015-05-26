@@ -390,6 +390,41 @@ netaddr_create_prefix(struct netaddr *prefix, const struct netaddr *host,
 }
 
 /**
+ * Clear the bits outside of the prefix length of an address
+ * @param dst trucated destination buffer
+ * @param src source IP
+ */
+void
+netaddr_truncate(struct netaddr *dst, const struct netaddr *src) {
+  static uint8_t MASK[] = { 0, 0x80, 0xc0, 0xe0, 0xf0, 0xf8, 0xfc, 0xfe };
+  int byte_prefix, bit_prefix;
+
+  /* calulate byte/bit part of prefix */
+  byte_prefix = src->_prefix_len / 8;
+  bit_prefix = src->_prefix_len & 7;
+
+  if (src != dst) {
+    /* copy type and prefix length */
+    dst->_prefix_len = src->_prefix_len;
+    dst->_type = src->_type;
+
+    /* copy constant octets */
+    memcpy(dst->_addr, src->_addr, byte_prefix);
+  }
+
+  if (bit_prefix) {
+    /* modify bitwise */
+    dst->_addr[byte_prefix] = src->_addr[byte_prefix] & MASK[bit_prefix];
+    byte_prefix++;
+  }
+
+  if (byte_prefix < 16) {
+    /* zero rest of address */
+    memset(&dst->_addr[byte_prefix], 0, 16 - byte_prefix);
+  }
+}
+
+/**
  * Initialize a netaddr_socket with a netaddr and a port number
  * @param combined pointer to netaddr_socket to be initialized
  * @param addr pointer to netaddr source
