@@ -65,6 +65,8 @@ struct sise_config {
 
   uint64_t vtime;
   uint64_t trigger_delay;
+
+  uint32_t window_size;
 };
 
 struct neighbor_key {
@@ -123,6 +125,9 @@ static struct cfg_schema_entry _sise_entries[] = {
       "Time until replay protection counters are dropped", 60000),
   CFG_MAP_CLOCK_MIN(sise_config, trigger_delay, "trigger_delay", "10000",
       "Time until a query/response will be generated ", 1000),
+  CFG_MAP_INT32_MINMAX(sise_config, window_size, "window", "100",
+      "What amount of counter increase we accept from a neighbor node",
+      0, false, 1, INT32_MAX),
 };
 
 static struct cfg_schema_section _sise_section = {
@@ -441,7 +446,8 @@ _cb_timestamp_tlv(struct rfc5444_reader_tlvblock_context *context __attribute__(
 
   /* handle incoming timestamp and query response */
   if ((node->send_query > 0 && response == node->send_query)
-      || node->last_counter < timestamp) {
+      || (node->last_counter < timestamp &&
+          node->last_counter + _config.window_size > timestamp)) {
     OONF_INFO(LOG_SIMPLE_SECURITY, "Received valid timestamp");
 
     /* we got a valid query/response or a valid timestamp */
@@ -453,15 +459,16 @@ _cb_timestamp_tlv(struct rfc5444_reader_tlvblock_context *context __attribute__(
     /* stop trigger, we just received a good packet */
     oonf_timer_stop(&node->_trigger);
   }
+  else if (node->last_counter == timestamp) {
+    /* duplicate of the last packet */
+    result = RFC5444_DROP_PACKET;
+  }
   else {
     /* old counter, trigger challenge */
     if (node->send_query == 0) {
-      /* generate query */
+      /* generate new query */
       node->send_query = ++_local_timestamp;
     }
-
-    /* do not accept a query with a bad counter */
-    node->send_query = 0;
 
     /* and drop packet */
     result = RFC5444_DROP_PACKET;
