@@ -39,18 +39,11 @@
  *
  */
 
-#ifndef SIMPLE_SECURITY_H_
-#define SIMPLE_SECURITY_H_
+#ifndef HASH_POLARSSL_H_
+#define HASH_POLARSSL_H_
 
-#define OONF_SIMPLE_SECURITY_SUBSYSTEM "simple_security"
+#include "common/common_types.h"
 
-enum {
-  /* packet TLV */
-  RFC5444_PKTTLV_CHALLENGE = 224,
+#define OONF_HASH_POLARSSL_SUBSYSTEM "hash_polarssl"
 
-  /* challenge TLV extensions */
-  RFC5444_CHALLENGE_QUERY = 1,
-  RFC5444_CHALLENGE_RESPONSE = 2,
-};
-
-#endif /* SIMPLE_SECURITY_H_ */
+#endif /* HASH_POLARSSL_H_ */
