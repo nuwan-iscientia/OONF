@@ -44,6 +44,12 @@
 
 #include <stddef.h>
 
+/*
+ * This line forces gcc NOT to demand memcpy with glibc version 2.14
+ * google for the memcpy/memmove debacle with gcc and glibc.
+ */
+__asm__(".symver memcpy,memcpy@GLIBC_2.2.5");
+
 /* support EXPORT macro of OONF */
 #ifndef EXPORT
 #  define EXPORT __attribute__((visibility ("default")))
