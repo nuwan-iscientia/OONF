@@ -549,7 +549,9 @@ _parse_tlvblock(struct rfc5444_reader *parser,
   uint8_t *end;
 
   /* get length of TLV block */
-  end = (*ptr) + _rfc5444_get_u16(ptr, eob, &result);
+  end = (*ptr) + 2;
+  end = end + _rfc5444_get_u16(ptr, eob, &result);
+
   if (end > eob) {
     /* not enough memory for TLV block */
     result = RFC5444_END_OF_BUFFER;
