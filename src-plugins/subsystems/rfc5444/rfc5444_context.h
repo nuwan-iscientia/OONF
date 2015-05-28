@@ -115,7 +115,8 @@ enum rfc5444_result {
   RFC5444_NO_MSGCREATOR        = -13,
   RFC5444_FW_MESSAGE_TOO_LONG  = -14,
   RFC5444_FW_BAD_SIZE          = -15,
-  RFC5444_RESULT_MIN           = -15,
+  RFC5444_TOO_LARGE            = -16,
+  RFC5444_RESULT_MIN           = -16,
 };
 
 EXPORT const char *rfc5444_strerror(enum rfc5444_result result);

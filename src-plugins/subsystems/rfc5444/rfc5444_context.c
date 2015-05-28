@@ -66,6 +66,7 @@ static const char *_rfc5444_negative_result_texts[] = {
   [-RFC5444_NO_MSGCREATOR]        = "Cannot create message without message creator",
   [-RFC5444_FW_MESSAGE_TOO_LONG]  = "Cannot forward message, content too long",
   [-RFC5444_FW_BAD_SIZE]          = "Bad length field of message to be forwarded",
+  [-RFC5444_TOO_LARGE]            = "RFC5444 packet larger than 64k",
 };
 
 /**

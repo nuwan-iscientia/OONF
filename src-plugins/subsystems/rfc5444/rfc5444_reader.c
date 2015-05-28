@@ -131,6 +131,10 @@ rfc5444_reader_handle_packet(struct rfc5444_reader *parser, uint8_t *buffer, siz
   uint8_t first_byte;
   enum rfc5444_result result = RFC5444_OKAY;
 
+  if (length > 65535) {
+    return RFC5444_TOO_LARGE;
+  }
+
   /* copy pointer to prevent writing over parameter */
   ptr = buffer;
   eob = buffer + length;
