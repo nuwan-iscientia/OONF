@@ -71,7 +71,7 @@ static void clear_elements(void) {
 }
 
 static void add_elements(struct tree_element *elements, bool do_random) {
-  int i;
+  uint32_t i;
   bool added[COUNT];
 
   if (do_random) {
@@ -130,7 +130,7 @@ static void print_tree(void) {
 }
 #endif
 
-static int check_tree_int(const char *name, int line, struct tree_element *e) {
+static uint32_t check_tree_int(const char *name, uint32_t line, struct tree_element *e) {
   struct tree_element *t;
   int left = 0, right = 0;
 
@@ -188,7 +188,7 @@ static int check_tree_int(const char *name, int line, struct tree_element *e) {
   }
 }
 
-static void check_tree(const char *name, int line) {
+static void check_tree(const char *name, uint32_t line) {
   uint32_t value;
   struct list_entity *ptr;
   struct tree_element *t;
@@ -270,7 +270,7 @@ static void test_insert_dup(bool do_random) {
 }
 
 static void test_find(bool do_random) {
-  int i;
+  uint32_t i;
 
   START_TEST();
   avl_init(&head, avl_comp_uint32, true);
@@ -331,7 +331,7 @@ static void test_delete_dup(bool do_random) {
 }
 
 static void test_greaterequal(bool do_random) {
-  int i;
+  uint32_t i;
   START_TEST();
 
   /* create tree with 1,2,4,5,6 */
@@ -604,7 +604,7 @@ static void test_for_each_reverse_save_macro(bool do_random) {
 
 static void test_remove_all_macro(bool do_random) {
   struct tree_element *e, *ptr;
-  int i;
+  uint32_t i;
 
   START_TEST();
   avl_init(&head, avl_comp_uint32, true);
@@ -612,10 +612,10 @@ static void test_remove_all_macro(bool do_random) {
 
   i = 0;
   avl_remove_all_elements(&head, e, node, ptr) {
-    CHECK_TRUE(e == &nodes[i], "for_each_save iteration %d failed", i);
+    CHECK_TRUE(e == &nodes[i], "for_each_save iteration %u failed", i);
     i++;
   }
-  CHECK_TRUE(i == COUNT, "remove_all only had %d of %d iterations", i, COUNT);
+  CHECK_TRUE(i == COUNT, "remove_all only had %u of %u iterations", i, COUNT);
   CHECK_TRUE(avl_is_empty(&head), "remove_all tree not empty after loop with delete");
 
   check_tree(__func__, __LINE__);
@@ -626,7 +626,7 @@ static void test_remove_all_macro(bool do_random) {
 static void test_for_each_key_macros(void) {
   struct tree_element *e, *p;
   int key;
-  size_t i;
+  uint32_t i;
 
   START_TEST();
   avl_init(&head, avl_comp_uint32, true);
@@ -762,8 +762,8 @@ compare_ints (const void *a, const void *b)
   return (*da > *db) - (*da < *db);
 }
 
-static void random_insert(uint32_t *array, int count) {
-  int i,j;
+static void random_insert(uint32_t *array, uint32_t count) {
+  uint32_t i,j;
   struct tree_element *e;
 
   for (i=0; i<count; i++) {
@@ -786,9 +786,8 @@ static void random_insert(uint32_t *array, int count) {
   }
 }
 
-static void random_delete(uint32_t *array, int count) {
-  int i;
-  uint32_t j;
+static void random_delete(uint32_t *array, uint32_t count) {
+  uint32_t i, j;
   struct tree_element *e;
 
   for (i=0; i<count; i++) {

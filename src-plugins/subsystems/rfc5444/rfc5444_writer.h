@@ -134,7 +134,7 @@ struct rfc5444_writer_addrtlv {
  */
 struct rfc5444_writer_address {
   /* index of the address */
-  int index;
+  uint32_t index;
 
   /* address/prefix */
   struct netaddr address;

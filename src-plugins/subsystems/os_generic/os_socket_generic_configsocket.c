@@ -62,12 +62,12 @@
  * @return -1 if an error happened, 0 otherwise
  */
 int
-os_socket_configsocket(int sock, const union netaddr_socket *bind_to, int recvbuf,
+os_socket_configsocket(int sock, const union netaddr_socket *bind_to, size_t recvbuf,
     bool rawip, const struct os_interface_data *interf, enum oonf_log_source log_src) {
-  int yes;
-  socklen_t addrlen;
   union netaddr_socket bindto;
   struct netaddr_str buf;
+  socklen_t addrlen;
+  int value;
 
   /* temporary copy bindto address */
   memcpy(&bindto, bind_to, sizeof(bindto));
@@ -80,8 +80,8 @@ os_socket_configsocket(int sock, const union netaddr_socket *bind_to, int recvbu
 
 #if defined(IPV6_V6ONLY)
   if (!rawip && bind_to->std.sa_family == AF_INET6) {
-    int no = 1;
-    if (setsockopt(sock, IPPROTO_IPV6, IPV6_V6ONLY, (void *)&no, sizeof(no)) < 0) {
+    value = 1;
+    if (setsockopt(sock, IPPROTO_IPV6, IPV6_V6ONLY, (void *)&value, sizeof(value)) < 0) {
         OONF_WARN(log_src, "Could not force socket to IPv6 only, continue: %s (%d)\n",
             strerror(errno), errno);
     }
@@ -100,8 +100,8 @@ os_socket_configsocket(int sock, const union netaddr_socket *bind_to, int recvbu
 
 #if defined(SO_REUSEADDR)
   /* allow to reuse address */
-  yes = 1;
-  if (setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes)) < 0) {
+  value = 1;
+  if (setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &value, sizeof(value)) < 0) {
     OONF_WARN(log_src, "Cannot reuse address for %s: %s (%d)\n",
         netaddr_socket_to_string(&buf, &bindto), strerror(errno), errno);
     return -1;
@@ -121,7 +121,7 @@ os_socket_configsocket(int sock, const union netaddr_socket *bind_to, int recvbu
   if (recvbuf > 0) {
     while (recvbuf > 8192) {
       if (setsockopt(sock, SOL_SOCKET, SO_RCVBUF,
-          (char *)&recvbuf, sizeof(recvbuf)) == 0) {
+          (void *)&recvbuf, sizeof(recvbuf)) == 0) {
         break;
       }
 

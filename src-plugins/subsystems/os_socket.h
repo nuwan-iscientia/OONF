@@ -83,11 +83,11 @@ static INLINE const char *os_socket_get_loopback_name(void);
 
 /* prototypes for all os_net functions */
 EXPORT int os_socket_getsocket(const union netaddr_socket *bindto, bool tcp,
-    int recvbuf, const struct os_interface_data *, enum oonf_log_source log_src);
+    size_t recvbuf, const struct os_interface_data *, enum oonf_log_source log_src);
 EXPORT int os_socket_getrawsocket(const union netaddr_socket *bindto, int protocol,
-    int recvbuf, const struct os_interface_data *, enum oonf_log_source log_src);
+    size_t recvbuf, const struct os_interface_data *, enum oonf_log_source log_src);
 EXPORT int os_socket_configsocket(int sock, const union netaddr_socket *bindto,
-    int recvbuf, bool rawip, const struct os_interface_data *, enum oonf_log_source log_src);
+    size_t recvbuf, bool rawip, const struct os_interface_data *, enum oonf_log_source log_src);
 EXPORT int os_socket_set_nonblocking(int sock);
 EXPORT int os_socket_join_mcast_recv(int sock, const struct netaddr *multicast,
     const struct os_interface_data *oif, enum oonf_log_source log_src);

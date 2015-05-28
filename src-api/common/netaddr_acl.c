@@ -78,7 +78,8 @@ int
 netaddr_acl_from_strarray(struct netaddr_acl *acl,
     const struct const_strarray *value) {
   size_t accept_count, reject_count;
-  const char *ptr;
+  const char *ptr, *addr;
+
   accept_count = 0;
   reject_count = 0;
 
@@ -115,14 +116,15 @@ netaddr_acl_from_strarray(struct netaddr_acl *acl,
 
   /* read netaddr strings into buffers */
   strarray_for_each_element(value, ptr) {
-    const char *addr;
     if (netaddr_acl_handle_keywords(acl, ptr) == 0) {
       continue;
     }
 
-    addr = ptr;
     if (*ptr == '-' || *ptr == '+') {
-      addr++;
+      addr = &ptr[1];
+    }
+    else {
+      addr = ptr;
     }
 
     if (*ptr == '-') {

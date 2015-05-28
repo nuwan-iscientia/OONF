@@ -114,7 +114,7 @@ strscat(char *dest, const char *src, size_t size)
  */
 char *
 str_trim (char *ptr) {
-  char *end;
+  size_t len;
 
   if (!ptr) {
     return NULL;
@@ -126,11 +126,12 @@ str_trim (char *ptr) {
   }
 
   /* get end of string */
-  end = ptr + strlen(ptr) - 1;
-
-  /* remove trailing whitespaces */
-  while (end > ptr && isspace(*end)) {
-    *end-- = 0;
+  len = strlen(ptr);
+  if (len) {
+    /* remove trailing whitespaces */
+    while (--len > 0 && isspace(ptr[len])) {
+      ptr[len] = 0;
+    }
   }
   return ptr;
 }

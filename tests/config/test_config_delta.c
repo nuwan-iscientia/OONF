@@ -93,7 +93,7 @@ static struct const_strarray value_3 = {
   .length = sizeof("value_3"),
 };
 
-static int callback_counter;
+static uint32_t callback_counter;
 static bool callback_marker[2];
 
 static void

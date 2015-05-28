@@ -60,7 +60,7 @@
  */
 int
 os_socket_getrawsocket(const union netaddr_socket *bind_to,
-    int protocol, int recvbuf, const struct os_interface_data *interf,
+    int protocol, size_t recvbuf, const struct os_interface_data *interf,
     enum oonf_log_source log_src __attribute__((unused))) {
 
   static const int zero = 0;

@@ -104,15 +104,6 @@ _cleanup(void)
   cfg_io_remove(oonf_cfg_get_instance(), &_cfg_compact);
 }
 
-/*
- * Definition of the file-io handler.
- *
- * This handler can read and write files and use a parser to
- * translate them into a configuration database (and the other way around)
- *
- * The parameter of this parser has to be a filename
- */
-
 /**
  * Reads a file from a filesystem, parse it with the help of a
  * configuration parser and returns a configuration database.
@@ -162,7 +153,11 @@ _cb_compact_load(const char *param, struct autobuf *log) {
   }
   close(fd);
 
+  if (abuf_has_failed(&dst)) {
+    return NULL;
+  }
   db = _compact_parse(&dst, log);
+
   abuf_free(&dst);
   return db;
 }
@@ -233,9 +228,8 @@ _compact_parse(struct autobuf *input, struct autobuf *log) {
   char section[128];
   char name[128];
   struct cfg_db *db;
-  char *eol, *line;
   char *src;
-  size_t len;
+  size_t len, eol, line;
 
   src = abuf_getptr(input);
   len = abuf_getlen(input);
@@ -248,27 +242,26 @@ _compact_parse(struct autobuf *input, struct autobuf *log) {
   memset(section, 0, sizeof(section));
   memset(name, 0, sizeof(name));
 
-  line = src;
-  while (line < src + len) {
+  line = 0;
+  while (line < len) {
     /* find end of line */
     eol = line;
-    while (*eol != 0 && *eol != '\n') {
+    while (src[eol] != 0 && src[eol] != '\n') {
       eol++;
     }
 
     /* termiate line with zero byte */
-    *eol = 0;
-    if (eol > line && eol[-1] == '\r') {
+    src[eol] = 0;
+    if (eol > line && src[eol-1] == '\r') {
       /* handle \r\n line ending */
-      eol[-1] = 0;
+      src[eol-1] = 0;
     }
 
-    if (_parse_line(db, line, section, sizeof(section),
+    if (_parse_line(db, &src[line], section, sizeof(section),
         name, sizeof(name), log)) {
       cfg_db_remove(db);
       return NULL;
     }
-
     line = eol+1;
   }
   return db;

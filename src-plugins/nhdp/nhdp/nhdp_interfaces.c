@@ -278,9 +278,9 @@ nhdp_interface_remove(struct nhdp_interface *interf) {
   OONF_INFO(LOG_NHDP, "Remove interface to NHDP_interface tree: %s (refcount was %d)",
       nhdp_interface_get_name(interf), interf->_refcount);
 
-  interf->_refcount--;
-  if (interf->_refcount > 0) {
+  if (interf->_refcount > 1) {
     /* there are still users left */
+    interf->_refcount--;
     return;
   }
 
@@ -469,7 +469,7 @@ _cb_interface_event(struct oonf_rfc5444_interface_listener *ifl,
   struct nhdp_interface_addr *addr, *addr_it;
   struct os_interface *oonf_interf;
   struct nhdp_link *nhdp_link, *nhdp_link_it;
-  int active_addr_count;
+  bool has_active_addr;
   bool ipv4, ipv6;
   size_t i;
 #ifdef OONF_LOG_DEBUG_INFO
@@ -485,7 +485,7 @@ _cb_interface_event(struct oonf_rfc5444_interface_listener *ifl,
     addr->_to_be_removed = true;
   }
 
-  active_addr_count = 0;
+  has_active_addr = false;
 
   oonf_interf = oonf_rfc5444_get_core_interface(ifl->interface);
   if (oonf_interf != NULL && oonf_interf->data.up) {
@@ -512,7 +512,7 @@ _cb_interface_event(struct oonf_rfc5444_interface_listener *ifl,
         /* check if IP address fits to ACL */
         if (netaddr_acl_check_accept(&interf->ifaddr_filter, ifaddr)) {
           _addr_add(interf, ifaddr);
-          active_addr_count++;
+          has_active_addr = true;
         }
       }
     }
@@ -527,7 +527,7 @@ _cb_interface_event(struct oonf_rfc5444_interface_listener *ifl,
   }
 
   /* interface not active anymore, remove its links */
-  if (active_addr_count == 0) {
+  if (!has_active_addr) {
     list_for_each_element_safe(&interf->_links, nhdp_link, _if_node, nhdp_link_it) {
       nhdp_db_link_set_unsymmetric(nhdp_link);
     }

@@ -332,6 +332,6 @@ strarray_cmp_c(const struct const_strarray *a1, const struct const_strarray *a2)
  * @param array pointer to strarray object
  * @param charptr pointer to loop variable
  */
-#define strarray_for_each_element(array, charptr) for (charptr = (array)->value; charptr != NULL && charptr < (array)->value + (array)->length; charptr += strlen(charptr) + 1)
+#define strarray_for_each_element(array, charptr) for (charptr = (array)->value; charptr != NULL && (size_t)charptr < (size_t)(array)->value + (array)->length; charptr += strlen(charptr) + 1)
 
 #endif

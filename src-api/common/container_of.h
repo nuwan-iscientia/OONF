@@ -60,7 +60,7 @@
  */
 #define container_of(ptr, type, member) ({ \
     const typeof(((type *)0)->member ) *__tempptr = (ptr); \
-    (type *)((char *)__tempptr - offsetof(type,member)); \
+    (type *)((uint8_t *)__tempptr - offsetof(type,member)); \
   })
 
 /**
@@ -68,7 +68,7 @@
  */
 static INLINE void *
 __container_of_if_notnull(void *ptr, size_t offset) {
-  return ptr == NULL ? NULL : (((char *)ptr) - offset);
+  return ptr == NULL ? NULL : (((uint8_t *)ptr) - offset);
 }
 
 /**

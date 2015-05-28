@@ -56,8 +56,8 @@
 #endif
 
 static int _consumer_avl_comp(const void *k1, const void *k2);
-static int _calc_tlvconsumer_intorder(struct rfc5444_reader_tlvblock_consumer_entry *entry);
-static int _calc_tlvblock_intorder(struct rfc5444_reader_tlvblock_entry *entry);
+static uint16_t _calc_tlvconsumer_intorder(struct rfc5444_reader_tlvblock_consumer_entry *entry);
+static uint16_t _calc_tlvblock_intorder(struct rfc5444_reader_tlvblock_entry *entry);
 static int _compare_tlvtypes(struct rfc5444_reader_tlvblock_entry *tlv,
     struct rfc5444_reader_tlvblock_consumer_entry *entry);
 static uint8_t _rfc5444_get_u8(uint8_t **ptr, uint8_t *end, enum rfc5444_result *result);
@@ -329,9 +329,9 @@ _consumer_avl_comp(const void *k1, const void *k2) {
  * @param entry pointer tlvblock entry
  * @return 256*type + exttype
  */
-static INLINE int
+static uint16_t
 _calc_tlvconsumer_intorder(struct rfc5444_reader_tlvblock_consumer_entry *entry) {
-  return (((int)entry->type) << 8) | ((int)entry->type_ext);
+  return (((uint16_t)entry->type) << 8) | ((uint16_t)entry->type_ext);
 }
 
 /**
@@ -339,9 +339,9 @@ _calc_tlvconsumer_intorder(struct rfc5444_reader_tlvblock_consumer_entry *entry)
  * @param entry pointer tlvblock entry
  * @return 256*type + exttype
  */
-static INLINE int
+static uint16_t
 _calc_tlvblock_intorder(struct rfc5444_reader_tlvblock_entry *entry) {
-  return (((int)entry->type) << 8) | ((int)entry->type_ext);
+  return (((uint16_t)entry->type) << 8) | ((uint16_t)entry->type_ext);
 }
 
 /**
@@ -405,10 +405,8 @@ _rfc5444_get_u8(uint8_t **ptr, uint8_t *end, enum rfc5444_result *error) {
  */
 static uint16_t
 _rfc5444_get_u16(uint8_t **ptr, uint8_t *end, enum rfc5444_result *error) {
-  uint16_t result = _rfc5444_get_u8(ptr, end, error);
-  result <<= 8;
-  result += _rfc5444_get_u8(ptr, end, error);
-  return result;
+  return ((uint16_t)_rfc5444_get_u8(ptr, end, error) << 8)
+      | (uint16_t)_rfc5444_get_u8(ptr, end, error);
 }
 
 /**
@@ -544,12 +542,10 @@ _parse_tlvblock(struct rfc5444_reader *parser,
   enum rfc5444_result result = RFC5444_OKAY;
   struct rfc5444_reader_tlvblock_entry *tlv1 = NULL;
   struct rfc5444_reader_tlvblock_entry entry;
-  uint16_t length = 0;
-  uint8_t *end = NULL;
+  uint8_t *end;
 
   /* get length of TLV block */
-  length = _rfc5444_get_u16(ptr, eob, &result);
-  end = *ptr + length;
+  end = (*ptr) + _rfc5444_get_u16(ptr, eob, &result);
   if (end > eob) {
     /* not enough memory for TLV block */
     result = RFC5444_END_OF_BUFFER;

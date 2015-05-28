@@ -1130,7 +1130,7 @@ _write_addresses(struct rfc5444_writer *writer, struct rfc5444_writer_message *m
 #if DO_ADDR_COMPRESSION == true
     if (addr_start != addr_end) {
       /* only use head/tail for address blocks with multiple addresses */
-      int tail;
+      uint8_t tail;
       head_len = addr_start->_block_headlen;
       tail_len = msg->addr_len - head_len - 1;
 
