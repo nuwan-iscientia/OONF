@@ -68,6 +68,8 @@
 #define _JSON_NAME_EDGE               "edge"
 #define _JSON_NAME_ROUTE              "route"
 
+#define LOG_OLSRV2INFO olsrv2_olsrv2info_subsystem.logging
+
 /* prototypes */
 static int _init(void);
 static void _cleanup(void);
@@ -692,7 +694,7 @@ _cb_create_text_route(struct oonf_viewer_template *template) {
   list_for_each_element(nhdp_domain_get_list(), domain, _node) {
     _initialize_domain_values(domain);
 
-    avl_for_each_element(olsrv2_routing_get_tree(domain->index),
+    avl_for_each_element(olsrv2_routing_get_tree(domain),
         route, _node) {
       _initialize_domain_metric_values(domain, route->cost);
       _initialize_route_values(route);

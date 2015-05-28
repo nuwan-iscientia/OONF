@@ -309,8 +309,8 @@ olsrv2_routing_set_domain_parameter(struct nhdp_domain *domain,
 }
 
 struct avl_tree *
-olsrv2_routing_get_tree(size_t idx) {
-  return &_routing_tree[idx];
+olsrv2_routing_get_tree(struct nhdp_domain *domain) {
+  return &_routing_tree[domain->index];
 }
 
 struct list_entity *
@@ -430,6 +430,7 @@ _insert_into_working_tree(struct olsrv2_tc_target *target,
  * Initialize a routing entry with the result of the dijkstra calculation
  * @param domain nhdp domain
  * @param destination destination of routing entry
+ * @param dst_originator originator address of destination
  * @param first_hop nhdp neighbor for first hop to target
  * @param distance hopcount distance that should be used for route
  * @param pathcost pathcost to target
@@ -471,6 +472,9 @@ _update_routing_entry(struct nhdp_domain *domain,
   rtentry->route.if_index = neighdata->best_link_ifindex;
   rtentry->cost = pathcost;
   rtentry->route.metric = distance;
+
+  /* remember next hop originator */
+  memcpy(&rtentry->next_originator, &first_hop->originator, sizeof(struct netaddr));
 
   /* mark route as set */
   rtentry->set = true;
@@ -647,7 +651,8 @@ _handle_nhdp_routes(struct nhdp_domain *domain) {
       }
 
       /* update routing entry */
-      _update_routing_entry(domain, &naddr->neigh_addr, neigh, 0, neighcost, true);
+      _update_routing_entry(domain, &naddr->neigh_addr,
+          neigh, 0, neighcost, true);
     }
 
     list_for_each_element(&neigh->_links, lnk, _neigh_node) {
@@ -671,7 +676,8 @@ _handle_nhdp_routes(struct nhdp_domain *domain) {
         l2hop_pathcost += neighcost;
 
         /* the 2-hop route is better than the dijkstra calculation */
-        _update_routing_entry(domain, &l2hop->twohop_addr, neigh, 0, l2hop_pathcost, false);
+        _update_routing_entry(domain, &l2hop->twohop_addr,
+            neigh, 0, l2hop_pathcost, false);
       }
     }
   }

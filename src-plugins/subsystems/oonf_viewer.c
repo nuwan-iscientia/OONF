@@ -116,7 +116,7 @@ oonf_viewer_output_prepare(struct oonf_viewer_template *template,
 
     /* start wrapper object */
     if (!template->create_only_data) {
-      oonf_viewer_json_start_object(&template->_json);
+      oonf_viewer_json_start_object(&template->_json, NULL);
     }
 
     /* start object with array */
@@ -150,7 +150,7 @@ oonf_viewer_output_print_line(struct oonf_viewer_template *template) {
   }
   else {
     /* JSON output */
-    oonf_viewer_json_start_object(&template->_json);
+    oonf_viewer_json_start_object(&template->_json, NULL);
     oonf_viewer_json_print_object_ext(&template->_json, template->data, template->data_size);
     oonf_viewer_json_end_object(&template->_json);
   }
@@ -413,9 +413,10 @@ oonf_viewer_json_end_array(struct oonf_viewer_json_session *session) {
 /**
  * Starts a new JSON object.
  * @param session JSON session
+ * @param name name of object, might be NULL
  */
 void
-oonf_viewer_json_start_object(struct oonf_viewer_json_session *session) {
+oonf_viewer_json_start_object(struct oonf_viewer_json_session *session, const char *name) {
   /* open new session */
   if (!session->empty) {
     abuf_puts(session->out, ",");
@@ -425,11 +426,44 @@ oonf_viewer_json_start_object(struct oonf_viewer_json_session *session) {
   if (session->level > 0) {
     abuf_puts(session->out, "\n");
   }
-  abuf_appendf(session->out, "%s{", session->prefix);
+
+  if (name) {
+    abuf_appendf(session->out, "%s\"%s\": {", session->prefix, name);
+  }
+  else {
+    abuf_appendf(session->out, "%s{", session->prefix);
+  }
 
   session->prefix[session->level] = '\t';
   session->level++;
   session->prefix[session->level] = 0;
+}
+
+void
+oonf_viewer_json_elementf(struct oonf_viewer_json_session *session,
+    const char *key, bool string, const char *format, ...) {
+  va_list ap;
+
+  if (!session->empty) {
+    abuf_puts(session->out, ",");
+  }
+
+  if (session->level > 0) {
+    abuf_puts(session->out, "\n");
+  }
+
+  abuf_appendf(session->out, "%s\"%s\": ", session->prefix, key);
+
+  if (string) {
+    abuf_puts(session->out, "\"");
+  }
+  va_start(ap, format);
+  abuf_vappendf(session->out, format, ap);
+  va_end(ap);
+
+  if (string) {
+    abuf_puts(session->out, "\"");
+  }
 }
 
 /**

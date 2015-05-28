@@ -51,7 +51,7 @@
 
 #define OONF_OLSRV2_SUBSYSTEM "olsrv2"
 
-#define CFG_OLSRV2_SECTION "olsrv2"
+#define CFG_OLSRV2_SECTION OONF_OLSRV2_SUBSYSTEM
 
 /* default settings for routable addresses */
 #define OLSRV2_ROUTABLE_IPV4 "-169.254.0.0/16\0-127.0.0.0/8\0-224.0.0.0/12\0"

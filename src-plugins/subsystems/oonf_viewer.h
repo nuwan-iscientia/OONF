@@ -136,10 +136,19 @@ EXPORT void oonf_viewer_json_init_session(struct oonf_viewer_json_session *,
 EXPORT void oonf_viewer_json_start_array(struct oonf_viewer_json_session *,
     const char *name);
 EXPORT void oonf_viewer_json_end_array(struct oonf_viewer_json_session *);
-EXPORT void oonf_viewer_json_start_object(struct oonf_viewer_json_session *);
+EXPORT void oonf_viewer_json_start_object(struct oonf_viewer_json_session *,
+    const char *name);
 EXPORT void oonf_viewer_json_end_object(struct oonf_viewer_json_session *);
 EXPORT void oonf_viewer_json_print_object_ext(struct oonf_viewer_json_session *,
     struct abuf_template_data *data, size_t count);
+EXPORT void oonf_viewer_json_elementf(struct oonf_viewer_json_session *session,
+    const char *key, bool string, const char *format, ...) __attribute__ ((format(printf, 4, 5)));
+
+static INLINE void
+oonf_viewer_json_element(struct oonf_viewer_json_session *session,
+    const char *key, bool string, const char *value) {
+  oonf_viewer_json_elementf(session, key, string, "%s", value);
+}
 
 static INLINE void
 oonf_viewer_fill_json_object(struct oonf_viewer_json_session *session,

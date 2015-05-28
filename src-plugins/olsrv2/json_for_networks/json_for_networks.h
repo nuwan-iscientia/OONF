@@ -39,9 +39,9 @@
  *
  */
 
-#ifndef OLSRV2INFO_H_
-#define OLSRV2INFO_H_
+#ifndef JSON_FOR_NETWORKS_H_
+#define JSON_FOR_NETWORKS_H_
 
-#define OONF_OLSRV2INFO_SUBSYSTEM "olsrv2info"
+#define OONF_JSONFORNETWORKS_SUBSYSTEM "jsonfornetworks"
 
-#endif /* OLSRV2INFO_H_ */
+#endif /* JSON_FOR_NETWORKS_H_ */

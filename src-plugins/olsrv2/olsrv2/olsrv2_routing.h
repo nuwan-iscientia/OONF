@@ -90,6 +90,9 @@ struct olsrv2_routing_entry {
   /* path cost to reach the target */
   uint32_t cost;
 
+  /* originator address of next hop */
+  struct netaddr next_originator;
+
   /*
    * true if the entry represents a route that should be in the kernel,
    * false if the entry should be removed from the kernel
@@ -153,7 +156,7 @@ EXPORT void olsrv2_routing_trigger_update(void);
 EXPORT const struct olsrv2_routing_domain *
     olsrv2_routing_get_parameters(struct nhdp_domain *);
 
-EXPORT struct avl_tree *olsrv2_routing_get_tree(size_t);
+EXPORT struct avl_tree *olsrv2_routing_get_tree(struct nhdp_domain *domain);
 EXPORT struct list_entity *olsrv2_routing_get_filter_list(void);
 
 /**
