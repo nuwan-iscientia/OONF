@@ -115,6 +115,7 @@ static int _cb_create_text_route(struct oonf_viewer_template *);
 #define KEY_DOMAIN_METRIC_OUT_RAW   "domain_metric_out_raw"
 
 #define KEY_DOMAIN_DISTANCE         "domain_distance"
+#define KEY_DOMAIN_PATH_HOPS        "domain_path_hops"
 #define KEY_DOMAIN_ACTIVE           "domain_active"
 
 #define KEY_LAN                     "lan"
@@ -153,6 +154,7 @@ static char                       _value_domain_metric[NHDP_DOMAIN_METRIC_MAXLEN
 static struct nhdp_metric_str     _value_domain_metric_out;
 static char                       _value_domain_metric_out_raw[12];
 static char                       _value_domain_distance[4];
+static char                       _value_domain_path_hops[4];
 static char                       _value_domain_active[TEMPLATE_JSON_BOOL_LENGTH];
 
 static struct netaddr_str         _value_lan;
@@ -199,6 +201,10 @@ static struct abuf_template_data_entry _tde_domain_metric_out[] = {
 
 static struct abuf_template_data_entry _tde_domain_lan_distance[] = {
     { KEY_DOMAIN_DISTANCE, _value_domain_distance, false },
+};
+
+static struct abuf_template_data_entry _tde_domain_path_hops[] = {
+    { KEY_DOMAIN_PATH_HOPS, _value_domain_path_hops, false },
 };
 
 static struct abuf_template_data_entry _tde_domain_lan_active[] = {
@@ -277,6 +283,7 @@ static struct abuf_template_data _td_route[] = {
     { _tde_route, ARRAYSIZE(_tde_route) },
     { _tde_domain, ARRAYSIZE(_tde_domain) },
     { _tde_domain_metric_out, ARRAYSIZE(_tde_domain_metric_out) },
+    { _tde_domain_path_hops, ARRAYSIZE(_tde_domain_path_hops) },
 };
 
 /* OONF viewer templates (based on Template Data arrays) */
@@ -436,13 +443,23 @@ _initialize_domain_metric_values(struct nhdp_domain *domain,
 }
 
 /**
- * Initialize the value buffer for the hopcount distance
- * @param distance hopcount distance
+ * Initialize the value buffer for the hopcount value for routes
+ * @param distance hopcount value
  */
 static void
 _initialize_domain_distance(uint8_t distance) {
   snprintf(_value_domain_distance, sizeof(_value_domain_distance),
       "%u", distance);
+}
+
+/**
+ * Initialize the value buffer for the path hopcount
+ * @param path_hops path distance
+ */
+static void
+_initialize_domain_path_hops(uint8_t path_hops) {
+  snprintf(_value_domain_path_hops, sizeof(_value_domain_path_hops),
+      "%u", path_hops);
 }
 
 /**
@@ -697,6 +714,7 @@ _cb_create_text_route(struct oonf_viewer_template *template) {
     avl_for_each_element(olsrv2_routing_get_tree(domain),
         route, _node) {
       _initialize_domain_metric_values(domain, route->path_cost);
+      _initialize_domain_path_hops(route->path_hops);
       _initialize_route_values(route);
 
       oonf_viewer_output_print_line(template);
