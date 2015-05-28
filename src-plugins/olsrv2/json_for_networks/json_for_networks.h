@@ -42,6 +42,6 @@
 #ifndef JSON_FOR_NETWORKS_H_
 #define JSON_FOR_NETWORKS_H_
 
-#define OONF_JSONFORNETWORKS_SUBSYSTEM "jsonfornetworks"
+#define OONF_JSONFORNETWORKS_SUBSYSTEM "json_for_networks"
 
 #endif /* JSON_FOR_NETWORKS_H_ */

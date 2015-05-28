@@ -63,6 +63,9 @@
 /* definitions */
 #define LOG_JSON_FOR_NET olsrv2_jsonfornet.logging
 
+#define COMMAND_GRAPH  "graph"
+#define COMMAND_ROUTES "routes"
+
 /* prototypes */
 static int _init(void);
 static void _cleanup(void);
@@ -289,7 +292,7 @@ _print_routing_tree(struct oonf_viewer_json_session *session,
   _print_json_netaddr(session, "router_id", originator);
   _print_json_string(session, "metric", domain->metric->name);
 
-  oonf_viewer_json_start_array(session, "routes");
+  oonf_viewer_json_start_array(session, COMMAND_ROUTES);
 
   avl_for_each_element(olsrv2_routing_get_tree(domain), rtentry, _node) {
     if (rtentry->route.family == af_type) {
@@ -302,7 +305,12 @@ _print_routing_tree(struct oonf_viewer_json_session *session,
       _print_json_netaddr(session, "next-id", &rtentry->next_originator);
 
       _print_json_string(session, "device", if_indextoname(rtentry->route.if_index, ibuf));
-      _print_json_number(session, "cost", rtentry->cost);
+      _print_json_number(session, "cost", rtentry->path_cost);
+
+      oonf_viewer_json_start_object(session, "properties");
+      _print_json_number(session, "hops", rtentry->path_hops);
+      oonf_viewer_json_end_object(session);
+
       oonf_viewer_json_end_object(session);
     }
   }
@@ -350,16 +358,17 @@ _cb_jsonfornet(struct oonf_telnet_data *con) {
   error = NULL;
 
   if (!con->parameter || con->parameter[0] == 0) {
-    error = "use network or routes subcommand";
+    error = "use " COMMAND_GRAPH " or " COMMAND_ROUTES " subcommand";
   }
-  else if (strcmp(con->parameter, "graph") == 0) {
+  else if (strcmp(con->parameter, COMMAND_GRAPH) == 0) {
     _create_graph_json(&session);
   }
-  else if (strcmp(con->parameter, "routes") == 0) {
+  else if (strcmp(con->parameter, COMMAND_ROUTES) == 0) {
     _create_routes_json(&session);
   }
   else {
-    error = "unknown sub-command";
+    error = "unknown sub-command, use "
+        COMMAND_GRAPH " or " COMMAND_ROUTES " subcommand";
   }
 
   if (error == NULL && abuf_has_failed(&out)) {

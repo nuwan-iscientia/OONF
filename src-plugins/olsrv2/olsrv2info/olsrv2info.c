@@ -696,7 +696,7 @@ _cb_create_text_route(struct oonf_viewer_template *template) {
 
     avl_for_each_element(olsrv2_routing_get_tree(domain),
         route, _node) {
-      _initialize_domain_metric_values(domain, route->cost);
+      _initialize_domain_metric_values(domain, route->path_cost);
       _initialize_route_values(route);
 
       oonf_viewer_output_print_line(template);

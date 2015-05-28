@@ -63,6 +63,9 @@ struct olsrv2_dijkstra_node {
   /* total path cost */
   uint32_t path_cost;
 
+  /* path hops to the target */
+  uint8_t path_hops;
+
   /* hopcount to be inserted into the route */
   uint8_t distance;
 
@@ -88,7 +91,10 @@ struct olsrv2_routing_entry {
   struct nhdp_domain *domain;
 
   /* path cost to reach the target */
-  uint32_t cost;
+  uint32_t path_cost;
+
+  /* path hops to the target */
+  uint8_t path_hops;
 
   /* originator address of next hop */
   struct netaddr next_originator;
