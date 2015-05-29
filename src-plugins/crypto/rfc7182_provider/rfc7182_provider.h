@@ -63,7 +63,7 @@ struct rfc7182_hash {
    * @param src_len length of original data
    * @return -1 if an error happened, 0 otherwise
    */
-  int (*hash)(struct rfc7182_hash *sig,
+  int (*hash)(struct rfc7182_hash *hash,
       void *dst, size_t *dst_len,
       const void *src, size_t src_len);
 

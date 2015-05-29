@@ -52,14 +52,14 @@
 #include "common/common_types.h"
 #include "core/oonf_subsystem.h"
 #include "subsystems/rfc5444/rfc5444_iana.h"
-#include "rfc5444_signature/rfc5444_signature.h"
+#include "rfc7182_provider/rfc7182_provider.h"
 
 #include "hash_polarssl/hash_polarssl.h"
 
 #define LOG_HASH_POLARSSL _hash_polarssl_subsystem.logging
 
 struct polarssl_hash {
-  struct rfc5444_sig_hash h;
+  struct rfc7182_hash h;
   const char *name;
 };
 
@@ -68,28 +68,31 @@ static int _init(void);
 static void _cleanup(void);
 
 #ifdef POLARSSL_SHA1_C
-static int _cb_sha1_hash(struct rfc5444_signature *sigdata,
+static int _cb_sha1_hash(struct rfc7182_hash *hash,
     void *dst, size_t *dst_len,
     const void *src, size_t src_len);
 #endif
 #ifdef POLARSSL_SHA1_C
-static int _cb_sha256_hash(struct rfc5444_signature *sigdata,
+static int _cb_sha256_hash(struct rfc7182_hash *hash,
     void *dst, size_t *dst_len,
     const void *src, size_t src_len);
 #endif
 #ifdef POLARSSL_SHA1_C
-static int _cb_sha512_hash(struct rfc5444_signature *sigdata,
+static int _cb_sha512_hash(struct rfc7182_hash *hash,
     void *dst, size_t *dst_len,
     const void *src, size_t src_len);
 #endif
-static size_t _cb_get_cryptsize(struct rfc5444_signature *);
-static int _cb_hmac_crypt(struct rfc5444_signature *sig,
+static size_t _cb_get_signsize(
+    struct rfc7182_crypt *crpyt, struct rfc7182_hash *hash);
+static int _cb_hmac_sign(
+    struct rfc7182_crypt *crypt, struct rfc7182_hash *hash,
     void *dst, size_t *dst_len,
-    const void *src, size_t src_len);
+    const void *src, size_t src_len,
+    const void *key, size_t key_len);
 
 /* hash tomcrypt subsystem definition */
 static const char *_dependencies[] = {
-  OONF_RFC5444_SIG_SUBSYSTEM,
+  OONF_RFC7182_PROVIDER_SUBSYSTEM,
 };
 static struct oonf_subsystem _hash_polarssl_subsystem = {
   .name = OONF_HASH_POLARSSL_SUBSYSTEM,
@@ -154,10 +157,10 @@ static struct polarssl_hash _hashes[] = {
 };
 
 /* definition of hmac crypto function */
-struct rfc5444_sig_crypt _hmac = {
+struct rfc7182_crypt _hmac = {
   .type = RFC7182_ICV_CRYPT_HMAC,
-  .crypt = _cb_hmac_crypt,
-  .getSize = _cb_get_cryptsize,
+  .sign = _cb_hmac_sign,
+  .getSignSize = _cb_get_signsize,
 };
 
 /**
@@ -172,11 +175,11 @@ _init(void) {
   for (i=0; i<ARRAYSIZE(_hashes); i++) {
     OONF_INFO(LOG_HASH_POLARSSL, "Add %s hash to rfc7182 API",
         _hashes[i].name);
-    rfc5444_sig_add_hash(&_hashes[i].h);
+    rfc7182_add_hash(&_hashes[i].h);
   }
 
-  rfc5444_sig_add_crypt(&_hmac);
-  OONF_INFO(LOG_HASH_TOMCRYPT, "Add hmac to rfc7182 API");
+  rfc7182_add_crypt(&_hmac);
+  OONF_INFO(LOG_HASH_POLARSSL, "Add hmac to rfc7182 API");
   return 0;
 }
 
@@ -189,16 +192,16 @@ _cleanup(void) {
 
   /* register hashes with rfc5444 signature API */
   for (i=0; i<ARRAYSIZE(_hashes); i++) {
-    rfc5444_sig_remove_hash(&_hashes[i].h);
+    rfc7182_remove_hash(&_hashes[i].h);
   }
 
-  rfc5444_sig_remove_crypt(&_hmac);
+  rfc7182_remove_crypt(&_hmac);
 }
 
 #ifdef POLARSSL_SHA1_C
 /**
  * SHA1 hash implementation based on libpolarssl
- * @param sig rfc5444 signature
+ * @param hash rfc7182 hash
  * @param dst output buffer for hash
  * @param dst_len pointer to length of output buffer,
  *   will be set to hash length afterwards
@@ -207,15 +210,11 @@ _cleanup(void) {
  * @return -1 if an error happened, 0 otherwise
  */
 static int
-_cb_sha1_hash(struct rfc5444_signature *sig,
+_cb_sha1_hash(struct rfc7182_hash *hash,
     void *dst, size_t *dst_len,
     const void *src, size_t src_len) {
-  struct polarssl_hash *hash;
-  int result;
-  hash = container_of(sig->hash, struct polarssl_hash, h);
-
   sha1(src, (unsigned long)src_len, dst);
-  *dst_len = hash->h.hash_length;
+  *dst_len = hash->hash_length;
   return 0;
 }
 #endif
@@ -232,16 +231,12 @@ _cb_sha1_hash(struct rfc5444_signature *sig,
  * @return -1 if an error happened, 0 otherwise
  */
 static int
-_cb_sha256_hash(struct rfc5444_signature *sig,
+_cb_sha256_hash(struct rfc7182_hash *hash,
     void *dst, size_t *dst_len,
     const void *src, size_t src_len) {
-  struct polarssl_hash *hash;
-  int result;
-  hash = container_of(sig->hash, struct polarssl_hash, h);
-
   sha256(src, (unsigned long)src_len, dst,
-      hash->h.type == RFC7182_ICV_HASH_SHA_224 ? 1 : 0);
-  *dst_len = hash->h.hash_length;
+      hash->type == RFC7182_ICV_HASH_SHA_224 ? 1 : 0);
+  *dst_len = hash->hash_length;
   return 0;
 }
 #endif
@@ -258,32 +253,31 @@ _cb_sha256_hash(struct rfc5444_signature *sig,
  * @return -1 if an error happened, 0 otherwise
  */
 static int
-_cb_sha512_hash(struct rfc5444_signature *sig,
+_cb_sha512_hash(struct rfc7182_hash *hash,
     void *dst, size_t *dst_len,
     const void *src, size_t src_len) {
-  struct polarssl_hash *hash;
-  int result;
-  hash = container_of(sig->hash, struct polarssl_hash, h);
-
   sha512(src, (unsigned long)src_len, dst,
-      hash->h.type == RFC7182_ICV_HASH_SHA_384? 1 : 0);
-  *dst_len = hash->h.hash_length;
+      hash->type == RFC7182_ICV_HASH_SHA_384? 1 : 0);
+  *dst_len = hash->hash_length;
   return 0;
 }
 #endif
 
 /**
- * @param sig rfc5444 signature
+ * @param crypt rfc7182 crypt
+ * @param hash rfc7182 hash
  * @return length of signature based on chosen hash
  */
 static size_t
-_cb_get_cryptsize(struct rfc5444_signature *sig) {
-  return sig->hash->hash_length;
+_cb_get_signsize(struct rfc7182_crypt *crypt __attribute__((unused)),
+    struct rfc7182_hash *hash) {
+  return hash->hash_length;
 }
 
 /**
  * HMAC function based on libtomcrypt
- * @param sig rfc5444 signature
+ * @param crypt rfc7182 crypt
+ * @param hash rfc7182 hash
  * @param dst output buffer for signature
  * @param dst_len pointer to length of output buffer,
  *   will be set to signature length afterwards
@@ -292,47 +286,39 @@ _cb_get_cryptsize(struct rfc5444_signature *sig) {
  * @return -1 if an error happened, 0 otherwise
  */
 static int
-_cb_hmac_crypt(struct rfc5444_signature *sig,
+_cb_hmac_sign(struct rfc7182_crypt *crypt __attribute__((unused)),
+    struct rfc7182_hash *hash,
     void *dst, size_t *dst_len,
-    const void *src, size_t src_len) {
-  const void *cryptokey;
-  size_t cryptokey_length;
-  size_t i;
-  int result;
-
+    const void *src, size_t src_len,
+    const void *key, size_t key_len) {
   OONF_DEBUG_HEX(LOG_HASH_POLARSSL, src, src_len, "Calculate hash:");
 
-  switch (sig->hash->type) {
+  switch (hash->type) {
 #ifdef POLARSSL_SHA1_C
     case RFC7182_ICV_HASH_SHA_1:
-      sha1_hmac(cryptokey, cryptokey_length,
-          src, src_len, dst);
+      sha1_hmac(key, key_len, src, src_len, dst);
       break;
 #endif
 #ifdef POLARSSL_SHA256_C
     case RFC7182_ICV_HASH_SHA_224:
-      sha256_hmac(cryptokey, cryptokey_length,
-          src, src_len, dst, 1);
+      sha256_hmac(key, key_len, src, src_len, dst, 1);
       break;
     case RFC7182_ICV_HASH_SHA_256:
-      sha256_hmac(cryptokey, cryptokey_length,
-          src, src_len, dst, 0);
+      sha256_hmac(key, key_len, src, src_len, dst, 0);
       break;
 #endif
 #ifdef POLARSSL_SHA512_C
     case RFC7182_ICV_HASH_SHA_384:
-      sha512_hmac(cryptokey, cryptokey_length,
-          src, src_len, dst, 1);
+      sha512_hmac(key, key_len, src, src_len, dst, 1);
       break;
     case RFC7182_ICV_HASH_SHA_512:
-      sha512_hmac(cryptokey, cryptokey_length,
-          src, src_len, dst, 0);
+      sha512_hmac(key, key_len, src, src_len, dst, 0);
       break;
 #endif
     default:
       return -1;
   }
 
-  *dst_len = sig->hash->hash_length;
+  *dst_len = hash->hash_length;
   return 0;
 }
