@@ -448,7 +448,8 @@ _cb_timestamp_tlv(struct rfc5444_reader_tlvblock_context *context __attribute__(
   if ((node->send_query > 0 && response == node->send_query)
       || (node->last_counter < timestamp &&
           node->last_counter + _config.window_size > timestamp)) {
-    OONF_INFO(LOG_SIMPLE_SECURITY, "Received valid timestamp");
+    OONF_INFO(LOG_SIMPLE_SECURITY, "Received valid timestamp %u from %s/%s",
+        timestamp, netaddr_to_string(&nbuf, &key.src), core_if->data.name);
 
     /* we got a valid query/response or a valid timestamp */
     node->last_counter = timestamp;
@@ -456,8 +457,10 @@ _cb_timestamp_tlv(struct rfc5444_reader_tlvblock_context *context __attribute__(
 
     result = RFC5444_OKAY;
 
-    /* stop trigger, we just received a good packet */
-    oonf_timer_stop(&node->_trigger);
+    /* stop trigger if we don't need to send a response, we just received a good packet */
+    if (node->send_response == 0) {
+      oonf_timer_stop(&node->_trigger);
+    }
   }
   else if (node->last_counter == timestamp) {
     /* duplicate of the last packet */
@@ -480,7 +483,8 @@ _cb_timestamp_tlv(struct rfc5444_reader_tlvblock_context *context __attribute__(
 
     if(!oonf_timer_is_active(&node->_trigger)) {
       /* trigger query response */
-      oonf_timer_set(&node->_trigger, _config.trigger_delay);
+      oonf_timer_set(&node->_trigger,
+          node->send_response > 0 ? 1 : _config.trigger_delay);
     }
   }
 
@@ -532,6 +536,8 @@ _cb_addPacketTLVs(struct rfc5444_writer *writer, struct rfc5444_writer_target *r
   /* Challenge query and response are only valid for unicasts */
   node = avl_find_element(&_timestamp_tree, &key, node, _node);
   if (node) {
+    OONF_DEBUG(LOG_SIMPLE_SECURITY, "Add packet-tlvs %u/%u", node->send_query, node->send_response);
+
     if (node->send_query) {
       /* send query */
       query = htonl(node->send_query);

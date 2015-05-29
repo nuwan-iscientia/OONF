@@ -51,7 +51,7 @@
 #define LOG_HASH_TOMCRYPT _hash_tomcrypt_subsystem.logging
 
 struct tomcrypt_hash {
-  struct rfc5444_sig_hash h;
+  struct rfc7182_hash h;
   const char *name;
   int idx;
 };
@@ -60,17 +60,17 @@ struct tomcrypt_hash {
 static int _init(void);
 static void _cleanup(void);
 
-static int _cb_sha_hash(struct rfc5444_signature *sigdata,
+static int _cb_sha_hash(struct rfc7182_hash *hash,
     void *dst, size_t *dst_len,
     const void *src, size_t src_len);
-static size_t _cb_get_cryptsize(struct rfc5444_signature *);
-static int _cb_hmac_crypt(struct rfc5444_signature *sig,
-    void *dst, size_t *dst_len,
-    const void *src, size_t src_len);
+static size_t _cb_get_cryptsize(struct rfc7182_crypt *, struct rfc7182_hash *);
+static int _cb_hmac_sign(struct rfc7182_crypt *, struct rfc7182_hash *,
+    void *dst, size_t *dst_len, const void *src, size_t src_len,
+    const void *key, size_t key_len);
 
 /* hash tomcrypt subsystem definition */
 static const char *_dependencies[] = {
-  OONF_RFC5444_SIG_SUBSYSTEM,
+  OONF_RFC7182_PROVIDER_SUBSYSTEM,
 };
 static struct oonf_subsystem _hash_tomcrypt_subsystem = {
   .name = OONF_HASH_TOMCRYPT_SUBSYSTEM,
@@ -129,10 +129,10 @@ static struct tomcrypt_hash _hashes[] = {
 };
 
 /* definition of hmac crypto function */
-struct rfc5444_sig_crypt _hmac = {
+struct rfc7182_crypt _hmac = {
   .type = RFC7182_ICV_CRYPT_HMAC,
-  .crypt = _cb_hmac_crypt,
-  .getSize = _cb_get_cryptsize,
+  .sign = _cb_hmac_sign,
+  .getSignSize = _cb_get_cryptsize,
 };
 
 /**
@@ -156,11 +156,11 @@ _init(void) {
     if (_hashes[i].idx != -1) {
       OONF_INFO(LOG_HASH_TOMCRYPT, "Add %s hash to rfc7182 API",
           _hashes[i].name);
-      rfc5444_sig_add_hash(&_hashes[i].h);
+      rfc7182_add_hash(&_hashes[i].h);
     }
   }
 
-  rfc5444_sig_add_crypt(&_hmac);
+  rfc7182_add_crypt(&_hmac);
   OONF_INFO(LOG_HASH_TOMCRYPT, "Add hmac to rfc7182 API");
   return 0;
 }
@@ -175,16 +175,16 @@ _cleanup(void) {
   /* unregister hashes with rfc5444 signature API */
   for (i=0; i<ARRAYSIZE(_hashes); i++) {
     if (_hashes[i].idx != -1) {
-      rfc5444_sig_remove_hash(&_hashes[i].h);
+      rfc7182_remove_hash(&_hashes[i].h);
     }
   }
 
-  rfc5444_sig_remove_crypt(&_hmac);
+  rfc7182_remove_crypt(&_hmac);
 }
 
 /**
  * Generic SHA1/2 hash implementation based on libtomcrypt
- * @param sig rfc5444 signature
+ * @param hash rfc7182 hash
  * @param dst output buffer for hash
  * @param dst_len pointer to length of output buffer,
  *   will be set to hash length afterwards
@@ -193,14 +193,15 @@ _cleanup(void) {
  * @return -1 if an error happened, 0 otherwise
  */
 static int
-_cb_sha_hash(struct rfc5444_signature *sig,
+_cb_sha_hash(struct rfc7182_hash *hash,
     void *dst, size_t *dst_len,
     const void *src, size_t src_len) {
-  struct tomcrypt_hash *hash;
+  struct tomcrypt_hash *tomhash;
   int result;
-  hash = container_of(sig->hash, struct tomcrypt_hash, h);
 
-  result = hash_memory(hash->idx,
+  tomhash = container_of(hash, struct tomcrypt_hash, h);
+
+  result = hash_memory(tomhash->idx,
       src, (unsigned long)src_len,
       dst, (unsigned long *)dst_len);
   if (result) {
@@ -211,41 +212,43 @@ _cb_sha_hash(struct rfc5444_signature *sig,
 }
 
 /**
- * @param sig rfc5444 signature
+ * @param crypt cryptographic function
+ * @param hash hash function
  * @return length of signature based on chosen hash
  */
 static size_t
-_cb_get_cryptsize(struct rfc5444_signature *sig) {
-  return sig->hash->hash_length;
+_cb_get_cryptsize(struct rfc7182_crypt *crypt __attribute__((unused)),
+    struct rfc7182_hash *hash) {
+  return hash->hash_length;
 }
 
 /**
  * HMAC function based on libtomcrypt
- * @param sig rfc5444 signature
- * @param dst output buffer for signature
- * @param dst_len pointer to length of output buffer,
- *   will be set to signature length afterwards
+ * @param crypt this crypto definition
+ * @param hash the definition of the hash
+ * @param dst output buffer for cryptographic signature
+ * @param dst_len pointer to length of output buffer, will be set to
+ *   length of signature afterwards
  * @param src unsigned original data
  * @param src_len length of original data
+ * @param key key material for signature
+ * @param key_len length of key material
  * @return -1 if an error happened, 0 otherwise
  */
 static int
-_cb_hmac_crypt(struct rfc5444_signature *sig,
-    void *dst, size_t *dst_len,
-    const void *src, size_t src_len) {
-  const void *cryptokey;
-  size_t cryptokey_length;
+_cb_hmac_sign(struct rfc7182_crypt *crypt __attribute__((unused)),
+    struct rfc7182_hash *hash,
+    void *dst, size_t *dst_len, const void *src, size_t src_len,
+    const void *key, size_t key_len) {
   size_t i;
   int result;
 
   OONF_DEBUG_HEX(LOG_HASH_TOMCRYPT, src, src_len, "Calculate hash:");
 
-  cryptokey_length = 0;
   for (i=0; i<ARRAYSIZE(_hashes); i++) {
-    if (&_hashes[i].h == sig->hash) {
-      cryptokey = sig->getCryptoKey(sig, &cryptokey_length);
+    if (&_hashes[i].h == hash) {
       result = hmac_memory(_hashes[i].idx,
-          cryptokey, (unsigned long)cryptokey_length,
+          key, (unsigned long)key_len,
           src, (unsigned long)src_len,
           dst, (unsigned long *)dst_len);
       if (result) {
@@ -255,7 +258,6 @@ _cb_hmac_crypt(struct rfc5444_signature *sig,
       return 0;
     }
   }
-  OONF_WARN(LOG_HASH_TOMCRYPT, "Unsupported Hash for Tomcrypt HMAC: %u",
-      sig->hash->type);
+  OONF_WARN(LOG_HASH_TOMCRYPT, "Unsupported Hash for Tomcrypt HMAC: %u", hash->type);
   return -1;
 }

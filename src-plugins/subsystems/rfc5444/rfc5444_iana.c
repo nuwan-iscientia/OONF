@@ -109,7 +109,7 @@ rfc7182_get_crypto(void) {
  * @return rfc7182 hash-id
  */
 enum rfc7182_icv_hash
-rfc7182_get_hash(const char *name) {
+rfc7182_get_hash_id(const char *name) {
   size_t i;
 
   for (i=0; i<ARRAYSIZE(_rfc7182_hashes); i++) {
@@ -125,7 +125,7 @@ rfc7182_get_hash(const char *name) {
  * @return rfc7182 crypto-id
  */
 enum rfc7182_icv_crypt
-rfc7182_get_crypt(const char *name) {
+rfc7182_get_crypt_id(const char *name) {
   size_t i;
 
   for (i=0; i<ARRAYSIZE(_rfc7182_crypt); i++) {

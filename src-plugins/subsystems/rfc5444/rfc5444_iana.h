@@ -263,7 +263,7 @@ EXPORT const char *rfc7182_get_crypt_name(enum rfc7182_icv_crypt);
 EXPORT const char **rfc7182_get_hashes(void);
 EXPORT const char **rfc7182_get_crypto(void);
 
-EXPORT enum rfc7182_icv_hash rfc7182_get_hash(const char *name);
-EXPORT enum rfc7182_icv_crypt rfc7182_get_crypt(const char *name);
+EXPORT enum rfc7182_icv_hash rfc7182_get_hash_id(const char *name);
+EXPORT enum rfc7182_icv_crypt rfc7182_get_crypt_id(const char *name);
 
 #endif /* RFC5444_IANA_H_ */

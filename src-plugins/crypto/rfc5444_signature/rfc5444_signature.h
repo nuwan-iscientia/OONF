@@ -46,83 +46,11 @@
 #include "common/avl.h"
 #include "subsystems/rfc5444/rfc5444_writer.h"
 #include "subsystems/oonf_rfc5444.h"
+#include "rfc7182_provider/rfc7182_provider.h"
 
 enum {
   RFC5444_SIG_MAX_HASHSIZE = RFC5444_MAX_PACKET_SIZE,
   RFC5444_SIG_MAX_CRYPTSIZE = RFC5444_MAX_PACKET_SIZE,
-};
-
-/* pre-define name of struct */
-struct rfc5444_signature;
-
-/* representation of a hash function for signatures */
-struct rfc5444_sig_hash {
-  /* RFC7182 hash id */
-  uint8_t type;
-
-  /* might be used as additional information for the crypto algorithm */
-  size_t hash_length;
-
-  /**
-   * Callback for a hash function
-   * @param sig rfc5444 signature
-   * @param dst output buffer for signature
-   * @param dst_len pointer to length of output buffer,
-   *   will be set to signature length afterwards
-   * @param src unsigned original data
-   * @param src_len length of original data
-   * @return -1 if an error happened, 0 otherwise
-   */
-  int (*hash)(struct rfc5444_signature *sig,
-      void *dst, size_t *dst_len,
-      const void *src, size_t src_len);
-
-  struct avl_node _node;
-};
-
-struct rfc5444_sig_crypt {
-  /* RFC7182 crypto ID */
-  uint8_t type;
-
-  /**
-   * @param sig rfc5444 signature
-   * @return the maximum number of bytes for the signature
-   */
-  size_t (*getSize)(struct rfc5444_signature *sig);
-
-  /**
-   * Creates a cryptographic signature for a data block. The crypto
-   * function normally uses the hash function defined for the signature
-   * before encrypting the output.
-   * @param sig rfc5444 signature
-   * @param dst output buffer for cryptographic signature
-   * @param dst_len pointer to length of output buffer, will be set to
-   *   length of signature afterwards
-   * @param src unsigned original data
-   * @param src_len length of original data
-   * @return -1 if an error happened, 0 otherwise
-   */
-  int (*crypt)(struct rfc5444_signature *sig,
-      void *dst, size_t *dst_len,
-      const void *src, size_t src_len);
-
-  /**
-   * Checks if an encrypted signature is valid.
-   *
-   * If this function is not defined, the crypt-callback will be
-   * used together with a memcmp() call for checking a signature.
-   * @param sig rfc5444 signature
-   * @param encrypted pointer to encrypted signature
-   * @param encrypted_length length of encrypted signature
-   * @param src unsigned original data
-   * @param src_len length of original data
-   * @return true if signature matches, false otherwise
-   */
-  bool (*check)(struct rfc5444_signature *sig,
-      const void *encrypted, size_t encrypted_length,
-      const void *src, size_t src_len);
-
-  struct avl_node _node;
 };
 
 struct rfc5444_signature_key {
@@ -188,10 +116,10 @@ struct rfc5444_signature {
   const struct netaddr *source;
 
   /* pointer to cryptographic hash of signature */
-  struct rfc5444_sig_hash *hash;
+  struct rfc7182_hash *hash;
 
   /* pointer to cryptographic function of signature */
-  struct rfc5444_sig_crypt *crypt;
+  struct rfc7182_crypt *crypt;
 
   /* true if signature has been validated */
   bool verified;
@@ -205,12 +133,6 @@ struct rfc5444_signature {
 };
 
 #define OONF_RFC5444_SIG_SUBSYSTEM "rfc5444_sig"
-
-EXPORT void rfc5444_sig_add_hash(struct rfc5444_sig_hash *);
-EXPORT void rfc5444_sig_remove_hash(struct rfc5444_sig_hash *);
-
-EXPORT void rfc5444_sig_add_crypt(struct rfc5444_sig_crypt *);
-EXPORT void rfc5444_sig_remove_crypt(struct rfc5444_sig_crypt *);
 
 EXPORT void rfc5444_sig_add(struct rfc5444_signature *sig);
 EXPORT void rfc5444_sig_remove(struct rfc5444_signature *sig);

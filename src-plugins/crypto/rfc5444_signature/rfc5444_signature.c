@@ -43,9 +43,11 @@
 #include "common/avl.h"
 #include "common/avl_comp.h"
 #include "core/oonf_subsystem.h"
+#include "subsystems/oonf_class.h"
 #include "subsystems/oonf_rfc5444.h"
 #include "subsystems/rfc5444/rfc5444_reader.h"
 #include "subsystems/rfc5444/rfc5444_writer.h"
+#include "rfc7182_provider/rfc7182_provider.h"
 
 #include "rfc5444_signature/rfc5444_signature.h"
 
@@ -61,7 +63,12 @@ static int _cb_add_signature(struct rfc5444_writer_postprocessor *processor,
 
 static size_t _remove_signature_data(uint8_t *dst,
     const struct rfc5444_reader_tlvblock_context *context);
-static void _handle_postprocessors(void);
+
+static void _cb_hash_added(void *ptr);
+static void _cb_hash_removed(void *ptr);
+static void _cb_crypt_added(void *ptr);
+static void _cb_crypt_removed(void *ptr);
+static void _handle_postprocessor(struct rfc5444_signature *sig);
 
 static int _avl_cmp_signatures(const void *, const void *);
 static const void *_cb_get_empty_keyid(
@@ -71,17 +78,12 @@ static enum rfc5444_sigid_check _cb_sigid_okay(
 
 static bool _cb_is_matching_signature(
     struct rfc5444_writer_postprocessor *processor, int msg_type);
-static int _cb_identity_hash(struct rfc5444_signature *sigdata,
-    void *dst, size_t *dst_len, const void *src, size_t src_len);
-static int _cb_identity_crypt(struct rfc5444_signature *sigdata,
-    void *dst, size_t *dst_len, const void *src, size_t src_len);
-static bool _cb_check_by_crypt(struct rfc5444_signature *sigdata,
-    const void *encrypted, size_t encrypted_length,
-    const void *hash, size_t hash_len);
 
 /* plugin declaration */
 static const char *_dependencies[] = {
+  OONF_CLASS_SUBSYSTEM,
   OONF_RFC5444_SUBSYSTEM,
+  OONF_RFC7182_PROVIDER_SUBSYSTEM,
 };
 static struct oonf_subsystem _rfc5444_sig_subsystem = {
   .name = OONF_RFC5444_SIG_SUBSYSTEM,
@@ -118,27 +120,26 @@ static struct rfc5444_reader_tlvblock_consumer_entry _msg_signature_tlv = {
 
 static struct oonf_rfc5444_protocol *_protocol;
 
-/* identity hash/crypt function */
-struct rfc5444_sig_hash _identity_hash = {
-  .type = RFC7182_ICV_HASH_IDENTITY,
-  .hash = _cb_identity_hash,
-};
-
-struct rfc5444_sig_crypt _identity_crypt = {
-  .type = RFC7182_ICV_CRYPT_IDENTITY,
-  .crypt = _cb_identity_crypt,
-};
-
-/* tree of hash/crypt functions */
-static struct avl_tree _crypt_functions;
-static struct avl_tree _hash_functions;
-
 /* tree of registered signatures */
 static struct avl_tree _sig_tree;
 
 /* static buffer for signature calculation */
 static uint8_t _static_message_buffer[RFC5444_MAX_PACKET_SIZE];
 static uint8_t _crypt_buffer[RFC5444_MAX_PACKET_SIZE];
+
+/* listeners for crypto and hash algorithms */
+struct oonf_class_extension _hash_listener = {
+  .ext_name = "rfc5444 signatures",
+  .class_name = OONF_RFC7182_HASH_CLASS,
+  .cb_add = _cb_hash_added,
+  .cb_remove = _cb_hash_removed,
+};
+struct oonf_class_extension _crypt_listener = {
+  .ext_name = "rfc5444 signatures",
+  .class_name = OONF_RFC7182_CRYPTO_CLASS,
+  .cb_add = _cb_crypt_added,
+  .cb_remove = _cb_crypt_removed,
+};
 
 /**
  * Constructor of subsystem
@@ -155,14 +156,10 @@ _init(void) {
       &_signature_msg_consumer, &_msg_signature_tlv, 1);
   rfc5444_reader_add_packet_consumer(&_protocol->reader,
       &_signature_pkt_consumer, &_pkt_signature_tlv, 1);
-  avl_init(&_crypt_functions, avl_comp_uint8, false);
-  avl_init(&_hash_functions, avl_comp_uint8, false);
   avl_init(&_sig_tree, _avl_cmp_signatures, true);
 
-  rfc5444_sig_add_hash(&_identity_hash);
-  rfc5444_sig_add_crypt(&_identity_crypt);
-
-  // install();
+  oonf_class_extension_add(&_hash_listener);
+  oonf_class_extension_add(&_crypt_listener);
   return 0;
 }
 
@@ -171,16 +168,8 @@ _init(void) {
  */
 static void
 _cleanup(void) {
-  struct rfc5444_sig_hash *hash, *hash_it;
-  struct rfc5444_sig_crypt *crypt, *crypt_it;
   struct rfc5444_signature *sig, *sig_it;
 
-  avl_for_each_element_safe(&_hash_functions, hash, _node, hash_it) {
-    rfc5444_sig_remove_hash(hash);
-  }
-  avl_for_each_element_safe(&_crypt_functions, crypt, _node, crypt_it) {
-    rfc5444_sig_remove_crypt(crypt);
-  }
   avl_for_each_element_safe(&_sig_tree, sig, _node, sig_it) {
     rfc5444_sig_remove(sig);
   }
@@ -190,63 +179,9 @@ _cleanup(void) {
   rfc5444_reader_remove_packet_consumer(
       &_protocol->reader, &_signature_pkt_consumer);
   oonf_rfc5444_remove_protocol(_protocol);
-}
 
-/**
- * Register a hash function to the signature API
- * @param hash pointer to hash definition
- */
-void
-rfc5444_sig_add_hash(struct rfc5444_sig_hash *hash) {
-  /* hook key into avl node */
-  hash->_node.key = &hash->type;
-
-  /* hook hash into hash tree */
-  avl_insert(&_hash_functions, &hash->_node);
-
-  /* see if someone needs this hash-function */
-  _handle_postprocessors();
-}
-
-/**
- * Remove hash function from signature API
- * @param hash pointer to hash definition
- */
-void
-rfc5444_sig_remove_hash(struct rfc5444_sig_hash *hash) {
-  avl_remove(&_hash_functions, &hash->_node);
-  _handle_postprocessors();
-}
-
-/**
- * Add a crypto function to the signature API
- * @param crypt pointer to signature definition
- */
-void
-rfc5444_sig_add_crypt(struct rfc5444_sig_crypt *crypt) {
-  /* hook key into avl node */
-  crypt->_node.key = &crypt->type;
-
-  /* use default checker if necessary */
-  if (!crypt->check) {
-    crypt->check = _cb_check_by_crypt;
-  }
-
-  /* hook crypt function into crypt tree */
-  avl_insert(&_crypt_functions, &crypt->_node);
-
-  /* see if someone needs this crypto-function */
-  _handle_postprocessors();
-}
-
-/**
- * Remove a crypto function from the signature API
- * @param crypt pointer to signature definition
- */
-void
-rfc5444_sig_remove_crypt(struct rfc5444_sig_crypt *crypt) {
-  avl_remove(&_crypt_functions, &crypt->_node);
-  _handle_postprocessors();
+  oonf_class_extension_remove(&_hash_listener);
+  oonf_class_extension_remove(&_crypt_listener);
 }
 
 /**
@@ -271,7 +206,11 @@ rfc5444_sig_add(struct rfc5444_signature *sig) {
   sig->_postprocessor.process = _cb_add_signature;
   sig->_postprocessor.is_matching_signature = _cb_is_matching_signature;
 
-  _handle_postprocessors();
+  /* try to get hash/crypto */
+  sig->hash = rfc7182_get_hash(sig->key.hash_function);
+  sig->crypt = rfc7182_get_crypt(sig->key.crypt_function);
+
+  _handle_postprocessor(sig);
 }
 
 /**
@@ -301,7 +240,8 @@ _cb_signature_tlv(struct rfc5444_reader_tlvblock_context *context) {
   int msg_type;
   uint8_t key_id_len;
   uint8_t *static_data;
-  size_t static_length;
+  size_t static_length, key_length;
+  const void *key;
   bool sig_to_verify;
 #ifdef OONF_LOG_DEBUG_INFO
   struct netaddr_str nbuf;
@@ -412,8 +352,11 @@ _cb_signature_tlv(struct rfc5444_reader_tlvblock_context *context) {
       sig->source = _protocol->input_address;
 
       /* check signature */
-      sig->verified = sig->crypt->check(sig, &tlv->single_value[3+key_id_len],
-            tlv->length - 3 - key_id_len, _static_message_buffer, static_length);
+      key = sig->getCryptoKey(sig, &key_length);
+      sig->verified = sig->crypt->validate(sig->crypt, sig->hash,
+          &tlv->single_value[3+key_id_len], tlv->length - 3 - key_id_len,
+          _static_message_buffer, static_length,
+          key, key_length);
 
       OONF_DEBUG(LOG_RFC5444_SIG, "Checked signature hash=%d/crypt=%d: %s",
           sig->key.hash_function, sig->key.crypt_function, sig->verified ? "check" : "bad");
@@ -454,13 +397,13 @@ _cb_add_signature(struct rfc5444_writer_postprocessor *processor,
   const union netaddr_socket *local_socket;
   struct netaddr srcaddr;
 
-  int hash_buffer_size, sig_size, sig_tlv_size, tlvblock_size;
+  size_t hash_buffer_size, sig_size, sig_tlv_size, tlvblock_size, key_size;
   uint8_t *tlvblock;
   int idx;
 
   size_t crypt_len;
 
-  const void *key_id;
+  const void *key_id, *key;
   size_t key_id_length;
 
 #ifdef OONF_LOG_DEBUG_INFO
@@ -548,15 +491,18 @@ _cb_add_signature(struct rfc5444_writer_postprocessor *processor,
 
   /* calculate encrypted hash value */
   crypt_len = sizeof(_crypt_buffer);
-  if (sig->crypt->crypt(sig, _crypt_buffer, &crypt_len, _static_message_buffer, hash_buffer_size)) {
+  key = sig->getCryptoKey(sig, &key_size);
+  if (sig->crypt->sign(sig->crypt, sig->hash, _crypt_buffer, &crypt_len,
+      _static_message_buffer, hash_buffer_size,
+      key, key_size)) {
     OONF_WARN(LOG_RFC5444_SIG, "Signature generation failed");
     return -1;
   }
 
-  if (crypt_len > sig->crypt->getSize(sig)) {
+  if (crypt_len > sig->crypt->getSignSize(sig->crypt, sig->hash)) {
     OONF_WARN(LOG_RFC5444_SIG, "Signature too long: "
         "%"PRINTF_SIZE_T_SPECIFIER" > %"PRINTF_SIZE_T_SPECIFIER,
-        crypt_len, sig->crypt->getSize(sig));
+        crypt_len, sig->crypt->getSignSize(sig->crypt, sig->hash));
     return -1;
   }
 
@@ -777,34 +723,82 @@ _remove_signature_data(uint8_t *dst, const struct rfc5444_reader_tlvblock_contex
   return len;
 }
 
+static void
+_cb_hash_added(void *ptr) {
+  struct rfc7182_hash *hash = ptr;
+  struct rfc5444_signature *sig;
+
+  avl_for_each_element(&_sig_tree, sig, _node) {
+    if (sig->key.hash_function == hash->type && sig->hash == NULL) {
+      sig->hash = hash;
+
+      _handle_postprocessor(sig);
+    }
+  }
+}
+
+static void
+_cb_hash_removed(void *ptr) {
+  struct rfc7182_hash *hash = ptr;
+  struct rfc5444_signature *sig;
+
+  avl_for_each_element(&_sig_tree, sig, _node) {
+    if (sig->key.hash_function == hash->type && sig->hash != NULL) {
+      sig->hash = NULL;
+
+      _handle_postprocessor(sig);
+    }
+  }
+}
+
+static void
+_cb_crypt_added(void *ptr) {
+  struct rfc7182_crypt *crypt = ptr;
+  struct rfc5444_signature *sig;
+
+  avl_for_each_element(&_sig_tree, sig, _node) {
+    if (sig->key.crypt_function == crypt->type && sig->crypt == NULL) {
+      sig->crypt = crypt;
+
+      _handle_postprocessor(sig);
+    }
+  }
+}
+
+static void
+_cb_crypt_removed(void *ptr) {
+  struct rfc7182_crypt *crypt = ptr;
+  struct rfc5444_signature *sig;
+
+  avl_for_each_element(&_sig_tree, sig, _node) {
+    if (sig->key.crypt_function == crypt->type && sig->crypt != NULL) {
+      sig->crypt = NULL;
+
+      _handle_postprocessor(sig);
+    }
+  }
+}
+
 /**
  * Helper function that registers the packet post-processors
  * for signature schemes that referred to an unregistered
  * hash/crypto-function
  */
 static void
-_handle_postprocessors(void) {
-  struct rfc5444_signature *sig;
+_handle_postprocessor(struct rfc5444_signature *sig) {
   bool registered;
 
-  avl_for_each_element(&_sig_tree, sig, _node) {
-    registered = avl_is_node_added(&sig->_postprocessor._node);
+  registered = avl_is_node_added(&sig->_postprocessor._node);
 
-    /* test if hash/crypt-function is available */
-    sig->hash = avl_find_element(&_hash_functions, &sig->key.hash_function,
-        sig->hash, _node);
-    sig->crypt = avl_find_element(&_crypt_functions,
-        &sig->key.crypt_function, sig->crypt, _node);
-
-    if (!registered && sig->hash != NULL && sig->crypt != NULL) {
-      sig->_postprocessor.allocate_space = sig->crypt->getSize(sig);
-      rfc5444_writer_register_postprocessor(
-          &_protocol->writer, &sig->_postprocessor);
-    }
-    else if (registered && (sig->hash == NULL || sig->crypt == NULL)) {
-      rfc5444_writer_unregister_postprocessor(
-                &_protocol->writer, &sig->_postprocessor);
-    }
+  if (!registered && sig->hash != NULL && sig->crypt != NULL) {
+    sig->_postprocessor.allocate_space =
+        sig->crypt->getSignSize(sig->crypt, sig->hash);
+    rfc5444_writer_register_postprocessor(
+        &_protocol->writer, &sig->_postprocessor);
+  }
+  else if (registered && (sig->hash == NULL || sig->crypt == NULL)) {
+    rfc5444_writer_unregister_postprocessor(
+              &_protocol->writer, &sig->_postprocessor);
   }
 }
 
@@ -857,84 +851,4 @@ _cb_is_matching_signature(
   sig = container_of(processor, struct rfc5444_signature, _postprocessor);
 
   return sig->is_matching_signature(sig, msg_type);
-}
-
-/**
- * 'Identity' hash function as defined in RFC7182
- * @param sig rfc5444 signature
- * @param dst output buffer for signature
- * @param dst_len pointer to length of output buffer,
- *   will be set to signature length afterwards
- * @param src unsigned original data
- * @param src_len length of original data
- * @return -1 if an error happened, 0 otherwise
- */
-static int
-_cb_identity_hash(struct rfc5444_signature *sig __attribute__((unused)),
-    void *dst, size_t *dst_len, const void *src, size_t src_len) {
-  *dst_len = src_len;
-  memcpy(dst, src, src_len);
-  return 0;
-}
-
-/**
- * 'Identity' crypto function as defined in RFC7182
- * @param sig rfc5444 signature
- * @param dst output buffer for cryptographic signature
- * @param dst_len pointer to length of output buffer, will be set to
- *   length of signature afterwards
- * @param src unsigned original data
- * @param src_len length of original data
- * @return -1 if an error happened, 0 otherwise
- */
-static int
-_cb_identity_crypt(struct rfc5444_signature *sig,
-    void *dst, size_t *dst_len, const void *src, size_t src_len) {
-  /* just hash */
-  if (sig->hash->hash(sig, dst, dst_len, src, src_len)) {
-    OONF_INFO(LOG_RFC5444_SIG, "Hash-error when checking signature");
-    return -1;
-  }
-  return 0;
-}
-
-/**
- * Callback to check a signature by generating a local signature
- * with the 'crypto' callback and then comparing both.
- * @param sig rfc5444 signature
- * @param encrypted pointer to encrypted signature
- * @param encrypted_length length of encrypted signature
- * @param src unsigned original data
- * @param src_len length of original data
- * @return true if signature matches, false otherwise
- */
-static bool
-_cb_check_by_crypt(struct rfc5444_signature *sig,
-    const void *encrypted, size_t encrypted_length,
-    const void *src, size_t src_len) {
-  size_t crypt_length;
-  int result;
-
-  /* run encryption function */
-  crypt_length = sizeof(_crypt_buffer);
-  if (sig->crypt->crypt(sig, _crypt_buffer, &crypt_length, src, src_len)) {
-    OONF_INFO(LOG_RFC5444_SIG, "Crypto-error when checking signature");
-    return -1;
-  }
-
-  /* compare length of both signatures */
-  if (crypt_length != encrypted_length) {
-    OONF_INFO(LOG_RFC5444_SIG, "signature has wrong length: "
-        "%"PRINTF_SIZE_T_SPECIFIER" != %"PRINTF_SIZE_T_SPECIFIER,
-        crypt_length, encrypted_length);
-    return -1;
-  }
-
-  /* binary compare both signatures */
-  result = memcmp(encrypted, _crypt_buffer, crypt_length);
-  if (result) {
-    OONF_INFO_HEX(LOG_RFC5444_SIG, encrypted, crypt_length, "Received signature:");
-    OONF_INFO_HEX(LOG_RFC5444_SIG, _crypt_buffer, crypt_length, "Expected signature:");
-  }
-  return result == 0;
 }
