@@ -381,7 +381,7 @@ _cb_timestamp_tlv(struct rfc5444_reader_tlvblock_context *context __attribute__(
   uint32_t timestamp, query, response;
   enum rfc5444_result result;
 
-#ifdef OONF_LOG_DEBUG_INFO
+#ifdef OONF_LOG_INFO
   struct netaddr_str nbuf;
 #endif
 
@@ -536,8 +536,6 @@ _cb_addPacketTLVs(struct rfc5444_writer *writer, struct rfc5444_writer_target *r
   /* Challenge query and response are only valid for unicasts */
   node = avl_find_element(&_timestamp_tree, &key, node, _node);
   if (node) {
-    OONF_DEBUG(LOG_SIMPLE_SECURITY, "Add packet-tlvs %u/%u", node->send_query, node->send_response);
-
     if (node->send_query) {
       /* send query */
       query = htonl(node->send_query);
