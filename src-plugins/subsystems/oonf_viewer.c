@@ -385,14 +385,7 @@ oonf_viewer_json_start_array(struct oonf_viewer_json_session *session,
     session->empty = true;
   }
 
-  if (session->level > 0) {
-    abuf_puts(session->out, "\n");
-  }
-  abuf_appendf(session->out, "%s\"%s\": [", session->prefix, name);
-
-  session->prefix[session->level] = '\t';
-  session->level++;
-  session->prefix[session->level] = 0;
+  abuf_appendf(session->out, "\"%s\": [", name);
 }
 
 /**
@@ -404,10 +397,8 @@ void
 oonf_viewer_json_end_array(struct oonf_viewer_json_session *session) {
   /* close session */
   session->empty = false;
-  session->level--;
-  session->prefix[session->level] = 0;
 
-  abuf_appendf(session->out, "\n%s]", session->prefix);
+  abuf_puts(session->out, "]");
 }
 
 /**
@@ -423,22 +414,23 @@ oonf_viewer_json_start_object(struct oonf_viewer_json_session *session, const ch
     session->empty = true;
   }
 
-  if (session->level > 0) {
-    abuf_puts(session->out, "\n");
-  }
-
   if (name) {
-    abuf_appendf(session->out, "%s\"%s\": {", session->prefix, name);
+    abuf_appendf(session->out, "\"%s\": {", name);
   }
   else {
-    abuf_appendf(session->out, "%s{", session->prefix);
+    abuf_puts(session->out, "{");
   }
-
-  session->prefix[session->level] = '\t';
-  session->level++;
-  session->prefix[session->level] = 0;
 }
 
+/**
+ * This function prints a key/value pair to the JSON session.
+ * The value will be added in a printf-style manner to behind
+ * the fourth parameter.
+ * @param session json session
+ * @param key name of the JSON key
+ * @param string true if the value is a string, false otherwise
+ * @param format printf format for value
+ */
 void
 oonf_viewer_json_elementf(struct oonf_viewer_json_session *session,
     const char *key, bool string, const char *format, ...) {
@@ -447,12 +439,9 @@ oonf_viewer_json_elementf(struct oonf_viewer_json_session *session,
   if (!session->empty) {
     abuf_puts(session->out, ",");
   }
+  session->empty = false;
 
-  if (session->level > 0) {
-    abuf_puts(session->out, "\n");
-  }
-
-  abuf_appendf(session->out, "%s\"%s\": ", session->prefix, key);
+  abuf_appendf(session->out, "\"%s\": ", key);
 
   if (string) {
     abuf_puts(session->out, "\"");
@@ -475,14 +464,8 @@ void
 oonf_viewer_json_end_object(struct oonf_viewer_json_session *session) {
   /* close session */
   session->empty = false;
-  session->level--;
-  session->prefix[session->level] = 0;
 
-  abuf_appendf(session->out, "\n%s}", session->prefix);
-
-  if (session->level == 0) {
-    abuf_puts(session->out, "\n");
-  }
+  abuf_puts(session->out, "}");
 }
 
 /**
@@ -503,8 +486,5 @@ oonf_viewer_json_print_object_ext(struct oonf_viewer_json_session *session,
     abuf_puts(session->out, ",\n");
   }
 
-  /* temporary remove one level */
-  session->prefix[session->level-1] = 0;
-  abuf_add_json_ext(session->out, session->prefix, false, data, count);
-  session->prefix[session->level-1] = '\t';
+  abuf_add_json_ext(session->out, "", false, data, count);
 }

@@ -140,10 +140,10 @@ _print_graph_edge(struct oonf_viewer_json_session *session,
   _print_json_number(session, "weight", out);
   if (in) {
     oonf_viewer_json_start_object(session, "properties");
-    _print_json_string(session, "weight-txt",
+    _print_json_string(session, "weight_txt",
         nhdp_domain_get_metric_value(&mbuf, domain, out));
     _print_json_number(session, "in", in);
-    _print_json_string(session, "in-txt",
+    _print_json_string(session, "in_txt",
         nhdp_domain_get_metric_value(&mbuf, domain, in));
     oonf_viewer_json_end_object(session);
   }
@@ -159,11 +159,11 @@ _print_graph_end(struct oonf_viewer_json_session *session,
 
   oonf_viewer_json_start_object(session, NULL);
   _print_json_netaddr(session, "source", src);
-  _print_json_netaddr(session, "prefix", prefix);
+  _print_json_netaddr(session, "target", prefix);
   _print_json_number(session, "weight", out);
 
   oonf_viewer_json_start_object(session, "properties");
-  _print_json_string(session, "weight-txt",
+  _print_json_string(session, "weight_txt",
       nhdp_domain_get_metric_value(&mbuf, domain, out));
   if (hopcount) {
     _print_json_number(session, "hopcount", hopcount);
@@ -188,6 +188,10 @@ _print_graph(struct oonf_viewer_json_session *session,
   }
   oonf_viewer_json_start_object(session, NULL);
 
+  _print_json_string(session, "type", "NetworkGraph");
+  _print_json_string(session, "protocol", "olsrv2");
+  _print_json_string(session, "version", oonf_log_get_libdata()->version);
+  _print_json_string(session, "revision", oonf_log_get_libdata()->git_commit);
   _print_json_netaddr(session, "router_id", originator);
   _print_json_string(session, "metric", domain->metric->name);
 
@@ -261,12 +265,8 @@ _create_graph_json(struct oonf_viewer_json_session *session) {
   struct nhdp_domain *domain;
   oonf_viewer_json_start_object(session, NULL);
 
-  _print_json_string(session, "type", "NetworkRoutes");
-  _print_json_string(session, "protocol", "olsrv2");
-  _print_json_string(session, "version", oonf_log_get_libdata()->version);
-  _print_json_string(session, "revision", oonf_log_get_libdata()->git_commit);
-
-  oonf_viewer_json_start_array(session, "topologies");
+  _print_json_string(session, "type", "NetworkCollection");
+  oonf_viewer_json_start_array(session, "collection");
   list_for_each_element(nhdp_domain_get_list(), domain, _node) {
     _print_graph(session, domain, AF_INET);
     _print_graph(session, domain, AF_INET6);
@@ -289,6 +289,10 @@ _print_routing_tree(struct oonf_viewer_json_session *session,
 
   oonf_viewer_json_start_object(session, NULL);
 
+  _print_json_string(session, "type", "NetworkRoutes");
+  _print_json_string(session, "protocol", "olsrv2");
+  _print_json_string(session, "version", oonf_log_get_libdata()->version);
+  _print_json_string(session, "revision", oonf_log_get_libdata()->git_commit);
   _print_json_netaddr(session, "router_id", originator);
   _print_json_string(session, "metric", domain->metric->name);
 
@@ -302,7 +306,7 @@ _print_routing_tree(struct oonf_viewer_json_session *session,
         _print_json_netaddr(session, "source", &rtentry->route.src_prefix);
       }
       _print_json_netaddr(session, "next", &rtentry->route.gw);
-      _print_json_netaddr(session, "next-id", &rtentry->next_originator);
+      _print_json_netaddr(session, "next_id", &rtentry->next_originator);
 
       _print_json_string(session, "device", if_indextoname(rtentry->route.if_index, ibuf));
       _print_json_number(session, "cost", rtentry->path_cost);
@@ -324,12 +328,10 @@ _create_routes_json(struct oonf_viewer_json_session *session) {
   struct nhdp_domain *domain;
   oonf_viewer_json_start_object(session, NULL);
 
-  _print_json_string(session, "type", "NetworkRoutes");
-  _print_json_string(session, "protocol", "olsrv2");
-  _print_json_string(session, "version", oonf_log_get_libdata()->version);
-  _print_json_string(session, "revision", oonf_log_get_libdata()->git_commit);
+  _print_json_string(session, "type", "NetworkCollection");
 
-  oonf_viewer_json_start_array(session, "topologies");
+  oonf_viewer_json_start_array(session, "collection:");
+
   list_for_each_element(nhdp_domain_get_list(), domain, _node) {
     _print_routing_tree(session, domain, AF_INET);
     _print_routing_tree(session, domain, AF_INET6);

@@ -62,12 +62,6 @@ struct oonf_viewer_json_session {
   /* pointer to output buffer */
   struct autobuf *out;
 
-  /* prefix to handle indentation of output */
-  char prefix[32];
-
-  /* current level of indentation */
-  int level;
-
   /* true if we just started a new object/array */
   bool empty;
 };
