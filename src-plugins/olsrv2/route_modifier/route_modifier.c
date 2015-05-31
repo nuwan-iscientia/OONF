@@ -57,6 +57,8 @@
 #include "route_modifier/route_modifier.h"
 
 /* definitions */
+#define LOG_ROUTE_MODIFIER _routemodifier_subsystem.logging
+
 struct _routemodifier {
   /* name of the routing filter */
   char name[16];
@@ -120,7 +122,7 @@ static const char *_dependencies[] = {
   OONF_CLASS_SUBSYSTEM,
   OONF_OLSRV2_SUBSYSTEM,
 };
-struct oonf_subsystem olsrv2_routemodifier_subsystem = {
+static struct oonf_subsystem _routemodifier_subsystem = {
   .name = OONF_ROUTE_MODIFIER_SUBSYSTEM,
   .dependencies = _dependencies,
   .dependencies_count = ARRAYSIZE(_dependencies),
@@ -132,7 +134,7 @@ struct oonf_subsystem olsrv2_routemodifier_subsystem = {
   .init = _init,
   .cleanup = _cleanup,
 };
-DECLARE_OONF_PLUGIN(olsrv2_routemodifier_subsystem);
+DECLARE_OONF_PLUGIN(_routemodifier_subsystem);
 
 /* class definition for filters */
 static struct oonf_class _modifier_class = {

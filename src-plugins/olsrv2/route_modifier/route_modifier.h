@@ -42,12 +42,6 @@
 #ifndef ROUTEMODIFIER_H_
 #define ROUTEMODIFIER_H_
 
-#include "common/common_types.h"
-#include "core/oonf_subsystem.h"
-
 #define OONF_ROUTE_MODIFIER_SUBSYSTEM "route_modifier"
-
-#define LOG_ROUTE_MODIFIER olsrv2_routemodifier_subsystem.logging
-EXPORT extern struct oonf_subsystem olsrv2_routemodifier_subsystem;
 
 #endif /* ROUTEMODIFIER_H_ */
