@@ -467,10 +467,10 @@ _initialize_interface_values(struct nhdp_interface *nhdp_if) {
   netaddr_to_string(&_value_if_mac, &core_if->data.mac);
 
   strscpy(_value_if_flooding_v4,
-      abuf_json_getbool(nhdp_if->use_ipv4_for_flooding), TEMPLATE_JSON_BOOL_LENGTH);
+      json_getbool(nhdp_if->use_ipv4_for_flooding), TEMPLATE_JSON_BOOL_LENGTH);
 
   strscpy(_value_if_flooding_v6,
-      abuf_json_getbool(nhdp_if->use_ipv6_for_flooding), TEMPLATE_JSON_BOOL_LENGTH);
+      json_getbool(nhdp_if->use_ipv6_for_flooding), TEMPLATE_JSON_BOOL_LENGTH);
 
   if (nhdp_if->dualstack_af_type == AF_INET) {
     strscpy(_value_if_dualstack_mode, "IPv4", sizeof(_value_if_dualstack_mode));
@@ -491,7 +491,7 @@ static void
 _initialize_interface_address_values(struct nhdp_interface_addr *if_addr) {
   netaddr_to_string(&_value_if_address, &if_addr->if_addr);
 
-  strscpy(_value_if_address_lost, abuf_json_getbool(if_addr->removed),
+  strscpy(_value_if_address_lost, json_getbool(if_addr->removed),
       sizeof(_value_if_address_lost));
 
   if (oonf_timer_is_active(&if_addr->_vtime)) {
@@ -567,11 +567,11 @@ _initialize_nhdp_neighbor_mpr_values(struct nhdp_domain *domain,
   strscpy(_value_domain_mpr, domain->mpr->name, sizeof(_value_domain_mpr));
 
   strscpy(_value_domain_mpr_local,
-      abuf_json_getbool(domaindata->local_is_mpr),
+      json_getbool(domaindata->local_is_mpr),
       sizeof(_value_domain_mpr_local));
 
   strscpy(_value_domain_mpr_remote,
-      abuf_json_getbool(domaindata->neigh_is_mpr),
+      json_getbool(domaindata->neigh_is_mpr),
       sizeof(_value_domain_mpr_remote));
 
 }
@@ -601,7 +601,7 @@ _initialize_nhdp_link_twohop_values(struct nhdp_l2hop *twohop) {
   netaddr_to_string(&_value_twohop_address, &twohop->twohop_addr);
 
   strscpy(_value_twohop_sameif,
-      abuf_json_getbool(twohop->same_interface),
+      json_getbool(twohop->same_interface),
       sizeof(_value_twohop_sameif));
 
   oonf_clock_toIntervalString(&_value_twohop_vtime,
@@ -624,14 +624,14 @@ _initialize_nhdp_neighbor_values(struct nhdp_neighbor *neigh) {
   }
 
   strscpy(_value_neighbor_flood_local,
-      abuf_json_getbool(neigh->local_is_flooding_mpr),
+      json_getbool(neigh->local_is_flooding_mpr),
       sizeof(_value_neighbor_flood_local));
   strscpy(_value_neighbor_flood_remote,
-      abuf_json_getbool(neigh->neigh_is_flooding_mpr),
+      json_getbool(neigh->neigh_is_flooding_mpr),
       sizeof(_value_neighbor_flood_remote));
 
   strscpy(_value_neighbor_symmetric,
-      abuf_json_getbool(neigh->symmetric > 0),
+      json_getbool(neigh->symmetric > 0),
       sizeof(_value_neighbor_symmetric));
   snprintf(_value_neighbor_linkcount, sizeof(_value_neighbor_linkcount),
       "%d", neigh->symmetric);
@@ -646,7 +646,7 @@ _initialize_nhdp_neighbor_address_values(struct nhdp_naddr *naddr) {
   netaddr_to_string(&_value_neighbor_address, &naddr->neigh_addr);
 
   strscpy(_value_neighbor_address_lost,
-      abuf_json_getbool(oonf_timer_is_active(&naddr->_lost_vtime)),
+      json_getbool(oonf_timer_is_active(&naddr->_lost_vtime)),
       sizeof(_value_neighbor_address_lost));
 
   oonf_clock_toIntervalString(&_value_neighbor_address_lost_vtime,

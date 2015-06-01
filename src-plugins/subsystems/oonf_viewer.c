@@ -152,7 +152,7 @@ oonf_viewer_output_print_line(struct oonf_viewer_template *template) {
   else {
     /* JSON output */
     json_start_object(&template->_json, NULL);
-    json_print_template_ext(&template->_json, template->data, template->data_size);
+    json_print_templates(&template->_json, template->data, template->data_size);
     json_end_object(&template->_json);
   }
 }

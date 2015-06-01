@@ -41,9 +41,14 @@
 
 #include "common/common_types.h"
 #include "common/autobuf.h"
+#include "common/string.h"
 #include "common/template.h"
 #include "common/json.h"
 
+static void _add_template(struct autobuf *out, const char *prefix,
+    bool brackets, struct abuf_template_data *data, size_t data_count);
+static void _json_printvalue(struct autobuf *out,
+    const char *txt, bool delimiter);
 
 /**
  * Initialize the JSON session object for creating a nested JSON
@@ -76,8 +81,8 @@ json_start_array(struct json_session *session,
 }
 
 /**
- * Ends a JSON array, should be paired with corresponding _start_array
- * call.
+ * Ends a JSON array, should be paired with corresponding
+ * json_start_array call.
  * @param session JSON session
  */
 void
@@ -156,14 +161,14 @@ json_end_object(struct json_session *session) {
 }
 
 /**
- * Print the contect of an autobuffer template as a list of JSON
- * key/value pairs.
+ * Print the context of an array of autobuf templates
+ * as a list of JSON key/value pairs.
  * @param session JSON session
  * @param data autobuffer template data array
  * @param count number of elements in data array
  */
 void
-json_print_template_ext(struct json_session *session,
+json_print_templates(struct json_session *session,
     struct abuf_template_data *data, size_t count) {
   if (session->empty) {
     session->empty = false;
@@ -173,5 +178,98 @@ json_print_template_ext(struct json_session *session,
     abuf_puts(session->out, ",\n");
   }
 
-  abuf_add_json_ext(session->out, "", false, data, count);
+  _add_template(session->out, "", false, data, count);
+}
+
+/**
+ * Converts a key/value list for the template engine into
+ * JSON compatible output.
+ * @param out output buffer
+ * @param prefix string prefix for all lines
+ * @param brackets true to add surrounding brackets and newlines
+ * @param data array of template data
+ * @param data_count number of template data entries
+ */
+static void
+_add_template(struct autobuf *out, const char *prefix,
+    bool brackets, struct abuf_template_data *data, size_t data_count) {
+  bool first;
+  size_t i,j;
+
+  if (brackets) {
+    abuf_appendf(out, "%s{\n", prefix);
+  }
+
+  first = true;
+  for (i=0; i<data_count; i++) {
+    for (j=0; j<data[i].count; j++) {
+      if (data[i].data[j].value == NULL) {
+        continue;
+      }
+
+      if (!first) {
+        abuf_puts(out, ",\n");
+      }
+      else {
+        first = false;
+      }
+
+      abuf_appendf(out, "%s\t\"%s\" : ", prefix, data[i].data[j].key);
+      _json_printvalue(out, data[i].data[j].value, data[i].data[j].string);
+    }
+
+    if (!first && brackets) {
+      abuf_puts(out, "\n");
+    }
+  }
+
+  if (brackets) {
+    abuf_appendf(out, "%s}\n", prefix);
+  }
+}
+
+/**
+ * Prints a string to an autobuffer, using JSON escape rules
+ * @param out pointer to output buffer
+ * @param txt string to print
+ * @param delimiter true if string must be enclosed in quotation marks
+ * @return -1 if an error happened, 0 otherwise
+ */
+static void
+_json_printvalue(struct autobuf *out, const char *txt, bool delimiter) {
+  const char *ptr;
+  bool unprintable;
+
+  if (delimiter) {
+    abuf_puts(out, "\"");
+  }
+  else if (*txt == 0) {
+    abuf_puts(out, "0");
+  }
+
+  ptr = txt;
+  while (*ptr) {
+    unprintable = !str_char_is_printable(*ptr);
+    if (unprintable || *ptr == '\\' || *ptr == '\"') {
+      if (ptr != txt) {
+        abuf_memcpy(out, txt, ptr - txt);
+      }
+
+      if (unprintable) {
+        abuf_appendf(out, "\\u00%02x", (unsigned char)(*ptr++));
+      }
+      else {
+        abuf_appendf(out, "\\%c", *ptr++);
+      }
+      txt = ptr;
+    }
+    else {
+      ptr++;
+    }
+  }
+
+  abuf_puts(out, txt);
+  if (delimiter) {
+    abuf_puts(out, "\"");
+  }
 }

@@ -468,7 +468,7 @@ _initialize_domain_path_hops(uint8_t path_hops) {
  */
 static void
 _initialize_domain_active(bool active) {
-  strscpy(_value_domain_active, abuf_json_getbool(active),
+  strscpy(_value_domain_active, json_getbool(active),
       sizeof(_value_domain_active));
 }
 

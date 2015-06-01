@@ -78,8 +78,6 @@ EXPORT void abuf_template_init_ext (struct abuf_template_storage *storage,
     struct abuf_template_data *data, size_t data_count, const char *format);
 EXPORT void abuf_add_template(struct autobuf *out,
     struct abuf_template_storage *storage, bool keys);
-EXPORT void abuf_add_json_ext(struct autobuf *out, const char *prefix, bool newline,
-    struct abuf_template_data *data, size_t data_count);
 
 /**
  * Helper function to initialize a template with
@@ -96,28 +94,4 @@ abuf_template_init(struct abuf_template_storage *storage,
   abuf_template_init_ext(storage, &data, 1, format);
 }
 
-/**
- * Helper function to print a json object with
- * a single abuf_template_data_entry array
- * @param out
- * @param prefix
- * @param newline
- * @param entry
- * @param entry_count
- */
-static INLINE void
-abuf_add_json(struct autobuf *out, const char *prefix, bool newline,
-    struct abuf_template_data_entry *entry, size_t entry_count) {
-  struct abuf_template_data data = { entry, entry_count };
-  abuf_add_json_ext(out, prefix, newline, &data, 1);
-}
-
-/**
- * @param b boolean value
- * @return JSON string representation of boolean value
- */
-static INLINE const char *
-abuf_json_getbool(bool b) {
-  return b ? TEMPLATE_JSON_TRUE : TEMPLATE_JSON_FALSE;
-}
 #endif /* TEMPLATE_H_ */

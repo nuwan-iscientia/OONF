@@ -49,7 +49,6 @@
 
 static struct abuf_template_data_entry *_find_template(
     struct abuf_template_data *set, size_t set_count, const char *txt, size_t txtLength);
-static void _json_printvalue(struct autobuf *out, const char *txt, bool string);
 
 /**
  * Initialize an index table for a template engine.
@@ -175,53 +174,6 @@ abuf_add_template(struct autobuf *out,
 }
 
 /**
- * Converts a key/value list for the template engine into
- * JSON compatible output.
- * @param out output buffer
- * @param prefix string prefix for all lines
- * @param brackets true to add surrounding brackets and newlines
- * @param data array of template data
- * @param data_count number of template data entries
- */
-void
-abuf_add_json_ext(struct autobuf *out, const char *prefix,
-    bool brackets, struct abuf_template_data *data, size_t data_count) {
-  bool first;
-  size_t i,j;
-
-  if (brackets) {
-    abuf_appendf(out, "%s{\n", prefix);
-  }
-
-  first = true;
-  for (i=0; i<data_count; i++) {
-    for (j=0; j<data[i].count; j++) {
-      if (data[i].data[j].value == NULL) {
-        continue;
-      }
-
-      if (!first) {
-        abuf_puts(out, ",\n");
-      }
-      else {
-        first = false;
-      }
-
-      abuf_appendf(out, "%s\t\"%s\" : ", prefix, data[i].data[j].key);
-      _json_printvalue(out, data[i].data[j].value, data[i].data[j].string);
-    }
-
-    if (!first && brackets) {
-      abuf_puts(out, "\n");
-    }
-  }
-
-  if (brackets) {
-    abuf_appendf(out, "%s}\n", prefix);
-  }
-}
-
-/**
  * Find the template data corresponding to a key
  * @param set pointer to template data array
  * @param set_count number of template data entries in array
@@ -245,50 +197,3 @@ _find_template(struct abuf_template_data *set, size_t set_count, const char *txt
   }
   return NULL;
 }
-
-/**
- * Prints a string to an autobuffer, using JSON escape rules
- * @param out pointer to output buffer
- * @param txt string to print
- * @param delimiter true if string must be enclosed in quotation marks
- * @return -1 if an error happened, 0 otherwise
- */
-static void
-_json_printvalue(struct autobuf *out, const char *txt, bool delimiter) {
-  const char *ptr;
-  bool unprintable;
-
-  if (delimiter) {
-    abuf_puts(out, "\"");
-  }
-  else if (*txt == 0) {
-    abuf_puts(out, "0");
-  }
-
-  ptr = txt;
-  while (*ptr) {
-    unprintable = !str_char_is_printable(*ptr);
-    if (unprintable || *ptr == '\\' || *ptr == '\"') {
-      if (ptr != txt) {
-        abuf_memcpy(out, txt, ptr - txt);
-      }
-
-      if (unprintable) {
-        abuf_appendf(out, "\\u00%02x", (unsigned char)(*ptr++));
-      }
-      else {
-        abuf_appendf(out, "\\%c", *ptr++);
-      }
-      txt = ptr;
-    }
-    else {
-      ptr++;
-    }
-  }
-
-  abuf_puts(out, txt);
-  if (delimiter) {
-    abuf_puts(out, "\"");
-  }
-}
-

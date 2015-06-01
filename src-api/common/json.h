@@ -63,22 +63,32 @@ EXPORT void json_end_array(struct json_session *);
 EXPORT void json_start_object(struct json_session *,
     const char *name);
 EXPORT void json_end_object(struct json_session *);
-EXPORT void json_print_template_ext(struct json_session *,
+EXPORT void json_print_templates(struct json_session *,
     struct abuf_template_data *data, size_t count);
 EXPORT void json_printf(struct json_session *session,
     const char *key, bool string, const char *format, ...) __attribute__ ((format(printf, 4, 5)));
 
+/**
+ * Print a single key/value pair to a json session
+ * @param session json session
+ * @param key key string
+ * @param string true if value is a string, false if it is a number
+ * @param value value string
+ */
 static INLINE void
 json_print(struct json_session *session,
     const char *key, bool string, const char *value) {
   json_printf(session, key, string, "%s", value);
 }
 
-static INLINE void
-json_print_template(struct json_session *session,
-    struct abuf_template_data_entry *entry, size_t count) {
-  struct abuf_template_data data = { entry, count };
-  json_print_template_ext(session, &data, 1);
+/**
+ * Returns the JSON text representation of a boolean
+ * @param value boolean value
+ * @return "true" or "false
+ */
+static INLINE const char *
+json_getbool(bool value) {
+  return value ? "true" : "false";
 }
 
 #endif /* JSON_H_ */
