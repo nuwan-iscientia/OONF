@@ -400,7 +400,10 @@ _print_json_string(struct json_session *session, const char *key, const char *va
 
 static void
 _print_json_number(struct json_session *session, const char *key, uint64_t value) {
-  json_printf(session, key, false, "%" PRIu64, value);
+  char buffer[21];
+
+  snprintf(buffer, sizeof(buffer), "%" PRIu64, value);
+  json_print(session, key, false, buffer);
 }
 
 static void

@@ -45,8 +45,8 @@
 #include "common/template.h"
 #include "common/json.h"
 
-static void _add_template(struct autobuf *out, const char *prefix,
-    bool brackets, struct abuf_template_data *data, size_t data_count);
+static void _add_template(struct autobuf *out, bool brackets,
+    struct abuf_template_data *data, size_t data_count);
 static void _json_printvalue(struct autobuf *out,
     const char *txt, bool delimiter);
 
@@ -116,35 +116,21 @@ json_start_object(struct json_session *session, const char *name) {
 
 /**
  * This function prints a key/value pair to the JSON session.
- * The value will be added in a printf-style manner to behind
- * the fourth parameter.
  * @param session json session
  * @param key name of the JSON key
  * @param string true if the value is a string, false otherwise
- * @param format printf format for value
+ * @param value value to print
  */
 void
-json_printf(struct json_session *session,
-    const char *key, bool string, const char *format, ...) {
-  va_list ap;
-
+json_print(struct json_session *session,
+    const char *key, bool string, const char *value) {
   if (!session->empty) {
     abuf_puts(session->out, ",");
   }
   session->empty = false;
 
-  abuf_appendf(session->out, "\"%s\": ", key);
-
-  if (string) {
-    abuf_puts(session->out, "\"");
-  }
-  va_start(ap, format);
-  abuf_vappendf(session->out, format, ap);
-  va_end(ap);
-
-  if (string) {
-    abuf_puts(session->out, "\"");
-  }
+  abuf_appendf(session->out, "\"%s\":", key);
+  _json_printvalue(session->out, value, string);
 }
 
 /**
@@ -178,26 +164,25 @@ json_print_templates(struct json_session *session,
     abuf_puts(session->out, ",\n");
   }
 
-  _add_template(session->out, "", false, data, count);
+  _add_template(session->out, false, data, count);
 }
 
 /**
  * Converts a key/value list for the template engine into
  * JSON compatible output.
  * @param out output buffer
- * @param prefix string prefix for all lines
  * @param brackets true to add surrounding brackets and newlines
  * @param data array of template data
  * @param data_count number of template data entries
  */
 static void
-_add_template(struct autobuf *out, const char *prefix,
-    bool brackets, struct abuf_template_data *data, size_t data_count) {
+_add_template(struct autobuf *out, bool brackets,
+    struct abuf_template_data *data, size_t data_count) {
   bool first;
   size_t i,j;
 
   if (brackets) {
-    abuf_appendf(out, "%s{\n", prefix);
+    abuf_puts(out, "{");
   }
 
   first = true;
@@ -214,7 +199,7 @@ _add_template(struct autobuf *out, const char *prefix,
         first = false;
       }
 
-      abuf_appendf(out, "%s\t\"%s\" : ", prefix, data[i].data[j].key);
+      abuf_appendf(out, "\"%s\":", data[i].data[j].key);
       _json_printvalue(out, data[i].data[j].value, data[i].data[j].string);
     }
 
@@ -224,7 +209,7 @@ _add_template(struct autobuf *out, const char *prefix,
   }
 
   if (brackets) {
-    abuf_appendf(out, "%s}\n", prefix);
+    abuf_puts(out, "}");
   }
 }
 
