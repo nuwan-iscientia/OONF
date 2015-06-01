@@ -41,6 +41,7 @@
 
 #include "common/common_types.h"
 #include "common/autobuf.h"
+#include "common/json.h"
 #include "common/template.h"
 #include "core/oonf_subsystem.h"
 #include "subsystems/oonf_telnet.h" /* compile-time dependency */
@@ -112,15 +113,15 @@ oonf_viewer_output_prepare(struct oonf_viewer_template *template,
   if (template->create_json) {
     /* JSON format */
     template->_storage = NULL;
-    oonf_viewer_json_init_session(&template->_json, out);
+    json_init_session(&template->_json, out);
 
     /* start wrapper object */
     if (!template->create_only_data) {
-      oonf_viewer_json_start_object(&template->_json, NULL);
+      json_start_object(&template->_json, NULL);
     }
 
     /* start object with array */
-    oonf_viewer_json_start_array(&template->_json, template->json_name);
+    json_start_array(&template->_json, template->json_name);
   }
   else {
     if (format && *format == 0) {
@@ -150,9 +151,9 @@ oonf_viewer_output_print_line(struct oonf_viewer_template *template) {
   }
   else {
     /* JSON output */
-    oonf_viewer_json_start_object(&template->_json, NULL);
-    oonf_viewer_json_print_object_ext(&template->_json, template->data, template->data_size);
-    oonf_viewer_json_end_object(&template->_json);
+    json_start_object(&template->_json, NULL);
+    json_print_template_ext(&template->_json, template->data, template->data_size);
+    json_end_object(&template->_json);
   }
 }
 
@@ -163,9 +164,9 @@ oonf_viewer_output_print_line(struct oonf_viewer_template *template) {
 void
 oonf_viewer_output_finish(struct oonf_viewer_template *template) {
   if (template->create_json) {
-    oonf_viewer_json_end_array(&template->_json);
+    json_end_array(&template->_json);
     if (!template->create_only_data) {
-      oonf_viewer_json_end_object(&template->_json);
+      json_end_object(&template->_json);
     }
   }
 }
@@ -356,135 +357,4 @@ oonf_viewer_telnet_help(struct autobuf *out,
   oonf_viewer_print_help(out, next, template, count);
 
   return TELNET_RESULT_ACTIVE;
-}
-
-/**
- * Initialize the JSON session object for creating a nested JSON
- * string output.
- * @param session JSON session
- * @param out output buffer
- */
-void
-oonf_viewer_json_init_session(struct oonf_viewer_json_session *session,
-    struct autobuf *out) {
-  memset(session, 0, sizeof(*session));
-  session->out = out;
-  session->empty = true;
-}
-
-/**
- * Starts a new JSON array
- * @param session JSON session
- * @param name name of JSON array
- */
-void
-oonf_viewer_json_start_array(struct oonf_viewer_json_session *session,
-    const char *name) {
-  if (!session->empty) {
-    abuf_puts(session->out, ",");
-    session->empty = true;
-  }
-
-  abuf_appendf(session->out, "\"%s\": [", name);
-}
-
-/**
- * Ends a JSON array, should be paired with corresponding _start_array
- * call.
- * @param session JSON session
- */
-void
-oonf_viewer_json_end_array(struct oonf_viewer_json_session *session) {
-  /* close session */
-  session->empty = false;
-
-  abuf_puts(session->out, "]");
-}
-
-/**
- * Starts a new JSON object.
- * @param session JSON session
- * @param name name of object, might be NULL
- */
-void
-oonf_viewer_json_start_object(struct oonf_viewer_json_session *session, const char *name) {
-  /* open new session */
-  if (!session->empty) {
-    abuf_puts(session->out, ",");
-    session->empty = true;
-  }
-
-  if (name) {
-    abuf_appendf(session->out, "\"%s\": {", name);
-  }
-  else {
-    abuf_puts(session->out, "{");
-  }
-}
-
-/**
- * This function prints a key/value pair to the JSON session.
- * The value will be added in a printf-style manner to behind
- * the fourth parameter.
- * @param session json session
- * @param key name of the JSON key
- * @param string true if the value is a string, false otherwise
- * @param format printf format for value
- */
-void
-oonf_viewer_json_elementf(struct oonf_viewer_json_session *session,
-    const char *key, bool string, const char *format, ...) {
-  va_list ap;
-
-  if (!session->empty) {
-    abuf_puts(session->out, ",");
-  }
-  session->empty = false;
-
-  abuf_appendf(session->out, "\"%s\": ", key);
-
-  if (string) {
-    abuf_puts(session->out, "\"");
-  }
-  va_start(ap, format);
-  abuf_vappendf(session->out, format, ap);
-  va_end(ap);
-
-  if (string) {
-    abuf_puts(session->out, "\"");
-  }
-}
-
-/**
- * Ends a JSON object, should be paired with corresponding _start_object
- * call.
- * @param session JSON session
- */
-void
-oonf_viewer_json_end_object(struct oonf_viewer_json_session *session) {
-  /* close session */
-  session->empty = false;
-
-  abuf_puts(session->out, "}");
-}
-
-/**
- * Print the contect of an autobuffer template as a list of JSON
- * key/value pairs.
- * @param session JSON session
- * @param data autobuffer template data array
- * @param count number of elements in data array
- */
-void
-oonf_viewer_json_print_object_ext(struct oonf_viewer_json_session *session,
-    struct abuf_template_data *data, size_t count) {
-  if (session->empty) {
-    session->empty = false;
-    abuf_puts(session->out, "\n");
-  }
-  else {
-    abuf_puts(session->out, ",\n");
-  }
-
-  abuf_add_json_ext(session->out, "", false, data, count);
 }

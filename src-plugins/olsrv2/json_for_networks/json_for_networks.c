@@ -41,12 +41,12 @@
 
 #include "common/common_types.h"
 #include "common/autobuf.h"
+#include "common/json.h"
 
 #include "core/oonf_logging.h"
 #include "core/oonf_subsystem.h"
 #include "subsystems/oonf_clock.h"
 #include "subsystems/oonf_telnet.h"
-#include "subsystems/oonf_viewer.h"
 
 #include "nhdp/nhdp.h"
 #include "nhdp/nhdp_db.h"
@@ -72,11 +72,11 @@ static void _cleanup(void);
 
 static enum oonf_telnet_result _cb_jsonfornet(struct oonf_telnet_data *con);
 static void _print_json_string(
-    struct oonf_viewer_json_session *session, const char *key, const char *value);
+    struct json_session *session, const char *key, const char *value);
 static void _print_json_number(
-    struct oonf_viewer_json_session *session, const char *key, uint64_t value);
+    struct json_session *session, const char *key, uint64_t value);
 static void _print_json_netaddr(
-    struct oonf_viewer_json_session *session, const char *key, const struct netaddr *addr);
+    struct json_session *session, const char *key, const struct netaddr *addr);
 
 /* telnet command of this plugin */
 static struct oonf_telnet_command _telnet_commands[] = {
@@ -89,7 +89,6 @@ static const char *_dependencies[] = {
   OONF_NHDP_SUBSYSTEM,
   OONF_OLSRV2_SUBSYSTEM,
   OONF_TELNET_SUBSYSTEM,
-  OONF_VIEWER_SUBSYSTEM,
 };
 struct oonf_subsystem olsrv2_jsonfornet = {
   .name = OONF_JSONFORNETWORKS_SUBSYSTEM,
@@ -121,59 +120,59 @@ _cleanup(void) {
 }
 
 static void
-_print_graph_node(struct oonf_viewer_json_session *session, const struct netaddr *id) {
-  oonf_viewer_json_start_object(session, NULL);
+_print_graph_node(struct json_session *session, const struct netaddr *id) {
+  json_start_object(session, NULL);
   _print_json_netaddr(session, "id", id);
-  oonf_viewer_json_end_object(session);
+  json_end_object(session);
 }
 
 static void
-_print_graph_edge(struct oonf_viewer_json_session *session,
+_print_graph_edge(struct json_session *session,
     struct nhdp_domain *domain,
     const struct netaddr *src, const struct netaddr *dst,
     uint32_t out, uint32_t in) {
   struct nhdp_metric_str mbuf;
 
-  oonf_viewer_json_start_object(session, NULL);
+  json_start_object(session, NULL);
   _print_json_netaddr(session, "source", src);
   _print_json_netaddr(session, "target", dst);
   _print_json_number(session, "weight", out);
   if (in) {
-    oonf_viewer_json_start_object(session, "properties");
+    json_start_object(session, "properties");
     _print_json_string(session, "weight_txt",
         nhdp_domain_get_metric_value(&mbuf, domain, out));
     _print_json_number(session, "in", in);
     _print_json_string(session, "in_txt",
         nhdp_domain_get_metric_value(&mbuf, domain, in));
-    oonf_viewer_json_end_object(session);
+    json_end_object(session);
   }
-  oonf_viewer_json_end_object(session);
+  json_end_object(session);
 }
 
 static void
-_print_graph_end(struct oonf_viewer_json_session *session,
+_print_graph_end(struct json_session *session,
     struct nhdp_domain *domain,
     const struct netaddr *src, const struct netaddr *prefix,
     uint32_t out, uint8_t hopcount) {
   struct nhdp_metric_str mbuf;
 
-  oonf_viewer_json_start_object(session, NULL);
+  json_start_object(session, NULL);
   _print_json_netaddr(session, "source", src);
   _print_json_netaddr(session, "target", prefix);
   _print_json_number(session, "weight", out);
 
-  oonf_viewer_json_start_object(session, "properties");
+  json_start_object(session, "properties");
   _print_json_string(session, "weight_txt",
       nhdp_domain_get_metric_value(&mbuf, domain, out));
   if (hopcount) {
     _print_json_number(session, "hopcount", hopcount);
   }
-  oonf_viewer_json_end_object(session);
-  oonf_viewer_json_end_object(session);
+  json_end_object(session);
+  json_end_object(session);
 }
 
 static void
-_print_graph(struct oonf_viewer_json_session *session,
+_print_graph(struct json_session *session,
     struct nhdp_domain *domain, int af_type) {
   const struct netaddr *originator;
   struct nhdp_neighbor *neigh;
@@ -186,7 +185,7 @@ _print_graph(struct oonf_viewer_json_session *session,
   if (netaddr_get_address_family(originator) != af_type) {
     return;
   }
-  oonf_viewer_json_start_object(session, NULL);
+  json_start_object(session, NULL);
 
   _print_json_string(session, "type", "NetworkGraph");
   _print_json_string(session, "protocol", "olsrv2");
@@ -195,15 +194,15 @@ _print_graph(struct oonf_viewer_json_session *session,
   _print_json_netaddr(session, "router_id", originator);
   _print_json_string(session, "metric", domain->metric->name);
 
-  oonf_viewer_json_start_array(session, "nodes");
+  json_start_array(session, "nodes");
   avl_for_each_element(olsrv2_tc_get_tree(), node, _originator_node) {
     if (netaddr_get_address_family(&node->target.addr) == af_type) {
       _print_graph_node(session, &node->target.addr);
     }
   }
-  oonf_viewer_json_end_array(session);
+  json_end_array(session);
 
-  oonf_viewer_json_start_array(session, "links");
+  json_start_array(session, "links");
 
   /* print local links to neighbors */
   avl_for_each_element(nhdp_db_get_neigh_originator_tree(), neigh, _originator_node) {
@@ -229,9 +228,9 @@ _print_graph(struct oonf_viewer_json_session *session,
       }
     }
   }
-  oonf_viewer_json_end_array(session);
+  json_end_array(session);
 
-  oonf_viewer_json_start_array(session, "endpoints");
+  json_start_array(session, "endpoints");
 
   /* print local endpoints */
   avl_for_each_element(olsrv2_lan_get_tree(), lan, _node) {
@@ -255,28 +254,28 @@ _print_graph(struct oonf_viewer_json_session *session,
       }
     }
   }
-  oonf_viewer_json_end_array(session);
+  json_end_array(session);
 
-  oonf_viewer_json_end_object(session);
+  json_end_object(session);
 }
 
 static void
-_create_graph_json(struct oonf_viewer_json_session *session) {
+_create_graph_json(struct json_session *session) {
   struct nhdp_domain *domain;
-  oonf_viewer_json_start_object(session, NULL);
+  json_start_object(session, NULL);
 
   _print_json_string(session, "type", "NetworkCollection");
-  oonf_viewer_json_start_array(session, "collection");
+  json_start_array(session, "collection");
   list_for_each_element(nhdp_domain_get_list(), domain, _node) {
     _print_graph(session, domain, AF_INET);
     _print_graph(session, domain, AF_INET6);
   }
-  oonf_viewer_json_end_array(session);
-  oonf_viewer_json_end_object(session);
+  json_end_array(session);
+  json_end_object(session);
 }
 
 static void
-_print_routing_tree(struct oonf_viewer_json_session *session,
+_print_routing_tree(struct json_session *session,
     struct nhdp_domain *domain, int af_type) {
   struct olsrv2_routing_entry *rtentry;
   const struct netaddr *originator;
@@ -287,7 +286,7 @@ _print_routing_tree(struct oonf_viewer_json_session *session,
     return;
   }
 
-  oonf_viewer_json_start_object(session, NULL);
+  json_start_object(session, NULL);
 
   _print_json_string(session, "type", "NetworkRoutes");
   _print_json_string(session, "protocol", "olsrv2");
@@ -296,11 +295,11 @@ _print_routing_tree(struct oonf_viewer_json_session *session,
   _print_json_netaddr(session, "router_id", originator);
   _print_json_string(session, "metric", domain->metric->name);
 
-  oonf_viewer_json_start_array(session, COMMAND_ROUTES);
+  json_start_array(session, COMMAND_ROUTES);
 
   avl_for_each_element(olsrv2_routing_get_tree(domain), rtentry, _node) {
     if (rtentry->route.family == af_type) {
-      oonf_viewer_json_start_object(session, NULL);
+      json_start_object(session, NULL);
       _print_json_netaddr(session, "destination", &rtentry->route.dst);
       if (netaddr_get_prefix_length(&rtentry->route.src_prefix) > 0) {
         _print_json_netaddr(session, "source", &rtentry->route.src_prefix);
@@ -311,33 +310,33 @@ _print_routing_tree(struct oonf_viewer_json_session *session,
       _print_json_string(session, "device", if_indextoname(rtentry->route.if_index, ibuf));
       _print_json_number(session, "cost", rtentry->path_cost);
 
-      oonf_viewer_json_start_object(session, "properties");
+      json_start_object(session, "properties");
       _print_json_number(session, "hops", rtentry->path_hops);
-      oonf_viewer_json_end_object(session);
+      json_end_object(session);
 
-      oonf_viewer_json_end_object(session);
+      json_end_object(session);
     }
   }
 
-  oonf_viewer_json_end_array(session);
-  oonf_viewer_json_end_object(session);
+  json_end_array(session);
+  json_end_object(session);
 }
 
 static void
-_create_routes_json(struct oonf_viewer_json_session *session) {
+_create_routes_json(struct json_session *session) {
   struct nhdp_domain *domain;
-  oonf_viewer_json_start_object(session, NULL);
+  json_start_object(session, NULL);
 
   _print_json_string(session, "type", "NetworkCollection");
 
-  oonf_viewer_json_start_array(session, "collection:");
+  json_start_array(session, "collection:");
 
   list_for_each_element(nhdp_domain_get_list(), domain, _node) {
     _print_routing_tree(session, domain, AF_INET);
     _print_routing_tree(session, domain, AF_INET6);
   }
-  oonf_viewer_json_end_array(session);
-  oonf_viewer_json_end_object(session);
+  json_end_array(session);
+  json_end_object(session);
 }
 
 /**
@@ -347,7 +346,7 @@ _create_routes_json(struct oonf_viewer_json_session *session) {
  */
 static enum oonf_telnet_result
 _cb_jsonfornet(struct oonf_telnet_data *con) {
-  struct oonf_viewer_json_session session;
+  struct json_session session;
   struct autobuf out;
   const char *error;
 
@@ -355,7 +354,7 @@ _cb_jsonfornet(struct oonf_telnet_data *con) {
     return TELNET_RESULT_INTERNAL_ERROR;
   }
 
-  oonf_viewer_json_init_session(&session, &out);
+  json_init_session(&session, &out);
 
   error = NULL;
 
@@ -379,11 +378,11 @@ _cb_jsonfornet(struct oonf_telnet_data *con) {
 
   if (error) {
     /* create error */
-    oonf_viewer_json_init_session(&session, con->out);
+    json_init_session(&session, con->out);
 
-    oonf_viewer_json_start_object(&session, NULL);
+    json_start_object(&session, NULL);
     _print_json_string(&session, "error", error);
-    oonf_viewer_json_end_object(&session);
+    json_end_object(&session);
 
     return TELNET_RESULT_ACTIVE;
   }
@@ -395,19 +394,19 @@ _cb_jsonfornet(struct oonf_telnet_data *con) {
 }
 
 static void
-_print_json_string(struct oonf_viewer_json_session *session, const char *key, const char *value) {
-  oonf_viewer_json_element(session, key, true, value);
+_print_json_string(struct json_session *session, const char *key, const char *value) {
+  json_print(session, key, true, value);
 }
 
 static void
-_print_json_number(struct oonf_viewer_json_session *session, const char *key, uint64_t value) {
-  oonf_viewer_json_elementf(session, key, false, "%" PRIu64, value);
+_print_json_number(struct json_session *session, const char *key, uint64_t value) {
+  json_printf(session, key, false, "%" PRIu64, value);
 }
 
 static void
-_print_json_netaddr(struct oonf_viewer_json_session *session, const char *key, const struct netaddr *addr) {
+_print_json_netaddr(struct json_session *session, const char *key, const struct netaddr *addr) {
   struct netaddr_str nbuf;
 
-  oonf_viewer_json_element(session, key, true, netaddr_to_string(&nbuf, addr));
+  json_print(session, key, true, netaddr_to_string(&nbuf, addr));
 }
 
