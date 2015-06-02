@@ -257,6 +257,9 @@ static struct oonf_subsystem _oonf_rfc5444_subsystem = {
 };
 DECLARE_OONF_PLUGIN(_oonf_rfc5444_subsystem);
 
+/* static blocking of RFC5444 output */
+static bool _block_output = false;
+
 /**
  * Initialize RFC5444 handling system
  * @return -1 if an error happened, 0 otherwise
@@ -383,7 +386,7 @@ enum rfc5444_result oonf_rfc5444_send_if(
 }
 
 /**
- * Trigger the creation of a RFC5444 message for a specific interface
+ * Trigger the creation of a RFC5444 message for a group of interfaces
  * @param protocol protocol for outgoing message
  * @param msgid id of created message
  * @param addr_len length of address for this message
@@ -843,6 +846,15 @@ oonf_rfc5444_target_get_local_socket(struct oonf_rfc5444_target *target) {
 }
 
 /**
+ * This function can block all output of the RFC5444 code
+ * @param block true to block everything, false to unblock
+ */
+void
+oonf_rfc5444_block_output(bool block) {
+  _block_output = block;
+}
+
+/**
  * Create a new rfc5444 target
  * @param interf rfc5444 interface
  * @param dst destination ip address
@@ -1022,6 +1034,10 @@ _cb_send_multicast_packet(struct rfc5444_writer *writer __attribute__((unused)),
       "Outgoing RFC5444 packet to",
       "Error while parsing outgoing RFC5444 packet to");
 
+  if (_block_output) {
+    OONF_DEBUG(LOG_RFC5444, "Output blocked");
+    return;
+  }
   oonf_packet_send_managed_multicast(&t->interface->_socket,
       ptr, len, netaddr_get_address_family(&t->dst));
 }
@@ -1047,6 +1063,11 @@ _cb_send_unicast_packet(struct rfc5444_writer *writer __attribute__((unused)),
   _print_packet_to_buffer(&sock, t->interface, ptr, len,
       "Outgoing RFC5444 packet to",
       "Error while parsing outgoing RFC5444 packet to");
+
+  if (_block_output) {
+    OONF_DEBUG(LOG_RFC5444, "Output blocked");
+    return;
+  }
 
   oonf_packet_send_managed(&t->interface->_socket, &sock, ptr, len);
 }
