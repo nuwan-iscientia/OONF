@@ -97,7 +97,7 @@ struct olsrv2_tc_node {
   struct avl_tree _edges;
 
   /* tree of olsrv2_tc_attached_networks */
-  struct avl_tree _endpoints;
+  struct avl_tree _attached_networks;
 
   /* node for tree of tc_nodes */
   struct avl_node _originator_node;

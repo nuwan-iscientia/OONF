@@ -645,7 +645,7 @@ _cb_create_text_attached_network(struct oonf_viewer_template *template) {
       continue;
     }
 
-    avl_for_each_element(&node->_endpoints, attached, _src_node) {
+    avl_for_each_element(&node->_attached_networks, attached, _src_node) {
       _initialize_attached_network_values(attached);
 
       list_for_each_element(nhdp_domain_get_list(), domain, _node) {

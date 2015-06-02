@@ -447,7 +447,7 @@ _cb_messagetlvs_end(struct rfc5444_reader_tlvblock_context *context __attribute_
     }
   }
 
-  avl_for_each_element_safe(&_current.node->_endpoints, end, _src_node, end_it) {
+  avl_for_each_element_safe(&_current.node->_attached_networks, end, _src_node, end_it) {
     if (end->ansn != _current.node->ansn) {
       olsrv2_tc_endpoint_remove(end);
     }

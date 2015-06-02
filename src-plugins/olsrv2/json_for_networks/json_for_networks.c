@@ -246,7 +246,7 @@ _print_graph(struct json_session *session,
   /* print remote nodes neighbors */
   avl_for_each_element(olsrv2_tc_get_tree(), node, _originator_node) {
     if (netaddr_get_address_family(&node->target.addr) == af_type) {
-      avl_for_each_element(&node->_endpoints, attached, _src_node) {
+      avl_for_each_element(&node->_attached_networks, attached, _src_node) {
         _print_graph_end(session, domain,
             &node->target.addr, &attached->dst->target.addr,
             attached->cost[domain->index],

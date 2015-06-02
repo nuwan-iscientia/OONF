@@ -117,7 +117,7 @@ olsrv2_tc_cleanup(void) {
       _remove_edge(edge, false);
     }
 
-    avl_for_each_element_safe(&node->_endpoints, a_end, _src_node, ae_it) {
+    avl_for_each_element_safe(&node->_attached_networks, a_end, _src_node, ae_it) {
       olsrv2_tc_endpoint_remove(a_end);
     }
   }
@@ -158,7 +158,7 @@ olsrv2_tc_node_add(struct netaddr *originator,
 
     /* initialize node */
     avl_init(&node->_edges, avl_comp_netaddr, false);
-    avl_init(&node->_endpoints, avl_comp_netaddr, false);
+    avl_init(&node->_attached_networks, avl_comp_netaddr, false);
 
     node->_validity_time.class = &_validity_info;
     node->_validity_time.cb_context = node;
@@ -204,7 +204,7 @@ olsrv2_tc_node_remove(struct olsrv2_tc_node *node) {
 
   /* remove attached networks */
   avl_for_each_element_safe(
-      &node->_endpoints, net, _src_node, net_it) {
+      &node->_attached_networks, net, _src_node, net_it) {
     olsrv2_tc_endpoint_remove(net);
   }
 
@@ -324,7 +324,7 @@ olsrv2_tc_endpoint_add(struct olsrv2_tc_node *node,
   struct olsrv2_tc_endpoint *end;
   int i;
 
-  net = avl_find_element(&node->_endpoints, prefix, net, _src_node);
+  net = avl_find_element(&node->_attached_networks, prefix, net, _src_node);
   if (net != NULL) {
     return net;
   }
@@ -364,7 +364,7 @@ olsrv2_tc_endpoint_add(struct olsrv2_tc_node *node,
 
   /* hook into src node */
   net->_src_node.key = &end->target;
-  avl_insert(&node->_endpoints, &net->_src_node);
+  avl_insert(&node->_attached_networks, &net->_src_node);
 
   /* hook into endpoint */
   net->_endpoint_node.key = &node->target.addr;
@@ -387,7 +387,7 @@ olsrv2_tc_endpoint_remove(
   oonf_class_event(&_tc_attached_class, net, OONF_OBJECT_REMOVED);
 
   /* remove from node */
-  avl_remove(&net->src->_endpoints, &net->_src_node);
+  avl_remove(&net->src->_attached_networks, &net->_src_node);
 
   /* remove from endpoint */
   avl_remove(&net->dst->_attached_networks, &net->_endpoint_node);

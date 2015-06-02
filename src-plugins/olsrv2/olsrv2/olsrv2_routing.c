@@ -619,7 +619,7 @@ _handle_working_queue(struct nhdp_domain *domain) {
     }
 
     /* iterate over attached networks and addresses */
-    avl_for_each_element(&tc_node->_endpoints, tc_attached, _src_node) {
+    avl_for_each_element(&tc_node->_attached_networks, tc_attached, _src_node) {
       if (tc_attached->cost[domain->index] <= RFC7181_METRIC_MAX) {
         /* add attached network or address to working tree */
         _insert_into_working_tree(&tc_attached->dst->target, first_hop,
