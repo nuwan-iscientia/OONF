@@ -356,7 +356,9 @@ _cleanup(void) {
  */
 enum rfc5444_result oonf_rfc5444_send_if(
     struct oonf_rfc5444_target *target, uint8_t msgid) {
-#ifdef OONF_LOG_INFO
+  uint8_t addr_len;
+
+  #ifdef OONF_LOG_INFO
   struct netaddr_str buf;
 #endif
 
@@ -375,25 +377,27 @@ enum rfc5444_result oonf_rfc5444_send_if(
       msgid, target->interface->protocol->name, netaddr_to_string(&buf, &target->dst),
       target->interface->name);
 
+  addr_len = netaddr_get_address_family(&target->dst) == AF_INET ? 4 : 16;
   return rfc5444_writer_create_message(&target->interface->protocol->writer,
-      msgid, _cb_single_target_selector, target);
+      msgid, addr_len, _cb_single_target_selector, target);
 }
 
 /**
  * Trigger the creation of a RFC5444 message for a specific interface
  * @param protocol protocol for outgoing message
  * @param msgid id of created message
+ * @param addr_len length of address for this message
  * @param useIf callback to selector for interfaces
  * @return return code of rfc5444 writer
  */
 enum rfc5444_result
 oonf_rfc5444_send_all(struct oonf_rfc5444_protocol *protocol,
-    uint8_t msgid, rfc5444_writer_targetselector useIf) {
+    uint8_t msgid, uint8_t addr_len, rfc5444_writer_targetselector useIf) {
   /* create message */
   OONF_INFO(LOG_RFC5444, "Create message id %d", msgid);
 
   return rfc5444_writer_create_message(&protocol->writer,
-      msgid, _cb_filtered_targets_selector, useIf);
+      msgid, addr_len, _cb_filtered_targets_selector, useIf);
 }
 
 /**

@@ -276,9 +276,6 @@ struct rfc5444_writer_message {
   /* message type */
   uint8_t type;
 
-  /* message address length */
-  uint8_t addr_len;
-
   /* message hopcount */
   bool has_hopcount;
   uint8_t hopcount;
@@ -303,7 +300,7 @@ struct rfc5444_writer_message {
   struct list_entity _msgspecific_tlvtype_head;
 
   /* callbacks for controling the message header fields */
-  void (*addMessageHeader)(struct rfc5444_writer *, struct rfc5444_writer_message *);
+  int (*addMessageHeader)(struct rfc5444_writer *, struct rfc5444_writer_message *);
   void (*finishMessageHeader)(struct rfc5444_writer *, struct rfc5444_writer_message *,
       struct rfc5444_writer_address *, struct rfc5444_writer_address *, bool);
 
@@ -378,6 +375,9 @@ struct rfc5444_writer {
   /* buffer for messages */
   uint8_t *msg_buffer;
 
+  /* address length of current message */
+  uint8_t msg_addr_len;
+
   /* length of message buffer */
   size_t msg_size;
 
@@ -439,8 +439,6 @@ EXPORT enum rfc5444_result rfc5444_writer_set_messagetlv(struct rfc5444_writer *
     uint8_t type, uint8_t exttype, const void *value, size_t length);
 
 /* functions that can be called from add/finishMessageHeader callback */
-EXPORT void rfc5444_writer_set_msg_addrlen(struct rfc5444_writer *writer,
-    struct rfc5444_writer_message *msg, uint8_t addrlen);
 EXPORT void rfc5444_writer_set_msg_header(struct rfc5444_writer *writer,
     struct rfc5444_writer_message *msg, bool has_originator,
     bool has_hopcount, bool has_hoplimit, bool has_seqno);
@@ -489,7 +487,7 @@ EXPORT void rfc5444_writer_unregister_postprocessor(struct rfc5444_writer *,
     struct rfc5444_writer_postprocessor *processor);
 
 EXPORT struct rfc5444_writer_message *rfc5444_writer_register_message(
-    struct rfc5444_writer *writer, uint8_t msgid, bool if_specific, uint8_t addr_len);
+    struct rfc5444_writer *writer, uint8_t msgid, bool if_specific);
 EXPORT void rfc5444_writer_unregister_message(struct rfc5444_writer *writer,
     struct rfc5444_writer_message *msg);
 
@@ -510,7 +508,7 @@ EXPORT bool rfc5444_writer_singletarget_selector(struct rfc5444_writer *, struct
 EXPORT bool rfc5444_writer_alltargets_selector(struct rfc5444_writer *, struct rfc5444_writer_target *, void *);
 
 EXPORT enum rfc5444_result rfc5444_writer_create_message(
-    struct rfc5444_writer *writer, uint8_t msgid,
+    struct rfc5444_writer *writer, uint8_t msgid, uint8_t addr_len,
     rfc5444_writer_targetselector useIf, void *param);
 
 EXPORT enum rfc5444_result rfc5444_writer_forward_msg(struct rfc5444_writer *writer,
@@ -529,27 +527,31 @@ void _rfc5444_writer_begin_packet(struct rfc5444_writer *writer, struct rfc5444_
  * creates a message of a certain ID for a single target
  * @param writer pointer to writer context
  * @param msgid type of message
+ * @param addr_len length of address for this message
  * @param target pointer to outgoing target
  * @return RFC5444_OKAY if message was created and added to packet buffer,
  *   RFC5444_... otherwise
  */
 static INLINE enum rfc5444_result
-rfc5444_writer_create_message_singletarget(
-    struct rfc5444_writer *writer, uint8_t msgid, struct rfc5444_writer_target *target) {
-  return rfc5444_writer_create_message(writer, msgid, rfc5444_writer_singletarget_selector, target);
+rfc5444_writer_create_message_singletarget(struct rfc5444_writer *writer,
+    uint8_t msgid, uint8_t addr_len, struct rfc5444_writer_target *target) {
+  return rfc5444_writer_create_message(
+      writer, msgid, addr_len, rfc5444_writer_singletarget_selector, target);
 }
 
 /**
  * creates a message of a certain ID for all target
  * @param writer pointer to writer context
  * @param msgid type of message
+ * @param addr_len length of address for this message
  * @return RFC5444_OKAY if message was created and added to packet buffer,
  *   RFC5444_... otherwise
  */
 static INLINE enum rfc5444_result
 rfc5444_writer_create_message_alltarget(
-    struct rfc5444_writer *writer, uint8_t msgid) {
-  return rfc5444_writer_create_message(writer, msgid, rfc5444_writer_alltargets_selector, NULL);
+    struct rfc5444_writer *writer, uint8_t msgid, uint8_t addr_len) {
+  return rfc5444_writer_create_message(
+      writer, msgid, addr_len, rfc5444_writer_alltargets_selector, NULL);
 }
 
 #endif /* RFC5444_WRITER_H_ */

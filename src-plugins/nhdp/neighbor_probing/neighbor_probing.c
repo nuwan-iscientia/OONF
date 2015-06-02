@@ -89,7 +89,7 @@ static int _init(void);
 static void _cleanup(void);
 static void _cb_link_removed(void *);
 static void _cb_probe_link(void *);
-static void _cb_addMessageHeader(struct rfc5444_writer *writer,
+static int _cb_addMessageHeader(struct rfc5444_writer *writer,
     struct rfc5444_writer_message *msg);
 static void _cb_addMessageTLVs(struct rfc5444_writer *);
 static void _cb_cfg_changed(void);
@@ -182,7 +182,7 @@ _init(void) {
   }
 
   _probing_message = rfc5444_writer_register_message(
-      &_protocol->writer, RFC5444_MSGTYPE_PROBING, true, 4);
+      &_protocol->writer, RFC5444_MSGTYPE_PROBING, true);
   if (_probing_message == NULL) {
     oonf_rfc5444_remove_protocol(_protocol);
     oonf_class_extension_remove(&_link_extenstion);
@@ -346,10 +346,11 @@ _cb_probe_link(void *ptr __attribute__((unused))) {
   }
 }
 
-static void
+static int
 _cb_addMessageHeader(struct rfc5444_writer *writer,
     struct rfc5444_writer_message *msg) {
   rfc5444_writer_set_msg_header(writer, msg, false, false, false, false);
+  return RFC5444_OKAY;
 }
 
 static void

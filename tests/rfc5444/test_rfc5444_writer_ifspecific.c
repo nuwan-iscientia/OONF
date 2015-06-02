@@ -76,10 +76,11 @@ static struct rfc5444_writer_target large_if = {
 
 static int unique_messages;
 
-static void addMessageHeader(struct rfc5444_writer *wr, struct rfc5444_writer_message *msg) {
+static int addMessageHeader(struct rfc5444_writer *wr, struct rfc5444_writer_message *msg) {
   rfc5444_writer_set_msg_header(wr, msg, false, false, false, false);
   printf("Begin message\n");
   unique_messages++;
+  return RFC5444_OKAY;
 }
 
 static void finishMessageHeader(struct rfc5444_writer *wr  __attribute__ ((unused)),
@@ -122,7 +123,7 @@ static void clear_elements(void) {
 static void test_ip_specific(void) {
   START_TEST();
 
-  CHECK_TRUE(0 == rfc5444_writer_create_message_alltarget(&writer, 1), "Parser should return 0");
+  CHECK_TRUE(0 == rfc5444_writer_create_message_alltarget(&writer, 1, 4), "Parser should return 0");
   rfc5444_writer_flush(&writer, &small_if, false);
   rfc5444_writer_flush(&writer, &large_if, false);
 
@@ -134,7 +135,7 @@ static void test_ip_specific(void) {
 static void test_not_ip_specific(void) {
   START_TEST();
 
-  CHECK_TRUE(0 == rfc5444_writer_create_message_alltarget(&writer, 2), "Parser should return 0");
+  CHECK_TRUE(0 == rfc5444_writer_create_message_alltarget(&writer, 2, 4), "Parser should return 0");
   rfc5444_writer_flush(&writer, &small_if, false);
   rfc5444_writer_flush(&writer, &large_if, false);
 
@@ -151,11 +152,11 @@ int main(int argc __attribute__ ((unused)), char **argv __attribute__ ((unused))
   rfc5444_writer_register_target(&writer, &small_if);
   rfc5444_writer_register_target(&writer, &large_if);
 
-  msg[0] = rfc5444_writer_register_message(&writer, 1, true, 4);
+  msg[0] = rfc5444_writer_register_message(&writer, 1, true);
   msg[0]->addMessageHeader = addMessageHeader;
   msg[0]->finishMessageHeader = finishMessageHeader;
 
-  msg[1] = rfc5444_writer_register_message(&writer, 2, false, 4);
+  msg[1] = rfc5444_writer_register_message(&writer, 2, false);
   msg[1]->addMessageHeader = addMessageHeader;
   msg[1]->finishMessageHeader = finishMessageHeader;
 

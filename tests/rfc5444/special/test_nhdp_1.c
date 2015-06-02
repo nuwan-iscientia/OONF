@@ -142,8 +142,9 @@ static struct rfc5444_writer_target out_if = {
   .sendPacket = write_packet,
 };
 
-static void addMessageHeader(struct rfc5444_writer *wr, struct rfc5444_writer_message *msg) {
+static int addMessageHeader(struct rfc5444_writer *wr, struct rfc5444_writer_message *msg) {
   rfc5444_writer_set_msg_header(wr, msg, false, false, false, false);
+  return RFC5444_OKAY;
 }
 
 static void addAddresses(struct rfc5444_writer *wr) {
@@ -208,7 +209,7 @@ static void clear_elements(void) {
 static void test(void) {
   START_TEST();
 
-  CHECK_TRUE(0 == rfc5444_writer_create_message_alltarget(&writer, 1), "Parser should return 0");
+  CHECK_TRUE(0 == rfc5444_writer_create_message_alltarget(&writer, 1, 4), "Parser should return 0");
   rfc5444_writer_flush(&writer, &out_if, false);
 
   END_TEST();
@@ -221,7 +222,7 @@ int main(int argc __attribute__ ((unused)), char **argv __attribute__ ((unused))
 
   rfc5444_writer_register_target(&writer, &out_if);
 
-  msg = rfc5444_writer_register_message(&writer, MSG_TYPE, false, 4);
+  msg = rfc5444_writer_register_message(&writer, MSG_TYPE, false);
   msg->addMessageHeader = addMessageHeader;
 
   rfc5444_writer_register_msgcontentprovider(&writer, &cpr, addrtlvs, ARRAYSIZE(addrtlvs));

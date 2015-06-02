@@ -461,8 +461,8 @@ _cb_add_signature(struct rfc5444_writer_postprocessor *processor,
     idx += 4;
     tlvblock = &data[4];
     if (msg->has_origaddr) {
-      idx += msg->addr_len;
-      tlvblock += msg->addr_len;
+      idx += _protocol->writer.msg_addr_len;
+      tlvblock += _protocol->writer.msg_addr_len;
     }
     if (msg->has_hoplimit) {
       _static_message_buffer[idx++] = 0;

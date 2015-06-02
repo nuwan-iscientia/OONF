@@ -60,7 +60,7 @@ enum {
 };
 
 /* prototypes */
-static void _cb_addMessageHeader(
+static int _cb_addMessageHeader(
     struct rfc5444_writer *, struct rfc5444_writer_message *);
 static void _cb_addMessageTLVs(struct rfc5444_writer *);
 static void _cb_addAddresses(struct rfc5444_writer *);
@@ -106,7 +106,7 @@ nhdp_writer_init(struct oonf_rfc5444_protocol *p) {
   _protocol = p;
 
   _nhdp_message = rfc5444_writer_register_message(
-      &_protocol->writer, RFC5444_MSGTYPE_HELLO, true, 4);
+      &_protocol->writer, RFC5444_MSGTYPE_HELLO, true);
   if (_nhdp_message == NULL) {
     OONF_WARN(LOG_NHDP_W, "Could not register NHDP Hello message");
     return -1;
@@ -188,7 +188,7 @@ nhdp_writer_send_hello(struct nhdp_interface *ninterf) {
  * @param writer
  * @param message
  */
-static void
+static int
 _cb_addMessageHeader(struct rfc5444_writer *writer,
     struct rfc5444_writer_message *message) {
   struct oonf_rfc5444_target *target;
@@ -197,7 +197,7 @@ _cb_addMessageHeader(struct rfc5444_writer *writer,
 
   if (!message->target_specific) {
     OONF_WARN(LOG_NHDP_W, "non interface-specific NHDP message!");
-    return;
+    return RFC5444_DROP_MESSAGE;
   }
 
   target = oonf_rfc5444_get_target_from_writer(writer);
@@ -205,16 +205,14 @@ _cb_addMessageHeader(struct rfc5444_writer *writer,
       && target != target->interface->multicast4) {
     OONF_WARN(LOG_NHDP_W, "Cannot generate unicast nhdp message to %s",
         netaddr_to_string(&buf, &target->dst));
-    return;
+    return RFC5444_DROP_MESSAGE;
   }
 
   /* get originator */
-  if (netaddr_get_address_family(&target->dst) == AF_INET) {
-    rfc5444_writer_set_msg_addrlen(writer, message, 4);
+  if (writer->msg_addr_len == 4) {
     originator = nhdp_get_originator(AF_INET);
   }
   else {
-    rfc5444_writer_set_msg_addrlen(writer, message, 16);
     originator = nhdp_get_originator(AF_INET6);
   }
 
@@ -230,6 +228,7 @@ _cb_addMessageHeader(struct rfc5444_writer *writer,
   else {
     rfc5444_writer_set_msg_header(writer, message, false , false, false, false);
   }
+  return RFC5444_OKAY;
 }
 
 /**
@@ -285,7 +284,7 @@ _cb_addMessageTLVs(struct rfc5444_writer *writer) {
   v4_originator = nhdp_get_originator(AF_INET);
 
   /* add V4 originator to V6 message if available and interface is dualstack */
-  if (_nhdp_message->addr_len == 16 && v4_originator != NULL
+  if (writer->msg_addr_len == 16 && v4_originator != NULL
       && netaddr_get_address_family(v4_originator) == AF_INET) {
     rfc5444_writer_add_messagetlv(writer, NHDP_MSGTLV_IPV4ORIGINATOR, 0,
         netaddr_get_binptr(v4_originator), netaddr_get_binlength(v4_originator));

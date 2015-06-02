@@ -71,7 +71,7 @@ static bool _cb_tc_interface_selector(struct rfc5444_writer *,
     struct rfc5444_writer_target *rfc5444_target, void *ptr);
 #endif
 
-static void _cb_addMessageHeader(
+static int _cb_addMessageHeader(
     struct rfc5444_writer *, struct rfc5444_writer_message *);
 static void _cb_addMessageTLVs(struct rfc5444_writer *);
 static void _cb_addAddresses(struct rfc5444_writer *);
@@ -96,8 +96,6 @@ static struct rfc5444_writer_tlvtype _olsrv2_addrtlvs[] = {
       .exttype = DRAFT_MT_MSGTLV_MPR_TYPES_EXT },
 };
 
-static int _send_msg_af;
-
 static struct oonf_rfc5444_protocol *_protocol;
 
 static bool _cleanedup = false;
@@ -113,7 +111,7 @@ olsrv2_writer_init(struct oonf_rfc5444_protocol *protocol) {
   _protocol = protocol;
 
   _olsrv2_message = rfc5444_writer_register_message(
-      &_protocol->writer, RFC5444_MSGTYPE_TC, true, 4);
+      &_protocol->writer, RFC5444_MSGTYPE_TC, true);
   if (_olsrv2_message == NULL) {
     OONF_WARN(LOG_OLSRV2, "Could not register OLSRV2 TC message");
     return -1;
@@ -172,10 +170,9 @@ _send_tc(int af_type) {
 
   originator = olsrv2_originator_get(af_type);
   if (netaddr_get_address_family(originator) == af_type) {
-    _send_msg_af = af_type;
     OONF_INFO(LOG_OLSRV2_W, "Emit IPv%d TC message.", af_type == AF_INET ? 4 : 6);
-    oonf_rfc5444_send_all(_protocol, RFC5444_MSGTYPE_TC, nhdp_flooding_selector);
-    _send_msg_af = AF_UNSPEC;
+    oonf_rfc5444_send_all(_protocol, RFC5444_MSGTYPE_TC,
+        af_type == AF_INET ? 4 : 16, nhdp_flooding_selector);
   }
 }
 
@@ -184,16 +181,20 @@ _send_tc(int af_type) {
  * @param writer
  * @param message
  */
-static void
+static int
 _cb_addMessageHeader(struct rfc5444_writer *writer,
     struct rfc5444_writer_message *message) {
   const struct netaddr *orig;
 
-  orig = olsrv2_originator_get(_send_msg_af);
+  if (writer->msg_addr_len == 4) {
+    orig = olsrv2_originator_get(AF_INET);
+  }
+  else {
+    orig = olsrv2_originator_get(AF_INET6);
+  }
 
   /* initialize message header */
   rfc5444_writer_set_msg_header(writer, message, true, true, true, true);
-  rfc5444_writer_set_msg_addrlen(writer, message, netaddr_get_binlength(orig));
   rfc5444_writer_set_msg_originator(writer, message, netaddr_get_binptr(orig));
   rfc5444_writer_set_msg_hopcount(writer, message, 0);
   rfc5444_writer_set_msg_hoplimit(writer, message, 255);
@@ -201,6 +202,7 @@ _cb_addMessageHeader(struct rfc5444_writer *writer,
       oonf_rfc5444_get_next_message_seqno(_protocol));
 
   OONF_DEBUG(LOG_OLSRV2_W, "Generate TC");
+  return RFC5444_OKAY;
 }
 
 /**
@@ -317,12 +319,14 @@ _cb_addAddresses(struct rfc5444_writer *writer) {
   uint32_t metric_out;
   struct rfc7181_metric_field metric_out_encoded;
   uint8_t distance_vector[NHDP_MAXIMUM_DOMAINS];
+  int af_type;
 
 #ifdef OONF_LOG_DEBUG_INFO
   struct netaddr_str buf;
 #endif
 
   routable_acl = olsrv2_get_routable();
+  af_type = writer->msg_addr_len == 4 ? AF_INET : AF_INET6;
 
   /* iterate over neighbors */
   list_for_each_element(nhdp_db_get_neigh_list(), neigh, _global_node) {
@@ -349,7 +353,7 @@ _cb_addAddresses(struct rfc5444_writer *writer) {
 
     /* iterate over neighbors addresses */
     avl_for_each_element(&neigh->_neigh_addresses, naddr, _neigh_node) {
-      if (netaddr_get_address_family(&naddr->neigh_addr) != _send_msg_af) {
+      if (netaddr_get_address_family(&naddr->neigh_addr) != af_type) {
         /* wrong address family, skip this one */
         continue;
       }
@@ -391,7 +395,7 @@ _cb_addAddresses(struct rfc5444_writer *writer) {
 
   /* Iterate over locally attached networks */
   avl_for_each_element(olsrv2_lan_get_tree(), lan, _node) {
-    if (netaddr_get_address_family(&lan->prefix) != _send_msg_af) {
+    if (netaddr_get_address_family(&lan->prefix) != af_type) {
       /* wrong address family */
       continue;
     }

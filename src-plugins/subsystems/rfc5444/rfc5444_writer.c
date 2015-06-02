@@ -394,12 +394,11 @@ rfc5444_writer_unregister_content_provider(
  * @param msgid message type
  * @param target_specific true if an unique message must be created for each
  *   interface
- * @param addr_len address length in bytes for this message
  * @return message object, NULL if an error happened
  */
 struct rfc5444_writer_message *
 rfc5444_writer_register_message(struct rfc5444_writer *writer, uint8_t msgid,
-    bool if_specific, uint8_t addr_len) {
+    bool if_specific) {
   struct rfc5444_writer_message *msg;
 
 #if WRITER_STATE_MACHINE == true
@@ -420,8 +419,7 @@ rfc5444_writer_register_message(struct rfc5444_writer *writer, uint8_t msgid,
   /* mark message as _registered */
   msg->_registered = true;
 
-  /* set real address length and target_specific flag */
-  msg->addr_len = addr_len;
+  /* set target_specific flag */
   msg->target_specific = if_specific;
   return msg;
 }
@@ -582,9 +580,6 @@ _get_message(struct rfc5444_writer *writer, uint8_t msgid) {
     free(msg);
     return NULL;
   }
-
-  /* pre-initialize addr_len */
-  msg->addr_len = RFC5444_MAX_ADDRLEN;
 
   /* initialize list/tree heads */
   avl_init(&msg->_provider_tree, avl_comp_int32, true);

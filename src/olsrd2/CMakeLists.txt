@@ -53,6 +53,10 @@ IF (NOT OONF_STATIC_PLUGINS)
                              olsrv2
                              olsrv2info
                              json_for_networks
+                             rfc7182_provider
+                             hash_tomcrypt
+                             rfc5444_signature
+                             simple_security
                              )
 ENDIF (NOT OONF_STATIC_PLUGINS)
 

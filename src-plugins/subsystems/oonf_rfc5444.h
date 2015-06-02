@@ -256,7 +256,7 @@ EXPORT enum rfc5444_result oonf_rfc5444_send_if(
     struct oonf_rfc5444_target *, uint8_t msgid);
 EXPORT enum rfc5444_result oonf_rfc5444_send_all(
     struct oonf_rfc5444_protocol *protocol,
-    uint8_t msgid, rfc5444_writer_targetselector useIf);
+    uint8_t msgid, uint8_t addr_len, rfc5444_writer_targetselector useIf);
 
 /**
  * @param writer pointer to rfc5444 writer
