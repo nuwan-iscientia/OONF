@@ -59,22 +59,22 @@ static bool _remove_edge(struct olsrv2_tc_edge *edge, bool cleanup);
 
 /* classes for topology data */
 static struct oonf_class _tc_node_class = {
-  .name = "olsrv2 tc node",
+  .name = OLSRV2_CLASS_TC_NODE,
   .size = sizeof(struct olsrv2_tc_node),
 };
 
 static struct oonf_class _tc_edge_class = {
-  .name = "olsrv2 tc edge",
+  .name = OLSRV2_CLASS_TC_EDGE,
   .size = sizeof(struct olsrv2_tc_edge),
 };
 
 static struct oonf_class _tc_attached_class = {
-  .name = "olsrv2 tc attached network",
+  .name = OLSRV2_CLASS_ATTACHED,
   .size = sizeof(struct olsrv2_tc_attachment),
 };
 
 static struct oonf_class _tc_endpoint_class = {
-  .name = "olsrv2 tc attached network endpoint",
+  .name = OLSRV2_CLASS_ENDPOINT,
   .size = sizeof(struct olsrv2_tc_endpoint),
 };
 

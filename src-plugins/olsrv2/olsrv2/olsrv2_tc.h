@@ -59,6 +59,11 @@ enum olsrv2_target_type {
   OLSRV2_NETWORK_TARGET,
 };
 
+#define OLSRV2_CLASS_TC_NODE  "olsrv2 tc node"
+#define OLSRV2_CLASS_TC_EDGE  "olsrv2 tc edge"
+#define OLSRV2_CLASS_ATTACHED "olsrv2 tc attached network"
+#define OLSRV2_CLASS_ENDPOINT "olsrv2 tc attached network endpoint"
+
 /*
  * represents a target that can be reached through a tc node.
  *
