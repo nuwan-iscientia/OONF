@@ -345,12 +345,8 @@ oonf_viewer_telnet_help(struct autobuf *out,
     struct oonf_viewer_template *template, size_t count) {
   const char *next;
 
-  /* skip the layer2info command */
+  /* skip the layer2info command, NULL output is acceptable */
   next = str_hasnextword(parameter, cmd);
-  if (!next) {
-    /* sanity check failed */
-    return TELNET_RESULT_INTERNAL_ERROR;
-  }
 
   /* print out own help text */
   abuf_appendf(out, "%s command:\n", cmd);
