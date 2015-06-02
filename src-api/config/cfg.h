@@ -97,6 +97,16 @@ cfg_get_bool(const char *value) {
 }
 
 /**
+ * Checks if a string value represents a boolean value
+ * @param pointer to string
+ * @return true if string is a boolean, false otherwise
+ */
+static INLINE bool
+cfg_is_bool(const char *value) {
+  return cfg_get_choice_index(value, CFGLIST_BOOL, ARRAYSIZE(CFGLIST_BOOL)) >= 0;
+}
+
+/**
  * Checks if a section name is valid
  * @param name name of a configuration section
  * @return true if name contains no space, false otherwise
