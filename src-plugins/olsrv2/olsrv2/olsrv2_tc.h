@@ -195,6 +195,8 @@ EXPORT struct olsrv2_tc_attachment *olsrv2_tc_endpoint_add(
 EXPORT void olsrv2_tc_endpoint_remove(
     struct olsrv2_tc_attachment *);
 
+void olsrv2_tc_trigger_change(struct olsrv2_tc_node *);
+
 EXPORT struct avl_tree *olsrv2_tc_get_tree(void);
 EXPORT struct avl_tree *olsrv2_tc_get_endpoint_tree(void);
 

@@ -453,6 +453,7 @@ _cb_messagetlvs_end(struct rfc5444_reader_tlvblock_context *context __attribute_
     }
   }
 
+  olsrv2_tc_trigger_change(_current.node);
   _current.node = NULL;
 
   /* recalculate routing table */

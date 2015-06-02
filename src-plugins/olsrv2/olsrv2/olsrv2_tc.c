@@ -405,6 +405,11 @@ olsrv2_tc_endpoint_remove(
   oonf_class_free(&_tc_attached_class, net);
 }
 
+void
+olsrv2_tc_trigger_change(struct olsrv2_tc_node *node) {
+  oonf_class_event(&_tc_node_class, node, OONF_OBJECT_CHANGED);
+}
+
 struct avl_tree *
 olsrv2_tc_get_tree(void) {
   return &_tc_tree;
@@ -420,7 +425,7 @@ olsrv2_tc_get_endpoint_tree(void) {
  * Callback triggered when a tc node times out
  * @param ptr pointer to tc node
  */
-void
+static void
 _cb_tc_node_timeout(void *ptr) {
   struct olsrv2_tc_node *node = ptr;
 
