@@ -166,6 +166,7 @@ olsrv2_tc_node_add(struct netaddr *originator,
     node->ansn = ansn;
 
     /* initialize dijkstra data */
+    node->target.type = OLSRV2_NODE_TARGET;
     olsrv2_routing_dijkstra_node_init(&node->target._dijkstra);
 
     /* hook into global tree */
