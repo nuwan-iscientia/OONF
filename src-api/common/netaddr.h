@@ -192,6 +192,16 @@ static INLINE void
 netaddr_invalidate(struct netaddr *addr) {
   memset(addr, 0, sizeof(*addr));
 }
+
+/**
+ * @param addr netaddr object
+ * @return true if address in AF_UNSPEC, false otherwise
+ */
+static INLINE bool
+netaddr_is_unspec(const struct netaddr *addr) {
+  return addr->_type == AF_UNSPEC;
+}
+
 /**
  * Calculates the maximum prefix length of an address type
  * @param addr netaddr object
