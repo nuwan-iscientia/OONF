@@ -53,8 +53,10 @@
 
 #include "nhdp/nhdp_db.h"
 #include "nhdp/nhdp_domain.h"
+#include "nhdp/nhdp_interfaces.h"
 
 #include "olsrv2/olsrv2_internal.h"
+#include "olsrv2/olsrv2_lan.h"
 #include "olsrv2/olsrv2_originator.h"
 #include "olsrv2/olsrv2_tc.h"
 #include "olsrv2/olsrv2_routing.h"
@@ -449,9 +451,27 @@ _update_routing_entry(struct nhdp_domain *domain,
     bool single_hop) {
   struct nhdp_neighbor_domaindata *neighdata;
   struct olsrv2_routing_entry *rtentry;
+  const struct netaddr *originator;
+  struct olsrv2_lan_entry *lan;
 #ifdef OONF_LOG_DEBUG_INFO
   struct netaddr_str buf;
 #endif
+
+  /* test if destination is already part of the local node */
+  originator = olsrv2_originator_get(netaddr_get_address_family(destination));
+  if (netaddr_cmp(originator, destination) == 0) {
+    /* don't set routes for our own originator */
+    return;
+  }
+  if (nhdp_interface_addr_global_get(destination)) {
+    /* don't set routes for our own interface addresses */
+    return;
+  }
+  lan = olsrv2_lan_get(destination);
+  if (lan && olsrv2_lan_get_domaindata(domain, lan)->active) {
+    /* don't set routes for our own locally attached networks */
+    return;
+  }
 
   /* make sure routing entry is present */
   rtentry = _add_entry(domain, destination);
