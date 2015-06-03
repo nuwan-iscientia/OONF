@@ -1,7 +1,6 @@
 include $(TOPDIR)/rules.mk
 
-PKG_NAME:=oonf-git
-PKG_VERSION:=2014-11-07
+PKG_NAME:=oonf-olsrd2-git
 #PKG_REV:=ec2bca8f28b4d14df049fc81e177160ca0e3c3a3
 #PKG_RELEASE:=$(PKG_REV)
 
@@ -36,7 +35,7 @@ define Package/oonf-git/template
 	URL:=http://www.olsr.org/
 endef
 
-define Package/olsrd2-git
+define Package/oonf-olsrd2-git
 	$(call Package/oonf-git/template) 
 	TITLE:= Build Olsrd V2 Routing Agent
 	DEPENDS:=+librt +libnl-tiny +libuci
@@ -51,15 +50,15 @@ endef
 
 TARGET_CFLAGS += -I$(STAGING_DIR)/usr/include -I${STAGING_DIR}/usr/include/libnl-tiny
 
-define Package/olsrd2-git/install
+define Package/oonf-olsrd2-git/install
 	$(INSTALL_BIN)  -D $(PKG_BUILD_DIR)/olsrd2_static $(1)/usr/sbin/olsrd2
 	$(INSTALL_BIN)  -D ./files/olsrd2.init            $(1)/etc/init.d/olsrd2
 	$(INSTALL_BIN)  -D ./files/olsrd2.hotplug         $(1)/etc/hotplug.d/iface/50-olsrd2
 	$(INSTALL_DATA) -D ./files/olsrd2.uci             $(1)/etc/config/olsrd2
 endef
 
-define Package/olsrd2-git/conffiles
+define Package/oonf-olsrd2-git/conffiles
 /etc/config/olsrd2
 endef
 
-$(eval $(call BuildPackage,olsrd2-git))
+$(eval $(call BuildPackage,oonf-olsrd2-git))
