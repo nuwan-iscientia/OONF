@@ -453,6 +453,7 @@ _update_routing_entry(struct nhdp_domain *domain,
   struct olsrv2_routing_entry *rtentry;
   const struct netaddr *originator;
   struct olsrv2_lan_entry *lan;
+  struct olsrv2_lan_domaindata *landata;
 #ifdef OONF_LOG_DEBUG_INFO
   struct netaddr_str buf;
 #endif
@@ -468,9 +469,15 @@ _update_routing_entry(struct nhdp_domain *domain,
     return;
   }
   lan = olsrv2_lan_get(destination);
-  if (lan && olsrv2_lan_get_domaindata(domain, lan)->active) {
-    /* don't set routes for our own locally attached networks */
-    return;
+  if (lan) {
+    landata = olsrv2_lan_get_domaindata(domain, lan);
+    if (landata->active && landata->outgoing_metric < pathcost) {
+      /*
+       * don't set routes for our own locally attached
+       * networks with a better metric
+       */
+      return;
+    }
   }
 
   /* make sure routing entry is present */
