@@ -82,6 +82,7 @@ EXPORT char *strscat (char *dest, const char *src, size_t size);
 EXPORT char *str_trim (char *ptr);
 EXPORT const char *str_hasnextword (const char *buffer, const char *word);
 EXPORT const char *str_cpynextword (char *dst, const char *buffer, size_t len);
+EXPORT const char *str_skipnextword (const char *src);
 
 EXPORT bool str_is_printable(const char *value);
 

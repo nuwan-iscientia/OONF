@@ -217,6 +217,42 @@ str_cpynextword (char *dst, const char *src, size_t len) {
 }
 
 /**
+ * Skips the next word of a constant stringbuffer.
+ * @param src constant source buffer
+ * @return pointer to next word behind the skipped word
+ */
+const char *
+str_skipnextword (const char *src) {
+  /* sanity check */
+  if (src == NULL) {
+    return NULL;
+  }
+
+  /* skip whitespace prefix */
+  while (isblank(*src)) {
+    src++;
+  }
+
+  /* copy next word */
+  while (*src != 0 && !isblank(*src)) {
+    src++;
+  }
+
+  /* skip ahead in src */
+  while (isblank(*src)) {
+    src++;
+  }
+
+  if (*src) {
+    /* return next word */
+    return src;
+  }
+
+  /* end of src */
+  return NULL;
+}
+
+/**
  * Printable is defined as all ascii characters >= 32 except
  * 127 and 255.
  * @param value stringpointer

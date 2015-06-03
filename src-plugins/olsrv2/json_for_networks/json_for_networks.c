@@ -262,16 +262,10 @@ _print_graph(struct json_session *session,
 static void
 _create_graph_json(struct json_session *session) {
   struct nhdp_domain *domain;
-  json_start_object(session, NULL);
-
-  _print_json_string(session, "type", "NetworkCollection");
-  json_start_array(session, "collection");
   list_for_each_element(nhdp_domain_get_list(), domain, _node) {
     _print_graph(session, domain, AF_INET);
     _print_graph(session, domain, AF_INET6);
   }
-  json_end_array(session);
-  json_end_object(session);
 }
 
 static void
@@ -325,20 +319,23 @@ _print_routing_tree(struct json_session *session,
 static void
 _create_routes_json(struct json_session *session) {
   struct nhdp_domain *domain;
-  json_start_object(session, NULL);
-
-  _print_json_string(session, "type", "NetworkCollection");
-
-  json_start_array(session, "collection:");
-
   list_for_each_element(nhdp_domain_get_list(), domain, _node) {
     _print_routing_tree(session, domain, AF_INET);
     _print_routing_tree(session, domain, AF_INET6);
   }
-  json_end_array(session);
-  json_end_object(session);
 }
 
+static void
+_create_error_json(struct json_session *session,
+    const char *message, const char *parameter) {
+  json_start_object(session, NULL);
+
+  _print_json_string(session, "type", "Error");
+  _print_json_string(session, "message", message);
+  _print_json_string(session, "parameter", parameter);
+
+  json_end_object(session);
+}
 /**
  * Callback for jsonfornet telnet command
  * @param con telnet connection
@@ -348,7 +345,8 @@ static enum oonf_telnet_result
 _cb_jsonfornet(struct oonf_telnet_data *con) {
   struct json_session session;
   struct autobuf out;
-  const char *error;
+  const char *ptr, *next;
+  bool error;
 
   if (abuf_init(&out)) {
     return TELNET_RESULT_INTERNAL_ERROR;
@@ -356,36 +354,34 @@ _cb_jsonfornet(struct oonf_telnet_data *con) {
 
   json_init_session(&session, &out);
 
-  error = NULL;
+  json_start_object(&session, NULL);
 
-  if (!con->parameter || con->parameter[0] == 0) {
-    error = "use " COMMAND_GRAPH " or " COMMAND_ROUTES " subcommand";
-  }
-  else if (strcmp(con->parameter, COMMAND_GRAPH) == 0) {
-    _create_graph_json(&session);
-  }
-  else if (strcmp(con->parameter, COMMAND_ROUTES) == 0) {
-    _create_routes_json(&session);
-  }
-  else {
-    error = "unknown sub-command, use "
-        COMMAND_GRAPH " or " COMMAND_ROUTES " subcommand";
-  }
+  _print_json_string(&session, "type", "NetworkCollection");
+  json_start_array(&session, "collection");
 
-  if (error == NULL && abuf_has_failed(&out)) {
-    error = "internal error";
+  error = false;
+  next = con->parameter;
+  while (next && *next) {
+    if ((ptr = str_hasnextword(next, COMMAND_GRAPH))) {
+      _create_graph_json(&session);
+    }
+    else if ((ptr = str_hasnextword(next, COMMAND_ROUTES))) {
+      _create_routes_json(&session);
+    }
+    else {
+      ptr = str_skipnextword(next);
+      error = true;
+    }
+    next = ptr;
   }
 
   if (error) {
-    /* create error */
-    json_init_session(&session, con->out);
-
-    json_start_object(&session, NULL);
-    _print_json_string(&session, "error", error);
-    json_end_object(&session);
-
-    return TELNET_RESULT_ACTIVE;
+    _create_error_json(&session, "unknown sub-command, use "
+        COMMAND_GRAPH " or " COMMAND_ROUTES " subcommand",
+        con->parameter);
   }
+  json_end_array(&session);
+  json_end_object(&session);
 
   /* copy output into telnet buffer */
   abuf_memcpy(con->out, abuf_getptr(&out), abuf_getlen(&out));
