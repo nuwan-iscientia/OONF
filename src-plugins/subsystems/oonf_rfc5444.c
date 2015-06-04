@@ -239,6 +239,9 @@ static struct avl_tree _protocol_tree;
 static struct oonf_rfc5444_protocol *_rfc5444_protocol = NULL;
 static struct oonf_rfc5444_interface *_rfc5444_unicast = NULL;
 
+static const struct const_strarray _unicast_bindto_acl_value =
+    STRARRAY_INIT("0.0.0.0\0::");
+
 /* subsystem definition */
 static const char *_dependencies[] = {
   OONF_CLASS_SUBSYSTEM,
@@ -697,12 +700,16 @@ oonf_rfc5444_reconfigure_interface(struct oonf_rfc5444_interface *interf,
       interf->name, interf->_socket_config.port, interf->_socket_config.multicast_port,
       interf->_socket_config.protocol);
 
+  OONF_DEBUG(LOG_RFC5444, "compare: '%s' == '%s'",
+      interf->name, RFC5444_UNICAST_TARGET);
   if (strcmp(interf->name, RFC5444_UNICAST_TARGET) == 0) {
     /* unicast interface */
     netaddr_invalidate(&interf->_socket_config.multicast_v4);
     netaddr_invalidate(&interf->_socket_config.multicast_v6);
     interf->_socket_config.port = port;
     interf->_socket_config.interface[0] = 0;
+    netaddr_acl_from_strarray(&interf->_socket_config.bindto,
+        &_unicast_bindto_acl_value);
   }
 
   if (port == 0) {
