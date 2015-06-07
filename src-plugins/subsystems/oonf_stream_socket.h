@@ -162,6 +162,12 @@ struct oonf_stream_config {
    * Called when new data will be available in the input buffer
    */
   enum oonf_stream_session_state (*receive_data)(struct oonf_stream_session *);
+
+  /*
+   * Called when we could write to the buffer but it is empty
+   */
+  enum oonf_stream_session_state (*buffer_underrun)(struct oonf_stream_session *);
+
 };
 
 /*

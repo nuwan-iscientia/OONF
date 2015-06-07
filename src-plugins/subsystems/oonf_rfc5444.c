@@ -288,7 +288,7 @@ _init(void) {
 
   oonf_class_add(&_interface_memcookie);
   _rfc5444_unicast = oonf_rfc5444_add_interface(
-      _rfc5444_protocol, NULL, RFC5444_UNICAST_TARGET);
+      _rfc5444_protocol, NULL, RFC5444_UNICAST_INTERFACE);
   if (_rfc5444_unicast == NULL) {
     _cleanup();
     return -1;
@@ -701,8 +701,8 @@ oonf_rfc5444_reconfigure_interface(struct oonf_rfc5444_interface *interf,
       interf->_socket_config.protocol);
 
   OONF_DEBUG(LOG_RFC5444, "compare: '%s' == '%s'",
-      interf->name, RFC5444_UNICAST_TARGET);
-  if (strcmp(interf->name, RFC5444_UNICAST_TARGET) == 0) {
+      interf->name, RFC5444_UNICAST_INTERFACE);
+  if (strcmp(interf->name, RFC5444_UNICAST_INTERFACE) == 0) {
     /* unicast interface */
     netaddr_invalidate(&interf->_socket_config.multicast_v4);
     netaddr_invalidate(&interf->_socket_config.multicast_v6);

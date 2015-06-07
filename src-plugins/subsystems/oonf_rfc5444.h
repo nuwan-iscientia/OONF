@@ -85,7 +85,7 @@ enum {
 #define RFC5444_PROTOCOL "rfc5444_default"
 
 /* Interface name for unicast targets */
-#define RFC5444_UNICAST_TARGET OONF_INTERFACE_WILDCARD
+#define RFC5444_UNICAST_INTERFACE OONF_INTERFACE_WILDCARD
 
 /* classes for elements of RFC5444 */
 #define RFC5444_CLASS_PROTOCOL  "RFC5444 protocol"
@@ -259,6 +259,17 @@ EXPORT enum rfc5444_result oonf_rfc5444_send_all(
     uint8_t msgid, uint8_t addr_len, rfc5444_writer_targetselector useIf);
 
 EXPORT void oonf_rfc5444_block_output(bool block);
+
+/**
+ * Flush a target and send out the message/packet immediately
+ * @param target rfc5444 target
+ * @param force true to force an empty packet if necessary, false will only
+ *   flush if a message is in the buffer
+ */
+static INLINE void
+oonf_rfc5444_flush_target(struct oonf_rfc5444_target *target, bool force) {
+  rfc5444_writer_flush(&target->interface->protocol->writer, &target->rfc5444_target, force);
+}
 
 /**
  * @param writer pointer to rfc5444 writer
