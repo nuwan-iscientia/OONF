@@ -11,6 +11,8 @@ PKG_VERSION:=2015-16-05
 #PKG_SOURCE_SUBDIR:=$(PKG_NAME)-$(PKG_VERSION)
 #PKG_SOURCE_VERSION:=$(PKG_REV)
 
+PKG_VERSION:=0.8.2
+
 CMAKE_INSTALL:=1
 
 include $(INCLUDE_DIR)/package.mk
@@ -40,6 +42,7 @@ define Package/oonf-dlep-proxy-git
 	$(call Package/oonf-git/template) 
 	TITLE:= Build DLEP Radio+Router Agent
 	DEPENDS:=+librt +libnl-tiny +libuci
+	VERSION:=$(PKG_VERSION)
 endef
 
 Build/Compile=$(call Build/Compile/Default,dlep_radio_static)
