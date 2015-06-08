@@ -39,34 +39,9 @@
  *
  */
 
-#include "common/netaddr.h"
-#include "subsystems/os_routing.h"
+#ifndef LAN_IMPORT_H_
+#define LAN_IMPORT_H_
 
-/**
- * Print OS route to string buffer
- * @param buf pointer to string buffer
- * @param route pointer to route
- * @return pointer to string buffer, NULL if an error happened
- */
-const char *
-os_routing_to_string(struct os_route_str *buf, const struct os_route *route) {
-  struct netaddr_str buf1, buf2, buf3, buf4;
-  char ifbuf[IF_NAMESIZE];
-  int result;
-  result = snprintf(buf->buf, sizeof(*buf),
-      "'src-ip %s gw %s dst %s src-prefix %s metric %u table %u protocol %u if %s (%u)'",
-      netaddr_to_string(&buf1, &route->src_ip),
-      netaddr_to_string(&buf2, &route->gw),
-      netaddr_to_string(&buf3, &route->dst),
-      netaddr_to_string(&buf4, &route->src_prefix),
-      route->metric,
-      (unsigned int)(route->table),
-      (unsigned int)(route->protocol),
-      if_indextoname(route->if_index, ifbuf),
-      route->if_index);
+#define OONF_LAN_IMPORT_SUBSYSTEM "lan_import"
 
-  if (result < 0 || result > (int)sizeof(*buf)) {
-    return NULL;
-  }
-  return buf->buf;
-}
+#endif /* LAN_IMPORT_H_ */

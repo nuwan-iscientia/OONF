@@ -69,10 +69,10 @@ void olsrv2_lan_init(void);
 void olsrv2_lan_cleanup(void);
 
 EXPORT struct olsrv2_lan_entry *olsrv2_lan_add(
-    struct nhdp_domain *domain, struct netaddr *prefix,
+    struct nhdp_domain *domain, const struct netaddr *prefix,
     uint32_t metric, uint8_t distance);
 EXPORT void olsrv2_lan_remove(struct nhdp_domain *,
-    struct netaddr *prefix);
+    const struct netaddr *prefix);
 
 EXPORT int olsrv2_lan_validate(const struct cfg_schema_entry *entry,
     const char *section_name, const char *value, struct autobuf *out);
@@ -85,7 +85,7 @@ EXPORT struct avl_tree *olsrv2_lan_get_tree(void);
  * @return pointer to LAN set entry, NULL if not found
  */
 static INLINE struct olsrv2_lan_entry *
-olsrv2_lan_get(struct netaddr *addr) {
+olsrv2_lan_get(const struct netaddr *addr) {
   struct olsrv2_lan_entry *entry;
   return avl_find_element(olsrv2_lan_get_tree(), addr, entry, _node);
 }

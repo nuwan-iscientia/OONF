@@ -109,8 +109,7 @@ static struct cfg_schema_entry _modifier_entries[] = {
 
 static struct cfg_schema_section _modifier_section = {
   .type = OONF_ROUTE_MODIFIER_SUBSYSTEM,
-  .mode = CFG_SSMODE_NAMED_WITH_DEFAULT,
-  .def_name = "0",
+  .mode = CFG_SSMODE_NAMED,
 
   .cb_delta_handler = _cb_cfg_changed,
 

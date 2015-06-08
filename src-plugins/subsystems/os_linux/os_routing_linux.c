@@ -83,6 +83,10 @@ static struct oonf_subsystem _oonf_os_routing_subsystem = {
 DECLARE_OONF_PLUGIN(_oonf_os_routing_subsystem);
 
 /* netlink socket for route set/get commands */
+static const uint32_t _rtnetlink_mcast[] = {
+  RTNLGRP_IPV4_ROUTE, RTNLGRP_IPV6_ROUTE
+};
+
 struct os_system_netlink _rtnetlink_socket = {
   .used_by = &_oonf_os_routing_subsystem,
   .cb_message = _cb_rtnetlink_message,
@@ -92,6 +96,7 @@ struct os_system_netlink _rtnetlink_socket = {
 };
 
 static struct list_entity _rtnetlink_feedback;
+static struct list_entity _rtnetlink_listener;
 
 /* default wildcard route */
 static const struct os_route OS_ROUTE_WILDCARD = {
@@ -115,7 +120,13 @@ _init(void) {
   if (os_system_netlink_add(&_rtnetlink_socket, NETLINK_ROUTE)) {
     return -1;
   }
+
+  if (os_system_netlink_add_mc(&_rtnetlink_socket, _rtnetlink_mcast, ARRAYSIZE(_rtnetlink_mcast))) {
+    os_system_netlink_remove(&_rtnetlink_socket);
+    return -1;
+  }
   list_init_head(&_rtnetlink_feedback);
+  list_init_head(&_rtnetlink_listener);
   return 0;
 }
 
@@ -257,9 +268,29 @@ os_routing_interrupt(struct os_route *route) {
   _routing_finished(route, -1);
 }
 
+/**
+ * @param route os route
+ * @return true if route is being processed by the kernel,
+ *   false otherwise
+ */
+bool
+os_routing_is_in_progress(struct os_route *route) {
+  return list_is_node_added(&route->_internal._node);
+}
+
 const struct os_route *
 os_routing_get_wildcard_route(void) {
   return &OS_ROUTE_WILDCARD;
+}
+
+void
+os_routing_listener_add(struct os_route_listener *listener) {
+  list_add_tail(&_rtnetlink_listener, &listener->_internal._node);
+}
+
+void
+os_routing_listener_remove(struct os_route_listener *listener) {
+  list_remove(&listener->_internal._node);
 }
 
 /**
@@ -483,6 +514,7 @@ _match_routes(struct os_route *filter, struct os_route *route) {
  */
 static void
 _cb_rtnetlink_message(struct nlmsghdr *msg) {
+  struct os_route_listener *listener;
   struct os_route *filter;
   struct os_route rt;
 
@@ -497,6 +529,7 @@ _cb_rtnetlink_message(struct nlmsghdr *msg) {
     return;
   }
 
+  /* check for feedback for ongoing route commands */
   list_for_each_element(&_rtnetlink_feedback, filter, _internal._node) {
     OONF_DEBUG_NH(LOG_OS_ROUTING, "  Compare with seq: %d", filter->_internal.nl_seq);
     if (msg->nlmsg_seq == filter->_internal.nl_seq) {
@@ -506,9 +539,12 @@ _cb_rtnetlink_message(struct nlmsghdr *msg) {
       break;
     }
   }
-}
 
-#include <errno.h>
+  /* send route events to listeners */
+  list_for_each_element(&_rtnetlink_listener, listener, _internal._node) {
+    listener->cb_get(&rt, msg->nlmsg_type == RTM_NEWROUTE);
+  }
+}
 
 /**
  * Handle feedback from netlink socket

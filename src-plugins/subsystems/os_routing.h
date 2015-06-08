@@ -126,13 +126,25 @@ struct os_route {
   void (*cb_get)(struct os_route *filter, struct os_route *route);
 };
 
+struct os_route_listener {
+  /* used for delivering feedback about netlink commands */
+  struct os_route_internal _internal;
+
+  /* callback called for each routing event */
+  void (*cb_get)(const struct os_route *route, bool set);
+};
+
 /* prototypes for all os_routing functions */
 EXPORT int os_routing_set(struct os_route *, bool set, bool del_similar);
 EXPORT int os_routing_query(struct os_route *);
 EXPORT void os_routing_interrupt(struct os_route *);
+EXPORT bool os_routing_is_in_progress(struct os_route *);
+
+EXPORT void os_routing_listener_add(struct os_route_listener *);
+EXPORT void os_routing_listener_remove(struct os_route_listener *);
 
 EXPORT const char *os_routing_to_string(
-    struct os_route_str *buf, struct os_route *route);
+    struct os_route_str *buf, const struct os_route *route);
 
 EXPORT const struct os_route *os_routing_get_wildcard_route(void);
 

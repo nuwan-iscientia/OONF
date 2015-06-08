@@ -206,6 +206,15 @@ olsrv2_routing_trigger_update(void) {
 }
 
 /**
+ * @param domain nhdp domain
+ * @return routing domain parameters
+ */
+const struct olsrv2_routing_domain *
+olsrv2_routing_get_parameters(struct nhdp_domain *domain) {
+  return &_domain_parameter[domain->index];
+}
+
+/**
  * Trigger dijkstra and routing update now
  * @param skip_wait true to ignore rate limitation timer
  */
