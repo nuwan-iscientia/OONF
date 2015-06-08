@@ -98,7 +98,7 @@ static void _cb_cfg_changed(void);
 /* plugin declaration */
 static struct cfg_schema_entry _import_entries[] = {
   CFG_MAP_INT32_MINMAX(_import_entry, domain, "domain", "0",
-      "Routing domain id for filter", 0, false, 0, 255),
+      "Routing domain extension for filter", 0, false, 0, 255),
   CFG_MAP_ACL(_import_entry, filter, "matches",
       OLSRV2_ROUTABLE_IPV4 OLSRV2_ROUTABLE_IPV6 ACL_DEFAULT_ACCEPT,
       "Ip addresses the filter should be applied to"),
@@ -296,11 +296,17 @@ _cb_rt_event(const struct os_route *route, bool set) {
       }
 
       OONF_DEBUG(LOG_LAN_IMPORT, "Add lan...");
-      olsrv2_lan_add(domain, &route->dst, 1, route->metric);
+      domain = nhdp_domain_get_by_ext(import->domain);
+      if (domain) {
+        olsrv2_lan_add(domain, &route->dst, 1, route->metric);
+      }
     }
     else {
       OONF_DEBUG(LOG_LAN_IMPORT, "Remove lan...");
-      olsrv2_lan_remove(domain, &route->dst);
+      domain = nhdp_domain_get_by_ext(import->domain);
+      if (domain) {
+        olsrv2_lan_remove(domain, &route->dst);
+      }
     }
   }
 }
