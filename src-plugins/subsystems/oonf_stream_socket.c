@@ -821,6 +821,13 @@ _cb_parse_connection(int fd, void *data, bool event_read, bool event_write) {
     }
   }
 
+  /* check for buffer underrun */
+  if (session->state == STREAM_SESSION_ACTIVE
+      && abuf_getlen(&session->out) == 0
+      && s_sock->config.buffer_underrun != NULL) {
+    session->state = s_sock->config.buffer_underrun(session);
+  }
+
   if (abuf_getlen(&session->out) == 0) {
     /* nothing to send anymore */
     OONF_DEBUG(LOG_STREAM, "  deactivating output in scheduler\n");
