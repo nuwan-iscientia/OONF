@@ -122,6 +122,9 @@ struct olsrv2_tc_edge {
   /* link cost of edge */
   uint32_t cost[NHDP_MAXIMUM_DOMAINS];
 
+  /* true if edge is part of outgoing route tree */
+  bool outgoing_tree[NHDP_MAXIMUM_DOMAINS];
+
   /* answer set number which set this edge */
   uint16_t ansn;
 

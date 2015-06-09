@@ -130,7 +130,7 @@ static void
 _print_graph_edge(struct json_session *session,
     struct nhdp_domain *domain,
     const struct netaddr *src, const struct netaddr *dst,
-    uint32_t out, uint32_t in) {
+    uint32_t out, uint32_t in, bool outgoing_tree) {
   struct nhdp_metric_str mbuf;
 
   json_start_object(session, NULL);
@@ -144,6 +144,8 @@ _print_graph_edge(struct json_session *session,
     _print_json_number(session, "in", in);
     _print_json_string(session, "in_txt",
         nhdp_domain_get_metric_value(&mbuf, domain, in));
+    _print_json_string(session, "outgoing_tree",
+        json_getbool(outgoing_tree));
     json_end_object(session);
   }
   json_end_object(session);
@@ -180,6 +182,8 @@ _print_graph(struct json_session *session,
   struct olsrv2_tc_edge *edge;
   struct olsrv2_tc_attachment *attached;
   struct olsrv2_lan_entry *lan;
+  struct avl_tree *rt_tree;
+  struct olsrv2_routing_entry *rt_entry;
 
   originator = olsrv2_originator_get(af_type);
   if (netaddr_get_address_family(originator) != af_type) {
@@ -204,14 +208,25 @@ _print_graph(struct json_session *session,
 
   json_start_array(session, "links");
 
+  rt_tree = olsrv2_routing_get_tree(domain);
+
   /* print local links to neighbors */
   avl_for_each_element(nhdp_db_get_neigh_originator_tree(), neigh, _originator_node) {
     if (netaddr_get_address_family(&neigh->originator) == af_type
         && neigh->symmetric > 0) {
+      rt_entry = avl_find_element(rt_tree, &neigh->originator, rt_entry, _node);
+
       _print_graph_edge(session, domain,
           originator, &neigh->originator,
           nhdp_domain_get_neighbordata(domain, neigh)->metric.out,
-          nhdp_domain_get_neighbordata(domain, neigh)->metric.in);
+          nhdp_domain_get_neighbordata(domain, neigh)->metric.in,
+          rt_entry != NULL && rt_entry->path_hops == 1);
+
+      _print_graph_edge(session, domain,
+          &neigh->originator, originator,
+          nhdp_domain_get_neighbordata(domain, neigh)->metric.in,
+          nhdp_domain_get_neighbordata(domain, neigh)->metric.out,
+          false);
     }
   }
 
@@ -223,7 +238,8 @@ _print_graph(struct json_session *session,
           _print_graph_edge(session, domain,
               &node->target.addr, &edge->dst->target.addr,
               edge->cost[domain->index],
-              edge->inverse->cost[domain->index]);
+              edge->inverse->cost[domain->index],
+              edge->outgoing_tree[domain->index]);
         }
       }
     }

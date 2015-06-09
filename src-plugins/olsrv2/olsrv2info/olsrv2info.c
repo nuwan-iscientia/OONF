@@ -128,6 +128,7 @@ static int _cb_create_text_route(struct oonf_viewer_template *);
 #define KEY_ATTACHED_NET_ANSN       "attached_net_ansn"
 
 #define KEY_EDGE                    "edge"
+#define KEY_EDGE_OUTGOING           "edge_outgoing"
 #define KEY_EDGE_ANSN               "edge_ansn"
 
 #define KEY_ROUTE_SRC_IP            "route_src_ip"
@@ -167,6 +168,7 @@ static struct netaddr_str         _value_attached_net;
 static char                       _value_attached_net_ansn[6];
 
 static struct netaddr_str         _value_edge;
+static char                       _value_edge_outgoing[TEMPLATE_JSON_BOOL_LENGTH];
 static char                       _value_edge_ansn[6];
 
 static struct netaddr_str         _value_route_dst;
@@ -232,6 +234,7 @@ static struct abuf_template_data_entry _tde_attached_net[] = {
 
 static struct abuf_template_data_entry _tde_edge[] = {
     { KEY_EDGE, _value_edge.buf, true },
+    { KEY_EDGE_OUTGOING, _value_edge_outgoing, true },
     { KEY_EDGE_ANSN, _value_edge_ansn, false },
 };
 
@@ -690,6 +693,10 @@ _cb_create_text_edge(struct oonf_viewer_template *template) {
         _initialize_domain_values(domain);
         _initialize_domain_metric_values(domain,
             olsrv2_tc_edge_get_metric(domain, edge));
+
+        strscpy(_value_edge_outgoing,
+            json_getbool(edge->outgoing_tree[domain->index]),
+            sizeof(_value_edge_outgoing));
 
         oonf_viewer_output_print_line(template);
       }
