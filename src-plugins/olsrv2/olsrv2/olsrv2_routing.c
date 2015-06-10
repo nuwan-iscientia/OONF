@@ -66,9 +66,11 @@
 static struct olsrv2_routing_entry *_add_entry(
     struct nhdp_domain *, struct netaddr *prefix);
 static void _remove_entry(struct olsrv2_routing_entry *);
-static bool _insert_into_working_tree(struct olsrv2_tc_target *target,
+static void _insert_into_working_tree(struct olsrv2_tc_target *target,
     struct nhdp_neighbor *neigh, uint32_t linkcost,
-    uint32_t path_cost, uint8_t path_hops, uint8_t distance, bool single_hop);
+    uint32_t path_cost, uint8_t path_hops,
+    uint8_t distance, bool single_hop,
+    const struct netaddr *last_originator);
 static void _prepare_routes(struct nhdp_domain *);
 static void _handle_working_queue(struct nhdp_domain *);
 static void _handle_nhdp_routes(struct nhdp_domain *);
@@ -388,20 +390,21 @@ _remove_entry(struct olsrv2_routing_entry *entry) {
  * @param pathcost remainder of the cost to the target
  * @param distance hopcount to be used for the route to the target
  * @param single_hop true if this is a single-hop route, false otherwise
- * @returns true if target was inserted into working tree, false if
- *   it was skipped
+ * @param last_node address of the last originator before we reached the
+ *   destination prefix
  */
-static bool
+static void
 _insert_into_working_tree(struct olsrv2_tc_target *target,
     struct nhdp_neighbor *neigh, uint32_t linkcost,
     uint32_t path_cost, uint8_t path_hops,
-    uint8_t distance, bool single_hop) {
+    uint8_t distance, bool single_hop,
+    const struct netaddr *last_originator) {
   struct olsrv2_dijkstra_node *node;
 #ifdef OONF_LOG_DEBUG_INFO
   struct netaddr_str buf;
 #endif
   if (linkcost >= RFC7181_METRIC_INFINITE) {
-    return false;
+    return;
   }
 
   node = &target->_dijkstra;
@@ -411,7 +414,7 @@ _insert_into_working_tree(struct olsrv2_tc_target *target,
    * do not add nodes already processed to the working queue
    */
   if (node->local || node->done) {
-    return false;
+    return;
   }
 
   /* calculate new total pathcost */
@@ -423,7 +426,7 @@ _insert_into_working_tree(struct olsrv2_tc_target *target,
 
     if (node->path_cost <= path_cost) {
       /* current path is shorter than new one */
-      return false;
+      return;
     }
 
     /* we found a better path, remove node from working queue */
@@ -439,9 +442,10 @@ _insert_into_working_tree(struct olsrv2_tc_target *target,
   node->first_hop = neigh;
   node->distance = distance;
   node->single_hop = single_hop;
+  node->last_originator = last_originator;
 
   avl_insert(&_dijkstra_working_tree, &node->_node);
-  return true;
+  return;
 }
 
 /**
@@ -454,13 +458,14 @@ _insert_into_working_tree(struct olsrv2_tc_target *target,
  * @param pathcost pathcost to target
  * @param path_hops number of hops to the target
  * @param single_hop true if route is single hop
+ * @param last_originator last originator before destination
  */
 static void
 _update_routing_entry(struct nhdp_domain *domain,
     struct netaddr *destination,
     struct nhdp_neighbor *first_hop,
     uint8_t distance, uint32_t pathcost, uint8_t path_hops,
-    bool single_hop) {
+    bool single_hop, const struct netaddr *last_originator) {
   struct nhdp_neighbor_domaindata *neighdata;
   struct olsrv2_routing_entry *rtentry;
   const struct netaddr *originator;
@@ -521,6 +526,9 @@ _update_routing_entry(struct nhdp_domain *domain,
   /* remember next hop originator */
   memcpy(&rtentry->next_originator, &first_hop->originator, sizeof(struct netaddr));
 
+  /* remember last originator */
+  memcpy(&rtentry->last_originator, last_originator, sizeof(*last_originator));
+
   /* mark route as set */
   rtentry->set = true;
 
@@ -544,10 +552,10 @@ static void
 _prepare_routes(struct nhdp_domain *domain) {
   struct olsrv2_routing_entry *rtentry;
   struct olsrv2_tc_endpoint *end;
-  struct olsrv2_tc_edge *edge;
   struct olsrv2_tc_node *node;
   struct nhdp_neighbor *neigh;
   struct nhdp_neighbor_domaindata *neigh_metric;
+  int family;
 
 #ifdef OONF_LOG_DEBUG_INFO
   struct netaddr_str nbuf;
@@ -574,10 +582,6 @@ _prepare_routes(struct nhdp_domain *domain) {
     		netaddr_to_string(&nbuf, &node->target.addr),
     		node->target._dijkstra.local ? " (local)" : "",
     		(size_t)&node->target);
-
-    avl_for_each_element(&node->_edges, edge, _node) {
-      memset(edge->outgoing_tree, 0, sizeof(edge->outgoing_tree));
-    }
   }
 
   /* initialize private dijkstra data on endpoints */
@@ -590,8 +594,8 @@ _prepare_routes(struct nhdp_domain *domain) {
 
   /* initialize Dijkstra working queue with one-hop neighbors */
   list_for_each_element(nhdp_db_get_neigh_list(), neigh, _global_node) {
-    if (neigh->symmetric > 0
-        && netaddr_get_address_family(&neigh->originator) != AF_UNSPEC
+    family = netaddr_get_address_family(&neigh->originator);
+    if (neigh->symmetric > 0 && family != AF_UNSPEC
         && (node = olsrv2_tc_node_get(&neigh->originator)) != NULL) {
       neigh_metric = nhdp_domain_get_neighbordata(domain, neigh);
 
@@ -603,7 +607,8 @@ _prepare_routes(struct nhdp_domain *domain) {
 
       /* found node for neighbor, add to worker list */
       _insert_into_working_tree(&node->target, neigh,
-          neigh_metric->metric.out, 0, 0, 0, true);
+          neigh_metric->metric.out, 0, 0, 0, true,
+          olsrv2_originator_get(family));
     }
   }
 }
@@ -642,7 +647,8 @@ _handle_working_queue(struct nhdp_domain *domain) {
       target->_dijkstra.distance,
       target->_dijkstra.path_cost,
       target->_dijkstra.path_hops,
-      target->_dijkstra.single_hop);
+      target->_dijkstra.single_hop,
+      target->_dijkstra.last_originator);
 
   if (target->type == OLSRV2_NODE_TARGET) {
     /* get neighbor and its domain specific data */
@@ -655,11 +661,10 @@ _handle_working_queue(struct nhdp_domain *domain) {
     avl_for_each_element(&tc_node->_edges, tc_edge, _node) {
       if (!tc_edge->virtual && tc_edge->cost[domain->index] <= RFC7181_METRIC_MAX) {
         /* add new tc_node to working tree */
-        tc_edge->outgoing_tree[domain->index] =
-            _insert_into_working_tree(&tc_edge->dst->target, first_hop,
+        _insert_into_working_tree(&tc_edge->dst->target, first_hop,
             tc_edge->cost[domain->index],
             target->_dijkstra.path_cost, target->_dijkstra.path_hops,
-            0, false);
+            0, false, &target->addr);
       }
     }
 
@@ -670,7 +675,8 @@ _handle_working_queue(struct nhdp_domain *domain) {
         _insert_into_working_tree(&tc_attached->dst->target, first_hop,
             tc_attached->cost[domain->index],
             target->_dijkstra.path_cost, target->_dijkstra.path_hops,
-            tc_attached->distance[domain->index], false);
+            tc_attached->distance[domain->index], false,
+            &target->addr);
       }
     }
   }
@@ -689,8 +695,11 @@ _handle_nhdp_routes(struct nhdp_domain *domain) {
   struct nhdp_link *lnk;
   uint32_t neighcost;
   uint32_t l2hop_pathcost;
+  int family;
 
   list_for_each_element(nhdp_db_get_neigh_list(), neigh, _global_node) {
+    family = netaddr_get_address_family(&neigh->originator);
+
     /* get linkcost to neighbor */
     neigh_data = nhdp_domain_get_neighbordata(domain, neigh);
     neighcost = neigh_data->metric.out;
@@ -708,7 +717,7 @@ _handle_nhdp_routes(struct nhdp_domain *domain) {
 
       /* update routing entry */
       _update_routing_entry(domain, &naddr->neigh_addr,
-          neigh, 0, neighcost, 1, true);
+          neigh, 0, neighcost, 1, true, olsrv2_originator_get(family));
     }
 
     list_for_each_element(&neigh->_links, lnk, _neigh_node) {
@@ -733,7 +742,7 @@ _handle_nhdp_routes(struct nhdp_domain *domain) {
 
         /* the 2-hop route is better than the dijkstra calculation */
         _update_routing_entry(domain, &l2hop->twohop_addr,
-            neigh, 0, l2hop_pathcost, 2, false);
+            neigh, 0, l2hop_pathcost, 2, false, &neigh->originator);
       }
     }
   }

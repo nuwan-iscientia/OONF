@@ -72,6 +72,12 @@ struct olsrv2_dijkstra_node {
   /* pointer to nhpd neighbor that represents the first hop */
   struct nhdp_neighbor *first_hop;
 
+  /*
+   * address of the last originator in the routing tree before
+   * the destination
+   */
+  const struct netaddr *last_originator;
+
   /* true if route is single-hop */
   bool single_hop;
 
@@ -98,6 +104,9 @@ struct olsrv2_routing_entry {
 
   /* originator address of next hop */
   struct netaddr next_originator;
+
+  /* originator of last hop before target */
+  struct netaddr last_originator;
 
   /*
    * true if the entry represents a route that should be in the kernel,

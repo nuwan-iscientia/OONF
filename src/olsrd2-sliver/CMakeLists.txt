@@ -53,6 +53,7 @@ IF (NOT OONF_STATIC_PLUGINS)
                              olsrv2info
                              remotecontrol
                              dlep_router
+			     json_for_networks
                              )
 ENDIF (NOT OONF_STATIC_PLUGINS)
 

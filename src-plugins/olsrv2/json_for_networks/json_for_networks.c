@@ -184,6 +184,7 @@ _print_graph(struct json_session *session,
   struct olsrv2_lan_entry *lan;
   struct avl_tree *rt_tree;
   struct olsrv2_routing_entry *rt_entry;
+  bool outgoing;
 
   originator = olsrv2_originator_get(af_type);
   if (netaddr_get_address_family(originator) != af_type) {
@@ -215,12 +216,14 @@ _print_graph(struct json_session *session,
     if (netaddr_get_address_family(&neigh->originator) == af_type
         && neigh->symmetric > 0) {
       rt_entry = avl_find_element(rt_tree, &neigh->originator, rt_entry, _node);
+      outgoing = rt_entry != NULL
+          && netaddr_cmp(&rt_entry->last_originator, originator) == 0;
 
       _print_graph_edge(session, domain,
           originator, &neigh->originator,
           nhdp_domain_get_neighbordata(domain, neigh)->metric.out,
           nhdp_domain_get_neighbordata(domain, neigh)->metric.in,
-          rt_entry != NULL && rt_entry->path_hops == 1);
+          outgoing);
 
       _print_graph_edge(session, domain,
           &neigh->originator, originator,
@@ -235,11 +238,15 @@ _print_graph(struct json_session *session,
     if (netaddr_get_address_family(&node->target.addr) == af_type) {
       avl_for_each_element(&node->_edges, edge, _node) {
         if (!edge->virtual) {
+          rt_entry = avl_find_element(rt_tree, &edge->dst->target.addr, rt_entry, _node);
+          outgoing = rt_entry != NULL
+              && netaddr_cmp(&rt_entry->last_originator, &node->target.addr) == 0;
+
           _print_graph_edge(session, domain,
               &node->target.addr, &edge->dst->target.addr,
               edge->cost[domain->index],
               edge->inverse->cost[domain->index],
-              edge->outgoing_tree[domain->index]);
+              outgoing);
         }
       }
     }
@@ -322,6 +329,7 @@ _print_routing_tree(struct json_session *session,
 
       json_start_object(session, "properties");
       _print_json_number(session, "hops", rtentry->path_hops);
+      _print_json_netaddr(session, "last_id", &rtentry->last_originator);
       json_end_object(session);
 
       json_end_object(session);

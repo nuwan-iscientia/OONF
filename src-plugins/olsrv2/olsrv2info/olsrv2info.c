@@ -128,7 +128,6 @@ static int _cb_create_text_route(struct oonf_viewer_template *);
 #define KEY_ATTACHED_NET_ANSN       "attached_net_ansn"
 
 #define KEY_EDGE                    "edge"
-#define KEY_EDGE_OUTGOING           "edge_outgoing"
 #define KEY_EDGE_ANSN               "edge_ansn"
 
 #define KEY_ROUTE_SRC_IP            "route_src_ip"
@@ -140,6 +139,7 @@ static int _cb_create_text_route(struct oonf_viewer_template *);
 #define KEY_ROUTE_PROTO             "route_proto"
 #define KEY_ROUTE_IF                "route_if"
 #define KEY_ROUTE_IFINDEX           "route_ifindex"
+#define KEY_ROUTE_LASTHOP           "route_lasthop"
 
 /*
  * buffer space for values that will be assembled
@@ -168,7 +168,6 @@ static struct netaddr_str         _value_attached_net;
 static char                       _value_attached_net_ansn[6];
 
 static struct netaddr_str         _value_edge;
-static char                       _value_edge_outgoing[TEMPLATE_JSON_BOOL_LENGTH];
 static char                       _value_edge_ansn[6];
 
 static struct netaddr_str         _value_route_dst;
@@ -180,6 +179,7 @@ static char                       _value_route_table[4];
 static char                       _value_route_proto[4];
 static char                       _value_route_if[IF_NAMESIZE];
 static char                       _value_route_ifindex[12];
+static struct netaddr_str         _value_route_lasthop;
 
 /* definition of the template data entries for JSON and table output */
 static struct abuf_template_data_entry _tde_originator[] = {
@@ -234,7 +234,6 @@ static struct abuf_template_data_entry _tde_attached_net[] = {
 
 static struct abuf_template_data_entry _tde_edge[] = {
     { KEY_EDGE, _value_edge.buf, true },
-    { KEY_EDGE_OUTGOING, _value_edge_outgoing, true },
     { KEY_EDGE_ANSN, _value_edge_ansn, false },
 };
 
@@ -248,6 +247,7 @@ static struct abuf_template_data_entry _tde_route[] = {
     { KEY_ROUTE_PROTO, _value_route_proto, false },
     { KEY_ROUTE_IF, _value_route_if, true },
     { KEY_ROUTE_IFINDEX, _value_route_ifindex, false },
+    { KEY_ROUTE_LASTHOP, _value_route_lasthop.buf, true },
 };
 
 static struct abuf_template_storage _template_storage;
@@ -544,6 +544,8 @@ _initialize_route_values(struct olsrv2_routing_entry *route) {
   if_indextoname(route->route.if_index, _value_route_if);
   snprintf(_value_route_ifindex, sizeof(_value_route_ifindex),
       "%u", route->route.if_index);
+
+  netaddr_to_string(&_value_route_lasthop, &route->last_originator);
 }
 
 /**
@@ -693,10 +695,6 @@ _cb_create_text_edge(struct oonf_viewer_template *template) {
         _initialize_domain_values(domain);
         _initialize_domain_metric_values(domain,
             olsrv2_tc_edge_get_metric(domain, edge));
-
-        strscpy(_value_edge_outgoing,
-            json_getbool(edge->outgoing_tree[domain->index]),
-            sizeof(_value_edge_outgoing));
 
         oonf_viewer_output_print_line(template);
       }
