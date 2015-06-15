@@ -58,10 +58,10 @@
 #include "olsrv2/olsrv2_routing.h"
 #include "olsrv2/olsrv2_tc.h"
 
-#include "json_for_networks/json_for_networks.h"
+#include "netjsoninfo/netjsoninfo.h"
 
 /* definitions */
-#define LOG_JSON_FOR_NET olsrv2_jsonfornet.logging
+#define LOG_NETJSONINFO olsrv2_netjsoninfo.logging
 
 #define COMMAND_GRAPH  "graph"
 #define COMMAND_ROUTES "routes"
@@ -70,7 +70,7 @@
 static int _init(void);
 static void _cleanup(void);
 
-static enum oonf_telnet_result _cb_jsonfornet(struct oonf_telnet_data *con);
+static enum oonf_telnet_result _cb_netjsoninfo(struct oonf_telnet_data *con);
 static void _print_json_string(
     struct json_session *session, const char *key, const char *value);
 static void _print_json_number(
@@ -80,7 +80,7 @@ static void _print_json_netaddr(
 
 /* telnet command of this plugin */
 static struct oonf_telnet_command _telnet_commands[] = {
-    TELNET_CMD(OONF_JSONFORNETWORKS_SUBSYSTEM, _cb_jsonfornet,
+    TELNET_CMD(OONF_NETJSONINFO_SUBSYSTEM, _cb_netjsoninfo,
         ""),
 };
 
@@ -90,8 +90,8 @@ static const char *_dependencies[] = {
   OONF_OLSRV2_SUBSYSTEM,
   OONF_TELNET_SUBSYSTEM,
 };
-struct oonf_subsystem olsrv2_jsonfornet = {
-  .name = OONF_JSONFORNETWORKS_SUBSYSTEM,
+struct oonf_subsystem olsrv2_netjsoninfo = {
+  .name = OONF_NETJSONINFO_SUBSYSTEM,
   .dependencies = _dependencies,
   .dependencies_count = ARRAYSIZE(_dependencies),
   .descr = "OLSRv2 JSON for networks generator plugin",
@@ -99,7 +99,7 @@ struct oonf_subsystem olsrv2_jsonfornet = {
   .init = _init,
   .cleanup = _cleanup,
 };
-DECLARE_OONF_PLUGIN(olsrv2_jsonfornet);
+DECLARE_OONF_PLUGIN(olsrv2_netjsoninfo);
 
 /**
  * Initialize plugin
@@ -361,12 +361,12 @@ _create_error_json(struct json_session *session,
   json_end_object(session);
 }
 /**
- * Callback for jsonfornet telnet command
+ * Callback for netjsoninfo telnet command
  * @param con telnet connection
  * @return active or internal_error
  */
 static enum oonf_telnet_result
-_cb_jsonfornet(struct oonf_telnet_data *con) {
+_cb_netjsoninfo(struct oonf_telnet_data *con) {
   struct json_session session;
   struct autobuf out;
   const char *ptr, *next;

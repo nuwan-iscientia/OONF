@@ -39,9 +39,9 @@
  *
  */
 
-#ifndef JSON_FOR_NETWORKS_H_
-#define JSON_FOR_NETWORKS_H_
+#ifndef NETJSONINFO_H_
+#define NETJSONINFO_H_
 
-#define OONF_JSONFORNETWORKS_SUBSYSTEM "json_for_networks"
+#define OONF_NETJSONINFO_SUBSYSTEM "netjsoninfo"
 
-#endif /* JSON_FOR_NETWORKS_H_ */
+#endif /* NETJSONINFO_H_ */

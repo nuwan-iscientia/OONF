@@ -1,5 +1,5 @@
 # add subdirectories
-add_subdirectory(json_for_networks)
+add_subdirectory(netjsoninfo)
 add_subdirectory(lan_import)
 add_subdirectory(olsrv2)
 add_subdirectory(olsrv2info)

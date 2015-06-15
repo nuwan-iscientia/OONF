@@ -52,7 +52,7 @@ IF (NOT OONF_STATIC_PLUGINS)
                              nhdpinfo
                              olsrv2
                              olsrv2info
-                             json_for_networks
+                             netjsoninfo
                              lan_import
                              )
 ENDIF (NOT OONF_STATIC_PLUGINS)
