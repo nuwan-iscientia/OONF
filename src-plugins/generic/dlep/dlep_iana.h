@@ -54,7 +54,7 @@ enum {
 
 enum dlep_version {
   DLEP_VERSION_MAJOR = 0,
-  DLEP_VERSION_MINOR = 9,
+  DLEP_VERSION_MINOR = 14,
 };
 
 enum dlep_signals {

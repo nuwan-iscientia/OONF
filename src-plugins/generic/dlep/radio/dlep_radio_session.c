@@ -432,7 +432,7 @@ _handle_peer_initialization(struct dlep_radio_session *session,
       &session->remote_heartbeat_interval, &buffer[pos]);
 
   /* reset heartbeat timeout */
-  oonf_timer_set(&session->heartbeat_timeout, 2000);
+  oonf_timer_set(&session->heartbeat_timeout, session->remote_heartbeat_interval);
 
   if (_generate_peer_initialization_ack(session, l2net)) {
     return -1;
