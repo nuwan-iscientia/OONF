@@ -46,8 +46,8 @@
 
 #include "nl80211_listener/nl80211_listener.h"
 
-void nl80211_send_get_interface(struct nlmsghdr *nl_msg,
-    struct genlmsghdr *hdr, struct nl80211_if *interf);
+void nl80211_send_get_interface(struct os_system_netlink *nl,
+    struct nlmsghdr *nl_msg, struct genlmsghdr *hdr, struct nl80211_if *interf);
 void nl80211_process_get_interface_result(
     struct nl80211_if *interf, struct nlmsghdr*);
 

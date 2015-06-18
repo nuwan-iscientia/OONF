@@ -105,7 +105,7 @@ enum _if_query {
 static struct {
   uint8_t cmd;
 
-  void (* send)(struct nlmsghdr *nl_msg,
+  void (* send)(struct os_system_netlink *nl, struct nlmsghdr *nl_msg,
       struct genlmsghdr *hdr, struct nl80211_if *interf);
   void (* process)(struct nl80211_if *interf, struct nlmsghdr*);
   void (* finalize)(struct nl80211_if *interf);
@@ -209,6 +209,7 @@ enum oonf_log_source LOG_NL80211;
 
 /* netlink specific data */
 static struct os_system_netlink _netlink_handler = {
+  .name = "nl80211 listener",
   .used_by = &_nl80211_listener_subsystem,
   .cb_message = _cb_nl_message,
   .cb_error = _cb_nl_error,
@@ -478,7 +479,7 @@ _send_netlink_message(struct nl80211_if *interf, enum _if_query query) {
     genl_send_get_family(_nl_msg, hdr);
   }
   else if (_if_query_ops[query].send) {
-    _if_query_ops[query].send(_nl_msg, hdr, interf);
+    _if_query_ops[query].send(&_netlink_handler, _nl_msg, hdr, interf);
   }
 
   os_system_netlink_send(&_netlink_handler, _nl_msg);
@@ -587,29 +588,32 @@ _cb_nl_message(struct nlmsghdr *hdr) {
 
 static void
 _cb_nl_error(uint32_t seq __attribute((unused)), int error __attribute((unused))) {
-  OONF_DEBUG(LOG_NL80211, "%u: Received error %d", seq, error);
-  _trigger_next_netlink_query();
+  OONF_DEBUG(LOG_NL80211, "seq %u: Received error %d", seq, error);
+  if (_nl80211_id && _nl80211_multicast_group) {
+    _trigger_next_netlink_query();
+  }
 }
 
 static void
 _cb_nl_timeout(void) {
   OONF_DEBUG(LOG_NL80211, "Received timeout");
-
-  if (_if_query_ops[_current_query_number].finalize) {
-    _if_query_ops[_current_query_number].finalize(_current_query_if);
+  if (_nl80211_id && _nl80211_multicast_group) {
+    if (_if_query_ops[_current_query_number].finalize) {
+      _if_query_ops[_current_query_number].finalize(_current_query_if);
+    }
+    _trigger_next_netlink_query();
   }
-  _trigger_next_netlink_query();
 }
 
 static void
 _cb_nl_done(uint32_t seq __attribute((unused))) {
   OONF_DEBUG(LOG_NL80211, "%u: Received done", seq);
-
-  if (_if_query_ops[_current_query_number].finalize) {
-    _if_query_ops[_current_query_number].finalize(_current_query_if);
+  if (_nl80211_id && _nl80211_multicast_group) {
+    if (_if_query_ops[_current_query_number].finalize) {
+      _if_query_ops[_current_query_number].finalize(_current_query_if);
+    }
+    _trigger_next_netlink_query();
   }
-
-  _trigger_next_netlink_query();
 }
 
 /**

@@ -212,6 +212,7 @@ oonf_plugins_initiate_shutdown(void) {
 
   avl_for_each_element_safe(&oonf_plugin_tree, plugin, _node, iterator) {
     if (plugin->initiate_shutdown) {
+      OONF_DEBUG(LOG_PLUGINS, "Initiate Shutdown: %s", plugin->name);
       plugin->initiate_shutdown();
     }
   }

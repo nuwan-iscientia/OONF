@@ -135,7 +135,9 @@ rfc5444_print_direct(struct autobuf *out, void *buffer, size_t length) {
   rfc5444_print_add(&session, &reader);
 
   result = rfc5444_reader_handle_packet(&reader, buffer, length);
-
+  if (result) {
+    abuf_appendf(out, "Error while parsing rfc5444: %s\n", rfc5444_strerror(result));
+  }
   rfc5444_print_remove(&session);
   rfc5444_reader_cleanup(&reader);
 

@@ -50,11 +50,22 @@
 #include "subsystems/oonf_socket.h"
 #include "subsystems/oonf_timer.h"
 
-#define OS_SYSTEM_NETLINK_TIMEOUT 500
+#define OS_SYSTEM_NETLINK_TIMEOUT 1000
+
+struct os_system_netlink_buffer {
+  struct list_entity _node;
+  uint32_t total, messages;
+};
 
 struct os_system_netlink {
+  const char *name;
+
   struct oonf_socket_entry socket;
   struct autobuf out;
+  uint32_t out_messages;
+
+  /* link of data buffers to transmit */
+  struct list_entity buffered;
 
   struct oonf_subsystem *used_by;
 
@@ -81,15 +92,16 @@ EXPORT int os_system_netlink_add_mc(struct os_system_netlink *,
 EXPORT int os_system_netlink_drop_mc(struct os_system_netlink *,
     const int *groups, size_t groupcount);
 
-EXPORT int os_system_netlink_addreq(struct nlmsghdr *n,
-    int type, const void *data, int len);
+EXPORT int os_system_netlink_addreq(struct os_system_netlink *nl,
+    struct nlmsghdr *n, int type, const void *data, int len);
 
 EXPORT int os_system_linux_get_ioctl_fd(int af_type);
 
 static INLINE int
-os_system_netlink_addnetaddr(struct nlmsghdr *n,
+os_system_netlink_addnetaddr(struct os_system_netlink *nl, struct nlmsghdr *n,
     int type, const struct netaddr *addr) {
-  return os_system_netlink_addreq(n, type, netaddr_get_binptr(addr), netaddr_get_maxprefix(addr)/8);
+  return os_system_netlink_addreq(
+      nl, n, type, netaddr_get_binptr(addr), netaddr_get_maxprefix(addr)/8);
 }
 
 #endif /* OS_SYSTEM_LINUX_H_ */

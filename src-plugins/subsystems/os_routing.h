@@ -128,7 +128,7 @@ struct os_route {
 
 struct os_route_listener {
   /* used for delivering feedback about netlink commands */
-  struct os_route_internal _internal;
+  struct os_route_listener_internal _internal;
 
   /* callback called for each routing event */
   void (*cb_get)(const struct os_route *route, bool set);

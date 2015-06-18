@@ -120,6 +120,7 @@ static void
 _initiate_shutdown(void) {
   /* stop within 500 ms */
   _scheduler_time_limit = oonf_clock_get_absolute(500);
+  OONF_INFO(LOG_SOCKET, "Stop within 500 ms");
 }
 
 /**
@@ -182,7 +183,7 @@ _handle_scheduling(void)
     }
 
     if (oonf_clock_getNow() >= stop_time) {
-      return 0;
+      return -1;
     }
 
     oonf_timer_walk();
@@ -246,7 +247,7 @@ _handle_scheduling(void)
     } while (n == -1 && errno == EINTR);
 
     if (n == 0) {               /* timeout! */
-      break;
+      return 0;
     }
     if (n < 0) {              /* Did something go wrong? */
       OONF_WARN(LOG_SOCKET, "select error: %s (%d)", strerror(errno), errno);

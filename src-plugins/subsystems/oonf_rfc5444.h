@@ -78,7 +78,7 @@ enum {
   RFC5444_MAX_MESSAGE_SIZE = 1280-40-8-3-4,
 
   /* Maximum buffer size for address TLVs before splitting */
-  RFC5444_ADDRTLV_BUFFER = 8192,
+  RFC5444_ADDRTLV_BUFFER = 65536,
 };
 
 /* Protocol name for IANA allocated MANET port */

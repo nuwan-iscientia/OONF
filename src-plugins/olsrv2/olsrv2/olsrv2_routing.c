@@ -150,6 +150,11 @@ olsrv2_routing_initiate_shutdown(void) {
   /* remove all routes */
   for (i=0; i<NHDP_MAXIMUM_DOMAINS; i++) {
     avl_for_each_element_safe(&_routing_tree[i], entry, _node, e_it) {
+      /* stop internal route processing */
+      entry->route.cb_finished = NULL;
+      os_routing_interrupt(&entry->route);
+      entry->route.cb_finished = _cb_route_finished;
+
       if (entry->set) {
         entry->set = false;
         _add_route_to_kernel_queue(entry);
@@ -175,10 +180,6 @@ olsrv2_routing_cleanup(void) {
 
   for (i=0; i<NHDP_MAXIMUM_DOMAINS; i++) {
     avl_for_each_element_safe(&_routing_tree[i], entry, _node, e_it) {
-      /* make sure route processing has stopped */
-      entry->route.cb_finished = NULL;
-      os_routing_interrupt(&entry->route);
-
       /* remove entry from database */
       _remove_entry(entry);
     }
@@ -375,10 +376,12 @@ _add_entry(struct nhdp_domain *domain, struct netaddr *prefix) {
  */
 static void
 _remove_entry(struct olsrv2_routing_entry *entry) {
-  /* remove entry from database if its still there */
-  if (avl_is_node_added(&entry->_node)) {
-    avl_remove(&_routing_tree[entry->domain->index], &entry->_node);
-  }
+  /* stop internal route processing */
+  entry->route.cb_finished = NULL;
+  os_routing_interrupt(&entry->route);
+
+  /* remove entry from database */
+  avl_remove(&_routing_tree[entry->domain->index], &entry->_node);
   oonf_class_free(&_rtset_entry, entry);
 }
 
@@ -625,6 +628,7 @@ _handle_working_queue(struct nhdp_domain *domain) {
   struct olsrv2_tc_node *tc_node;
   struct olsrv2_tc_edge *tc_edge;
   struct olsrv2_tc_attachment *tc_attached;
+  struct olsrv2_tc_endpoint *tc_endpoint;
 
 #ifdef OONF_LOG_DEBUG_INFO
   struct netaddr_str buf;
@@ -671,12 +675,27 @@ _handle_working_queue(struct nhdp_domain *domain) {
     /* iterate over attached networks and addresses */
     avl_for_each_element(&tc_node->_attached_networks, tc_attached, _src_node) {
       if (tc_attached->cost[domain->index] <= RFC7181_METRIC_MAX) {
-        /* add attached network or address to working tree */
-        _insert_into_working_tree(&tc_attached->dst->target, first_hop,
-            tc_attached->cost[domain->index],
-            target->_dijkstra.path_cost, target->_dijkstra.path_hops,
-            tc_attached->distance[domain->index], false,
-            &target->addr);
+        tc_endpoint = tc_attached->dst;
+
+        if (tc_endpoint->_attached_networks.count > 1) {
+          /* add attached network or address to working tree */
+          _insert_into_working_tree(&tc_attached->dst->target, first_hop,
+              tc_attached->cost[domain->index],
+              target->_dijkstra.path_cost, target->_dijkstra.path_hops,
+              tc_attached->distance[domain->index], false,
+              &target->addr);
+        }
+        else {
+          /* no other way to this endpoint */
+          tc_endpoint->target._dijkstra.done = true;
+
+          /* fill routing entry with dijkstra result */
+          _update_routing_entry(domain, &tc_endpoint->target.addr,
+              first_hop, tc_attached->distance[domain->index],
+              target->_dijkstra.path_cost + tc_attached->cost[domain->index],
+              tc_endpoint->target._dijkstra.path_hops + 1,
+              false, &target->addr);
+        }
       }
     }
   }
@@ -844,6 +863,10 @@ _process_kernel_queue(void) {
     /* remove from routing queue */
     list_remove(&rtentry->_working_node);
 
+    if (rtentry->in_processing) {
+      continue;
+    }
+
     /* mark route as in kernel processing */
     rtentry->in_processing = true;
 
@@ -906,14 +929,15 @@ _cb_route_finished(struct os_route *route, int error) {
         os_routing_to_string(&rbuf, &rtentry->route));
   }
   else if (error) {
-    /* an error happened, try again later */
-    if (error != EPERM) {
-      /* do not display a os_routing_interrupt() caused error */
-      OONF_WARN(LOG_OLSRV2_ROUTING, "Error in route %s %s: %s (%d)",
-          rtentry->set ? "setting" : "removal",
-              os_routing_to_string(&rbuf, &rtentry->route),
-              strerror(error), error);
+    if (error == -1) {
+      /* someone called an interrupt */
+      return;
     }
+    /* an error happened, try again later */
+    OONF_WARN(LOG_OLSRV2_ROUTING, "Error in route %s %s: %s (%d)",
+        rtentry->set ? "setting" : "removal",
+            os_routing_to_string(&rbuf, &rtentry->route),
+            strerror(error), error);
 
     if (error == EEXIST && rtentry->set) {
       /* exactly this route already exists */

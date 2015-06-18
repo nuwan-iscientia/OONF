@@ -45,6 +45,7 @@
 
 #include "rfc5444/rfc5444_context.h"
 #include "rfc5444/rfc5444_writer.h"
+#include "rfc5444/rfc5444_print.h"
 #include "cunit/cunit.h"
 
 #define MSG_TYPE 1
@@ -92,6 +93,8 @@ static uint8_t tlv_value_buffer[256];
 static uint8_t *tlv_value;
 static size_t tlv_value_size;
 
+static struct autobuf dumpbuf;
+
 static int addMessageHeader(struct rfc5444_writer *wr, struct rfc5444_writer_message *msg) {
   rfc5444_writer_set_msg_header(wr, msg, false, false, false, false);
   return RFC5444_OKAY;
@@ -129,9 +132,6 @@ static void addAddresses(struct rfc5444_writer *wr) {
 static void write_packet(struct rfc5444_writer *w __attribute__ ((unused)),
     struct rfc5444_writer_target *iface,
     void *buffer, size_t length) {
-  size_t i, j;
-  uint8_t *buf = buffer;
-
   if (iface == &small_if) {
     printf("Interface 1:\n");
     packets[0]++;
@@ -141,16 +141,12 @@ static void write_packet(struct rfc5444_writer *w __attribute__ ((unused)),
     packets[1]++;
   }
 
-  for (j=0; j<length; j+=32) {
-    printf("%04zx:", j);
-
-    for (i=j; i<length && i < j+31; i++) {
-      printf("%s%02x", ((i&3) == 0) ? " " : "", (int)(buf[i]));
-    }
-    printf("\n");
-  }
-  printf("\n");
-}
+  printf("Packet send with %zu bytes\n", length);
+  abuf_hexdump(&dumpbuf, "", buffer, length);
+  rfc5444_print_direct(&dumpbuf, buffer, length);
+  printf("%s", dumpbuf._buf);
+  abuf_clear(&dumpbuf);
+ }
 
 static void clear_elements(void) {
   fragments = 0;
@@ -160,13 +156,15 @@ static void clear_elements(void) {
 }
 
 static void test_frag_80_1(void) {
+  enum rfc5444_result result;
   START_TEST();
 
   tlvcount = 1;
   tlv_value = tlv_value_buffer;
   tlv_value_size = 80;
 
-  CHECK_TRUE(0 == rfc5444_writer_create_message_alltarget(&writer, 1, 4), "Parser should return 0");
+  result = rfc5444_writer_create_message_alltarget(&writer, 1, 4);
+  CHECK_TRUE(result == 0 , "Parser should return 0");
   rfc5444_writer_flush(&writer, &small_if, false);
   rfc5444_writer_flush(&writer, &large_if, false);
 
@@ -178,13 +176,16 @@ static void test_frag_80_1(void) {
 }
 
 static void test_frag_80_2(void) {
+  enum rfc5444_result result;
   START_TEST();
 
   tlvcount = 2;
   tlv_value = tlv_value_buffer;
   tlv_value_size = 80;
 
-  CHECK_TRUE(0 != rfc5444_writer_create_message_alltarget(&writer, 1, 4), "Parser should return -1");
+  result = rfc5444_writer_create_message_alltarget(&writer, 1, 4);
+  CHECK_TRUE(result == RFC5444_MTU_TOO_SMALL , "Parser should return RFC5444_MTU_TOO_SMALL: %s (%d)",
+      rfc5444_strerror(result), result);
 
   CHECK_TRUE(fragments == 0, "bad number of fragments: %d\n", fragments);
   CHECK_TRUE(packets[0] == 0, "bad number of packets on if 1: %d\n", packets[0]);
@@ -194,13 +195,15 @@ static void test_frag_80_2(void) {
 }
 
 static void test_frag_50_3(void) {
+  enum rfc5444_result result;
   START_TEST();
 
   tlvcount = 3;
   tlv_value = tlv_value_buffer;
   tlv_value_size = 50;
 
-  CHECK_TRUE(0 == rfc5444_writer_create_message_alltarget(&writer, 1, 4), "Parser should return 0");
+  result = rfc5444_writer_create_message_alltarget(&writer, 1, 4);
+  CHECK_TRUE(result == 0 , "Parser should return 0");
   rfc5444_writer_flush(&writer, &small_if, false);
   rfc5444_writer_flush(&writer, &large_if, false);
 
@@ -214,6 +217,8 @@ static void test_frag_50_3(void) {
 int main(int argc __attribute__ ((unused)), char **argv __attribute__ ((unused))) {
   struct rfc5444_writer_message *msg;
   size_t i;
+
+  abuf_init(&dumpbuf);
 
   for (i=0; i<sizeof(tlv_value_buffer); i++) {
     tlv_value_buffer[i] = i;
@@ -232,11 +237,14 @@ int main(int argc __attribute__ ((unused)), char **argv __attribute__ ((unused))
 
   BEGIN_TESTING(clear_elements);
 
-  test_frag_80_1();
-  test_frag_80_2();
+  if (0) {
+    test_frag_80_1();
+    test_frag_80_2();
+  }
   test_frag_50_3();
 
   rfc5444_writer_cleanup(&writer);
 
+  abuf_free(&dumpbuf);
   return FINISH_TESTING();
 }

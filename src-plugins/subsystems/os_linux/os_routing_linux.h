@@ -43,11 +43,16 @@
 #define OS_ROUTING_LINUX_H_
 
 #include "common/common_types.h"
+#include "common/avl.h"
 #include "common/list.h"
 
 struct os_route_internal {
-  struct list_entity _node;
+  struct avl_node _node;
 
   uint32_t nl_seq;
+};
+
+struct os_route_listener_internal {
+  struct list_entity _node;
 };
 #endif /* OS_ROUTING_LINUX_H_ */

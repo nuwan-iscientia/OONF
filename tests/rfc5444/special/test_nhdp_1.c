@@ -53,14 +53,14 @@ uint8_t result[] = {
     0x00, 0x01, 0x03, 0x00, 0x28, 0x00, 0x00, 0x04,
     0x80, 0x01, 0x0a, 0x01, 0x00, 0x65, 0x01, 0x00,
     0x66, 0x01, 0x00, 0x67, 0x0b, 0x0b, 0x0b, 0x00,
-    0x10, 0x02, 0x50, 0x01, 0x01, 0x00, 0x03, 0x50,
-    0x00, 0x01, 0x01, 0x03, 0x30, 0x02, 0x03, 0x01,
-    0x01
+    0x10, 0x03, 0x50, 0x00, 0x01, 0x01, 0x03, 0x30,
+    0x02, 0x03, 0x01, 0x01, 0x02, 0x50, 0x01, 0x01,
+    0x00
 };
 
 /*
-0000: 00010300 28000004 80010a01 00650100 66010067 0b0b0b00 10025001 01000350
-0020: 00010103 30020301 01
+0000: 00010300 28000004 80010a01 00650100 66010067 0b0b0b00 10035000 01010330
+0020: 02030101 02500101 00
 
         ,------------------
         |  PACKET
@@ -224,6 +224,9 @@ int main(int argc __attribute__ ((unused)), char **argv __attribute__ ((unused))
 
   msg = rfc5444_writer_register_message(&writer, MSG_TYPE, false);
   msg->addMessageHeader = addMessageHeader;
+
+  rfc5444_writer_register_addrtlvtype(&writer, &addrtlvs[0], MSG_TYPE);
+  rfc5444_writer_register_addrtlvtype(&writer, &addrtlvs[1], MSG_TYPE);
 
   rfc5444_writer_register_msgcontentprovider(&writer, &cpr, addrtlvs, ARRAYSIZE(addrtlvs));
 

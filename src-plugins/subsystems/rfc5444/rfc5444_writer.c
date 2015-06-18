@@ -55,7 +55,6 @@ static void _register_addrtlvtype(struct rfc5444_writer *writer,
     struct rfc5444_writer_message *msg,
     struct rfc5444_writer_tlvtype *type);
 static void *_copy_addrtlv_value(struct rfc5444_writer *writer, const void *value, size_t length);
-static void _free_tlvtype_tlvs(struct rfc5444_writer *writer, struct rfc5444_writer_tlvtype *tlvtype);
 static void _lazy_free_message(struct rfc5444_writer *writer, struct rfc5444_writer_message *msg);
 static struct rfc5444_writer_message *_get_message(struct rfc5444_writer *writer, uint8_t msgid);
 static struct rfc5444_writer_address *_malloc_address_entry(void);
@@ -215,10 +214,6 @@ rfc5444_writer_add_addrtlv(struct rfc5444_writer *writer, struct rfc5444_writer_
   addrtlv->addrtlv_node.key = &tlvtype->_full_type;
   avl_insert(&addr->_addrtlv_tree, &addrtlv->addrtlv_node);
 
-  /* add to tlvtype tree */
-  addrtlv->tlv_node.key = &addr->_orig_index;
-  avl_insert(&tlvtype->_tlv_tree, &addrtlv->tlv_node);
-
   return RFC5444_OKAY;
 }
 
@@ -249,11 +244,13 @@ rfc5444_writer_add_address(struct rfc5444_writer *writer __attribute__ ((unused)
 
     memcpy(&address->address, naddr, sizeof(*naddr));
 
-    /* calculate original index of address */
-    address->_orig_index = msg->_addr_tree.count;
-
     /* add address to address list */
-    list_add_tail(&msg->_addr_head, &address->_addr_node);
+    if (mandatory) {
+      list_add_tail(&msg->_addr_head, &address->_addr_list_node);
+    }
+    else {
+      list_add_tail(&msg->_non_mandatory_addr_head, &address->_addr_list_node);
+    }
 
     /* add address into message address tree */
     address->_addr_tree_node.key = &address->address;
@@ -313,7 +310,6 @@ rfc5444_writer_unregister_addrtlvtype(struct rfc5444_writer *writer, struct rfc5
     return;
   }
 
-  _free_tlvtype_tlvs(writer, tlvtype);
   list_remove(&tlvtype->_tlvtype_node);
 
   if (tlvtype->_creator) {
@@ -587,6 +583,7 @@ _get_message(struct rfc5444_writer *writer, uint8_t msgid) {
 
   avl_init(&msg->_addr_tree, avl_comp_netaddr, false);
   list_init_head(&msg->_addr_head);
+  list_init_head(&msg->_non_mandatory_addr_head);
   return msg;
 }
 
@@ -608,8 +605,6 @@ _register_addrtlvtype(struct rfc5444_writer *writer,
   tlvtype->_creator = msg;
   tlvtype->_full_type = _get_fulltype(tlvtype->type, tlvtype->exttype);
 
-  avl_init(&tlvtype->_tlv_tree, avl_comp_uint32, true);
-
   if (msg) {
     /* add to message creator list */
     list_add_tail(&msg->_msgspecific_tlvtype_head, &tlvtype->_tlvtype_node);
@@ -618,6 +613,8 @@ _register_addrtlvtype(struct rfc5444_writer *writer,
     /* add to generic address tlvtype list */
     list_add_tail(&writer->_addr_tlvtype_head, &tlvtype->_tlvtype_node);
   }
+
+  list_init_head(&tlvtype->_current_tlv_list);
 }
 
 /**
@@ -642,22 +639,6 @@ _copy_addrtlv_value(struct rfc5444_writer *writer, const void *value, size_t len
 }
 
 /**
- * Free memory of all temporary allocated tlvs of a certain type
- * @param writer pointer to writer context
- * @param tlvtype pointer to tlvtype object
- */
-static void
-_free_tlvtype_tlvs(struct rfc5444_writer *writer, struct rfc5444_writer_tlvtype *tlvtype) {
-  struct rfc5444_writer_addrtlv *addrtlv, *ptr;
-
-  avl_remove_all_elements(&tlvtype->_tlv_tree, addrtlv, tlv_node, ptr) {
-    /* remove from address too */
-    avl_remove(&addrtlv->address->_addrtlv_tree, &addrtlv->addrtlv_node);
-    writer->free_addrtlv_entry(addrtlv);
-  }
-}
-
-/**
  * Free all allocated addresses in a writers context
  * @param writer pointer to writer context
  * @param msg pointer to message object
@@ -669,11 +650,9 @@ _rfc5444_writer_free_addresses(struct rfc5444_writer *writer, struct rfc5444_wri
 
   avl_remove_all_elements(&msg->_addr_tree, addr, _addr_tree_node, safe_addr) {
     /* remove from list too */
-    list_remove(&addr->_addr_node);
+    list_remove(&addr->_addr_list_node);
 
     avl_remove_all_elements(&addr->_addrtlv_tree, addrtlv, addrtlv_node, safe_addrtlv) {
-      /* remove from tlvtype too */
-      avl_remove(&addrtlv->tlvtype->_tlv_tree, &addrtlv->tlv_node);
       writer->free_addrtlv_entry(addrtlv);
     }
     writer->free_address_entry(addr);

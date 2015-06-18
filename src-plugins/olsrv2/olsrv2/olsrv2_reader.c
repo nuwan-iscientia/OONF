@@ -272,10 +272,19 @@ _cb_messagetlvs(struct rfc5444_reader_tlvblock_context *context) {
   }
 
   /* check if the topology information is recent enough */
-  if (rfc5444_seqno_is_smaller(ansn, _current.node->ansn)) {
-    OONF_DEBUG(LOG_OLSRV2_R, "ANSN %u is smaller than last stored ANSN %u",
-        ansn, _current.node->ansn);
-    return RFC5444_DROP_MSG_BUT_FORWARD;
+  if (_current.complete_tc) {
+    if (rfc5444_seqno_is_smaller(ansn, _current.node->ansn)) {
+      OONF_DEBUG(LOG_OLSRV2_R, "ANSN %u is smaller than last stored ANSN %u",
+          ansn, _current.node->ansn);
+      return RFC5444_DROP_MSG_BUT_FORWARD;
+    }
+  }
+  else {
+    if (!rfc5444_seqno_is_larger(ansn, _current.node->ansn)) {
+      OONF_DEBUG(LOG_OLSRV2_R, "ANSN %u is smaller than last stored ANSN %u",
+          ansn, _current.node->ansn);
+      return RFC5444_DROP_MSG_BUT_FORWARD;
+    }
   }
 
   /* overwrite old ansn */

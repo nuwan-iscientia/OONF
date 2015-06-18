@@ -73,6 +73,9 @@ static bool _cb_tc_interface_selector(struct rfc5444_writer *,
 
 static int _cb_addMessageHeader(
     struct rfc5444_writer *, struct rfc5444_writer_message *);
+static void _cb_finishMessageHeader(struct rfc5444_writer *, struct rfc5444_writer_message *,
+    struct rfc5444_writer_address *, struct rfc5444_writer_address *, bool);
+
 static void _cb_addMessageTLVs(struct rfc5444_writer *);
 static void _cb_addAddresses(struct rfc5444_writer *);
 static void _cb_finishMessageTLVs(struct rfc5444_writer *,
@@ -118,6 +121,7 @@ olsrv2_writer_init(struct oonf_rfc5444_protocol *protocol) {
   }
 
   _olsrv2_message->addMessageHeader = _cb_addMessageHeader;
+  _olsrv2_message->finishMessageHeader = _cb_finishMessageHeader;
   _olsrv2_message->forward_target_selector = nhdp_message_forwarding_selector;
 
   if (rfc5444_writer_register_msgcontentprovider(
@@ -198,11 +202,20 @@ _cb_addMessageHeader(struct rfc5444_writer *writer,
   rfc5444_writer_set_msg_originator(writer, message, netaddr_get_binptr(orig));
   rfc5444_writer_set_msg_hopcount(writer, message, 0);
   rfc5444_writer_set_msg_hoplimit(writer, message, 255);
-  rfc5444_writer_set_msg_seqno(writer, message,
-      oonf_rfc5444_get_next_message_seqno(_protocol));
 
   OONF_DEBUG(LOG_OLSRV2_W, "Generate TC");
   return RFC5444_OKAY;
+}
+
+static void
+_cb_finishMessageHeader(struct rfc5444_writer *writer,
+    struct rfc5444_writer_message *message,
+    struct rfc5444_writer_address *first __attribute__((unused)),
+    struct rfc5444_writer_address *last __attribute__((unused)),
+    bool fragented __attribute__((unused))) {
+
+  rfc5444_writer_set_msg_seqno(writer, message,
+      oonf_rfc5444_get_next_message_seqno(_protocol));
 }
 
 /**

@@ -54,7 +54,7 @@ os_routing_to_string(struct os_route_str *buf, const struct os_route *route) {
   char ifbuf[IF_NAMESIZE];
   int result;
   result = snprintf(buf->buf, sizeof(*buf),
-      "'src-ip %s gw %s dst %s src-prefix %s metric %u table %u protocol %u if %s (%u)'",
+      "'src-ip %s gw %s dst %s src-prefix %s metric %d table %u protocol %u if %s (%u)'",
       netaddr_to_string(&buf1, &route->src_ip),
       netaddr_to_string(&buf2, &route->gw),
       netaddr_to_string(&buf3, &route->dst),

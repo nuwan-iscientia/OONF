@@ -376,7 +376,7 @@ _add_link_address(struct rfc5444_writer *writer, struct rfc5444_writer_content_p
   }
 
   /* generate RFC5444 address */
-  address = rfc5444_writer_add_address(writer, prv->creator, &naddr->neigh_addr, true);
+  address = rfc5444_writer_add_address(writer, prv->creator, &naddr->neigh_addr, false);
   if (address == NULL) {
     OONF_WARN(LOG_NHDP_W, "Could not add address %s to NHDP hello",
         netaddr_to_string(&buf, &naddr->neigh_addr));

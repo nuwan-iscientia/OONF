@@ -274,8 +274,8 @@ oonf_main(int argc, char **argv, const struct oonf_appdata *appdata) {
   /* tell plugins shutdown is in progress */
   oonf_plugins_initiate_shutdown();
 
-  /* wait for 500 milliseconds and process socket events */
-  _handle_scheduling();
+  /* wait for 500 ms and process socket events */
+  while(!_handle_scheduling());
 
 oonf_cleanup:
   /* free plugins */

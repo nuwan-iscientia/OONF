@@ -42,7 +42,7 @@
 #ifndef NL80211_GET_MPP_H_
 #define NL80211_GET_MPP_H_
 
-void nl80211_send_get_mpp(struct nlmsghdr *nl_msg,
+void nl80211_send_get_mpp(struct os_system_netlink *nl, struct nlmsghdr *nl_msg,
     struct genlmsghdr *hdr, struct nl80211_if *interf);
 void nl80211_process_get_mpp_result(struct nl80211_if *interf, struct nlmsghdr*);
 

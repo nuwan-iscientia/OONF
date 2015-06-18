@@ -121,6 +121,7 @@ DECLARE_OONF_PLUGIN(_oonf_os_interface_subsystem);
 
 /* built in rtnetlink receiver */
 static struct os_system_netlink _rtnetlink_receiver = {
+  .name = "interface snooper",
   .used_by = &_oonf_os_interface_subsystem,
   .cb_message = _cb_rtnetlink_message,
   .cb_error = _cb_rtnetlink_error,
@@ -271,7 +272,8 @@ os_interface_address_set(struct os_interface_address *addr) {
   ifaddrreq->ifa_index= addr->if_index;
   ifaddrreq->ifa_scope = addr->scope;
 
-  if (os_system_netlink_addnetaddr(msg, IFA_LOCAL, &addr->address)) {
+  if (os_system_netlink_addnetaddr(&_rtnetlink_receiver,
+      msg, IFA_LOCAL, &addr->address)) {
     return -1;
   }
 

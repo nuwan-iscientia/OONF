@@ -88,9 +88,6 @@ enum {
  * of an address during message serialization.
  */
 struct rfc5444_writer_addrtlv {
-  /* tree _target_node of tlvs of a certain type/exttype */
-  struct avl_node tlv_node;
-
   /* backpointer to tlvtype */
   struct rfc5444_writer_tlvtype *tlvtype;
 
@@ -113,19 +110,9 @@ struct rfc5444_writer_addrtlv {
    */
   void *value;
 
-  /*
-   * true if the TLV has the same length/value for the
-   * address before this one too
-   */
-  bool same_length;
-  bool same_value;
-  
-  /*
-   * true if this TLV starts a new TLV in the serialized code,
-   * either because its the first TLV of its kind or if the
-   * last usage was more than one address ago.
-   */
-  bool new_tlv;
+  /* internal data for address compression */
+  bool _same_value, _same_length;
+  struct list_entity _current_tlv_node;
 };
 
 /**
@@ -140,7 +127,10 @@ struct rfc5444_writer_address {
   struct netaddr address;
 
   /* node of address list in writer_message */
-  struct list_entity _addr_node;
+  struct list_entity _addr_list_node;
+
+  /* node of address list for current fragment */
+  struct list_entity _addr_fragment_node;
 
   /* node for quick access ( O(log n)) to addresses */
   struct avl_node _addr_tree_node;
@@ -157,9 +147,6 @@ struct rfc5444_writer_address {
 
   /* pointer to start of the block, NULL if this is not the end address */
   struct rfc5444_writer_address *_block_start;
-
-  /* original index of the address when it was added to the output list */
-  int _orig_index;
 
   /* handle mandatory addresses for message fragmentation */
   bool _mandatory_addr;
@@ -183,15 +170,15 @@ struct rfc5444_writer_tlvtype {
   /* back pointer to message creator */
   struct rfc5444_writer_message *_creator;
 
-  /* head of writer_addrtlv list */
-  struct avl_tree _tlv_tree;
-
   /* tlv type*256 + tlv_exttype */
   int _full_type;
 
   /* internal data for address compression */
   int _tlvblock_count[RFC5444_MAX_ADDRLEN];
   bool _tlvblock_multi[RFC5444_MAX_ADDRLEN];
+  bool _same_value;
+  struct list_entity _active_tlv_node;
+  struct list_entity _current_tlv_list;
 };
 
 /**
@@ -293,6 +280,7 @@ struct rfc5444_writer_message {
   bool has_seqno;
 
   /* head of writer_address list/tree */
+  struct list_entity _non_mandatory_addr_head;
   struct list_entity _addr_head;
   struct avl_tree _addr_tree;
 
