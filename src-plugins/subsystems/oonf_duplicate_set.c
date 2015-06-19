@@ -57,8 +57,8 @@
 static int _init(void);
 static void _cleanup(void);
 
-static enum oonf_duplicate_result _test(struct oonf_duplicate_entry *,
-    uint16_t seqno, bool set);
+static enum oonf_duplicate_result _test(struct oonf_duplicate_set *,
+    struct oonf_duplicate_entry *, uint64_t seqno, bool set);
 static int _avl_cmp_dupkey(const void *, const void*);
 
 static void _cb_vtime(void *);
@@ -98,6 +98,13 @@ static struct oonf_subsystem _oonf_duplicate_set_subsystem = {
 };
 DECLARE_OONF_PLUGIN(_oonf_duplicate_set_subsystem);
 
+/* math constants for different sizes */
+static const int64_t _mask_values[] = {
+  [OONF_DUPSET_8BIT]  = 255ull,
+  [OONF_DUPSET_16BIT] = 65535ull,
+  [OONF_DUPSET_32BIT] = 4294967295ull,
+};
+
 /**
  * Initialize duplicate set subsystem
  * @return always returns 0
@@ -123,8 +130,15 @@ _cleanup(void) {
  * @param set pointer to duplicate set;
  */
 void
-oonf_duplicate_set_add(struct oonf_duplicate_set *set) {
+oonf_duplicate_set_add(struct oonf_duplicate_set *set, enum oonf_dupset_type type) {
+  memset(set, 0, sizeof(*set));
   avl_init(&set->_tree, _avl_cmp_dupkey, false);
+
+  if (type != OONF_DUPSET_64BIT) {
+    set->_mask   = _mask_values[type];
+    set->_offset = set->_mask + 1;
+    set->_limit  = set->_mask / 2;
+  }
 }
 
 /**
@@ -155,7 +169,7 @@ oonf_duplicate_set_remove(struct oonf_duplicate_set *set) {
  */
 enum oonf_duplicate_result
 oonf_duplicate_entry_add(struct oonf_duplicate_set *set, uint8_t msg_type,
-    struct netaddr *originator, uint16_t seqno, uint64_t vtime) {
+    struct netaddr *originator, uint64_t seqno, uint64_t vtime) {
   struct oonf_duplicate_entry *entry;
   struct oonf_duplicate_entry_key key;
   enum oonf_duplicate_result result;
@@ -196,9 +210,9 @@ oonf_duplicate_entry_add(struct oonf_duplicate_set *set, uint8_t msg_type,
     result = OONF_DUPSET_FIRST;
   }
   else {
-    result = _test(entry, seqno, true);
+    result = _test(set, entry, seqno, true);
   }
-  OONF_DEBUG(LOG_DUPLICATE_SET, "Test/Add msgtype %u, originator %s, seqno %u: %s",
+  OONF_DEBUG(LOG_DUPLICATE_SET, "Test/Add msgtype %u, originator %s, seqno %"PRIu64": %s",
       msg_type, netaddr_to_string(&nbuf, originator), seqno,
       OONF_DUPSET_RESULT_STR[result]);
 
@@ -222,7 +236,7 @@ oonf_duplicate_entry_add(struct oonf_duplicate_set *set, uint8_t msg_type,
  */
 enum oonf_duplicate_result
 oonf_duplicate_test(struct oonf_duplicate_set *set, uint8_t msg_type,
-    struct netaddr *originator, uint16_t seqno) {
+    struct netaddr *originator, uint64_t seqno) {
   struct oonf_duplicate_entry *entry;
   struct oonf_duplicate_entry_key key;
   enum oonf_duplicate_result result;
@@ -240,16 +254,33 @@ oonf_duplicate_test(struct oonf_duplicate_set *set, uint8_t msg_type,
     result = OONF_DUPSET_FIRST;
   }
   else {
-    result = _test(entry, seqno, false);
+    result = _test(set, entry, seqno, false);
   }
 
-  OONF_DEBUG(LOG_DUPLICATE_SET, "Test msgtype %u, originator %s, seqno %u: %s",
+  OONF_DEBUG(LOG_DUPLICATE_SET, "Test msgtype %u, originator %s, seqno %"PRIu64": %s",
       msg_type, netaddr_to_string(&nbuf, originator), seqno,
       OONF_DUPSET_RESULT_STR[result]);
 
   return result;
 }
 
+static int64_t
+_seqno_difference(struct oonf_duplicate_set *set, uint64_t seqno1, uint64_t seqno2) {
+  uint64_t diff;
+  int64_t reldiff;
+
+  diff = seqno1-seqno2;
+
+  reldiff = (int64_t) diff;
+  if (set->_mask) {
+    reldiff &= set->_mask;
+
+    if (reldiff > set->_limit) {
+      reldiff -= set->_offset;
+    }
+  }
+  return reldiff;
+}
 /**
  * Test a sequence number against a duplicate set entry
  * @param entry duplicate set entry
@@ -263,16 +294,17 @@ oonf_duplicate_test(struct oonf_duplicate_set *set, uint8_t msg_type,
  *   if the sequence number is newer than the newest in the set
  */
 enum oonf_duplicate_result
-_test(struct oonf_duplicate_entry *entry,
-    uint16_t seqno, bool set) {
-  int diff;
+_test(struct oonf_duplicate_set *dupset,
+    struct oonf_duplicate_entry *entry,
+    uint64_t seqno, bool set) {
+  int64_t diff;
 
   if (seqno == entry->current) {
     return OONF_DUPSET_CURRENT;
   }
 
   /* eliminate rollover */
-  diff = rfc5444_seqno_difference(seqno, entry->current);
+  diff = _seqno_difference(dupset, seqno, entry->current);
   if (diff < -31) {
     entry->too_old_count++;
     if (entry->too_old_count > OONF_DUPSET_MAXIMUM_TOO_OLD) {

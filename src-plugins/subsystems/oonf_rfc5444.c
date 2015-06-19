@@ -441,8 +441,8 @@ oonf_rfc5444_add_protocol(const char *name, bool fixed_local_port) {
     rfc5444_writer_init(&protocol->writer);
 
     /* initialize processing and forwarding set */
-    oonf_duplicate_set_add(&protocol->forwarded_set);
-    oonf_duplicate_set_add(&protocol->processed_set);
+    oonf_duplicate_set_add(&protocol->forwarded_set, OONF_DUPSET_16BIT);
+    oonf_duplicate_set_add(&protocol->processed_set, OONF_DUPSET_16BIT);
 
     /* init interface subtree */
     avl_init(&protocol->_interface_tree, avl_comp_strcasecmp, false);
