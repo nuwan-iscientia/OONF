@@ -150,7 +150,7 @@ struct oonf_telnet_command {
 EXPORT int oonf_telnet_add(struct oonf_telnet_command *command);
 EXPORT void oonf_telnet_remove(struct oonf_telnet_command *command);
 
-EXPORT void oonf_telnet_stop(struct oonf_telnet_data *data);
+EXPORT void oonf_telnet_stop(struct oonf_telnet_data *data, bool print_prompt);
 
 EXPORT enum oonf_telnet_result oonf_telnet_execute(
     const char *cmd, const char *para,

@@ -217,12 +217,15 @@ oonf_telnet_remove(struct oonf_telnet_command *command) {
 /**
  * Stop a currently running continuous telnet command
  * @param data pointer to telnet data
+ * @param print_prompt true to add a new prompt to the output
  */
 void
-oonf_telnet_stop(struct oonf_telnet_data *data) {
+oonf_telnet_stop(struct oonf_telnet_data *data, bool print_prompt) {
   _call_stop_handler(data);
   data->show_echo = true;
-  abuf_puts(data->out, "> ");
+  if (print_prompt) {
+    abuf_puts(data->out, "> ");
+  }
   oonf_telnet_flush_session(data);
 }
 
@@ -247,7 +250,7 @@ oonf_telnet_execute(const char *cmd, const char *para,
   data.remote = remote;
 
   result = _telnet_handle_command(&data);
-  oonf_telnet_stop(&data);
+  oonf_telnet_stop(&data, false);
   return abuf_has_failed(data.out) ? TELNET_RESULT_INTERNAL_ERROR : result;
 }
 
@@ -338,7 +341,7 @@ _cb_telnet_cleanup(struct oonf_stream_session *session) {
   telnet_session = (struct oonf_telnet_session *)session;
 
   /* stop continuous commands */
-  oonf_telnet_stop(&telnet_session->data);
+  oonf_telnet_stop(&telnet_session->data, false);
 
   /* call all cleanup handlers */
   list_for_each_element_safe(&telnet_session->data.cleanup_list, handler, node, it) {

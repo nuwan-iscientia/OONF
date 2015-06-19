@@ -93,7 +93,7 @@ static struct oonf_subsystem _oonf_httptelnet_subsystem = {
   .name = OONF_HTTPTELNET_SUBSYSTEM,
   .dependencies = _dependencies,
   .dependencies_count = ARRAYSIZE(_dependencies),
-  .descr = "OONFD http2telnet bridge plugin",
+  .descr = "OONF http2telnet bridge plugin",
   .author = "Henning Rogge",
 
   .cfg_section = &_httptelnet_section,
@@ -151,6 +151,7 @@ _cb_generate_site(struct autobuf *out, struct oonf_http_session *session) {
       OONF_DEBUG(LOG_HTTPTELNET, "httptelnet called command '%s'"
           " with parameters '%s'",
           command, param);
+      OONF_DEBUG_NH(LOG_HTTPTELNET, "output:\n%s", abuf_getptr(out));
       session->content_type = HTTP_CONTENTTYPE_TEXT;
       return HTTP_200_OK;
 
@@ -181,7 +182,5 @@ _cb_config_changed(void) {
   if (_httptelnet_section.pre) {
     oonf_http_remove(&_http_site_handler);
   }
-  if (_httptelnet_section.post) {
-    oonf_http_add(&_http_site_handler);
-  }
+  oonf_http_add(&_http_site_handler);
 }

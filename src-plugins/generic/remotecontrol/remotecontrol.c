@@ -221,7 +221,7 @@ _cleanup(void)
 
   /* shutdown all running logging streams */
   list_for_each_element_safe(&_remote_sessions, session, node, it) {
-    oonf_telnet_stop(session->cleanup.data);
+    oonf_telnet_stop(session->cleanup.data, false);
   }
 
   for (i=0; i<ARRAYSIZE(_telnet_cmds); i++) {
@@ -535,7 +535,7 @@ _cb_route_finished(struct os_route *rt, int error) {
     abuf_puts(session->cleanup.data->out, "Command successful\n");
   }
 
-  oonf_telnet_stop(session->cleanup.data);
+  oonf_telnet_stop(session->cleanup.data, false);
 }
 
 /**

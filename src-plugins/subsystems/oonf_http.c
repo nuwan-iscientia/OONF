@@ -106,7 +106,7 @@ static struct cfg_schema_entry _http_entries[] = {
   CFG_MAP_ACL_V46(oonf_stream_managed_config,
       acl, "acl", ACL_DEFAULT_ACCEPT, "Access control list for http interface"),
   CFG_MAP_ACL_V46(oonf_stream_managed_config,
-      bindto, "bindto", "127.0.0.1\0" "::1" ACL_DEFAULT_REJECT, "Bind http socket to this address"),
+      bindto, "bindto", "127.0.0.1\0" "::1\0" ACL_DEFAULT_REJECT, "Bind http socket to this address"),
   CFG_MAP_INT32_MINMAX(oonf_stream_managed_config,
       port, "port", "1980", "Network port for http interface", 0, false, 1, 65535),
 };
@@ -180,6 +180,8 @@ oonf_http_add(struct oonf_http_handler *handler) {
   handler->directory = handler->site[strlen(handler->site)-1] == '/';
   handler->node.key = handler->site;
   avl_insert(&_http_site_tree, &handler->node);
+
+  OONF_DEBUG(LOG_HTTP, "Added http handler for uri: %s", handler->site);
 }
 
 /**
@@ -445,6 +447,8 @@ static struct oonf_http_handler *
 _get_site_handler(const char *uri) {
   struct oonf_http_handler *handler;
   size_t len;
+
+  OONF_DEBUG(LOG_HTTP, "Look for handler for uri: %s", uri);
 
   /* look for exact match */
   handler = avl_find_element(&_http_site_tree, uri, handler, node);
