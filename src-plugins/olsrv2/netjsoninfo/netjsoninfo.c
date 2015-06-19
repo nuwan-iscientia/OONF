@@ -238,6 +238,11 @@ _print_graph(struct json_session *session,
     if (netaddr_get_address_family(&node->target.addr) == af_type) {
       avl_for_each_element(&node->_edges, edge, _node) {
         if (!edge->virtual) {
+          if (netaddr_cmp(&edge->dst->target.addr, originator) == 0) {
+            /* we already have this information from NHDP */
+            continue;
+          }
+
           rt_entry = avl_find_element(rt_tree, &edge->dst->target.addr, rt_entry, _node);
           outgoing = rt_entry != NULL
               && netaddr_cmp(&rt_entry->last_originator, &node->target.addr) == 0;
