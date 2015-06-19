@@ -1,0 +1,123 @@
+<!doctype html>
+<html>
+<head>
+  <title>Network | Basic usage</title>
+
+  <!-- This file use the http://visjs.org/index.html API -->
+  <script type="text/javascript" src="vis.js"></script>
+  <link href="vis.css" rel="stylesheet" type="text/css" />
+
+  <style type="text/css">
+    #mynetwork {
+      width: 1280px;
+      height: 768px;
+      border: 1px solid lightgray;
+    }
+  </style>
+</head>
+<body>
+
+<p>
+  Visualization of olsrd2 netjson graph
+</p>
+
+<div id="mynetwork"></div>
+
+<script type="text/javascript">
+var visNodes, visEdges, visData, visNetwork;
+
+// this URL should return the netjson graph output
+var netjsonurl = "http://169.254.0.101/cgi/netjson.cgi";
+
+function init_network() {
+  // create an array with nodes
+  visNodes = new vis.DataSet([
+  ]);
+
+  // create an array with edges
+  visEdges = new vis.DataSet([
+  ]);
+
+  // create a network
+  var container = document.getElementById('mynetwork');
+  var visData = {
+    nodes: visNodes,
+    edges: visEdges
+  };
+  var options = {};
+  visNetwork = new vis.Network(container, visData, options);
+}
+
+function layout_graph(element) {
+    nodes = element.nodes;
+
+    for (ni = 0; ni < nodes.length; ni++) {
+        var newId = nodes[ni].id;
+        var newLabel = newId;
+        visNodes.add(
+            {
+                id:    newId,
+                label: newLabel,
+                mass:  2,
+            }
+        );
+    }
+
+    edges = element.links;
+
+    for (ei = 0; ei < edges.length; ei++) {
+        var fromId = edges[ei].source;
+        var toId = edges[ei].target;
+
+        var newLabel = edges[ei].weight.toString();
+        if (edges[ei].properties && edges[ei].properties["weight_txt"]) {
+            newLabel = edges[ei].properties["weight_txt"];
+        }
+        visEdges.add(
+            {
+                from:   fromId,
+                to:     toId,
+                label:  newLabel,
+                arrows: "to",
+                font: {
+                    align: 'top'
+                }
+            }
+        ); 
+    }
+}
+
+function xmlhttp_changed()
+{
+    if (xmlhttp.readyState==XMLHttpRequest.DONE && xmlhttp.status==200) {
+        obj = JSON.parse(xmlhttp.responseText);
+
+        if (obj.type != "NetworkCollection") {
+            return;
+        }
+
+        for (index = 0; index < obj.collection.length; index++) {
+            element = obj.collection[index];
+
+            if (element.router_id.indexOf(':') != -1) {
+                continue;
+            }
+
+            if (element.type == "NetworkGraph") {
+                layout_graph(element);
+            }
+        }
+    }
+}
+
+init_network();
+
+var xmlhttp = new XMLHttpRequest();
+xmlhttp.onreadystatechange=xmlhttp_changed
+xmlhttp.open("GET",netjsonurl,true);
+xmlhttp.send();  
+
+</script>
+
+</body>
+</html>
