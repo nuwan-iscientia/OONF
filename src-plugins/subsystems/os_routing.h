@@ -81,7 +81,7 @@ struct os_route_str {
            8 + sizeof(struct netaddr_str)
            /* gw */
            + 4 + sizeof(struct netaddr_str)
-           /* dst */
+           /* dst [type] */
            + 5 + sizeof(struct netaddr_str)
            /* src-prefix */
            + 12 + sizeof(struct netaddr_str)
@@ -94,12 +94,28 @@ struct os_route_str {
            + 2];
 };
 
+enum os_route_type {
+  OS_ROUTE_UNDEFINED,
+  OS_ROUTE_UNICAST,
+  OS_ROUTE_LOCAL,
+  OS_ROUTE_BROADCAST,
+  OS_ROUTE_MULTICAST,
+  OS_ROUTE_THROW,
+  OS_ROUTE_UNREACHABLE,
+  OS_ROUTE_PROHIBIT,
+  OS_ROUTE_BLACKHOLE,
+  OS_ROUTE_NAT,
+};
+
 struct os_route {
   /* used for delivering feedback about netlink commands */
   struct os_route_internal _internal;
 
   /* address family */
   unsigned char family;
+
+  /* type of route */
+  enum os_route_type type;
 
   /* gateway and destination */
   struct netaddr gw, dst;

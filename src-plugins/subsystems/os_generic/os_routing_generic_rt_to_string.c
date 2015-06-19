@@ -42,6 +42,19 @@
 #include "common/netaddr.h"
 #include "subsystems/os_routing.h"
 
+static const char *_route_types[] = {
+  [OS_ROUTE_UNDEFINED] = "undefined",
+  [OS_ROUTE_UNICAST] = "unicast",
+  [OS_ROUTE_LOCAL] = "local",
+  [OS_ROUTE_BROADCAST] = "broadcast",
+  [OS_ROUTE_MULTICAST] = "multicast",
+  [OS_ROUTE_THROW] = "throw",
+  [OS_ROUTE_UNREACHABLE] = "unreachable",
+  [OS_ROUTE_PROHIBIT] = "prohibit",
+  [OS_ROUTE_BLACKHOLE] = "blackhole",
+  [OS_ROUTE_NAT] = "nat",
+};
+
 /**
  * Print OS route to string buffer
  * @param buf pointer to string buffer
@@ -54,9 +67,10 @@ os_routing_to_string(struct os_route_str *buf, const struct os_route *route) {
   char ifbuf[IF_NAMESIZE];
   int result;
   result = snprintf(buf->buf, sizeof(*buf),
-      "'src-ip %s gw %s dst %s src-prefix %s metric %d table %u protocol %u if %s (%u)'",
+      "'src-ip %s gw %s dst %s %s src-prefix %s metric %d table %u protocol %u if %s (%u)'",
       netaddr_to_string(&buf1, &route->src_ip),
       netaddr_to_string(&buf2, &route->gw),
+      _route_types[route->type],
       netaddr_to_string(&buf3, &route->dst),
       netaddr_to_string(&buf4, &route->src_prefix),
       route->metric,

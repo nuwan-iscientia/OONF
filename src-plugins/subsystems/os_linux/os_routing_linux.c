@@ -53,16 +53,22 @@
 #include "subsystems/os_system.h"
 
 #include "subsystems/os_routing.h"
+#include "subsystems/os_linux/os_routing_linux.h"
 
 /* Definitions */
 #define LOG_OS_ROUTING _oonf_os_routing_subsystem.logging
+
+struct route_type_translation {
+  enum os_route_type oonf;
+  uint8_t os_linux;
+};
 
 /* prototypes */
 static int _init(void);
 static void _cleanup(void);
 
 static int _routing_set(struct nlmsghdr *msg, struct os_route *route,
-    unsigned char rt_type, unsigned char rt_scope);
+    unsigned char rt_scope);
 
 static void _routing_finished(struct os_route *route, int error);
 static void _cb_rtnetlink_message(struct nlmsghdr *);
@@ -84,6 +90,19 @@ static struct oonf_subsystem _oonf_os_routing_subsystem = {
   .cleanup = _cleanup,
 };
 DECLARE_OONF_PLUGIN(_oonf_os_routing_subsystem);
+
+/* translation table between route types */
+struct route_type_translation _type_translation[] = {
+    { OS_ROUTE_UNICAST, RTN_UNICAST },
+    { OS_ROUTE_LOCAL, RTN_LOCAL },
+    { OS_ROUTE_BROADCAST, RTN_BROADCAST },
+    { OS_ROUTE_MULTICAST, RTN_MULTICAST },
+    { OS_ROUTE_THROW, RTN_THROW },
+    { OS_ROUTE_UNREACHABLE, RTN_UNREACHABLE },
+    { OS_ROUTE_PROHIBIT, RTN_PROHIBIT },
+    { OS_ROUTE_BLACKHOLE, RTN_BLACKHOLE },
+    { OS_ROUTE_NAT, RTN_NAT }
+};
 
 /* netlink socket for route set/get commands */
 static const uint32_t _rtnetlink_mcast[] = {
@@ -113,6 +132,7 @@ static const struct os_route OS_ROUTE_WILDCARD = {
   .family = AF_UNSPEC,
   .src_ip = { ._type = AF_UNSPEC },
   .gw = { ._type = AF_UNSPEC },
+  .type = OS_ROUTE_UNDEFINED,
   .dst = { ._type = AF_UNSPEC },
   .src_prefix = { ._type = AF_UNSPEC },
   .table = RT_TABLE_UNSPEC,
@@ -225,7 +245,7 @@ os_routing_set(struct os_route *route, bool set, bool del_similar) {
   OONF_DEBUG(LOG_OS_ROUTING, "%sset route: %s", set ? "" : "re",
       os_routing_to_string(&rbuf, &os_rt));
 
-  if (_routing_set(msg, &os_rt, RTN_UNICAST, scope)) {
+  if (_routing_set(msg, &os_rt, scope)) {
     return -1;
   }
 
@@ -341,8 +361,9 @@ _routing_finished(struct os_route *route, int error) {
  */
 static int
 _routing_set(struct nlmsghdr *msg, struct os_route *route,
-    unsigned char rt_type, unsigned char rt_scope) {
+    unsigned char rt_scope) {
   struct rtmsg *rt_msg;
+  size_t i;
 
   /* calculate address af_type */
   if (netaddr_get_address_family(&route->dst) != AF_UNSPEC) {
@@ -371,9 +392,19 @@ _routing_set(struct nlmsghdr *msg, struct os_route *route,
 
   rt_msg->rtm_family = route->family ;
   rt_msg->rtm_scope = rt_scope;
-  rt_msg->rtm_type = rt_type;
   rt_msg->rtm_protocol = route->protocol;
   rt_msg->rtm_table = route->table;
+
+  /* set default route type */
+  rt_msg->rtm_type = RTN_UNICAST;
+
+  /* set route type */
+  for (i=0; i<ARRAYSIZE(_type_translation); i++) {
+    if (_type_translation[i].oonf == route->type) {
+      rt_msg->rtm_type = _type_translation[i].os_linux;
+      break;
+    }
+  }
 
   /* add attributes */
   if (netaddr_get_address_family(&route->src_ip) != AF_UNSPEC) {
@@ -445,6 +476,7 @@ _routing_parse_nlmsg(struct os_route *route, struct nlmsghdr *msg) {
   struct rtmsg *rt_msg;
   struct rtattr *rt_attr;
   int rt_len;
+  size_t i;
 
   rt_msg = NLMSG_DATA(msg);
   rt_attr = (struct rtattr *) RTM_RTA(rt_msg);
@@ -457,6 +489,19 @@ _routing_parse_nlmsg(struct os_route *route, struct nlmsghdr *msg) {
   route->family = rt_msg->rtm_family;
 
   if (route->family != AF_INET && route->family != AF_INET6) {
+    return -1;
+  }
+
+  /* get route type */
+  route->type = OS_ROUTE_UNDEFINED;
+  for (i=0; i<ARRAYSIZE(_type_translation); i++) {
+    if (rt_msg->rtm_type == _type_translation[i].os_linux) {
+      route->type = _type_translation[i].oonf;
+      break;
+    }
+  }
+  if (route->type == OS_ROUTE_UNDEFINED) {
+    OONF_WARN(LOG_OS_ROUTING, "Got route type: %u", rt_msg->rtm_type);
     return -1;
   }
 
@@ -509,6 +554,9 @@ _match_routes(struct os_route *filter, struct os_route *route) {
   }
   if (netaddr_get_address_family(&filter->src_ip) != AF_UNSPEC
       && memcmp(&filter->src_ip, &route->src_ip, sizeof(filter->src_ip)) != 0) {
+    return false;
+  }
+  if (filter->type != OS_ROUTE_UNDEFINED && filter->type != route->type) {
     return false;
   }
   if (netaddr_get_address_family(&filter->gw) != AF_UNSPEC

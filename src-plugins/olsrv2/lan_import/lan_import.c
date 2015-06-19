@@ -160,7 +160,7 @@ static struct os_route_listener _routing_listener = {
 static struct avl_tree _import_tree;
 
 /* wildcard route for first query */
-static struct os_route _wildcard_query;
+static struct os_route _unicast_query;
 
 /**
  * Initialize plugin
@@ -173,11 +173,11 @@ _init(void) {
   os_routing_listener_add(&_routing_listener);
 
   /* send wildcard query */
-  memcpy(&_wildcard_query, os_routing_get_wildcard_route(),
-      sizeof(_wildcard_query));
-  _wildcard_query.cb_get = _cb_query;
-  _wildcard_query.cb_finished = _cb_query_finished;
-
+  memcpy(&_unicast_query, os_routing_get_wildcard_route(),
+      sizeof(_unicast_query));
+  _unicast_query.cb_get = _cb_query;
+  _unicast_query.cb_finished = _cb_query_finished;
+  _unicast_query.type = OS_ROUTE_UNICAST;
   return 0;
 }
 
@@ -240,6 +240,11 @@ _cb_rt_event(const struct os_route *route, bool set) {
     /* ignore multicast, linklocal and loopback */
     return;
   }
+  if (route->type != OS_ROUTE_UNICAST) {
+    /* return all non-unicast type routes */
+    return;
+  }
+
   OONF_DEBUG(LOG_LAN_IMPORT, "Received route event (%s): %s",
       set ? "set" : "remove", os_routing_to_string(&rbuf, route));
 
@@ -382,7 +387,7 @@ _cb_cfg_changed(void) {
   }
 
   /* trigger wildcard query */
-  if (!os_routing_is_in_progress(&_wildcard_query)) {
-    os_routing_query(&_wildcard_query);
+  if (!os_routing_is_in_progress(&_unicast_query)) {
+    os_routing_query(&_unicast_query);
   }
 }
