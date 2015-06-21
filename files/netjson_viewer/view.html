@@ -3,7 +3,7 @@
 <head>
   <title>Network | Basic usage</title>
 
-  <!-- This file use the http://visjs.org/index.html API -->
+  <!-- This file use the http://visjs.org API -->
   <script type="text/javascript" src="vis.js"></script>
   <link href="vis.css" rel="stylesheet" type="text/css" />
 
@@ -54,7 +54,7 @@ function layout_graph(element) {
     for (ni = 0; ni < nodes.length; ni++) {
         var newId = nodes[ni].id;
         var newLabel = newId;
-        visNodes.add(
+        visNodes.update(
             {
                 id:    newId,
                 label: newLabel,
@@ -68,13 +68,15 @@ function layout_graph(element) {
     for (ei = 0; ei < edges.length; ei++) {
         var fromId = edges[ei].source;
         var toId = edges[ei].target;
+        var uuid = fromId+"-"+toId;
 
         var newLabel = edges[ei].weight.toString();
         if (edges[ei].properties && edges[ei].properties["weight_txt"]) {
             newLabel = edges[ei].properties["weight_txt"];
         }
-        visEdges.add(
+        visEdges.update(
             {
+                id:     uuid,
                 from:   fromId,
                 to:     toId,
                 label:  newLabel,
