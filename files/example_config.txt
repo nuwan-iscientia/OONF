@@ -1,34 +1,13 @@
+# look at http://www.olsr.org/mediawiki/index.php/OONF_Configuration#Formats
+# to find more information about the common OONF configuration formats
+
+# look at http://www.olsr.org/mediawiki/index.php/OLSR_network_deployments
+# to find some typical Olsrd(2) deployment examples 
+
 [global]
-	fork		no
-#	plugin		test
-#	ipv4		yes
-#	ipv6		yes
+        fork    no
 
-[telnet]
-#	acl		127.0.0.1/8
-#	acl		default_reject
-#	bindto_v4	11.0.0.1
-#	port		2007
+[olsrv2]
+        lan     0.0.0.0/0
 
-#[http]
-#	acl		127.0.0.1/8
-#	acl		default_reject
-#	bindto_v4	11.0.0.1
-#	port		8080
-
-#[httptelnet]
-#	acl		127.0.0.1/8
-#	acl		default_reject
-#       site		/telnet
-#       Example name/password "wiki"/"pedia"
-#       auth		d2lraTpwZWRpYQ==
-
-[remotecontrol]
-#	acl          accept_default
-
-[nl80211]
-	if           wlan0
-	interval     3.0
-
-[dlep]
-
+[interface=wlan0]
