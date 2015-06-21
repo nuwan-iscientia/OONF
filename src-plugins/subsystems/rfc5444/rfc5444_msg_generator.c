@@ -368,10 +368,12 @@ rfc5444_writer_create_message(struct rfc5444_writer *writer, uint8_t msgid,
     ptr1 = ptr1->next;
   }
 
-  _close_addrblock(acs, writer, last_processed, 0);
+  if (last_processed) {
+    _close_addrblock(acs, writer, last_processed, 0);
 
-  /* write message fragment */
-  _finalize_message_fragment(writer, msg, &current_list, not_fragmented, useIf, param);
+    /* write message fragment */
+    _finalize_message_fragment(writer, msg, &current_list, not_fragmented, useIf, param);
+  }
 
   /* free storage of addresses and address-tlvs */
   _rfc5444_writer_free_addresses(writer, msg);

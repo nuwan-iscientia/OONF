@@ -457,6 +457,7 @@ _cb_handle_log(struct oonf_telnet_data *data) {
 static enum oonf_telnet_result
 _cb_handle_config(struct oonf_telnet_data *data) {
   const char *next = NULL;
+  int result = 0;
 
   if (data->parameter == NULL || *data->parameter == 0) {
     abuf_puts(data->out, "Error, 'config' needs a parameter\n");
@@ -470,30 +471,30 @@ _cb_handle_config(struct oonf_telnet_data *data) {
     }
   }
   else if ((next = str_hasnextword(data->parameter, "rollback"))) {
-    oonf_cfg_rollback();
+    result = oonf_cfg_rollback();
   }
   else if ((next = str_hasnextword(data->parameter, "get"))) {
-    cfg_cmd_handle_get(oonf_cfg_get_instance(),
+    result = cfg_cmd_handle_get(oonf_cfg_get_instance(),
         oonf_cfg_get_rawdb(), next, data->out);
   }
   else if ((next = str_hasnextword(data->parameter, "load"))) {
-    cfg_cmd_handle_load(oonf_cfg_get_instance(),
+    result = cfg_cmd_handle_load(oonf_cfg_get_instance(),
         oonf_cfg_get_rawdb(), next, data->out);
   }
   else if ((next = str_hasnextword(data->parameter, "remove"))) {
-    cfg_cmd_handle_remove(oonf_cfg_get_instance(),
+    result = cfg_cmd_handle_remove(oonf_cfg_get_instance(),
         oonf_cfg_get_rawdb(), next, data->out);
   }
   else if ((next = str_hasnextword(data->parameter, "save"))) {
-    cfg_cmd_handle_save(oonf_cfg_get_instance(),
+    result = cfg_cmd_handle_save(oonf_cfg_get_instance(),
         oonf_cfg_get_rawdb(), next, data->out);
   }
   else if ((next = str_hasnextword(data->parameter, "schema"))) {
-    cfg_cmd_handle_schema(
+    result = cfg_cmd_handle_schema(
         oonf_cfg_get_rawdb(), next, data->out);
   }
   else if ((next = str_hasnextword(data->parameter, "set"))) {
-    cfg_cmd_handle_set(oonf_cfg_get_instance(),
+    result = cfg_cmd_handle_set(oonf_cfg_get_instance(),
         oonf_cfg_get_rawdb(), next, data->out);
   }
   else {
@@ -501,6 +502,9 @@ _cb_handle_config(struct oonf_telnet_data *data) {
         data->command, data->parameter);
   }
 
+  if (result) {
+    abuf_puts(data->out, "Command returned an error");
+  }
   return TELNET_RESULT_ACTIVE;
 }
 

@@ -324,24 +324,23 @@ cfg_schema_validate(struct cfg_db *db,
           if (named) {
             /* entry not in unnamed section */
             warning = cfg_db_get_entry(named, schema_entry->key.entry) == NULL;
+            if (named->name && warning) {
+              /* no mandatory value in unnamed section, check named sections */
+              warning = false;
+
+              avl_for_each_element(&section->names, named, node) {
+                if (named->name != NULL
+                    && cfg_db_get_entry(named, schema_entry->key.entry) == NULL) {
+                  /* found a named section without mandatory entry */
+                  warning = true;
+                  break;
+                }
+              }
+            }
           }
           else {
             /* no unnamed section */
             warning = true;
-          }
-
-          if (named->name && warning) {
-            /* no mandatory value in unnamed section, check named sections */
-            warning = false;
-
-            avl_for_each_element(&section->names, named, node) {
-              if (named->name != NULL
-                  && cfg_db_get_entry(named, schema_entry->key.entry) == NULL) {
-                /* found a named section without mandatory entry */
-                warning = true;
-                break;
-              }
-            }
           }
         }
         if (warning) {

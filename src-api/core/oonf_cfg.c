@@ -381,11 +381,15 @@ oonf_cfg_apply(void) {
 
   /* calculate delta and call handlers */
   if (_first_apply) {
-    cfg_schema_handle_db_startup_changes(_oonf_work_db);
+    if (cfg_schema_handle_db_startup_changes(_oonf_work_db)) {
+      OONF_WARN(LOG_CONFIG, "Handling changes failes");
+    }
     _first_apply = false;
   }
   else {
-    cfg_schema_handle_db_changes(old_db, _oonf_work_db);
+    if (cfg_schema_handle_db_changes(old_db, _oonf_work_db)) {
+      OONF_WARN(LOG_CONFIG, "Handling changes failes");
+    }
   }
 
   /* success */
