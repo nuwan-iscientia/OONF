@@ -376,6 +376,23 @@ olsrv2_mpr_shall_forwarding(struct rfc5444_reader_tlvblock_context *context,
     return false;
   }
 
+  /* check input interface */
+  if (_protocol->input_interface == NULL) {
+    OONF_DEBUG(LOG_OLSRV2, "Do not forward because input interface is not set");
+    return false;
+  }
+
+  /* checp input source address */
+  if (!source_address) {
+    OONF_DEBUG(LOG_OLSRV2, "Do not forward because input source is not set");
+    return false;
+  }
+
+  /* check if this is coming from the unicast receiver */
+  if (strcmp(_protocol->input_interface->name, RFC5444_UNICAST_INTERFACE) == 0) {
+    return false;
+  }
+
   /* check forwarding set */
   dup_result = oonf_duplicate_entry_add(&_protocol->forwarded_set,
       context->msg_type, &context->orig_addr,
@@ -386,18 +403,6 @@ olsrv2_mpr_shall_forwarding(struct rfc5444_reader_tlvblock_context *context,
         context->msg_type,
         netaddr_to_string(&buf, &context->orig_addr),
         context->seqno, dup_result);
-    return false;
-  }
-
-  /* check input interface */
-  if (_protocol->input_interface == NULL) {
-    OONF_DEBUG(LOG_OLSRV2, "Do not forward because input interface is not set");
-    return false;
-  }
-
-  /* checp input source address */
-  if (!source_address) {
-    OONF_DEBUG(LOG_OLSRV2, "Do not forward because input source is not set");
     return false;
   }
 
