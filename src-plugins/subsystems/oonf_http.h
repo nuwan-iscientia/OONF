@@ -79,6 +79,7 @@ struct oonf_http_session {
 
   const char *method; /* get/post/... */
   const char *request_uri;
+  const char *decoded_request_uri;
   const char *http_version;
 
   char *header_name[OONF_HTTP_MAX_HEADERS];

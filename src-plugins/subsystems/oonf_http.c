@@ -53,13 +53,14 @@
 #include "core/oonf_subsystem.h"
 #include "core/os_core.h"
 #include "subsystems/oonf_stream_socket.h"
+#include "subsystems/oonf_telnet.h"
 
 #include "subsystems/oonf_http.h"
 
 /* Definitions */
 #define LOG_HTTP _oonf_http_subsystem.logging
 
-/* Http text constants */
+/* HTTP text constants */
 static const char HTTP_VERSION_1_0[] = "HTTP/1.0";
 static const char HTTP_VERSION_1_1[] = "HTTP/1.1";
 
@@ -77,6 +78,9 @@ static const char HTTP_RESPONSE_413[] = "Request Entity Too Large";
 static const char HTTP_RESPONSE_500[] = "Internal Server Error";
 static const char HTTP_RESPONSE_501[] = "Not Implemented";
 static const char HTTP_RESPONSE_503[] = "Service Unavailable";
+
+/* http to telnet bridge path */
+static const char HTTP_TO_TELNET[] = "/telnet/";
 
 /* prototypes */
 static int _init(void);
@@ -100,6 +104,8 @@ static int _parse_http_header(char *header_data, size_t header_len,
 static size_t _parse_query_string(char *s,
     char **name, char **value, size_t count);
 static void  _decode_uri(char *src);
+static enum oonf_http_result _cb_telnet_handler(
+      struct autobuf *out, struct oonf_http_session *);
 
 /* configuration variables */
 static struct cfg_schema_entry _http_entries[] = {
@@ -134,9 +140,19 @@ static struct oonf_stream_managed _http_managed_socket = {
   },
 };
 
+/* integrated telnet handler */
+struct oonf_http_handler _telnet_handler = {
+  .site = HTTP_TO_TELNET,
+  .content_handler = _cb_telnet_handler,
+  .acl = {
+      .accept_default = true,
+  },
+};
+
 /* subsystem definition */
 static const char *_dependencies[] = {
   OONF_STREAM_SUBSYSTEM,
+  OONF_TELNET_SUBSYSTEM,
 };
 
 struct oonf_subsystem _oonf_http_subsystem = {
@@ -157,6 +173,8 @@ static int
 _init(void) {
   oonf_stream_add_managed(&_http_managed_socket);
   avl_init(&_http_site_tree, avl_comp_strcasecmp, false);
+
+  oonf_http_add(&_telnet_handler);
   return 0;
 }
 
@@ -165,6 +183,7 @@ _init(void) {
  */
 void
 _cleanup(void) {
+  oonf_http_remove(&_telnet_handler);
   oonf_stream_remove_managed(&_http_managed_socket, true);
 }
 
@@ -337,6 +356,7 @@ _cb_receive_data(struct oonf_stream_session *session) {
     return STREAM_SESSION_SEND_AND_QUIT;
   }
 
+  header.decoded_request_uri = uri;
   handler = _get_site_handler(uri);
   if (handler == NULL) {
     OONF_DEBUG(LOG_HTTP, "No HTTP handler for site: %s", uri);
@@ -802,4 +822,51 @@ _decode_uri(char *src) {
     }
   }
   *dst = 0;
+}
+
+static enum oonf_http_result
+_cb_telnet_handler(struct autobuf *out, struct oonf_http_session *session) {
+  static char EOL = 0;
+  enum oonf_telnet_result result;
+  char buffer[1024];
+  char *ptr1, *ptr2, *ptr3;
+
+  session->content_type = HTTP_CONTENTTYPE_TEXT;
+  strscpy(buffer, &session->decoded_request_uri[sizeof(HTTP_TO_TELNET)-1], sizeof(buffer));
+
+  ptr1 = buffer;
+  while (true) {
+    ptr2 = strchr(ptr1, '/');
+    if (ptr2) {
+      *ptr2 = 0;
+    }
+
+    OONF_DEBUG(LOG_HTTP, "Process '%s'", ptr1);
+    ptr3 = strchr(ptr1, ' ');
+    if (ptr3) {
+      *ptr3++ = 0;
+    }
+    else {
+      ptr3 = &EOL;
+    }
+
+    result = oonf_telnet_execute(ptr1, ptr3, out, session->remote);
+    switch (result) {
+      case TELNET_RESULT_ACTIVE:
+      case TELNET_RESULT_QUIT:
+        break;
+
+      case _TELNET_RESULT_UNKNOWN_COMMAND:
+        return HTTP_404_NOT_FOUND;
+
+      default:
+        return HTTP_400_BAD_REQ;
+    }
+
+    if (!ptr2) {
+      break;
+    }
+    ptr1 = ptr2 + 1;
+  }
+  return HTTP_200_OK;
 }
