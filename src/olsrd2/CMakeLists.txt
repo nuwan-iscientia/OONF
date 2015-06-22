@@ -54,7 +54,6 @@ IF (NOT OONF_STATIC_PLUGINS)
                              olsrv2info
                              netjsoninfo
                              lan_import
-                             http
                              )
 ENDIF (NOT OONF_STATIC_PLUGINS)
 
