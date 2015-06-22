@@ -25,18 +25,23 @@
 
 <script type="text/javascript">
 var visNodes, visEdges, visData, visNetwork;
+var count;
 
 // this URL should return the netjson graph output
 var netjsonurl = "http://169.254.0.101/cgi/netjson.cgi";
 
 function init_network() {
+  var options = {
+//      queue: {
+//          delay: Infinty,
+//      },
+  };
+  
   // create an array with nodes
-  visNodes = new vis.DataSet([
-  ]);
+  visNodes = new vis.DataSet([], options);
 
   // create an array with edges
-  visEdges = new vis.DataSet([
-  ]);
+  visEdges = new vis.DataSet([], options);
 
   // create a network
   var container = document.getElementById('mynetwork');
@@ -44,48 +49,89 @@ function init_network() {
     nodes: visNodes,
     edges: visEdges
   };
-  var options = {};
+  
+  options = {};
   visNetwork = new vis.Network(container, visData, options);
+  
+  count = 0;
 }
 
 function layout_graph(element) {
     nodes = element.nodes;
-
+    
     for (ni = 0; ni < nodes.length; ni++) {
-        var newId = nodes[ni].id;
-        var newLabel = newId;
-        visNodes.update(
-            {
-                id:    newId,
-                label: newLabel,
-                mass:  2,
-            }
-        );
-    }
+        var nId = nodes[ni].id;
+        var nLabel = nId;
+        var nBorder = 1;
+        
+        if (nodes[ni].id == element.router_id) {
+            nBorder = 5;
+        }
 
+        if (visNodes.get(nId)) {    
+            visNodes.update(
+                {
+                    id:          nId,
+                    label:       nLabel,
+//                    physics:     false,
+                }
+            );
+        }
+        else {
+            visNodes.update(
+                {
+                    id:          nId,
+                    label:       nLabel,
+                    borderWidth: nBorder,
+                }
+            );
+        }
+    }
+    
     edges = element.links;
 
     for (ei = 0; ei < edges.length; ei++) {
-        var fromId = edges[ei].source;
-        var toId = edges[ei].target;
-        var uuid = fromId+"-"+toId;
-
-        var newLabel = edges[ei].weight.toString();
-        if (edges[ei].properties && edges[ei].properties["weight_txt"]) {
-            newLabel = edges[ei].properties["weight_txt"];
-        }
-        visEdges.update(
-            {
-                id:     uuid,
-                from:   fromId,
-                to:     toId,
-                label:  newLabel,
-                arrows: "to",
-                font: {
-                    align: 'top'
-                }
+        var eFrom = edges[ei].source;
+        var eTo = edges[ei].target;
+        var eUuid = eFrom + "-" + eTo;
+        var eWidth = 1;
+        var eLabel = edges[ei].weight.toString();
+        
+        if (edges[ei].properties) {
+            if (edges[ei].properties["weight_txt"]) {
+                eLabel = edges[ei].properties["weight_txt"];
             }
-        ); 
+            if (edges[ei].properties["outgoing_tree"] == "true") {
+                eWidth=3;
+            }
+        }
+        
+        if (visEdges.get(eUuid)) {
+            visEdges.update(
+                {
+                    id:          eUuid,
+                    label:       eLabel,
+                    width:       eWidth,
+//                    physics:     false,
+                }
+            );
+        }
+        else {
+            visEdges.update(
+                {
+                    id:          eUuid,
+                    from:        eFrom,
+                    to:          eTo,
+                    label:       eLabel,
+                    arrows:      "to",
+                    length:      200,
+                    width:       eWidth,
+                    font: {
+                        align:       "top",
+                    }
+                }
+            );
+        }
     }
 }
 
@@ -109,15 +155,24 @@ function xmlhttp_changed()
                 layout_graph(element);
             }
         }
+        if (count < 3) {
+            count = count + 1;
+            window.setTimeout(send_request, 5000);
+        }
     }
 }
 
 init_network();
-
 var xmlhttp = new XMLHttpRequest();
 xmlhttp.onreadystatechange=xmlhttp_changed
-xmlhttp.open("GET",netjsonurl,true);
-xmlhttp.send();  
+
+function send_request()
+{
+    xmlhttp.open("GET",netjsonurl,true);
+    xmlhttp.send();
+}
+
+send_request();
 
 </script>
 
