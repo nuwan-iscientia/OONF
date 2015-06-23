@@ -1,39 +1,35 @@
-<!doctype html>
-<html>
-<head>
-  <title>Network | Basic usage</title>
-
-  <!-- This file use the http://visjs.org API -->
-
-  <script type="text/javascript" src="vis.js"></script>
-  <link href="vis.css" rel="stylesheet" type="text/css" />
-
-  <style type="text/css">
-    #mynetwork {
-      width: 1280px;
-      height: 768px;
-      border: 1px solid lightgray;
-    }
-  </style>
-</head>
-<body>
-
-<p>
-  Visualization of olsrd2 netjson graph
-</p>
-
-Auto Update: <input type="checkbox" id="autoupdate" onclick="checkbox_clicked();" checked="checked"/>
-
-<div id="mynetwork"></div>
-
-<script type="text/javascript">
-var visNodes, visEdges, visData, visNetwork;
-var firstLookup;
-var autoupdate_timeout;
+/* settings */
 var common_edge_postfix = "bit/s";
-
-// this URL should return the netjson graph output
+var common_node_prefix  = "192.168.0.";
 var netjsonurl = "http://169.254.0.101/cgi/netjson.cgi";
+
+var selectedColor = {
+    border:     '#2BE97C',
+    background: '#D2FFE5',
+    highlight: {
+        border: '#2BE97C',
+        background: '#D2FFE5',
+    },
+};
+
+/* global variables */
+var visNodes, visEdges, visNetwork;
+var autoupdate_timeout;
+var xmlhttp;
+
+String.prototype.startsWith = function (pattern) {
+    if (this.length < pattern.length) {
+        return false;
+    }
+    return pattern == this.substring(0, pattern.length);
+};
+
+String.prototype.endsWith = function (pattern) {
+    if (this.length < pattern.length) {
+        return false;
+    }
+    return pattern == this.substring(-pattern.length);
+};
 
 function init_network() {
     var options = {
@@ -46,7 +42,7 @@ function init_network() {
     visEdges = new vis.DataSet([], options);
 
     // create a network
-    var container = document.getElementById('mynetwork');
+    var container = document.getElementById("networkgraph");
     var visData = {
         nodes: visNodes,
         edges: visEdges
@@ -74,23 +70,25 @@ function layout_nodes(element) {
     oldIds = visNodes.getIds()
     for (ni = 0; ni < jsonNodes.length; ni++) {
         var nId = jsonNodes[ni].id;
-        var nBorder = 1;
-
-        var idx = nId.lastIndexOf('.');
-        var nLabel = nId.substring(idx+1, nId.length);
-                
+        var nColor = null;
+        
+        var nLabel = nId;
+        if (nId.startsWith(common_node_prefix)) {
+            nLabel = nId.substring(common_node_prefix.length);
+        }
+                        
         newIds.push(nId);
         if (jsonNodes[ni].id == element.router_id) {
-            nBorder = 5;
+            nColor = selectedColor;
         }
 
-        if (!visNodes.get(nId)) {    
+        if (!visNodes.get(nId)) {   
             visNodes.add(
                 {
-                    id:          nId,
-                    label:       nLabel,
-                    borderWidth: nBorder,
-                    mass:        4,
+                    id:    nId,
+                    label: nLabel,
+                    mass:  4,
+                    color: nColor,
                 }
             );
         }
@@ -176,8 +174,8 @@ function layout_edges(element) {
         if (edge.fromLabel == edge.toLabel) {
             label = edge.fromLabel;
         }
-        else if (edge.fromLabel.substring(flen) == common_edge_postfix
-                && edge.fromLabel.substring(flen) == common_edge_postfix) {
+        else if (edge.fromLabel.endsWith(common_edge_postfix)
+                && edge.fromLabel.endsWith(common_edge_postfix)) {
             label = edge.fromLabel.substring(0, flen).trim() + "/"
                 + edge.toLabel.substring(0, tlen).trim()
                 + " " + common_edge_postfix;             
@@ -241,7 +239,8 @@ function xmlhttp_changed()
             }
 
             if (element.type == "NetworkGraph") {
-                layout_graph(element);
+                layout_nodes(element);
+                layout_edges(element);
             }
         }
         
@@ -267,13 +266,9 @@ function send_request() {
     xmlhttp.send();
 }
 
-var xmlhttp = new XMLHttpRequest();
-xmlhttp.onreadystatechange=xmlhttp_changed
-
-init_network();
-send_request();
-
-</script>
-
-</body>
-</html>
+function init_netjson_viewer() {
+    xmlhttp = new XMLHttpRequest();
+    xmlhttp.onreadystatechange=xmlhttp_changed
+    init_network();
+    send_request();
+}
