@@ -28,7 +28,7 @@ String.prototype.endsWith = function (pattern) {
     if (this.length < pattern.length) {
         return false;
     }
-    return pattern == this.substring(-pattern.length);
+    return pattern == this.substring(this.length - pattern.length);
 };
 
 function init_network() {
@@ -168,14 +168,14 @@ function layout_edges(element) {
         var edge = undirectedEdges[newIds[ei]];
         var label = "";
         
-        var flen = edge.fromLabel.length - common_edge_postfix.length;
-        var tlen = edge.toLabel.length - common_edge_postfix.length;
-        
         if (edge.fromLabel == edge.toLabel) {
             label = edge.fromLabel;
         }
         else if (edge.fromLabel.endsWith(common_edge_postfix)
                 && edge.fromLabel.endsWith(common_edge_postfix)) {
+            var flen = edge.fromLabel.length - common_edge_postfix.length;
+            var tlen = edge.toLabel.length - common_edge_postfix.length;
+        
             label = edge.fromLabel.substring(0, flen).trim() + "/"
                 + edge.toLabel.substring(0, tlen).trim()
                 + " " + common_edge_postfix;             
@@ -251,7 +251,7 @@ function xmlhttp_changed()
     }
 }
 
-function checkbox_clicked() {
+function autoupdate_clicked() {
     var checkbox = document.getElementById("autoupdate");
     if (checkbox.checked === false) {
         window.clearTimeout(autoupdate_timeout);
@@ -259,6 +259,12 @@ function checkbox_clicked() {
     else {
         send_request();
     }    
+}
+
+function dynamiclayout_clicked() {
+    var checkbox = document.getElementById("dynamiclayout");
+    
+    visNetwork.setOptions({physics:checkbox.checked})
 }
 
 function send_request() {
