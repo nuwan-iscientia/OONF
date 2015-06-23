@@ -825,13 +825,13 @@ _cb_parse_connection(int fd, void *data, bool event_read, bool event_write) {
 
   /* send file if necessary */
   if (session->state == STREAM_SESSION_SEND_AND_QUIT
-      && abuf_getlen(&session->out) == 0 && session->copy_fd != 0) {
+      && abuf_getlen(&session->out) == 0 && session->copy_fd != -1) {
     if (event_write) {
       len = os_socket_sendfile(fd, session->copy_fd, session->copy_bytes_sent,
           session->copy_total_size - session->copy_bytes_sent);
       if (len <= 0) {
-        OONF_WARN(LOG_STREAM, "Error while copying file to output stream: %s (%d)",
-            strerror(errno), errno);
+        OONF_WARN(LOG_STREAM, "Error while copying file to output stream (%d/%d): %s (%d)",
+            fd, session->copy_fd, strerror(errno), errno);
         session->state = STREAM_SESSION_CLEANUP;
       }
       else {
