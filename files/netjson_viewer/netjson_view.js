@@ -1,17 +1,3 @@
-/* settings */
-var common_edge_postfix = "bit/s";
-var common_node_prefix  = "192.168.0.";
-var netjsonurl = "http://169.254.0.101/cgi/netjson.cgi";
-
-var selectedColor = {
-    border:     '#2BE97C',
-    background: '#D2FFE5',
-    highlight: {
-        border: '#2BE97C',
-        background: '#D2FFE5',
-    },
-};
-
 /* global variables */
 var visNodes, visEdges, visNetwork;
 var autoupdate_timeout;
@@ -223,8 +209,6 @@ function layout_edges(element) {
 function xmlhttp_changed()
 {
     if (xmlhttp.readyState==XMLHttpRequest.DONE && xmlhttp.status==200) {
-        console.log("Got update");
-        
         obj = JSON.parse(xmlhttp.responseText);
 
         if (obj.type != "NetworkCollection") {
