@@ -45,6 +45,7 @@
 #include <sys/select.h>
 #include <unistd.h>
 #include <sys/types.h>
+#include <sys/sendfile.h>
 #include <sys/socket.h>
 
 #include "../os_socket.h"
@@ -162,6 +163,22 @@ os_socket_bindto_interface(int sock, struct os_interface_data *data) {
 static INLINE const char *
 os_socket_get_loopback_name(void) {
   return "lo";
+}
+
+/**
+ * send data from one filedescriptor to another one. Linux compatible API
+ * structure, might need a bit of work for other OS.
+ * @param outfd
+ * @param infd
+ * @param offset
+ * @param count
+ * @return -1 if an error happened, otherwise the number of bytes that
+ *   were sent to outfd
+ */
+static INLINE ssize_t
+os_socket_sendfile(int outfd, int infd, size_t offset, size_t count) {
+  off_t int_offset = offset;
+  return sendfile(outfd, infd, &int_offset, count);
 }
 
 #endif /* OS_SOCKET_LINUX_H_ */

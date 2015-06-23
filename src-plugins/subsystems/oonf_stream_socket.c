@@ -665,6 +665,8 @@ _create_session(struct oonf_stream_socket *stream_socket,
   session->remote_address = *remote_addr;
   session->remote_socket = *remote_socket;
 
+  session->copy_fd = -1;
+
   if (stream_socket->config.allowed_sessions-- > 0) {
     /* create active session */
     session->state = STREAM_SESSION_ACTIVE;
@@ -821,6 +823,23 @@ _cb_parse_connection(int fd, void *data, bool event_read, bool event_write) {
     }
   }
 
+  /* send file if necessary */
+  if (session->state == STREAM_SESSION_SEND_AND_QUIT
+      && abuf_getlen(&session->out) == 0 && session->copy_fd != 0) {
+    if (event_write) {
+      len = os_socket_sendfile(fd, session->copy_fd, session->copy_bytes_sent,
+          session->copy_total_size - session->copy_bytes_sent);
+      if (len <= 0) {
+        OONF_WARN(LOG_STREAM, "Error while copying file to output stream: %s (%d)",
+            strerror(errno), errno);
+        session->state = STREAM_SESSION_CLEANUP;
+      }
+      else {
+        session->copy_bytes_sent += len;
+      }
+    }
+  }
+
   /* check for buffer underrun */
   if (session->state == STREAM_SESSION_ACTIVE
       && abuf_getlen(&session->out) == 0
@@ -828,7 +847,8 @@ _cb_parse_connection(int fd, void *data, bool event_read, bool event_write) {
     session->state = s_sock->config.buffer_underrun(session);
   }
 
-  if (abuf_getlen(&session->out) == 0) {
+  if (abuf_getlen(&session->out) == 0 &&
+      session->copy_bytes_sent == session->copy_total_size) {
     /* nothing to send anymore */
     OONF_DEBUG(LOG_STREAM, "  deactivating output in scheduler\n");
     oonf_socket_set_write(&session->scheduler_entry, false);

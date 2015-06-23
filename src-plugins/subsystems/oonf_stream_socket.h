@@ -87,6 +87,16 @@ struct oonf_stream_session {
   struct autobuf out;
 
   /*
+   * file input descriptor
+   *
+   * will only be used in SEND_AND_QUIT state if out buffer is empty
+   */
+  int copy_fd;
+
+  /* number of bytes already copied and total to be copied */
+  size_t copy_bytes_sent, copy_total_size;
+
+  /*
    * internal part of the server
    */
   struct list_entity node;

@@ -71,6 +71,9 @@ enum oonf_http_result {
   HTTP_500_INTERNAL_SERVER_ERROR = 500,
   HTTP_501_NOT_IMPLEMENTED = 501,
   HTTP_503_SERVICE_UNAVAILABLE = STREAM_SERVICE_UNAVAILABLE,
+
+  /* special result to signal start of file transfer */
+  HTTP_START_FILE_TRANSFER = 99999,
 };
 
 struct oonf_http_session {
@@ -93,6 +96,10 @@ struct oonf_http_session {
 
   /* content type for answer, NULL means plain/html */
   const char *content_type;
+
+  /* parameters for file transfer */
+  int transfer_fd;
+  size_t transfer_length;
 };
 
 struct oonf_http_handler {

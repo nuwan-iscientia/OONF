@@ -69,6 +69,7 @@ static INLINE ssize_t os_socket_sendto(int fd, const void *buf, size_t length,
 static INLINE ssize_t os_socket_recvfrom(int fd, void *buf, size_t length,
     union netaddr_socket *source, const struct os_interface_data *interf);
 static INLINE const char *os_socket_get_loopback_name(void);
+static INLINE ssize_t os_socket_sendfile(int outfd, int infd, size_t offset, size_t count);
 
 /* include os-specific headers */
 #if defined(__linux__)
