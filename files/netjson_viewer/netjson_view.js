@@ -2,12 +2,14 @@
 var visNodes, visEdges, visNetwork;
 var autoupdate_timeout, force_layout_timeout;
 var xmlhttp;
-var last_json_data = null;
+var last_json_data = null
+var last_displayed_graph = null;
 
 var settings = {
     checkbox_autoupdate:     "",
     checkbox_dynamic_layout: "",
     checkbox_ipv4:           "",
+    div_showdata:            "",
     
     common_edge_postfix: "",
     common_node_prefix: {
@@ -72,6 +74,8 @@ function init_network() {
     visNetwork = new vis.Network(container, visData, options);
   
     firstLookup = true;
+    
+    visNetwork.on("click", graph_element_clicked);
 }
 
 function layout_nodes(element) {
@@ -107,10 +111,11 @@ function layout_nodes(element) {
         if (!visNodes.get(nId)) {   
             visNodes.add(
                 {
-                    id:    nId,
-                    label: nLabel,
-                    mass:  4,
-                    color: nColor,
+                    id:        nId,
+                    label:     nLabel,
+                    mass:      4,
+                    color:     nColor,
+                    reference: jsonNodes[ni],
                 }
             );
         }
@@ -154,7 +159,8 @@ function layout_edges(element) {
                 width:     1,
                 arrows:    "",
                 fromLabel: "-",
-                toLabel:   "-"
+                toLabel:   "-",
+                reference: jsonEdges[ei],
             };
             undirectedEdges[uuid] = edge;
         };
@@ -186,6 +192,7 @@ function layout_edges(element) {
     }
     
     /* add new edges */
+    var postfix = settings["common_edge_postfix"];
     for (ei = 0; ei < newIds.length; ei++) {
         var edge = undirectedEdges[newIds[ei]];
         var label = "";
@@ -193,14 +200,14 @@ function layout_edges(element) {
         if (edge.fromLabel == edge.toLabel) {
             label = edge.fromLabel;
         }
-        else if (edge.fromLabel.endsWith(common_edge_postfix)
-                && edge.fromLabel.endsWith(common_edge_postfix)) {
-            var flen = edge.fromLabel.length - common_edge_postfix.length;
-            var tlen = edge.toLabel.length - common_edge_postfix.length;
+        else if (edge.fromLabel.endsWith(postfix)
+                && edge.fromLabel.endsWith(postfix)) {
+            var flen = edge.fromLabel.length - postfix.length;
+            var tlen = edge.toLabel.length - postfix.length;
         
             label = edge.fromLabel.substring(0, flen).trim() + "/"
                 + edge.toLabel.substring(0, tlen).trim()
-                + " " + common_edge_postfix;             
+                + " " + postfix;             
         }
         else {
             label = edge.fromLabel + "/" + edge.toLabel;
@@ -228,7 +235,8 @@ function layout_edges(element) {
                     arrows:      edge.arrows,
                     font: {
                         align:       "top",
-                    }
+                    },
+                    reference:   edge.reference,
                 }
             );
         }
@@ -257,6 +265,9 @@ function layout_json_data(obj) {
             if (!settings["ipv4"] && element.router_id.indexOf('.') != -1) {
                 continue;
             }
+            
+            last_displayed_graph = element;
+            
             layout_nodes(element);
             layout_edges(element);
             break;
@@ -273,6 +284,42 @@ function xmlhttp_changed()
         if (settings["autoupdate"]) {
             autoupdate_timeout = window.setTimeout(
                     send_request, settings["autoupdate_interval"]);
+        }
+    }
+}
+
+function graph_element_clicked(param) {
+    var nodes = param.nodes;
+    var edges = param.edges;
+    
+    if (last_displayed_graph === null) {
+        return;
+    }
+
+    var showdata = document.getElementById(settings["div_showdata"]);
+    if (showdata === null) {
+        return;
+    }
+    
+    if (nodes.length == 1) {
+        /* node clicked */
+        var node = visNodes.get(nodes[0]);
+        if (node) {
+            showdata.innerHTML = "<h2>Node "+node.label+"</h2>"
+                + "<ul>"
+                + "<li><b>router_id:</b> " + node.id + "</li>"
+                + "</ul>";
+        }
+    }
+    else if (edges.length == 1) {
+        /* edge clicked */
+        var edge = visEdges.get(edges[0]);
+        if (edge) {
+            showdata.innerHTML = "<h2>Edge</h2>"
+                + "<ul>"
+                + "<li><b>from:</b> " + edge.from + "</li>"
+                + "<li><b>to:</b> " + edge.to + "</li>"
+                + "</ul>";
         }
     }
 }
