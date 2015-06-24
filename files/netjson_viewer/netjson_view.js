@@ -1,7 +1,34 @@
 /* global variables */
 var visNodes, visEdges, visNetwork;
-var autoupdate_timeout;
+var autoupdate_timeout, force_layout_timeout;
 var xmlhttp;
+var last_json_data = null;
+
+var settings = {
+    checkbox_autoupdate:     "",
+    checkbox_dynamic_layout: "",
+    checkbox_ipv4:           "",
+    
+    common_edge_postfix: "",
+    common_node_prefix: {
+        ipv4: "",
+        ipv6: "",
+    },
+    netjsonurl: null,
+    selectedColor: {
+        border:     '#2BE97C',
+        background: '#D2FFE5',
+        highlight: {
+            border: '#2BE97C',
+            background: '#D2FFE5',
+        },
+    },
+
+    autoupdate_interval: 5000,
+    ipv4:                true,
+    autoupdate:          true,
+    dynamic_layout:      true,
+};
 
 String.prototype.startsWith = function (pattern) {
     if (this.length < pattern.length) {
@@ -40,6 +67,7 @@ function init_network() {
                 type: 'continuous'
             }
         },
+        physics: settings["dynamic_layout"],
     };
     visNetwork = new vis.Network(container, visData, options);
   
@@ -51,6 +79,14 @@ function layout_nodes(element) {
     var newIds = []
     var oldIds = []
     
+    var prefix = "";
+    if (settings["ipv4"]) {
+        prefix = settings["common_node_prefix"]["ipv4"];
+    }
+    else {
+        prefix = settings["common_node_prefix"]["ipv6"];
+    }
+    
     /* add new nodes */
     newIds = []
     oldIds = visNodes.getIds()
@@ -59,13 +95,13 @@ function layout_nodes(element) {
         var nColor = null;
         
         var nLabel = nId;
-        if (nId.startsWith(common_node_prefix)) {
-            nLabel = nId.substring(common_node_prefix.length);
+        if (nId.startsWith(prefix)) {
+            nLabel = nId.substring(prefix.length);
         }
                         
         newIds.push(nId);
         if (jsonNodes[ni].id == element.router_id) {
-            nColor = selectedColor;
+            nColor = settings["selectedColor"];
         }
 
         if (!visNodes.get(nId)) {   
@@ -206,38 +242,44 @@ function layout_edges(element) {
     }
 }
 
+function layout_json_data(obj) {
+    if (obj.type != "NetworkCollection") {
+        return;
+    }
+
+    for (index = 0; index < obj.collection.length; index++) {
+        element = obj.collection[index];
+
+        if (element.type == "NetworkGraph") {
+            if (settings["ipv4"] && element.router_id.indexOf(':') != -1) {
+                continue;
+            }
+            if (!settings["ipv4"] && element.router_id.indexOf('.') != -1) {
+                continue;
+            }
+            layout_nodes(element);
+            layout_edges(element);
+            break;
+        }
+    }
+}
+    
 function xmlhttp_changed()
 {
     if (xmlhttp.readyState==XMLHttpRequest.DONE && xmlhttp.status==200) {
-        obj = JSON.parse(xmlhttp.responseText);
+        last_json_data = JSON.parse(xmlhttp.responseText);
+        layout_json_data(last_json_data);
 
-        if (obj.type != "NetworkCollection") {
-            return;
-        }
-
-        for (index = 0; index < obj.collection.length; index++) {
-            element = obj.collection[index];
-
-            if (element.router_id.indexOf(':') != -1) {
-                continue;
-            }
-
-            if (element.type == "NetworkGraph") {
-                layout_nodes(element);
-                layout_edges(element);
-            }
-        }
-        
-        var checkbox = document.getElementById("autoupdate");
-        if (checkbox.checked) {
-            autoupdate_timeout = window.setTimeout(send_request, 5000);
+        if (settings["autoupdate"]) {
+            autoupdate_timeout = window.setTimeout(
+                    send_request, settings["autoupdate_interval"]);
         }
     }
 }
 
 function autoupdate_clicked() {
-    var checkbox = document.getElementById("autoupdate");
-    if (checkbox.checked === false) {
+    settings["autoupdate"] = this.checked;
+    if (this.checked === false) {
         window.clearTimeout(autoupdate_timeout);
     }
     else {
@@ -246,17 +288,73 @@ function autoupdate_clicked() {
 }
 
 function dynamiclayout_clicked() {
-    var checkbox = document.getElementById("dynamiclayout");
-    
-    visNetwork.setOptions({physics:checkbox.checked})
+    settings["dynamic_layout"] = this.checked;
+    visNetwork.setOptions({physics:this.checked});
+    if (force_layout_timeout) {
+        window.clearTimeout(force_layout_timeout);
+    }
+}
+
+function ipv4_clicked() {
+    settings["ipv4"] = this.checked;
+    if (last_json_data !== null) {
+        layout_json_data(last_json_data);
+        if (!settings["dynamic_layout"]) {
+            visNetwork.setOptions({physics:true});
+            visNetwork.stabilize();
+            force_layout_timeout = window.setTimeout(
+                function() { visNetwork.setOptions({physics:false}); }, 500);
+        }
+    }
 }
 
 function send_request() {
-    xmlhttp.open("GET",netjsonurl,true);
+    xmlhttp.open("GET",settings["netjsonurl"],true);
     xmlhttp.send();
 }
 
-function init_netjson_viewer() {
+function copy_settings(dst, src) {
+    for (var p in dst) {
+        if (dst.hasOwnProperty(p) && src.hasOwnProperty(p)) {
+            if (dst[p] !== null && typeof src[p] !== typeof dst[p]) {
+                continue;
+            }
+            
+            if (src[p] !== null && typeof dst[p] === 'object' && typeof src[p] === 'object') {
+                copy_settings(dst[p], src[p]);
+            }
+            else {
+                dst[p] = src[p];
+            }
+        } 
+    }              
+}
+
+function set_checkbox_function(checkbox_id, setting_name, f) {
+    if (checkbox_id === null || settings[checkbox_id] == "") {
+        return;
+    }
+    
+    var checkbox = document.getElementById(settings[checkbox_id]);
+    if (checkbox) {
+        checkbox.onclick = f;
+        checkbox.checked = settings[setting_name];
+    }
+}
+
+function init_netjson_viewer(custom_settings) {
+    if (custom_settings !== null) {
+        copy_settings(settings, custom_settings);
+    }
+    if (settings["netjsonurl"] === null) {
+        console.log("Netjson URL setting missing");
+        return;
+    }
+    
+    set_checkbox_function("checkbox_autoupdate", "autoupdate", autoupdate_clicked);
+    set_checkbox_function("checkbox_dynamic_layout", "dynamic_layout", dynamiclayout_clicked);
+    set_checkbox_function("checkbox_ipv4", "ipv4", ipv4_clicked);
+    
     xmlhttp = new XMLHttpRequest();
     xmlhttp.onreadystatechange=xmlhttp_changed
     init_network();

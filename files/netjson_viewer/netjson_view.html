@@ -34,30 +34,27 @@
 <body>
     <p>Visualization of olsrd2 netjson graph</p>
 
-    Auto Update: <input type="checkbox" id="autoupdate" onclick="autoupdate_clicked();" checked="checked"/>
-    Dynamic Layout: <input type="checkbox" id="dynamiclayout" onclick="dynamiclayout_clicked();" checked="checked"/>
-
+    Auto Update: <input type="checkbox" id="autoupdate"/>
+    Dynamic Layout: <input type="checkbox" id="dynamiclayout"/>
+    IPv4: <input type="checkbox" id="ipv4"/>
     <div id="section">
         <div id="networkgraph"></div>
         <div id="infotext"></div>
     </div>
 
     <script type="text/javascript">
-        /* settings */
-        var common_edge_postfix = "bit/s";
-        var common_node_prefix  = "192.168.0.";
-        var netjsonurl = "/telnet/netjsoninfo graph";
-
-        var selectedColor = {
-            border:     '#2BE97C',
-            background: '#D2FFE5',
-            highlight: {
-                border: '#2BE97C',
-                background: '#D2FFE5',
+        init_netjson_viewer({
+            checkbox_autoupdate:     "autoupdate",
+            checkbox_dynamic_layout: "dynamiclayout",
+            checkbox_ipv4:           "ipv4",
+            
+            common_edge_postfix: "bit/s",
+            common_node_prefix: {
+                ipv4: "192.168.0.",
+                ipv6: "fd00:0:0",
             },
-        };
-    
-        init_netjson_viewer();
+            netjsonurl: "/telnet/netjsoninfo graph",
+        });
     </script>
 </body>
 </html>
