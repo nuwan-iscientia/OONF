@@ -47,7 +47,6 @@
 #include <linux/netlink.h>
 #include <linux/rtnetlink.h>
 #include <linux/socket.h>
-#include <linux/uio.h>
 #include <net/if.h>
 #include <netinet/in.h>
 #include <sys/ioctl.h>
