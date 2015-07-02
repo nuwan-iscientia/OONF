@@ -39,8 +39,9 @@
  *
  */
 
-#include <sys/times.h>
-#include <sys/file.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 #include <unistd.h>
 
 #include "core/os_core.h"

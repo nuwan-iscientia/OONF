@@ -72,7 +72,6 @@ include (cmake/OONFBuildLibrary.cmake)
 
 # include files
 include_directories(${PROJECT_BINARY_DIR})
-include_directories(external)
 include_directories(src-api)
 
 if (NOT OONF_NO_TESTING)
@@ -86,7 +85,6 @@ add_custom_target(dynamic)
 # start compiling core and plugins
 add_subdirectory(src-api)
 add_subdirectory(src-plugins)
-add_subdirectory(external)
 # add_subdirectory(examples)
 add_subdirectory(src)
 

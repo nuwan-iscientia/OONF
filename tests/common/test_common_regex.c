@@ -43,7 +43,7 @@
 
 #include "common/common_types.h"
 
-#include "regex/regex.h"
+#include <regex.h>
 #include "cunit/cunit.h"
 
 int

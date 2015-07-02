@@ -194,12 +194,30 @@ netaddr_invalidate(struct netaddr *addr) {
 }
 
 /**
+ * Sets the address type of a netaddr object to AF_UNSPEC
+ * @param sock netaddr socket object
+ */
+static INLINE void
+netaddr_socket_invalidate(union netaddr_socket *sock) {
+  memset(sock, 0, sizeof(*sock));
+}
+
+/**
  * @param addr netaddr object
- * @return true if address in AF_UNSPEC, false otherwise
+ * @return true if address is AF_UNSPEC, false otherwise
  */
 static INLINE bool
 netaddr_is_unspec(const struct netaddr *addr) {
   return addr->_type == AF_UNSPEC;
+}
+
+/**
+ * @param sock netaddr socket object
+ * @return true if address is AF_UNSPEC, false otherwise
+ */
+static INLINE bool
+netaddr_socket_is_unspec(const union netaddr_socket *sock) {
+  return sock->std.sa_family == AF_UNSPEC;
 }
 
 /**

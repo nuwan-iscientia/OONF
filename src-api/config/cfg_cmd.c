@@ -41,10 +41,10 @@
 
 #include <stdlib.h>
 #include <strings.h>
+#include <regex.h>
 
 #include "common/autobuf.h"
 #include "common/common_types.h"
-#include "regex/regex.h"
 #include "config/cfg_io.h"
 #include "config/cfg_cmd.h"
 
