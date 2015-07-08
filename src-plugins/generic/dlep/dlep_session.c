@@ -131,7 +131,9 @@ void
 dlep_session_remove(struct dlep_session *session) {
   struct dlep_parser_tlv *tlv, *tlv_it;
   struct dlep_session_parser *parser;
+#ifdef OONF_LOG_DEBUG_INFO
   struct netaddr_str nbuf;
+#endif
 
   OONF_DEBUG(session->log_source, "Remove session if %s to %s",
       session->l2_listener.name,
@@ -283,8 +285,9 @@ dlep_session_process_signal(struct dlep_session *session,
   uint16_t signal_type;
   uint16_t signal_length;
   const uint8_t *buffer;
+#ifdef OONF_LOG_DEBUG_INFO
   struct netaddr_str nbuf;
-
+#endif
   if (length < 4) {
     /* not enough data for a signal type */
     OONF_DEBUG(session->log_source, "Not enough data to process"
@@ -387,16 +390,21 @@ static int
 _generate_signal(struct dlep_session *session, uint16_t signal,
     const struct netaddr *neighbor) {
   struct dlep_extension *ext;
-  size_t e,s, len;
+  size_t e,s;
+
+#ifdef OONF_LOG_DEBUG_INFO
+  size_t len;
   struct netaddr_str nbuf1, nbuf2;
+#endif
 
   OONF_DEBUG(session->log_source, "Generate signal %u for %s on %s (%s)",
       signal, netaddr_to_string(&nbuf1, neighbor),
       session->l2_listener.name,
       netaddr_socket_to_string(&nbuf2, &session->remote_socket));
 
+#ifdef OONF_LOG_DEBUG_INFO
   len = abuf_getlen(session->writer.out);
-
+#endif
   /* generate signal */
   dlep_writer_start_signal(&session->writer, signal);
   for (e=0; e<session->parser.extension_count; e++) {
