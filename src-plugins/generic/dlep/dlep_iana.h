@@ -47,17 +47,19 @@
 #define DLEP_WELL_KNOWN_MULTICAST_ADDRESS_6 "FF02::6D"
 #define DLEP_WELL_KNOWN_MULTICAST_PORT_TXT "22222"
 
-/* The well-known port for modem discovery */
+/* DLEP IANA_PORT */
 enum {
-  DLEP_WELL_KNOWN_MULTICAST_PORT = 22222,
+  DLEP_PORT = 22222,
 };
 
-enum dlep_version {
-  DLEP_VERSION_MAJOR = 0,
-  DLEP_VERSION_MINOR = 14,
-};
+#define DLEP_DRAFT_15_VERSION "DLEP"
 
 enum dlep_signals {
+  /* control numbers for session handling */
+  DLEP_KILL_SESSION                 = -2,
+  DLEP_ALL_SIGNALS                  = -1,
+
+  /* signal types */
   DLEP_PEER_DISCOVERY               =  0,
   DLEP_PEER_OFFER                   =  1,
   DLEP_PEER_INITIALIZATION          =  2,
@@ -74,37 +76,34 @@ enum dlep_signals {
   DLEP_HEARTBEAT                    = 13,
   DLEP_LINK_CHARACTERISTICS_REQUEST = 14,
   DLEP_LINK_CHARACTERISTICS_ACK     = 15,
-
-  DLEP_SIGNAL_COUNT,
 };
 
 enum dlep_tlvs {
-  DLEP_VERSION_TLV             =  0,
-  DLEP_STATUS_TLV              =  1,
-  DLEP_IPV4_CONPOINT_TLV       =  2,
-  DLEP_IPV6_CONPOINT_TLV       =  3,
-  DLEP_PEER_TYPE_TLV           =  4,
-  DLEP_HEARTBEAT_INTERVAL_TLV  =  5,
-  DLEP_EXTENSIONS_SUPPORTED    =  6,
-  DLEP_EXPERIMENTAL_DEFINITION =  7,
-  DLEP_MAC_ADDRESS_TLV         =  8,
-  DLEP_IPV4_ADDRESS_TLV        =  9,
-  DLEP_IPV6_ADDRESS_TLV        = 10,
-  DLEP_IPV4_SUBNET_TLV         = 11,
-  DLEP_IPV6_SUBNET_TLV         = 12,
-  DLEP_MDRR_TLV                = 13,
-  DLEP_MDRT_TLV                = 14,
-  DLEP_CDRR_TLV                = 15,
-  DLEP_CDRT_TLV                = 16,
-  DLEP_LATENCY_TLV             = 17,
-  DLEP_RESR_TLV                = 18,
-  DLEP_REST_TLV                = 19,
-  DLEP_RLQR_TLV                = 20,
-  DLEP_RLQT_TLV                = 21,
-  DLEP_LINK_CHAR_ACK_TIMER_TLV = 22,
-  DLEP_CREDIT_GRANT_TLV        = 23,
-  DLEP_CREDIT_WIN_STATUS_TLV   = 24,
-  DLEP_CREDIT_REQUEST_TLV      = 25,
+  DLEP_VERSION_TLV                 =  0,
+  DLEP_STATUS_TLV                  =  1,
+  DLEP_IPV4_CONPOINT_TLV           =  2,
+  DLEP_IPV6_CONPOINT_TLV           =  3,
+  DLEP_PEER_TYPE_TLV               =  4,
+  DLEP_HEARTBEAT_INTERVAL_TLV      =  5,
+  DLEP_EXTENSIONS_SUPPORTED_TLV    =  6,
+  DLEP_MAC_ADDRESS_TLV             =  7,
+  DLEP_IPV4_ADDRESS_TLV            =  8,
+  DLEP_IPV6_ADDRESS_TLV            =  9,
+  DLEP_IPV4_SUBNET_TLV             = 10,
+  DLEP_IPV6_SUBNET_TLV             = 11,
+  DLEP_MDRR_TLV                    = 12,
+  DLEP_MDRT_TLV                    = 13,
+  DLEP_CDRR_TLV                    = 14,
+  DLEP_CDRT_TLV                    = 15,
+  DLEP_LATENCY_TLV                 = 16,
+  DLEP_RESR_TLV                    = 17,
+  DLEP_REST_TLV                    = 18,
+  DLEP_RLQR_TLV                    = 19,
+  DLEP_RLQT_TLV                    = 20,
+  DLEP_LINK_CHAR_ACK_TIMER_TLV     = 21,
+  DLEP_CREDIT_GRANT_TLV            = 22,
+  DLEP_CREDIT_WIN_STATUS_TLV       = 23,
+  DLEP_CREDIT_REQUEST_TLV          = 24,
 
   /* custom additions */
   DLEP_FRAMES_R_TLV,
@@ -127,8 +126,15 @@ enum dlep_ipaddr_indicator {
 };
 
 enum dlep_status {
-  DLEP_STATUS_OKAY  = 0,
-  DLEP_STATUS_ERROR = 1,
+  DLEP_STATUS_NONE                = -1,
+  DLEP_STATUS_OKAY                = 0,
+  DLEP_STATUS_UNKNOWN_SIGNAL      = 1,
+  DLEP_STATUS_INVALID_DATA        = 2,
+  DLEP_STATUS_UNEXPECTED_SIGNAL   = 3,
+  DLEP_STATUS_REQUEST_DENIED      = 4,
+  DLEP_STATUS_TIMED_OUT           = 5,
+  DLEP_STATUS_INVALID_DESTINATION = 6,
+  DLEP_STATUS_INVALID_VERSION     = 7,
 
   DLEP_STATUS_COUNT,
 };

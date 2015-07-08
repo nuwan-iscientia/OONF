@@ -57,29 +57,20 @@ enum dlep_router_session_state {
 };
 
 struct dlep_router_session {
+  /* basic content for tcp stream */
+  struct oonf_stream_session *stream;
+
   /* remote socket of radio */
   union netaddr_socket remote_socket;
 
   /* TCP client socket for session */
   struct oonf_stream_socket tcp;
 
-  /* tcp stream session */
-  struct oonf_stream_session *stream;
+  /* generic DLEP session */
+  struct dlep_session session;
 
   /* back pointer to interface session */
   struct dlep_router_if *interface;
-
-  /* state of the DLEP session */
-  enum dlep_router_session_state state;
-
-  /* timer to generate heartbeats */
-  struct oonf_timer_instance heartbeat_timer;
-
-  /* keep track of various timeouts */
-  struct oonf_timer_instance heartbeat_timeout;
-
-  /* heartbeat settings from the other side of the session */
-  uint64_t remote_heartbeat_interval;
 
   /* remember all streams bound to an interface */
   struct avl_node _node;
@@ -96,6 +87,5 @@ struct dlep_router_session *dlep_router_add_session(
 void dlep_router_remove_session(struct dlep_router_session *);
 
 int dlep_router_send_peer_initialization(struct dlep_router_session *);
-void dlep_router_terminate_session(struct dlep_router_session *session);
 
 #endif /* DLEP_ROUTER_SESSION_H_ */

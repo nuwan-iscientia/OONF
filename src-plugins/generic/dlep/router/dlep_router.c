@@ -51,13 +51,12 @@
 #include "core/oonf_subsystem.h"
 #include "subsystems/oonf_class.h"
 #include "subsystems/oonf_layer2.h"
+#include "subsystems/oonf_stream_socket.h"
 #include "subsystems/oonf_packet_socket.h"
 #include "subsystems/oonf_timer.h"
 
 #include "dlep/dlep_iana.h"
-#include "dlep/dlep_parser.h"
-#include "dlep/dlep_static_data.h"
-#include "dlep/dlep_writer.h"
+#include "dlep/dlep_session.h"
 #include "dlep/router/dlep_router.h"
 #include "dlep/router/dlep_router_interface.h"
 
@@ -71,27 +70,27 @@ static void _cb_config_changed(void);
 
 /* configuration */
 static struct cfg_schema_entry _router_entries[] = {
-  CFG_MAP_NETADDR_V4(dlep_router_if, udp_config.multicast_v4, "discovery_mc_v4",
+  CFG_MAP_NETADDR_V4(dlep_router_if, interf.udp_config.multicast_v4, "discovery_mc_v4",
     DLEP_WELL_KNOWN_MULTICAST_ADDRESS, "IPv4 address to send discovery UDP packet to", false, false),
-  CFG_MAP_NETADDR_V6(dlep_router_if, udp_config.multicast_v6, "discovery_mc_v6",
+  CFG_MAP_NETADDR_V6(dlep_router_if, interf.udp_config.multicast_v6, "discovery_mc_v6",
     DLEP_WELL_KNOWN_MULTICAST_ADDRESS_6, "IPv6 address to send discovery UDP packet to", false, false),
-  CFG_MAP_INT32_MINMAX(dlep_router_if, udp_config.multicast_port, "discovery_port",
+  CFG_MAP_INT32_MINMAX(dlep_router_if, interf.udp_config.multicast_port, "discovery_port",
     DLEP_WELL_KNOWN_MULTICAST_PORT_TXT, "UDP port for discovery packets", 0, false, 1, 65535),
 
-  CFG_MAP_ACL_V46(dlep_router_if, udp_config.bindto, "discovery_bindto", "fe80::/10",
+  CFG_MAP_ACL_V46(dlep_router_if, interf.udp_config.bindto, "discovery_bindto", "fe80::/10",
     "Filter to determine the binding of the UDP discovery socket"),
 
-  CFG_MAP_CLOCK_MIN(dlep_router_if, local_discovery_interval,
+  CFG_MAP_CLOCK_MIN(dlep_router_if, interf.session.cfg.discovery_interval,
     "discovery_interval", "1.000",
     "Interval in seconds between two discovery beacons", 1000),
-  CFG_MAP_CLOCK_MINMAX(dlep_router_if, local_heartbeat_interval,
+  CFG_MAP_CLOCK_MINMAX(dlep_router_if, interf.session.cfg.heartbeat_interval,
       "heartbeat_interval", "1.000",
     "Interval in seconds between two heartbeat signals", 1000, 65535000),
 
-  CFG_MAP_BOOL(dlep_router_if, single_session, "single_session", "true",
+  CFG_MAP_BOOL(dlep_router_if, interf.single_session, "single_session", "true",
       "Restrict DLEP router to single session per interface"),
 
-  CFG_MAP_STRING_ARRAY(dlep_router_if, udp_config.interface, "datapath_if", "",
+  CFG_MAP_STRING_ARRAY(dlep_router_if, interf.udp_config.interface, "datapath_if", "",
       "Overwrite datapath interface for incoming dlep traffic, used for"
       " receiving DLEP data through out-of-band channel.", IF_NAMESIZE),
 };
@@ -145,10 +144,6 @@ _early_cfg_init(void) {
  */
 static int
 _init(void) {
-  if (dlep_writer_init()) {
-    return -1;
-  }
-
   dlep_router_interface_init();
   return 0;
 }
@@ -167,7 +162,6 @@ _initiate_shutdown(void) {
 static void
 _cleanup(void) {
   dlep_router_interface_cleanup();
-  dlep_writer_cleanup();
 }
 
 /**
@@ -179,7 +173,7 @@ _cb_config_changed(void) {
 
   if (!_router_section.post) {
     /* remove old session object */
-    interface = dlep_router_get_interface(_router_section.section_name);
+    interface = dlep_router_get_by_layer2_if(_router_section.section_name);
     if (interface) {
       dlep_router_remove_interface(interface);
     }
@@ -201,9 +195,10 @@ _cb_config_changed(void) {
   }
 
   /* use section name as default for datapath interface */
-  if (!interface->udp_config.interface[0]) {
-    strscpy(interface->udp_config.interface, _router_section.section_name,
-        sizeof(interface->udp_config.interface));
+  if (!interface->interf.udp_config.interface[0]) {
+    strscpy(interface->interf.udp_config.interface,
+        _router_section.section_name,
+        sizeof(interface->interf.udp_config.interface));
   }
 
   /* apply settings */

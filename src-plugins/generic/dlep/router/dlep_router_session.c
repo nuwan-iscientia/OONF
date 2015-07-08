@@ -49,12 +49,11 @@
 
 #include "subsystems/oonf_class.h"
 #include "subsystems/oonf_layer2.h"
-#include "subsystems/oonf_packet_socket.h"
+#include "subsystems/oonf_stream_socket.h"
 #include "subsystems/oonf_timer.h"
 
 #include "dlep/dlep_iana.h"
-#include "dlep/dlep_parser.h"
-#include "dlep/dlep_static_data.h"
+#include "dlep/dlep_session.h"
 #include "dlep/dlep_writer.h"
 #include "dlep/router/dlep_router.h"
 #include "dlep/router/dlep_router_interface.h"
@@ -63,50 +62,13 @@
 
 static void _cb_tcp_lost(struct oonf_stream_session *);
 static enum oonf_stream_session_state _cb_tcp_receive_data(struct oonf_stream_session *);
-
-static void _cb_send_heartbeat(void *);
-static void _cb_heartbeat_timeout(void *);
-
-static void _handle_peer_initialization_ack(struct dlep_router_session *session,
-    void *ptr, struct dlep_parser_index *idx);
-static int _handle_peer_termination_ack(struct dlep_router_session *session,
-    void *ptr, struct dlep_parser_index *idx);
-static int _handle_peer_termination(struct dlep_router_session *session,
-    void *ptr, struct dlep_parser_index *idx);
-static void _handle_destination_up(struct dlep_router_session *session,
-    void *ptr, struct dlep_parser_index *idx);
-static void _handle_destination_update(struct dlep_router_session *session,
-    void *ptr, struct dlep_parser_index *idx);
-static void _handle_destination_down(struct dlep_router_session *session,
-    void *ptr, struct dlep_parser_index *idx);
-
-static void _handle_metrics(struct oonf_layer2_data *neighbor_data,
-    const uint8_t *buffer, const struct dlep_parser_index *idx);
-
-static int _generate_peer_initialization(struct dlep_router_session *session);
-static void _generate_heartbeat(struct dlep_router_session *session);
-static void _generate_peer_termination(struct dlep_router_session *session);
-static int _generate_peer_termination_ack(struct dlep_router_session *session);
-static void _generate_destination_up_ack(struct dlep_router_session *session,
-    struct netaddr *neighbor, enum dlep_status status);
-static void _generate_destination_down_ack(struct dlep_router_session *session,
-    struct netaddr *neighbor, enum dlep_status status);
+static void _cb_send_buffer(struct dlep_session *session, int af_family);
+static void _cb_end_session(struct dlep_session *session);
 
 /* session objects */
-static struct oonf_class _router_stream_class = {
+static struct oonf_class _router_session_class = {
   .name = "DLEP router stream",
   .size = sizeof(struct dlep_router_session),
-};
-
-static struct oonf_timer_class _heartbeat_timer_class = {
-  .name = "DLEP router heartbeat",
-  .callback = _cb_send_heartbeat,
-  .periodic = true,
-};
-
-static struct oonf_timer_class _heartbeat_timeout_class = {
-  .name = "DLEP router timeout",
-  .callback = _cb_heartbeat_timeout,
 };
 
 static uint32_t _l2_origin;
@@ -116,9 +78,7 @@ static uint32_t _l2_origin;
  */
 void
 dlep_router_session_init(void) {
-  oonf_class_add(&_router_stream_class);
-  oonf_timer_add(&_heartbeat_timer_class);
-  oonf_timer_add(&_heartbeat_timeout_class);
+  oonf_class_add(&_router_session_class);
 
   _l2_origin = oonf_layer2_register_origin();
 }
@@ -128,9 +88,7 @@ dlep_router_session_init(void) {
  */
 void
 dlep_router_session_cleanup(void) {
-  oonf_timer_remove(&_heartbeat_timeout_class);
-  oonf_timer_remove(&_heartbeat_timer_class);
-  oonf_class_remove(&_router_stream_class);
+  oonf_class_remove(&_router_session_class);
 }
 
 /**
@@ -144,7 +102,7 @@ dlep_router_get_session(struct dlep_router_if *interf,
     union netaddr_socket *remote) {
   struct dlep_router_session *session;
 
-  return avl_find_element(&interf->session_tree, remote, session, _node);
+  return avl_find_element(&interf->interf.session_tree, remote, session, _node);
 }
 
 /**
@@ -157,83 +115,89 @@ dlep_router_get_session(struct dlep_router_if *interf,
 struct dlep_router_session *
 dlep_router_add_session(struct dlep_router_if *interf,
     union netaddr_socket *local, union netaddr_socket *remote) {
-  struct dlep_router_session *session;
+  struct dlep_router_session *router_session;
+  struct dlep_extension *ext;
   struct netaddr_str nbuf1, nbuf2;
 
-  session = dlep_router_get_session(interf, remote);
-  if (session) {
-    return session;
+  router_session = dlep_router_get_session(interf, remote);
+  if (router_session) {
+    OONF_DEBUG(LOG_DLEP_ROUTER, "use existing instance on"
+        " %s for %s", interf->interf.l2_ifname, netaddr_socket_to_string(&nbuf1, remote));
+    return router_session;
   }
 
   /* initialize tcp session instance */
-  session = oonf_class_malloc(&_router_stream_class);
-  if (!session) {
+  router_session = oonf_class_malloc(&_router_session_class);
+  if (!router_session) {
     return NULL;
   }
 
   /* initialize tree node */
-  memcpy(&session->remote_socket, remote, sizeof(*remote));
-  session->_node.key = &session->remote_socket;
+  memcpy(&router_session->remote_socket, remote, sizeof(*remote));
+  router_session->_node.key = &router_session->remote_socket;
 
   /* configure and open TCP session */
-  session->tcp.config.session_timeout = 120000; /* 120 seconds */
-  session->tcp.config.maximum_input_buffer = 4096;
-  session->tcp.config.allowed_sessions = 3;
-  session->tcp.config.cleanup = _cb_tcp_lost;
-  session->tcp.config.receive_data = _cb_tcp_receive_data;
+  router_session->tcp.config.session_timeout = 120000; /* 120 seconds */
+  router_session->tcp.config.maximum_input_buffer = 4096;
+  router_session->tcp.config.allowed_sessions = 3;
+  router_session->tcp.config.cleanup = _cb_tcp_lost;
+  router_session->tcp.config.receive_data = _cb_tcp_receive_data;
 
   OONF_DEBUG(LOG_DLEP_ROUTER, "Connect DLEP session from %s to %s",
       netaddr_socket_to_string(&nbuf1, local),
       netaddr_socket_to_string(&nbuf2, remote));
 
-  if (oonf_stream_add(&session->tcp, local)) {
+  if (oonf_stream_add(&router_session->tcp, local)) {
     OONF_WARN(LOG_DLEP_ROUTER,
         "Could not open TCP client for local address %s",
         netaddr_socket_to_string(&nbuf1, local));
-    oonf_class_free(&_router_stream_class, session);
+    dlep_router_remove_session(router_session);
     return NULL;
   }
 
-  session->stream = oonf_stream_connect_to(&session->tcp, remote);
-  if (!session->stream) {
+  /* copy socket information */
+  memcpy(&router_session->session.remote_socket, remote,
+      sizeof(router_session->session.remote_socket));
+
+  router_session->stream = oonf_stream_connect_to(&router_session->tcp, remote);
+  if (!router_session->stream) {
     OONF_WARN(LOG_DLEP_ROUTER,
         "Could not open TCP client on from %s to %s",
         netaddr_socket_to_string(&nbuf1, local),
         netaddr_socket_to_string(&nbuf2, remote));
-    oonf_stream_remove(&session->tcp, true);
-    oonf_class_free(&_router_stream_class, session);
+    dlep_router_remove_session(router_session);
     return NULL;
   }
+
+  if (dlep_session_add(&router_session->session,
+      interf->interf.l2_ifname, interf->interf.session.l2_origin,
+      &router_session->stream->out, false, LOG_DLEP_ROUTER)) {
+    dlep_router_remove_session(router_session);
+    return NULL;
+  }
+  router_session->session.next_signal = DLEP_PEER_INITIALIZATION_ACK;
+  router_session->session.cb_send_buffer = _cb_send_buffer;
+  router_session->session.cb_end_session = _cb_end_session;
+  memcpy(&router_session->session.cfg, &interf->interf.session.cfg,
+      sizeof(router_session->session.cfg));
+  memcpy(&router_session->session.remote_socket, remote,
+      sizeof(router_session->session.remote_socket));
 
   /* initialize back pointer */
-  session->interface = interf;
-
-  /* initialize timers */
-  session->heartbeat_timer.cb_context = session;
-  session->heartbeat_timer.class = &_heartbeat_timer_class;
-
-  session->heartbeat_timeout.cb_context = session;
-  session->heartbeat_timeout.class = &_heartbeat_timeout_class;
-
-  if (_generate_peer_initialization(session)) {
-    OONF_WARN(LOG_DLEP_ROUTER, "Could not send peer initialization to %s",
-        netaddr_socket_to_string(&nbuf1, remote));
-    oonf_stream_remove(&session->tcp, true);
-    oonf_class_free(&_router_stream_class, session);
-    return NULL;
-  }
-
-  /* start heartbeat timeout */
-  oonf_timer_set(&session->heartbeat_timeout, 2000);
-
-  /* start heartbeat */
-  oonf_timer_set(&session->heartbeat_timer,
-      interf->local_heartbeat_interval);
+  router_session->interface = interf;
 
   /* add session to interface */
-  avl_insert(&interf->session_tree, &session->_node);
+  avl_insert(&interf->interf.session_tree, &router_session->_node);
 
-  return session;
+  /* inform all extensions */
+  avl_for_each_element(dlep_extension_get_tree(), ext, _node) {
+    if (ext->cb_session_init_router) {
+      ext->cb_session_init_router(&router_session->session);
+    }
+  }
+
+
+  return router_session;
 }
 
 /**
@@ -241,120 +205,43 @@ dlep_router_add_session(struct dlep_router_if *interf,
  * @param session dlep router session
  */
 void
-dlep_router_remove_session(struct dlep_router_session *session) {
-  if (session->stream) {
-    oonf_stream_close(session->stream);
+dlep_router_remove_session(struct dlep_router_session *router_session) {
+  if (router_session->stream) {
+    oonf_stream_close(router_session->stream);
   }
-  oonf_stream_remove(&session->tcp, false);
-
-  oonf_timer_stop(&session->heartbeat_timeout);
-  oonf_timer_stop(&session->heartbeat_timer);
-  avl_remove(&session->interface->session_tree, &session->_node);
-  oonf_class_free(&_router_stream_class, session);
+  oonf_stream_remove(&router_session->tcp, true);
 }
 
 /**
- * Send peer termination to radio
- * @param session
+ * Callback triggered when tcp session was lost and will be removed
+ * @param tcp_session tcp session
  */
-void
-dlep_router_terminate_session(struct dlep_router_session *session) {
-  if (session->state != DLEP_ROUTER_SESSION_ACTIVE) {
-    return;
-  }
-
-  _generate_peer_termination(session);
-}
-
-/**
- *
- * @param tcp_session
- * @param session
- * @return -1 if an error happened, 1 if signal was parsed,
- *    0 if buffer needs more bytes for a signal
- */
-static int
-_parse_signal(struct oonf_stream_session *tcp_session,
-    struct dlep_router_session *session) {
-  struct dlep_parser_index idx;
-  uint16_t siglen;
-  int signal, result;
+static void
+_cb_tcp_lost(struct oonf_stream_session *tcp_session) {
+  struct dlep_extension *ext;
+  struct dlep_router_session *router_session;
+#ifdef OONF_LOG_DEBUG_INFO
   struct netaddr_str nbuf;
+#endif
 
-  if ((signal = dlep_parser_read(&idx, abuf_getptr(&tcp_session->in),
-      abuf_getlen(&tcp_session->in), &siglen)) < 0) {
-    if (signal != DLEP_PARSER_INCOMPLETE_HEADER
-        && signal != DLEP_PARSER_INCOMPLETE_SIGNAL) {
-      OONF_WARN_HEX(LOG_DLEP_ROUTER,
-          abuf_getptr(&tcp_session->in), abuf_getlen(&tcp_session->in),
-          "Could not parse incoming TCP signal from %s: %d",
-          netaddr_socket_to_string(&nbuf, &tcp_session->remote_socket),
-          signal);
-      return -1;
+  router_session = container_of(tcp_session->comport, struct dlep_router_session, tcp);
+
+  OONF_DEBUG(LOG_DLEP_ROUTER, "Lost tcp session to %s",
+      netaddr_socket_to_string(&nbuf, &tcp_session->remote_socket));
+
+  avl_for_each_element(dlep_extension_get_tree(), ext, _node) {
+    if (ext->cb_session_cleanup_router) {
+      ext->cb_session_cleanup_router(&router_session->session);
     }
-    return 0;
   }
 
-  if (session->state == DLEP_ROUTER_SESSION_INIT
-      && signal != DLEP_PEER_INITIALIZATION_ACK) {
-    OONF_WARN(LOG_DLEP_ROUTER,
-        "Received TCP signal %d before Peer Initialization", signal);
-    return -1;
-  }
+  /* kill embedded session object */
+  dlep_session_remove(&router_session->session);
 
-  if (session->state == DLEP_ROUTER_SESSION_TERMINATE
-      && signal != DLEP_PEER_TERMINATION_ACK) {
-    OONF_DEBUG(LOG_DLEP_ROUTER,
-        "Ignore signal %d when waiting for Termination Ack", signal);
 
-    /* remove signal from input buffer */
-    abuf_pull(&tcp_session->in, siglen);
-
-    return 1;
-  }
-
-  OONF_INFO(LOG_DLEP_ROUTER, "Received TCP signal %d", signal);
-
-  result = 0;
-  switch (signal) {
-    case DLEP_PEER_INITIALIZATION_ACK:
-      _handle_peer_initialization_ack(
-          session, abuf_getptr(&tcp_session->in), &idx);
-      break;
-    case DLEP_HEARTBEAT:
-      OONF_DEBUG(LOG_DLEP_ROUTER, "Received TCP heartbeat, reset interval to %"PRIu64,
-          session->remote_heartbeat_interval * 2);
-      oonf_timer_set(&session->heartbeat_timeout, session->remote_heartbeat_interval * 2);
-      break;
-    case DLEP_PEER_TERMINATION:
-      result = _handle_peer_termination(
-          session, abuf_getptr(&tcp_session->in), &idx);
-      break;
-    case DLEP_PEER_TERMINATION_ACK:
-      result = _handle_peer_termination_ack(
-          session, abuf_getptr(&tcp_session->in), &idx);
-      break;
-    case DLEP_DESTINATION_UP:
-      _handle_destination_up(session, abuf_getptr(&tcp_session->in), &idx);
-      break;
-    case DLEP_DESTINATION_UPDATE:
-      _handle_destination_update(session, abuf_getptr(&tcp_session->in), &idx);
-      break;
-    case DLEP_DESTINATION_DOWN:
-      _handle_destination_down(session, abuf_getptr(&tcp_session->in), &idx);
-      break;
-
-    default:
-      OONF_WARN(LOG_DLEP_ROUTER,
-          "Received illegal signal in TCP from %s: %u",
-          netaddr_to_string(&nbuf, &tcp_session->remote_address), signal);
-      return STREAM_SESSION_CLEANUP;
-  }
-
-  /* remove signal from input buffer */
-  abuf_pull(&tcp_session->in, siglen);
-
-  return result != 0 ? -1 : 1;
+  /* remove from session tree of interface */
+  avl_remove(&router_session->interface->interf.session_tree,
+      &router_session->_node);
 }
 
 /**
@@ -364,480 +251,37 @@ _parse_signal(struct oonf_stream_session *tcp_session,
  */
 static enum oonf_stream_session_state
 _cb_tcp_receive_data(struct oonf_stream_session *tcp_session) {
-  struct dlep_router_session *session;
-  int result;
+  struct dlep_router_session *router_session;
 
-  session = container_of(tcp_session->comport, struct dlep_router_session, tcp);
+  router_session = container_of(tcp_session->comport, struct dlep_router_session, tcp);
 
-  while ((result = _parse_signal(tcp_session, session)) == 1);
-
-  return result == -1 ? STREAM_SESSION_CLEANUP : STREAM_SESSION_ACTIVE;
+  return dlep_session_process_tcp(tcp_session, &router_session->session);
 }
 
-/**
- * Callback triggered when tcp session was lost and will be removed
- * @param tcp_session tcp session
- */
 static void
-_cb_tcp_lost(struct oonf_stream_session *tcp_session) {
-  struct dlep_router_session *session;
-  struct oonf_layer2_destination *l2dst, *l2dst_it;
-  struct oonf_layer2_neigh *l2neigh, *l2neigh_it;
-  struct oonf_layer2_net *l2net;
+_cb_send_buffer(struct dlep_session *session,
+    int af_family __attribute((unused))) {
+  struct dlep_router_session *router_session;
 
-  session = container_of(tcp_session->comport, struct dlep_router_session, tcp);
-
-  OONF_INFO(LOG_DLEP_ROUTER, "tcp session lost");
-
-  /* just to be sure */
-  session->state = DLEP_ROUTER_SESSION_TERMINATE;
-  session->stream = NULL;
-
-  /* cleanup layer2 data */
-  l2net = oonf_layer2_net_get(session->interface->l2_destination);
-  if (l2net) {
-    avl_for_each_element_safe(&l2net->neighbors, l2neigh, _node, l2neigh_it) {
-      avl_for_each_element_safe(&l2neigh->destinations, l2dst, _node, l2dst_it) {
-        if (l2dst->origin == _l2_origin) {
-          oonf_layer2_destination_remove(l2dst);
-        }
-      }
-      oonf_layer2_neigh_cleanup(l2neigh, _l2_origin);
-      oonf_layer2_neigh_commit(l2neigh);
-    }
-    oonf_layer2_net_cleanup(l2net, _l2_origin);
-    oonf_layer2_net_commit(l2net);
-  }
-
-  /* no heartbeats anymore */
-  oonf_timer_stop(&session->heartbeat_timer);
-
-  /* trigger lazy cleanup */
-  oonf_timer_set(&session->heartbeat_timeout, 1);
-}
-
-/**
- * Callback triggered to send regular heartbeats via TCP
- * @param ptr dlep router session
- */
-static void
-_cb_send_heartbeat(void *ptr) {
-  struct dlep_router_session *session = ptr;
-
-  OONF_DEBUG(LOG_DLEP_ROUTER, "Send Heartbeat (%"PRIu64")",
-      session->interface->local_heartbeat_interval);
-
-  _generate_heartbeat(session);
-}
-
-/**
- * Callback triggered when remote heartbeat times out
- * @param ptr dlep router session
- */
-static void
-_cb_heartbeat_timeout(void *ptr) {
-  struct dlep_router_session *session = ptr;
-
-  OONF_INFO(LOG_DLEP_ROUTER, "Heartbeat timeout");
-
-  /* close session */
-  dlep_router_remove_session(session);
-}
-
-/**
- * Handle incoming peer initialization ack signal
- * @param session dlep router session
- * @param ptr begin of signal
- * @param idx dlep parser index
- */
-static void
-_handle_peer_initialization_ack(struct dlep_router_session *session,
-    void *ptr, struct dlep_parser_index *idx) {
-  struct oonf_layer2_net *l2net;
-  uint8_t *buffer;
-  char peer[256];
-  int pos;
-  uint16_t version[2];
-
-  buffer = ptr;
-
-  /* get version */
-  pos = idx->idx[DLEP_VERSION_TLV];
-  dlep_parser_get_version(&version[0], &version[1], &buffer[pos]);
-  if (version[0] == DLEP_VERSION_MAJOR && version[1] < DLEP_VERSION_MINOR) {
-    OONF_WARN(LOG_DLEP_ROUTER, "Received peer discovery with version: %u/%u",
-        version[0], version[1]);
+  if (!abuf_getlen(session->writer.out)) {
     return;
   }
 
-  /* activate session */
-  session->state = DLEP_ROUTER_SESSION_ACTIVE;
+  OONF_DEBUG(session->log_source, "Send buffer %" PRIu64 " bytes",
+      abuf_getlen(session->writer.out));
 
-  /* get peer type */
-  peer[0] = 0;
-  pos = idx->idx[DLEP_PEER_TYPE_TLV];
-  if (pos) {
-    dlep_parser_get_peer_type(peer, &buffer[pos]);
+  /* get pointer to radio interface */
+  router_session = container_of(session, struct dlep_router_session, session);
 
-    OONF_INFO(LOG_DLEP_ROUTER, "Radio peer type: %s", peer);
-  }
-
-  /* get heartbeat interval */
-  pos = idx->idx[DLEP_HEARTBEAT_INTERVAL_TLV];
-  dlep_parser_get_heartbeat_interval(
-      &session->remote_heartbeat_interval, &buffer[pos]);
-
-  OONF_DEBUG(LOG_DLEP_ROUTER, "Heartbeat interval is %"PRIu64,
-      session->remote_heartbeat_interval);
-
-  /* reset heartbeat timeout */
-  oonf_timer_set(&session->heartbeat_timeout, session->remote_heartbeat_interval*2);
-
-  OONF_DEBUG(LOG_DLEP_ROUTER, "Received default metrics for interface %s",
-      session->interface->l2_destination);
-
-  l2net = oonf_layer2_net_add(session->interface->l2_destination);
-  if (!l2net) {
-    /* out of memory, terminate dlep session */
-    dlep_router_terminate_session(session);
-    return;
-  }
-
-  _handle_metrics(&l2net->neighdata[0], buffer, idx);
-}
-
-
-/**
- * Handle peer termination from radio
- * @param session dlep router session
- * @param ptr pointer to begin of signal
- * @param idx dlep parser index
- * @return -1 if an error happened, 0 otherwise
- */
-static int
-_handle_peer_termination(struct dlep_router_session *session,
-    void *ptr, struct dlep_parser_index *idx) {
-  uint8_t *buffer = ptr;
-  enum dlep_status status;
-  int pos;
-
-  pos = idx->idx[DLEP_STATUS_TLV];
-  if (pos) {
-    dlep_parser_get_status(&status, &buffer[pos]);
-    OONF_DEBUG(LOG_DLEP_ROUTER, "Peer termination status: %u",
-        status);
-  }
-
-  return _generate_peer_termination_ack(session);
-}
-
-/**
- * Handle peer termination ack from radio
- * @param session dlep router session
- * @param ptr pointer to begin of signal
- * @param idx dlep parser index
- * @return -1 if an error happened, 0 otherwise
- */
-static int
-_handle_peer_termination_ack(struct dlep_router_session *session,
-    void *ptr, struct dlep_parser_index *idx) {
-  uint8_t *buffer = ptr;
-  enum dlep_status status;
-  int pos;
-  struct netaddr_str nbuf;
-
-  pos = idx->idx[DLEP_STATUS_TLV];
-  if (pos) {
-    dlep_parser_get_status(&status, &buffer[pos]);
-    OONF_DEBUG(LOG_DLEP_ROUTER, "Peer termination ack status: %u",
-        status);
-  }
-
-  if (session->state != DLEP_ROUTER_SESSION_TERMINATE) {
-    OONF_WARN(LOG_DLEP_ROUTER, "Got Peer Termination ACK without"
-        " sending a Peer Terminate from %s",
-        netaddr_socket_to_string(&nbuf, &session->stream->remote_socket));
-  }
-
-  /* terminate session */
-  return -1;
+  oonf_stream_flush(router_session->stream);
 }
 
 static void
-_handle_destination_up(struct dlep_router_session *session,
-    void *ptr, struct dlep_parser_index *idx) {
-  struct netaddr mac;
-  uint8_t *buffer;
-  int pos;
-  struct oonf_layer2_net *l2net;
-  struct oonf_layer2_neigh *l2neigh;
-#ifdef OONF_LOG_INFO
-  struct netaddr_str nbuf;
-#endif
+_cb_end_session(struct dlep_session *session) {
+  struct dlep_router_session *router_session;
 
-  buffer = ptr;
+  /* get pointer to radio interface */
+  router_session = container_of(session, struct dlep_router_session, session);
 
-  /* get mac address of new destination */
-  pos = idx->idx[DLEP_MAC_ADDRESS_TLV];
-  dlep_parser_get_mac_addr(&mac, &buffer[pos]);
-  OONF_INFO(LOG_DLEP_ROUTER, "New destination came up: %s",
-      netaddr_to_string(&nbuf, &mac));
-
-  l2net = oonf_layer2_net_add(session->interface->l2_destination);
-  if (!l2net) {
-    _generate_destination_up_ack(session, &mac, DLEP_STATUS_ERROR);
-    return;
-  }
-
-  if (l2net->if_type == OONF_LAYER2_TYPE_UNDEFINED) {
-    l2net->if_type = OONF_LAYER2_TYPE_DLEP;
-  }
-
-  l2neigh = oonf_layer2_neigh_add(l2net, &mac);
-  if (!l2neigh) {
-    _generate_destination_up_ack(session, &mac, DLEP_STATUS_ERROR);
-    return;
-  }
-
-  _handle_metrics(&l2neigh->data[0], buffer, idx);
-  oonf_layer2_neigh_commit(l2neigh);
-
-  _generate_destination_up_ack(session, &mac, DLEP_STATUS_OKAY);
-}
-
-static void
-_handle_destination_update(struct dlep_router_session *session,
-    void *ptr, struct dlep_parser_index *idx) {
-  struct netaddr mac;
-  uint8_t *buffer;
-  int pos;
-  struct oonf_layer2_net *l2net;
-  struct oonf_layer2_neigh *l2neigh;
-#ifdef OONF_LOG_INFO
-  struct netaddr_str nbuf;
-#endif
-
-  buffer = ptr;
-
-  /* get mac address of new destination */
-  pos = idx->idx[DLEP_MAC_ADDRESS_TLV];
-  dlep_parser_get_mac_addr(&mac, &buffer[pos]);
-  OONF_INFO(LOG_DLEP_ROUTER, "Update for destination: %s",
-      netaddr_to_string(&nbuf, &mac));
-
-  l2net = oonf_layer2_net_get(session->interface->l2_destination);
-  if (!l2net) {
-    OONF_INFO(LOG_DLEP_ROUTER, "L2 network for interface %s is not there",
-        session->interface->l2_destination);
-    return;
-  }
-
-  l2neigh = oonf_layer2_neigh_get(l2net, &mac);
-  if (!l2neigh) {
-    OONF_INFO(LOG_DLEP_ROUTER, "L2 neighbor %s for interface %s is not there",
-        netaddr_to_string(&nbuf, &mac), session->interface->l2_destination);
-    return;
-  }
-
-  _handle_metrics(&l2neigh->data[0], buffer, idx);
-  oonf_layer2_neigh_commit(l2neigh);
-}
-
-static void
-_handle_destination_down(struct dlep_router_session *session,
-    void *ptr, struct dlep_parser_index *idx) {
-  struct netaddr mac;
-  uint8_t *buffer;
-  int pos;
-  struct oonf_layer2_net *l2net;
-  struct oonf_layer2_neigh *l2neigh;
-#ifdef OONF_LOG_INFO
-  struct netaddr_str nbuf;
-#endif
-  buffer = ptr;
-
-  /* get mac address of new destination */
-  pos = idx->idx[DLEP_MAC_ADDRESS_TLV];
-  dlep_parser_get_mac_addr(&mac, &buffer[pos]);
-  OONF_INFO(LOG_DLEP_ROUTER, "New destination came up: %s",
-      netaddr_to_string(&nbuf, &mac));
-
-  l2net = oonf_layer2_net_get(session->interface->l2_destination);
-  if (!l2net) {
-    return;
-  }
-
-  l2neigh = oonf_layer2_neigh_get(l2net, &mac);
-  if (!l2neigh) {
-    return;
-  }
-
-  oonf_layer2_neigh_remove(l2neigh, _l2_origin);
-
-  _generate_destination_down_ack(session, &mac, DLEP_STATUS_OKAY);
-}
-
-static void
-_handle_uint64_metric(struct oonf_layer2_data *neighbor_data,
-    enum oonf_layer2_neighbor_index l2datatype,
-    const char *text_type __attribute__((unused)),
-    const uint8_t *buffer,
-    const struct dlep_parser_index *idx, enum dlep_tlvs dleptlv) {
-  uint64_t data;
-  int pos;
-
-  pos = idx->idx[dleptlv];
-  if (pos) {
-    dlep_parser_get_uint64(&data, &buffer[pos]);
-
-    OONF_DEBUG(LOG_DLEP_ROUTER, "Received %s: %" PRIu64, text_type, data);
-
-    oonf_layer2_set_value(&neighbor_data[l2datatype], _l2_origin, data);
-  }
-}
-
-static void
-_handle_metrics(struct oonf_layer2_data *neighbor_data,
-    const uint8_t *buffer, const struct dlep_parser_index *idx) {
-  int32_t sig;
-  int pos;
-
-  for (pos = 0; pos < OONF_LAYER2_NEIGH_COUNT; pos++) {
-    if (oonf_layer2_get_origin(&neighbor_data[pos]) == _l2_origin) {
-      oonf_layer2_reset_value(&neighbor_data[pos]);
-    }
-  }
-
-  /* get metric values */
-  _handle_uint64_metric(neighbor_data, OONF_LAYER2_NEIGH_RX_MAX_BITRATE,
-      "mdrr", buffer, idx, DLEP_MDRR_TLV);
-  _handle_uint64_metric(neighbor_data, OONF_LAYER2_NEIGH_TX_MAX_BITRATE,
-      "mdrt", buffer, idx, DLEP_MDRT_TLV);
-  _handle_uint64_metric(neighbor_data, OONF_LAYER2_NEIGH_RX_BITRATE,
-      "cdrr", buffer, idx, DLEP_CDRR_TLV);
-  _handle_uint64_metric(neighbor_data, OONF_LAYER2_NEIGH_TX_BITRATE,
-      "cdrt", buffer, idx, DLEP_CDRT_TLV);
-  _handle_uint64_metric(neighbor_data, OONF_LAYER2_NEIGH_RX_BYTES,
-      "byte-count (r)", buffer, idx, DLEP_BYTES_R_TLV);
-  _handle_uint64_metric(neighbor_data, OONF_LAYER2_NEIGH_TX_BYTES,
-      "byte-count (r)", buffer, idx, DLEP_BYTES_T_TLV);
-  _handle_uint64_metric(neighbor_data, OONF_LAYER2_NEIGH_RX_FRAMES,
-      "frame-count (r)", buffer, idx, DLEP_FRAMES_R_TLV);
-  _handle_uint64_metric(neighbor_data, OONF_LAYER2_NEIGH_TX_FRAMES,
-      "frame-count (r)", buffer, idx, DLEP_FRAMES_T_TLV);
-  _handle_uint64_metric(neighbor_data, OONF_LAYER2_NEIGH_TX_RETRIES,
-      "frame-retries (t)", buffer, idx, DLEP_FRAMES_RETRIES_TLV);
-  _handle_uint64_metric(neighbor_data, OONF_LAYER2_NEIGH_TX_FAILED,
-      "frame-fails (t)", buffer, idx, DLEP_FRAMES_FAILED_TLV);
-
-  pos = idx->idx[DLEP_TX_SIGNAL_TLV];
-  if (pos) {
-    dlep_parser_get_tx_signal(&sig, &buffer[pos]);
-
-    OONF_DEBUG(LOG_DLEP_ROUTER, "Received tx-signal strength: %d", sig);
-
-    oonf_layer2_set_value(&neighbor_data[OONF_LAYER2_NEIGH_TX_SIGNAL], _l2_origin, sig);
-  }
-  pos = idx->idx[DLEP_RX_SIGNAL_TLV];
-  if (pos) {
-    dlep_parser_get_rx_signal(&sig, &buffer[pos]);
-
-    OONF_DEBUG(LOG_DLEP_ROUTER, "Received rx-signal strength: %d", sig);
-
-    oonf_layer2_set_value(&neighbor_data[OONF_LAYER2_NEIGH_RX_SIGNAL], _l2_origin, sig);
-  }
-
-  pos = idx->idx[DLEP_LATENCY_TLV];
-  if (pos) {
-    uint32_t latency;
-    dlep_parser_get_latency(&latency, &buffer[pos]);
-
-    OONF_DEBUG(LOG_DLEP_ROUTER, "Received latency: %d", latency);
-
-    oonf_layer2_set_value(&neighbor_data[OONF_LAYER2_NEIGH_LATENCY], _l2_origin, latency);
-  }
-}
-
-/**
- * Send a peer initialization signal
- * @param session dlep router session
- * @return -1 if an error happened, 0 otherwise
- */
-static int
-_generate_peer_initialization(struct dlep_router_session *session) {
-  /* create Peer Initialization */
-  OONF_INFO(LOG_DLEP_ROUTER, "Send Peer Initialization");
-
-  dlep_writer_start_signal(DLEP_PEER_INITIALIZATION);
-
-  /* add tlvs */
-  dlep_writer_add_version_tlv(DLEP_VERSION_MAJOR, DLEP_VERSION_MINOR);
-  dlep_writer_add_heartbeat_tlv(session->interface->local_heartbeat_interval);
-
-  if (dlep_writer_finish_signal(LOG_DLEP_ROUTER)) {
-    return -1;
-  }
-
-  dlep_writer_send_tcp_unicast(session->stream, LOG_DLEP_ROUTER);
-  return 0;
-}
-
-static void
-_generate_heartbeat(struct dlep_router_session *session) {
-  dlep_writer_start_signal(DLEP_HEARTBEAT);
-
-  if (dlep_writer_finish_signal(LOG_DLEP_ROUTER)) {
-    return;
-  }
-
-  dlep_writer_send_tcp_unicast(session->stream, LOG_DLEP_ROUTER);
-}
-
-static void
-_generate_peer_termination(struct dlep_router_session *session) {
-  dlep_writer_start_signal(DLEP_PEER_TERMINATION);
-  dlep_writer_add_status(DLEP_STATUS_OKAY);
-  if (!dlep_writer_finish_signal(LOG_DLEP_ROUTER)) {
-    dlep_writer_send_tcp_unicast(session->stream, LOG_DLEP_ROUTER);
-
-    session->state = DLEP_ROUTER_SESSION_TERMINATE;
-  }
-}
-
-static int
-_generate_peer_termination_ack(struct dlep_router_session *session) {
-  /* send Peer Termination Ack */
-  dlep_writer_start_signal(DLEP_PEER_TERMINATION_ACK);
-  dlep_writer_add_status(DLEP_STATUS_OKAY);
-
-  if (dlep_writer_finish_signal(LOG_DLEP_ROUTER)) {
-    return -1;
-  }
-
-  dlep_writer_send_tcp_unicast(session->stream, LOG_DLEP_ROUTER);
-  return 0;
-}
-
-static void
-_generate_destination_up_ack(struct dlep_router_session *session,
-    struct netaddr *neighbor, enum dlep_status status) {
-  dlep_writer_start_signal(DLEP_DESTINATION_UP_ACK);
-  dlep_writer_add_mac_tlv(neighbor);
-  dlep_writer_add_status(status);
-
-  if (!dlep_writer_finish_signal(LOG_DLEP_ROUTER)) {
-    dlep_writer_send_tcp_unicast(session->stream, LOG_DLEP_ROUTER);
-  }
-}
-
-static void
-_generate_destination_down_ack(struct dlep_router_session *session,
-    struct netaddr *neighbor, enum dlep_status status) {
-  dlep_writer_start_signal(DLEP_DESTINATION_DOWN_ACK);
-  dlep_writer_add_mac_tlv(neighbor);
-  dlep_writer_add_status(status);
-
-  if (!dlep_writer_finish_signal(LOG_DLEP_ROUTER)) {
-    dlep_writer_send_tcp_unicast(session->stream, LOG_DLEP_ROUTER);
-  }
+  dlep_router_remove_session(router_session);
 }

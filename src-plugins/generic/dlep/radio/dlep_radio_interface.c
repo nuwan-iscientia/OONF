@@ -48,26 +48,20 @@
 #include "subsystems/oonf_stream_socket.h"
 #include "subsystems/oonf_timer.h"
 
+#include "dlep/dlep_extension.h"
 #include "dlep/dlep_iana.h"
-#include "dlep/dlep_parser.h"
-#include "dlep/dlep_static_data.h"
+#include "dlep/dlep_session.h"
 #include "dlep/dlep_writer.h"
+#include "dlep/dlep_base/dlep_base_radio.h"
 #include "dlep/radio/dlep_radio.h"
 #include "dlep/radio/dlep_radio_interface.h"
 #include "dlep/radio/dlep_radio_internal.h"
 #include "dlep/radio/dlep_radio_session.h"
 
-static void _cb_receive_udp(struct oonf_packet_socket *,
-    union netaddr_socket *from, void *ptr, size_t length);
-
-static void _handle_peer_discovery(struct dlep_radio_if *interface,
-    union netaddr_socket *dst, uint8_t *buffer, struct dlep_parser_index *idx);
-
-static void _generate_peer_offer(
-    struct dlep_radio_if *interface, union netaddr_socket *dst);
+static void _cleanup_interface(struct dlep_radio_if *interface);
 
 /* DLEP interfaces */
-struct avl_tree dlep_radio_if_tree;
+static struct avl_tree _interface_tree;
 
 static struct oonf_class _interface_class = {
   .name = "DLEP radio session",
@@ -79,14 +73,20 @@ static bool _shutting_down;
 /**
  * Initialize everything for dlep radio interfaces. This function also
  * initializes the dlep sessions.
+ * @return -1 if an error happened, 0 otherwise
  */
-void
+int
 dlep_radio_interface_init(void) {
   oonf_class_add(&_interface_class);
-  avl_init(&dlep_radio_if_tree, avl_comp_strcasecmp, false);
+  avl_init(&_interface_tree, avl_comp_strcasecmp, false);
 
+  dlep_extension_init();
+  dlep_session_init();
   dlep_radio_session_init();
+  dlep_base_radio_init();
+
   _shutting_down = false;
+  return 0;
 }
 
 /**
@@ -97,7 +97,7 @@ void
 dlep_radio_interface_cleanup(void) {
   struct dlep_radio_if *interf, *it;
 
-  avl_for_each_element_safe(&dlep_radio_if_tree, interf, _node, it) {
+  avl_for_each_element_safe(&_interface_tree, interf, interf._node, it) {
     dlep_radio_remove_interface(interf);
   }
 
@@ -106,28 +106,28 @@ dlep_radio_interface_cleanup(void) {
 }
 
 /**
- * Get a dlep radio interface by name
- * @param ifname interface name
+ * Get a dlep radio interface by layer2 interface name
+ * @param l2_ifname interface name
  * @return dlep radio interface, NULL if not found
  */
 struct dlep_radio_if *
-dlep_radio_get_interface(const char *ifname) {
+dlep_radio_get_by_layer2_if(const char *l2_ifname) {
   struct dlep_radio_if *interf;
 
-  return avl_find_element(&dlep_radio_if_tree, ifname, interf, l2_source);
+  return avl_find_element(&_interface_tree, l2_ifname, interf, interf._node);
 }
 
 /**
- * Get a dlep radio interface by name
+ * Get a dlep radio interface by dlep datapath name
  * @param ifname interface name
  * @return dlep radio interface, NULL if not found
  */
 struct dlep_radio_if *
-dlep_radio_get_by_source_if(const char *ifname) {
+dlep_radio_get_by_datapath_if(const char *ifname) {
   struct dlep_radio_if *interf;
 
-  avl_for_each_element(&dlep_radio_if_tree, interf, _node) {
-    if (strcmp(interf->l2_source, ifname) == 0) {
+  avl_for_each_element(&_interface_tree, interf, interf._node) {
+    if (strcmp(interf->interf.udp_config.interface, ifname) == 0) {
       return interf;
     }
   }
@@ -144,7 +144,7 @@ struct dlep_radio_if *
 dlep_radio_add_interface(const char *ifname) {
   struct dlep_radio_if *interface;
 
-  interface = dlep_radio_get_interface(ifname);
+  interface = dlep_radio_get_by_layer2_if(ifname);
   if (interface) {
     return interface;
   }
@@ -154,20 +154,13 @@ dlep_radio_add_interface(const char *ifname) {
     return NULL;
   }
 
-  /* initialize key */
-  strscpy(interface->l2_source, ifname, sizeof(interface->l2_source));
-  interface->_node.key = interface->l2_source;
+  if (dlep_if_add(&interface->interf, ifname, 0, LOG_DLEP_RADIO, true)) {
+    oonf_class_free(&_interface_class, interface);
+    return NULL;
+  }
 
   /* add to global tree of sessions */
-  avl_insert(&dlep_radio_if_tree, &interface->_node);
-
-  /* initialize session tree */
-  avl_init(&interface->session_tree, avl_comp_netaddr_socket, false);
-
-  /* initialize discovery socket */
-  interface->udp.config.user = interface;
-  interface->udp.config.receive_data = _cb_receive_udp;
-  oonf_packet_add_managed(&interface->udp);
+  avl_insert(&_interface_tree, &interface->interf._node);
 
   /* configure TCP server socket */
   interface->tcp.config.session_timeout = 120000; /* 120 seconds */
@@ -186,14 +179,20 @@ dlep_radio_add_interface(const char *ifname) {
  */
 void
 dlep_radio_remove_interface(struct dlep_radio_if *interface) {
-  /* cleanup discovery socket */
-  oonf_packet_remove_managed(&interface->udp, true);
+  /* close all sessions */
+  _cleanup_interface(interface);
 
   /* cleanup tcp socket */
   oonf_stream_remove_managed(&interface->tcp, true);
 
-  /* remove tcp */
-  avl_remove(&dlep_radio_if_tree, &interface->_node);
+  /* cleanup generic interface */
+  dlep_if_remove(&interface->interf);
+
+  /* remove from interface tree */
+  avl_remove(&_interface_tree, &interface->interf._node);
+
+  /* free memory */
+  abuf_free(&interface->interf.udp_out);
   oonf_class_free(&_interface_class, interface);
 }
 
@@ -203,8 +202,16 @@ dlep_radio_remove_interface(struct dlep_radio_if *interface) {
  */
 void
 dlep_radio_apply_interface_settings(struct dlep_radio_if *interface) {
-  oonf_packet_apply_managed(&interface->udp, &interface->udp_config);
+  struct dlep_extension *ext;
+
+  oonf_packet_apply_managed(&interface->interf.udp, &interface->interf.udp_config);
   oonf_stream_apply_managed(&interface->tcp, &interface->tcp_config);
+
+  avl_for_each_element(dlep_extension_get_tree(), ext, _node) {
+    if (ext->cb_session_apply_router) {
+      ext->cb_session_apply_radio(&interface->interf.session);
+    }
+  }
 }
 
 /**
@@ -213,111 +220,27 @@ dlep_radio_apply_interface_settings(struct dlep_radio_if *interface) {
 void
 dlep_radio_terminate_all_sessions(void) {
   struct dlep_radio_if *interf;
-  struct dlep_radio_session *session;
+  struct dlep_radio_session *radio_session;
 
   _shutting_down = true;
 
-  avl_for_each_element(&dlep_radio_if_tree, interf, _node) {
-    avl_for_each_element(&interf->session_tree, session, _node) {
-      dlep_radio_terminate_session(session);
+  avl_for_each_element(&_interface_tree, interf, interf._node) {
+    avl_for_each_element(&interf->interf.session_tree, radio_session, _node) {
+      dlep_session_terminate(&radio_session->session);
     }
   }
 }
 
 /**
- * Callback for handle incoming UDP packets for DLEP
- * via oonf_packet_managed API.
- * @param pkt packet socket
- * @param from IP socket UDP was coming from
- * @param ptr begin of UDP data
- * @param length length of UDP data
+ * Close all existing dlep sessions of a dlep interface
+ * @param interface dlep router interface
  */
 static void
-_cb_receive_udp(struct oonf_packet_socket *pkt,
-    union netaddr_socket *from, void *ptr, size_t length) {
-  struct dlep_radio_if *interf;
-  struct dlep_parser_index idx;
-  int signal;
-  struct netaddr_str nbuf;
+_cleanup_interface(struct dlep_radio_if *interface) {
+  struct dlep_radio_session *stream, *it;
 
-  interf = pkt->config.user;
-
-  if (_shutting_down) {
-    /* ignore all UDP communication when shutting down */
-    return;
+  /* close TCP connection and socket */
+  avl_for_each_element_safe(&interface->interf.session_tree, stream, _node, it) {
+    dlep_radio_remove_session(stream);
   }
-
-  if ((signal = dlep_parser_read(&idx, ptr, length, NULL)) < 0) {
-    OONF_WARN_HEX(LOG_DLEP_RADIO, ptr, length,
-        "Could not parse incoming UDP signal from %s: %d",
-        netaddr_socket_to_string(&nbuf, from), signal);
-    return;
-  }
-
-  OONF_INFO(LOG_DLEP_RADIO, "Received UDP Signal %u from %s",
-      signal, netaddr_socket_to_string(&nbuf, from));
-
-  if (signal != DLEP_PEER_DISCOVERY) {
-    OONF_WARN(LOG_DLEP_RADIO,
-        "Received illegal signal in UDP from %s: %u",
-        netaddr_socket_to_string(&nbuf, from), signal);
-    return;
-  }
-
-  _handle_peer_discovery(interf, from, ptr, &idx);
-}
-
-/**
- * Handle peer discovery signal from UDP
- * @param interface dlep radio interface
- * @param dst IP socket UDP was coming from
- * @param buffer begin of UDP data
- * @param idx index table for DLEP signal
- */
-static void
-_handle_peer_discovery(struct dlep_radio_if *interface,
-    union netaddr_socket *dst, uint8_t *buffer, struct dlep_parser_index *idx) {
-  uint16_t version[2];
-  int pos;
-#ifdef OONF_LOG_INFO
-  struct netaddr_str nbuf;
-#endif
-
-  /* get version */
-  pos = idx->idx[DLEP_VERSION_TLV];
-  dlep_parser_get_version(&version[0], &version[1], &buffer[pos]);
-  if (version[0] == DLEP_VERSION_MAJOR && version[1] < DLEP_VERSION_MINOR) {
-    OONF_WARN(LOG_DLEP_RADIO, "Received peer discovery with version: %u/%u",
-        version[0], version[1]);
-    return;
-  }
-
-  /* create Peer Offer */
-  OONF_INFO(LOG_DLEP_RADIO, "Send UDP Peer Offer to %s",
-      netaddr_socket_to_string(&nbuf, dst));
-
-  _generate_peer_offer(interface, dst);
-}
-
-static void
-_generate_peer_offer(struct dlep_radio_if *interface, union netaddr_socket *dst) {
-  struct netaddr addr;
-
-  dlep_writer_start_signal(DLEP_PEER_OFFER);
-  dlep_writer_add_version_tlv(DLEP_VERSION_MAJOR, DLEP_VERSION_MINOR);
-
-  netaddr_from_socket(&addr, &interface->tcp.socket_v4.local_socket);
-  if (netaddr_get_address_family(&addr) == AF_INET) {
-    dlep_writer_add_ipv4_conpoint_tlv(&addr, interface->tcp_config.port);
-  }
-
-  netaddr_from_socket(&addr, &interface->tcp.socket_v6.local_socket);
-  if (netaddr_get_address_family(&addr) == AF_INET6) {
-    dlep_writer_add_ipv6_conpoint_tlv(&addr, interface->tcp_config.port);
-  }
-
-  if (dlep_writer_finish_signal(LOG_DLEP_RADIO)) {
-    return;
-  }
-  dlep_writer_send_udp_unicast(&interface->udp, dst, LOG_DLEP_RADIO);
 }

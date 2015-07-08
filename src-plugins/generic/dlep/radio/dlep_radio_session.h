@@ -49,32 +49,18 @@
 #include "subsystems/oonf_stream_socket.h"
 #include "subsystems/oonf_timer.h"
 
+#include "dlep/dlep_session.h"
 #include "dlep/radio/dlep_radio_session.h"
-
-enum dlep_radio_session_state {
-  DLEP_RADIO_SESSION_INIT,
-  DLEP_RADIO_SESSION_ACTIVE,
-  DLEP_RADIO_SESSION_TERMINATE,
-};
 
 struct dlep_radio_session {
   /* basic content for tcp stream */
   struct oonf_stream_session stream;
 
+  /* generic DLEP session */
+  struct dlep_session session;
+
   /* back pointer to interface session */
   struct dlep_radio_if *interface;
-
-  /* state of the DLEP session */
-  enum dlep_radio_session_state state;
-
-  /* heartbeat timer */
-  struct oonf_timer_instance heartbeat_timer;
-
-  /* heartbeat timeout */
-  struct oonf_timer_instance heartbeat_timeout;
-
-  /* heartbeat settings from the other side of the session */
-  uint64_t remote_heartbeat_interval;
 
   /* node for session tree of interface */
   struct avl_node _node;
@@ -83,8 +69,8 @@ struct dlep_radio_session {
 void dlep_radio_session_init(void);
 void dlep_radio_session_cleanup(void);
 
+void dlep_radio_remove_session(struct dlep_radio_session *router_session);
 void dlep_radio_session_initialize_tcp_callbacks(
     struct oonf_stream_config *config);
 
-void dlep_radio_terminate_session(struct dlep_radio_session *session);
 #endif /* DLEP_RADIO_SESSION_H_ */

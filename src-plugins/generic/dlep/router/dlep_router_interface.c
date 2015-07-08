@@ -52,24 +52,18 @@
 #include "subsystems/oonf_packet_socket.h"
 #include "subsystems/oonf_timer.h"
 
+#include "dlep/dlep_extension.h"
 #include "dlep/dlep_iana.h"
-#include "dlep/dlep_parser.h"
-#include "dlep/dlep_static_data.h"
+#include "dlep/dlep_interface.h"
+#include "dlep/dlep_session.h"
 #include "dlep/dlep_writer.h"
+#include "dlep/dlep_base/dlep_base_router.h"
 #include "dlep/router/dlep_router.h"
 #include "dlep/router/dlep_router_interface.h"
 #include "dlep/router/dlep_router_internal.h"
 #include "dlep/router/dlep_router_session.h"
 
 static void _cleanup_interface(struct dlep_router_if *interface);
-static void _cb_send_discovery(void *);
-
-static void _cb_receive_udp(struct oonf_packet_socket *,
-    union netaddr_socket *from, void *ptr, size_t length);
-static void _handle_peer_offer(struct dlep_router_if *interface,
-    uint8_t *buffer, size_t length, struct dlep_parser_index *idx);
-
-static void _generate_peer_discovery(struct dlep_router_if *interface);
 
 static struct avl_tree _interface_tree;
 
@@ -78,13 +72,8 @@ static struct oonf_class _router_if_class = {
   .size = sizeof(struct dlep_router_if),
 };
 
-static struct oonf_timer_class _discovery_timer_class = {
-  .name = "DLEP router heartbeat",
-  .callback = _cb_send_discovery,
-  .periodic = true,
-};
-
 static bool _shutting_down;
+uint32_t _l2_origin;
 
 /**
  * Initialize dlep router interface framework. This will also
@@ -93,12 +82,16 @@ static bool _shutting_down;
 void
 dlep_router_interface_init(void) {
   oonf_class_add(&_router_if_class);
-  oonf_timer_add(&_discovery_timer_class);
   avl_init(&_interface_tree, avl_comp_strcasecmp, false);
 
+  dlep_extension_init();
+  dlep_session_init();
   dlep_router_session_init();
+  dlep_base_router_init();
 
   _shutting_down = false;
+
+  _l2_origin = oonf_layer2_register_origin();
 }
 
 /**
@@ -109,26 +102,42 @@ void
 dlep_router_interface_cleanup(void) {
   struct dlep_router_if *interf, *it;
 
-  avl_for_each_element_safe(&_interface_tree, interf, _node, it) {
+  avl_for_each_element_safe(&_interface_tree, interf, interf._node, it) {
     dlep_router_remove_interface(interf);
   }
 
-  oonf_timer_remove(&_discovery_timer_class);
   oonf_class_remove(&_router_if_class);
 
   dlep_router_session_cleanup();
 }
 
 /**
- * Get a dlep router interface via interface name
+ * Get a dlep router interface by layer2 interface name
+ * @param l2_ifname interface name
+ * @return dlep router interface, NULL if not found
+ */
+struct dlep_router_if *
+dlep_router_get_by_layer2_if(const char *l2_ifname) {
+  struct dlep_router_if *interf;
+
+  return avl_find_element(&_interface_tree, l2_ifname, interf, interf._node);
+}
+
+/**
+ * Get a dlep router interface by dlep datapath name
  * @param ifname interface name
  * @return dlep router interface, NULL if not found
  */
 struct dlep_router_if *
-dlep_router_get_interface(const char *ifname) {
-  struct dlep_router_if *interface;
+dlep_router_get_by_datapath_if(const char *ifname) {
+  struct dlep_router_if *interf;
 
-  return avl_find_element(&_interface_tree, ifname, interface, _node);
+  avl_for_each_element(&_interface_tree, interf, interf._node) {
+    if (strcmp(interf->interf.udp_config.interface, ifname) == 0) {
+      return interf;
+    }
+  }
+  return NULL;
 }
 
 /**
@@ -140,10 +149,9 @@ struct dlep_router_if *
 dlep_router_add_interface(const char *ifname) {
   struct dlep_router_if *interface;
 
-  OONF_DEBUG(LOG_DLEP_ROUTER, "Add session %s", ifname);
-
-  interface = dlep_router_get_interface(ifname);
+  interface = dlep_router_get_by_layer2_if(ifname);
   if (interface) {
+    OONF_DEBUG(LOG_DLEP_ROUTER, "use existing instance for %s", ifname);
     return interface;
   }
 
@@ -152,24 +160,16 @@ dlep_router_add_interface(const char *ifname) {
     return NULL;
   }
 
-  /* initialize key */
-  strscpy(interface->l2_destination, ifname, sizeof(interface->l2_destination));
-  interface->_node.key = interface->l2_destination;
-
-  /* initialize timer */
-  interface->discovery_timer.cb_context = interface;
-  interface->discovery_timer.class = &_discovery_timer_class;
+  if (dlep_if_add(&interface->interf, ifname,
+      _l2_origin, LOG_DLEP_ROUTER, false)) {
+    oonf_class_free(&_router_if_class, interface);
+    return NULL;
+  }
 
   /* add to global tree of sessions */
-  avl_insert(&_interface_tree, &interface->_node);
+  avl_insert(&_interface_tree, &interface->interf._node);
 
-  /* initialize discovery socket */
-  interface->udp.config.user = interface;
-  interface->udp.config.receive_data = _cb_receive_udp;
-  oonf_packet_add_managed(&interface->udp);
-
-  /* initialize stream list */
-  avl_init(&interface->session_tree, avl_comp_netaddr_socket, false);
+  OONF_DEBUG(LOG_DLEP_ROUTER, "Add session %s", ifname);
 
   return interface;
 }
@@ -180,18 +180,14 @@ dlep_router_add_interface(const char *ifname) {
  */
 void
 dlep_router_remove_interface(struct dlep_router_if *interface) {
-  OONF_DEBUG(LOG_DLEP_ROUTER, "remove session %s", interface->l2_destination);
-
+  /* close all sessions */
   _cleanup_interface(interface);
 
-  /* close UDP interface */
-  oonf_packet_remove_managed(&interface->udp, true);
-
-  /* stop timers */
-  oonf_timer_stop(&interface->discovery_timer);
+  /* cleanup generic interface */
+  dlep_if_remove(&interface->interf);
 
   /* remove session */
-  avl_remove(&_interface_tree, &interface->_node);
+  avl_remove(&_interface_tree, &interface->interf._node);
   oonf_class_free(&_router_if_class, interface);
 }
 
@@ -202,12 +198,16 @@ dlep_router_remove_interface(struct dlep_router_if *interface) {
  */
 void
 dlep_router_apply_interface_settings(struct dlep_router_if *interf) {
-  oonf_packet_apply_managed(&interf->udp, &interf->udp_config);
+  struct dlep_extension *ext;
+  oonf_packet_apply_managed(&interf->interf.udp, &interf->interf.udp_config);
 
   _cleanup_interface(interf);
 
-  /* reset discovery timers */
-  oonf_timer_set(&interf->discovery_timer, interf->local_discovery_interval);
+  avl_for_each_element(dlep_extension_get_tree(), ext, _node) {
+    if (ext->cb_session_apply_router) {
+      ext->cb_session_apply_router(&interf->interf.session);
+    }
+  }
 }
 
 /**
@@ -216,13 +216,13 @@ dlep_router_apply_interface_settings(struct dlep_router_if *interf) {
 void
 dlep_router_terminate_all_sessions(void) {
   struct dlep_router_if *interf;
-  struct dlep_router_session *session;
+  struct dlep_router_session *router_session;
 
   _shutting_down = true;
 
-  avl_for_each_element(&_interface_tree, interf, _node) {
-    avl_for_each_element(&interf->session_tree, session, _node) {
-      dlep_router_terminate_session(session);
+  avl_for_each_element(&_interface_tree, interf, interf._node) {
+    avl_for_each_element(&interf->interf.session_tree, router_session, _node) {
+      dlep_session_terminate(&router_session->session);
     }
   }
 }
@@ -236,216 +236,7 @@ _cleanup_interface(struct dlep_router_if *interface) {
   struct dlep_router_session *stream, *it;
 
   /* close TCP connection and socket */
-  avl_for_each_element_safe(&interface->session_tree, stream, _node, it) {
+  avl_for_each_element_safe(&interface->interf.session_tree, stream, _node, it) {
     dlep_router_remove_session(stream);
   }
-}
-
-/**
- * Callback triggered to send regular UDP discovery signals
- * @param ptr dlep router interface
- */
-static void
-_cb_send_discovery(void *ptr) {
-  struct dlep_router_if *interface = ptr;
-
-  if (_shutting_down) {
-    /* don't send discovery signals during shutdown */
-    return;
-  }
-
-  if (!interface->single_session
-      || avl_is_empty(&interface->session_tree)) {
-    OONF_INFO(LOG_DLEP_ROUTER, "Send UDP Peer Discovery");
-    _generate_peer_discovery(interface);
-  }
-}
-
-/**
- * Callback to receive UDP data through oonf_packet_managed API
- * @param pkt
- * @param from
- * @param ptr
- * @param length
- */
-static void
-_cb_receive_udp(struct oonf_packet_socket *pkt,
-    union netaddr_socket *from, void *ptr, size_t length) {
-  struct dlep_router_if *interface;
-  struct dlep_parser_index idx;
-  int signal;
-  struct netaddr_str nbuf;
-
-  if (_shutting_down) {
-    /* ignore UDP traffic during shutdown */
-    return;
-  }
-  interface = pkt->config.user;
-
-  if ((signal = dlep_parser_read(&idx, ptr, length, NULL)) < 0) {
-    OONF_WARN_HEX(LOG_DLEP_ROUTER, ptr, length,
-        "Could not parse incoming UDP signal from %s: %d",
-        netaddr_socket_to_string(&nbuf, from), signal);
-    return;
-  }
-
-  if (interface->single_session
-      && !avl_is_empty(&interface->session_tree)) {
-    /* ignore UDP signal */
-    return;
-  }
-
-  OONF_INFO(LOG_DLEP_ROUTER, "Received UDP Signal %u from %s",
-      signal, netaddr_socket_to_string(&nbuf, from));
-
-  if (signal != DLEP_PEER_OFFER) {
-    OONF_WARN(LOG_DLEP_ROUTER,
-        "Received illegal signal in UDP from %s: %u",
-        netaddr_socket_to_string(&nbuf, from), signal);
-    return;
-  }
-
-  _handle_peer_offer(interface, ptr, length, &idx);
-}
-
-/**
- * Get a matching local IP address for a list of remote IP addresses
- * @param remote_socket socket to connect to
- * @param ifdata interface required for local IP address
- * @param idx dlep parser index
- * @param buffer dlep signal buffer
- * @param length length of signal buffer
- * @return matching local IP address, NULL if no match
- */
-static const struct netaddr *
-_get_local_tcp_address(union netaddr_socket *remote_socket,
-    struct os_interface_data *ifdata,
-    struct dlep_parser_index *idx, uint8_t *buffer, size_t length) {
-  const struct netaddr *result = NULL;
-  struct netaddr remote_addr;
-  uint16_t pos, port;
-#ifdef OONF_LOG_DEBUG_INFO
-  struct netaddr_str nbuf;
-#endif
-
-  /* start parsing IPv6 */
-  pos = idx->idx[DLEP_IPV6_CONPOINT_TLV];
-  while (pos) {
-    dlep_parser_get_ipv6_conpoint(&remote_addr, &port, &buffer[pos]);
-
-    OONF_DEBUG(LOG_DLEP_ROUTER, "Router offered %s:%u on interface %s",
-        netaddr_to_string(&nbuf, &remote_addr), port, ifdata->name);
-
-    if (netaddr_is_in_subnet(&NETADDR_IPV6_LINKLOCAL, &remote_addr)) {
-      result = oonf_interface_get_prefix_from_dst(&remote_addr, ifdata);
-
-      if (result) {
-        /* we prefer IPv6 linklocal */
-        break;
-      }
-    }
-    else if (result == NULL) {
-      /* we still want an IPv6 prefix */
-      result = oonf_interface_get_prefix_from_dst(&remote_addr, NULL);
-    }
-
-    pos = dlep_parser_get_next_tlv(buffer, length, pos);
-  }
-
-  if (!result) {
-    /* parse all IPv4 addresses */
-    pos = idx->idx[DLEP_IPV4_CONPOINT_TLV];
-    while (pos) {
-      dlep_parser_get_ipv4_conpoint(&remote_addr, &port, &buffer[pos]);
-
-      OONF_DEBUG(LOG_DLEP_ROUTER, "Router offered %s:%u on interface %s",
-          netaddr_to_string(&nbuf, &remote_addr), port, ifdata->name);
-
-      result = oonf_interface_get_prefix_from_dst(&remote_addr, NULL);
-      if (result) {
-        /* at last, take an IPv4 address */
-        break;
-      }
-    }
-  }
-
-  if (result && netaddr_socket_init(remote_socket, &remote_addr, port, ifdata->index) != 0) {
-    result = NULL;
-  }
-
-  if (!result) {
-    /*
-     * no valid address, hit the manufacturers over the head for not
-     * supporting IPv6 linklocal addresses
-     */
-    OONF_WARN(LOG_DLEP_ROUTER, "No compatible address to router on interface %s",
-        ifdata->name);
-  }
-
-  return result;
-}
-
-/**
- * Handle dlep Peer Offer signal via UDP
- * @param interface dlep router interface
- * @param buffer dlep signal buffer
- * @param length signal length
- * @param idx dlep parser index
- */
-static void
-_handle_peer_offer(struct dlep_router_if *interface,
-    uint8_t *buffer, size_t length, struct dlep_parser_index *idx) {
-  const struct netaddr *local_addr;
-  struct os_interface_data *ifdata;
-  union netaddr_socket local_socket, remote_socket;
-  uint16_t pos;
-  char peer[256];
-  struct netaddr_str nbuf1;
-
-  if (idx->idx[DLEP_IPV4_CONPOINT_TLV] == 0 && idx->idx[DLEP_IPV6_CONPOINT_TLV] == 0) {
-    OONF_WARN(LOG_DLEP_ROUTER,
-        "Got UDP Peer Offer without IP TLVs");
-    return;
-  }
-
-  /* get peer type */
-  peer[0] = 0;
-  pos = idx->idx[DLEP_PEER_TYPE_TLV];
-  if (pos) {
-    dlep_parser_get_peer_type(peer, &buffer[pos]);
-
-    OONF_INFO(LOG_DLEP_ROUTER, "Radio peer type: %s", peer);
-  }
-
-  /* get interface data for IPv6 LL */
-  ifdata = &interface->udp._if_listener.interface->data;
-
-  /* get prefix for local tcp socket */
-  local_addr = _get_local_tcp_address(&remote_socket, ifdata, idx, buffer, length);
-  if (!local_addr) {
-    return;
-  }
-
-  /* open TCP session to radio */
-  if (netaddr_socket_init(&local_socket, local_addr, 0, ifdata->index)) {
-    OONF_WARN(LOG_DLEP_ROUTER,
-        "Malformed socket data for DLEP session for %s (%u): %s",
-        ifdata->name, ifdata->index,
-        netaddr_to_string(&nbuf1, local_addr));
-    return;
-  }
-
-  dlep_router_add_session(interface, &local_socket, &remote_socket);
-}
-
-static void
-_generate_peer_discovery(struct dlep_router_if *interface) {
-  dlep_writer_start_signal(DLEP_PEER_DISCOVERY);
-
-  dlep_writer_add_version_tlv(DLEP_VERSION_MAJOR, DLEP_VERSION_MINOR);
-  if (dlep_writer_finish_signal(LOG_DLEP_ROUTER)) {
-    return;
-  }
-
-  dlep_writer_send_udp_multicast(&interface->udp, LOG_DLEP_ROUTER);
 }

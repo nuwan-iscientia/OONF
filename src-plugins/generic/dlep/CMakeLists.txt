@@ -1,13 +1,18 @@
 # set source files
-SET (radio_only_source  radio/dlep_radio.c
+SET (radio_only_source  dlep_base/dlep_base_radio.c
+                        radio/dlep_radio.c
                         radio/dlep_radio_interface.c
                         radio/dlep_radio_session.c) 
-SET (router_only_source router/dlep_router.c
+SET (router_only_source dlep_base/dlep_base_router.c
+                        router/dlep_router.c
                         router/dlep_router_interface.c
                         router/dlep_router_session.c)
-SET (common_source      dlep_parser.c
-                        dlep_writer.c
-                        dlep_static_data.c)
+SET (common_source      dlep_base/dlep_base.c
+                        dlep_extension.c
+                        dlep_interface.c
+                        dlep_session.c
+                        dlep_reader.c
+                        dlep_writer.c)
 
 # sources/includes for dlep_radio                    
 SET (radio_source       ${common_source}

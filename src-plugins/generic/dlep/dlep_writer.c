@@ -42,15 +42,12 @@
 #include <arpa/inet.h>
 
 #include "common/common_types.h"
-#include "common/bitmap256.h"
 #include "common/autobuf.h"
 
 #include "core/oonf_logging.h"
-#include "subsystems/oonf_packet_socket.h"
-#include "subsystems/oonf_stream_socket.h"
 
+#include "dlep/dlep_extension.h"
 #include "dlep/dlep_iana.h"
-#include "dlep/dlep_static_data.h"
 #include "dlep/dlep_writer.h"
 
 #ifndef _BSD_SOURCE
@@ -58,140 +55,104 @@
 #endif
 #include <endian.h> /* htobe64 */
 
-static struct autobuf _signal_buf;
-static uint8_t _signal_id;
+void
+dlep_writer_start_signal(struct dlep_writer *writer, uint16_t signal_type) {
 
-int
-dlep_writer_init(void) {
-  return abuf_init(&_signal_buf);
+  writer->signal_type = signal_type;
+  writer->signal_start_ptr =
+      abuf_getptr(writer->out) + abuf_getlen(writer->out);
+
+  abuf_append_uint16(writer->out, htons(signal_type));
+  abuf_append_uint16(writer->out, 0);
 }
 
 void
-dlep_writer_cleanup(void) {
-  abuf_free(&_signal_buf);
+dlep_writer_add_tlv(struct dlep_writer *writer,
+    uint16_t type, const void *data, uint16_t len) {
+  abuf_append_uint16(writer->out, htons(type));
+  abuf_append_uint16(writer->out, htons(len));
+  abuf_memcpy(writer->out, data, len);
 }
 
 void
-dlep_writer_start_signal(uint8_t signal) {
-  _signal_id = signal;
-  abuf_clear(&_signal_buf);
-  abuf_append_uint8(&_signal_buf, signal);
-  abuf_append_uint16(&_signal_buf, 0);
-}
-
-void
-dlep_writer_add_tlv(uint8_t type, void *data, uint8_t len) {
-  if (bitmap256_get(&dlep_mandatory_tlvs_per_signal[_signal_id], type)
-      || bitmap256_get(&dlep_supported_optional_tlvs_per_signal[_signal_id], type)) {
-    abuf_append_uint8(&_signal_buf, type);
-    abuf_append_uint8(&_signal_buf, len);
-    abuf_memcpy(&_signal_buf, data, len);
-  }
+dlep_writer_add_tlv2(struct dlep_writer *writer,
+    uint16_t type, const void *data1, uint16_t len1,
+    const void *data2, uint16_t len2) {
+  abuf_append_uint16(writer->out, htons(type));
+  abuf_append_uint16(writer->out, htons(len1 + len2));
+  abuf_memcpy(writer->out, data1, len1);
+  abuf_memcpy(writer->out, data2, len2);
 }
 
 int
-dlep_writer_finish_signal(enum oonf_log_source source) {
-  uint16_t len;
-  char *ptr;
+dlep_writer_finish_signal(struct dlep_writer *writer,
+    enum oonf_log_source source) {
+  size_t length;
+  uint16_t buffer;
 
-  if (abuf_has_failed(&_signal_buf)) {
+  if (abuf_has_failed(writer->out)) {
     OONF_WARN(source, "Could not build signal: %u",
-        abuf_getptr(&_signal_buf)[0]);
+        writer->signal_type);
     return -1;
   }
 
-  if (abuf_getlen(&_signal_buf) > 65535 - 3) {
+  length = (abuf_getptr(writer->out) + abuf_getlen(writer->out))
+      - writer->signal_start_ptr;
+  if (length > 65535 + 4) {
     OONF_WARN(source, "Signal %u became too long: %" PRINTF_SIZE_T_SPECIFIER,
-        abuf_getptr(&_signal_buf)[0], abuf_getlen(&_signal_buf));
+        writer->signal_type, abuf_getlen(writer->out));
     return -1;
   }
 
   /* calculate network ordered size */
-  len = htons(abuf_getlen(&_signal_buf)-3);
+  buffer = htons(length - 4);
 
   /* put it into the signal */
-  ptr = abuf_getptr(&_signal_buf);
-  memcpy(&ptr[1], &len, sizeof(len));
+  memcpy(&writer->signal_start_ptr[2], &buffer, sizeof(buffer));
 
   return 0;
 }
 
 void
-dlep_writer_send_udp_multicast(struct oonf_packet_managed *managed,
-    enum oonf_log_source source) {
-  OONF_DEBUG_HEX(source, abuf_getptr(&_signal_buf), abuf_getlen(&_signal_buf),
-      "Send signal via UDP multicast");
-
-  if (oonf_packet_send_managed_multicast(
-      managed, abuf_getptr(&_signal_buf), abuf_getlen(&_signal_buf), AF_INET)) {
-    OONF_WARN(source, "Could not send ipv4 multicast signal");
-  }
-  if (oonf_packet_send_managed_multicast(
-      managed, abuf_getptr(&_signal_buf), abuf_getlen(&_signal_buf), AF_INET6)) {
-    OONF_WARN(source, "Could not send ipv6 multicast signal");
-  }
-}
-
-void
-dlep_writer_send_udp_unicast(struct oonf_packet_managed *managed,
-    union netaddr_socket *dst, enum oonf_log_source source) {
-  struct netaddr_str nbuf;
-
-  OONF_DEBUG_HEX(source, abuf_getptr(&_signal_buf), abuf_getlen(&_signal_buf),
-      "Send signal via udp unicast");
-
-  if (oonf_packet_send_managed(
-      managed, dst, abuf_getptr(&_signal_buf), abuf_getlen(&_signal_buf))) {
-    OONF_WARN(source, "Could not send udp unicast to %s",
-        netaddr_socket_to_string(&nbuf, dst));
-  }
-}
-
-void
-dlep_writer_send_tcp_unicast(struct oonf_stream_session *session,
-    enum oonf_log_source source __attribute__((unused))) {
-  OONF_DEBUG_HEX(source, abuf_getptr(&_signal_buf), abuf_getlen(&_signal_buf),
-      "Send signal via TCP");
-  abuf_memcpy(&session->out,
-      abuf_getptr(&_signal_buf), abuf_getlen(&_signal_buf));
-  oonf_stream_flush(session);
-}
-
-void
-dlep_writer_add_version_tlv(uint16_t major, uint16_t minor) {
-  uint16_t value[2];
-
-  value[0] = htons(major);
-  value[1] = htons(minor);
-
-  dlep_writer_add_tlv(DLEP_VERSION_TLV, &value, sizeof(value));
-}
-
-void
-dlep_writer_add_heartbeat_tlv(uint64_t interval) {
+dlep_writer_add_heartbeat_tlv(struct dlep_writer *writer, uint64_t interval) {
   uint16_t value;
 
   value = htons(interval / 1000);
 
-  dlep_writer_add_tlv(DLEP_HEARTBEAT_INTERVAL_TLV, &value, sizeof(value));
+  dlep_writer_add_tlv(writer, DLEP_HEARTBEAT_INTERVAL_TLV,
+      &value, sizeof(value));
+}
+
+void
+dlep_writer_add_peer_type_tlv(struct dlep_writer *writer,
+    const char *peer_type) {
+  dlep_writer_add_tlv(writer, DLEP_PEER_TYPE_TLV,
+      peer_type, strlen(peer_type));
 }
 
 int
-dlep_writer_add_mac_tlv(const struct netaddr *mac) {
-  uint8_t value[6];
+dlep_writer_add_mac_tlv(struct dlep_writer *writer,
+    const struct netaddr *mac) {
+  uint8_t value[8];
 
-  if (netaddr_get_address_family(mac) != AF_MAC48) {
-    return -1;
+  switch (netaddr_get_address_family(mac)) {
+    case AF_MAC48:
+    case AF_EUI64:
+      break;
+    default:
+      return -1;
   }
 
-  netaddr_to_binary(value, mac, 6);
+  netaddr_to_binary(value, mac, 8);
 
-  dlep_writer_add_tlv(DLEP_MAC_ADDRESS_TLV, value, sizeof(value));
+  dlep_writer_add_tlv(writer,
+      DLEP_MAC_ADDRESS_TLV, value, netaddr_get_binlength(mac));
   return 0;
 }
 
 int
-dlep_writer_add_ipv4_tlv(const struct netaddr *ipv4, bool add) {
+dlep_writer_add_ipv4_tlv(struct dlep_writer *writer,
+    const struct netaddr *ipv4, bool add) {
   uint8_t value[5];
 
   if (netaddr_get_address_family(ipv4) != AF_INET) {
@@ -201,12 +162,14 @@ dlep_writer_add_ipv4_tlv(const struct netaddr *ipv4, bool add) {
   value[0] = add ? DLEP_IP_ADD : DLEP_IP_REMOVE;
   netaddr_to_binary(&value[1], ipv4, 4);
 
-  dlep_writer_add_tlv(DLEP_IPV4_ADDRESS_TLV, value, sizeof(value));
+  dlep_writer_add_tlv(writer,
+      DLEP_IPV4_ADDRESS_TLV, value, sizeof(value));
   return 0;
 }
 
 int
-dlep_writer_add_ipv6_tlv(const struct netaddr *ipv6, bool add) {
+dlep_writer_add_ipv6_tlv(struct dlep_writer *writer,
+    const struct netaddr *ipv6, bool add) {
   uint8_t value[17];
 
   if (netaddr_get_address_family(ipv6) != AF_INET6) {
@@ -216,12 +179,14 @@ dlep_writer_add_ipv6_tlv(const struct netaddr *ipv6, bool add) {
   value[0] = add ? DLEP_IP_ADD : DLEP_IP_REMOVE;
   netaddr_to_binary(&value[1], ipv6, 16);
 
-  dlep_writer_add_tlv(DLEP_IPV6_ADDRESS_TLV, value, sizeof(value));
+  dlep_writer_add_tlv(writer,
+      DLEP_IPV6_ADDRESS_TLV, value, sizeof(value));
   return 0;
 }
 
 void
-dlep_writer_add_ipv4_conpoint_tlv(const struct netaddr *addr, uint16_t port) {
+dlep_writer_add_ipv4_conpoint_tlv(struct dlep_writer *writer,
+    const struct netaddr *addr, uint16_t port) {
   uint8_t value[6];
 
   if (netaddr_get_address_family(addr) != AF_INET) {
@@ -235,11 +200,13 @@ dlep_writer_add_ipv4_conpoint_tlv(const struct netaddr *addr, uint16_t port) {
   netaddr_to_binary(&value[0], addr, sizeof(value));
   memcpy(&value[4], &port, sizeof(port));
 
-  dlep_writer_add_tlv(DLEP_IPV4_CONPOINT_TLV, &value, sizeof(value));
+  dlep_writer_add_tlv(writer,
+      DLEP_IPV4_CONPOINT_TLV, &value, sizeof(value));
 }
 
 void
-dlep_writer_add_ipv6_conpoint_tlv(const struct netaddr *addr, uint16_t port) {
+dlep_writer_add_ipv6_conpoint_tlv(struct dlep_writer *writer,
+    const struct netaddr *addr, uint16_t port) {
   uint8_t value[18];
 
   if (netaddr_get_address_family(addr) != AF_INET6) {
@@ -253,60 +220,105 @@ dlep_writer_add_ipv6_conpoint_tlv(const struct netaddr *addr, uint16_t port) {
   netaddr_to_binary(&value[0], addr, sizeof(value));
   memcpy(&value[16], &port, sizeof(port));
 
-  dlep_writer_add_tlv(DLEP_IPV6_CONPOINT_TLV, &value, sizeof(value));
+  dlep_writer_add_tlv(writer,
+      DLEP_IPV6_CONPOINT_TLV, &value, sizeof(value));
 }
 
 void
-dlep_writer_add_latency(uint32_t latency) {
-  latency = htonl(latency);
-
-  dlep_writer_add_tlv(DLEP_LATENCY_TLV, &latency, sizeof(latency));
-}
-
-void
-dlep_writer_add_uint64(uint64_t number, enum dlep_tlvs tlv) {
+dlep_writer_add_uint64(struct dlep_writer *writer,
+    uint64_t number, enum dlep_tlvs tlv) {
   uint64_t value;
 
   value = be64toh(number);
 
-  dlep_writer_add_tlv(tlv, &value, sizeof(value));
+  dlep_writer_add_tlv(writer, tlv, &value, sizeof(value));
 }
 
 void
-dlep_writer_add_status(enum dlep_status status) {
-  uint8_t value = status;
+dlep_writer_add_int64(struct dlep_writer *writer,
+    int64_t number, enum dlep_tlvs tlv) {
+  uint64_t *value = (uint64_t*)(&number);
 
-  dlep_writer_add_tlv(DLEP_STATUS_TLV, &value, sizeof(value));
+  *value = htonl(*value);
+
+  dlep_writer_add_tlv(writer, tlv, value, sizeof(*value));
 }
 
-void
-dlep_writer_add_extensions_supported(void) {
-  uint8_t value[DLEP_SIGNAL_COUNT];
-  size_t i,j;
+int
+dlep_writer_add_status(struct dlep_writer *writer,
+    enum dlep_status status, const char *text) {
+  uint8_t value;
+  size_t txtlen;
 
-  for (i=0,j=0; i<DLEP_SIGNAL_COUNT; i++) {
-    if (bitmap256_get(&dlep_supported_optional_signals, i)) {
-      value[j++] = i;
-    }
+  value = status;
+  txtlen = strlen(text);
+  if (txtlen > 65534) {
+    return -1;
   }
 
-  dlep_writer_add_tlv(DLEP_EXTENSIONS_SUPPORTED, &value[0], j);
+  dlep_writer_add_tlv2(writer, DLEP_STATUS_TLV,
+      &value, sizeof(value), text, txtlen);
+  return 0;
 }
 
 void
-dlep_writer_add_rx_signal(int32_t signal) {
-  uint32_t *value = (uint32_t*)(&signal);
-
-  *value = htonl(*value);
-
-  dlep_writer_add_tlv(DLEP_RX_SIGNAL_TLV, value, sizeof(*value));
+dlep_writer_add_supported_extensions(struct dlep_writer *writer,
+    const uint16_t *extensions, uint16_t ext_count) {
+  dlep_writer_add_tlv(writer, DLEP_EXTENSIONS_SUPPORTED_TLV,
+      extensions, ext_count * 2);
 }
 
-void
-dlep_writer_add_tx_signal(int32_t signal) {
-  uint32_t *value = (uint32_t*)(&signal);
+int
+dlep_writer_map_identity(struct dlep_writer *writer,
+    struct oonf_layer2_data *data, uint16_t tlv, uint16_t length) {
+  int64_t l2value;
+  uint64_t tmp64;
+  uint32_t tmp32;
+  uint16_t tmp16;
+  uint8_t tmp8;
+  void *value;
 
-  *value = htonl(*value);
+  l2value = oonf_layer2_get_value(data);
+  memcpy(&tmp64, &l2value, 8);
 
-  dlep_writer_add_tlv(DLEP_TX_SIGNAL_TLV, value, sizeof(*value));
+  switch (length) {
+    case 8:
+      tmp64 = htobe64(tmp64);
+      value = &tmp64;
+      break;
+    case 4:
+      tmp32 = htonl(tmp64);
+      value = &tmp32;
+      break;
+    case 2:
+      tmp16 = htons(tmp64);
+      value = &tmp16;
+      break;
+    case 1:
+      tmp8 = tmp64;
+      value = &tmp8;
+      break;
+    default:
+      return -1;
+  }
+
+  dlep_writer_add_tlv(writer, tlv, value, length);
+  return 0;
+}
+
+int
+dlep_writer_map_l2neigh_data(struct dlep_writer *writer,
+    struct dlep_extension *ext, struct oonf_layer2_data *data) {
+  struct dlep_neighbor_mapping *map;
+  size_t i;
+
+  for (i=0; i<ext->neigh_mapping_count; i++) {
+    map = &ext->neigh_mapping[i];
+
+    if (map->to_tlv(writer, &data[map->layer2],
+        map->dlep, map->length)) {
+      return -1;
+    }
+  }
+  return 0;
 }

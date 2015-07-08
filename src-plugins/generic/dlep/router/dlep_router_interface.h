@@ -43,39 +43,19 @@
 #define DLEP_ROUTER_INTERFACE_H_
 
 #include "common/common_types.h"
-#include "common/avl.h"
-#include "subsystems/oonf_packet_socket.h"
-#include "subsystems/oonf_timer.h"
+
+#include "dlep/dlep_session.h"
+#include "dlep/dlep_interface.h"
 
 struct dlep_router_if {
-  /* name of interface for layer2 database */
-  char l2_destination[IF_NAMESIZE];
-
-  /* UDP socket for discovery */
-  struct oonf_packet_managed udp;
-  struct oonf_packet_managed_config udp_config;
-
-  /* event timer (either discovery or heartbeat) */
-  struct oonf_timer_instance discovery_timer;
-
-  /* local timer settings */
-  uint64_t local_discovery_interval;
-  uint64_t local_heartbeat_interval;
-
-  /* true if router should not accept further sessions */
-  bool single_session;
-
-  /* hook into session tree, interface name is the key */
-  struct avl_node _node;
-
-  /* list of all streams on this interface */
-  struct avl_tree session_tree;
+  struct dlep_if interf;
 };
 
 void dlep_router_interface_init(void);
 void dlep_router_interface_cleanup(void);
 
-struct dlep_router_if *dlep_router_get_interface(const char *ifname);
+struct dlep_router_if *dlep_router_get_by_layer2_if(const char *ifname);
+struct dlep_router_if *dlep_router_get_by_datapath_if(const char *ifname);
 struct dlep_router_if *dlep_router_add_interface(const char *ifname);
 void dlep_router_remove_interface(struct dlep_router_if *);
 

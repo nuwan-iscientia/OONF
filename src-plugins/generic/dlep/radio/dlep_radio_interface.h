@@ -46,44 +46,26 @@
 #include "common/avl.h"
 #include "subsystems/oonf_packet_socket.h"
 #include "subsystems/oonf_stream_socket.h"
-#include "subsystems/oonf_timer.h"
+
+#include "dlep/dlep_session.h"
+#include "dlep/dlep_interface.h"
 
 struct dlep_radio_if {
-  /* interface name to get layer2 data from */
-  char l2_source[IF_NAMESIZE];
+  struct dlep_if interf;
 
-  /* UDP socket for discovery */
-  struct oonf_packet_managed udp;
-  struct oonf_packet_managed_config udp_config;
-
-  /* TCP client socket for session */
+  /* TCP socket for client session */
   struct oonf_stream_managed tcp;
   struct oonf_stream_managed_config tcp_config;
-
-  /* local timer settings */
-  uint64_t local_heartbeat_interval;
-
-  /* decide to publish proxied/non-proxied destinations */
-  bool use_proxied_dst;
-  bool use_nonproxied_dst;
-
-  /* hook into session tree, interface name is the key */
-  struct avl_node _node;
-
-  /* tree of all radio sessions */
-  struct avl_tree session_tree;
 };
 
-struct avl_tree dlep_radio_if_tree;
-
-void dlep_radio_interface_init(void);
+int dlep_radio_interface_init(void);
 void dlep_radio_interface_cleanup(void);
 
-struct dlep_radio_if *dlep_radio_get_interface(const char *ifname);
-struct dlep_radio_if *dlep_radio_add_interface(const char *ifname);
+struct dlep_radio_if *dlep_radio_get_by_layer2_if(const char *ifname);
+struct dlep_radio_if *dlep_radio_add_interface(const char *l2_ifname);
 void dlep_radio_remove_interface(struct dlep_radio_if *);
 
-struct dlep_radio_if *dlep_radio_get_by_source_if(const char *ifname);
+struct dlep_radio_if *dlep_radio_get_by_datapath_if(const char *ifname);
 
 void dlep_radio_apply_interface_settings(struct dlep_radio_if *interface);
 
