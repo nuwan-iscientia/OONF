@@ -80,6 +80,10 @@
 #define OONF_LAYER2_NEIGH_TX_RETRIES_KEY     "tx_retries"
 #define OONF_LAYER2_NEIGH_TX_FAILED_KEY      "tx_failed"
 #define OONF_LAYER2_NEIGH_LATENCY_KEY        "latency"
+#define OONF_LAYER2_NEIGH_TX_RESOURCES_KEY   "tx_resources"
+#define OONF_LAYER2_NEIGH_RX_RESOURCES_KEY   "rx_resources"
+#define OONF_LAYER2_NEIGH_TX_RLQ_KEY         "tx_rlq"
+#define OONF_LAYER2_NEIGH_RX_RLQ_KEY         "rx_rlq"
 
 struct oonf_layer2_data {
   int64_t _value;
@@ -128,6 +132,10 @@ enum oonf_layer2_neighbor_index {
   OONF_LAYER2_NEIGH_TX_RETRIES,
   OONF_LAYER2_NEIGH_TX_FAILED,
   OONF_LAYER2_NEIGH_LATENCY,
+  OONF_LAYER2_NEIGH_TX_RESOURCES,
+  OONF_LAYER2_NEIGH_RX_RESOURCES,
+  OONF_LAYER2_NEIGH_TX_RLQ,
+  OONF_LAYER2_NEIGH_RX_RLQ,
 
   /* last entry */
   OONF_LAYER2_NEIGH_COUNT,

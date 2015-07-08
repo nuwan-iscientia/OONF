@@ -91,6 +91,10 @@ static const struct oonf_layer2_metadata _oonf_layer2_metadata_neigh[OONF_LAYER2
   [OONF_LAYER2_NEIGH_TX_RETRIES]     = { .key = OONF_LAYER2_NEIGH_TX_RETRIES_KEY },
   [OONF_LAYER2_NEIGH_TX_FAILED]      = { .key = OONF_LAYER2_NEIGH_TX_FAILED_KEY },
   [OONF_LAYER2_NEIGH_LATENCY]        = { .key = OONF_LAYER2_NEIGH_LATENCY_KEY, .unit = "s", .fraction = 6 },
+  [OONF_LAYER2_NEIGH_TX_RESOURCES]   = { .key = OONF_LAYER2_NEIGH_TX_RESOURCES_KEY },
+  [OONF_LAYER2_NEIGH_RX_RESOURCES]   = { .key = OONF_LAYER2_NEIGH_RX_RESOURCES_KEY },
+  [OONF_LAYER2_NEIGH_TX_RLQ]         = { .key = OONF_LAYER2_NEIGH_TX_RLQ_KEY },
+  [OONF_LAYER2_NEIGH_RX_RLQ]         = { .key = OONF_LAYER2_NEIGH_RX_RLQ_KEY },
 };
 
 /* layer2 network metadata */
@@ -263,6 +267,10 @@ oonf_layer2_net_remove(struct oonf_layer2_net *l2net, uint32_t origin) {
   struct oonf_layer2_neigh *l2neigh, *l2neigh_it;
   bool changed = false;
 
+  if (!avl_is_node_added(&l2net->_node)) {
+    return false;
+  }
+
   avl_for_each_element_safe(&l2net->neighbors, l2neigh, _node, l2neigh_it) {
     changed |= oonf_layer2_neigh_remove(l2neigh, origin);
   }
@@ -379,6 +387,10 @@ oonf_layer2_neigh_remove(struct oonf_layer2_neigh *l2neigh, uint32_t origin) {
   struct oonf_layer2_destination *l2dst, *l2dst_it;
   bool changed = false;
 
+  if (!avl_is_node_added(&l2neigh->_node)) {
+    return false;
+  }
+
   avl_for_each_element_safe(&l2neigh->destinations, l2dst, _node, l2dst_it) {
     if (l2dst->origin == origin) {
       oonf_layer2_destination_remove(l2dst);
@@ -451,6 +463,9 @@ oonf_layer2_destination_add(struct oonf_layer2_neigh *l2neigh,
 
 void
 oonf_layer2_destination_remove(struct oonf_layer2_destination *l2dst) {
+  if (!avl_is_node_added(&l2dst->_node)) {
+    return;
+  }
   oonf_class_event(&_l2dst_class, l2dst, OONF_OBJECT_REMOVED);
 
   avl_remove(&l2dst->neighbor->destinations, &l2dst->_node);
