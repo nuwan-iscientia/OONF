@@ -686,7 +686,6 @@ _check_mandatory(struct dlep_session_parser *parser, uint16_t signal_type) {
         }
 
         if (tlv->tlv_first == -1) {
-fprintf(stderr, "tlv missing: %u (%u/%s)\n", tlv->id, extsig->id, ext->name);
           return DLEP_NEW_PARSER_MISSING_MANDATORY_TLV;
         }
       }
