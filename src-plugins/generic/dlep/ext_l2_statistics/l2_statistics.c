@@ -17,35 +17,22 @@
 
 /* peer initialization ack */
 static const uint16_t _peer_initack_tlvs[] = {
-    DLEP_MDRR_TLV,
-    DLEP_MDRT_TLV,
-    DLEP_CDRR_TLV,
-    DLEP_CDRT_TLV,
-    DLEP_LATENCY_TLV,
-    DLEP_RESR_TLV,
-    DLEP_REST_TLV,
-    DLEP_RLQR_TLV,
-    DLEP_RLQT_TLV,
+    DLEP_FRAMES_R_TLV,
+    DLEP_FRAMES_T_TLV,
+    DLEP_FRAMES_RETRIES_TLV,
+    DLEP_FRAMES_FAILED_TLV,
 };
 static const uint16_t _peer_initack_mandatory[] = {
-    DLEP_MDRR_TLV,
-    DLEP_MDRT_TLV,
-    DLEP_CDRR_TLV,
-    DLEP_CDRT_TLV,
-    DLEP_LATENCY_TLV,
+    DLEP_FRAMES_R_TLV,
+    DLEP_FRAMES_T_TLV,
 };
 
 /* peer update */
 static const uint16_t _peer_update_tlvs[] = {
-    DLEP_MDRR_TLV,
-    DLEP_MDRT_TLV,
-    DLEP_CDRR_TLV,
-    DLEP_CDRT_TLV,
-    DLEP_LATENCY_TLV,
-    DLEP_RESR_TLV,
-    DLEP_REST_TLV,
-    DLEP_RLQR_TLV,
-    DLEP_RLQT_TLV,
+    DLEP_FRAMES_R_TLV,
+    DLEP_FRAMES_T_TLV,
+    DLEP_FRAMES_RETRIES_TLV,
+    DLEP_FRAMES_FAILED_TLV,
 };
 
 /* destination up/update */
