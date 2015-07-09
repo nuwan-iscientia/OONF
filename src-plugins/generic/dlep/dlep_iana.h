@@ -54,6 +54,15 @@ enum {
 
 #define DLEP_DRAFT_15_VERSION "DLEP"
 
+enum dlep_extensions {
+  DLEP_EXTENSION_BASE_COUNT      =  2,
+
+  DLEP_EXTENSION_BASE_PROTO      = -2,
+  DLEP_EXTENSION_BASE_METRIC     = -1,
+
+  DLEP_EXTENSION_L2_STATS  = 256,
+};
+
 enum dlep_signals {
   /* control numbers for session handling */
   DLEP_KILL_SESSION                 = -2,

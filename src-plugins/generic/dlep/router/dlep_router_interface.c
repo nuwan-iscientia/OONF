@@ -57,9 +57,13 @@
 #include "dlep/dlep_interface.h"
 #include "dlep/dlep_session.h"
 #include "dlep/dlep_writer.h"
-#include "dlep/dlep_base/dlep_base_router.h"
+
 #include "dlep/router/dlep_router.h"
 #include "dlep/router/dlep_router_interface.h"
+
+#include "dlep/ext_base_proto/proto_router.h"
+#include "dlep/ext_base_metric/metric.h"
+#include "dlep/ext_l2_statistics/l2_statistics.h"
 #include "dlep/router/dlep_router_internal.h"
 #include "dlep/router/dlep_router_session.h"
 
@@ -87,7 +91,9 @@ dlep_router_interface_init(void) {
   dlep_extension_init();
   dlep_session_init();
   dlep_router_session_init();
-  dlep_base_router_init();
+  dlep_base_proto_router_init();
+  dlep_base_metric_init();
+  dlep_l2_statistics_init();
 
   _shutting_down = false;
 

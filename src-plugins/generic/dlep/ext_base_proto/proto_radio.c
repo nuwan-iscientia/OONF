@@ -6,8 +6,6 @@
  */
 
 
-#include "../dlep_base/dlep_base_radio.h"
-
 #include "common/common_types.h"
 #include "common/avl.h"
 #include "common/autobuf.h"
@@ -23,33 +21,27 @@
 #include "dlep/dlep_writer.h"
 #include "dlep/radio/dlep_radio_interface.h"
 #include "dlep/radio/dlep_radio_session.h"
-#include "dlep/dlep_base/dlep_base.h"
-#include "dlep/dlep_base/dlep_base_radio.h"
 
-struct _mandatory_data {
-  enum oonf_layer2_neighbor_index layer2;
-  int64_t value;
-};
+#include "dlep/ext_base_proto/proto.h"
+#include "dlep/ext_base_proto/proto_radio.h"
 
-static void _cb_init_radio(struct dlep_session *session);
-static void _cb_cleanup_radio(struct dlep_session *session);
+static void _cb_init_radio(struct dlep_session *);
+static void _cb_cleanup_radio(struct dlep_session *);
 
-static int _radio_process_peer_discovery(struct dlep_session *);
-static int _radio_process_peer_init(struct dlep_session *);
-static int _radio_process_peer_update(struct dlep_session *);
-static int _radio_process_peer_update_ack(struct dlep_session *);
-static int _radio_process_destination_up(struct dlep_session *);
-static int _radio_process_destination_up_ack(struct dlep_session *);
-static int _radio_process_destination_down(struct dlep_session *);
-static int _radio_process_destination_down_ack(struct dlep_session *);
-static int _radio_process_destination_update(struct dlep_session *);
-static int _radio_process_link_char_request(struct dlep_session *);
+static int _radio_process_peer_discovery(struct dlep_extension *, struct dlep_session *);
+static int _radio_process_peer_init(struct dlep_extension *, struct dlep_session *);
+static int _radio_process_peer_update(struct dlep_extension *, struct dlep_session *);
+static int _radio_process_peer_update_ack(struct dlep_extension *, struct dlep_session *);
+static int _radio_process_destination_up(struct dlep_extension *, struct dlep_session *);
+static int _radio_process_destination_up_ack(struct dlep_extension *, struct dlep_session *);
+static int _radio_process_destination_down(struct dlep_extension *, struct dlep_session *);
+static int _radio_process_destination_down_ack(struct dlep_extension *, struct dlep_session *);
+static int _radio_process_destination_update(struct dlep_extension *, struct dlep_session *);
+static int _radio_process_link_char_request(struct dlep_extension *, struct dlep_session *);
 
-static int _radio_write_peer_offer(
+static int _radio_write_peer_offer(struct dlep_extension *,
     struct dlep_session *session, const struct netaddr *);
-static int _radio_write_peer_init_ack(
-    struct dlep_session *session, const struct netaddr *);
-static int _radio_write_destination_mac_data(
+static int _radio_write_peer_init_ack(struct dlep_extension *,
     struct dlep_session *session, const struct netaddr *);
 
 static void _l2_neigh_added_to_session(
@@ -95,53 +87,45 @@ static struct dlep_extension_implementation _radio_signals[] = {
     },
     {
         .id = DLEP_PEER_TERMINATION,
-        .process = dlep_base_process_peer_termination,
+        .process = dlep_base_proto_process_peer_termination,
     },
     {
         .id = DLEP_PEER_TERMINATION_ACK,
-        .process = dlep_base_process_peer_termination_ack,
+        .process = dlep_base_proto_process_peer_termination_ack,
     },
     {
         .id = DLEP_DESTINATION_UP,
         .process = _radio_process_destination_up,
-        .add_tlvs = _radio_write_destination_mac_data,
+        .add_tlvs = dlep_base_proto_write_mac_only,
     },
     {
         .id = DLEP_DESTINATION_UP_ACK,
         .process = _radio_process_destination_up_ack,
-        .add_tlvs = dlep_base_write_mac_only,
+        .add_tlvs = dlep_base_proto_write_mac_only,
     },
     {
         .id = DLEP_DESTINATION_DOWN,
         .process = _radio_process_destination_down,
-        .add_tlvs = dlep_base_write_mac_only,
+        .add_tlvs = dlep_base_proto_write_mac_only,
     },
     {
         .id = DLEP_DESTINATION_DOWN_ACK,
         .process = _radio_process_destination_down_ack,
-        .add_tlvs = dlep_base_write_mac_only,
+        .add_tlvs = dlep_base_proto_write_mac_only,
     },
     {
         .id = DLEP_DESTINATION_UPDATE,
         .process = _radio_process_destination_update,
-        .add_tlvs = _radio_write_destination_mac_data,
+        .add_tlvs = dlep_base_proto_write_mac_only,
     },
     {
         .id = DLEP_HEARTBEAT,
-        .process = dlep_base_process_heartbeat,
+        .process = dlep_base_proto_process_heartbeat,
     },
     {
         .id = DLEP_LINK_CHARACTERISTICS_REQUEST,
         .process = _radio_process_link_char_request,
     },
-};
-
-static struct _mandatory_data _mandatory_l2neigh_data[] = {
-    { .layer2 = OONF_LAYER2_NEIGH_TX_MAX_BITRATE, .value = 0 },
-    { .layer2 = OONF_LAYER2_NEIGH_RX_BITRATE, .value = 0 },
-    { .layer2 = OONF_LAYER2_NEIGH_TX_MAX_BITRATE, .value = 0 },
-    { .layer2 = OONF_LAYER2_NEIGH_RX_BITRATE, .value = 0 },
-    { .layer2 = OONF_LAYER2_NEIGH_LATENCY, .value = 1000000 },
 };
 
 static struct oonf_class_extension _layer2_neigh_listener = {
@@ -164,8 +148,8 @@ static struct oonf_class_extension _layer2_dst_listener = {
 static struct dlep_extension *_base;
 
 void
-dlep_base_radio_init(void) {
-  _base = dlep_base_init();
+dlep_base_proto_radio_init(void) {
+  _base = dlep_base_proto_init();
   dlep_extension_add_processing(_base, true,
       _radio_signals, ARRAYSIZE(_radio_signals));
 
@@ -183,7 +167,7 @@ _cb_init_radio(struct dlep_session *session) {
      * we are waiting for a Peer Init,
      */
     session->remote_heartbeat_interval = session->cfg.heartbeat_interval;
-    dlep_base_start_remote_heartbeat(session);
+    dlep_base_proto_start_remote_heartbeat(session);
   }
 
   session->cb_destination_timeout = _cb_destination_timeout;
@@ -191,11 +175,13 @@ _cb_init_radio(struct dlep_session *session) {
 
 static void
 _cb_cleanup_radio(struct dlep_session *session) {
-  dlep_base_stop_timers(session);
+  dlep_base_proto_stop_timers(session);
 }
 
 static int
-_radio_process_peer_discovery(struct dlep_session *session) {
+_radio_process_peer_discovery(
+    struct dlep_extension *ext __attribute__((unused)),
+    struct dlep_session *session) {
   if (session->next_signal != DLEP_PEER_DISCOVERY) {
     /* ignore unless we are in discovery mode */
     return 0;
@@ -204,7 +190,9 @@ _radio_process_peer_discovery(struct dlep_session *session) {
 }
 
 static int
-_radio_process_peer_init(struct dlep_session *session) {
+_radio_process_peer_init(
+    struct dlep_extension *ext __attribute__((unused)),
+    struct dlep_session *session) {
   struct oonf_layer2_net *l2net;
   struct oonf_layer2_neigh *l2neigh;
   struct oonf_layer2_destination *l2dest;
@@ -226,11 +214,11 @@ _radio_process_peer_init(struct dlep_session *session) {
   OONF_DEBUG(session->log_source, "Remote heartbeat interval %"PRIu64,
       session->remote_heartbeat_interval);
 
-  dlep_base_start_local_heartbeat(session);
-  dlep_base_start_remote_heartbeat(session);
+  dlep_base_proto_start_local_heartbeat(session);
+  dlep_base_proto_start_remote_heartbeat(session);
 
   /* optional peer type tlv */
-  dlep_base_print_peer_type(session);
+  dlep_base_proto_print_peer_type(session);
 
   /* optional extension supported tlv */
   value = dlep_session_get_tlv_value(session, DLEP_EXTENSIONS_SUPPORTED_TLV);
@@ -269,19 +257,25 @@ _radio_process_peer_init(struct dlep_session *session) {
 }
 
 static int
-_radio_process_peer_update(struct dlep_session *session) {
+_radio_process_peer_update(
+    struct dlep_extension *ext __attribute__((unused)),
+    struct dlep_session *session) {
   /* we don't support IP address exchange with the router at the moment */
   return dlep_session_generate_signal(session, DLEP_PEER_UPDATE_ACK, NULL);
 }
 
 static int
-_radio_process_peer_update_ack(struct dlep_session *session) {
-  dlep_base_print_status(session);
+_radio_process_peer_update_ack(
+    struct dlep_extension *ext __attribute__((unused)),
+    struct dlep_session *session) {
+  dlep_base_proto_print_status(session);
   return 0;
 }
 
 static int
-_radio_process_destination_up(struct dlep_session *session) {
+_radio_process_destination_up(
+    struct dlep_extension *ext __attribute__((unused)),
+    struct dlep_session *session) {
   struct netaddr mac;
   if (dlep_reader_mac_tlv(&mac, session, NULL)) {
     return -1;
@@ -293,14 +287,16 @@ _radio_process_destination_up(struct dlep_session *session) {
 }
 
 static int
-_radio_process_destination_up_ack(struct dlep_session *session) {
+_radio_process_destination_up_ack(
+    struct dlep_extension *ext __attribute__((unused)),
+    struct dlep_session *session) {
   struct dlep_local_neighbor *local;
   struct netaddr mac;
   if (dlep_reader_mac_tlv(&mac, session, NULL)) {
     return -1;
   }
 
-  if (dlep_base_print_status(session) == DLEP_STATUS_OKAY) {
+  if (dlep_base_proto_print_status(session) == DLEP_STATUS_OKAY) {
     local = dlep_session_get_local_neighbor(session, &mac);
     if (local->state == DLEP_NEIGHBOR_UP_SENT) {
       local->state = DLEP_NEIGHBOR_UP_ACKED;
@@ -317,7 +313,9 @@ _radio_process_destination_up_ack(struct dlep_session *session) {
 }
 
 static int
-_radio_process_destination_down(struct dlep_session *session) {
+_radio_process_destination_down(
+    struct dlep_extension *ext __attribute__((unused)),
+    struct dlep_session *session) {
   struct netaddr mac;
   if (dlep_reader_mac_tlv(&mac, session, NULL)) {
     return -1;
@@ -329,14 +327,16 @@ _radio_process_destination_down(struct dlep_session *session) {
 }
 
 static int
-_radio_process_destination_down_ack(struct dlep_session *session) {
+_radio_process_destination_down_ack(
+    struct dlep_extension *ext __attribute__((unused)),
+    struct dlep_session *session) {
   struct dlep_local_neighbor *local;
   struct netaddr mac;
   if (dlep_reader_mac_tlv(&mac, session, NULL)) {
     return -1;
   }
 
-  if (dlep_base_print_status(session) == DLEP_STATUS_OKAY) {
+  if (dlep_base_proto_print_status(session) == DLEP_STATUS_OKAY) {
     local = dlep_session_get_local_neighbor(session, &mac);
     if (local->state == DLEP_NEIGHBOR_DOWN_SENT) {
       dlep_session_remove_local_neighbor(session, local);
@@ -347,18 +347,22 @@ _radio_process_destination_down_ack(struct dlep_session *session) {
 
 static int
 _radio_process_destination_update(
+    struct dlep_extension *ext __attribute__((unused)),
     struct dlep_session *session __attribute__((unused))) {
   return 0;
 }
 
 static int
 _radio_process_link_char_request(
+    struct dlep_extension *ext __attribute__((unused)),
     struct dlep_session *session __attribute__((unused))) {
   return 0;
 }
 
 static int
-_radio_write_peer_offer(struct dlep_session *session,
+_radio_write_peer_offer(
+    struct dlep_extension *ext __attribute__((unused)),
+    struct dlep_session *session,
     const struct netaddr *addr __attribute__((unused))) {
   struct dlep_radio_if *radio_if;
   struct netaddr local_addr;
@@ -385,38 +389,16 @@ _radio_write_peer_offer(struct dlep_session *session,
 }
 
 static int
-_radio_write_peer_init_ack(struct dlep_session *session,
+_radio_write_peer_init_ack(
+    struct dlep_extension *ext __attribute__((unused)),
+    struct dlep_session *session,
     const struct netaddr *addr __attribute__((unused))) {
-  struct oonf_layer2_net *l2net;
-  struct oonf_layer2_data *l2data;
   const uint16_t *ext_ids;
   uint16_t ext_count;
-  size_t i;
-
-  /* first make sure defaults are set correctly */
-  l2net = oonf_layer2_net_add(session->l2_listener.name);
-  if (!l2net) {
-    return -1;
-  }
-
-  for (i=0; i<ARRAYSIZE(_mandatory_l2neigh_data); i++) {
-    l2data = &l2net->neighdata[_mandatory_l2neigh_data[i].layer2];
-
-    if (!oonf_layer2_has_value(l2data)) {
-      oonf_layer2_set_value(l2data, session->l2_origin,
-          _mandatory_l2neigh_data[i].value);
-    }
-  }
 
   /* write heartbeat interval */
   dlep_writer_add_heartbeat_tlv(&session->writer,
       session->remote_heartbeat_interval);
-
-  /* write default metric values */
-  if (dlep_writer_map_l2neigh_data(&session->writer, _base,
-      l2net->neighdata)) {
-    return -1;
-  }
 
   /* write supported extensions */
   ext_ids = dlep_extension_get_ids(&ext_count);
@@ -430,33 +412,6 @@ _radio_write_peer_init_ack(struct dlep_session *session,
         &session->writer, session->cfg.peer_type);
   }
 
-  return 0;
-}
-
-static int
-_radio_write_destination_mac_data(
-    struct dlep_session *session, const struct netaddr *neigh) {
-  struct oonf_layer2_net *l2net;
-  struct oonf_layer2_neigh *l2neigh;
-
-  l2net = oonf_layer2_net_get(session->l2_listener.name);
-  if (!l2net) {
-    return -1;
-  }
-
-  l2neigh = oonf_layer2_neigh_get(l2net, neigh);
-  if (!l2neigh) {
-    return -1;
-  }
-
-  if (dlep_writer_add_mac_tlv(&session->writer, neigh)) {
-    return -1;
-  }
-
-  if (dlep_writer_map_l2neigh_data(&session->writer, _base,
-      l2neigh->data)) {
-    return -1;
-  }
   return 0;
 }
 

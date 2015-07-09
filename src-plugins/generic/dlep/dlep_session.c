@@ -64,6 +64,7 @@ dlep_session_add(struct dlep_session *session, const char *l2_ifname,
     enum oonf_log_source log_source) {
   struct dlep_session_parser *parser;
   struct dlep_extension *ext;
+  int32_t i;
 
   parser = &session->parser;
 
@@ -87,7 +88,7 @@ dlep_session_add(struct dlep_session *session, const char *l2_ifname,
   }
 
   /* allocate memory for the pointers */
-  parser->extensions = calloc(1, sizeof(*ext));
+  parser->extensions = calloc(DLEP_EXTENSION_BASE_COUNT, sizeof(*ext));
   if (!parser->extensions) {
     OONF_WARN(session->log_source,
         "Cannot allocate extension buffer for %s", l2_ifname);
@@ -96,7 +97,7 @@ dlep_session_add(struct dlep_session *session, const char *l2_ifname,
   }
 
   /* remember the sessions */
-  parser->extension_count = 1;
+  parser->extension_count = DLEP_EXTENSION_BASE_COUNT;
 
   parser->values = calloc(SESSION_VALUE_STEP,
       sizeof(struct dlep_parser_value));
@@ -107,12 +108,14 @@ dlep_session_add(struct dlep_session *session, const char *l2_ifname,
     return -1;
   }
 
-  parser->extensions[0] = dlep_extension_get(DLEP_EXTENSION_BASE);
-  if (!parser->extensions[0]) {
-    OONF_WARN(session->log_source,
-        "default extension not found");
-    dlep_session_remove(session);
-    return -1;
+  for (i=0; i<DLEP_EXTENSION_BASE_COUNT; i++) {
+    parser->extensions[i] = dlep_extension_get(-(i+1));
+    if (!parser->extensions[i]) {
+      OONF_WARN(session->log_source,
+          "default extension not found");
+      dlep_session_remove(session);
+      return -1;
+    }
   }
 
   if (_update_allowed_tlvs(parser)) {
@@ -418,14 +421,14 @@ _generate_signal(struct dlep_session *session, uint16_t signal,
       if (session->radio && ext->signals[s].add_radio_tlvs) {
         OONF_DEBUG(session->log_source,
             "Add tlvs for radio extension %d", ext->id);
-        if (ext->signals[s].add_radio_tlvs(session, neighbor)) {
+        if (ext->signals[s].add_radio_tlvs(ext, session, neighbor)) {
           return -1;
         }
       }
       else if (!session->radio && ext->signals[s].add_router_tlvs) {
         OONF_DEBUG(session->log_source,
             "Add tlvs for router extension %d", ext->id);
-        if (ext->signals[s].add_router_tlvs(session, neighbor)) {
+        if (ext->signals[s].add_router_tlvs(ext, session, neighbor)) {
           return -1;
         }
       }
@@ -669,7 +672,6 @@ _check_mandatory(struct dlep_session_parser *parser, uint16_t signal_type) {
 
     extsig = NULL;
     for (s = 0; s < ext->signal_count; s++) {
-      extsig = &ext->signals[s];
       if (ext->signals[s].id == signal_type) {
         extsig = &ext->signals[s];
         break;
@@ -684,6 +686,7 @@ _check_mandatory(struct dlep_session_parser *parser, uint16_t signal_type) {
         }
 
         if (tlv->tlv_first == -1) {
+fprintf(stderr, "tlv missing: %u (%u/%s)\n", tlv->id, extsig->id, ext->name);
           return DLEP_NEW_PARSER_MISSING_MANDATORY_TLV;
         }
       }
@@ -749,14 +752,14 @@ _call_extension_processing(struct dlep_session *session, uint16_t signal_type) {
       }
 
       if (session->radio) {
-        if (ext->signals[s].process_radio(session)) {
+        if (ext->signals[s].process_radio(ext, session)) {
           OONF_DEBUG(session->log_source,
               "Error in radio signal processing of extension '%s'", ext->name);
           return -1;
         }
       }
       else {
-        if (ext->signals[s].process_router(session)) {
+        if (ext->signals[s].process_router(ext, session)) {
           OONF_DEBUG(session->log_source,
               "Error in router signal processing of extension '%s'", ext->name);
           return -1;

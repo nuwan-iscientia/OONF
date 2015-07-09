@@ -1,13 +1,15 @@
 # set source files
-SET (radio_only_source  dlep_base/dlep_base_radio.c
+SET (radio_only_source  ext_base_proto/proto_radio.c
                         radio/dlep_radio.c
                         radio/dlep_radio_interface.c
                         radio/dlep_radio_session.c) 
-SET (router_only_source dlep_base/dlep_base_router.c
+SET (router_only_source ext_base_proto/proto_router.c
                         router/dlep_router.c
                         router/dlep_router_interface.c
                         router/dlep_router_session.c)
-SET (common_source      dlep_base/dlep_base.c
+SET (common_source      ext_base_metric/metric.c
+                        ext_base_proto/proto.c
+                        ext_l2_statistics/l2_statistics.c
                         dlep_extension.c
                         dlep_interface.c
                         dlep_session.c

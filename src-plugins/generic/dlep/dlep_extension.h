@@ -18,10 +18,6 @@ struct dlep_extension;
 
 #include "dlep/dlep_session.h"
 
-enum {
-  DLEP_EXTENSION_BASE      = -1,
-};
-
 struct dlep_extension_signal {
     /* signal id */
     uint16_t id;
@@ -38,10 +34,14 @@ struct dlep_extension_signal {
     const uint16_t *duplicate_tlvs;
     size_t duplicate_tlv_count;
 
-    enum dlep_parser_error (*process_radio)(struct dlep_session *session);
-    enum dlep_parser_error (*process_router)(struct dlep_session *session);
-    int (*add_radio_tlvs)(struct dlep_session *session, const struct netaddr *);
-    int (*add_router_tlvs)(struct dlep_session *session, const struct netaddr *);
+    enum dlep_parser_error (*process_radio)(
+        struct dlep_extension *, struct dlep_session *);
+    enum dlep_parser_error (*process_router)(
+        struct dlep_extension *, struct dlep_session *);
+    int (*add_radio_tlvs)(struct dlep_extension *,
+        struct dlep_session *, const struct netaddr *);
+    int (*add_router_tlvs)(struct dlep_extension *,
+        struct dlep_session *, const struct netaddr *);
 };
 
 struct dlep_extension_tlv {
@@ -53,8 +53,10 @@ struct dlep_extension_tlv {
 struct dlep_extension_implementation {
     uint16_t id;
 
-    enum dlep_parser_error (*process)(struct dlep_session *session);
-    int (*add_tlvs)(struct dlep_session *session, const struct netaddr *);
+    enum dlep_parser_error (*process)(
+        struct dlep_extension *, struct dlep_session *);
+    int (*add_tlvs)(struct dlep_extension *,
+        struct dlep_session *, const struct netaddr *);
 };
 
 struct dlep_neighbor_mapping {
@@ -62,6 +64,9 @@ struct dlep_neighbor_mapping {
     uint16_t length;
 
     enum oonf_layer2_neighbor_index layer2;
+
+    bool mandatory;
+    uint64_t default_value;
 
     int (*from_tlv)(struct oonf_layer2_data *, struct dlep_session *,
         uint16_t tlv);
@@ -74,6 +79,9 @@ struct dlep_network_mapping {
     uint16_t length;
 
     enum oonf_layer2_network_index layer2;
+
+    bool mandatory;
+    uint64_t default_value;
 
     int (*from_tlv)(struct oonf_layer2_data *, struct dlep_session *,
         uint16_t tlv);
@@ -128,6 +136,22 @@ EXPORT struct avl_tree *dlep_extension_get_tree(void);
 EXPORT void dlep_extension_add_processing(struct dlep_extension *, bool radio,
     struct dlep_extension_implementation *proc, size_t proc_count);
 EXPORT const uint16_t *dlep_extension_get_ids(uint16_t *length);
+
+EXPORT int dlep_extension_router_process_peer_init_ack(
+    struct dlep_extension *, struct dlep_session *session);
+EXPORT int dlep_extension_router_process_peer_update(
+    struct dlep_extension *, struct dlep_session *session);
+EXPORT int dlep_extension_router_process_destination(
+    struct dlep_extension *, struct dlep_session *session);
+EXPORT int dlep_extension_radio_write_peer_init_ack(
+    struct dlep_extension *ext, struct dlep_session *session,
+    const struct netaddr *neigh);
+EXPORT int dlep_extension_radio_write_peer_update(
+    struct dlep_extension *ext, struct dlep_session *session,
+    const struct netaddr *neigh);
+EXPORT int dlep_extension_radio_write_destination(
+    struct dlep_extension *ext, struct dlep_session *session,
+    const struct netaddr *neigh);
 
 static INLINE struct dlep_extension *
 dlep_extension_get(int32_t id) {

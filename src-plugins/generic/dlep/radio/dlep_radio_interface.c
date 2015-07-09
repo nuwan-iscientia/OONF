@@ -52,9 +52,13 @@
 #include "dlep/dlep_iana.h"
 #include "dlep/dlep_session.h"
 #include "dlep/dlep_writer.h"
-#include "dlep/dlep_base/dlep_base_radio.h"
+
 #include "dlep/radio/dlep_radio.h"
 #include "dlep/radio/dlep_radio_interface.h"
+
+#include "dlep/ext_base_proto/proto_radio.h"
+#include "dlep/ext_base_metric/metric.h"
+#include "dlep/ext_l2_statistics/l2_statistics.h"
 #include "dlep/radio/dlep_radio_internal.h"
 #include "dlep/radio/dlep_radio_session.h"
 
@@ -83,7 +87,9 @@ dlep_radio_interface_init(void) {
   dlep_extension_init();
   dlep_session_init();
   dlep_radio_session_init();
-  dlep_base_radio_init();
+  dlep_base_proto_radio_init();
+  dlep_base_metric_init();
+  dlep_l2_statistics_init();
 
   _shutting_down = false;
   return 0;

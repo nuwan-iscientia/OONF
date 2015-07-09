@@ -11,6 +11,11 @@
 #include "common/avl.h"
 #include "common/avl_comp.h"
 
+#include "subsystems/oonf_layer2.h"
+
+#include "dlep/dlep_reader.h"
+#include "dlep/dlep_session.h"
+#include "dlep/dlep_writer.h"
 #include "dlep/dlep_extension.h"
 
 static struct avl_tree _extension_tree;
@@ -83,4 +88,149 @@ const uint16_t *
 dlep_extension_get_ids(uint16_t *length) {
   *length = _id_array_length;
   return _id_array;
+}
+
+int
+dlep_extension_router_process_peer_init_ack(
+    struct dlep_extension *ext, struct dlep_session *session) {
+  struct oonf_layer2_net *l2net;
+
+  if (session->next_signal != DLEP_PEER_INITIALIZATION_ACK) {
+    /* ignore unless we are in initialization mode */
+    return 0;
+  }
+
+  l2net = oonf_layer2_net_add(session->l2_listener.name);
+  if (!l2net) {
+    return -1;
+  }
+
+  if (dlep_reader_map_l2neigh_data(l2net->neighdata, session, ext)) {
+    OONF_DEBUG(session->log_source, "tlv mapping failed");
+    return -1;
+  }
+  return 0;
+}
+
+int
+dlep_extension_router_process_peer_update(
+    struct dlep_extension *ext, struct dlep_session *session) {
+  struct oonf_layer2_net *l2net;
+
+  if (session->next_signal != DLEP_PEER_INITIALIZATION_ACK) {
+    /* ignore unless we are in initialization mode */
+    return 0;
+  }
+
+  l2net = oonf_layer2_net_add(session->l2_listener.name);
+  if (!l2net) {
+    return -1;
+  }
+
+  if (dlep_reader_map_l2neigh_data(l2net->neighdata, session, ext)) {
+    OONF_DEBUG(session->log_source, "tlv mapping failed");
+    return -1;
+  }
+  return 0;
+}
+
+int
+dlep_extension_router_process_destination(
+    struct dlep_extension *ext, struct dlep_session *session) {
+  struct oonf_layer2_net *l2net;
+   struct oonf_layer2_neigh *l2neigh;
+   struct netaddr mac;
+
+   if (dlep_reader_mac_tlv(&mac, session, NULL)) {
+     OONF_DEBUG(session->log_source, "mac tlv missing");
+     return -1;
+   }
+
+   l2net = oonf_layer2_net_get(session->l2_listener.name);
+   if (!l2net) {
+     return 0;
+   }
+   l2neigh = oonf_layer2_neigh_add(l2net, &mac);
+   if (!l2neigh) {
+     return 0;
+   }
+
+   if (dlep_reader_map_l2neigh_data(l2neigh->data, session, ext)) {
+     OONF_DEBUG(session->log_source, "tlv mapping failed");
+     return -1;
+   }
+   return 0;
+}
+
+int
+dlep_extension_radio_write_peer_init_ack(
+    struct dlep_extension *ext, struct dlep_session *session,
+    const struct netaddr *neigh __attribute__((unused))) {
+  struct oonf_layer2_net *l2net;
+  struct oonf_layer2_data *l2data;
+  size_t i;
+
+  /* first make sure defaults are set correctly */
+  l2net = oonf_layer2_net_add(session->l2_listener.name);
+  if (!l2net) {
+    return -1;
+  }
+
+  for (i=0; i<ext->neigh_mapping_count; i++) {
+    if (!ext->neigh_mapping[i].mandatory) {
+      continue;
+    }
+
+    l2data = &l2net->neighdata[ext->neigh_mapping[i].layer2];
+
+    if (!oonf_layer2_has_value(l2data)) {
+      oonf_layer2_set_value(l2data, session->l2_origin,
+          ext->neigh_mapping[i].default_value);
+    }
+  }
+
+  /* write default metric values */
+  return dlep_writer_map_l2neigh_data(&session->writer, ext,
+      l2net->neighdata);
+}
+
+int
+dlep_extension_radio_write_peer_update(
+    struct dlep_extension *ext, struct dlep_session *session,
+    const struct netaddr *neigh __attribute__((unused))) {
+  struct oonf_layer2_net *l2net;
+
+  l2net = oonf_layer2_net_get(session->l2_listener.name);
+  if (!l2net) {
+    return -1;
+  }
+
+  if (dlep_writer_map_l2neigh_data(&session->writer, ext,
+      l2net->neighdata)) {
+    return -1;
+  }
+  return 0;
+}
+
+int
+dlep_extension_radio_write_destination(struct dlep_extension *ext,
+    struct dlep_session *session, const struct netaddr *neigh) {
+  struct oonf_layer2_net *l2net;
+  struct oonf_layer2_neigh *l2neigh;
+
+  l2net = oonf_layer2_net_get(session->l2_listener.name);
+  if (!l2net) {
+    return -1;
+  }
+
+  l2neigh = oonf_layer2_neigh_get(l2net, neigh);
+  if (!l2neigh) {
+    return -1;
+  }
+
+  if (dlep_writer_map_l2neigh_data(&session->writer, ext,
+      l2neigh->data)) {
+    return -1;
+  }
+  return 0;
 }

@@ -5,9 +5,6 @@
  *      Author: rogge
  */
 
-
-#include "../dlep_base/dlep_base_router.h"
-
 #include "common/common_types.h"
 #include "common/avl.h"
 #include "common/autobuf.h"
@@ -19,28 +16,29 @@
 #include "dlep/dlep_writer.h"
 #include "dlep/router/dlep_router_interface.h"
 #include "dlep/router/dlep_router_session.h"
-#include "dlep/dlep_base/dlep_base.h"
-#include "dlep/dlep_base/dlep_base_router.h"
+
+#include "dlep/ext_base_proto/proto.h"
+#include "dlep/ext_base_proto/proto_router.h"
 
 static void _cb_init_router(struct dlep_session *);
 static void _cb_apply_router(struct dlep_session *);
 static void _cb_cleanup_router(struct dlep_session *);
 static void _cb_peer_create_discovery(void *);
 
-static int _router_process_peer_offer(struct dlep_session *);
-static int _router_process_peer_init_ack(struct dlep_session *);
-static int _router_process_peer_update(struct dlep_session *);
-static int _router_process_peer_update_ack(struct dlep_session *);
-static int _router_process_destination_up(struct dlep_session *);
-static int _router_process_destination_up_ack(struct dlep_session *);
-static int _router_process_destination_down(struct dlep_session *);
-static int _router_process_destination_down_ack(struct dlep_session *);
-static int _router_process_destination_update(struct dlep_session *);
-static int _router_process_link_char_ack(struct dlep_session *);
+static int _router_process_peer_offer(struct dlep_extension *, struct dlep_session *);
+static int _router_process_peer_init_ack(struct dlep_extension *, struct dlep_session *);
+static int _router_process_peer_update(struct dlep_extension *, struct dlep_session *);
+static int _router_process_peer_update_ack(struct dlep_extension *, struct dlep_session *);
+static int _router_process_destination_up(struct dlep_extension *, struct dlep_session *);
+static int _router_process_destination_up_ack(struct dlep_extension *, struct dlep_session *);
+static int _router_process_destination_down(struct dlep_extension *, struct dlep_session *);
+static int _router_process_destination_down_ack(struct dlep_extension *, struct dlep_session *);
+static int _router_process_destination_update(struct dlep_extension *, struct dlep_session *);
+static int _router_process_link_char_ack(struct dlep_extension *, struct dlep_session *);
 
-static int _router_write_peer_discovery(
+static int _router_write_peer_discovery(struct dlep_extension *,
     struct dlep_session *session, const struct netaddr *);
-static int _router_write_peer_init(
+static int _router_write_peer_init(struct dlep_extension *,
     struct dlep_session *session, const struct netaddr *);
 
 static struct dlep_extension_implementation _router_signals[] = {
@@ -70,11 +68,11 @@ static struct dlep_extension_implementation _router_signals[] = {
     },
     {
         .id = DLEP_PEER_TERMINATION,
-        .process = dlep_base_process_peer_termination,
+        .process = dlep_base_proto_process_peer_termination,
     },
     {
         .id = DLEP_PEER_TERMINATION_ACK,
-        .process = dlep_base_process_peer_termination_ack,
+        .process = dlep_base_proto_process_peer_termination_ack,
     },
     {
         .id = DLEP_DESTINATION_UP,
@@ -83,7 +81,7 @@ static struct dlep_extension_implementation _router_signals[] = {
     {
         .id = DLEP_DESTINATION_UP_ACK,
         .process = _router_process_destination_up_ack,
-        .add_tlvs = dlep_base_write_mac_only,
+        .add_tlvs = dlep_base_proto_write_mac_only,
     },
     {
         .id = DLEP_DESTINATION_DOWN,
@@ -92,7 +90,7 @@ static struct dlep_extension_implementation _router_signals[] = {
     {
         .id = DLEP_DESTINATION_DOWN_ACK,
         .process = _router_process_destination_down_ack,
-        .add_tlvs = dlep_base_write_mac_only,
+        .add_tlvs = dlep_base_proto_write_mac_only,
     },
     {
         .id = DLEP_DESTINATION_UPDATE,
@@ -100,7 +98,7 @@ static struct dlep_extension_implementation _router_signals[] = {
     },
     {
         .id = DLEP_HEARTBEAT,
-        .process = dlep_base_process_heartbeat,
+        .process = dlep_base_proto_process_heartbeat,
     },
     {
         .id = DLEP_LINK_CHARACTERISTICS_ACK,
@@ -116,8 +114,8 @@ static struct oonf_timer_class _peer_discovery_class = {
 static struct dlep_extension *_base;
 
 void
-dlep_base_router_init(void) {
-  _base = dlep_base_init();
+dlep_base_proto_router_init(void) {
+  _base = dlep_base_proto_init();
   dlep_extension_add_processing(_base, false,
       _router_signals, ARRAYSIZE(_router_signals));
 
@@ -139,7 +137,7 @@ _cb_init_router(struct dlep_session *session) {
     session->cb_send_buffer(session, 0);
 
     session->remote_heartbeat_interval = session->cfg.heartbeat_interval;
-    dlep_base_start_remote_heartbeat(session);
+    dlep_base_proto_start_remote_heartbeat(session);
   }
 }
 
@@ -172,7 +170,7 @@ _cb_cleanup_router(struct dlep_session *session) {
     oonf_layer2_net_remove(l2net, session->l2_origin);
   }
 
-  dlep_base_stop_timers(session);
+  dlep_base_proto_stop_timers(session);
 }
 
 static void
@@ -189,7 +187,9 @@ _cb_peer_create_discovery(void *ptr) {
 }
 
 static int
-_router_process_peer_offer(struct dlep_session *session) {
+_router_process_peer_offer(
+    struct dlep_extension *ext __attribute__((unused)),
+    struct dlep_session *session) {
   struct dlep_router_if *router_if;
   union netaddr_socket local, remote;
   struct dlep_parser_value *value;
@@ -204,7 +204,7 @@ _router_process_peer_offer(struct dlep_session *session) {
   }
 
   /* optional peer type tlv */
-  dlep_base_print_peer_type(session);
+  dlep_base_proto_print_peer_type(session);
 
   /* we are looking for a good address to respond to */
   result = NULL;
@@ -267,7 +267,11 @@ _router_process_peer_offer(struct dlep_session *session) {
 }
 
 static int
-_router_process_peer_init_ack(struct dlep_session *session) {
+_router_process_peer_init_ack(
+    struct dlep_extension *ext __attribute__((unused)),
+    struct dlep_session *session) {
+  struct oonf_layer2_net *l2net;
+
   if (session->next_signal != DLEP_PEER_INITIALIZATION_ACK) {
     /* ignore unless we are in initialization mode */
     return 0;
@@ -280,13 +284,23 @@ _router_process_peer_init_ack(struct dlep_session *session) {
     return -1;
   }
 
+  l2net = oonf_layer2_net_add(session->l2_listener.name);
+  if (!l2net) {
+    return -1;
+  }
+
+  if (dlep_reader_map_l2neigh_data(l2net->neighdata, session, _base)) {
+    OONF_DEBUG(session->log_source, "tlv mapping failed");
+    return -1;
+  }
+
   OONF_DEBUG(session->log_source, "Remote heartbeat interval %"PRIu64,
       session->remote_heartbeat_interval);
 
-  dlep_base_start_local_heartbeat(session);
-  dlep_base_start_remote_heartbeat(session);
+  dlep_base_proto_start_local_heartbeat(session);
+  dlep_base_proto_start_remote_heartbeat(session);
 
-  dlep_base_print_status(session);
+  dlep_base_proto_print_status(session);
 
   session->next_signal = DLEP_ALL_SIGNALS;
 
@@ -294,7 +308,9 @@ _router_process_peer_init_ack(struct dlep_session *session) {
 }
 
 static int
-_router_process_peer_update(struct dlep_session *session) {
+_router_process_peer_update(
+    struct dlep_extension *ext __attribute__((unused)),
+    struct dlep_session *session) {
   struct oonf_layer2_net *l2net;
 
   l2net = oonf_layer2_net_add(session->l2_listener.name);
@@ -310,13 +326,17 @@ _router_process_peer_update(struct dlep_session *session) {
 }
 
 static int
-_router_process_peer_update_ack(struct dlep_session *session) {
-  dlep_base_print_status(session);
+_router_process_peer_update_ack(
+    struct dlep_extension *ext __attribute__((unused)),
+    struct dlep_session *session) {
+  dlep_base_proto_print_status(session);
   return 0;
 }
 
 static int
-_router_process_destination_up(struct dlep_session *session) {
+_router_process_destination_up(
+    struct dlep_extension *ext __attribute__((unused)),
+    struct dlep_session *session) {
   struct oonf_layer2_net *l2net;
   struct oonf_layer2_neigh *l2neigh;
   struct netaddr mac;
@@ -349,13 +369,17 @@ _router_process_destination_up(struct dlep_session *session) {
 }
 
 static int
-_router_process_destination_up_ack(struct dlep_session *session) {
-  dlep_base_print_status(session);
+_router_process_destination_up_ack(
+    struct dlep_extension *ext __attribute__((unused)),
+    struct dlep_session *session) {
+  dlep_base_proto_print_status(session);
   return 0;
 }
 
 static int
-_router_process_destination_down(struct dlep_session *session) {
+_router_process_destination_down(
+    struct dlep_extension *ext __attribute__((unused)),
+    struct dlep_session *session) {
   struct oonf_layer2_net *l2net;
   struct oonf_layer2_neigh *l2neigh;
   struct netaddr mac;
@@ -382,13 +406,17 @@ _router_process_destination_down(struct dlep_session *session) {
 }
 
 static int
-_router_process_destination_down_ack(struct dlep_session *session) {
-  dlep_base_print_status(session);
+_router_process_destination_down_ack(
+    struct dlep_extension *ext __attribute__((unused)),
+    struct dlep_session *session) {
+  dlep_base_proto_print_status(session);
   return 0;
 }
 
 static int
-_router_process_destination_update(struct dlep_session *session) {
+_router_process_destination_update(
+    struct dlep_extension *ext __attribute__((unused)),
+    struct dlep_session *session) {
   struct oonf_layer2_net *l2net;
   struct oonf_layer2_neigh *l2neigh;
   struct netaddr mac;
@@ -416,13 +444,17 @@ _router_process_destination_update(struct dlep_session *session) {
 }
 
 static int
-_router_process_link_char_ack(struct dlep_session *session) {
-  dlep_base_print_status(session);
+_router_process_link_char_ack(
+    struct dlep_extension *ext __attribute__((unused)),
+    struct dlep_session *session) {
+  dlep_base_proto_print_status(session);
   return 0;
 }
 
 static int
-_router_write_peer_discovery(struct dlep_session *session,
+_router_write_peer_discovery(
+    struct dlep_extension *ext __attribute__((unused)),
+    struct dlep_session *session,
     const struct netaddr *addr __attribute__((unused))) {
   if (session->next_signal != DLEP_PEER_OFFER) {
     return -1;
@@ -431,7 +463,9 @@ _router_write_peer_discovery(struct dlep_session *session,
 }
 
 static int
-_router_write_peer_init(struct dlep_session *session,
+_router_write_peer_init(
+    struct dlep_extension *ext __attribute__((unused)),
+    struct dlep_session *session,
     const struct netaddr *addr __attribute__((unused))) {
   const uint16_t *ext_ids;
   uint16_t ext_count;

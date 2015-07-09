@@ -5,36 +5,28 @@
  *      Author: rogge
  */
 
-#include "../dlep_base/dlep_base.h"
-
 #include "common/common_types.h"
 #include "common/avl.h"
 #include "common/autobuf.h"
-#include "core/oonf_logging.h"
 #include "subsystems/oonf_timer.h"
 
 #include "dlep/dlep_iana.h"
 #include "dlep/dlep_extension.h"
 #include "dlep/dlep_reader.h"
 #include "dlep/dlep_writer.h"
-#include "dlep/dlep_base/dlep_base.h"
+
+#include "dlep/ext_base_proto/proto.h"
 
 static void _cb_local_heartbeat(void *);
 static void _cb_remote_heartbeat(void *);
 
 /* peer discovery */
-static const uint16_t _peer_discovery_tlvs[] = {
-};
-static const uint16_t _peer_discovery_mandatory[] = {
-};
 
 /* peer offer */
 static const uint16_t _peer_offer_tlvs[] = {
     DLEP_PEER_TYPE_TLV,
     DLEP_IPV4_CONPOINT_TLV,
     DLEP_IPV6_CONPOINT_TLV,
-};
-static const uint16_t _peer_offer_mandatory[] = {
 };
 
 /* peer initialization */
@@ -50,39 +42,16 @@ static const uint16_t _peer_init_mandatory[] = {
 /* peer initialization ack */
 static const uint16_t _peer_initack_tlvs[] = {
     DLEP_HEARTBEAT_INTERVAL_TLV,
-    DLEP_MDRR_TLV,
-    DLEP_MDRT_TLV,
-    DLEP_CDRR_TLV,
-    DLEP_CDRT_TLV,
-    DLEP_LATENCY_TLV,
-    DLEP_RESR_TLV,
-    DLEP_REST_TLV,
-    DLEP_RLQR_TLV,
-    DLEP_RLQT_TLV,
     DLEP_STATUS_TLV,
     DLEP_PEER_TYPE_TLV,
     DLEP_EXTENSIONS_SUPPORTED_TLV,
 };
 static const uint16_t _peer_initack_mandatory[] = {
     DLEP_HEARTBEAT_INTERVAL_TLV,
-    DLEP_MDRR_TLV,
-    DLEP_MDRT_TLV,
-    DLEP_CDRR_TLV,
-    DLEP_CDRT_TLV,
-    DLEP_LATENCY_TLV,
 };
 
 /* peer update */
 static const uint16_t _peer_update_tlvs[] = {
-    DLEP_MDRR_TLV,
-    DLEP_MDRT_TLV,
-    DLEP_CDRR_TLV,
-    DLEP_CDRT_TLV,
-    DLEP_LATENCY_TLV,
-    DLEP_RESR_TLV,
-    DLEP_REST_TLV,
-    DLEP_RLQR_TLV,
-    DLEP_RLQT_TLV,
     DLEP_IPV4_ADDRESS_TLV,
     DLEP_IPV6_ADDRESS_TLV,
 };
@@ -109,15 +78,6 @@ static const uint16_t _peer_terminationack_tlvs[] = {
 /* destination up */
 static const uint16_t _dst_up_tlvs[] = {
     DLEP_MAC_ADDRESS_TLV,
-    DLEP_MDRR_TLV,
-    DLEP_MDRT_TLV,
-    DLEP_CDRR_TLV,
-    DLEP_CDRT_TLV,
-    DLEP_LATENCY_TLV,
-    DLEP_RESR_TLV,
-    DLEP_REST_TLV,
-    DLEP_RLQR_TLV,
-    DLEP_RLQT_TLV,
     DLEP_IPV4_ADDRESS_TLV,
     DLEP_IPV6_ADDRESS_TLV,
     DLEP_IPV4_SUBNET_TLV,
@@ -162,15 +122,6 @@ static const uint16_t _dst_down_ack_mandatory[] = {
 /* destination update */
 static const uint16_t _dst_update_tlvs[] = {
     DLEP_MAC_ADDRESS_TLV,
-    DLEP_MDRR_TLV,
-    DLEP_MDRT_TLV,
-    DLEP_CDRR_TLV,
-    DLEP_CDRT_TLV,
-    DLEP_LATENCY_TLV,
-    DLEP_RESR_TLV,
-    DLEP_REST_TLV,
-    DLEP_RLQR_TLV,
-    DLEP_RLQT_TLV,
     DLEP_IPV4_ADDRESS_TLV,
     DLEP_IPV6_ADDRESS_TLV,
     DLEP_IPV4_SUBNET_TLV,
@@ -220,31 +171,11 @@ static const uint16_t _linkchar_ack_mandatory[] = {
 static struct dlep_extension_signal _signals[] = {
     {
         .id = DLEP_PEER_DISCOVERY,
-        .supported_tlvs = _peer_discovery_tlvs,
-        .supported_tlv_count = ARRAYSIZE(_peer_discovery_tlvs),
-        .mandatory_tlvs = _peer_discovery_mandatory,
-        .mandatory_tlv_count = ARRAYSIZE(_peer_discovery_mandatory),
     },
     {
         .id = DLEP_PEER_OFFER,
         .supported_tlvs = _peer_offer_tlvs,
         .supported_tlv_count = ARRAYSIZE(_peer_offer_tlvs),
-        .mandatory_tlvs = _peer_offer_mandatory,
-        .mandatory_tlv_count = ARRAYSIZE(_peer_offer_mandatory),
-    },
-    {
-        .id = DLEP_PEER_DISCOVERY,
-        .supported_tlvs = _peer_discovery_tlvs,
-        .supported_tlv_count = ARRAYSIZE(_peer_discovery_tlvs),
-        .mandatory_tlvs = _peer_discovery_mandatory,
-        .mandatory_tlv_count = ARRAYSIZE(_peer_discovery_mandatory),
-    },
-    {
-        .id = DLEP_PEER_OFFER,
-        .supported_tlvs = _peer_offer_tlvs,
-        .supported_tlv_count = ARRAYSIZE(_peer_offer_tlvs),
-        .mandatory_tlvs = _peer_offer_mandatory,
-        .mandatory_tlv_count = ARRAYSIZE(_peer_offer_mandatory),
     },
     {
         .id = DLEP_PEER_INITIALIZATION,
@@ -432,8 +363,8 @@ static struct dlep_neighbor_mapping _neigh_mappings[] = {
 };
 
 /* DLEP base extension, radio side */
-static struct dlep_extension _base = {
-  .id = DLEP_EXTENSION_BASE,
+static struct dlep_extension _base_proto = {
+  .id = DLEP_EXTENSION_BASE_PROTO,
   .name = "base",
 
   .signals = _signals,
@@ -455,21 +386,21 @@ static struct oonf_timer_class _remote_heartbeat_class = {
 };
 
 struct dlep_extension *
-dlep_base_init(void) {
-  if (_base._node.key) {
-    return &_base;
+dlep_base_proto_init(void) {
+  if (avl_is_node_added(&_base_proto._node)) {
+    return &_base_proto;
   }
 
-  _base._node.key = &_base.id;
-  avl_insert(dlep_extension_get_tree(), &_base._node);
+  _base_proto._node.key = &_base_proto.id;
+  avl_insert(dlep_extension_get_tree(), &_base_proto._node);
 
   oonf_timer_add(&_local_heartbeat_class);
   oonf_timer_add(&_remote_heartbeat_class);
-  return &_base;
+  return &_base_proto;
 }
 
 void
-dlep_base_start_local_heartbeat(struct dlep_session *session) {
+dlep_base_proto_start_local_heartbeat(struct dlep_session *session) {
   /* timer for local heartbeat generation */
   session->local_event_timer.class = &_local_heartbeat_class;
   session->local_event_timer.cb_context = session;
@@ -478,7 +409,7 @@ dlep_base_start_local_heartbeat(struct dlep_session *session) {
 }
 
 void
-dlep_base_start_remote_heartbeat(struct dlep_session *session) {
+dlep_base_proto_start_remote_heartbeat(struct dlep_session *session) {
   /* timeout for remote heartbeats */
   session->remote_heartbeat_timeout.class = &_remote_heartbeat_class;
   session->remote_heartbeat_timeout.cb_context = session;
@@ -487,14 +418,14 @@ dlep_base_start_remote_heartbeat(struct dlep_session *session) {
 }
 
 void
-dlep_base_stop_timers(struct dlep_session *session) {
+dlep_base_proto_stop_timers(struct dlep_session *session) {
   OONF_DEBUG(session->log_source, "Cleanup base session");
   oonf_timer_stop(&session->local_event_timer);
   oonf_timer_stop(&session->remote_heartbeat_timeout);
 }
 
 enum dlep_status
-dlep_base_print_status(struct dlep_session *session) {
+dlep_base_proto_print_status(struct dlep_session *session) {
   enum dlep_status status;
   char text[256];
 
@@ -508,7 +439,7 @@ dlep_base_print_status(struct dlep_session *session) {
 }
 
 void
-dlep_base_print_peer_type(struct dlep_session *session) {
+dlep_base_proto_print_peer_type(struct dlep_session *session) {
   char text[256];
 
   if (!dlep_reader_peer_type(text, sizeof(text), session, NULL)) {
@@ -518,14 +449,18 @@ dlep_base_print_peer_type(struct dlep_session *session) {
 }
 
 int
-dlep_base_process_peer_termination(struct dlep_session *session) {
-  dlep_base_print_status(session);
+dlep_base_proto_process_peer_termination(
+    struct dlep_extension *ext __attribute__((unused)),
+    struct dlep_session *session) {
+  dlep_base_proto_print_status(session);
 
   return dlep_session_generate_signal(session, DLEP_PEER_TERMINATION_ACK, NULL);
 }
 
 int
-dlep_base_process_peer_termination_ack(struct dlep_session *session) {
+dlep_base_proto_process_peer_termination_ack(
+    struct dlep_extension *ext __attribute__((unused)),
+    struct dlep_session *session) {
   if (session->cb_end_session) {
     session->cb_end_session(session);
   }
@@ -533,7 +468,9 @@ dlep_base_process_peer_termination_ack(struct dlep_session *session) {
 }
 
 int
-dlep_base_process_heartbeat(struct dlep_session *session) {
+dlep_base_proto_process_heartbeat(
+    struct dlep_extension *ext __attribute__((unused)),
+    struct dlep_session *session) {
   /* just restart the timeout with the same period */
   oonf_timer_set(&session->remote_heartbeat_timeout,
       session->remote_heartbeat_interval * 2);
@@ -541,7 +478,8 @@ dlep_base_process_heartbeat(struct dlep_session *session) {
 }
 
 int
-dlep_base_write_mac_only(
+dlep_base_proto_write_mac_only(
+    struct dlep_extension *ext __attribute__((unused)),
     struct dlep_session *session, const struct netaddr *neigh) {
   if (dlep_writer_add_mac_tlv(&session->writer, neigh)) {
     return -1;
