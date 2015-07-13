@@ -109,6 +109,10 @@ dlep_extension_router_process_peer_init_ack(
     OONF_DEBUG(session->log_source, "tlv mapping failed");
     return -1;
   }
+  if (dlep_reader_map_l2net_data(l2net->data, session, ext)) {
+    OONF_DEBUG(session->log_source, "tlv mapping failed");
+    return -1;
+  }
   return 0;
 }
 
@@ -128,6 +132,10 @@ dlep_extension_router_process_peer_update(
   }
 
   if (dlep_reader_map_l2neigh_data(l2net->neighdata, session, ext)) {
+    OONF_DEBUG(session->log_source, "tlv mapping failed");
+    return -1;
+  }
+  if (dlep_reader_map_l2net_data(l2net->data, session, ext)) {
     OONF_DEBUG(session->log_source, "tlv mapping failed");
     return -1;
   }
@@ -190,8 +198,14 @@ dlep_extension_radio_write_peer_init_ack(
   }
 
   /* write default metric values */
-  return dlep_writer_map_l2neigh_data(&session->writer, ext,
-      l2net->neighdata);
+  if (dlep_writer_map_l2neigh_data(&session->writer, ext,
+      l2net->neighdata)) {
+    return -1;
+  }
+
+  /* write network wide data */
+  return dlep_writer_map_l2net_data(&session->writer, ext,
+      l2net->data);
 }
 
 int

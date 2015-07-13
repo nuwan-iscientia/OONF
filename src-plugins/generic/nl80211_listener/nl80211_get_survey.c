@@ -146,11 +146,14 @@ nl80211_process_get_survey_result(struct nl80211_if *interf, struct nlmsghdr *hd
         interf->l2net, OONF_LAYER2_NET_CHANNEL_BUSY,
             1000000ll * (int64_t)nla_get_u64(sinfo[NL80211_SURVEY_INFO_CHANNEL_TIME_BUSY]));
   }
+#if 0
+  /* I have no clue what this is */
   if (sinfo[NL80211_SURVEY_INFO_CHANNEL_TIME_EXT_BUSY]) {
     interf->ifdata_changed |= nl80211_change_l2net_data(
         interf->l2net, OONF_LAYER2_NET_CHANNEL_BUSYEXT,
             1000000ll * (int64_t)nla_get_u64(sinfo[NL80211_SURVEY_INFO_CHANNEL_TIME_EXT_BUSY]));
   }
+#endif
   if (sinfo[NL80211_SURVEY_INFO_CHANNEL_TIME_RX]) {
     interf->ifdata_changed |= nl80211_change_l2net_data(
         interf->l2net, OONF_LAYER2_NET_CHANNEL_RX,

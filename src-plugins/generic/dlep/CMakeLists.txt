@@ -9,6 +9,7 @@ SET (router_only_source ext_base_proto/proto_router.c
                         router/dlep_router_session.c)
 SET (common_source      ext_base_metric/metric.c
                         ext_base_proto/proto.c
+                        ext_l1_statistics/l1_statistics.c
                         ext_l2_statistics/l2_statistics.c
                         dlep_extension.c
                         dlep_interface.c

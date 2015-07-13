@@ -281,9 +281,8 @@ dlep_reader_map_identity(struct oonf_layer2_data *data,
         return -1;
     }
 
-    // TODO: dlep origin!!
     memcpy(&l2value, &tmp64, 8);
-    oonf_layer2_set_value(data, 0, l2value);
+    oonf_layer2_set_value(data, session->l2_origin, l2value);
   }
   return 0;
 }
@@ -296,6 +295,23 @@ dlep_reader_map_l2neigh_data(struct oonf_layer2_data *data,
 
   for (i=0; i<ext->neigh_mapping_count; i++) {
     map = &ext->neigh_mapping[i];
+
+    if (map->from_tlv(&data[map->layer2], session, map->dlep)) {
+      return -1;
+    }
+  }
+  return 0;
+}
+
+
+int
+dlep_reader_map_l2net_data(struct oonf_layer2_data *data,
+    struct dlep_session *session, struct dlep_extension *ext) {
+  struct dlep_network_mapping *map;
+  size_t i;
+
+  for (i=0; i<ext->if_mapping_count; i++) {
+    map = &ext->if_mapping[i];
 
     if (map->from_tlv(&data[map->layer2], session, map->dlep)) {
       return -1;

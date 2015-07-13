@@ -86,5 +86,7 @@ int dlep_writer_map_identity(struct dlep_writer *writer,
     struct oonf_layer2_data *data, uint16_t tlv, uint16_t length);
 int dlep_writer_map_l2neigh_data(struct dlep_writer *writer,
     struct dlep_extension *ext, struct oonf_layer2_data *data);
+int dlep_writer_map_l2net_data(struct dlep_writer *writer,
+    struct dlep_extension *ext, struct oonf_layer2_data *data);
 
 #endif /* DLEP_WRITER_H_ */

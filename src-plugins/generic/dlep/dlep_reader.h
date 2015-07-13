@@ -41,5 +41,7 @@ int dlep_reader_map_identity(struct oonf_layer2_data *data,
     struct dlep_session *session, uint16_t dlep_tlv);
 int dlep_reader_map_l2neigh_data(struct oonf_layer2_data *data,
     struct dlep_session *session, struct dlep_extension *ext);
+int dlep_reader_map_l2net_data(struct oonf_layer2_data *data,
+    struct dlep_session *session, struct dlep_extension *ext);
 
 #endif /* _DLEP_READER_H_ */

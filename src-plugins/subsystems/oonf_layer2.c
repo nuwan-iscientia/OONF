@@ -106,7 +106,6 @@ static const struct oonf_layer2_metadata _oonf_layer2_metadata_net[OONF_LAYER2_N
   [OONF_LAYER2_NET_NOISE]           = { .key = OONF_LAYER2_NET_NOISE_KEY, .unit="dBm", .fraction = 3 },
   [OONF_LAYER2_NET_CHANNEL_ACTIVE]  = { .key = OONF_LAYER2_NET_CHANNEL_ACTIVE_KEY, .unit="s", .fraction = 9 },
   [OONF_LAYER2_NET_CHANNEL_BUSY]    = { .key = OONF_LAYER2_NET_CHANNEL_BUSY_KEY, .unit="s", .fraction = 9 },
-  [OONF_LAYER2_NET_CHANNEL_BUSYEXT] = { .key = OONF_LAYER2_NET_CHANNEL_BUSYEXT_KEY, .unit="s", .fraction = 9 },
   [OONF_LAYER2_NET_CHANNEL_RX]      = { .key = OONF_LAYER2_NET_CHANNEL_RX_KEY, .unit="s", .fraction = 9 },
   [OONF_LAYER2_NET_CHANNEL_TX]      = { .key = OONF_LAYER2_NET_CHANNEL_TX_KEY, .unit="s", .fraction = 9 },
 };

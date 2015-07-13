@@ -58,6 +58,7 @@
 
 #include "dlep/ext_base_proto/proto_radio.h"
 #include "dlep/ext_base_metric/metric.h"
+#include "dlep/ext_l1_statistics/l1_statistics.h"
 #include "dlep/ext_l2_statistics/l2_statistics.h"
 #include "dlep/radio/dlep_radio_internal.h"
 #include "dlep/radio/dlep_radio_session.h"
@@ -89,6 +90,7 @@ dlep_radio_interface_init(void) {
   dlep_radio_session_init();
   dlep_base_proto_radio_init();
   dlep_base_metric_init();
+  dlep_l1_statistics_init();
   dlep_l2_statistics_init();
 
   _shutting_down = false;

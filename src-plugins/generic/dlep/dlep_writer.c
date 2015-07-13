@@ -322,3 +322,20 @@ dlep_writer_map_l2neigh_data(struct dlep_writer *writer,
   }
   return 0;
 }
+
+int
+dlep_writer_map_l2net_data(struct dlep_writer *writer,
+    struct dlep_extension *ext, struct oonf_layer2_data *data) {
+  struct dlep_network_mapping *map;
+  size_t i;
+
+  for (i=0; i<ext->if_mapping_count; i++) {
+    map = &ext->if_mapping[i];
+
+    if (map->to_tlv(writer, &data[map->layer2],
+        map->dlep, map->length)) {
+      return -1;
+    }
+  }
+  return 0;
+}
