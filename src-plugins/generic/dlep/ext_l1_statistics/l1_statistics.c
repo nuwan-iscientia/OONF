@@ -265,10 +265,10 @@ dlep_reader_map_array(struct oonf_layer2_data *data,
   if (value->length == 16) {
     switch (l2idx) {
       case OONF_LAYER2_NET_BANDWIDTH_1:
-        value += (OONF_LAYER2_NET_BANDWIDTH_2 - OONF_LAYER2_NET_BANDWIDTH_1);
+        data += (OONF_LAYER2_NET_BANDWIDTH_2 - OONF_LAYER2_NET_BANDWIDTH_1);
         break;
       case OONF_LAYER2_NET_FREQUENCY_1:
-        value += (OONF_LAYER2_NET_FREQUENCY_2 - OONF_LAYER2_NET_FREQUENCY_1);
+        data += (OONF_LAYER2_NET_FREQUENCY_2 - OONF_LAYER2_NET_FREQUENCY_1);
         break;
       default:
         return -1;
