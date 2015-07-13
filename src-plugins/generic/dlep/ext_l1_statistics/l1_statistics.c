@@ -240,40 +240,42 @@ dlep_reader_map_array(struct oonf_layer2_data *data,
   const uint8_t *dlepvalue;
 
   value = dlep_session_get_tlv_value(session, dlep_tlv);
-  if (value) {
-    dlepvalue = dlep_parser_get_tlv_binary(&session->parser, value);
+  if (!value) {
+    return 0;
+  }
 
-    switch (value->length) {
-      case 16:
-        memcpy(&tmp64[1], &dlepvalue[8], 8);
-        tmp64[1] = be64toh(tmp64[1]);
-        /* no break */
-      case 8:
-        memcpy(&tmp64[0], dlepvalue, 8);
-        tmp64[0] = be64toh(tmp64[0]);
+  if (value->length != 8 && value->length != 16) {
+    return -1;
+  }
+
+  dlepvalue = dlep_parser_get_tlv_binary(&session->parser, value);
+
+  /* extract dlep TLV values and convert to host representation */
+  if (value->length == 16) {
+    memcpy(&tmp64[1], &dlepvalue[8], 8);
+    tmp64[1] = be64toh(tmp64[1]);
+  }
+  memcpy(&tmp64[0], dlepvalue, 8);
+  tmp64[0] = be64toh(tmp64[0]);
+
+  /* copy into signed integer and set to l2 value */
+  memcpy(&l2value, &tmp64[0], 8);
+  oonf_layer2_set_value(data, session->l2_origin, l2value);
+
+  if (value->length == 16) {
+    switch (l2idx) {
+      case OONF_LAYER2_NET_BANDWIDTH_1:
+        value += (OONF_LAYER2_NET_BANDWIDTH_2 - OONF_LAYER2_NET_BANDWIDTH_1);
+        break;
+      case OONF_LAYER2_NET_FREQUENCY_1:
+        value += (OONF_LAYER2_NET_FREQUENCY_2 - OONF_LAYER2_NET_FREQUENCY_1);
         break;
       default:
         return -1;
     }
 
-    memcpy(&l2value, &tmp64[0], 8);
+    memcpy(&l2value, &tmp64[1], 8);
     oonf_layer2_set_value(data, session->l2_origin, l2value);
-
-    if (value->length == 16) {
-      switch (l2idx) {
-        case OONF_LAYER2_NET_BANDWIDTH_1:
-          value += (OONF_LAYER2_NET_BANDWIDTH_2 - OONF_LAYER2_NET_BANDWIDTH_1);
-          break;
-        case OONF_LAYER2_NET_FREQUENCY_1:
-          value += (OONF_LAYER2_NET_FREQUENCY_2 - OONF_LAYER2_NET_FREQUENCY_1);
-          break;
-        default:
-          return -1;
-      }
-
-      memcpy(&l2value, &tmp64[1], 8);
-      oonf_layer2_set_value(data, session->l2_origin, l2value);
-    }
   }
   return 0;
 }
