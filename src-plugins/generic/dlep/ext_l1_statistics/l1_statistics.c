@@ -247,7 +247,7 @@ dlep_reader_map_array(struct oonf_layer2_data *data,
       case 16:
         memcpy(&tmp64[1], &dlepvalue[8], 8);
         tmp64[1] = be64toh(tmp64[1]);
-        break;
+        /* no break */
       case 8:
         memcpy(&tmp64[0], dlepvalue, 8);
         tmp64[0] = be64toh(tmp64[0]);
