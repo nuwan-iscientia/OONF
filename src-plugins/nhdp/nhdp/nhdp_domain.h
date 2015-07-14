@@ -79,11 +79,15 @@ struct nhdp_domain_metric {
   /* backpointer to domain */
   struct nhdp_domain *domain;
 
-  /* conversion of metric value into string function */
-  const char *(*to_string)(struct nhdp_metric_str *, uint32_t);
+  /* conversion of link metric value into string function */
+  const char *(*link_to_string)(struct nhdp_metric_str *, uint32_t);
+
+  /* conversion of link metric value into string function */
+  const char *(*path_to_string)(struct nhdp_metric_str *,
+      uint32_t cost,  uint8_t hopcount);
 
   /* conversion of internal metric data into string */
-  const char *(*internal_to_string)(struct nhdp_metric_str *,
+  const char *(*internal_link_to_string)(struct nhdp_metric_str *,
       struct nhdp_domain *, struct nhdp_link *);
 
   /* callbacks for enable/disable metric */
@@ -256,9 +260,22 @@ nhdp_domain_get_l2hopdata(
  * @return pointer to string representation of metric
  */
 static INLINE const char *
-nhdp_domain_get_metric_value(struct nhdp_metric_str *buf,
+nhdp_domain_get_link_metric_value(struct nhdp_metric_str *buf,
     struct nhdp_domain *domain, uint32_t metric) {
-  return domain->metric->to_string(buf, metric);
+  return domain->metric->link_to_string(buf, metric);
+}
+
+/**
+ * @param buf pointer to metric output buffer
+ * @param domain pointer to metric domain
+ * @param metric raw path metric value
+ * @param hopcount path hopcount
+ * @return pointer to string representation of metric
+ */
+static INLINE const char *
+nhdp_domain_get_path_metric_value(struct nhdp_metric_str *buf,
+    struct nhdp_domain *domain, uint32_t metric, uint8_t hopcount) {
+  return domain->metric->path_to_string(buf, metric, hopcount);
 }
 
 /**
@@ -270,7 +287,7 @@ nhdp_domain_get_metric_value(struct nhdp_metric_str *buf,
 static INLINE const char *
 nhdp_domain_get_internal_link_metric_value(struct nhdp_metric_str *buf,
     struct nhdp_domain *domain, struct nhdp_link *lnk) {
-  return domain->metric->internal_to_string(buf, domain, lnk);
+  return domain->metric->internal_link_to_string(buf, domain, lnk);
 }
 
 #endif /* NHDP_DOMAIN_H_ */

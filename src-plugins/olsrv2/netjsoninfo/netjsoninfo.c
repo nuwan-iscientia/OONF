@@ -140,10 +140,10 @@ _print_graph_edge(struct json_session *session,
   if (in) {
     json_start_object(session, "properties");
     _print_json_string(session, "weight_txt",
-        nhdp_domain_get_metric_value(&mbuf, domain, out));
+        nhdp_domain_get_link_metric_value(&mbuf, domain, out));
     _print_json_number(session, "in", in);
     _print_json_string(session, "in_txt",
-        nhdp_domain_get_metric_value(&mbuf, domain, in));
+        nhdp_domain_get_link_metric_value(&mbuf, domain, in));
     _print_json_string(session, "outgoing_tree",
         json_getbool(outgoing_tree));
     json_end_object(session);
@@ -165,7 +165,7 @@ _print_graph_end(struct json_session *session,
 
   json_start_object(session, "properties");
   _print_json_string(session, "weight_txt",
-      nhdp_domain_get_metric_value(&mbuf, domain, out));
+      nhdp_domain_get_link_metric_value(&mbuf, domain, out));
   if (hopcount) {
     _print_json_number(session, "hopcount", hopcount);
   }
@@ -302,6 +302,7 @@ _print_routing_tree(struct json_session *session,
   struct olsrv2_routing_entry *rtentry;
   const struct netaddr *originator;
   char ibuf[IF_NAMESIZE];
+  struct nhdp_metric_str mbuf;
 
   originator = olsrv2_originator_get(af_type);
   if (netaddr_get_address_family(originator) != af_type) {
@@ -335,6 +336,9 @@ _print_routing_tree(struct json_session *session,
       json_start_object(session, "properties");
       _print_json_number(session, "hops", rtentry->path_hops);
       _print_json_netaddr(session, "last_id", &rtentry->last_originator);
+      _print_json_string(session, "cost_txt",
+          nhdp_domain_get_path_metric_value(
+              &mbuf, domain, rtentry->path_cost, rtentry->path_hops));
       json_end_object(session);
 
       json_end_object(session);

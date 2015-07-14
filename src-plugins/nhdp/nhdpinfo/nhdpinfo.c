@@ -546,8 +546,8 @@ _initialize_nhdp_domain_metric_values(struct nhdp_domain *domain,
   snprintf(_value_domain, sizeof(_value_domain), "%u", domain->ext);
   strscpy(_value_domain_metric, domain->metric->name, sizeof(_value_domain_metric));
 
-  nhdp_domain_get_metric_value(&_value_domain_metric_in, domain, metric->in);
-  nhdp_domain_get_metric_value(&_value_domain_metric_out, domain, metric->out);
+  nhdp_domain_get_link_metric_value(&_value_domain_metric_in, domain, metric->in);
+  nhdp_domain_get_link_metric_value(&_value_domain_metric_out, domain, metric->out);
 
   snprintf(_value_domain_metric_in_raw,
       sizeof(_value_domain_metric_in_raw), "%u", metric->in);

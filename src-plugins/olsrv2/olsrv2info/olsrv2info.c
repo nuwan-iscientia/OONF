@@ -80,7 +80,7 @@ static enum oonf_telnet_result _cb_olsrv2info_help(struct oonf_telnet_data *con)
 static void _initialize_originator_values(int af_type);
 static void _initialize_old_originator_values(struct olsrv2_originator_set_entry *);
 static void _initialize_domain_values(struct nhdp_domain *domain);
-static void _initialize_domain_metric_values(struct nhdp_domain *domain, uint32_t);
+static void _initialize_domain_link_metric_values(struct nhdp_domain *domain, uint32_t);
 static void _initialize_domain_distance(uint8_t);
 static void _initialize_domain_active(bool);
 static void _initialize_lan_values(struct olsrv2_lan_entry *);
@@ -436,10 +436,25 @@ _initialize_domain_values(struct nhdp_domain *domain) {
  * @param metric raw metric value
  */
 static void
-_initialize_domain_metric_values(struct nhdp_domain *domain,
+_initialize_domain_link_metric_values(struct nhdp_domain *domain,
     uint32_t metric) {
-  nhdp_domain_get_metric_value(&_value_domain_metric_out,
+  nhdp_domain_get_link_metric_value(&_value_domain_metric_out,
       domain, metric);
+
+  snprintf(_value_domain_metric_out_raw,
+      sizeof(_value_domain_metric_out_raw), "%u", metric);
+}
+
+/**
+ * Initialize the value buffers for a metric value
+ * @param domain NHDP domain
+ * @param metric raw metric value
+ */
+static void
+_initialize_domain_path_metric_values(struct nhdp_domain *domain,
+    uint32_t metric, uint8_t hopcount) {
+  nhdp_domain_get_path_metric_value(&_value_domain_metric_out,
+      domain, metric, hopcount);
 
   snprintf(_value_domain_metric_out_raw,
       sizeof(_value_domain_metric_out_raw), "%u", metric);
@@ -599,7 +614,7 @@ _cb_create_text_lan(struct oonf_viewer_template *template) {
 
     list_for_each_element(nhdp_domain_get_list(), domain, _node) {
       _initialize_domain_values(domain);
-      _initialize_domain_metric_values(domain,
+      _initialize_domain_link_metric_values(domain,
           olsrv2_lan_get_domaindata(domain, lan)->outgoing_metric);
       _initialize_domain_distance(
           olsrv2_lan_get_domaindata(domain, lan)->distance);
@@ -655,7 +670,7 @@ _cb_create_text_attached_network(struct oonf_viewer_template *template) {
 
       list_for_each_element(nhdp_domain_get_list(), domain, _node) {
         _initialize_domain_values(domain);
-        _initialize_domain_metric_values(domain,
+        _initialize_domain_link_metric_values(domain,
             olsrv2_tc_attachment_get_metric(domain, attached));
         _initialize_domain_distance(
             olsrv2_tc_attachment_get_distance(domain, attached));
@@ -693,7 +708,7 @@ _cb_create_text_edge(struct oonf_viewer_template *template) {
 
       list_for_each_element(nhdp_domain_get_list(), domain, _node) {
         _initialize_domain_values(domain);
-        _initialize_domain_metric_values(domain,
+        _initialize_domain_link_metric_values(domain,
             olsrv2_tc_edge_get_metric(domain, edge));
 
         oonf_viewer_output_print_line(template);
@@ -718,7 +733,8 @@ _cb_create_text_route(struct oonf_viewer_template *template) {
 
     avl_for_each_element(olsrv2_routing_get_tree(domain),
         route, _node) {
-      _initialize_domain_metric_values(domain, route->path_cost);
+      _initialize_domain_path_metric_values(
+          domain, route->path_cost, route->path_hops);
       _initialize_domain_path_hops(route->path_hops);
       _initialize_route_values(route);
 

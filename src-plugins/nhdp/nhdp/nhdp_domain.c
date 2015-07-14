@@ -64,7 +64,8 @@ static void _remove_mpr(struct nhdp_domain *);
 
 static void _recalculate_neighbor_metric(struct nhdp_domain *domain,
         struct nhdp_neighbor *neigh);
-static const char *_to_string(struct nhdp_metric_str *, uint32_t);
+static const char *_link_to_string(struct nhdp_metric_str *, uint32_t);
+static const char *_path_to_string(struct nhdp_metric_str *, uint32_t, uint8_t);
 static const char *_int_to_string(struct nhdp_metric_str *,
     struct nhdp_domain *, struct nhdp_link *);
 
@@ -83,8 +84,9 @@ static struct nhdp_domain_metric _no_metric = {
   .incoming_2hop_start = RFC7181_METRIC_MAX,
   .outgoing_2hop_start = RFC7181_METRIC_MAX,
 
-  .to_string = _to_string,
-  .internal_to_string = _int_to_string,
+  .link_to_string = _link_to_string,
+  .path_to_string = _path_to_string,
+  .internal_link_to_string = _int_to_string,
 
   .no_default_handling = true,
 };
@@ -202,12 +204,15 @@ nhdp_domain_metric_add(struct nhdp_domain_metric *metric) {
   }
 
   /* initialize to_string method if empty */
-  if (metric->to_string == NULL) {
-    metric->to_string = _to_string;
+  if (metric->link_to_string == NULL) {
+    metric->link_to_string = _link_to_string;
+  }
+  if (metric->path_to_string == NULL) {
+    metric->path_to_string = _path_to_string;
   }
 
-  if (metric->internal_to_string == NULL) {
-    metric->internal_to_string = _int_to_string;
+  if (metric->internal_link_to_string == NULL) {
+    metric->internal_link_to_string = _int_to_string;
   }
 
   /* hook into tree */
@@ -1078,13 +1083,28 @@ _remove_mpr(struct nhdp_domain *domain) {
 }
 
 /**
- * Default implementation to convert a metric value into text
+ * Default implementation to convert a link metric value into text
  * @param buf pointer to metric output buffer
- * @param metric metric value
- * @return pointer to string representation of metric value
+ * @param metric link metric value
+ * @return pointer to string representation of linkmetric value
  */
 static const char *
-_to_string(struct nhdp_metric_str *buf, uint32_t metric) {
+_link_to_string(struct nhdp_metric_str *buf, uint32_t metric) {
+  snprintf(buf->buf, sizeof(*buf), "0x%x", metric);
+
+  return buf->buf;
+}
+
+/**
+ * Default implementation to convert a path metric value into text
+ * @param buf pointer to metric output buffer
+ * @param metric path metric value
+ * @param hopcount hopcount of path
+ * @return pointer to string representation of path metric value
+ */
+static const char *
+_path_to_string(struct nhdp_metric_str *buf, uint32_t metric,
+    uint8_t hopcount __attribute((unused))) {
   snprintf(buf->buf, sizeof(*buf), "0x%x", metric);
 
   return buf->buf;

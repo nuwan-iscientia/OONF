@@ -91,9 +91,11 @@ static enum rfc5444_result _cb_process_packet(
 
 static void _reset_missed_hello_timer(struct link_datff_data *);
 
-static const char *_to_string(
+static const char *_link_to_string(
     struct nhdp_metric_str *buf, uint32_t metric);
-static const char *_int_to_string(struct nhdp_metric_str *,
+static const char *_path_to_string(
+    struct nhdp_metric_str *buf, uint32_t metric, uint8_t hopcount);
+static const char *_int_link_to_string(struct nhdp_metric_str *,
     struct nhdp_domain *, struct nhdp_link *);
 
 static int _cb_cfg_validate(const char *section_name,
@@ -216,8 +218,9 @@ static struct nhdp_domain_metric _datff_handler = {
 
   .incoming_link_start = DATFF_LINKCOST_START,
 
-  .to_string = _to_string,
-  .internal_to_string = _int_to_string,
+  .link_to_string = _link_to_string,
+  .path_to_string = _path_to_string,
+  .internal_link_to_string = _int_link_to_string,
 
   .enable = _cb_enable_metric,
   .disable = _cb_disable_metric,
@@ -819,7 +822,7 @@ _reset_missed_hello_timer(struct link_datff_data *data) {
  * @return pointer to output string
  */
 static const char *
-_to_string(struct nhdp_metric_str *buf, uint32_t metric) {
+_link_to_string(struct nhdp_metric_str *buf, uint32_t metric) {
   uint64_t value;
 
   if (metric < DATFF_LINKCOST_MINIMUM) {
@@ -837,8 +840,37 @@ _to_string(struct nhdp_metric_str *buf, uint32_t metric) {
   return buf->buf;
 }
 
+/**
+ * Convert DATFF path metric into string representation
+ * @param buf pointer to output buffer
+ * @param metric path metric value
+ * @return pointer to output string
+ */
 static const char *
-_int_to_string(struct nhdp_metric_str *buf,
+_path_to_string(struct nhdp_metric_str *buf, uint32_t metric, uint8_t hopcount) {
+  struct isonumber_str ibuf;
+  uint64_t value;
+
+  metric = metric / hopcount;
+
+  if (metric < DATFF_LINKCOST_MINIMUM) {
+    value = (uint32_t)DATFF_LINKSPEED_MINIMUM
+        * (uint32_t)DATFF_LINKSPEED_RANGE;
+  }
+  else if (metric > DATFF_LINKCOST_MAXIMUM) {
+    value = 0;
+  }
+  else {
+    value = (uint32_t)(DATFF_LINKSPEED_MINIMUM) * (uint32_t)(DATFF_LINKSPEED_RANGE) / metric;
+  }
+
+  snprintf(buf->buf, sizeof(*buf), "%s (%u hops)",
+      isonumber_from_u64(&ibuf, value, "bit/s", 0, true, false), hopcount);
+  return buf->buf;
+}
+
+static const char *
+_int_link_to_string(struct nhdp_metric_str *buf,
     struct nhdp_domain *domain __attribute__((unused)),
     struct nhdp_link *lnk) {
   struct link_datff_data *ldata;
