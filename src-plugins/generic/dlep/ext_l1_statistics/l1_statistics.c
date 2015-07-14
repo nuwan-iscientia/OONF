@@ -236,8 +236,8 @@ dlep_reader_map_array(struct oonf_layer2_data *data,
     enum oonf_layer2_network_index l2idx) {
   struct dlep_parser_value *value;
   int64_t l2value;
-  uint64_t tmp64[2];
   const uint8_t *dlepvalue;
+  uint64_t tmp64[2] = { 0,0 };
 
   value = dlep_session_get_tlv_value(session, dlep_tlv);
   if (!value) {
