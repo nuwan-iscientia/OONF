@@ -47,7 +47,7 @@
 
 #include "core/os_core.h"
 
-#define OS_CORE_LOCKFILE_FOLDER        "/tmp/"
+#define OS_CORE_LOCKFILE_FOLDER        "/var/run/"
 
 /**
  * Inline wrapper around gettimeofday
