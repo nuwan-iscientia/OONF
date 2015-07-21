@@ -51,6 +51,7 @@
 #include "nl80211.h"
 #include <netlink/attr.h>
 #include <netlink/msg.h>
+#include <sys/uio.h>
 
 #include "common/autobuf.h"
 #include "common/avl.h"

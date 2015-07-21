@@ -39,6 +39,8 @@
  *
  */
 
+#define _GNU_SOURCE
+
 /* must be first because of a problem with linux/rtnetlink.h */
 #include <sys/socket.h>
 
@@ -47,6 +49,7 @@
 #include <linux/netlink.h>
 #include <linux/rtnetlink.h>
 #include <linux/socket.h>
+#include <sys/uio.h>
 #include <fcntl.h>
 #include <ifaddrs.h>
 #include <net/if.h>

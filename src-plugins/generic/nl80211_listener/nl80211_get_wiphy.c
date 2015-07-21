@@ -61,6 +61,8 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
+#define _GNU_SOURCE
+
 /* must be first because of a problem with linux/netlink.h */
 #include <sys/socket.h>
 

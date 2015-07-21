@@ -45,6 +45,7 @@
 /* and now the rest of the includes */
 #include <linux/netlink.h>
 #include <linux/rtnetlink.h>
+#include <sys/uio.h>
 
 #include "common/common_types.h"
 #include "common/avl.h"
