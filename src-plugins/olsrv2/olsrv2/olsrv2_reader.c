@@ -68,6 +68,7 @@ enum {
   IDX_ADDRTLV_LINK_METRIC,
   IDX_ADDRTLV_NBR_ADDR_TYPE,
   IDX_ADDRTLV_GATEWAY,
+  IDX_ADDRTLV_SRC_PREFIX,
 };
 
 /* session data during TC parsing */
@@ -122,6 +123,8 @@ static struct rfc5444_reader_tlvblock_consumer_entry _olsrv2_address_tlvs[] = {
     .min_length = 1, .max_length = 65535, .match_length = true },
   [IDX_ADDRTLV_GATEWAY] = { .type = RFC7181_ADDRTLV_GATEWAY,
     .min_length = 1, .max_length = 65535, .match_length = true },
+  [IDX_ADDRTLV_SRC_PREFIX] = { .type = SRCSPEC_GW_ADDRTLV_SRC_PREFIX,
+    .min_length = 1, .max_length = 17, .match_length = true },
 };
 
 /* nhdp multiplexer/protocol */
@@ -312,8 +315,9 @@ _cb_addresstlvs(struct rfc5444_reader_tlvblock_context *context __attribute__((u
   uint32_t cost_in[NHDP_MAXIMUM_DOMAINS];
   uint32_t cost_out[NHDP_MAXIMUM_DOMAINS];
   struct rfc7181_metric_field metric_value;
-  struct netaddr truncated;
   size_t i;
+  struct os_route_key ssprefix;
+
 #ifdef OONF_LOG_DEBUG_INFO
   struct netaddr_str buf;
 #endif
@@ -329,6 +333,8 @@ _cb_addresstlvs(struct rfc5444_reader_tlvblock_context *context __attribute__((u
 
   OONF_DEBUG(LOG_OLSRV2_R, "Found address in tc: %s",
       netaddr_to_string(&buf, &context->addr));
+
+  os_route_init_sourcespec_prefix(&ssprefix, &context->addr);
 
   for (tlv = _olsrv2_address_tlvs[IDX_ADDRTLV_LINK_METRIC].tlv;
       tlv; tlv = tlv->next_entry) {
@@ -376,7 +382,7 @@ _cb_addresstlvs(struct rfc5444_reader_tlvblock_context *context __attribute__((u
     }
     /* parse routable neighbor (which is not an originator) */
     else if ((tlv->single_value[0] & RFC7181_NBR_ADDR_TYPE_ROUTABLE) != 0) {
-      end = olsrv2_tc_endpoint_add(_current.node, &context->addr, true);
+      end = olsrv2_tc_endpoint_add(_current.node, &ssprefix, true);
       if (end) {
         OONF_DEBUG(LOG_OLSRV2_R, "Address is routable, but not originator");
         end->ansn = _current.node->ansn;
@@ -393,11 +399,24 @@ _cb_addresstlvs(struct rfc5444_reader_tlvblock_context *context __attribute__((u
       continue;
     }
 
-    /* truncate address */
-    netaddr_truncate(&truncated, &context->addr);
+    switch (tlv->type_ext) {
+      case RFC7181_DSTSPEC_GATEWAY:
+      case RFC7181_SRCSPEC_GATEWAY:
+        /* truncate address */
+        netaddr_truncate(&ssprefix.dst, &ssprefix.dst);
+        break;
+      case RFC7181_SRCSPEC_DEF_GATEWAY:
+        os_route_init_sourcespec_src_prefix(&ssprefix, &context->addr);
+
+        /* truncate address */
+        netaddr_truncate(&ssprefix.src, &ssprefix.src);
+        break;
+      default:
+        continue;
+    }
 
     /* parse attached network */
-    end = olsrv2_tc_endpoint_add(_current.node, &truncated, false);
+    end = olsrv2_tc_endpoint_add(_current.node, &ssprefix, false);
     if (!end) {
       continue;
     }

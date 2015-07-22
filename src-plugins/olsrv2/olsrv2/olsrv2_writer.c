@@ -58,9 +58,12 @@
 #include "olsrv2/olsrv2_writer.h"
 
 /* constants */
-enum {
+enum olsrv2_addrtlv_idx {
   IDX_ADDRTLV_NBR_ADDR_TYPE,
-  IDX_ADDRTLV_GATEWAY,
+  IDX_ADDRTLV_GATEWAY_DSTSPEC,
+  IDX_ADDRTLV_GATEWAY_SRCSPEC,
+  IDX_ADDRTLV_GATEWAY_SRCSPEC_DEF,
+  IDX_ADDRTLV_GATEWAY_SRC_PREFIX,
   IDX_ADDRTLV_MPRTYPES,
 };
 
@@ -93,10 +96,17 @@ static struct rfc5444_writer_content_provider _olsrv2_msgcontent_provider = {
 };
 
 static struct rfc5444_writer_tlvtype _olsrv2_addrtlvs[] = {
-  [IDX_ADDRTLV_NBR_ADDR_TYPE] = { .type = RFC7181_ADDRTLV_NBR_ADDR_TYPE },
-  [IDX_ADDRTLV_GATEWAY]       = { .type = RFC7181_ADDRTLV_GATEWAY },
-  [IDX_ADDRTLV_MPRTYPES]      = { .type = DRAFT_MT_MSGTLV_MPR_TYPES,
-      .exttype = DRAFT_MT_MSGTLV_MPR_TYPES_EXT },
+  [IDX_ADDRTLV_NBR_ADDR_TYPE]       = { .type = RFC7181_ADDRTLV_NBR_ADDR_TYPE },
+  [IDX_ADDRTLV_GATEWAY_DSTSPEC]     = {
+      .type = RFC7181_ADDRTLV_GATEWAY, .exttype = RFC7181_DSTSPEC_GATEWAY },
+  [IDX_ADDRTLV_GATEWAY_SRCSPEC]     = {
+      .type = RFC7181_ADDRTLV_GATEWAY, .exttype = RFC7181_SRCSPEC_GATEWAY },
+  [IDX_ADDRTLV_GATEWAY_SRCSPEC_DEF] = {
+      .type = RFC7181_ADDRTLV_GATEWAY, .exttype = RFC7181_SRCSPEC_DEF_GATEWAY },
+  [IDX_ADDRTLV_MPRTYPES]            = {
+      .type = DRAFT_MT_MSGTLV_MPR_TYPES, .exttype = DRAFT_MT_MSGTLV_MPR_TYPES_EXT },
+  [IDX_ADDRTLV_GATEWAY_SRC_PREFIX] = {
+      .type = SRCSPEC_GW_ADDRTLV_SRC_PREFIX },
 };
 
 static struct oonf_rfc5444_protocol *_protocol;
@@ -333,9 +343,10 @@ _cb_addAddresses(struct rfc5444_writer *writer) {
   struct rfc7181_metric_field metric_out_encoded;
   uint8_t distance_vector[NHDP_MAXIMUM_DOMAINS];
   int af_type;
-
+  enum olsrv2_addrtlv_idx gateway_idx;
+  uint8_t srcprefix[17];
 #ifdef OONF_LOG_DEBUG_INFO
-  struct netaddr_str buf;
+  struct netaddr_str nbuf1, nbuf2;
 #endif
 
   routable_acl = olsrv2_get_routable();
@@ -383,12 +394,12 @@ _cb_addAddresses(struct rfc5444_writer *writer) {
       if (nbr_addrtype_value == 0) {
         /* skip this address */
         OONF_DEBUG(LOG_OLSRV2_W, "Address %s is neither routable"
-            " nor an originator", netaddr_to_string(&buf, &naddr->neigh_addr));
+            " nor an originator", netaddr_to_string(&nbuf1, &naddr->neigh_addr));
         continue;
       }
 
       OONF_DEBUG(LOG_OLSRV2_W, "Add address %s to TC",
-          netaddr_to_string(&buf, &naddr->neigh_addr));
+          netaddr_to_string(&nbuf1, &naddr->neigh_addr));
       addr = rfc5444_writer_add_address(writer, _olsrv2_msgcontent_provider.creator,
           &naddr->neigh_addr, false);
       if (addr == NULL) {
@@ -408,15 +419,32 @@ _cb_addAddresses(struct rfc5444_writer *writer) {
 
   /* Iterate over locally attached networks */
   avl_for_each_element(olsrv2_lan_get_tree(), lan, _node) {
-    if (netaddr_get_address_family(&lan->prefix) != af_type) {
+    if (netaddr_get_address_family(&lan->prefix.dst) != af_type) {
       /* wrong address family */
       continue;
     }
 
-    OONF_DEBUG(LOG_OLSRV2_W, "Add address %s to TC",
-        netaddr_to_string(&buf, &lan->prefix));
-    addr = rfc5444_writer_add_address(writer, _olsrv2_msgcontent_provider.creator,
-        &lan->prefix, false);
+    OONF_DEBUG(LOG_OLSRV2_W, "Add address %s [%s] to TC",
+        netaddr_to_string(&nbuf1, &lan->prefix.dst),
+        netaddr_to_string(&nbuf2, &lan->prefix.src));
+
+    if (netaddr_get_prefix_length(&lan->prefix.dst) > 0
+        || netaddr_get_prefix_length(&lan->prefix.src) == 0) {
+      addr = rfc5444_writer_add_address(writer, _olsrv2_msgcontent_provider.creator,
+          &lan->prefix.dst, false);
+
+      if (netaddr_get_prefix_length(&lan->prefix.src) == 0) {
+        gateway_idx = IDX_ADDRTLV_GATEWAY_DSTSPEC;
+      }
+      else {
+        gateway_idx = IDX_ADDRTLV_GATEWAY_SRCSPEC;
+      }
+    }
+    else {
+      addr = rfc5444_writer_add_address(writer, _olsrv2_msgcontent_provider.creator,
+          &lan->prefix.src, false);
+      gateway_idx = IDX_ADDRTLV_GATEWAY_SRCSPEC_DEF;
+    }
     if (addr == NULL) {
       OONF_WARN(LOG_OLSRV2_W, "Out of memory error for olsrv2 address");
       return;
@@ -451,12 +479,23 @@ _cb_addAddresses(struct rfc5444_writer *writer) {
 
     /* add Gateway TLV */
     if (!lan->same_distance) {
-      rfc5444_writer_add_addrtlv(writer, addr, &_olsrv2_addrtlvs[IDX_ADDRTLV_GATEWAY],
+      rfc5444_writer_add_addrtlv(writer, addr, &_olsrv2_addrtlvs[gateway_idx],
           distance_vector, _mprtypes_size, false);
     }
     else {
-      rfc5444_writer_add_addrtlv(writer, addr, &_olsrv2_addrtlvs[IDX_ADDRTLV_GATEWAY],
+      rfc5444_writer_add_addrtlv(writer, addr, &_olsrv2_addrtlvs[gateway_idx],
           distance_vector, 1, false);
+    }
+
+    if (gateway_idx == IDX_ADDRTLV_GATEWAY_SRCSPEC) {
+      /* add Src Prefix TLV */
+      srcprefix[0] = netaddr_get_prefix_length(&lan->prefix.src);
+      memcpy(&srcprefix[0], netaddr_get_binptr(&lan->prefix.src),
+          netaddr_get_binlength(&lan->prefix.src));
+
+      rfc5444_writer_add_addrtlv(writer, addr,
+          &_olsrv2_addrtlvs[IDX_ADDRTLV_GATEWAY_SRC_PREFIX],
+          srcprefix, 1 + (srcprefix[0] + 7)/8, false);
     }
   }
 }

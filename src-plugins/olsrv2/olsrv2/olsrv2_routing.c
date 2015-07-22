@@ -50,6 +50,7 @@
 #include "subsystems/oonf_class.h"
 #include "subsystems/oonf_rfc5444.h"
 #include "subsystems/oonf_timer.h"
+#include "subsystems/os_routing.h"
 
 #include "nhdp/nhdp_db.h"
 #include "nhdp/nhdp_domain.h"
@@ -64,7 +65,7 @@
 
 /* Prototypes */
 static struct olsrv2_routing_entry *_add_entry(
-    struct nhdp_domain *, struct netaddr *prefix);
+    struct nhdp_domain *, struct os_route_key *prefix);
 static void _remove_entry(struct olsrv2_routing_entry *);
 static void _insert_into_working_tree(struct olsrv2_tc_target *target,
     struct nhdp_neighbor *neigh, uint32_t linkcost,
@@ -127,7 +128,7 @@ olsrv2_routing_init(void) {
   oonf_timer_add(&_dijkstra_timer_info);
 
   for (i=0; i<NHDP_MAXIMUM_DOMAINS; i++) {
-    avl_init(&_routing_tree[i], avl_comp_netaddr, false);
+    avl_init(&_routing_tree[i], os_route_avl_cmp_route_key, false);
   }
   list_init_head(&_routing_filter_list);
   avl_init(&_dijkstra_working_tree, avl_comp_uint32, true);
@@ -339,7 +340,7 @@ olsrv2_routing_get_filter_list(void) {
  * @return pointer to routing entry, NULL if our of memory.
  */
 static struct olsrv2_routing_entry *
-_add_entry(struct nhdp_domain *domain, struct netaddr *prefix) {
+_add_entry(struct nhdp_domain *domain, struct os_route_key *prefix) {
   struct olsrv2_routing_entry *rtentry;
 
   rtentry = avl_find_element(
@@ -354,8 +355,8 @@ _add_entry(struct nhdp_domain *domain, struct netaddr *prefix) {
   }
 
   /* set key */
-  memcpy(&rtentry->route.dst, prefix, sizeof(struct netaddr));
-  rtentry->_node.key = &rtentry->route.dst;
+  memcpy(&rtentry->route.key, prefix, sizeof(struct os_route_key));
+  rtentry->_node.key = &rtentry->route.key;
 
   /* set domain */
   rtentry->domain = domain;
@@ -364,7 +365,7 @@ _add_entry(struct nhdp_domain *domain, struct netaddr *prefix) {
   rtentry->path_cost = RFC7181_METRIC_INFINITE_PATH;
   rtentry->path_hops = 255;
   rtentry->route.cb_finished = _cb_route_finished;
-  rtentry->route.family = netaddr_get_address_family(prefix);
+  rtentry->route.family = netaddr_get_address_family(&prefix->dst);
 
   avl_insert(&_routing_tree[domain->index], &rtentry->_node);
   return rtentry;
@@ -404,7 +405,7 @@ _insert_into_working_tree(struct olsrv2_tc_target *target,
     const struct netaddr *last_originator) {
   struct olsrv2_dijkstra_node *node;
 #ifdef OONF_LOG_DEBUG_INFO
-  struct netaddr_str buf;
+  struct netaddr_str nbuf1, nbuf2;
 #endif
   if (linkcost >= RFC7181_METRIC_INFINITE) {
     return;
@@ -436,8 +437,9 @@ _insert_into_working_tree(struct olsrv2_tc_target *target,
     avl_remove(&_dijkstra_working_tree, &node->_node);
   }
   
-  OONF_DEBUG(LOG_OLSRV2_ROUTING, "Add dst %s with pathcost %u to dijstra tree (0x%zx)",
-          netaddr_to_string(&buf, &target->addr), path_cost,
+  OONF_DEBUG(LOG_OLSRV2_ROUTING, "Add dst %s [%s] with pathcost %u to dijstra tree (0x%zx)",
+          netaddr_to_string(&nbuf1, &target->prefix.dst),
+          netaddr_to_string(&nbuf2, &target->prefix.src), path_cost,
           (size_t)target);
 
   node->path_cost = path_cost;
@@ -465,7 +467,7 @@ _insert_into_working_tree(struct olsrv2_tc_target *target,
  */
 static void
 _update_routing_entry(struct nhdp_domain *domain,
-    struct netaddr *destination,
+    struct os_route_key *prefix,
     struct nhdp_neighbor *first_hop,
     uint8_t distance, uint32_t pathcost, uint8_t path_hops,
     bool single_hop, const struct netaddr *last_originator) {
@@ -475,20 +477,20 @@ _update_routing_entry(struct nhdp_domain *domain,
   struct olsrv2_lan_entry *lan;
   struct olsrv2_lan_domaindata *landata;
 #ifdef OONF_LOG_DEBUG_INFO
-  struct netaddr_str buf;
+  struct netaddr_str nbuf1, nbuf2;
 #endif
 
   /* test if destination is already part of the local node */
-  originator = olsrv2_originator_get(netaddr_get_address_family(destination));
-  if (netaddr_cmp(originator, destination) == 0) {
+  originator = olsrv2_originator_get(netaddr_get_address_family(&prefix->dst));
+  if (netaddr_cmp(originator, &prefix->dst) == 0) {
     /* don't set routes for our own originator */
     return;
   }
-  if (nhdp_interface_addr_global_get(destination)) {
+  if (nhdp_interface_addr_global_get(&prefix->dst)) {
     /* don't set routes for our own interface addresses */
     return;
   }
-  lan = olsrv2_lan_get(destination);
+  lan = olsrv2_lan_get(prefix);
   if (lan) {
     landata = olsrv2_lan_get_domaindata(domain, lan);
     if (landata->active && landata->outgoing_metric < pathcost) {
@@ -501,7 +503,7 @@ _update_routing_entry(struct nhdp_domain *domain,
   }
 
   /* make sure routing entry is present */
-  rtentry = _add_entry(domain, destination);
+  rtentry = _add_entry(domain, prefix);
   if (rtentry == NULL) {
     /* out of memory... */
     return;
@@ -517,8 +519,10 @@ _update_routing_entry(struct nhdp_domain *domain,
   }
 
   neighdata = nhdp_domain_get_neighbordata(domain, first_hop);
-  OONF_DEBUG(LOG_OLSRV2_ROUTING, "Initialize route entry dst %s with pathcost %u",
-      netaddr_to_string(&buf, &rtentry->route.dst), pathcost);
+  OONF_DEBUG(LOG_OLSRV2_ROUTING, "Initialize route entry dst %s [%s] with pathcost %u",
+      netaddr_to_string(&nbuf1, &rtentry->route.key.dst),
+      netaddr_to_string(&nbuf2, &rtentry->route.key.src),
+      pathcost);
 
   /* copy route parameters into data structure */
   rtentry->route.if_index = neighdata->best_link_ifindex;
@@ -538,7 +542,7 @@ _update_routing_entry(struct nhdp_domain *domain,
   /* copy gateway if necessary */
   if (single_hop
       && netaddr_cmp(&neighdata->best_link->if_addr,
-          &rtentry->route.dst) == 0) {
+          &rtentry->route.key.dst) == 0) {
     netaddr_invalidate(&rtentry->route.gw);
   }
   else {
@@ -561,7 +565,7 @@ _prepare_routes(struct nhdp_domain *domain) {
   int family;
 
 #ifdef OONF_LOG_DEBUG_INFO
-  struct netaddr_str nbuf;
+  struct netaddr_str nbuf1, nbuf2;
 #endif
 
   /* prepare all existing routing entries and put them into the working queue */
@@ -578,11 +582,12 @@ _prepare_routes(struct nhdp_domain *domain) {
     node->target._dijkstra.path_cost = RFC7181_METRIC_INFINITE_PATH;
     node->target._dijkstra.path_hops = 255;
     node->target._dijkstra.local =
-        olsrv2_originator_is_local(&node->target.addr);
+        olsrv2_originator_is_local(&node->target.prefix.dst);
     node->target._dijkstra.done = false;
 
-    OONF_DEBUG(LOG_OLSRV2_ROUTING, "Prepare node %s%s (0x%zx)",
-    		netaddr_to_string(&nbuf, &node->target.addr),
+    OONF_DEBUG(LOG_OLSRV2_ROUTING, "Prepare node %s [%s]%s (0x%zx)",
+        netaddr_to_string(&nbuf1, &node->target.prefix.dst),
+        netaddr_to_string(&nbuf2, &node->target.prefix.src),
     		node->target._dijkstra.local ? " (local)" : "",
     		(size_t)&node->target);
   }
@@ -631,22 +636,23 @@ _handle_working_queue(struct nhdp_domain *domain) {
   struct olsrv2_tc_endpoint *tc_endpoint;
 
 #ifdef OONF_LOG_DEBUG_INFO
-  struct netaddr_str buf;
+  struct netaddr_str nbuf1, nbuf2;
 #endif
 
   /* get tc target */
   target = avl_first_element(&_dijkstra_working_tree, target, _dijkstra._node);
 
   /* remove current node from working tree */
-  OONF_DEBUG(LOG_OLSRV2_ROUTING, "Remove node %s from dijkstra tree",
-      netaddr_to_string(&buf, &target->addr));
+  OONF_DEBUG(LOG_OLSRV2_ROUTING, "Remove node %s [%s] from dijkstra tree",
+      netaddr_to_string(&nbuf1, &target->prefix.dst),
+      netaddr_to_string(&nbuf2, &target->prefix.src));
   avl_remove(&_dijkstra_working_tree, &target->_dijkstra._node);
 
   /* mark current node as done */
   target->_dijkstra.done = true;
 
   /* fill routing entry with dijkstra result */
-  _update_routing_entry(domain, &target->addr,
+  _update_routing_entry(domain, &target->prefix,
       target->_dijkstra.first_hop,
       target->_dijkstra.distance,
       target->_dijkstra.path_cost,
@@ -668,7 +674,7 @@ _handle_working_queue(struct nhdp_domain *domain) {
         _insert_into_working_tree(&tc_edge->dst->target, first_hop,
             tc_edge->cost[domain->index],
             target->_dijkstra.path_cost, target->_dijkstra.path_hops,
-            0, false, &target->addr);
+            0, false, &target->prefix.dst);
       }
     }
 
@@ -683,18 +689,18 @@ _handle_working_queue(struct nhdp_domain *domain) {
               tc_attached->cost[domain->index],
               target->_dijkstra.path_cost, target->_dijkstra.path_hops,
               tc_attached->distance[domain->index], false,
-              &target->addr);
+              &target->prefix.dst);
         }
         else {
           /* no other way to this endpoint */
           tc_endpoint->target._dijkstra.done = true;
 
           /* fill routing entry with dijkstra result */
-          _update_routing_entry(domain, &tc_endpoint->target.addr,
+          _update_routing_entry(domain, &tc_endpoint->target.prefix,
               first_hop, tc_attached->distance[domain->index],
               target->_dijkstra.path_cost + tc_attached->cost[domain->index],
               tc_endpoint->target._dijkstra.path_hops + 1,
-              false, &target->addr);
+              false, &target->prefix.dst);
         }
       }
     }
@@ -715,6 +721,7 @@ _handle_nhdp_routes(struct nhdp_domain *domain) {
   uint32_t neighcost;
   uint32_t l2hop_pathcost;
   int family;
+  struct os_route_key ssprefix;
 
   list_for_each_element(nhdp_db_get_neigh_list(), neigh, _global_node) {
     family = netaddr_get_address_family(&neigh->originator);
@@ -734,8 +741,16 @@ _handle_nhdp_routes(struct nhdp_domain *domain) {
         continue;
       }
 
+      memcpy(&ssprefix.dst, &naddr->neigh_addr, sizeof(struct netaddr));
+      if (netaddr_get_address_family(&naddr->neigh_addr) == AF_INET) {
+        memcpy(&ssprefix.src, &NETADDR_IPV4_ANY, sizeof(struct netaddr));
+      }
+      else {
+        memcpy(&ssprefix.src, &NETADDR_IPV6_ANY, sizeof(struct netaddr));
+      }
+
       /* update routing entry */
-      _update_routing_entry(domain, &naddr->neigh_addr,
+      _update_routing_entry(domain, &ssprefix,
           neigh, 0, neighcost, 1, true, olsrv2_originator_get(family));
     }
 
@@ -759,8 +774,16 @@ _handle_nhdp_routes(struct nhdp_domain *domain) {
 
         l2hop_pathcost += neighcost;
 
+        memcpy(&ssprefix.dst, &l2hop->twohop_addr, sizeof(struct netaddr));
+        if (netaddr_get_address_family(&l2hop->twohop_addr) == AF_INET) {
+          memcpy(&ssprefix.src, &NETADDR_IPV4_ANY, sizeof(struct netaddr));
+        }
+        else {
+          memcpy(&ssprefix.src, &NETADDR_IPV6_ANY, sizeof(struct netaddr));
+        }
+
         /* the 2-hop route is better than the dijkstra calculation */
-        _update_routing_entry(domain, &l2hop->twohop_addr,
+        _update_routing_entry(domain, &ssprefix,
             neigh, 0, l2hop_pathcost, 2, false, &neigh->originator);
       }
     }
@@ -786,7 +809,7 @@ _add_route_to_kernel_queue(struct olsrv2_routing_entry *rtentry) {
         netaddr_to_string(&nbuf, &rtentry->_old_next_hop));
 
     if (_domain_parameter[rtentry->domain->index].use_srcip_in_routes
-        && netaddr_get_address_family(&rtentry->route.dst) == AF_INET) {
+        && netaddr_get_address_family(&rtentry->route.key.dst) == AF_INET) {
       memcpy(&rtentry->route.src_ip, olsrv2_originator_get(AF_INET),
           sizeof(rtentry->route.src_ip));
     }

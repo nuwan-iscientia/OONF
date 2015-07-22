@@ -70,7 +70,7 @@ void
 olsrv2_lan_init(void) {
   oonf_class_add(&_lan_class);
 
-  avl_init(&_lan_tree, avl_comp_netaddr, false);
+  avl_init(&_lan_tree, os_route_avl_cmp_route_key, false);
 }
 
 /**
@@ -99,7 +99,8 @@ olsrv2_lan_cleanup(void) {
  */
 struct olsrv2_lan_entry *
 olsrv2_lan_add(struct nhdp_domain *domain,
-    const struct netaddr *prefix, uint32_t metric, uint8_t distance) {
+    const struct os_route_key *prefix,
+    uint32_t metric, uint8_t distance) {
   struct olsrv2_lan_entry *entry;
   struct olsrv2_lan_domaindata *lan_data;
   uint8_t tmp_dist;
@@ -156,7 +157,7 @@ olsrv2_lan_add(struct nhdp_domain *domain,
  */
 void
 olsrv2_lan_remove(struct nhdp_domain *domain,
-    const struct netaddr *prefix) {
+    const struct os_route_key *prefix) {
   struct olsrv2_lan_entry *entry;
   struct olsrv2_lan_domaindata *lan_data;
   int i;

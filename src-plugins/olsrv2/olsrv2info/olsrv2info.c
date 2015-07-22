@@ -118,13 +118,15 @@ static int _cb_create_text_route(struct oonf_viewer_template *);
 #define KEY_DOMAIN_PATH_HOPS        "domain_path_hops"
 #define KEY_DOMAIN_ACTIVE           "domain_active"
 
-#define KEY_LAN                     "lan"
+#define KEY_LAN_DST                 "lan"
+#define KEY_LAN_SRC                 "lan_src"
 
 #define KEY_NODE                    "node"
 #define KEY_NODE_VTIME              "node_vtime"
 #define KEY_NODE_ANSN               "node_ansn"
 
 #define KEY_ATTACHED_NET            "attached_net"
+#define KEY_ATTACHED_NET_SRC        "attached_net_src"
 #define KEY_ATTACHED_NET_ANSN       "attached_net_ansn"
 
 #define KEY_EDGE                    "edge"
@@ -158,13 +160,15 @@ static char                       _value_domain_distance[4];
 static char                       _value_domain_path_hops[4];
 static char                       _value_domain_active[TEMPLATE_JSON_BOOL_LENGTH];
 
-static struct netaddr_str         _value_lan;
+static struct netaddr_str         _value_lan_dst;
+static struct netaddr_str         _value_lan_src;
 
 static struct netaddr_str         _value_node;
 static struct isonumber_str       _value_node_vtime;
 static char                       _value_node_ansn[6];
 
-static struct netaddr_str         _value_attached_net;
+static struct netaddr_str         _value_attached_net_dst;
+static struct netaddr_str         _value_attached_net_src;
 static char                       _value_attached_net_ansn[6];
 
 static struct netaddr_str         _value_edge;
@@ -214,7 +218,8 @@ static struct abuf_template_data_entry _tde_domain_lan_active[] = {
 };
 
 static struct abuf_template_data_entry _tde_lan[] = {
-    { KEY_LAN, _value_lan.buf, true },
+    { KEY_LAN_DST, _value_lan_dst.buf, true },
+    { KEY_LAN_SRC, _value_lan_src.buf, true },
 };
 
 static struct abuf_template_data_entry _tde_node_key[] = {
@@ -228,7 +233,8 @@ static struct abuf_template_data_entry _tde_node[] = {
 };
 
 static struct abuf_template_data_entry _tde_attached_net[] = {
-    { KEY_ATTACHED_NET, _value_attached_net.buf, true },
+    { KEY_ATTACHED_NET, _value_attached_net_dst.buf, true },
+    { KEY_ATTACHED_NET_SRC, _value_attached_net_src.buf, true },
     { KEY_ATTACHED_NET_ANSN, _value_attached_net_ansn, false },
 };
 
@@ -496,7 +502,8 @@ _initialize_domain_active(bool active) {
  */
 static void
 _initialize_lan_values(struct olsrv2_lan_entry *lan) {
-  netaddr_to_string(&_value_lan, &lan->prefix);
+  netaddr_to_string(&_value_lan_dst, &lan->prefix.dst);
+  netaddr_to_string(&_value_lan_src, &lan->prefix.src);
 }
 
 /**
@@ -505,7 +512,7 @@ _initialize_lan_values(struct olsrv2_lan_entry *lan) {
  */
 static void
 _initialize_node_values(struct olsrv2_tc_node *node) {
-  netaddr_to_string(&_value_node, &node->target.addr);
+  netaddr_to_string(&_value_node, &node->target.prefix.dst);
 
   oonf_clock_toIntervalString(&_value_node_vtime,
       oonf_timer_get_due(&node->_validity_time));
@@ -519,7 +526,8 @@ _initialize_node_values(struct olsrv2_tc_node *node) {
  */
 static void
 _initialize_attached_network_values(struct olsrv2_tc_attachment *edge) {
-  netaddr_to_string(&_value_attached_net, &edge->dst->target.addr);
+  netaddr_to_string(&_value_attached_net_dst, &edge->dst->target.prefix.dst);
+  netaddr_to_string(&_value_attached_net_src, &edge->dst->target.prefix.src);
 
   snprintf(_value_attached_net_ansn, sizeof(_value_attached_net_ansn),
       "%u", edge->ansn);
@@ -531,7 +539,7 @@ _initialize_attached_network_values(struct olsrv2_tc_attachment *edge) {
  */
 static void
 _initialize_edge_values(struct olsrv2_tc_edge *edge) {
-  netaddr_to_string(&_value_edge, &edge->dst->target.addr);
+  netaddr_to_string(&_value_edge, &edge->dst->target.prefix.dst);
 
   snprintf(_value_edge_ansn, sizeof(_value_edge_ansn),
       "%u", edge->ansn);
@@ -544,10 +552,10 @@ _initialize_edge_values(struct olsrv2_tc_edge *edge) {
 static void
 _initialize_route_values(struct olsrv2_routing_entry *route) {
 
-  netaddr_to_string(&_value_route_dst, &route->route.dst);
+  netaddr_to_string(&_value_route_dst, &route->route.key.dst);
   netaddr_to_string(&_value_route_gw, &route->route.gw);
   netaddr_to_string(&_value_route_src_ip, &route->route.src_ip);
-  netaddr_to_string(&_value_route_src_prefix, &route->route.src_prefix);
+  netaddr_to_string(&_value_route_src_prefix, &route->route.key.src);
 
   snprintf(_value_route_metric, sizeof(_value_route_metric),
       "%u", route->route.metric);

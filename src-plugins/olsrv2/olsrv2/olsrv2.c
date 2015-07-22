@@ -84,6 +84,7 @@ struct _config {
 
 struct _lan_data {
   struct nhdp_domain *domain;
+  struct netaddr source_prefix;
   uint32_t metric;
   uint32_t dist;
 };
@@ -94,7 +95,8 @@ static int _init(void);
 static void _initiate_shutdown(void);
 static void _cleanup(void);
 
-static const char *_parse_lan_parameters(struct _lan_data *dst, const char *src);
+static const char *_parse_lan_parameters(struct os_route_key *prefix,
+		struct _lan_data *dst, const char *src);
 static void _parse_lan_array(struct cfg_named_section *section, bool add);
 static void _cb_generate_tc(void *);
 
@@ -132,8 +134,8 @@ static struct cfg_schema_entry _olsrv2_entries[] = {
     "Validity time of a TC messages", 100),
   CFG_MAP_CLOCK_MIN(_config, f_hold_time, "forward_hold_time", "300.0",
     "Holdtime for forwarding set information", 100),
-    CFG_MAP_CLOCK_MIN(_config, p_hold_time, "processing_hold_time", "300.0",
-      "Holdtime for processing set information", 100),
+  CFG_MAP_CLOCK_MIN(_config, p_hold_time, "processing_hold_time", "300.0",
+    "Holdtime for processing set information", 100),
   CFG_MAP_ACL_V46(_config, routable, "routable",
       OLSRV2_ROUTABLE_IPV4 OLSRV2_ROUTABLE_IPV6 ACL_DEFAULT_ACCEPT,
     "Filter to decide which addresses are considered routable"),
@@ -497,6 +499,7 @@ olsrv2_validate_lan(const struct cfg_schema_entry *entry,
   struct netaddr_str buf;
   struct _lan_data data;
   const char *ptr, *result;
+  struct os_route_key prefix;
 
   if (value == NULL) {
     cfg_schema_help_netaddr(entry, out);
@@ -515,12 +518,16 @@ olsrv2_validate_lan(const struct cfg_schema_entry *entry,
   }
 
   ptr = str_cpynextword(buf.buf, value, sizeof(buf));
-  if (cfg_schema_validate_netaddr(entry, section_name, value, out)) {
+  if (cfg_schema_validate_netaddr(entry, section_name, buf.buf, out)) {
     /* check prefix first */
     return -1;
   }
 
-  result = _parse_lan_parameters(&data, ptr);
+  if (netaddr_from_string(&prefix.dst, buf.buf)) {
+    return -1;
+  }
+
+  result = _parse_lan_parameters(&prefix, &data, ptr);
   if (result) {
     cfg_append_printable_line(out, "Value '%s' for entry '%s'"
         " in section %s has %s",
@@ -544,13 +551,15 @@ olsrv2_validate_lan(const struct cfg_schema_entry *entry,
 
 /**
  * Parse parameters of lan prefix string
+ * @param prefix source specific prefix (to store source prefix)
  * @param dst pointer to data structure to store results.
  * @param src source string
  * @return NULL if parser worked without an error, a pointer
  *   to the suffix of the error message otherwise.
  */
 static const char *
-_parse_lan_parameters(struct _lan_data *dst, const char *src) {
+_parse_lan_parameters(struct os_route_key *prefix,
+		struct _lan_data *dst, const char *src) {
   char buffer[64];
   const char *ptr, *next;
   unsigned ext;
@@ -585,6 +594,15 @@ _parse_lan_parameters(struct _lan_data *dst, const char *src) {
         return "an illegal distance parameter";
       }
     }
+    else if (strncasecmp(buffer, "src=", 4) == 0) {
+      if (netaddr_from_string(&prefix->src, &buffer[4])) {
+        return "an illegal source prefix";
+      }
+      if (netaddr_get_address_family(&prefix->dst)
+            != netaddr_get_address_family(&prefix->src)) {
+    	  return "an illegal source prefix address type";
+      }
+    }
     else {
       return "an unknown parameter";
     }
@@ -603,7 +621,8 @@ _parse_lan_parameters(struct _lan_data *dst, const char *src) {
 static void
 _parse_lan_array(struct cfg_named_section *section, bool add) {
   struct netaddr_str addr_buf;
-  struct netaddr prefix;
+  struct netaddr addr;
+  struct os_route_key prefix;
   struct _lan_data data;
 
   const char *value, *ptr;
@@ -621,14 +640,16 @@ _parse_lan_array(struct cfg_named_section *section, bool add) {
   strarray_for_each_element(&entry->val, value) {
     /* extract data */
     ptr = str_cpynextword(addr_buf.buf, value, sizeof(addr_buf));
-    if (netaddr_from_string(&prefix, addr_buf.buf)) {
+    if (netaddr_from_string(&addr, addr_buf.buf)) {
       continue;
     }
 
-    /* truncate address */
-    netaddr_truncate(&prefix, &prefix);
+    os_route_init_sourcespec_prefix(&prefix, &addr);
 
-    if (_parse_lan_parameters(&data, ptr)) {
+    /* truncate address */
+    netaddr_truncate(&prefix.dst, &prefix.dst);
+
+    if (_parse_lan_parameters(&prefix, &data, ptr)) {
       continue;
     }
 

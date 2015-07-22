@@ -557,8 +557,8 @@ _cb_route_get(struct os_route *filter, struct os_route *route) {
   session = container_of(filter, struct _remotecontrol_session, route);
   out = session->cleanup.data->out;
 
-  if (netaddr_get_address_family(&route->dst) != AF_UNSPEC) {
-    abuf_appendf(out, "%s ", netaddr_to_string(&buf, &route->dst));
+  if (netaddr_get_address_family(&route->key.dst) != AF_UNSPEC) {
+    abuf_appendf(out, "%s ", netaddr_to_string(&buf, &route->key.dst));
   }
   if (netaddr_get_address_family(&route->gw) != AF_UNSPEC) {
     abuf_appendf(out, "via %s ", netaddr_to_string(&buf, &route->gw));
@@ -566,10 +566,10 @@ _cb_route_get(struct os_route *filter, struct os_route *route) {
   if (netaddr_get_address_family(&route->src_ip) != AF_UNSPEC) {
     abuf_appendf(out, "src-ip %s ", netaddr_to_string(&buf, &route->src_ip));
   }
-  if (netaddr_get_address_family(&route->src_prefix) != AF_UNSPEC) {
-    abuf_appendf(out, "src-prefix %s ", netaddr_to_string(&buf, &route->src_prefix));
+  if (netaddr_get_address_family(&route->key.src) != AF_UNSPEC) {
+    abuf_appendf(out, "src-prefix %s ", netaddr_to_string(&buf, &route->key.src));
   }
-  if (netaddr_get_address_family(&route->dst) == AF_UNSPEC
+  if (netaddr_get_address_family(&route->key.dst) == AF_UNSPEC
       && netaddr_get_address_family(&route->gw) == AF_UNSPEC
       && netaddr_get_address_family(&route->src_ip) == AF_UNSPEC) {
     abuf_appendf(out, "%s ", route->family == AF_INET ? "ipv4" : "ipv6");
@@ -643,23 +643,23 @@ _cb_handle_route(struct oonf_telnet_data *data) {
       }
       else if ((next = str_hasnextword(ptr, "dst"))) {
         ptr = str_cpynextword(buf.buf, next, sizeof(buf));
-        if (netaddr_from_string(&route.dst, buf.buf) != 0
-            || (netaddr_get_address_family(&route.dst) != AF_INET
-                && netaddr_get_address_family(&route.dst) != AF_INET6)) {
+        if (netaddr_from_string(&route.key.dst, buf.buf) != 0
+            || (netaddr_get_address_family(&route.key.dst) != AF_INET
+                && netaddr_get_address_family(&route.key.dst) != AF_INET6)) {
           abuf_appendf(data->out, "Error, illegal destination: %s", buf.buf);
           return TELNET_RESULT_ACTIVE;
         }
-        route.family = netaddr_get_address_family(&route.dst);
+        route.family = netaddr_get_address_family(&route.key.dst);
       }
       else if ((next = str_hasnextword(ptr, "src-prefix"))) {
         ptr = str_cpynextword(buf.buf, next, sizeof(buf));
-        if (netaddr_from_string(&route.src_prefix, buf.buf) != 0
-            || (netaddr_get_address_family(&route.src_prefix) != AF_INET
-                && netaddr_get_address_family(&route.src_prefix) != AF_INET6)) {
+        if (netaddr_from_string(&route.key.src, buf.buf) != 0
+            || (netaddr_get_address_family(&route.key.src) != AF_INET
+                && netaddr_get_address_family(&route.key.src) != AF_INET6)) {
           abuf_appendf(data->out, "Error, illegal source-prefix: %s", buf.buf);
           return TELNET_RESULT_ACTIVE;
         }
-        route.family = netaddr_get_address_family(&route.src_prefix);
+        route.family = netaddr_get_address_family(&route.key.src);
       }
       else if ((next = str_hasnextword(ptr, "table"))) {
         ptr = str_cpynextword(buf.buf, next, sizeof(buf));
@@ -690,13 +690,13 @@ _cb_handle_route(struct oonf_telnet_data *data) {
       abuf_appendf(data->out, "Missing or unknown interface");
       return TELNET_RESULT_ACTIVE;
     }
-    if ((add||del) && netaddr_get_address_family(&route.dst) == AF_UNSPEC) {
+    if ((add||del) && netaddr_get_address_family(&route.key.dst) == AF_UNSPEC) {
       abuf_appendf(data->out, "Error, IPv4 or IPv6 destination mandatory for add/del");
       return TELNET_RESULT_ACTIVE;
     }
     if ((netaddr_get_address_family(&route.src_ip) != AF_UNSPEC && netaddr_get_address_family(&route.src_ip) != route.family)
         || (netaddr_get_address_family(&route.gw) != AF_UNSPEC && netaddr_get_address_family(&route.gw) != route.family)
-        || (netaddr_get_address_family(&route.dst) != AF_UNSPEC && netaddr_get_address_family(&route.dst) != route.family)) {
+        || (netaddr_get_address_family(&route.key.dst) != AF_UNSPEC && netaddr_get_address_family(&route.key.dst) != route.family)) {
       abuf_appendf(data->out, "Error, IP address types do not match");
       return TELNET_RESULT_ACTIVE;
     }

@@ -226,17 +226,18 @@ _cb_rt_event(const struct os_route *route, bool set) {
   struct _import_entry *import;
   struct nhdp_domain *domain;
   char ifname[IF_NAMESIZE];
+  struct os_route_key ssprefix;
 
 #ifdef OONF_LOG_DEBUG_INFO
   struct os_route_str rbuf;
 #endif
 
-  if (netaddr_is_in_subnet(&NETADDR_IPV4_MULTICAST, &route->dst)
-      || netaddr_is_in_subnet(&NETADDR_IPV4_LINKLOCAL, &route->dst)
-      || netaddr_is_in_subnet(&NETADDR_IPV4_LOOPBACK_NET, &route->dst)
-      || netaddr_is_in_subnet(&NETADDR_IPV6_MULTICAST, &route->dst)
-      || netaddr_is_in_subnet(&NETADDR_IPV6_LINKLOCAL, &route->dst)
-      || netaddr_is_in_subnet(&NETADDR_IPV6_LOOPBACK, &route->dst)) {
+  if (netaddr_is_in_subnet(&NETADDR_IPV4_MULTICAST, &route->key.dst)
+      || netaddr_is_in_subnet(&NETADDR_IPV4_LINKLOCAL, &route->key.dst)
+      || netaddr_is_in_subnet(&NETADDR_IPV4_LOOPBACK_NET, &route->key.dst)
+      || netaddr_is_in_subnet(&NETADDR_IPV6_MULTICAST, &route->key.dst)
+      || netaddr_is_in_subnet(&NETADDR_IPV6_LINKLOCAL, &route->key.dst)
+      || netaddr_is_in_subnet(&NETADDR_IPV6_LOOPBACK, &route->key.dst)) {
     /* ignore multicast, linklocal and loopback */
     return;
   }
@@ -253,13 +254,13 @@ _cb_rt_event(const struct os_route *route, bool set) {
 
     /* check prefix length */
     if (import->prefix_length != -1
-        && import->prefix_length != netaddr_get_prefix_length(&route->dst)) {
+        && import->prefix_length != netaddr_get_prefix_length(&route->key.dst)) {
       OONF_DEBUG(LOG_LAN_IMPORT, "Bad prefix length");
       continue;
     }
 
     /* check if destination matches */
-    if (!netaddr_acl_check_accept(&import->filter, &route->dst)) {
+    if (!netaddr_acl_check_accept(&import->filter, &route->key.dst)) {
       OONF_DEBUG(LOG_LAN_IMPORT, "Bad prefix");
       continue;
     }
@@ -291,6 +292,9 @@ _cb_rt_event(const struct os_route *route, bool set) {
       }
     }
 
+    memcpy(&ssprefix.dst, &route->key.dst, sizeof(struct netaddr));
+    memcpy(&ssprefix.src, &route->key.src, sizeof(struct netaddr));
+
     if (set) {
       list_for_each_element(nhdp_domain_get_list(), domain, _node) {
         if (olsrv2_routing_get_parameters(domain)->protocol == route->protocol) {
@@ -303,14 +307,14 @@ _cb_rt_event(const struct os_route *route, bool set) {
       OONF_DEBUG(LOG_LAN_IMPORT, "Add lan...");
       domain = nhdp_domain_get_by_ext(import->domain);
       if (domain) {
-        olsrv2_lan_add(domain, &route->dst, 1, route->metric);
+        olsrv2_lan_add(domain, &ssprefix, 1, route->metric);
       }
     }
     else {
       OONF_DEBUG(LOG_LAN_IMPORT, "Remove lan...");
       domain = nhdp_domain_get_by_ext(import->domain);
       if (domain) {
-        olsrv2_lan_remove(domain, &route->dst);
+        olsrv2_lan_remove(domain, &ssprefix);
       }
     }
   }

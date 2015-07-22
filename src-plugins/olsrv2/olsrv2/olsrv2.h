@@ -71,6 +71,7 @@ EXPORT uint16_t olsrv2_get_ansn(void);
 EXPORT uint16_t olsrv2_update_ansn(void);
 EXPORT int olsrv2_validate_lan(const struct cfg_schema_entry *entry,
     const char *section_name, const char *value, struct autobuf *out);
+EXPORT int olsrv2_avl_cmp_sourcspec_prefix(const void *p1, const void *p2);
 
 /**
  * @return validity time of former originator IDs

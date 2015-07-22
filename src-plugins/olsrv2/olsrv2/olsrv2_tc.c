@@ -99,7 +99,7 @@ olsrv2_tc_init(void) {
   oonf_class_add(&_tc_endpoint_class);
 
   avl_init(&_tc_tree, avl_comp_netaddr, false);
-  avl_init(&_tc_endpoint_tree, avl_comp_netaddr, true);
+  avl_init(&_tc_endpoint_tree, os_route_avl_cmp_route_key, true);
 }
 
 /**
@@ -153,12 +153,12 @@ olsrv2_tc_node_add(struct netaddr *originator,
     }
 
     /* copy key and attach it to node */
-    memcpy(&node->target.addr, originator, sizeof(*originator));
-    node->_originator_node.key = &node->target.addr;
+    memcpy(&node->target.prefix.dst, originator, sizeof(*originator));
+    node->_originator_node.key = &node->target.prefix.dst;
 
     /* initialize node */
     avl_init(&node->_edges, avl_comp_netaddr, false);
-    avl_init(&node->_attached_networks, avl_comp_netaddr, false);
+    avl_init(&node->_attached_networks, os_route_avl_cmp_route_key, false);
 
     node->_validity_time.class = &_validity_info;
     node->_validity_time.cb_context = node;
@@ -279,7 +279,7 @@ olsrv2_tc_edge_add(struct olsrv2_tc_node *src, struct netaddr *addr) {
   }
 
   /* hook edge into src node */
-  edge->_node.key = &dst->target.addr;
+  edge->_node.key = &dst->target.prefix.dst;
   avl_insert(&src->_edges, &edge->_node);
 
   /* initialize inverse (virtual) edge */
@@ -292,7 +292,7 @@ olsrv2_tc_edge_add(struct olsrv2_tc_node *src, struct netaddr *addr) {
   }
 
   /* hook inverse edge into dst node */
-  inverse->_node.key = &src->target.addr;
+  inverse->_node.key = &src->target.prefix.dst;
   avl_insert(&dst->_edges, &inverse->_node);
 
   /* fire event */
@@ -320,7 +320,7 @@ olsrv2_tc_edge_remove(struct olsrv2_tc_edge *edge) {
  */
 struct olsrv2_tc_attachment *
 olsrv2_tc_endpoint_add(struct olsrv2_tc_node *node,
-    struct netaddr *prefix, bool mesh) {
+    struct os_route_key *prefix, bool mesh) {
   struct olsrv2_tc_attachment *net;
   struct olsrv2_tc_endpoint *end;
   int i;
@@ -346,11 +346,11 @@ olsrv2_tc_endpoint_add(struct olsrv2_tc_node *node,
 
     /* initialize endpoint */
     end->target.type = mesh ? OLSRV2_ADDRESS_TARGET : OLSRV2_NETWORK_TARGET;
-    avl_init(&end->_attached_networks, avl_comp_netaddr, false);
+    avl_init(&end->_attached_networks, os_route_avl_cmp_route_key, false);
 
     /* attach to global tree */
-    memcpy(&end->target.addr, prefix, sizeof(*prefix));
-    end->_node.key = &end->target.addr;
+    memcpy(&end->target.prefix, prefix, sizeof(*prefix));
+    end->_node.key = &end->target.prefix;
     avl_insert(&_tc_endpoint_tree, &end->_node);
 
     oonf_class_event(&_tc_endpoint_class, end, OONF_OBJECT_ADDED);
@@ -364,11 +364,11 @@ olsrv2_tc_endpoint_add(struct olsrv2_tc_node *node,
   }
 
   /* hook into src node */
-  net->_src_node.key = &end->target;
+  net->_src_node.key = &end->target.prefix;
   avl_insert(&node->_attached_networks, &net->_src_node);
 
   /* hook into endpoint */
-  net->_endpoint_node.key = &node->target.addr;
+  net->_endpoint_node.key = &node->target.prefix;
   avl_insert(&end->_attached_networks, &net->_endpoint_node);
 
   /* initialize dijkstra data */

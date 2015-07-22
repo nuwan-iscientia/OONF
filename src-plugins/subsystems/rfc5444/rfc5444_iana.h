@@ -174,6 +174,19 @@ enum rfc7181_addrtlv_iana {
   RFC7181_ADDRTLV_GATEWAY       = 10,
 };
 
+enum rfc7181_gateway_ext {
+  /* RFC7181 (OLSRv2) */
+  RFC7181_DSTSPEC_GATEWAY       = 0,
+
+  /* custom additions */
+  RFC7181_SRCSPEC_GATEWAY       = 1,
+  RFC7181_SRCSPEC_DEF_GATEWAY   = 2,
+};
+
+enum custom_srcspec_gateways {
+  SRCSPEC_GW_ADDRTLV_SRC_PREFIX = 224,
+};
+
 /* values for LOCAL_IF address TLV */
 enum rfc6130_localif_values {
   RFC6130_LOCALIF_THIS_IF       = 0,

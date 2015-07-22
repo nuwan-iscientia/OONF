@@ -154,18 +154,21 @@ _print_graph_edge(struct json_session *session,
 static void
 _print_graph_end(struct json_session *session,
     struct nhdp_domain *domain,
-    const struct netaddr *src, const struct netaddr *prefix,
+    const struct netaddr *src, const struct os_route_key *prefix,
     uint32_t out, uint8_t hopcount) {
   struct nhdp_metric_str mbuf;
 
   json_start_object(session, NULL);
   _print_json_netaddr(session, "source", src);
-  _print_json_netaddr(session, "target", prefix);
+  _print_json_netaddr(session, "target", &prefix->dst);
   _print_json_number(session, "weight", out);
 
   json_start_object(session, "properties");
   _print_json_string(session, "weight_txt",
       nhdp_domain_get_link_metric_value(&mbuf, domain, out));
+  if (netaddr_get_prefix_length(&prefix->src)) {
+	  _print_json_netaddr(session, "source", &prefix->src);
+  }
   if (hopcount) {
     _print_json_number(session, "hopcount", hopcount);
   }
@@ -201,8 +204,8 @@ _print_graph(struct json_session *session,
 
   json_start_array(session, "nodes");
   avl_for_each_element(olsrv2_tc_get_tree(), node, _originator_node) {
-    if (netaddr_get_address_family(&node->target.addr) == af_type) {
-      _print_graph_node(session, &node->target.addr);
+    if (netaddr_get_address_family(&node->target.prefix.dst) == af_type) {
+      _print_graph_node(session, &node->target.prefix.dst);
     }
   }
   json_end_array(session);
@@ -235,20 +238,20 @@ _print_graph(struct json_session *session,
 
   /* print remote node links to neighbors and prefixes */
   avl_for_each_element(olsrv2_tc_get_tree(), node, _originator_node) {
-    if (netaddr_get_address_family(&node->target.addr) == af_type) {
+    if (netaddr_get_address_family(&node->target.prefix.dst) == af_type) {
       avl_for_each_element(&node->_edges, edge, _node) {
         if (!edge->virtual) {
-          if (netaddr_cmp(&edge->dst->target.addr, originator) == 0) {
+          if (netaddr_cmp(&edge->dst->target.prefix.dst, originator) == 0) {
             /* we already have this information from NHDP */
             continue;
           }
 
-          rt_entry = avl_find_element(rt_tree, &edge->dst->target.addr, rt_entry, _node);
+          rt_entry = avl_find_element(rt_tree, &edge->dst->target.prefix.dst, rt_entry, _node);
           outgoing = rt_entry != NULL
-              && netaddr_cmp(&rt_entry->last_originator, &node->target.addr) == 0;
+              && netaddr_cmp(&rt_entry->last_originator, &node->target.prefix.dst) == 0;
 
           _print_graph_edge(session, domain,
-              &node->target.addr, &edge->dst->target.addr,
+              &node->target.prefix.dst, &edge->dst->target.prefix.dst,
               edge->cost[domain->index],
               edge->inverse->cost[domain->index],
               outgoing);
@@ -262,7 +265,7 @@ _print_graph(struct json_session *session,
 
   /* print local endpoints */
   avl_for_each_element(olsrv2_lan_get_tree(), lan, _node) {
-    if (netaddr_get_address_family(&lan->prefix) == af_type
+    if (netaddr_get_address_family(&lan->prefix.dst) == af_type
         && olsrv2_lan_get_domaindata(domain, lan)->active) {
       _print_graph_end(session, domain,
           originator, &lan->prefix,
@@ -273,10 +276,10 @@ _print_graph(struct json_session *session,
 
   /* print remote nodes neighbors */
   avl_for_each_element(olsrv2_tc_get_tree(), node, _originator_node) {
-    if (netaddr_get_address_family(&node->target.addr) == af_type) {
+    if (netaddr_get_address_family(&node->target.prefix.dst) == af_type) {
       avl_for_each_element(&node->_attached_networks, attached, _src_node) {
         _print_graph_end(session, domain,
-            &node->target.addr, &attached->dst->target.addr,
+            &node->target.prefix.dst, &attached->dst->target.prefix,
             attached->cost[domain->index],
             attached->distance[domain->index]);
       }
@@ -323,9 +326,9 @@ _print_routing_tree(struct json_session *session,
   avl_for_each_element(olsrv2_routing_get_tree(domain), rtentry, _node) {
     if (rtentry->route.family == af_type) {
       json_start_object(session, NULL);
-      _print_json_netaddr(session, "destination", &rtentry->route.dst);
-      if (netaddr_get_prefix_length(&rtentry->route.src_prefix) > 0) {
-        _print_json_netaddr(session, "source", &rtentry->route.src_prefix);
+      _print_json_netaddr(session, "destination", &rtentry->route.key.dst);
+      if (netaddr_get_prefix_length(&rtentry->route.key.src) > 0) {
+        _print_json_netaddr(session, "source", &rtentry->route.key.src);
       }
       _print_json_netaddr(session, "next", &rtentry->route.gw);
       _print_json_netaddr(session, "next_id", &rtentry->next_originator);

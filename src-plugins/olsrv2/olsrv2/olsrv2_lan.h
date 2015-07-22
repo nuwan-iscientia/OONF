@@ -46,7 +46,9 @@
 #include "common/common_types.h"
 #include "common/netaddr.h"
 
+#include "subsystems/os_routing.h"
 #include "nhdp/nhdp.h"
+#include "olsrv2/olsrv2.h"
 
 /* per-domain data for locally attached networks */
 struct olsrv2_lan_domaindata {
@@ -57,7 +59,7 @@ struct olsrv2_lan_domaindata {
 
 /* one locally attached network */
 struct olsrv2_lan_entry {
-  struct netaddr prefix;
+  struct os_route_key prefix;
 
   struct avl_node _node;
 
@@ -69,10 +71,10 @@ void olsrv2_lan_init(void);
 void olsrv2_lan_cleanup(void);
 
 EXPORT struct olsrv2_lan_entry *olsrv2_lan_add(
-    struct nhdp_domain *domain, const struct netaddr *prefix,
+    struct nhdp_domain *domain, const struct os_route_key *prefix,
     uint32_t metric, uint8_t distance);
 EXPORT void olsrv2_lan_remove(struct nhdp_domain *,
-    const struct netaddr *prefix);
+		const struct os_route_key *prefix);
 
 EXPORT int olsrv2_lan_validate(const struct cfg_schema_entry *entry,
     const char *section_name, const char *value, struct autobuf *out);
@@ -81,13 +83,14 @@ EXPORT struct avl_tree *olsrv2_lan_get_tree(void);
 
 
 /**
- * @param addr originator address
+ * @param addr prefix source specific prefix
  * @return pointer to LAN set entry, NULL if not found
  */
 static INLINE struct olsrv2_lan_entry *
-olsrv2_lan_get(const struct netaddr *addr) {
+olsrv2_lan_get(const struct os_route_key *prefix) {
   struct olsrv2_lan_entry *entry;
-  return avl_find_element(olsrv2_lan_get_tree(), addr, entry, _node);
+
+  return avl_find_element(olsrv2_lan_get_tree(), prefix, entry, _node);
 }
 
 /**

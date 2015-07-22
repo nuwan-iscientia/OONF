@@ -107,6 +107,11 @@ enum os_route_type {
   OS_ROUTE_NAT,
 };
 
+struct os_route_key {
+  struct netaddr dst;
+  struct netaddr src;
+};
+
 struct os_route {
   /* used for delivering feedback about netlink commands */
   struct os_route_internal _internal;
@@ -117,14 +122,14 @@ struct os_route {
   /* type of route */
   enum os_route_type type;
 
+  /* combination of source and destination */
+  struct os_route_key key;
+
   /* gateway and destination */
-  struct netaddr gw, dst;
+  struct netaddr gw;
 
   /* source IP that should be used for outgoing IP packets of this route */
   struct netaddr src_ip;
-
-  /* source-specific routing prefix, only supported for linux/ipv6 */
-  struct netaddr src_prefix;
 
   /* metric of the route */
   int metric;
@@ -163,5 +168,42 @@ EXPORT const char *os_routing_to_string(
     struct os_route_str *buf, const struct os_route *route);
 
 EXPORT const struct os_route *os_routing_get_wildcard_route(void);
+
+EXPORT int os_route_avl_cmp_route_key(const void *, const void *);
+
+static inline void
+os_route_init_sourcespec_prefix(struct os_route_key *prefix,
+    const struct netaddr *destination) {
+  memcpy(&prefix->dst, destination, sizeof(*destination));
+  switch (netaddr_get_address_family(destination)) {
+    case AF_INET:
+      memcpy(&prefix->src, &NETADDR_IPV4_ANY, sizeof(struct netaddr));
+      break;
+    case AF_INET6:
+      memcpy(&prefix->src, &NETADDR_IPV6_ANY, sizeof(struct netaddr));
+      break;
+    default:
+      netaddr_invalidate(&prefix->src);
+      break;
+  }
+}
+
+static inline void
+os_route_init_sourcespec_src_prefix(struct os_route_key *prefix,
+    const struct netaddr *source) {
+  memcpy(&prefix->src, source, sizeof(*source));
+  switch (netaddr_get_address_family(source)) {
+    case AF_INET:
+      memcpy(&prefix->dst, &NETADDR_IPV4_ANY, sizeof(struct netaddr));
+      break;
+    case AF_INET6:
+      memcpy(&prefix->dst, &NETADDR_IPV6_ANY, sizeof(struct netaddr));
+      break;
+    default:
+      netaddr_invalidate(&prefix->dst);
+      break;
+  }
+}
+
 
 #endif /* OS_ROUTING_H_ */

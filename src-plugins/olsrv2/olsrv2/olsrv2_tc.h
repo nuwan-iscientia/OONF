@@ -51,6 +51,7 @@
 #include "nhdp/nhdp_domain.h"
 #include "nhdp/nhdp.h"
 
+#include "olsrv2/olsrv2.h"
 #include "olsrv2/olsrv2_routing.h"
 
 enum olsrv2_target_type {
@@ -74,7 +75,7 @@ struct olsrv2_tc_edge;
  */
 struct olsrv2_tc_target {
   /* address or prefix of this node of the topology graph */
-  struct netaddr addr;
+  struct os_route_key prefix;
 
   /* type of target */
   enum olsrv2_target_type type;
@@ -193,7 +194,7 @@ EXPORT struct olsrv2_tc_edge *olsrv2_tc_edge_add(
 EXPORT bool olsrv2_tc_edge_remove(struct olsrv2_tc_edge *);
 
 EXPORT struct olsrv2_tc_attachment *olsrv2_tc_endpoint_add(
-    struct olsrv2_tc_node *, struct netaddr *, bool mesh);
+    struct olsrv2_tc_node *, struct os_route_key *, bool mesh);
 EXPORT void olsrv2_tc_endpoint_remove(
     struct olsrv2_tc_attachment *);
 
