@@ -212,7 +212,8 @@ _cb_send_buffer(struct dlep_session *session,
     return;
   }
 
-  OONF_DEBUG(session->log_source, "Send buffer %" PRIu64 " bytes",
+  OONF_DEBUG(session->log_source, "Send buffer %"
+      PRINTF_SIZE_T_SPECIFIER " bytes",
       abuf_getlen(session->writer.out));
 
   /* get pointer to radio interface */
