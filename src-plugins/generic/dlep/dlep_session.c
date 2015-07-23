@@ -436,7 +436,8 @@ _generate_signal(struct dlep_session *session, uint16_t signal,
     }
   }
 
-  OONF_DEBUG(session->log_source, "generated %" PRIu64 " bytes",
+  OONF_DEBUG(session->log_source, "generated %"
+      PRINTF_SIZE_T_SPECIFIER " bytes",
       abuf_getlen(session->writer.out) - len);
   return 0;
 }
