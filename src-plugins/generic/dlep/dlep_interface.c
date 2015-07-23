@@ -198,7 +198,8 @@ _cb_send_multicast(struct dlep_session *session, int af_family) {
     return;
   }
 
-  OONF_DEBUG(session->log_source, "Send multicast %" PRIu64 " bytes",
+  OONF_DEBUG(session->log_source, "Send multicast %"
+      PRINTF_SIZE_T_SPECIFIER " bytes",
       abuf_getlen(session->writer.out));
 
   oonf_packet_send_managed_multicast(&interf->udp,
