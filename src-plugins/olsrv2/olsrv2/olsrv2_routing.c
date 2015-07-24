@@ -741,13 +741,7 @@ _handle_nhdp_routes(struct nhdp_domain *domain) {
         continue;
       }
 
-      memcpy(&ssprefix.dst, &naddr->neigh_addr, sizeof(struct netaddr));
-      if (netaddr_get_address_family(&naddr->neigh_addr) == AF_INET) {
-        memcpy(&ssprefix.src, &NETADDR_IPV4_ANY, sizeof(struct netaddr));
-      }
-      else {
-        memcpy(&ssprefix.src, &NETADDR_IPV6_ANY, sizeof(struct netaddr));
-      }
+      os_route_init_sourcespec_prefix(&ssprefix, &naddr->neigh_addr);
 
       /* update routing entry */
       _update_routing_entry(domain, &ssprefix,
@@ -767,20 +761,9 @@ _handle_nhdp_routes(struct nhdp_domain *domain) {
           continue;
         }
 
-        if (!netaddr_acl_check_accept(olsrv2_get_routable(), &l2hop->twohop_addr)) {
-          /* not a routable address, check the next one */
-          continue;
-        }
-
         l2hop_pathcost += neighcost;
 
-        memcpy(&ssprefix.dst, &l2hop->twohop_addr, sizeof(struct netaddr));
-        if (netaddr_get_address_family(&l2hop->twohop_addr) == AF_INET) {
-          memcpy(&ssprefix.src, &NETADDR_IPV4_ANY, sizeof(struct netaddr));
-        }
-        else {
-          memcpy(&ssprefix.src, &NETADDR_IPV6_ANY, sizeof(struct netaddr));
-        }
+        os_route_init_sourcespec_prefix(&ssprefix, &l2hop->twohop_addr);
 
         /* the 2-hop route is better than the dijkstra calculation */
         _update_routing_entry(domain, &ssprefix,
@@ -800,6 +783,12 @@ _add_route_to_kernel_queue(struct olsrv2_routing_entry *rtentry) {
   struct os_route_str rbuf;
   struct netaddr_str nbuf;
 #endif
+
+  if (!netaddr_acl_check_accept(olsrv2_get_routable(),
+      &rtentry->route.key.dst)) {
+    /* not a routable address, ignore it */
+    return;
+  }
 
   if (rtentry->set) {
     OONF_INFO(LOG_OLSRV2_ROUTING,

@@ -100,7 +100,7 @@ static const char *_parse_lan_parameters(struct os_route_key *prefix,
 static void _parse_lan_array(struct cfg_named_section *section, bool add);
 static void _cb_generate_tc(void *);
 
-static void _update_originators(void);
+static void _update_originator(int af_family);
 static int _cb_if_event(struct oonf_interface_listener *);
 
 static void _cb_cfg_olsrv2_changed(void);
@@ -673,32 +673,82 @@ _cb_generate_tc(void *ptr __attribute__((unused))) {
   }
 }
 
+static int
+_get_addr_priority(const struct netaddr *addr) {
+#ifdef OONF_LOG_DEBUG_INFO
+  struct netaddr_str nbuf;
+#endif
+
+  if (!netaddr_acl_check_accept(&_olsrv2_config.originator_acl, addr)) {
+    /* does not match the acl */
+    OONF_DEBUG(LOG_OLSRV2, "check priority for %s: 0 (not in ACL)",
+        netaddr_to_string(&nbuf, addr));
+    return 0;
+  }
+
+
+  if (netaddr_get_address_family(addr) == AF_INET) {
+    if (netaddr_is_in_subnet(&NETADDR_IPV4_LINKLOCAL, addr)) {
+      /* linklocal */
+      OONF_DEBUG(LOG_OLSRV2, "check priority for %s: 2 (linklocal)",
+          netaddr_to_string(&nbuf, addr));
+      return 2;
+    }
+
+    /* routable */
+    OONF_DEBUG(LOG_OLSRV2, "check priority for %s: 4 (routable)",
+        netaddr_to_string(&nbuf, addr));
+    return 4;
+  }
+
+  if (netaddr_get_address_family(addr) == AF_INET6) {
+    if (netaddr_is_in_subnet(&NETADDR_IPV6_LINKLOCAL, addr)) {
+      /* linklocal */
+      OONF_DEBUG(LOG_OLSRV2, "check priority for %s: 2 (linklocal)",
+          netaddr_to_string(&nbuf, addr));
+      return 2;
+    }
+
+    /* routable */
+    OONF_DEBUG(LOG_OLSRV2, "check priority for %s: 4 (routable)",
+        netaddr_to_string(&nbuf, addr));
+    return 4;
+  }
+
+  /* unknown */
+  OONF_DEBUG(LOG_OLSRV2, "check priority for %s: 0 (unknown)",
+      netaddr_to_string(&nbuf, addr));
+
+  return 0;
+}
+
 /**
  * Check if current originators are still valid and
  * lookup new one if necessary.
  */
 static void
-_update_originators(void) {
-  const struct netaddr *originator_v4, *originator_v6;
+_update_originator(int af_family) {
+  const struct netaddr *originator;
   struct nhdp_interface *n_interf;
   struct os_interface *interf;
-  struct netaddr new_v4, new_v6;
-  bool keep_v4, keep_v6;
+  struct netaddr new_originator;
+  int new_priority;
+  int old_priority;
+  int priority;
   size_t i;
 #ifdef OONF_LOG_DEBUG_INFO
   struct netaddr_str buf;
 #endif
 
-  OONF_DEBUG(LOG_OLSRV2, "Updating OLSRV2 originators");
+  OONF_DEBUG(LOG_OLSRV2, "Updating OLSRV2 %s originator",
+      af_family == AF_INET ? "ipv4" : "ipv6");
 
-  originator_v4 = olsrv2_originator_get(AF_INET);
-  originator_v6 = olsrv2_originator_get(AF_INET6);
+  originator = olsrv2_originator_get(af_family);
 
-  keep_v4 = false;
-  keep_v6 = false;
+  old_priority = 0;
+  new_priority = 0;
 
-  netaddr_invalidate(&new_v4);
-  netaddr_invalidate(&new_v6);
+  netaddr_invalidate(&new_originator);
 
   avl_for_each_element(nhdp_interface_get_tree(), n_interf, _node) {
     interf = nhdp_interface_get_coreif(n_interf);
@@ -707,32 +757,29 @@ _update_originators(void) {
     for (i=0; i<interf->data.addrcount; i++) {
       struct netaddr *addr = &interf->data.addresses[i];
 
-      keep_v4 |= netaddr_cmp(originator_v4, addr) == 0;
-      keep_v6 |= netaddr_cmp(originator_v6, addr) == 0;
+      if (netaddr_get_address_family(addr) == af_family) {
+        priority = _get_addr_priority(addr);
+        if (priority == 0) {
+          /* not useful */
+          continue;
+        }
 
-      if (!keep_v4 && netaddr_get_address_family(&new_v4) == AF_UNSPEC
-          && netaddr_get_address_family(addr) == AF_INET
-          && netaddr_acl_check_accept(&_olsrv2_config.originator_acl, addr)) {
-        memcpy(&new_v4, addr, sizeof(new_v4));
-      }
-      if (!keep_v6 && netaddr_get_address_family(&new_v6) == AF_UNSPEC
-          && netaddr_get_address_family(addr) == AF_INET6
-          && netaddr_acl_check_accept(&_olsrv2_config.originator_acl, addr)) {
-        memcpy(&new_v6, addr, sizeof(new_v6));
+        if (netaddr_cmp(originator, addr) == 0) {
+          old_priority = priority + 1;
+        }
+
+        if (priority > old_priority && priority > new_priority) {
+          memcpy(&new_originator, addr, sizeof(new_originator));
+          new_priority = priority;
+        }
       }
     }
   }
 
-  if (!keep_v4) {
-    OONF_DEBUG(LOG_OLSRV2, "Set IPv4 originator to %s",
-        netaddr_to_string(&buf, &new_v4));
-    olsrv2_originator_set(&new_v4);
-  }
-
-  if (!keep_v6) {
-    OONF_DEBUG(LOG_OLSRV2, "Set IPv6 originator to %s",
-        netaddr_to_string(&buf, &new_v6));
-    olsrv2_originator_set(&new_v6);
+  if (new_priority > old_priority) {
+    OONF_DEBUG(LOG_OLSRV2, "Set originator to %s",
+        netaddr_to_string(&buf, &new_originator));
+    olsrv2_originator_set(&new_originator);
   }
 }
 
@@ -743,7 +790,8 @@ _update_originators(void) {
  */
 static int
 _cb_if_event(struct oonf_interface_listener *listener __attribute__((unused))) {
-  _update_originators();
+  _update_originator(AF_INET);
+  _update_originator(AF_INET6);
   return 0;
 }
 
@@ -762,7 +810,8 @@ _cb_cfg_olsrv2_changed(void) {
   oonf_timer_set(&_tc_timer, _olsrv2_config.tc_interval);
 
   /* check if we have to change the originators */
-  _update_originators();
+  _update_originator(AF_INET);
+  _update_originator(AF_INET6);
 
   /* run through all pre-update LAN entries and remove them */
   _parse_lan_array(_olsrv2_section.pre, false);

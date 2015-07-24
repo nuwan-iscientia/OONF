@@ -472,7 +472,7 @@ _routing_set(struct nlmsghdr *msg, struct os_route *route,
  * @param route pointer to target os_route
  * @param msg pointer to rtnetlink message header
  * @return -1 if address family of rtnetlink is unknown,
- *   0 otherwise
+ *   1 if the entry should be ignored, 0 otherwise
  */
 static int
 _routing_parse_nlmsg(struct os_route *route, struct nlmsghdr *msg) {
@@ -484,6 +484,11 @@ _routing_parse_nlmsg(struct os_route *route, struct nlmsghdr *msg) {
   rt_msg = NLMSG_DATA(msg);
   rt_attr = (struct rtattr *) RTM_RTA(rt_msg);
   rt_len = RTM_PAYLOAD(msg);
+
+  if ((rt_msg->rtm_flags & RTM_F_CLONED) != 0) {
+    /* ignore cloned route events by returning the wildcard route */
+    return 1;
+  }
 
   memcpy(route, &OS_ROUTE_WILDCARD, sizeof(*route));
 
@@ -594,6 +599,7 @@ static void
 _cb_rtnetlink_message(struct nlmsghdr *msg) {
   struct os_route *filter;
   struct os_route rt;
+  int result;
 
   OONF_DEBUG(LOG_OS_ROUTING, "Got message: %d %d", msg->nlmsg_seq, msg->nlmsg_type);
 
@@ -601,8 +607,10 @@ _cb_rtnetlink_message(struct nlmsghdr *msg) {
     return;
   }
 
-  if (_routing_parse_nlmsg(&rt, msg)) {
-    OONF_WARN(LOG_OS_ROUTING, "Error while processing route reply");
+  if ((result = _routing_parse_nlmsg(&rt, msg))) {
+    if (result < 0) {
+      OONF_WARN(LOG_OS_ROUTING, "Error while processing route reply");
+    }
     return;
   }
 
@@ -623,6 +631,7 @@ static void
 _cb_rtnetlink_event_message(struct nlmsghdr *msg) {
   struct os_route_listener *listener;
   struct os_route rt;
+  int result;
 
   OONF_DEBUG(LOG_OS_ROUTING, "Got event message: %d %d", msg->nlmsg_seq, msg->nlmsg_type);
 
@@ -630,8 +639,10 @@ _cb_rtnetlink_event_message(struct nlmsghdr *msg) {
     return;
   }
 
-  if (_routing_parse_nlmsg(&rt, msg)) {
-    OONF_WARN(LOG_OS_ROUTING, "Error while processing route reply");
+  if ((result = _routing_parse_nlmsg(&rt, msg))) {
+    if (result < 0) {
+      OONF_WARN(LOG_OS_ROUTING, "Error while processing route reply");
+    }
     return;
   }
 
