@@ -170,39 +170,20 @@ EXPORT const char *os_routing_to_string(
 EXPORT const struct os_route *os_routing_get_wildcard_route(void);
 
 EXPORT int os_route_avl_cmp_route_key(const void *, const void *);
+EXPORT void os_route_init_half_os_route_key(
+    struct netaddr *any, struct netaddr *specific,
+    const struct netaddr *source);
 
-static inline void
+static INLINE void
 os_route_init_sourcespec_prefix(struct os_route_key *prefix,
     const struct netaddr *destination) {
-  memcpy(&prefix->dst, destination, sizeof(*destination));
-  switch (netaddr_get_address_family(destination)) {
-    case AF_INET:
-      memcpy(&prefix->src, &NETADDR_IPV4_ANY, sizeof(struct netaddr));
-      break;
-    case AF_INET6:
-      memcpy(&prefix->src, &NETADDR_IPV6_ANY, sizeof(struct netaddr));
-      break;
-    default:
-      netaddr_invalidate(&prefix->src);
-      break;
-  }
+  os_route_init_half_os_route_key(&prefix->src, &prefix->dst, destination);
 }
 
-static inline void
+static INLINE void
 os_route_init_sourcespec_src_prefix(struct os_route_key *prefix,
     const struct netaddr *source) {
-  memcpy(&prefix->src, source, sizeof(*source));
-  switch (netaddr_get_address_family(source)) {
-    case AF_INET:
-      memcpy(&prefix->dst, &NETADDR_IPV4_ANY, sizeof(struct netaddr));
-      break;
-    case AF_INET6:
-      memcpy(&prefix->dst, &NETADDR_IPV6_ANY, sizeof(struct netaddr));
-      break;
-    default:
-      netaddr_invalidate(&prefix->dst);
-      break;
-  }
+  os_route_init_half_os_route_key(&prefix->dst, &prefix->src, source);
 }
 
 

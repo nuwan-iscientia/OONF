@@ -68,6 +68,7 @@ IF(LINUX)
 
     SET(OS_ROUTING_SOURCE    os_generic/os_routing_generic_rt_to_string.c
                              os_generic/os_routing_generic_rtkey_avlcomp.c
+                             os_generic/os_routing_generic_init_half_route_key.c
                              os_linux/os_routing_linux.c)
     SET(OS_ROUTING_INCLUDE   ${OS_ROUTING_INCLUDE}
                              os_linux/os_routing_linux.h)
