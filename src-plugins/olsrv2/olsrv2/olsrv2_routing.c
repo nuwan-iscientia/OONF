@@ -502,6 +502,11 @@ _update_routing_entry(struct nhdp_domain *domain,
     }
   }
 
+  if (!netaddr_acl_check_accept(olsrv2_get_routable(), &prefix->dst)) {
+    /* don't set routes to non-routable destinations */
+    return;
+  }
+
   /* make sure routing entry is present */
   rtentry = _add_entry(domain, prefix);
   if (rtentry == NULL) {
@@ -783,12 +788,6 @@ _add_route_to_kernel_queue(struct olsrv2_routing_entry *rtentry) {
   struct os_route_str rbuf;
   struct netaddr_str nbuf;
 #endif
-
-  if (!netaddr_acl_check_accept(olsrv2_get_routable(),
-      &rtentry->route.key.dst)) {
-    /* not a routable address, ignore it */
-    return;
-  }
 
   if (rtentry->set) {
     OONF_INFO(LOG_OLSRV2_ROUTING,
