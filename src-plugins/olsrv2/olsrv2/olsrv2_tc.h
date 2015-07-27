@@ -101,6 +101,9 @@ struct olsrv2_tc_node {
   /* node has announced it can do source specific routing */
   bool source_specific;
 
+  /* true if node has source specific attached networks per domain */
+  bool ss_attached_networks[NHDP_MAXIMUM_DOMAINS];
+
   /* time until this node has to be removed */
   struct oonf_timer_instance _validity_time;
 

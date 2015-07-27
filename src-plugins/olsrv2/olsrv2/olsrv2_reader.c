@@ -40,11 +40,14 @@
  */
 
 #include "common/common_types.h"
+#include "common/avl.h"
 #include "common/netaddr.h"
 #include "core/oonf_logging.h"
 #include "core/oonf_subsystem.h"
 #include "subsystems/oonf_duplicate_set.h"
 #include "subsystems/oonf_rfc5444.h"
+
+#include "nhdp/nhdp_domain.h"
 
 #include "olsrv2/olsrv2.h"
 #include "olsrv2/olsrv2_internal.h"
@@ -79,7 +82,6 @@ struct _olsrv2_data {
   bool complete_tc;
   uint8_t mprtypes[NHDP_MAXIMUM_DOMAINS];
   size_t mprtypes_size;
-  bool source_specific;
 };
 
 /* Prototypes */
@@ -257,9 +259,6 @@ _cb_messagetlvs(struct rfc5444_reader_tlvblock_context *context) {
       _current.mprtypes, sizeof(_current.mprtypes),
       _olsrv2_message_tlvs[IDX_TLV_MPRTYPES].tlv);
 
-  /* get source-specific flag */
-  _current.source_specific = _olsrv2_message_tlvs[IDX_TLV_SSR].tlv != NULL;
-
   /* test if we already forwarded the message */
   if (!olsrv2_mpr_shall_forwarding(
       context, _protocol->input_address, _current.vtime)) {
@@ -303,6 +302,9 @@ _cb_messagetlvs(struct rfc5444_reader_tlvblock_context *context) {
   /* reset validity time and interval time */
   oonf_timer_set(&_current.node->_validity_time, _current.vtime);
   _current.node->interval_time = itime;
+
+  /* set source-specific flags */
+  _current.node->source_specific = _olsrv2_message_tlvs[IDX_TLV_SSR].tlv != NULL;
 
   /* continue parsing the message */
   return RFC5444_OKAY;
@@ -422,6 +424,13 @@ _cb_addresstlvs(struct rfc5444_reader_tlvblock_context *context __attribute__((u
         continue;
     }
 
+    if (_olsrv2_address_tlvs[IDX_ADDRTLV_SRC_PREFIX].tlv) {
+      /* copy source specific prefix */
+      ssprefix.src._prefix_len = _olsrv2_address_tlvs[IDX_ADDRTLV_SRC_PREFIX].tlv->single_value[0];
+      memcpy(&ssprefix.src._addr[0],
+          &_olsrv2_address_tlvs[IDX_ADDRTLV_SRC_PREFIX].tlv->single_value[1],
+          _olsrv2_address_tlvs[IDX_ADDRTLV_SRC_PREFIX].tlv->length - 1);
+    }
     /* parse attached network */
     end = olsrv2_tc_endpoint_add(_current.node, &ssprefix, false);
     if (!end) {
@@ -435,11 +444,6 @@ _cb_addresstlvs(struct rfc5444_reader_tlvblock_context *context __attribute__((u
       domain = nhdp_domain_get_by_ext(_current.mprtypes[i]);
       if (!domain) {
         /* unknown domain */
-        continue;
-      }
-
-      if (cost_out[domain->index] >= RFC7181_METRIC_INFINITE) {
-        /* metric is missing */
         continue;
       }
 
@@ -468,9 +472,11 @@ _cb_addresstlvs(struct rfc5444_reader_tlvblock_context *context __attribute__((u
 static enum rfc5444_result
 _cb_messagetlvs_end(struct rfc5444_reader_tlvblock_context *context __attribute__((unused)),
     bool dropped) {
-  /* cleanup everything that is not the current ANSN */
+  /* cleanup everything that is not the current ANSN, check for ss-prefixes */
   struct olsrv2_tc_edge *edge, *edge_it;
   struct olsrv2_tc_attachment *end, *end_it;
+  struct nhdp_domain *domain;
+  struct netaddr_str nbuf1, nbuf2;
 
   if (dropped || _current.node == NULL) {
     return RFC5444_OKAY;
@@ -485,6 +491,26 @@ _cb_messagetlvs_end(struct rfc5444_reader_tlvblock_context *context __attribute_
   avl_for_each_element_safe(&_current.node->_attached_networks, end, _src_node, end_it) {
     if (end->ansn != _current.node->ansn) {
       olsrv2_tc_endpoint_remove(end);
+    }
+  }
+
+
+  list_for_each_element(nhdp_domain_get_list(), domain, _node) {
+    _current.node->ss_attached_networks[domain->index] = false;
+
+    OONF_INFO(LOG_OLSRV2_R, "Look for source-specific attachents of %s:",
+        netaddr_to_string(&nbuf1, &_current.node->target.prefix.dst));
+    avl_for_each_element_safe(&_current.node->_attached_networks, end, _src_node, end_it) {
+      OONF_INFO(LOG_OLSRV2_R, "        attachent [%s]/[%s]: %x / %u",
+          netaddr_to_string(&nbuf1, &end->dst->target.prefix.dst),
+          netaddr_to_string(&nbuf2, &end->dst->target.prefix.src),
+          end->cost[domain->index], netaddr_get_prefix_length(&end->dst->target.prefix.src));
+
+      if (end->cost[domain->index] < RFC7181_METRIC_INFINITE
+          && netaddr_get_prefix_length(&end->dst->target.prefix.src) > 0) {
+        _current.node->ss_attached_networks[domain->index] = true;
+        break;
+      }
     }
   }
 

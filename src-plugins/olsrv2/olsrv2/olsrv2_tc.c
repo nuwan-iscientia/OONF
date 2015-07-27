@@ -153,7 +153,7 @@ olsrv2_tc_node_add(struct netaddr *originator,
     }
 
     /* copy key and attach it to node */
-    memcpy(&node->target.prefix.dst, originator, sizeof(*originator));
+    os_route_init_sourcespec_prefix(&node->target.prefix, originator);
     node->_originator_node.key = &node->target.prefix.dst;
 
     /* initialize node */

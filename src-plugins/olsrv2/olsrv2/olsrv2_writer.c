@@ -495,12 +495,12 @@ _cb_addAddresses(struct rfc5444_writer *writer) {
     if (gateway_idx == IDX_ADDRTLV_GATEWAY_SRCSPEC) {
       /* add Src Prefix TLV */
       srcprefix[0] = netaddr_get_prefix_length(&lan->prefix.src);
-      memcpy(&srcprefix[0], netaddr_get_binptr(&lan->prefix.src),
+      memcpy(&srcprefix[1], netaddr_get_binptr(&lan->prefix.src),
           netaddr_get_binlength(&lan->prefix.src));
 
       rfc5444_writer_add_addrtlv(writer, addr,
           &_olsrv2_addrtlvs[IDX_ADDRTLV_GATEWAY_SRC_PREFIX],
-          srcprefix, 1 + (srcprefix[0] + 7)/8, false);
+          srcprefix, 1 + (netaddr_get_prefix_length(&lan->prefix.src) + 7)/8, false);
     }
   }
 }

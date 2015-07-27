@@ -64,6 +64,8 @@
 #include "olsrv2/olsrv2.h"
 
 /* Prototypes */
+static void _run_dijkstra(struct nhdp_domain *domain, int af_family,
+    bool use_non_ss, bool use_ss);
 static struct olsrv2_routing_entry *_add_entry(
     struct nhdp_domain *, struct os_route_key *prefix);
 static void _remove_entry(struct olsrv2_routing_entry *);
@@ -73,7 +75,10 @@ static void _insert_into_working_tree(struct olsrv2_tc_target *target,
     uint8_t distance, bool single_hop,
     const struct netaddr *last_originator);
 static void _prepare_routes(struct nhdp_domain *);
-static void _handle_working_queue(struct nhdp_domain *);
+static void _prepare_nodes(void);
+static bool _check_ssnode_split(struct nhdp_domain *domain, int af_family);
+static void _add_one_hop_nodes(struct nhdp_domain *domain, int family, bool, bool);
+static void _handle_working_queue(struct nhdp_domain *, bool, bool);
 static void _handle_nhdp_routes(struct nhdp_domain *);
 static void _add_route_to_kernel_queue(struct olsrv2_routing_entry *rtentry);
 static void _process_dijkstra_result(struct nhdp_domain *);
@@ -225,6 +230,7 @@ olsrv2_routing_get_parameters(struct nhdp_domain *domain) {
 void
 olsrv2_routing_force_update(bool skip_wait) {
   struct nhdp_domain *domain;
+  bool splitv4, splitv6;
 
   if (_initiate_shutdown) {
     /* no dijkstra anymore when in shutdown */
@@ -243,16 +249,32 @@ olsrv2_routing_force_update(bool skip_wait) {
     oonf_timer_stop(&_rate_limit_timer);
   }
 
-
   OONF_DEBUG(LOG_OLSRV2_ROUTING, "Run Dijkstra");
 
   list_for_each_element(nhdp_domain_get_list(), domain, _node) {
     /* initialize dijkstra specific fields */
     _prepare_routes(domain);
+    _prepare_nodes();
 
-    /* run dijkstra */
-    while (!avl_is_empty(&_dijkstra_working_tree)) {
-      _handle_working_queue(domain);
+    /* run IPv4 dijkstra (might be two times because of source-specific data) */
+    splitv4 = _check_ssnode_split(domain, AF_INET);
+    _run_dijkstra(domain, AF_INET, true, !splitv4);
+
+    /* run IPv6 dijkstra (might be two times because of source-specific data) */
+    splitv6 = _check_ssnode_split(domain, AF_INET6);
+    _run_dijkstra(domain, AF_INET6, true, !splitv6);
+
+    /* handle source-specific sub-topology if necessary */
+    if (splitv4 || splitv6) {
+      /* re-initialize dijkstra specific node fields */
+      _prepare_nodes();
+
+      if (splitv4) {
+        _run_dijkstra(domain, AF_INET, false, true);
+      }
+      if (splitv6) {
+        _run_dijkstra(domain, AF_INET6, false, true);
+      }
     }
 
     /* check if direct one-hop routes are quicker */
@@ -331,6 +353,29 @@ olsrv2_routing_get_tree(struct nhdp_domain *domain) {
 struct list_entity *
 olsrv2_routing_get_filter_list(void) {
   return &_routing_filter_list;
+}
+
+/**
+ * Run Dijkstra for a set domain, address family and
+ * (non-)source-specific nodes
+ * @param domain nhdp domain
+ * @param af_family address family
+ * @param use_non_ss dijkstra should include non-source-specific ndoes
+ * @param use_ss dijkstra should include source-specific ndoes
+ */
+static void
+_run_dijkstra(struct nhdp_domain *domain, int af_family,
+    bool use_non_ss, bool use_ss) {
+  OONF_INFO(LOG_OLSRV2_ROUTING, "Run dijkstra %d: %s/%s",
+      domain->index, use_non_ss ? "true" : "false", use_ss ? "true" : "false");
+
+  /* add direct neighbors to working queue */
+  _add_one_hop_nodes(domain, af_family, use_non_ss, use_ss);
+
+  /* run dijkstra */
+  while (!avl_is_empty(&_dijkstra_working_tree)) {
+    _handle_working_queue(domain, use_non_ss, use_ss);
+  }
 }
 
 /**
@@ -559,20 +604,12 @@ _update_routing_entry(struct nhdp_domain *domain,
 /**
  * Initialize internal fields for dijkstra calculation
  * @param domain nhdp domain
+ * @return true if source-specific and non-source specific can
+ *   be handled in the same dijkstra run, false otherwise
  */
 static void
 _prepare_routes(struct nhdp_domain *domain) {
   struct olsrv2_routing_entry *rtentry;
-  struct olsrv2_tc_endpoint *end;
-  struct olsrv2_tc_node *node;
-  struct nhdp_neighbor *neigh;
-  struct nhdp_neighbor_domaindata *neigh_metric;
-  int family;
-
-#ifdef OONF_LOG_DEBUG_INFO
-  struct netaddr_str nbuf1, nbuf2;
-#endif
-
   /* prepare all existing routing entries and put them into the working queue */
   avl_for_each_element(&_routing_tree[domain->index], rtentry, _node) {
     rtentry->set = false;
@@ -580,6 +617,18 @@ _prepare_routes(struct nhdp_domain *domain) {
     rtentry->_old_distance = rtentry->route.metric;
     memcpy(&rtentry->_old_next_hop, &rtentry->route.gw, sizeof(struct netaddr));
   }
+}
+
+/**
+ * Initialize internal fields for dijkstra calculation
+ * @param domain nhdp domain
+ * @return true if source-specific and non-source specific can
+ *   be handled in the same dijkstra run, false otherwise
+ */
+static void
+_prepare_nodes(void) {
+  struct olsrv2_tc_endpoint *end;
+  struct olsrv2_tc_node *node;
 
   /* initialize private dijkstra data on nodes */
   avl_for_each_element(olsrv2_tc_get_tree(), node, _originator_node) {
@@ -589,12 +638,6 @@ _prepare_routes(struct nhdp_domain *domain) {
     node->target._dijkstra.local =
         olsrv2_originator_is_local(&node->target.prefix.dst);
     node->target._dijkstra.done = false;
-
-    OONF_DEBUG(LOG_OLSRV2_ROUTING, "Prepare node %s [%s]%s (0x%zx)",
-        netaddr_to_string(&nbuf1, &node->target.prefix.dst),
-        netaddr_to_string(&nbuf2, &node->target.prefix.src),
-    		node->target._dijkstra.local ? " (local)" : "",
-    		(size_t)&node->target);
   }
 
   /* initialize private dijkstra data on endpoints */
@@ -604,25 +647,92 @@ _prepare_routes(struct nhdp_domain *domain) {
     node->target._dijkstra.path_hops = 255;
     end->target._dijkstra.done = false;
   }
+}
+
+/**
+ * calculates if source- and non-source-specific targets must be done
+ * in separate dijkstra runs
+ * @param domain nhdp domain for dijkstra run
+ * @param af_family address family for dijkstra run
+ * @return true if two dijkstra runs are necessary, false for one
+ */
+static bool
+_check_ssnode_split(struct nhdp_domain *domain, int af_family) {
+  struct olsrv2_tc_node *node;
+  uint32_t ssnode_count, full_count;
+  bool ssnode_prefix;
+
+  ssnode_count = 0;
+  full_count = 0;
+  ssnode_prefix = false;
+
+  avl_for_each_element(olsrv2_tc_get_tree(), node, _originator_node) {
+    /* count number of source specific nodes */
+    if (netaddr_get_address_family(&node->target.prefix.dst) == af_family) {
+      full_count++;
+      if (node->source_specific) {
+        ssnode_count++;
+      }
+    }
+
+    /* remember node domain with source specific prefix */
+    ssnode_prefix |= node->ss_attached_networks[domain->index];
+  }
+
+  OONF_INFO(LOG_OLSRV2_ROUTING, "ss split for %d/%d: %d of %d/%s",
+      domain->index, af_family, ssnode_count, full_count,
+      ssnode_prefix ? "true" : "false");
+
+  return ssnode_count != 0 && ssnode_count != full_count && ssnode_prefix;
+}
+
+/**
+ * Add the single-hop TC neighbors to the dijkstra working list
+ * @param domain nhdp domain for dijkstra run
+ * @param af_family address family for dijkstra run
+ * @param use_non_ss include non-source-specific nodes into working list
+ * @param use_ss include source-specific nodes into working list
+ */
+static void
+_add_one_hop_nodes(struct nhdp_domain *domain, int af_family,
+    bool use_non_ss, bool use_ss) {
+  struct olsrv2_tc_node *node;
+  struct nhdp_neighbor *neigh;
+  struct nhdp_neighbor_domaindata *neigh_metric;
+  struct netaddr_str nbuf;
+
+  OONF_INFO(LOG_OLSRV2_ROUTING, "Start add one-hop nodes");
 
   /* initialize Dijkstra working queue with one-hop neighbors */
   list_for_each_element(nhdp_db_get_neigh_list(), neigh, _global_node) {
-    family = netaddr_get_address_family(&neigh->originator);
-    if (neigh->symmetric > 0 && family != AF_UNSPEC
-        && (node = olsrv2_tc_node_get(&neigh->originator)) != NULL) {
-      neigh_metric = nhdp_domain_get_neighbordata(domain, neigh);
-
-      if (neigh_metric->metric.in > RFC7181_METRIC_MAX
-          || neigh_metric->metric.out > RFC7181_METRIC_MAX) {
-        /* ignore link with infinite metric */
-        continue;
-      }
-
-      /* found node for neighbor, add to worker list */
-      _insert_into_working_tree(&node->target, neigh,
-          neigh_metric->metric.out, 0, 0, 0, true,
-          olsrv2_originator_get(family));
+    if (netaddr_get_address_family(&neigh->originator) != af_family) {
+      continue;
     }
+
+    if (neigh->symmetric == 0
+        || (node = olsrv2_tc_node_get(&neigh->originator)) == NULL) {
+      continue;
+    }
+
+    if (!use_non_ss && !(node->source_specific && use_ss)) {
+      continue;
+    }
+
+    OONF_INFO(LOG_OLSRV2_ROUTING, "Add node %s",
+        netaddr_to_string(&nbuf, &neigh->originator));
+
+    neigh_metric = nhdp_domain_get_neighbordata(domain, neigh);
+
+    if (neigh_metric->metric.in > RFC7181_METRIC_MAX
+        || neigh_metric->metric.out > RFC7181_METRIC_MAX) {
+      /* ignore link with infinite metric */
+      continue;
+    }
+
+    /* found node for neighbor, add to worker list */
+    _insert_into_working_tree(&node->target, neigh,
+        neigh_metric->metric.out, 0, 0, 0, true,
+        olsrv2_originator_get(af_family));
   }
 }
 
@@ -631,7 +741,8 @@ _prepare_routes(struct nhdp_domain *domain) {
  * @param domain nhdp domain
  */
 static void
-_handle_working_queue(struct nhdp_domain *domain) {
+_handle_working_queue(struct nhdp_domain *domain,
+    bool use_non_ss, bool use_ss) {
   struct olsrv2_tc_target *target;
   struct nhdp_neighbor *first_hop;
 
@@ -657,13 +768,15 @@ _handle_working_queue(struct nhdp_domain *domain) {
   target->_dijkstra.done = true;
 
   /* fill routing entry with dijkstra result */
-  _update_routing_entry(domain, &target->prefix,
-      target->_dijkstra.first_hop,
-      target->_dijkstra.distance,
-      target->_dijkstra.path_cost,
-      target->_dijkstra.path_hops,
-      target->_dijkstra.single_hop,
-      target->_dijkstra.last_originator);
+  if (use_non_ss) {
+    _update_routing_entry(domain, &target->prefix,
+        target->_dijkstra.first_hop,
+        target->_dijkstra.distance,
+        target->_dijkstra.path_cost,
+        target->_dijkstra.path_hops,
+        target->_dijkstra.single_hop,
+        target->_dijkstra.last_originator);
+  }
 
   if (target->type == OLSRV2_NODE_TARGET) {
     /* get neighbor and its domain specific data */
@@ -675,6 +788,10 @@ _handle_working_queue(struct nhdp_domain *domain) {
     /* iterate over edges */
     avl_for_each_element(&tc_node->_edges, tc_edge, _node) {
       if (!tc_edge->virtual && tc_edge->cost[domain->index] <= RFC7181_METRIC_MAX) {
+        if (!use_non_ss && !tc_node->source_specific) {
+          continue;
+        }
+
         /* add new tc_node to working tree */
         _insert_into_working_tree(&tc_edge->dst->target, first_hop,
             tc_edge->cost[domain->index],
@@ -688,6 +805,11 @@ _handle_working_queue(struct nhdp_domain *domain) {
       if (tc_attached->cost[domain->index] <= RFC7181_METRIC_MAX) {
         tc_endpoint = tc_attached->dst;
 
+        if (!(netaddr_get_prefix_length(&tc_endpoint->target.prefix.src) > 0
+            ? use_ss : use_non_ss)) {
+          /* filter out (non-)source-specific targets if necessary */
+          continue;
+        }
         if (tc_endpoint->_attached_networks.count > 1) {
           /* add attached network or address to working tree */
           _insert_into_working_tree(&tc_attached->dst->target, first_hop,
