@@ -231,10 +231,6 @@ _cb_set_linkcost(void *ptr __attribute__((unused))) {
 #endif
 
   OONF_DEBUG(LOG_CONSTANT_METRIC, "Start setting constant linkcosts");
-  if (_constant_metric_handler.domain == NULL) {
-    return;
-  }
-
   list_for_each_element(nhdp_db_get_link_list(), lnk, _global_node) {
     const char *ifname;
 
@@ -260,13 +256,11 @@ _cb_set_linkcost(void *ptr __attribute__((unused))) {
 
     if (entry) {
       OONF_DEBUG(LOG_CONSTANT_METRIC, "Found metric value %u", entry->cost);
-      nhdp_domain_set_incoming_metric(
-          _constant_metric_handler.domain, lnk, entry->cost);
+      nhdp_domain_set_incoming_metric(&_constant_metric_handler, lnk, entry->cost);
       continue;
     }
     else {
-      nhdp_domain_set_incoming_metric(
-          _constant_metric_handler.domain, lnk, RFC7181_METRIC_INFINITE);
+      nhdp_domain_set_incoming_metric(&_constant_metric_handler, lnk, RFC7181_METRIC_INFINITE);
     }
   }
 

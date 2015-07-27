@@ -580,7 +580,7 @@ static void
 _initialize_nhdp_domain_metric_int_values(struct nhdp_domain *domain,
     struct nhdp_link *lnk) {
   nhdp_domain_get_internal_link_metric_value(
-      &_value_domain_metric_internal, domain, lnk);
+      &_value_domain_metric_internal, domain->metric, lnk);
 }
 
 /**

@@ -76,9 +76,6 @@ struct nhdp_domain_metric {
   /* true if metrics should not be handled by nhdp reader/writer */
   bool no_default_handling;
 
-  /* backpointer to domain */
-  struct nhdp_domain *domain;
-
   /* conversion of link metric value into string function */
   const char *(*link_to_string)(struct nhdp_metric_str *, uint32_t);
 
@@ -87,8 +84,8 @@ struct nhdp_domain_metric {
       uint32_t cost,  uint8_t hopcount);
 
   /* conversion of internal metric data into string */
-  const char *(*internal_link_to_string)(struct nhdp_metric_str *,
-      struct nhdp_domain *, struct nhdp_link *);
+  const char *(*internal_link_to_string)(
+      struct nhdp_metric_str *, struct nhdp_link *);
 
   /* callbacks for enable/disable metric */
   void (*enable)(void);
@@ -140,7 +137,7 @@ struct nhdp_domain {
    * true if a neighbor metric of this domain has changed
    * since the last reset of this variable
    */
-  bool metric_changed;
+  bool neighbor_metric_changed;
 
   /* tlv extension */
   uint8_t ext;
@@ -214,7 +211,7 @@ EXPORT size_t nhdp_domain_encode_willingness_tlvvalue(
     uint8_t *tlvvalue, size_t tlvsize);
 
 EXPORT bool nhdp_domain_set_incoming_metric(
-    struct nhdp_domain *domain, struct nhdp_link *lnk, uint32_t metric_in);
+    struct nhdp_domain_metric *metric, struct nhdp_link *lnk, uint32_t metric_in);
 
 EXPORT struct list_entity *nhdp_domain_get_list(void);
 EXPORT struct list_entity *nhdp_domain_get_listener_list(void);
@@ -280,14 +277,14 @@ nhdp_domain_get_path_metric_value(struct nhdp_metric_str *buf,
 
 /**
  * @param buf pointer to metric output buffer
- * @param domain pointer to metric domain
+ * @param metric pointer to metric
  * @param lnk nhdp link
  * @return pointer to string internal representation of metric
  */
 static INLINE const char *
 nhdp_domain_get_internal_link_metric_value(struct nhdp_metric_str *buf,
-    struct nhdp_domain *domain, struct nhdp_link *lnk) {
-  return domain->metric->internal_link_to_string(buf, domain, lnk);
+    struct nhdp_domain_metric *metric, struct nhdp_link *lnk) {
+  return metric->internal_link_to_string(buf, lnk);
 }
 
 #endif /* NHDP_DOMAIN_H_ */

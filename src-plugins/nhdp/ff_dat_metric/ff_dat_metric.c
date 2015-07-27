@@ -96,7 +96,7 @@ static const char *_link_to_string(
 static const char *_path_to_string(
     struct nhdp_metric_str *buf, uint32_t metric, uint8_t hopcount);
 static const char *_int_link_to_string(struct nhdp_metric_str *,
-    struct nhdp_domain *, struct nhdp_link *);
+    struct nhdp_link *);
 
 static int _cb_cfg_validate(const char *section_name,
     struct cfg_named_section *, struct autobuf *);
@@ -479,10 +479,6 @@ _cb_dat_sampling(void *ptr __attribute__((unused))) {
   OONF_DEBUG(LOG_FF_DAT, "Calculate Metric from sampled data");
 
   change_happened = false;
-  if (!_datff_handler.domain) {
-    /* metric not used */
-    return;
-  }
 
   list_for_each_element(nhdp_db_get_link_list(), lnk, _global_node) {
     ldata = oonf_class_get_extension(&_link_extenstion, lnk);
@@ -515,7 +511,7 @@ _cb_dat_sampling(void *ptr __attribute__((unused))) {
     }
 
     if (total == 0 || received == 0) {
-      nhdp_domain_set_incoming_metric(_datff_handler.domain, lnk, RFC7181_METRIC_MAX);
+      nhdp_domain_set_incoming_metric(&_datff_handler, lnk, RFC7181_METRIC_MAX);
       continue;
     }
 
@@ -573,7 +569,8 @@ _cb_dat_sampling(void *ptr __attribute__((unused))) {
     }
 
     /* set metric for incoming link */
-    change_happened |= nhdp_domain_set_incoming_metric(_datff_handler.domain, lnk, metric_value);
+    change_happened |= nhdp_domain_set_incoming_metric(
+        &_datff_handler, lnk, metric_value);
 
     OONF_DEBUG(LOG_FF_DAT, "New sampling rate for link %s (%s):"
         " %d/%d = %u (speed=%"PRIu64 ")\n",
@@ -870,9 +867,7 @@ _path_to_string(struct nhdp_metric_str *buf, uint32_t metric, uint8_t hopcount) 
 }
 
 static const char *
-_int_link_to_string(struct nhdp_metric_str *buf,
-    struct nhdp_domain *domain __attribute__((unused)),
-    struct nhdp_link *lnk) {
+_int_link_to_string(struct nhdp_metric_str *buf, struct nhdp_link *lnk) {
   struct link_datff_data *ldata;
   int64_t received = 0, total = 0;
   int i;
@@ -920,9 +915,7 @@ _cb_cfg_changed(void) {
   }
 
   /* start/change sampling timer */
-  if (_datff_handler.domain) {
-    oonf_timer_set(&_sampling_timer, _datff_config.interval);
-  }
+  oonf_timer_set(&_sampling_timer, _datff_config.interval);
 
 #ifdef COLLECT_RAW_DATA
   if (_rawdata_fd != -1) {

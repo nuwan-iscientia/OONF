@@ -66,8 +66,7 @@ static void _recalculate_neighbor_metric(struct nhdp_domain *domain,
         struct nhdp_neighbor *neigh);
 static const char *_link_to_string(struct nhdp_metric_str *, uint32_t);
 static const char *_path_to_string(struct nhdp_metric_str *, uint32_t, uint8_t);
-static const char *_int_to_string(struct nhdp_metric_str *,
-    struct nhdp_domain *, struct nhdp_link *);
+static const char *_int_to_string(struct nhdp_metric_str *, struct nhdp_link *);
 
 /* domain class */
 struct oonf_class _domain_class = {
@@ -817,16 +816,24 @@ nhdp_domain_set_flooding_mpr(struct nhdp_domain_mpr *mpr, uint8_t ext) {
  * @return true if metric changed, false otherwise
  */
 bool
-nhdp_domain_set_incoming_metric(struct nhdp_domain *domain,
+nhdp_domain_set_incoming_metric(struct nhdp_domain_metric *metric,
     struct nhdp_link *lnk, uint32_t metric_in) {
   struct nhdp_link_domaindata *domaindata;
+  struct nhdp_domain *domain;
   uint32_t old_metric;
+  bool changed;
 
-  domaindata = nhdp_domain_get_linkdata(domain, lnk);
-  old_metric = domaindata->metric.in;
-  domaindata->metric.in = metric_in;
+  changed = false;
+  list_for_each_element(&_domain_list, domain, _node) {
+    if (domain->metric == metric) {
+      domaindata = nhdp_domain_get_linkdata(domain, lnk);
+      old_metric = domaindata->metric.in;
+      domaindata->metric.in = metric_in;
 
-  return old_metric != metric_in;
+      changed |= (old_metric != metric_in);
+    }
+  }
+  return changed;
 }
 
 struct list_entity *
@@ -886,7 +893,7 @@ _recalculate_neighbor_metric(
 
   if (memcmp(&oldmetric, &neighdata->metric, sizeof(oldmetric)) != 0) {
     /* mark metric as updated */
-    domain->metric_changed = true;
+    domain->neighbor_metric_changed = true;
   }
 }
 
@@ -1008,7 +1015,6 @@ _apply_metric(struct nhdp_domain *domain, const char *metric_name) {
 
   /* link domain and metric */
   domain->metric = metric;
-  metric->domain = domain;
 
   /* activate metric */
   if (metric->enable) {
@@ -1026,7 +1032,6 @@ _remove_metric(struct nhdp_domain *domain) {
     domain->metric->disable();
   }
   strscpy(domain->metric_name, CFG_DOMAIN_NO_METRIC, sizeof(domain->metric_name));
-  domain->metric->domain = NULL;
   domain->metric = &_no_metric;
 }
 
@@ -1112,7 +1117,6 @@ _path_to_string(struct nhdp_metric_str *buf, uint32_t metric,
 
 static const char *
 _int_to_string(struct nhdp_metric_str *buf,
-    struct nhdp_domain *domain __attribute((unused)),
     struct nhdp_link *lnk __attribute__((unused))) {
   strscpy(buf->buf, "-", sizeof(*buf));
   return buf->buf;

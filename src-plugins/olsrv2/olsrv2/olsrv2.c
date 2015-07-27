@@ -480,9 +480,9 @@ olsrv2_update_ansn(void) {
 
   changed = false;
   list_for_each_element(nhdp_domain_get_list(), domain, _node) {
-    if (domain->metric_changed) {
+    if (domain->neighbor_metric_changed) {
       changed = true;
-      domain->metric_changed = false;
+      domain->neighbor_metric_changed = false;
     }
   }
 
