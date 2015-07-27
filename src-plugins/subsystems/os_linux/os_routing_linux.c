@@ -144,6 +144,9 @@ static const struct os_route OS_ROUTE_WILDCARD = {
   .if_index = 0
 };
 
+/* kernel version check */
+static bool _is_kernel_3_11_0_or_better;
+
 /**
  * Initialize routing subsystem
  * @return -1 if an error happened, 0 otherwise
@@ -166,6 +169,8 @@ _init(void) {
   }
   avl_init(&_rtnetlink_feedback, avl_comp_uint32, false);
   list_init_head(&_rtnetlink_listener);
+
+  _is_kernel_3_11_0_or_better = os_linux_system_is_minimal_kernel(3,11,0);
   return 0;
 }
 
@@ -182,6 +187,16 @@ _cleanup(void) {
 
   os_system_netlink_remove(&_rtnetlink_socket);
   os_system_netlink_remove(&_rtnetlink_event_socket);
+}
+
+bool
+os_routing_supports_source_specific(int af_family) {
+  if (af_family == AF_INET) {
+    return false;
+  }
+
+  /* TODO: better check for source specific routing necessary! */
+  return _is_kernel_3_11_0_or_better;
 }
 
 /**

@@ -156,6 +156,7 @@ struct os_route_listener {
 };
 
 /* prototypes for all os_routing functions */
+EXPORT bool os_routing_supports_source_specific(int af_family);
 EXPORT int os_routing_set(struct os_route *, bool set, bool del_similar);
 EXPORT int os_routing_query(struct os_route *);
 EXPORT void os_routing_interrupt(struct os_route *);

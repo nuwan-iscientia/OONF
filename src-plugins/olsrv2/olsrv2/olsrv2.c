@@ -70,6 +70,11 @@
 #define LAN_DEFAULT_METRIC   1
 #define LAN_DEFAULT_DISTANCE 2
 
+#define LAN_OPTION_SRC    "src="
+#define LAN_OPTION_METRIC "metric="
+#define LAN_OPTION_DOMAIN "domain="
+#define LAN_OPTION_DIST   "dist="
+
 struct _config {
   uint64_t tc_interval;
   uint64_t tc_validity;
@@ -116,6 +121,8 @@ static struct cfg_schema_entry _rt_domain_entries[] = {
       "Routing table number for routes", 0, false, 1, 254),
   CFG_MAP_INT32_MINMAX(olsrv2_routing_domain, distance, "distance", "2",
       "Metric Distance to be used in routing table", 0, false, 1, 255),
+  CFG_MAP_BOOL(olsrv2_routing_domain, source_specific, "source_specific", "true",
+      "This domain uses IPv6 source specific routing"),
 };
 
 static struct cfg_schema_section _rt_domain_section = {
@@ -142,9 +149,10 @@ static struct cfg_schema_entry _olsrv2_entries[] = {
 
   CFG_VALIDATE_LAN(_LOCAL_ATTACHED_NETWORK_KEY, "",
     "locally attached network, a combination of an"
-    " ip address or prefix followed by an up to three optional parameters"
+    " ip address or prefix followed by an up to four optional parameters"
     " which define link metric cost, hopcount distance and domain of the prefix"
-    " ( <metric=...> <dist=...> <domain=...> ).",
+    " ( <"LAN_OPTION_METRIC"...> <"LAN_OPTION_DIST"...>"
+    " <"LAN_OPTION_DOMAIN"...> <"LAN_OPTION_SRC"...> ).",
     .list = true),
 
   CFG_MAP_ACL_V4(_config, originator_acl, "originator",
@@ -504,15 +512,18 @@ olsrv2_validate_lan(const struct cfg_schema_entry *entry,
   if (value == NULL) {
     cfg_schema_help_netaddr(entry, out);
     cfg_append_printable_line(out,
-        "    This value is followed by a list of three optional parameters.");
+        "    This value is followed by a list of four optional parameters.");
     cfg_append_printable_line(out,
-        "    - 'metric=<m>' the link metric of the LAN (between %u and %u)."
+        "    - '"LAN_OPTION_SRC"<prefix>' the source specific prefix of this attached network."
+        " The default is 2.");
+    cfg_append_printable_line(out,
+        "    - '"LAN_OPTION_METRIC"<m>' the link metric of the LAN (between %u and %u)."
         " The default is 0.", RFC7181_METRIC_MIN, RFC7181_METRIC_MAX);
     cfg_append_printable_line(out,
-        "    - 'domain=<d>' the domain of the LAN (between 0 and 255)."
+        "    - '"LAN_OPTION_DOMAIN"<d>' the domain of the LAN (between 0 and 255)."
         " The default is 0.");
     cfg_append_printable_line(out,
-        "    - 'dist=<d>' the hopcount distance of the LAN (between 0 and 255)."
+        "    - '"LAN_OPTION_DIST"<d>' the hopcount distance of the LAN (between 0 and 255)."
         " The default is 2.");
     return 0;
   }
@@ -572,13 +583,13 @@ _parse_lan_parameters(struct os_route_key *prefix,
   while (ptr != NULL) {
     next = str_cpynextword(buffer, ptr, sizeof(buffer));
 
-    if (strncasecmp(buffer, "metric=", 7) == 0) {
+    if (strncasecmp(buffer, LAN_OPTION_METRIC, 7) == 0) {
       dst->metric = strtoul(&buffer[7], NULL, 0);
       if (dst->metric == 0 && errno != 0) {
         return "an illegal metric parameter";
       }
     }
-    else if (strncasecmp(buffer, "domain=", 7) == 0) {
+    else if (strncasecmp(buffer, LAN_OPTION_DOMAIN, 7) == 0) {
       ext = strtoul(&buffer[7], NULL, 10);
       if ((ext == 0 && errno != 0) || ext > 255) {
         return "an illegal domain parameter";
@@ -588,19 +599,23 @@ _parse_lan_parameters(struct os_route_key *prefix,
         return "an unknown domain extension number";
       }
     }
-    else if (strncasecmp(buffer, "dist=", 5) == 0) {
+    else if (strncasecmp(buffer, LAN_OPTION_DIST, 5) == 0) {
       dst->dist = strtoul(&buffer[5], NULL, 10);
       if (dst->dist == 0 && errno != 0) {
         return "an illegal distance parameter";
       }
     }
-    else if (strncasecmp(buffer, "src=", 4) == 0) {
+    else if (strncasecmp(buffer, LAN_OPTION_SRC, 4) == 0) {
       if (netaddr_from_string(&prefix->src, &buffer[4])) {
         return "an illegal source prefix";
       }
       if (netaddr_get_address_family(&prefix->dst)
             != netaddr_get_address_family(&prefix->src)) {
     	  return "an illegal source prefix address type";
+      }
+      if (!os_routing_supports_source_specific(
+          netaddr_get_address_family(&prefix->dst))) {
+        return "an unsupported sourc specific prefix";
       }
     }
     else {

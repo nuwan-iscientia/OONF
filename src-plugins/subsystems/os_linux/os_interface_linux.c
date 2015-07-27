@@ -55,7 +55,6 @@
 #include <net/if.h>
 #include <netinet/in.h>
 #include <sys/ioctl.h>
-#include <sys/utsname.h>
 #include <errno.h>
 #include <unistd.h>
 #include <sys/time.h>
@@ -98,7 +97,6 @@ static void _address_finished(struct os_interface_address *addr, int error);
 
 static void _activate_if_routing(void);
 static void _deactivate_if_routing(void);
-static bool _is_at_least_linuxkernel_2_6_31(void);
 static int _os_linux_writeToFile(const char *file, char *old, char value);
 static unsigned _os_linux_get_base_ifindex(const char *interf);
 
@@ -147,6 +145,9 @@ static char _original_ipv6_forward;
 /* counter of mesh interfaces for ip_forward configuration */
 static int _mesh_count = 0;
 
+/* kernel version check */
+static bool _is_kernel_2_6_31_or_better;
+
 /**
  * Initialize os-specific subsystem
  * @return -1 if an error happened, 0 otherwise
@@ -173,6 +174,8 @@ _init(void) {
 
   list_init_head(&_ifchange_listener);
   list_init_head(&_rtnetlink_feedback);
+
+  _is_kernel_2_6_31_or_better = os_linux_system_is_minimal_kernel(2,6,31);
   return 0;
 }
 
@@ -621,7 +624,7 @@ _activate_if_routing(void) {
   }
 
   /* check kernel version and disable global rp_filter */
-  if (_is_at_least_linuxkernel_2_6_31()) {
+  if (_is_kernel_2_6_31_or_better) {
     if (_os_linux_writeToFile(PROC_ALL_SPOOF, &_original_rp_filter, '0')) {
       OONF_WARN(LOG_OS_INTERFACE, "WARNING! Could not disable global rp_filter "
           "(necessary for kernel 2.6.31 and newer)! You should manually "
@@ -718,49 +721,6 @@ _os_linux_writeToFile(const char *file, char *old, char value) {
   }
 
   return 0;
-}
-
-/**
- * @return true if linux kernel is at least 2.6.31
- */
-static bool
-_is_at_least_linuxkernel_2_6_31(void) {
-  struct utsname uts;
-  char *next;
-  int first = 0, second = 0, third = 0;
-
-  memset(&uts, 0, sizeof(uts));
-  if (uname(&uts)) {
-    OONF_WARN(LOG_OS_INTERFACE,
-        "Error, could not read kernel version: %s (%d)\n",
-        strerror(errno), errno);
-    return false;
-  }
-
-  first = strtol(uts.release, &next, 10);
-  /* check for linux 3.x */
-  if (first >= 3) {
-    return true;
-  }
-
-  if (*next != '.') {
-    goto kernel_parse_error;
-  }
-
-  second = strtol(next+1, &next, 10);
-  if (*next != '.') {
-    goto kernel_parse_error;
-  }
-
-  third = strtol(next+1, NULL, 10);
-
-  /* better or equal than linux 2.6.31 ? */
-  return first == 2 && second == 6 && third >= 31;
-
-kernel_parse_error:
-  OONF_WARN(LOG_OS_INTERFACE,
-      "Error, cannot parse kernel version: %s\n", uts.release);
-  return false;
 }
 
 /**

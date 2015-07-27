@@ -54,6 +54,7 @@
 #include <errno.h>
 #include <unistd.h>
 #include <sys/time.h>
+#include <sys/utsname.h>
 #include <time.h>
 
 #include "common/common_types.h"
@@ -191,6 +192,56 @@ _cleanup(void) {
 bool
 os_system_is_ipv6_supported(void) {
   return _ioctl_v6 != -1;
+}
+
+/**
+ * @return true if linux kernel is at least a specific version
+ */
+bool
+os_linux_system_is_minimal_kernel(int v1, int v2, int v3) {
+  struct utsname uts;
+  char *next;
+  int first = 0, second = 0, third = 0;
+
+  memset(&uts, 0, sizeof(uts));
+  if (uname(&uts)) {
+    OONF_WARN(LOG_OS_SYSTEM,
+        "Error, could not read kernel version: %s (%d)\n",
+        strerror(errno), errno);
+    return false;
+  }
+
+  first = strtol(uts.release, &next, 10);
+  /* check for linux 3.x */
+  if (first > v1) {
+    return true;
+  }
+  else if (first < v1) {
+    return false;
+  }
+
+  if (*next != '.') {
+    goto kernel_parse_error;
+  }
+
+  second = strtol(next+1, &next, 10);
+  if (*next != '.') {
+    goto kernel_parse_error;
+  }
+  if (second > v2) {
+    return true;
+  }
+  if (second < v2) {
+    return false;
+  }
+
+  third = strtol(next+1, NULL, 10);
+  return third >= v3;
+
+kernel_parse_error:
+  OONF_WARN(LOG_OS_SYSTEM,
+      "Error, cannot parse kernel version: %s\n", uts.release);
+  return false;
 }
 
 /**

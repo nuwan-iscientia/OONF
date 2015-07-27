@@ -142,6 +142,9 @@ struct olsrv2_routing_domain {
 
   /* metric value that should be used for routes */
   int distance;
+
+  /* domain uses source specific routing */
+  bool source_specific;
 };
 
 /* A filter that can modify or drop the result of the Dijkstra algorithm */

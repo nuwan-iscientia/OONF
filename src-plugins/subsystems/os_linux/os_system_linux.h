@@ -82,6 +82,7 @@ struct os_system_netlink {
   struct oonf_timer_instance timeout;
 };
 
+EXPORT bool os_linux_system_is_minimal_kernel(int v1, int v2, int v3);
 EXPORT int os_system_netlink_add(struct os_system_netlink *,
     int protocol);
 EXPORT void os_system_netlink_remove(struct os_system_netlink *);
