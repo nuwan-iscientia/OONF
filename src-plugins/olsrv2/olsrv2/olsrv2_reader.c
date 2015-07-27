@@ -476,7 +476,9 @@ _cb_messagetlvs_end(struct rfc5444_reader_tlvblock_context *context __attribute_
   struct olsrv2_tc_edge *edge, *edge_it;
   struct olsrv2_tc_attachment *end, *end_it;
   struct nhdp_domain *domain;
+#ifdef OONF_LOG_DEBUG_INFO
   struct netaddr_str nbuf1, nbuf2;
+#endif
 
   if (dropped || _current.node == NULL) {
     return RFC5444_OKAY;
@@ -498,10 +500,10 @@ _cb_messagetlvs_end(struct rfc5444_reader_tlvblock_context *context __attribute_
   list_for_each_element(nhdp_domain_get_list(), domain, _node) {
     _current.node->ss_attached_networks[domain->index] = false;
 
-    OONF_INFO(LOG_OLSRV2_R, "Look for source-specific attachents of %s:",
+    OONF_DEBUG(LOG_OLSRV2_R, "Look for source-specific attachents of %s:",
         netaddr_to_string(&nbuf1, &_current.node->target.prefix.dst));
     avl_for_each_element_safe(&_current.node->_attached_networks, end, _src_node, end_it) {
-      OONF_INFO(LOG_OLSRV2_R, "        attachent [%s]/[%s]: %x / %u",
+      OONF_DEBUG(LOG_OLSRV2_R, "        attachent [%s]/[%s]: %x / %u",
           netaddr_to_string(&nbuf1, &end->dst->target.prefix.dst),
           netaddr_to_string(&nbuf2, &end->dst->target.prefix.src),
           end->cost[domain->index], netaddr_get_prefix_length(&end->dst->target.prefix.src));

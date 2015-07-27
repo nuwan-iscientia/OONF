@@ -699,9 +699,11 @@ _add_one_hop_nodes(struct nhdp_domain *domain, int af_family,
   struct olsrv2_tc_node *node;
   struct nhdp_neighbor *neigh;
   struct nhdp_neighbor_domaindata *neigh_metric;
+#ifdef OONF_LOG_DEBUG_INFO
   struct netaddr_str nbuf;
+#endif
 
-  OONF_INFO(LOG_OLSRV2_ROUTING, "Start add one-hop nodes");
+  OONF_DEBUG(LOG_OLSRV2_ROUTING, "Start add one-hop nodes");
 
   /* initialize Dijkstra working queue with one-hop neighbors */
   list_for_each_element(nhdp_db_get_neigh_list(), neigh, _global_node) {
@@ -718,7 +720,7 @@ _add_one_hop_nodes(struct nhdp_domain *domain, int af_family,
       continue;
     }
 
-    OONF_INFO(LOG_OLSRV2_ROUTING, "Add node %s",
+    OONF_DEBUG(LOG_OLSRV2_ROUTING, "Add node %s",
         netaddr_to_string(&nbuf, &neigh->originator));
 
     neigh_metric = nhdp_domain_get_neighbordata(domain, neigh);
