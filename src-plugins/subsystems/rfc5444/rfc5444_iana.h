@@ -116,6 +116,11 @@ enum draft_olsrv2_mt_iana {
   DRAFT_MT_MSGTLV_MPR_TYPES_EXT = 1,
 };
 
+enum draft_olsrv2_ssr_iana {
+  DRAFT_SSR_MSGTLV_CAPABILITY     = RFC7181_MSGTLV_MPR_WILLING,
+  DRAFT_SSR_MSGTLV_CAPABILITY_EXT = 2,
+};
+
 /* values for MPR_WILLING message TLV */
 #define RFC7181_WILLINGNESS_DEFAULT_STRING  "7"
 

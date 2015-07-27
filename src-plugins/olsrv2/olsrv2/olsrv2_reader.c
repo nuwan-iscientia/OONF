@@ -61,6 +61,7 @@ enum {
   IDX_TLV_VTIME,
   IDX_TLV_CONT_SEQ_NUM,
   IDX_TLV_MPRTYPES,
+  IDX_TLV_SSR,
 };
 
 /* OLSRv2 address TLV array index pass 1 */
@@ -78,6 +79,7 @@ struct _olsrv2_data {
   bool complete_tc;
   uint8_t mprtypes[NHDP_MAXIMUM_DOMAINS];
   size_t mprtypes_size;
+  bool source_specific;
 };
 
 /* Prototypes */
@@ -107,6 +109,8 @@ static struct rfc5444_reader_tlvblock_consumer_entry _olsrv2_message_tlvs[] = {
   [IDX_TLV_MPRTYPES] = { .type = DRAFT_MT_MSGTLV_MPR_TYPES,
       .type_ext = DRAFT_MT_MSGTLV_MPR_TYPES_EXT, .match_type_ext = true,
       .min_length = 1, .max_length = NHDP_MAXIMUM_DOMAINS, .match_length = true },
+  [IDX_TLV_SSR] = { .type = DRAFT_SSR_MSGTLV_CAPABILITY,
+      .type_ext = DRAFT_SSR_MSGTLV_CAPABILITY_EXT, .match_type_ext = true },
 };
 
 static struct rfc5444_reader_tlvblock_consumer _olsrv2_address_consumer = {
@@ -252,6 +256,9 @@ _cb_messagetlvs(struct rfc5444_reader_tlvblock_context *context) {
   _current.mprtypes_size = nhdp_domain_process_mprtypes_tlv(
       _current.mprtypes, sizeof(_current.mprtypes),
       _olsrv2_message_tlvs[IDX_TLV_MPRTYPES].tlv);
+
+  /* get source-specific flag */
+  _current.source_specific = _olsrv2_message_tlvs[IDX_TLV_SSR].tlv != NULL;
 
   /* test if we already forwarded the message */
   if (!olsrv2_mpr_shall_forwarding(

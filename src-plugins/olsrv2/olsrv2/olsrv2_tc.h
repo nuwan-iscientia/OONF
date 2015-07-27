@@ -98,6 +98,9 @@ struct olsrv2_tc_node {
   /* reported interval time */
   uint64_t interval_time;
 
+  /* node has announced it can do source specific routing */
+  bool source_specific;
+
   /* time until this node has to be removed */
   struct oonf_timer_instance _validity_time;
 

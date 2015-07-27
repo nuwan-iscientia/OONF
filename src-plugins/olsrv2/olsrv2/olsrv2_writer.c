@@ -64,7 +64,6 @@ enum olsrv2_addrtlv_idx {
   IDX_ADDRTLV_GATEWAY_SRCSPEC,
   IDX_ADDRTLV_GATEWAY_SRCSPEC_DEF,
   IDX_ADDRTLV_GATEWAY_SRC_PREFIX,
-  IDX_ADDRTLV_MPRTYPES,
 };
 
 /* Prototypes */
@@ -103,8 +102,6 @@ static struct rfc5444_writer_tlvtype _olsrv2_addrtlvs[] = {
       .type = RFC7181_ADDRTLV_GATEWAY, .exttype = RFC7181_SRCSPEC_GATEWAY },
   [IDX_ADDRTLV_GATEWAY_SRCSPEC_DEF] = {
       .type = RFC7181_ADDRTLV_GATEWAY, .exttype = RFC7181_SRCSPEC_DEF_GATEWAY },
-  [IDX_ADDRTLV_MPRTYPES]            = {
-      .type = DRAFT_MT_MSGTLV_MPR_TYPES, .exttype = DRAFT_MT_MSGTLV_MPR_TYPES_EXT },
   [IDX_ADDRTLV_GATEWAY_SRC_PREFIX] = {
       .type = SRCSPEC_GW_ADDRTLV_SRC_PREFIX },
 };
@@ -258,6 +255,14 @@ _cb_addMessageTLVs(struct rfc5444_writer *writer) {
     rfc5444_writer_add_messagetlv(writer,
         DRAFT_MT_MSGTLV_MPR_TYPES, DRAFT_MT_MSGTLV_MPR_TYPES_EXT,
         mprtypes, _mprtypes_size);
+  }
+
+  /* generate source-specific routing flag */
+  if (os_routing_supports_source_specific(
+      writer->msg_addr_len == 16 ? AF_INET6 : AF_INET)) {
+    rfc5444_writer_add_messagetlv(writer,
+        DRAFT_SSR_MSGTLV_CAPABILITY, DRAFT_SSR_MSGTLV_CAPABILITY_EXT,
+        NULL, 0);
   }
 }
 
