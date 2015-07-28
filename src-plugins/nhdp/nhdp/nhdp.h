@@ -80,7 +80,7 @@ EXPORT const struct netaddr *nhdp_get_originator(int af_type);
 
 EXPORT bool nhdp_flooding_selector(struct rfc5444_writer *writer,
     struct rfc5444_writer_target *rfc5444_target, void *ptr);
-EXPORT bool nhdp_message_forwarding_selector(
+EXPORT bool nhdp_forwarding_selector(
     struct rfc5444_writer_target *rfc5444_target);
 
 #endif /* NHDP_H_ */

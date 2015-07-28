@@ -129,7 +129,7 @@ olsrv2_writer_init(struct oonf_rfc5444_protocol *protocol) {
 
   _olsrv2_message->addMessageHeader = _cb_addMessageHeader;
   _olsrv2_message->finishMessageHeader = _cb_finishMessageHeader;
-  _olsrv2_message->forward_target_selector = nhdp_message_forwarding_selector;
+  _olsrv2_message->forward_target_selector = nhdp_forwarding_selector;
 
   if (rfc5444_writer_register_msgcontentprovider(
       &_protocol->writer, &_olsrv2_msgcontent_provider,

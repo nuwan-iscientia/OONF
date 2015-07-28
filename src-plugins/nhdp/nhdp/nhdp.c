@@ -257,7 +257,7 @@ nhdp_get_originator(int af_type) {
 bool
 nhdp_flooding_selector(struct rfc5444_writer *writer __attribute__((unused)),
     struct rfc5444_writer_target *rfc5444_target, void *ptr __attribute__((unused))) {
-  return nhdp_message_forwarding_selector(rfc5444_target);
+  return nhdp_forwarding_selector(rfc5444_target);
 }
 
 /**
@@ -269,7 +269,7 @@ nhdp_flooding_selector(struct rfc5444_writer *writer __attribute__((unused)),
  * @return true if target corresponds to selection
  */
 bool
-nhdp_message_forwarding_selector(struct rfc5444_writer_target *rfc5444_target) {
+nhdp_forwarding_selector(struct rfc5444_writer_target *rfc5444_target) {
   struct oonf_rfc5444_target *target;
   struct nhdp_interface *interf;
   bool is_ipv4, flood;
