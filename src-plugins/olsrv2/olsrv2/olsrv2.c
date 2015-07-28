@@ -157,7 +157,9 @@ static struct cfg_schema_entry _olsrv2_entries[] = {
 
   CFG_MAP_ACL_V4(_config, originator_acl, "originator",
     OLSRV2_ORIGINATOR_IPV4 OLSRV2_ORIGINATOR_IPV6 ACL_DEFAULT_ACCEPT,
-    "Filter for router originator addresses (ipv4 and ipv6)"),
+    "Filter for router originator addresses (ipv4 and ipv6)"
+    " from the interface addresses. Olsrv2 will prefer routable addresses"
+    " over linklocal addresses."),
 };
 
 static struct cfg_schema_section _olsrv2_section = {
