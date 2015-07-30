@@ -251,7 +251,7 @@ static const char *_dependencies[] = {
 };
 
 static struct oonf_subsystem _oonf_rfc5444_subsystem = {
-  .name = "rfc5444",
+  .name = OONF_RFC5444_SUBSYSTEM,
   .dependencies = _dependencies,
   .dependencies_count = ARRAYSIZE(_dependencies),
   .init = _init,
@@ -262,6 +262,9 @@ DECLARE_OONF_PLUGIN(_oonf_rfc5444_subsystem);
 
 /* static blocking of RFC5444 output */
 static bool _block_output = false;
+
+/* additional logging targets */
+enum oonf_log_source LOG_RFC5444_R, LOG_RFC5444_W;
 
 /**
  * Initialize RFC5444 handling system
@@ -305,6 +308,8 @@ _init(void) {
   rfc5444_reader_init(&_printer);
   rfc5444_print_add(&_printer_session, &_printer);
 
+  LOG_RFC5444_R = oonf_log_register_source(OONF_RFC5444_SUBSYSTEM "_r");
+  LOG_RFC5444_W = oonf_log_register_source(OONF_RFC5444_SUBSYSTEM "_w");
   return 0;
 }
 
@@ -943,7 +948,8 @@ _destroy_target(struct oonf_rfc5444_target *target) {
  * @param error text prefix when error happens during packet parsing
  */
 static void
-_print_packet_to_buffer(union netaddr_socket *sock __attribute__((unused)),
+_print_packet_to_buffer(enum oonf_log_source source,
+    union netaddr_socket *sock __attribute__((unused)),
     struct oonf_rfc5444_interface *interf __attribute__((unused)),
     uint8_t *ptr, size_t len,
     const char *success __attribute__((unused)),
@@ -951,21 +957,21 @@ _print_packet_to_buffer(union netaddr_socket *sock __attribute__((unused)),
   enum rfc5444_result result;
   struct netaddr_str buf;
 
-  if (oonf_log_mask_test(log_global_mask, LOG_RFC5444, LOG_SEVERITY_DEBUG)) {
+  if (oonf_log_mask_test(log_global_mask, source, LOG_SEVERITY_DEBUG)) {
     abuf_clear(&_printer_buffer);
     abuf_hexdump(&_printer_buffer, "", ptr, len);
 
     result = rfc5444_reader_handle_packet(&_printer, ptr, len);
     if (result) {
-      OONF_WARN(LOG_RFC5444, "%s %s for printing: %s (%d)",
+      OONF_WARN(source, "%s %s for printing: %s (%d)",
           error, netaddr_socket_to_string(&buf, sock), rfc5444_strerror(result), result);
-      OONF_WARN_NH(LOG_RFC5444, "%s", abuf_getptr(&_printer_buffer));
+      OONF_WARN_NH(source, "%s", abuf_getptr(&_printer_buffer));
     }
     else {
-      OONF_DEBUG(LOG_RFC5444, "%s %s through %s:",
+      OONF_DEBUG(source, "%s %s through %s:",
           success, netaddr_socket_to_string(&buf, sock), interf->name);
 
-      OONF_DEBUG_NH(LOG_RFC5444, "%s", abuf_getptr(&_printer_buffer));
+      OONF_DEBUG_NH(source, "%s", abuf_getptr(&_printer_buffer));
     }
   }
 }
@@ -1002,7 +1008,14 @@ _cb_receive_data(struct oonf_packet_socket *sock,
       sock == &interf->_socket.multicast_v4
       || sock == &interf->_socket.multicast_v6;
 
-  _print_packet_to_buffer(from, interf, ptr, length,
+  if (strcmp(interf->name, RFC5444_UNICAST_INTERFACE) == 0 &&
+      (netaddr_is_in_subnet(&NETADDR_IPV4_LINKLOCAL, &source_ip)
+          || netaddr_is_in_subnet(&NETADDR_IPV6_LINKLOCAL, &source_ip))) {
+    OONF_DEBUG(LOG_RFC5444, "Ignore linklocal traffic on generic unicast interface");
+    return;
+  }
+
+  _print_packet_to_buffer(LOG_RFC5444_R, from, interf, ptr, length,
       "Incoming RFC5444 packet from",
       "Error while parsing incoming RFC5444 packet from");
 
@@ -1037,7 +1050,7 @@ _cb_send_multicast_packet(struct rfc5444_writer *writer __attribute__((unused)),
   netaddr_socket_init(&sock, &t->dst, t->interface->protocol->port,
       t->interface->_socket._if_listener.interface->data.index);
 
-  _print_packet_to_buffer(&sock, t->interface, ptr, len,
+  _print_packet_to_buffer(LOG_RFC5444_W, &sock, t->interface, ptr, len,
       "Outgoing RFC5444 packet to",
       "Error while parsing outgoing RFC5444 packet to");
 
@@ -1067,7 +1080,7 @@ _cb_send_unicast_packet(struct rfc5444_writer *writer __attribute__((unused)),
   netaddr_socket_init(&sock, &t->dst, t->interface->protocol->port,
       t->interface->_socket._if_listener.interface->data.index);
 
-  _print_packet_to_buffer(&sock, t->interface, ptr, len,
+  _print_packet_to_buffer(LOG_RFC5444_W, &sock, t->interface, ptr, len,
       "Outgoing RFC5444 packet to",
       "Error while parsing outgoing RFC5444 packet to");
 

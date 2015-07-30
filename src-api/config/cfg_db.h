@@ -138,6 +138,8 @@ EXPORT int cfg_db_remove_entry(struct cfg_db *, const char *section_type,
     const char *section_name, const char *entry_name);
 EXPORT const struct const_strarray *cfg_db_get_entry_value(struct cfg_db *db,
     const char *section_type, const char *section_name, const char *entry_name);
+EXPORT const struct const_strarray *cfg_db_get_schema_entry_value(
+    struct cfg_named_section *section, struct cfg_schema_entry *entry);
 
 EXPORT int cfg_db_remove_element(struct cfg_db *, const char *section_type,
     const char *section_name, const char *entry_name, const char *value);

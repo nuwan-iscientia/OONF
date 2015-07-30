@@ -325,7 +325,6 @@ nhdp_domain_init_link(struct nhdp_link *lnk) {
   int i;
 
   /* initialize metrics */
-
   for (i=0; i<NHDP_MAXIMUM_DOMAINS; i++) {
     lnk->_domaindata[i].metric.in = RFC7181_METRIC_MAX;
     lnk->_domaindata[i].metric.out = RFC7181_METRIC_MAX;
@@ -818,7 +817,7 @@ nhdp_domain_set_flooding_mpr(struct nhdp_domain_mpr *mpr, uint8_t ext) {
 bool
 nhdp_domain_set_incoming_metric(struct nhdp_domain_metric *metric,
     struct nhdp_link *lnk, uint32_t metric_in) {
-  struct nhdp_link_domaindata *domaindata;
+  struct nhdp_link_domaindata *linkdata;
   struct nhdp_domain *domain;
   uint32_t old_metric;
   bool changed;
@@ -826,10 +825,9 @@ nhdp_domain_set_incoming_metric(struct nhdp_domain_metric *metric,
   changed = false;
   list_for_each_element(&_domain_list, domain, _node) {
     if (domain->metric == metric) {
-      domaindata = nhdp_domain_get_linkdata(domain, lnk);
-      old_metric = domaindata->metric.in;
-      domaindata->metric.in = metric_in;
-
+      linkdata = nhdp_domain_get_linkdata(domain, lnk);
+      old_metric = linkdata->metric.in;
+      linkdata->metric.in = metric_in;
       changed |= (old_metric != metric_in);
     }
   }
@@ -1017,9 +1015,10 @@ _apply_metric(struct nhdp_domain *domain, const char *metric_name) {
   domain->metric = metric;
 
   /* activate metric */
-  if (metric->enable) {
+  if (metric->_refcount == 0 && metric->enable) {
     metric->enable();
   }
+  metric->_refcount++;
 }
 
 /**
@@ -1028,8 +1027,11 @@ _apply_metric(struct nhdp_domain *domain, const char *metric_name) {
  */
 static void
 _remove_metric(struct nhdp_domain *domain) {
-  if (domain->metric->disable) {
-    domain->metric->disable();
+  domain->metric->_refcount--;
+  if (!domain->metric->_refcount) {
+    if (domain->metric->disable) {
+      domain->metric->disable();
+    }
   }
   strscpy(domain->metric_name, CFG_DOMAIN_NO_METRIC, sizeof(domain->metric_name));
   domain->metric = &_no_metric;

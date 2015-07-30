@@ -318,6 +318,7 @@ static struct abuf_template_data _td_twohop_addr[] = {
     { _tde_if_key, ARRAYSIZE(_tde_if_key) },
     { _tde_link_key, ARRAYSIZE(_tde_link_key) },
     { _tde_twohop_addr, ARRAYSIZE(_tde_twohop_addr) },
+    { _tde_domain_metric, ARRAYSIZE(_tde_domain_metric) },
 };
 static struct abuf_template_data _td_neigh[] = {
     { _tde_neigh_key, ARRAYSIZE(_tde_neigh_key) },

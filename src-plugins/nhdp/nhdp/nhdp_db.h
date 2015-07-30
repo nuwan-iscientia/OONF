@@ -42,6 +42,11 @@
 #ifndef NHDP_DB_H_
 #define NHDP_DB_H_
 
+struct nhdp_neighbor;
+struct nhdp_link;
+struct nhdp_l2hop;
+struct nhdp_laddr;
+
 #include "common/common_types.h"
 #include "common/avl.h"
 #include "common/list.h"

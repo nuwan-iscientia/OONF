@@ -370,22 +370,20 @@ _cb_addresstlvs(struct rfc5444_reader_tlvblock_context *context __attribute__((u
 
   for (tlv = _olsrv2_address_tlvs[IDX_ADDRTLV_NBR_ADDR_TYPE].tlv;
       tlv; tlv = tlv->next_entry) {
-    /* find routing domain */
-    domain = nhdp_domain_get_by_ext(tlv->type_ext);
-    if (domain == NULL) {
-      continue;
-    }
-
     /* parse originator neighbor */
     if ((tlv->single_value[0] & RFC7181_NBR_ADDR_TYPE_ORIGINATOR) != 0) {
       edge = olsrv2_tc_edge_add(_current.node, &context->addr);
       if (edge) {
         OONF_DEBUG(LOG_OLSRV2_R, "Address is originator");
         edge->ansn = _current.node->ansn;
-        edge->cost[domain->index] = cost_out[domain->index];
 
-        if (edge->inverse->virtual) {
-          edge->inverse->cost[domain->index] = cost_in[domain->index];
+        for (i=0; i<NHDP_MAXIMUM_DOMAINS; i++) {
+          if (cost_out[i] < RFC7181_METRIC_INFINITE) {
+            edge->cost[domain->index] = cost_out[domain->index];
+          }
+          if (edge->inverse->virtual && cost_in[i] < RFC7181_METRIC_INFINITE) {
+            edge->inverse->cost[domain->index] = cost_in[domain->index];
+          }
         }
       }
     }
@@ -395,7 +393,11 @@ _cb_addresstlvs(struct rfc5444_reader_tlvblock_context *context __attribute__((u
       if (end) {
         OONF_DEBUG(LOG_OLSRV2_R, "Address is routable, but not originator");
         end->ansn = _current.node->ansn;
-        end->cost[domain->index] = cost_out[domain->index];
+        for (i=0; i<NHDP_MAXIMUM_DOMAINS; i++) {
+          if (cost_out[i] < RFC7181_METRIC_INFINITE) {
+            end->cost[domain->index] = cost_out[domain->index];
+          }
+        }
       }
     }
   }

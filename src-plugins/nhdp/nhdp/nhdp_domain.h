@@ -46,6 +46,7 @@
 #include "common/list.h"
 #include "subsystems/oonf_rfc5444.h"
 
+#include "nhdp/nhdp_interfaces.h"
 #include "nhdp/nhdp_db.h"
 
 #define NHDP_CLASS_DOMAIN             "nhdp_domain"
@@ -90,6 +91,9 @@ struct nhdp_domain_metric {
   /* callbacks for enable/disable metric */
   void (*enable)(void);
   void (*disable)(void);
+
+  /* reference count */
+  int _refcount;
 
   /* node for tree of metrics */
   struct avl_node _node;
@@ -215,7 +219,6 @@ EXPORT bool nhdp_domain_set_incoming_metric(
 
 EXPORT struct list_entity *nhdp_domain_get_list(void);
 EXPORT struct list_entity *nhdp_domain_get_listener_list(void);
-
 
 /**
  * @param domain NHDP domain

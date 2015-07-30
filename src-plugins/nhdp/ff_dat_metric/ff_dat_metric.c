@@ -827,7 +827,8 @@ _link_to_string(struct nhdp_metric_str *buf, uint32_t metric) {
         * (uint32_t)DATFF_LINKSPEED_RANGE;
   }
   else if (metric > DATFF_LINKCOST_MAXIMUM) {
-    value = 0;
+    strscpy(buf->buf, "infinite", sizeof(*buf));
+    return buf->buf;
   }
   else {
     value = (uint32_t)(DATFF_LINKSPEED_MINIMUM) * (uint32_t)(DATFF_LINKSPEED_RANGE) / metric;
@@ -845,24 +846,10 @@ _link_to_string(struct nhdp_metric_str *buf, uint32_t metric) {
  */
 static const char *
 _path_to_string(struct nhdp_metric_str *buf, uint32_t metric, uint8_t hopcount) {
-  struct isonumber_str ibuf;
-  uint64_t value;
-
-  metric = metric / hopcount;
-
-  if (metric < DATFF_LINKCOST_MINIMUM) {
-    value = (uint32_t)DATFF_LINKSPEED_MINIMUM
-        * (uint32_t)DATFF_LINKSPEED_RANGE;
-  }
-  else if (metric > DATFF_LINKCOST_MAXIMUM) {
-    value = 0;
-  }
-  else {
-    value = (uint32_t)(DATFF_LINKSPEED_MINIMUM) * (uint32_t)(DATFF_LINKSPEED_RANGE) / metric;
-  }
+  struct nhdp_metric_str mbuf;
 
   snprintf(buf->buf, sizeof(*buf), "%s (%u hops)",
-      isonumber_from_u64(&ibuf, value, "bit/s", 0, true, false), hopcount);
+      _link_to_string(&mbuf, metric / hopcount), hopcount);
   return buf->buf;
 }
 

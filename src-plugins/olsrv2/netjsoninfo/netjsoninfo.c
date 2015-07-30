@@ -133,17 +133,24 @@ _print_graph_edge(struct json_session *session,
     uint32_t out, uint32_t in, bool outgoing_tree) {
   struct nhdp_metric_str mbuf;
 
+  if (out >= RFC7181_METRIC_INFINITE) {
+    return;
+  }
+
   json_start_object(session, NULL);
   _print_json_netaddr(session, "source", src);
   _print_json_netaddr(session, "target", dst);
+
   _print_json_number(session, "weight", out);
   if (in) {
     json_start_object(session, "properties");
     _print_json_string(session, "weight_txt",
         nhdp_domain_get_link_metric_value(&mbuf, domain, out));
-    _print_json_number(session, "in", in);
-    _print_json_string(session, "in_txt",
-        nhdp_domain_get_link_metric_value(&mbuf, domain, in));
+    if (in < RFC7181_METRIC_INFINITE) {
+      _print_json_number(session, "in", in);
+      _print_json_string(session, "in_txt",
+          nhdp_domain_get_link_metric_value(&mbuf, domain, in));
+    }
     _print_json_string(session, "outgoing_tree",
         json_getbool(outgoing_tree));
     json_end_object(session);
@@ -157,6 +164,10 @@ _print_graph_end(struct json_session *session,
     const struct netaddr *src, const struct os_route_key *prefix,
     uint32_t out, uint8_t hopcount) {
   struct nhdp_metric_str mbuf;
+
+  if (out >= RFC7181_METRIC_INFINITE) {
+    return;
+  }
 
   json_start_object(session, NULL);
   _print_json_netaddr(session, "source", src);

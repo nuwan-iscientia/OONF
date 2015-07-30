@@ -121,7 +121,7 @@ olsrv2_writer_init(struct oonf_rfc5444_protocol *protocol) {
   _protocol = protocol;
 
   _olsrv2_message = rfc5444_writer_register_message(
-      &_protocol->writer, RFC5444_MSGTYPE_TC, true);
+      &_protocol->writer, RFC5444_MSGTYPE_TC, false);
   if (_olsrv2_message == NULL) {
     OONF_WARN(LOG_OLSRV2, "Could not register OLSRV2 TC message");
     return -1;
@@ -220,9 +220,11 @@ _cb_finishMessageHeader(struct rfc5444_writer *writer,
     struct rfc5444_writer_address *first __attribute__((unused)),
     struct rfc5444_writer_address *last __attribute__((unused)),
     bool fragented __attribute__((unused))) {
+  uint16_t seqno;
 
-  rfc5444_writer_set_msg_seqno(writer, message,
-      oonf_rfc5444_get_next_message_seqno(_protocol));
+  seqno = oonf_rfc5444_get_next_message_seqno(_protocol);
+  OONF_DEBUG(LOG_OLSRV2_W, "Set message sequence number to %u", seqno);
+  rfc5444_writer_set_msg_seqno(writer, message, seqno);
 }
 
 /**
@@ -292,6 +294,10 @@ _generate_neighbor_metric_tlvs(struct rfc5444_writer *writer,
     OONF_DEBUG(LOG_OLSRV2_W, "Neighbor is chosen by domain %u as MPR", domain->index);
 
     metric_in = neigh_domain->metric.in;
+    if (metric_in > RFC7181_METRIC_MAX) {
+      /*  */
+      continue;
+    }
     if (rfc7181_metric_encode(&metric_in_encoded, metric_in)) {
       OONF_DEBUG(LOG_OLSRV2_W, "Encoding of metric %u failed", metric_in);
       /* invalid incoming metric, do not mention it in the TC */
@@ -309,7 +315,7 @@ _generate_neighbor_metric_tlvs(struct rfc5444_writer *writer,
       /* incoming and outgoing metric are the same */
       rfc7181_metric_set_flag(&metric_in_encoded, RFC7181_LINKMETRIC_OUTGOING_NEIGH);
     }
-    else {
+    else if (metric_out <= RFC7181_METRIC_MAX){
       /* two different link metrics */
       rfc7181_metric_set_flag(&metric_out_encoded, RFC7181_LINKMETRIC_OUTGOING_NEIGH);
       second_tlv = true;

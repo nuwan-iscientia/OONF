@@ -366,8 +366,9 @@ olsrv2_routing_get_filter_list(void) {
 static void
 _run_dijkstra(struct nhdp_domain *domain, int af_family,
     bool use_non_ss, bool use_ss) {
-  OONF_INFO(LOG_OLSRV2_ROUTING, "Run dijkstra %d: %s/%s",
-      domain->index, use_non_ss ? "true" : "false", use_ss ? "true" : "false");
+  OONF_INFO(LOG_OLSRV2_ROUTING, "Run %s dijkstra on domain %d: %s/%s",
+      af_family == AF_INET ? "ipv4" : "ipv6", domain->index,
+      use_non_ss ? "true" : "false", use_ss ? "true" : "false");
 
   /* add direct neighbors to working queue */
   _add_one_hop_nodes(domain, af_family, use_non_ss, use_ss);
@@ -720,9 +721,6 @@ _add_one_hop_nodes(struct nhdp_domain *domain, int af_family,
       continue;
     }
 
-    OONF_DEBUG(LOG_OLSRV2_ROUTING, "Add node %s",
-        netaddr_to_string(&nbuf, &neigh->originator));
-
     neigh_metric = nhdp_domain_get_neighbordata(domain, neigh);
 
     if (neigh_metric->metric.in > RFC7181_METRIC_MAX
@@ -730,6 +728,9 @@ _add_one_hop_nodes(struct nhdp_domain *domain, int af_family,
       /* ignore link with infinite metric */
       continue;
     }
+
+    OONF_DEBUG(LOG_OLSRV2_ROUTING, "Add one-hop node %s",
+        netaddr_to_string(&nbuf, &neigh->originator));
 
     /* found node for neighbor, add to worker list */
     _insert_into_working_tree(&node->target, neigh,

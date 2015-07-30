@@ -44,6 +44,7 @@
 
 struct nhdp_interface;
 struct nhdp_interface_addr;
+struct nhdp_interface_domaindata;
 
 #include "common/common_types.h"
 #include "common/avl.h"
@@ -78,8 +79,9 @@ struct nhdp_interface {
   uint64_t n_hold_time;
   uint64_t i_hold_time;
 
-  /* ACL for incoming HELLO messages through this interface */
+  /* ACL for interface addresses that should be included into HELLOs */
   struct netaddr_acl ifaddr_filter;
+
 
   /*
    * true if this interface has a neighbor that should be reached through

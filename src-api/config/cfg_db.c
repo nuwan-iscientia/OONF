@@ -405,6 +405,27 @@ cfg_db_get_entry_value(struct cfg_db *db, const char *section_type,
 }
 
 /**
+ * Retrieve the value for a section entry
+ * @param section named section, often taken from cfg_schema_section
+ * @param schema_entry schema_entry with key and default
+ * @return value of the db entry, default from schema_entry otherwise
+ */
+const struct const_strarray *
+cfg_db_get_schema_entry_value(struct cfg_named_section *section,
+    struct cfg_schema_entry *schema_entry) {
+  struct cfg_entry *entry;
+
+  if (section) {
+    entry = cfg_db_get_entry(section, schema_entry->key.entry);
+    if (entry) {
+      return (struct const_strarray *)&entry->val;
+    }
+  }
+
+  return &schema_entry->def;
+}
+
+/**
  * Removes an element from a configuration entry list
  * @param db pointer to configuration database
  * @param section_type type of section

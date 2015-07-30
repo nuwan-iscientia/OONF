@@ -700,6 +700,7 @@ _cb_create_text_edge(struct oonf_viewer_template *template) {
   struct olsrv2_tc_node *node;
   struct olsrv2_tc_edge *edge;
   struct nhdp_domain *domain;
+  uint32_t metric;
 
   avl_for_each_element(olsrv2_tc_get_tree(), node, _originator_node) {
     _initialize_node_values(node);
@@ -715,11 +716,13 @@ _cb_create_text_edge(struct oonf_viewer_template *template) {
       _initialize_edge_values(edge);
 
       list_for_each_element(nhdp_domain_get_list(), domain, _node) {
-        _initialize_domain_values(domain);
-        _initialize_domain_link_metric_values(domain,
-            olsrv2_tc_edge_get_metric(domain, edge));
+        metric = olsrv2_tc_edge_get_metric(domain, edge);
+        if (metric < RFC7181_METRIC_INFINITE) {
+          _initialize_domain_values(domain);
+          _initialize_domain_link_metric_values(domain, metric);
 
-        oonf_viewer_output_print_line(template);
+          oonf_viewer_output_print_line(template);
+        }
       }
     }
   }
