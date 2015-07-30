@@ -90,6 +90,9 @@ _cb_messagetlvs(struct rfc5444_reader_tlvblock_context *context);
 
 static enum rfc5444_result
 _cb_addresstlvs(struct rfc5444_reader_tlvblock_context *context);
+static void _handle_gateways(struct rfc5444_reader_tlvblock_entry *tlv,
+    struct os_route_key *ssprefix, const uint32_t *cost_out,
+    const struct netaddr *addr);
 static enum rfc5444_result _cb_messagetlvs_end(
     struct rfc5444_reader_tlvblock_context *context, bool dropped);
 
@@ -368,8 +371,7 @@ _cb_addresstlvs(struct rfc5444_reader_tlvblock_context *context __attribute__((u
     }
   }
 
-  for (tlv = _olsrv2_address_tlvs[IDX_ADDRTLV_NBR_ADDR_TYPE].tlv;
-      tlv; tlv = tlv->next_entry) {
+  if ((tlv = _olsrv2_address_tlvs[IDX_ADDRTLV_NBR_ADDR_TYPE].tlv)) {
     /* parse originator neighbor */
     if ((tlv->single_value[0] & RFC7181_NBR_ADDR_TYPE_ORIGINATOR) != 0) {
       edge = olsrv2_tc_edge_add(_current.node, &context->addr);
@@ -379,10 +381,10 @@ _cb_addresstlvs(struct rfc5444_reader_tlvblock_context *context __attribute__((u
 
         for (i=0; i<NHDP_MAXIMUM_DOMAINS; i++) {
           if (cost_out[i] < RFC7181_METRIC_INFINITE) {
-            edge->cost[domain->index] = cost_out[domain->index];
+            edge->cost[i] = cost_out[i];
           }
           if (edge->inverse->virtual && cost_in[i] < RFC7181_METRIC_INFINITE) {
-            edge->inverse->cost[domain->index] = cost_in[domain->index];
+            edge->inverse->cost[i] = cost_in[i];
           }
         }
       }
@@ -395,74 +397,85 @@ _cb_addresstlvs(struct rfc5444_reader_tlvblock_context *context __attribute__((u
         end->ansn = _current.node->ansn;
         for (i=0; i<NHDP_MAXIMUM_DOMAINS; i++) {
           if (cost_out[i] < RFC7181_METRIC_INFINITE) {
-            end->cost[domain->index] = cost_out[domain->index];
+            end->cost[i] = cost_out[i];
           }
         }
       }
     }
   }
 
-  for (tlv = _olsrv2_address_tlvs[IDX_ADDRTLV_GATEWAY].tlv;
-      tlv; tlv = tlv->next_entry) {
-    /* check length */
-    if (tlv->length > 1 && tlv->length < _current.mprtypes_size) {
-      /* bad length */
-      continue;
-    }
-
-    switch (tlv->type_ext) {
-      case RFC7181_DSTSPEC_GATEWAY:
-      case RFC7181_SRCSPEC_GATEWAY:
-        /* truncate address */
-        netaddr_truncate(&ssprefix.dst, &ssprefix.dst);
-        break;
-      case RFC7181_SRCSPEC_DEF_GATEWAY:
-        os_route_init_sourcespec_src_prefix(&ssprefix, &context->addr);
-
-        /* truncate address */
-        netaddr_truncate(&ssprefix.src, &ssprefix.src);
-        break;
-      default:
-        continue;
-    }
-
-    if (_olsrv2_address_tlvs[IDX_ADDRTLV_SRC_PREFIX].tlv) {
-      /* copy source specific prefix */
-      ssprefix.src._prefix_len = _olsrv2_address_tlvs[IDX_ADDRTLV_SRC_PREFIX].tlv->single_value[0];
-      memcpy(&ssprefix.src._addr[0],
-          &_olsrv2_address_tlvs[IDX_ADDRTLV_SRC_PREFIX].tlv->single_value[1],
-          _olsrv2_address_tlvs[IDX_ADDRTLV_SRC_PREFIX].tlv->length - 1);
-    }
-    /* parse attached network */
-    end = olsrv2_tc_endpoint_add(_current.node, &ssprefix, false);
-    if (!end) {
-      continue;
-    }
-
-    end->ansn = _current.node->ansn;
-
-    /* use MT definition of AN tlv */
-    for (i=0; i<_current.mprtypes_size; i++) {
-      domain = nhdp_domain_get_by_ext(_current.mprtypes[i]);
-      if (!domain) {
-        /* unknown domain */
-        continue;
-      }
-
-      end->cost[domain->index] = cost_out[domain->index];
-
-      if (tlv->length == 1) {
-        end->distance[domain->index] = tlv->single_value[0];
-      }
-      else {
-        end->distance[domain->index] = tlv->single_value[i];
-      }
-
-      OONF_DEBUG(LOG_OLSRV2_R, "Address is Attached Network: dist=%u",
-          end->distance[domain->index]);
-    }
+  if ((tlv = _olsrv2_address_tlvs[IDX_ADDRTLV_GATEWAY].tlv)) {
+    _handle_gateways(tlv, &ssprefix, cost_out, &context->addr);
   }
   return RFC5444_OKAY;
+}
+
+static void
+_handle_gateways(struct rfc5444_reader_tlvblock_entry *tlv,
+    struct os_route_key *ssprefix, const uint32_t *cost_out,
+    const struct netaddr *addr) {
+  struct olsrv2_tc_attachment *end;
+  struct nhdp_domain *domain;
+  size_t i;
+
+  /* check length */
+  if (tlv->length > 1 && tlv->length < _current.mprtypes_size) {
+    /* bad length */
+    return;
+  }
+
+  switch (tlv->type_ext) {
+    case RFC7181_DSTSPEC_GATEWAY:
+    case RFC7181_SRCSPEC_GATEWAY:
+      /* truncate address */
+      netaddr_truncate(&ssprefix->dst, &ssprefix->dst);
+      break;
+    case RFC7181_SRCSPEC_DEF_GATEWAY:
+      os_route_init_sourcespec_src_prefix(ssprefix, addr);
+
+      /* truncate address */
+      netaddr_truncate(&ssprefix->src, &ssprefix->src);
+      break;
+    default:
+      return;
+  }
+
+  if (_olsrv2_address_tlvs[IDX_ADDRTLV_SRC_PREFIX].tlv) {
+    /* copy source specific prefix */
+    ssprefix->src._prefix_len = _olsrv2_address_tlvs[IDX_ADDRTLV_SRC_PREFIX].tlv->single_value[0];
+    memcpy(&ssprefix->src._addr[0],
+        &_olsrv2_address_tlvs[IDX_ADDRTLV_SRC_PREFIX].tlv->single_value[1],
+        _olsrv2_address_tlvs[IDX_ADDRTLV_SRC_PREFIX].tlv->length - 1);
+  }
+
+  /* parse attached network */
+  end = olsrv2_tc_endpoint_add(_current.node, ssprefix, false);
+  if (!end) {
+    return;
+  }
+
+  end->ansn = _current.node->ansn;
+
+  /* use MT definition of AN tlv */
+  for (i=0; i<_current.mprtypes_size; i++) {
+    domain = nhdp_domain_get_by_ext(_current.mprtypes[i]);
+    if (!domain) {
+      /* unknown domain */
+      continue;
+    }
+
+    end->cost[domain->index] = cost_out[domain->index];
+
+    if (tlv->length == 1) {
+      end->distance[domain->index] = tlv->single_value[0];
+    }
+    else {
+      end->distance[domain->index] = tlv->single_value[i];
+    }
+
+    OONF_DEBUG(LOG_OLSRV2_R, "Address is Attached Network: dist=%u",
+        end->distance[domain->index]);
+  }
 }
 
 /**
