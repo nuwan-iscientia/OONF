@@ -99,20 +99,20 @@ static void _cb_cfg_changed(void);
 static struct cfg_schema_entry _import_entries[] = {
   CFG_MAP_INT32_MINMAX(_import_entry, domain, "domain", "0",
       "Routing domain extension for filter", 0, false, 0, 255),
-  CFG_MAP_ACL(_import_entry, filter, "matches",
-      OLSRV2_ROUTABLE_IPV4 OLSRV2_ROUTABLE_IPV6 ACL_DEFAULT_ACCEPT,
-      "Ip addresses the filter should be applied to"),
+  CFG_MAP_ACL(_import_entry, filter, "matches",  ACL_DEFAULT_ACCEPT,
+      "Ip addresses the filter should be applied to"
+      " (the plugin will never import loopback, linklocal or multicast IPs)"),
   CFG_MAP_INT32_MINMAX(_import_entry, prefix_length, "prefix_length", "-1",
       "Prefix length the filter should be applied to, -1 for any prefix length",
       0, false, -1, 128),
   CFG_MAP_STRING_ARRAY(_import_entry, ifname, "interface", "",
       "Interface name of matching routes, empty if all interfaces", IF_NAMESIZE),
-  CFG_MAP_INT32_MINMAX(_import_entry, table, "table", "0",
-      "Routing table of matching routes", 0, false, 0, 255),
-  CFG_MAP_INT32_MINMAX(_import_entry, protocol, "protocol", "0",
-      "Routing protocol of matching routes", 0, false, 0, 255),
-  CFG_MAP_INT32_MINMAX(_import_entry, distance, "metric", "0",
-      "Metric of matching routes", 0, false, 0, INT32_MAX),
+  CFG_MAP_INT32_MINMAX(_import_entry, table, "table", "-1",
+      "Routing table of matching routes, 0 for matching all tables", 0, false, -1, 255),
+  CFG_MAP_INT32_MINMAX(_import_entry, protocol, "protocol", "-1",
+      "Routing protocol of matching routes, 0 for all protocols", 0, false, -1, 255),
+  CFG_MAP_INT32_MINMAX(_import_entry, distance, "metric", "-1",
+      "Metric of matching routes, 0 for all metrics", 0, false, -1, INT32_MAX),
 };
 
 static struct cfg_schema_section _import_section = {
@@ -270,19 +270,19 @@ _cb_rt_event(const struct os_route *route, bool set) {
     }
 
     /* check routing table */
-    if (import->table && import->table != route->table) {
+    if (import->table != -1 && import->table != route->table) {
       OONF_DEBUG(LOG_LAN_IMPORT, "Bad routing table");
       continue;
     }
 
     /* check protocol */
-    if (import->protocol && import->protocol != route->protocol) {
+    if (import->protocol != -1 && import->protocol != route->protocol) {
       OONF_DEBUG(LOG_LAN_IMPORT, "Bad protocol");
       continue;
     }
 
     /* check metric */
-    if (import->distance && import->distance != route->metric) {
+    if (import->distance != -1 && import->distance != route->metric) {
       OONF_DEBUG(LOG_LAN_IMPORT, "Bad distance");
       continue;
     }
