@@ -118,7 +118,6 @@ static struct cfg_schema_entry _import_entries[] = {
 static struct cfg_schema_section _import_section = {
   .type = OONF_LAN_IMPORT_SUBSYSTEM,
   .mode = CFG_SSMODE_NAMED,
-  .def_name = "0",
 
   .cb_delta_handler = _cb_cfg_changed,
 
