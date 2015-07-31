@@ -231,6 +231,7 @@ _cb_rt_event(const struct os_route *route, bool set) {
   struct nhdp_domain *domain;
   char ifname[IF_NAMESIZE];
   struct os_route_key ssprefix;
+  const struct olsrv2_routing_domain *rtparam;
 
 #ifdef OONF_LOG_DEBUG_INFO
   struct os_route_str rbuf;
@@ -301,7 +302,9 @@ _cb_rt_event(const struct os_route *route, bool set) {
 
     if (set) {
       list_for_each_element(nhdp_domain_get_list(), domain, _node) {
-        if (olsrv2_routing_get_parameters(domain)->protocol == route->protocol) {
+        rtparam = olsrv2_routing_get_parameters(domain);
+        if (rtparam->protocol == route->protocol
+            && rtparam->table == route->table) {
           /* do never set a LAN for a route tagged with an olsrv2 protocol */
           OONF_DEBUG(LOG_LAN_IMPORT, "Matches olsrv2 protocol!");
           continue;
