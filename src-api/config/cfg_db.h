@@ -124,7 +124,7 @@ EXPORT struct cfg_named_section *_cfg_db_add_section(
 EXPORT int cfg_db_remove_sectiontype(struct cfg_db *, const char *section_type);
 
 EXPORT struct cfg_named_section *cfg_db_find_namedsection(
-    struct cfg_db *, const char *section_type, const char *section_name);
+    const struct cfg_db *, const char *section_type, const char *section_name);
 EXPORT int cfg_db_remove_namedsection(struct cfg_db *db, const char *section_type,
     const char *section_name);
 
@@ -139,7 +139,7 @@ EXPORT int cfg_db_remove_entry(struct cfg_db *, const char *section_type,
 EXPORT const struct const_strarray *cfg_db_get_entry_value(struct cfg_db *db,
     const char *section_type, const char *section_name, const char *entry_name);
 EXPORT const struct const_strarray *cfg_db_get_schema_entry_value(
-    struct cfg_named_section *section, struct cfg_schema_entry *entry);
+    const struct cfg_named_section *section, const struct cfg_schema_entry *entry);
 
 EXPORT int cfg_db_remove_element(struct cfg_db *, const char *section_type,
     const char *section_name, const char *entry_name, const char *value);
@@ -248,7 +248,7 @@ cfg_db_copy_entry(struct cfg_db *dst, struct cfg_db *src,
  * @return pointer to section type , NULL if not found
  */
 static INLINE struct cfg_section_type *
-cfg_db_get_sectiontype(struct cfg_db *db, const char *section_type) {
+cfg_db_get_sectiontype(const struct cfg_db *db, const char *section_type) {
   struct cfg_section_type *section;
   return avl_find_element(&db->sectiontypes, section_type, section, node);
 }
@@ -260,7 +260,7 @@ cfg_db_get_sectiontype(struct cfg_db *db, const char *section_type) {
  * @return pointer to section, NULL if not found
  */
 static INLINE struct cfg_named_section *
-cfg_db_get_named_section(struct cfg_section_type *type, const char *name) {
+cfg_db_get_named_section(const struct cfg_section_type *type, const char *name) {
   struct cfg_named_section *named;
   return avl_find_element(&type->names, name, named, node);
 }
@@ -272,7 +272,7 @@ cfg_db_get_named_section(struct cfg_section_type *type, const char *name) {
  * @return pointer to entry, NULL if not found
  */
 static INLINE struct cfg_entry *
-cfg_db_get_entry(struct cfg_named_section *named, const char *key) {
+cfg_db_get_entry(const struct cfg_named_section *named, const char *key) {
   struct cfg_entry *entry;
   return avl_find_element(&named->entries, key, entry, node);
 }
@@ -284,7 +284,7 @@ cfg_db_get_entry(struct cfg_named_section *named, const char *key) {
  * @return pointer to section type , NULL if not found
  */
 static INLINE struct cfg_section_type *
-cfg_db_find_sectiontype(struct cfg_db *db, const char *section_type) {
+cfg_db_find_sectiontype(const struct cfg_db *db, const char *section_type) {
   return cfg_db_get_sectiontype(db, section_type);
 }
 
@@ -294,7 +294,7 @@ cfg_db_find_sectiontype(struct cfg_db *db, const char *section_type) {
  * @return pointer to section, NULL if not found
  */
 static INLINE struct cfg_named_section *
-cfg_db_find_unnamedsection(struct cfg_db *db, const char *section_type) {
+cfg_db_find_unnamedsection(const struct cfg_db *db, const char *section_type) {
   return cfg_db_find_namedsection(db, section_type, NULL);
 }
 
@@ -303,7 +303,7 @@ cfg_db_find_unnamedsection(struct cfg_db *db, const char *section_type) {
  * @return true if named sections has a name, false if its an 'unnamed' one.
  */
 static INLINE bool
-cfg_db_is_named_section(struct cfg_named_section *named) {
+cfg_db_is_named_section(const struct cfg_named_section *named) {
   return named->name != NULL;
 }
 
@@ -313,7 +313,7 @@ cfg_db_is_named_section(struct cfg_named_section *named) {
  *   NULL no unnamed section.
  */
 static INLINE struct cfg_named_section *
-cfg_db_get_unnamed_section(struct cfg_section_type *stype) {
+cfg_db_get_unnamed_section(const struct cfg_section_type *stype) {
   struct cfg_named_section *named;
   return avl_find_element(&stype->names, NULL, named, node);
 }
@@ -326,8 +326,8 @@ cfg_db_get_unnamed_section(struct cfg_section_type *stype) {
  * @return pointer to named section, NULL if an error happened
  */
 static INLINE struct cfg_named_section *
-cfg_db_add_namedsection(
-    struct cfg_db *db, const char *section_type, const char *section_name) {
+cfg_db_add_namedsection(struct cfg_db *db,
+    const char *section_type, const char *section_name) {
   bool dummy;
   return _cfg_db_add_section(db, section_type, section_name, &dummy);
 }
@@ -339,8 +339,7 @@ cfg_db_add_namedsection(
  * @return pointer to named section, NULL if an error happened
  */
 static INLINE struct cfg_named_section *
-cfg_db_add_unnamedsection(
-    struct cfg_db *db, const char *section_type) {
+cfg_db_add_unnamedsection(struct cfg_db *db, const char *section_type) {
   bool dummy;
   return _cfg_db_add_section(db, section_type, NULL, &dummy);
 }

@@ -332,9 +332,10 @@ _cb_cfg_changed(void) {
     }
   }
 
-  array = cfg_schema_tovalue(_constant_section.post, &_constant_entries[0]);
+  array = cfg_db_get_schema_entry_value(
+      _constant_section.post, &_constant_entries[0]);
   if (!array) {
-    OONF_DEBUG(LOG_CONSTANT_METRIC, "1");
+    OONF_WARN(LOG_CONSTANT_METRIC, "No link defined for static cost");
     return;
   }
 

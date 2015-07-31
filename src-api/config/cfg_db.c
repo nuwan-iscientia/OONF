@@ -214,8 +214,8 @@ cfg_db_remove_sectiontype(struct cfg_db *db, const char *section_type) {
  * @return pointer to named section, NULL if not found
  */
 struct cfg_named_section *
-cfg_db_find_namedsection(
-    struct cfg_db *db, const char *section_type, const char *section_name) {
+cfg_db_find_namedsection(const struct cfg_db *db,
+    const char *section_type, const char *section_name) {
   struct cfg_section_type *section;
   struct cfg_named_section *named = NULL;
 
@@ -411,8 +411,8 @@ cfg_db_get_entry_value(struct cfg_db *db, const char *section_type,
  * @return value of the db entry, default from schema_entry otherwise
  */
 const struct const_strarray *
-cfg_db_get_schema_entry_value(struct cfg_named_section *section,
-    struct cfg_schema_entry *schema_entry) {
+cfg_db_get_schema_entry_value(const struct cfg_named_section *section,
+    const struct cfg_schema_entry *schema_entry) {
   struct cfg_entry *entry;
 
   if (section) {

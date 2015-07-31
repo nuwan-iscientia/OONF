@@ -637,7 +637,8 @@ _cb_config_changed(void) {
   oonf_timer_set_ext(&_transmission_timer, 1, _config.interval);
 
   /* mark old interfaces for removal */
-  array = cfg_schema_tovalue(_nl80211_section.pre, &_nl80211_entries[IDX_INTERFACES]);
+  array = cfg_db_get_schema_entry_value(
+      _nl80211_section.pre, &_nl80211_entries[IDX_INTERFACES]);
   if (array && strarray_get_count_c(array) > 0) {
     strarray_for_each_element(array, str) {
       interf = _nl80211_if_get(str);
@@ -649,7 +650,8 @@ _cb_config_changed(void) {
   }
 
   /* create new interfaces and remove mark */
-  array = cfg_schema_tovalue(_nl80211_section.post, &_nl80211_entries[IDX_INTERFACES]);
+  array = cfg_db_get_schema_entry_value(
+      _nl80211_section.post, &_nl80211_entries[IDX_INTERFACES]);
   if (array && strarray_get_count_c(array) > 0) {
     strarray_for_each_element(array, str) {
       interf = _nl80211_if_add(str);
@@ -661,7 +663,8 @@ _cb_config_changed(void) {
     }
   }
 
-  array = cfg_schema_tovalue(_nl80211_section.pre, &_nl80211_entries[IDX_INTERFACES]);
+  array = cfg_db_get_schema_entry_value(
+      _nl80211_section.pre, &_nl80211_entries[IDX_INTERFACES]);
   if (array && strarray_get_count_c(array) > 0) {
     strarray_for_each_element(array, str) {
       interf = _nl80211_if_get(str);
