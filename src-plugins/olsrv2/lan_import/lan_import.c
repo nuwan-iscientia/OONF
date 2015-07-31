@@ -117,6 +117,11 @@ static struct cfg_schema_entry _import_entries[] = {
 
 static struct cfg_schema_section _import_section = {
   .type = OONF_LAN_IMPORT_SUBSYSTEM,
+
+  /*
+   * this MUST NOT be CFG_SSMODE_NAMED_WITH_DEFAULT, otherwise it will
+   * activate without user interaction
+   */
   .mode = CFG_SSMODE_NAMED,
 
   .cb_delta_handler = _cb_cfg_changed,
