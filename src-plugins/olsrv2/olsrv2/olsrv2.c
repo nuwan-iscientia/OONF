@@ -155,7 +155,7 @@ static struct cfg_schema_entry _olsrv2_entries[] = {
     " <"LAN_OPTION_DOMAIN"...> <"LAN_OPTION_SRC"...> ).",
     .list = true),
 
-  CFG_MAP_ACL_V4(_config, originator_acl, "originator",
+  CFG_MAP_ACL_V46(_config, originator_acl, "originator",
     OLSRV2_ORIGINATOR_IPV4 OLSRV2_ORIGINATOR_IPV6 ACL_DEFAULT_ACCEPT,
     "Filter for router originator addresses (ipv4 and ipv6)"
     " from the interface addresses. Olsrv2 will prefer routable addresses"
