@@ -2,6 +2,8 @@
 ==================
 ff_dat_plugin plugin by Henning Rogge
 
+DAT = Directional Airtime Metric
+
 This plugin calculates a nhdp link metric based on the approved
 Freifunk ETX metric and the outgoing linkspeed. Compared
 to the original ff_ett metric is just use the packet loss
@@ -38,3 +40,4 @@ quickly get up to a reasonable ETX value.
 
 "ett" allows to switch off the linkspeed part of the metric calculation,
 downgrading the metric to a directional ETT
+
