@@ -83,7 +83,6 @@ static enum oonf_telnet_result _cb_telnet_help(struct oonf_telnet_data *data);
 static enum oonf_telnet_result _cb_telnet_echo(struct oonf_telnet_data *data);
 static enum oonf_telnet_result _cb_telnet_repeat(struct oonf_telnet_data *data);
 static enum oonf_telnet_result _cb_telnet_timeout(struct oonf_telnet_data *data);
-static enum oonf_telnet_result _cb_telnet_version(struct oonf_telnet_data *data);
 
 /* configuration of telnet server */
 static struct cfg_schema_entry _telnet_entries[] = {
@@ -110,12 +109,11 @@ static struct oonf_telnet_command _builtin[] = {
   TELNET_CMD("exit", _cb_telnet_quit, "Ends telnet session"),
   TELNET_CMD("help", _cb_telnet_help,
       "help: Display the online help text and a list of commands"),
-  TELNET_CMD("echo", _cb_telnet_echo,"echo <string>: Prints a string"),
+  TELNET_CMD("echo", _cb_telnet_echo, "echo <string>: Prints a string"),
   TELNET_CMD("repeat", _cb_telnet_repeat,
       "repeat <seconds> <command>: Repeats a telnet command every X seconds"),
   TELNET_CMD("timeout", _cb_telnet_timeout,
       "timeout <seconds> :Sets telnet session timeout"),
-  TELNET_CMD("version", _cb_telnet_version, "Displays version of the program"),
 };
 
 /* subsystem definition */
@@ -461,8 +459,15 @@ _cb_telnet_receive_data(struct oonf_stream_session *session) {
         OONF_DEBUG(LOG_TELNET, "Processing telnet command: '%s' '%s'",
             cmd, para);
 
-        telnet_session->data.command = cmd;
-        telnet_session->data.parameter = para;
+        if (strcmp(para, "help") == 0) {
+          /* switch command and parameter to allow "<cmd> help" variant */
+          telnet_session->data.command = para;
+          telnet_session->data.parameter = cmd;
+        }
+        else {
+          telnet_session->data.command = cmd;
+          telnet_session->data.parameter = para;
+        }
 
         cmd_result = _telnet_handle_command(&telnet_session->data);
         if (abuf_has_failed(telnet_session->data.out)) {
@@ -748,15 +753,4 @@ _cb_telnet_repeat(struct oonf_telnet_data *data) {
   }
 
   return TELNET_RESULT_CONTINOUS;
-}
-
-/**
- * Telnet command 'version'
- * @param data pointer to telnet data
- * @return telnet command result
- */
-static enum oonf_telnet_result
-_cb_telnet_version(struct oonf_telnet_data *data) {
-  oonf_log_printversion(data->out);
-  return TELNET_RESULT_ACTIVE;
 }
