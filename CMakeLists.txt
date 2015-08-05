@@ -68,7 +68,7 @@ string(LENGTH "${CMAKE_SOURCE_DIR}/" BASELENGTH)
 add_definitions(-DBASEPATH_LENGTH=${BASELENGTH})
 
 # include build helper
-include (cmake/OONFBuildLibrary.cmake)
+include (cmake/declare_library.cmake)
 
 # include files
 include_directories(${PROJECT_BINARY_DIR})
