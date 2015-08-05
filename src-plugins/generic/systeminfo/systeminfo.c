@@ -61,6 +61,7 @@
 
 /* name of telnet subcommands/JSON nodes */
 #define _JSON_NAME_TIME        "time"
+#define _JSON_NAME_VERSION     "version"
 
 /* prototypes */
 static int _init(void);
@@ -70,16 +71,21 @@ static enum oonf_telnet_result _cb_systeminfo(struct oonf_telnet_data *con);
 static enum oonf_telnet_result _cb_systeminfo_help(struct oonf_telnet_data *con);
 
 static void _initialize_time_values(struct oonf_viewer_template *template);
+static void _initialize_version_values(struct oonf_viewer_template *template);
 
 static int _cb_create_text_time(struct oonf_viewer_template *);
+static int _cb_create_text_version(struct oonf_viewer_template *);
 
 /*
  * list of template keys and corresponding buffers for values.
  *
  * The keys are API, so they should not be changed after published
  */
-#define KEY_SYSTEM_TIME                 "system_time"
-#define KEY_INTERNAL_TIME               "internal_time"
+#define KEY_TIME_SYSTEM                 "time_system"
+#define KEY_TIME_INTERNAL               "time_internal"
+
+#define KEY_VERSION_TEXT                "version_text"
+#define KEY_VERSION_COMMIT              "version_commit"
 
 /*
  * buffer space for values that will be assembled
@@ -88,10 +94,17 @@ static int _cb_create_text_time(struct oonf_viewer_template *);
 static struct oonf_walltime_str         _value_system_time;
 static struct isonumber_str             _value_internal_time;
 
+static char                             _value_version_text[256];
+static char                             _value_version_commit[21];
+
 /* definition of the template data entries for JSON and table output */
 static struct abuf_template_data_entry _tde_time_key[] = {
-    { KEY_SYSTEM_TIME, _value_system_time.buf, true },
-    { KEY_INTERNAL_TIME, _value_internal_time.buf, false },
+    { KEY_TIME_SYSTEM, _value_system_time.buf, true },
+    { KEY_TIME_INTERNAL, _value_internal_time.buf, false },
+};
+static struct abuf_template_data_entry _tde_version_key[] = {
+    { KEY_VERSION_TEXT, _value_version_text, true },
+    { KEY_VERSION_COMMIT, _value_version_commit, true },
 };
 
 static struct abuf_template_storage _template_storage;
@@ -99,6 +112,9 @@ static struct abuf_template_storage _template_storage;
 /* Template Data objects (contain one or more Template Data Entries) */
 static struct abuf_template_data _td_time[] = {
     { _tde_time_key, ARRAYSIZE(_tde_time_key) },
+};
+static struct abuf_template_data _td_version[] = {
+    { _tde_version_key, ARRAYSIZE(_tde_version_key) },
 };
 
 /* OONF viewer templates (based on Template Data arrays) */
@@ -108,6 +124,12 @@ static struct oonf_viewer_template _templates[] = {
         .data_size = ARRAYSIZE(_td_time),
         .json_name = _JSON_NAME_TIME,
         .cb_function = _cb_create_text_time,
+    },
+    {
+        .data = _td_version,
+        .data_size = ARRAYSIZE(_td_version),
+        .json_name = _JSON_NAME_VERSION,
+        .cb_function = _cb_create_text_version,
     },
 };
 
@@ -187,6 +209,18 @@ _initialize_time_values(struct oonf_viewer_template *template) {
 }
 
 /**
+ * Initialize the value buffers for the version of OONF
+ */
+static void
+_initialize_version_values(
+    struct oonf_viewer_template *template __attribute__((unused))) {
+  strscpy(_value_version_text, oonf_log_get_libdata()->version,
+      sizeof(_value_version_text));
+  strscpy(_value_version_commit, oonf_log_get_libdata()->git_commit,
+      sizeof(_value_version_commit));
+}
+
+/**
  * Callback to generate text/json description of current time
  * @param template viewer template
  * @return -1 if an error happened, 0 otherwise
@@ -195,6 +229,21 @@ static int
 _cb_create_text_time(struct oonf_viewer_template *template) {
   /* initialize values */
   _initialize_time_values(template);
+
+  /* generate template output */
+  oonf_viewer_output_print_line(template);
+  return 0;
+}
+
+/**
+ * Callback to generate text/json description of version of OONF
+ * @param template viewer template
+ * @return -1 if an error happened, 0 otherwise
+ */
+static int
+_cb_create_text_version(struct oonf_viewer_template *template) {
+  /* initialize values */
+  _initialize_version_values(template);
 
   /* generate template output */
   oonf_viewer_output_print_line(template);
