@@ -63,7 +63,6 @@ dlep_session_add(struct dlep_session *session, const char *l2_ifname,
     uint32_t l2_origin, struct autobuf *out, bool radio,
     enum oonf_log_source log_source) {
   struct dlep_session_parser *parser;
-  struct dlep_extension *ext;
   int32_t i;
 
   parser = &session->parser;
