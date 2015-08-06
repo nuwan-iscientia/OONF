@@ -1,6 +1,7 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=oonf-olsrd2-git
+PKG_VERSION:=2015-06-08
 #PKG_REV:=ec2bca8f28b4d14df049fc81e177160ca0e3c3a3
 #PKG_RELEASE:=$(PKG_REV)
 
@@ -9,8 +10,6 @@ PKG_NAME:=oonf-olsrd2-git
 #PKG_SOURCE_PROTO:=git
 #PKG_SOURCE_SUBDIR:=$(PKG_NAME)-$(PKG_VERSION)
 #PKG_SOURCE_VERSION:=$(PKG_REV)
-
-PKG_VERSION:=0.8.2
 
 CMAKE_INSTALL:=1
 
@@ -40,7 +39,7 @@ endef
 define Package/oonf-olsrd2-git
 	$(call Package/oonf-git/template) 
 	TITLE:= Build Olsrd V2 Routing Agent
-	DEPENDS:=+librt +libnl-tiny +libuci
+	DEPENDS:=+librt +libnl-tiny +libuci +oonf-init-scripts
 	VERSION:=$(PKG_VERSION)
 endef
 
