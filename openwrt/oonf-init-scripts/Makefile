@@ -15,7 +15,7 @@ define Package/oonf-init-scripts
 	VERSION:=$(PKG_VERSION)
 endef
 
-define Package/oonf-olsrd2-git/install
+define Package/oonf-init-scripts/install
 	$(INSTALL_BIN)  -D ./files/oonf_init.sh            $(1)/lib/functions/oonf_init.sh
 	$(INSTALL_BIN)  -D ./files/oonf_hotplug.sh         $(1)/lib/functions/oonf_hotplug.sh
 endef
