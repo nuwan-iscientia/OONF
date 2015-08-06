@@ -2,14 +2,6 @@ include $(TOPDIR)/rules.mk
 
 PKG_NAME:=oonf-olsrd2-git
 PKG_VERSION:=2015-06-08
-#PKG_REV:=ec2bca8f28b4d14df049fc81e177160ca0e3c3a3
-#PKG_RELEASE:=$(PKG_REV)
-
-#PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.bz2
-#PKG_SOURCE_URL:=http://olsr.org/git/oonf_api.git
-#PKG_SOURCE_PROTO:=git
-#PKG_SOURCE_SUBDIR:=$(PKG_NAME)-$(PKG_VERSION)
-#PKG_SOURCE_VERSION:=$(PKG_REV)
 
 CMAKE_INSTALL:=1
 
