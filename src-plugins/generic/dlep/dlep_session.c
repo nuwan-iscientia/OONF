@@ -88,7 +88,8 @@ dlep_session_add(struct dlep_session *session, const char *l2_ifname,
   }
 
   /* allocate memory for the pointers */
-  parser->extensions = calloc(DLEP_EXTENSION_BASE_COUNT, sizeof(*ext));
+  parser->extensions = calloc(
+      DLEP_EXTENSION_BASE_COUNT, sizeof(struct dlep_extension *));
   if (!parser->extensions) {
     OONF_WARN(session->log_source,
         "Cannot allocate extension buffer for %s", l2_ifname);

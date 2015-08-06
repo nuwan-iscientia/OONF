@@ -459,7 +459,7 @@ _cb_telnet_receive_data(struct oonf_stream_session *session) {
         OONF_DEBUG(LOG_TELNET, "Processing telnet command: '%s' '%s'",
             cmd, para);
 
-        if (strcmp(para, "help") == 0) {
+        if (para != NULL && strcmp(para, "help") == 0) {
           /* switch command and parameter to allow "<cmd> help" variant */
           telnet_session->data.command = para;
           telnet_session->data.parameter = cmd;
