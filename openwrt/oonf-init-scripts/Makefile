@@ -1,7 +1,10 @@
 include $(TOPDIR)/rules.mk
+include $(INCLUDE_DIR)/kernel.mk
 
 PKG_NAME:=oonf-init-scripts
 PKG_VERSION:=2015-06-08
+PKG_RELEASE:=1
+PKG_BUILD_DIR:=$(BUILD_DIR)/$(PKG_NAME)
 
 include $(INCLUDE_DIR)/package.mk
 
@@ -13,6 +16,16 @@ define Package/oonf-init-scripts
 	URL:=http://www.olsr.org/
 	TITLE:= Common OONF startup scripts
 	VERSION:=$(PKG_VERSION)
+endef
+
+define Build/Prepare
+	mkdir -p $(PKG_BUILD_DIR)
+endef
+
+define Build/Configure
+endef
+
+define Build/Compile
 endef
 
 define Package/oonf-init-scripts/install
