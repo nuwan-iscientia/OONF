@@ -1,7 +1,7 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=oonf-olsrd2-git
-PKG_VERSION:=2015-06-08
+PKG_VERSION:=2015-10-08
 
 CMAKE_INSTALL:=1
 
