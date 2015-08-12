@@ -42,8 +42,7 @@ oonf_add_devices_to_configuration()
   # olsrd2.@interface[2].ifname='wan lan wlanadhoc wlanadhocRADIO1'
 
   # /var is in ramdisc/tmpfs
-  mkdir -p /var/etc
-  uci export ${DAEMON} >"/var/etc/${DAEMON}_dev"
+  uci export ${DAEMON} >"/var/run/${DAEMON}_dev"
 
   while section="$( uci -q -c /etc/config get "${DAEMON}.@[${i}]" )"; do {
     echo "section: ${section}"
@@ -79,7 +78,7 @@ oonf_add_devices_to_configuration()
 
   uci -q -c /var/etc commit "${DAEMON}_dev"
 
-  oonf_log "wrote '/var/etc/${DAEMON}_dev'"
+  oonf_log "wrote '/var/run/${DAEMON}_dev'"
 }
 
 oonf_reread_config()
@@ -106,7 +105,7 @@ start()
   # produce coredumps
   ulimit -c unlimited
 
-  service_start /usr/sbin/${DAEMON} --set global.fork=true --load uci:///var/etc/${DAEMON}_dev
+  service_start /usr/sbin/${DAEMON} --set global.fork=true --load uci:///var/run/${DAEMON}_dev
 }
 
 stop()
