@@ -164,7 +164,7 @@ mpr_is_mpr(struct neighbor_graph *graph, struct netaddr *addr) {
 }
 
 uint32_t
-mpr_calculate_minimal_d_z_y(struct nhdp_domain *domain,
+mpr_calculate_minimal_d_z_y(const struct nhdp_domain *domain,
     struct neighbor_graph *graph, struct addr_node *y) {
   struct n1_node *z_node;
   uint32_t d_z_y, min_d_z_y;

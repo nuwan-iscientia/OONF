@@ -59,8 +59,11 @@
 
 static void _apply_metric(struct nhdp_domain *domain, const char *metric_name);
 static void _remove_metric(struct nhdp_domain *);
-static void _apply_mpr(struct nhdp_domain *domain, const char *mpr_name);
+static void _apply_mpr(struct nhdp_domain *domain,
+    const char *mpr_name, uint8_t willingness);
 static void _remove_mpr(struct nhdp_domain *);
+
+static void _cb_update_everyone_mpr(void);
 
 static void _recalculate_neighbor_metric(struct nhdp_domain *domain,
         struct nhdp_neighbor *neigh);
@@ -91,12 +94,13 @@ static struct nhdp_domain_metric _no_metric = {
 };
 
 /* default MPR handler (no MPR handling) */
-static struct nhdp_domain_mpr _no_mprs = {
+static struct nhdp_domain_mpr _everyone_mprs = {
   .name = "Everyone MPR",
 
   .mpr_start = true,
   .mprs_start = true,
-  .willingness = RFC7181_WILLINGNESS_DEFAULT,
+
+  .update_mpr = _cb_update_everyone_mpr,
 };
 
 /* non-default routing domains registered to NHDP */
@@ -106,12 +110,11 @@ static struct list_entity _domain_listener_list;
 static size_t _domain_counter = 0;
 
 /* tree of known routing metrics/mpr-algorithms */
-struct avl_tree nhdp_domain_metrics;
-struct avl_tree nhdp_domain_mprs;
+static struct avl_tree _domain_metrics;
+static struct avl_tree _domain_mprs;
 
-/* flooding MPR handler registered to NHDP */
-static struct nhdp_domain_mpr *_flooding_mpr = &_no_mprs;
-uint8_t _flooding_ext = 0;
+/* flooding domain */
+struct nhdp_domain _flooding_domain;
 
 /* NHDP RFC5444 protocol */
 static struct oonf_rfc5444_protocol *_protocol;
@@ -131,8 +134,15 @@ nhdp_domain_init(struct oonf_rfc5444_protocol *p) {
   list_init_head(&_domain_list);
   list_init_head(&_domain_listener_list);
 
-  avl_init(&nhdp_domain_metrics, avl_comp_strcasecmp, false);
-  avl_init(&nhdp_domain_mprs, avl_comp_strcasecmp, false);
+  avl_init(&_domain_metrics, avl_comp_strcasecmp, false);
+  avl_init(&_domain_mprs, avl_comp_strcasecmp, false);
+
+  /* initialize flooding domain */
+  _flooding_domain.metric = &_no_metric;
+  _flooding_domain.mpr = &_everyone_mprs;
+
+  _flooding_domain.mpr->_refcount++;
+  _flooding_domain.metric->_refcount++;
 }
 
 /**
@@ -168,14 +178,6 @@ nhdp_domain_cleanup(void) {
 size_t
 nhdp_domain_get_count(void) {
   return _domain_counter;
-}
-
-/**
- * @return current flooding mpr
- */
-struct nhdp_domain_mpr *
-nhdp_domain_get_flooding_mpr(void) {
-  return _flooding_mpr;
 }
 
 /**
@@ -215,7 +217,7 @@ nhdp_domain_metric_add(struct nhdp_domain_metric *metric) {
   }
 
   /* hook into tree */
-  return avl_insert(&nhdp_domain_metrics, &metric->_node);
+  return avl_insert(&_domain_metrics, &metric->_node);
 }
 
 /**
@@ -233,7 +235,7 @@ nhdp_domain_metric_remove(struct nhdp_domain_metric *metric) {
     }
   }
 
-  avl_remove(&nhdp_domain_metrics, &metric->_node);
+  avl_remove(&_domain_metrics, &metric->_node);
 }
 
 /**
@@ -248,14 +250,18 @@ nhdp_domain_mpr_add(struct nhdp_domain_mpr *mpr) {
   /* initialize key */
   mpr->_node.key = mpr->name;
 
-  if (avl_insert(&nhdp_domain_mprs, &mpr->_node)) {
+  if (avl_insert(&_domain_mprs, &mpr->_node)) {
     return -1;
   }
 
   list_for_each_element(&_domain_list, domain, _node) {
-    if (domain->mpr == &_no_mprs) {
-      _apply_mpr(domain, domain->mpr_name);
+    if (domain->mpr == &_everyone_mprs) {
+      _apply_mpr(domain, domain->mpr_name, domain->local_willingness);
     }
+  }
+  if (_flooding_domain.mpr == &_everyone_mprs) {
+    _apply_mpr(&_flooding_domain,
+        _flooding_domain.mpr_name, _flooding_domain.local_willingness);
   }
   return 0;
 }
@@ -275,7 +281,7 @@ nhdp_domain_mpr_remove(struct nhdp_domain_mpr *mpr) {
     }
   }
 
-  avl_remove(&nhdp_domain_mprs, &mpr->_node);
+  avl_remove(&_domain_mprs, &mpr->_node);
 }
 
 /**
@@ -372,9 +378,9 @@ nhdp_domain_init_neighbor(struct nhdp_neighbor *neigh) {
   int i;
 
   /* initialize flooding MPR settings */
-  neigh->flooding_willingness = _flooding_mpr->willingness;
-  neigh->local_is_flooding_mpr = _flooding_mpr->mprs_start;
-  neigh->neigh_is_flooding_mpr = _flooding_mpr->mpr_start;
+  neigh->flooding_willingness = RFC7181_WILLINGNESS_NEVER;
+  neigh->local_is_flooding_mpr = _flooding_domain.mpr->mprs_start;
+  neigh->neigh_is_flooding_mpr = _flooding_domain.mpr->mpr_start;
 
   for (i=0; i<NHDP_MAXIMUM_DOMAINS; i++) {
     neigh->_domaindata[i].metric.in = RFC7181_METRIC_MAX;
@@ -390,7 +396,7 @@ nhdp_domain_init_neighbor(struct nhdp_neighbor *neigh) {
 
     data->best_link = NULL;
 
-    data->willingness = domain->mpr->willingness;
+    data->willingness = RFC7181_WILLINGNESS_NEVER;
     data->local_is_mpr = domain->mpr->mprs_start;
     data->neigh_is_mpr = domain->mpr->mpr_start;
   }
@@ -498,6 +504,7 @@ nhdp_domain_neighbor_changed(struct nhdp_neighbor *neigh) {
   struct nhdp_domain_listener *listener;
   struct nhdp_domain *domain;
   
+
   list_for_each_element(&_domain_list, domain, _node) {
     _recalculate_neighbor_metric(domain, neigh);
 
@@ -622,22 +629,25 @@ nhdp_domain_process_mpr_tlv(uint8_t *mprtypes, size_t mprtypes_size,
 
 /**
  * Process an in Willingness tlv and put values into
- * temporary storage in MPR handler object
+ * temporary storage in MPR handler object. Call
+ * nhdp_domain_store_willingness to permanently store them later.
+ * @param neighbor neighbor we received a willingness TLV from
  * @param mprtypes list of extenstions for MPR
  * @param mprtypes_size length of mprtypes array
  * @param tlvvalue willingness array to parse
  * @param tlvsize length of willingness array
  */
 void
-nhdp_domain_process_willingness_tlv(uint8_t *mprtypes, size_t mprtypes_size,
+nhdp_domain_process_willingness_tlv(
+    uint8_t *mprtypes, size_t mprtypes_size,
     struct rfc5444_reader_tlvblock_entry *tlv) {
   struct nhdp_domain *domain;
   size_t idx, i;
   uint8_t value;
 
-  _flooding_mpr->willingness = RFC7181_WILLINGNESS_NEVER;
+  _flooding_domain._tmp_willingness = RFC7181_WILLINGNESS_NEVER;
   list_for_each_element(&_domain_list, domain, _node) {
-    domain->mpr->willingness = RFC7181_WILLINGNESS_NEVER;
+    domain->_tmp_willingness= RFC7181_WILLINGNESS_NEVER;
   }
 
   if (!tlv) {
@@ -645,9 +655,10 @@ nhdp_domain_process_willingness_tlv(uint8_t *mprtypes, size_t mprtypes_size,
   }
 
   /* copy flooding willingness */
-  _flooding_mpr->willingness = tlv->single_value[0] & RFC7181_WILLINGNESS_MASK;
+  _flooding_domain._tmp_willingness
+    = tlv->single_value[0] & RFC7181_WILLINGNESS_MASK;
   OONF_DEBUG(LOG_NHDP_R, "Received flooding willingness: %u",
-      _flooding_mpr->willingness);
+      _flooding_domain._tmp_willingness);
 
   for (i=0; i<mprtypes_size; i++) {
     domain = nhdp_domain_get_by_ext(mprtypes[i]);
@@ -668,10 +679,27 @@ nhdp_domain_process_willingness_tlv(uint8_t *mprtypes, size_t mprtypes_size,
       value &= RFC7181_WILLINGNESS_MASK;
     }
 
-    domain->mpr->willingness = value;
+    domain->_tmp_willingness = value;
 
     OONF_DEBUG(LOG_NHDP_R, "Received routing willingness for domain %u: %u",
-        domain->ext, _flooding_mpr->willingness);
+        domain->ext, domain->_tmp_willingness);
+  }
+}
+
+/**
+ * Stores the willingness data processed by
+ * nhdp_domain_process_willingness_tlv() into a neighbor object
+ * @param neigh NHDP neighbor
+ */
+void
+nhdp_domain_store_willingness(struct nhdp_neighbor *neigh) {
+  struct nhdp_neighbor_domaindata *neighdata;
+  struct nhdp_domain *domain;
+
+  neigh->flooding_willingness = _flooding_domain._tmp_willingness;
+  list_for_each_element(&_domain_list, domain, _node) {
+    neighdata = nhdp_domain_get_neighbordata(domain, neigh);
+    neighdata->willingness = domain->_tmp_willingness;
   }
 }
 
@@ -760,9 +788,9 @@ nhdp_domain_encode_willingness_tlvvalue(uint8_t *tlvvalue, size_t tlvsize) {
   len = 0;
 
   /* set flooding willingness */
-  tlvvalue[0] = _flooding_mpr->willingness;
+  tlvvalue[0] = _flooding_domain.local_willingness;
   OONF_DEBUG(LOG_NHDP_W, "Set flooding willingness: %u",
-      _flooding_mpr->willingness);
+      _flooding_domain.local_willingness);
 
   /* set routing willingness */
   list_for_each_element(&_domain_list, domain, _node) {
@@ -774,7 +802,7 @@ nhdp_domain_encode_willingness_tlvvalue(uint8_t *tlvvalue, size_t tlvsize) {
       len = idx + 1;
     }
 
-    value = domain->mpr->willingness & RFC7181_WILLINGNESS_MASK;
+    value = domain->local_willingness & RFC7181_WILLINGNESS_MASK;
 
     OONF_DEBUG(LOG_NHDP_W, "Set routing willingness for domain %u: %u"
         " (%"PRINTF_SIZE_T_SPECIFIER")",
@@ -791,19 +819,12 @@ nhdp_domain_encode_willingness_tlvvalue(uint8_t *tlvvalue, size_t tlvsize) {
 
 /**
  * Sets a new flodding MPR algorithm
- * @param mpr pointer to flooding MPR handler
- * @param ext TLV extension to transport flooding MPR settings
+ * @param mpr_name name of MPR algorithm
+ * @param willingness of MPR algorithm
  */
 void
-nhdp_domain_set_flooding_mpr(struct nhdp_domain_mpr *mpr, uint8_t ext) {
-  if (mpr == NULL) {
-    _flooding_mpr = &_no_mprs;
-    _flooding_ext = 0;
-  }
-  else {
-    _flooding_mpr = mpr;
-    _flooding_ext = ext;
-  }
+nhdp_domain_set_flooding_mpr(const char *mpr_name, uint8_t willingness) {
+  _apply_mpr(&_flooding_domain, mpr_name, willingness);
 }
 
 /**
@@ -819,16 +840,14 @@ nhdp_domain_set_incoming_metric(struct nhdp_domain_metric *metric,
     struct nhdp_link *lnk, uint32_t metric_in) {
   struct nhdp_link_domaindata *linkdata;
   struct nhdp_domain *domain;
-  uint32_t old_metric;
   bool changed;
 
   changed = false;
   list_for_each_element(&_domain_list, domain, _node) {
     if (domain->metric == metric) {
       linkdata = nhdp_domain_get_linkdata(domain, lnk);
-      old_metric = linkdata->metric.in;
+      changed |= (linkdata->metric.in != metric_in);
       linkdata->metric.in = metric_in;
-      changed |= (old_metric != metric_in);
     }
   }
   return changed;
@@ -926,7 +945,10 @@ nhdp_domain_add(uint8_t ext) {
   domain->ext = ext;
   domain->index = _domain_counter++;
   domain->metric = &_no_metric;
-  domain->mpr = &_no_mprs;
+  domain->mpr = &_everyone_mprs;
+
+  domain->mpr->_refcount++;
+  domain->metric->_refcount++;
 
   /* initialize metric TLVs */
   for (i=0; i<4; i++) {
@@ -955,11 +977,13 @@ nhdp_domain_add(uint8_t ext) {
  *   might be CFG_DOMAIN_NO_MPR (every node is MPR)
  *   or CFG_DOMAIN_ANY_MPR (for a MPR the NHDP core should
  *   choose).
+ * @param willingness routing willingness for domain
  * @return pointer to configured domain, NULL, if out of memory or
  *   maximum number of domains has been reached.
  */
 struct nhdp_domain *
-nhdp_domain_configure(uint8_t ext, const char *metric_name, const char *mpr_name) {
+nhdp_domain_configure(uint8_t ext, const char *metric_name,
+    const char *mpr_name, uint8_t willingness) {
   struct nhdp_domain *domain;
 
   domain = nhdp_domain_add(ext);
@@ -967,8 +991,13 @@ nhdp_domain_configure(uint8_t ext, const char *metric_name, const char *mpr_name
     return NULL;
   }
 
+  OONF_DEBUG(LOG_NHDP, "Configure domain %u to metric=%s",
+      domain->index, metric_name);
   _apply_metric(domain, metric_name);
-  _apply_mpr(domain, mpr_name);
+
+  OONF_DEBUG(LOG_NHDP, "Configure domain %u to mpr=%s, willingness=%u",
+      domain->index, mpr_name, willingness);
+  _apply_mpr(domain, mpr_name, willingness);
 
   oonf_class_event(&_domain_class, domain, OONF_OBJECT_CHANGED);
 
@@ -988,30 +1017,32 @@ _apply_metric(struct nhdp_domain *domain, const char *metric_name) {
   struct nhdp_domain_metric *metric;
 
   /* check if we have to remove the old metric first */
-  if (strcasecmp(domain->metric_name, metric_name) != 0) {
-    if (domain->metric != &_no_metric) {
-      _remove_metric(domain);
-      strscpy(domain->metric_name, CFG_DOMAIN_NO_METRIC, sizeof(domain->metric_name));
-    }
+  if (strcasecmp(domain->metric_name, metric_name) == 0) {
+    /* nothing to do, we already have the right metric */
+    return;
+  }
+
+  if (domain->metric != &_no_metric) {
+    _remove_metric(domain);
   }
 
   /* Handle wildcard metric name first */
   if (strcasecmp(metric_name, CFG_DOMAIN_ANY_METRIC) == 0
-      && !avl_is_empty(&nhdp_domain_metrics)) {
-    metric_name = avl_first_element(&nhdp_domain_metrics, metric, _node)->name;
+      && !avl_is_empty(&_domain_metrics)) {
+    metric_name = avl_first_element(&_domain_metrics, metric, _node)->name;
+  }
+
+  /* look for metric implementation */
+  metric = avl_find_element(&_domain_metrics, metric_name, metric, _node);
+  if (metric == NULL) {
+    domain->metric = &_no_metric;
   }
 
   /* copy new metric name */
-  strscpy(domain->metric_name, metric_name, sizeof(domain->metric_name));
-
-  /* look for metric implementation */
-  metric = avl_find_element(&nhdp_domain_metrics, metric_name, metric, _node);
-  if (metric == NULL) {
-    domain->metric = &_no_metric;
-    return;
-  }
+  strscpy(domain->metric_name, metric->name, sizeof(domain->metric_name));
 
   /* link domain and metric */
+  domain->metric->_refcount--;
   domain->metric = metric;
 
   /* activate metric */
@@ -1028,13 +1059,12 @@ _apply_metric(struct nhdp_domain *domain, const char *metric_name) {
 static void
 _remove_metric(struct nhdp_domain *domain) {
   domain->metric->_refcount--;
-  if (!domain->metric->_refcount) {
-    if (domain->metric->disable) {
-      domain->metric->disable();
-    }
+  if (!domain->metric->_refcount && domain->metric->disable) {
+    domain->metric->disable();
   }
   strscpy(domain->metric_name, CFG_DOMAIN_NO_METRIC, sizeof(domain->metric_name));
   domain->metric = &_no_metric;
+  domain->metric->_refcount++;
 }
 
 /**
@@ -1044,38 +1074,49 @@ _remove_metric(struct nhdp_domain *domain) {
  *   might be CFG_DOMAIN_NO_MPR (every node is MPR)
  *   or CFG_DOMAIN_ANY_MPR (for a MPR the NHDP core should
  *   choose).
+ * @param willingness routing willingness for domain
  */
 static void
-_apply_mpr(struct nhdp_domain *domain, const char *mpr_name) {
+_apply_mpr(struct nhdp_domain *domain, const char *mpr_name, uint8_t willingness) {
   struct nhdp_domain_mpr *mpr;
 
   /* check if we have to remove the old mpr first */
-  if (strcasecmp(domain->mpr_name, mpr_name) != 0) {
-    if (domain->mpr != &_no_mprs) {
-      _remove_mpr(domain);
-      strscpy(domain->mpr_name, CFG_DOMAIN_NO_MPR, sizeof(domain->mpr_name));
-    }
+  if (strcasecmp(domain->mpr_name, mpr_name) == 0) {
+    domain->local_willingness = willingness;
+
+    /* nothing else to do, we already have the right MPR */
+    return;
+  }
+  if (domain->mpr != &_everyone_mprs) {
+    /* replace old MPR algorithm with "everyone MPR" */
+    _remove_mpr(domain);
   }
 
   /* Handle wildcard mpr name first */
   if (strcasecmp(mpr_name, CFG_DOMAIN_ANY_METRIC) == 0
-      && !avl_is_empty(&nhdp_domain_mprs)) {
-    mpr_name = avl_first_element(&nhdp_domain_mprs, mpr, _node)->name;
+      && !avl_is_empty(&_domain_mprs)) {
+    mpr_name = avl_first_element(&_domain_mprs, mpr, _node)->name;
+  }
+
+  /* look for mpr implementation */
+  mpr = avl_find_element(&_domain_mprs, mpr_name, mpr, _node);
+  if (mpr == NULL) {
+    mpr = &_everyone_mprs;
   }
 
   /* copy new metric name */
-  strscpy(domain->mpr_name, mpr_name, sizeof(domain->mpr_name));
-
-  /* look for mpr implementation */
-  mpr = avl_find_element(&nhdp_domain_mprs, mpr_name, mpr, _node);
-  if (mpr == NULL) {
-    domain->mpr = &_no_mprs;
-    return;
-  }
+  strscpy(domain->mpr_name, mpr->name, sizeof(domain->mpr_name));
 
   /* link domain and mpr */
+  domain->mpr->_refcount--;
   domain->mpr = mpr;
-  mpr->domain = domain;
+  domain->local_willingness = willingness;
+
+  /* activate mpr */
+  if (mpr->_refcount == 0 && mpr->enable) {
+    mpr->enable();
+  }
+  mpr->_refcount++;
 }
 
 /**
@@ -1084,9 +1125,35 @@ _apply_mpr(struct nhdp_domain *domain, const char *mpr_name) {
  */
 static void
 _remove_mpr(struct nhdp_domain *domain) {
+  domain->mpr->_refcount--;
+  if (!domain->mpr->_refcount && domain->mpr->disable) {
+    domain->mpr->disable();
+  }
   strscpy(domain->mpr_name, CFG_DOMAIN_NO_MPR, sizeof(domain->mpr_name));
-  domain->mpr->domain = NULL;
-  domain->mpr = &_no_mprs;
+  domain->mpr = &_everyone_mprs;
+  domain->mpr->_refcount++;
+}
+
+static void
+_cb_update_everyone_mpr(void) {
+  struct nhdp_neighbor *neigh;
+  struct nhdp_domain *domain;
+  struct nhdp_neighbor_domaindata *domaindata;
+
+  list_for_each_element(nhdp_db_get_neigh_list(), neigh, _global_node) {
+    if (_flooding_domain.mpr == &_everyone_mprs) {
+      neigh->neigh_is_flooding_mpr =
+          neigh->flooding_willingness > RFC7181_WILLINGNESS_NEVER;
+    }
+
+    list_for_each_element(nhdp_domain_get_list(), domain, _node) {
+      if (domain->mpr == &_everyone_mprs) {
+        domaindata = nhdp_domain_get_neighbordata(domain, neigh);
+        domaindata->neigh_is_mpr =
+            domaindata->willingness > RFC7181_WILLINGNESS_NEVER;
+      }
+    }
+  }
 }
 
 /**

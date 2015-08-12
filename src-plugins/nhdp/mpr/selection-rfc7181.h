@@ -46,6 +46,6 @@
 
 #include "nhdp/nhdp_domain.h"
 
-void mpr_calculate_mpr_rfc7181(struct nhdp_domain *, struct neighbor_graph *graph);
+void mpr_calculate_mpr_rfc7181(const struct nhdp_domain *, struct neighbor_graph *graph);
 
 #endif

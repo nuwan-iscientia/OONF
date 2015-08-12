@@ -107,8 +107,9 @@ struct nhdp_domain_mpr {
   /* calculate MPR set */
   void (*update_mpr)(void);
 
-  /* routing willingness */
-  enum rfc7181_willingness_values willingness;
+  /* callbacks for enable/disable mpr */
+  void (*enable)(void);
+  void (*disable)(void);
 
   /* default value for neighbor MPR setting */
   bool mpr_start;
@@ -116,8 +117,8 @@ struct nhdp_domain_mpr {
   /* default value for local MPR (selector) setting */
   bool mprs_start;
 
-  /* backpointer to domain */
-  struct nhdp_domain *domain;
+  /* reference count */
+  int _refcount;
 
   /* node for tree of MPR algorithms */
   struct avl_node _node;
@@ -137,6 +138,8 @@ struct nhdp_domain {
   struct nhdp_domain_metric *metric;
   struct nhdp_domain_mpr *mpr;
 
+  uint8_t local_willingness;
+
   /*
    * true if a neighbor metric of this domain has changed
    * since the last reset of this variable
@@ -146,8 +149,11 @@ struct nhdp_domain {
   /* tlv extension */
   uint8_t ext;
 
-  /* index in the metric array */
+  /* index in the domain array */
   int index;
+
+  /* temporary storage for willingness processing */
+  uint8_t _tmp_willingness;
 
   /* storage for the up to four additional link metrics */
   struct rfc5444_writer_tlvtype _metric_addrtlvs[4];
@@ -168,8 +174,8 @@ void nhdp_domain_cleanup(void);
 
 EXPORT size_t nhdp_domain_get_count(void);
 EXPORT struct nhdp_domain *nhdp_domain_add(uint8_t ext);
-EXPORT struct nhdp_domain *nhdp_domain_configure(
-    uint8_t ext, const char *metric_name, const char *mpr_name);
+EXPORT struct nhdp_domain *nhdp_domain_configure(uint8_t ext,
+    const char *metric_name, const char *mpr_name, uint8_t willingness);
 
 EXPORT int nhdp_domain_metric_add(struct nhdp_domain_metric *);
 EXPORT void nhdp_domain_metric_remove(struct nhdp_domain_metric *);
@@ -179,10 +185,6 @@ EXPORT void nhdp_domain_mpr_remove(struct nhdp_domain_mpr *);
 
 EXPORT void nhdp_domain_listener_add(struct nhdp_domain_listener *);
 EXPORT void nhdp_domain_listener_remove(struct nhdp_domain_listener *);
-
-EXPORT struct nhdp_domain_mpr *nhdp_domain_get_flooding_mpr(void);
-EXPORT void nhdp_domain_set_flooding_mpr(
-    struct nhdp_domain_mpr *, uint8_t ext);
 
 EXPORT struct nhdp_domain *nhdp_domain_get_by_ext(uint8_t);
 
@@ -207,6 +209,7 @@ EXPORT void nhdp_domain_process_mpr_tlv(uint8_t *mprtypes, size_t mprtypes_size,
 EXPORT void nhdp_domain_process_willingness_tlv(
     uint8_t *mpr_types, size_t mprtypes_size,
     struct rfc5444_reader_tlvblock_entry *tlv);
+EXPORT void nhdp_domain_store_willingness(struct nhdp_neighbor *);
 EXPORT size_t nhdp_domain_encode_mprtypes_tlvvalue(
     uint8_t *mprtypes, size_t mprtypes_size);
 EXPORT size_t nhdp_domain_encode_mpr_tlvvalue(
@@ -219,6 +222,8 @@ EXPORT bool nhdp_domain_set_incoming_metric(
 
 EXPORT struct list_entity *nhdp_domain_get_list(void);
 EXPORT struct list_entity *nhdp_domain_get_listener_list(void);
+EXPORT const struct nhdp_domain *nhdp_domain_get_flooding(void);
+EXPORT void nhdp_domain_set_flooding_mpr(const char *mpr_name, uint8_t willingness);
 
 /**
  * @param domain NHDP domain
@@ -226,7 +231,7 @@ EXPORT struct list_entity *nhdp_domain_get_listener_list(void);
  * @return domain data of specified link
  */
 static INLINE struct nhdp_link_domaindata *
-nhdp_domain_get_linkdata(struct nhdp_domain *domain, struct nhdp_link *lnk) {
+nhdp_domain_get_linkdata(const struct nhdp_domain *domain, struct nhdp_link *lnk) {
   return &lnk->_domaindata[domain->index];
 }
 
@@ -237,7 +242,7 @@ nhdp_domain_get_linkdata(struct nhdp_domain *domain, struct nhdp_link *lnk) {
  */
 static INLINE struct nhdp_neighbor_domaindata *
 nhdp_domain_get_neighbordata(
-    struct nhdp_domain *domain, struct nhdp_neighbor *neigh) {
+    const struct nhdp_domain *domain, struct nhdp_neighbor *neigh) {
   return &neigh->_domaindata[domain->index];
 }
 
@@ -248,7 +253,7 @@ nhdp_domain_get_neighbordata(
  */
 static INLINE struct nhdp_l2hop_domaindata *
 nhdp_domain_get_l2hopdata(
-    struct nhdp_domain *domain, struct nhdp_l2hop *l2hop) {
+    const struct nhdp_domain *domain, struct nhdp_l2hop *l2hop) {
   return &l2hop->_domaindata[domain->index];
 }
 
@@ -261,7 +266,7 @@ nhdp_domain_get_l2hopdata(
  */
 static INLINE const char *
 nhdp_domain_get_link_metric_value(struct nhdp_metric_str *buf,
-    struct nhdp_domain *domain, uint32_t metric) {
+    const struct nhdp_domain *domain, uint32_t metric) {
   return domain->metric->link_to_string(buf, metric);
 }
 
@@ -274,7 +279,7 @@ nhdp_domain_get_link_metric_value(struct nhdp_metric_str *buf,
  */
 static INLINE const char *
 nhdp_domain_get_path_metric_value(struct nhdp_metric_str *buf,
-    struct nhdp_domain *domain, uint32_t metric, uint8_t hopcount) {
+    const struct nhdp_domain *domain, uint32_t metric, uint8_t hopcount) {
   return domain->metric->path_to_string(buf, metric, hopcount);
 }
 
@@ -286,7 +291,7 @@ nhdp_domain_get_path_metric_value(struct nhdp_metric_str *buf,
  */
 static INLINE const char *
 nhdp_domain_get_internal_link_metric_value(struct nhdp_metric_str *buf,
-    struct nhdp_domain_metric *metric, struct nhdp_link *lnk) {
+    const struct nhdp_domain_metric *metric, struct nhdp_link *lnk) {
   return metric->internal_link_to_string(buf, lnk);
 }
 

@@ -63,8 +63,8 @@
 
 /* FIXME remove unneeded includes */
 
-static void _calculate_n(struct nhdp_domain *domain, struct neighbor_graph *graph);
-static unsigned int _calculate_r(struct nhdp_domain *domain,
+static void _calculate_n(const struct nhdp_domain *domain, struct neighbor_graph *graph);
+static unsigned int _calculate_r(const struct nhdp_domain *domain,
     struct neighbor_graph *graph, struct n1_node *x_node);
 
 /**
@@ -79,7 +79,7 @@ static unsigned int _calculate_r(struct nhdp_domain *domain,
  * @return 
  */
 static void
-_calculate_n(struct nhdp_domain *domain, struct neighbor_graph *graph) {
+_calculate_n(const struct nhdp_domain *domain, struct neighbor_graph *graph) {
   struct addr_node *y_node;
   uint32_t d1_y;
   struct n1_node *x_node;
@@ -126,7 +126,7 @@ _calculate_n(struct nhdp_domain *domain, struct neighbor_graph *graph) {
  * @return 
  */
 static unsigned int
-_calculate_r(struct nhdp_domain *domain, struct neighbor_graph *graph,
+_calculate_r(const struct nhdp_domain *domain, struct neighbor_graph *graph,
     struct n1_node *x_node) {
   struct addr_node *y_node;
   struct n1_node *z_node;
@@ -185,7 +185,7 @@ _calculate_r(struct nhdp_domain *domain, struct neighbor_graph *graph,
  * @param current_mpr_data
  */
 static void
-_process_will_always(struct nhdp_domain *domain, struct neighbor_graph *graph) {
+_process_will_always(const struct nhdp_domain *domain, struct neighbor_graph *graph) {
   struct n1_node *current_n1_node;
 #ifdef OONF_LOG_DEBUG_INFO
   struct netaddr_str buf1;
@@ -209,7 +209,7 @@ _process_will_always(struct nhdp_domain *domain, struct neighbor_graph *graph) {
  * @param current_mpr_data
  */
 static void
-_process_unique_mprs(struct nhdp_domain *domain, struct neighbor_graph *graph) {
+_process_unique_mprs(const struct nhdp_domain *domain, struct neighbor_graph *graph) {
   struct n1_node *node_n1, *possible_mpr_node;
   struct addr_node *node_n;
   uint32_t possible_mprs;
@@ -256,9 +256,9 @@ _process_unique_mprs(struct nhdp_domain *domain, struct neighbor_graph *graph) {
  * @return 
  */
 static void
-_select_greatest_by_property(struct nhdp_domain *domain,
+_select_greatest_by_property(const struct nhdp_domain *domain,
     struct neighbor_graph *graph,
-    uint32_t(*get_property)(struct nhdp_domain *, struct neighbor_graph*, struct n1_node*)) {
+    uint32_t(*get_property)(const struct nhdp_domain *, struct neighbor_graph*, struct n1_node*)) {
   struct avl_tree *n1_subset, tmp_candidate_subset;
   struct n1_node *node_n1,
       *greatest_prop_node;
@@ -323,7 +323,7 @@ _select_greatest_by_property(struct nhdp_domain *domain,
 // FIXME Wrapper required for having the correct signature...
 
 static uint32_t
-_get_willingness_n1(struct nhdp_domain *domain,
+_get_willingness_n1(const struct nhdp_domain *domain,
     struct neighbor_graph *graph, struct n1_node *node) {
   return graph->methods->get_willingness_n1(domain, node);
 }
@@ -333,7 +333,7 @@ _get_willingness_n1(struct nhdp_domain *domain,
  * @param current_mpr_data
  */
 static void
-_process_remaining(struct nhdp_domain *domain, struct neighbor_graph *graph) {
+_process_remaining(const struct nhdp_domain *domain, struct neighbor_graph *graph) {
   struct n1_node *node_n1;
   bool done;
 
@@ -381,7 +381,7 @@ _process_remaining(struct nhdp_domain *domain, struct neighbor_graph *graph) {
  * Calculate MPR
  */
 void
-mpr_calculate_mpr_rfc7181(struct nhdp_domain *domain, struct neighbor_graph *graph) {
+mpr_calculate_mpr_rfc7181(const struct nhdp_domain *domain, struct neighbor_graph *graph) {
   OONF_DEBUG(LOG_MPR, "Calculate MPR set");
 
   _calculate_n(domain, graph);

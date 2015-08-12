@@ -52,15 +52,15 @@ struct addr_node;
 struct n1_node;
 
 struct neighbor_graph_interface {    
-    bool (*is_allowed_link_tuple)(struct nhdp_domain *,
+    bool (*is_allowed_link_tuple)(const struct nhdp_domain *,
         struct nhdp_interface *current_interface, struct nhdp_link *link);
-    uint32_t (*calculate_d1_x_of_n2_addr)(struct nhdp_domain *,
+    uint32_t (*calculate_d1_x_of_n2_addr)(const struct nhdp_domain *,
         struct neighbor_graph*, struct netaddr*);
-    uint32_t (*calculate_d_x_y)(struct nhdp_domain *,
+    uint32_t (*calculate_d_x_y)(const struct nhdp_domain *,
         struct n1_node*, struct addr_node*);
-    uint32_t (*calculate_d2_x_y)(struct nhdp_domain *,
+    uint32_t (*calculate_d2_x_y)(const struct nhdp_domain *,
         struct n1_node*, struct addr_node*);
-    uint32_t (*get_willingness_n1)(struct nhdp_domain *, struct n1_node*);
+    uint32_t (*get_willingness_n1)(const struct nhdp_domain *, struct n1_node*);
 };
 
 struct neighbor_graph {
@@ -101,7 +101,7 @@ void mpr_clear_neighbor_graph(struct neighbor_graph *graph);
 
 bool mpr_is_mpr(struct neighbor_graph *graph, struct netaddr *addr);
 
-uint32_t mpr_calculate_minimal_d_z_y(struct nhdp_domain *,
+uint32_t mpr_calculate_minimal_d_z_y(const struct nhdp_domain *,
     struct neighbor_graph *graph, struct addr_node *y);
 
 void mpr_print_addr_set(struct avl_tree *set);

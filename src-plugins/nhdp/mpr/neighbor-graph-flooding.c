@@ -62,22 +62,22 @@
 
 /* FIXME remove unneeded includes */
 
-static uint32_t _calculate_d1_x(struct nhdp_domain *domain, struct n1_node *x);
-static uint32_t _calculate_d2_x_y(struct nhdp_domain *domain,
+static uint32_t _calculate_d1_x(const struct nhdp_domain *domain, struct n1_node *x);
+static uint32_t _calculate_d2_x_y(const struct nhdp_domain *domain,
     struct n1_node *x, struct addr_node *y);
-static uint32_t _calculate_d_x_y(struct nhdp_domain *domain,
+static uint32_t _calculate_d_x_y(const struct nhdp_domain *domain,
     struct n1_node *x, struct addr_node *y);
 #if 0
 static uint32_t _calculate_d1_of_y(struct mpr_flooding_data *data, struct addr_node *y);
 #endif
-static uint32_t _calculate_d1_x_of_n2_addr(struct nhdp_domain *domain,
+static uint32_t _calculate_d1_x_of_n2_addr(const struct nhdp_domain *domain,
     struct neighbor_graph *graph, struct netaddr *addr);
-static void _calculate_n1(struct nhdp_domain *domain, struct mpr_flooding_data *data);
-static void _calculate_n2(struct nhdp_domain *domain, struct mpr_flooding_data *data);
+static void _calculate_n1(const struct nhdp_domain *domain, struct mpr_flooding_data *data);
+static void _calculate_n2(const struct nhdp_domain *domain, struct mpr_flooding_data *data);
 
-static bool _is_allowed_link_tuple(struct nhdp_domain *domain,
+static bool _is_allowed_link_tuple(const struct nhdp_domain *domain,
     struct nhdp_interface *current_interface, struct nhdp_link *lnk);
-static uint32_t _get_willingness_n1(struct nhdp_domain *, struct n1_node *node);
+static uint32_t _get_willingness_n1(const struct nhdp_domain *, struct n1_node *node);
 
 static struct neighbor_graph_interface _api_interface = {
   .is_allowed_link_tuple     = _is_allowed_link_tuple,
@@ -94,7 +94,7 @@ static struct neighbor_graph_interface _api_interface = {
  * @return 
  */
 static bool
-_is_reachable_link_tuple(struct nhdp_domain *domain,
+_is_reachable_link_tuple(const struct nhdp_domain *domain,
     struct nhdp_interface *current_interface, struct nhdp_link *lnk) {
   struct nhdp_link_domaindata *linkdata;
 
@@ -114,7 +114,7 @@ _is_reachable_link_tuple(struct nhdp_domain *domain,
  * @return 
  */
 static bool
-_is_allowed_link_tuple(struct nhdp_domain *domain,
+_is_allowed_link_tuple(const struct nhdp_domain *domain,
     struct nhdp_interface *current_interface, struct nhdp_link *lnk) {
   if (_is_reachable_link_tuple(domain, current_interface, lnk)
       && lnk->neigh->flooding_willingness > RFC7181_WILLINGNESS_NEVER) {
@@ -124,7 +124,7 @@ _is_allowed_link_tuple(struct nhdp_domain *domain,
 }
 
 static bool
-_is_allowed_2hop_tuple(struct nhdp_domain *domain,
+_is_allowed_2hop_tuple(const struct nhdp_domain *domain,
     struct nhdp_interface *current_interface, struct nhdp_l2hop *two_hop) {
   struct nhdp_l2hop_domaindata *twohopdata;
 
@@ -137,7 +137,7 @@ _is_allowed_2hop_tuple(struct nhdp_domain *domain,
 }
 
 static uint32_t
-_calculate_d1_x(struct nhdp_domain *domain, struct n1_node *x) {
+_calculate_d1_x(const struct nhdp_domain *domain, struct n1_node *x) {
   struct nhdp_link_domaindata *linkdata;
 
   linkdata = nhdp_domain_get_linkdata(domain, x->link);
@@ -145,7 +145,7 @@ _calculate_d1_x(struct nhdp_domain *domain, struct n1_node *x) {
 }
 
 static uint32_t
-_calculate_d2_x_y(struct nhdp_domain *domain,
+_calculate_d2_x_y(const struct nhdp_domain *domain,
     struct n1_node *x, struct addr_node *y) {
   struct nhdp_l2hop *tmp_l2hop;
   struct nhdp_l2hop_domaindata *twohopdata;
@@ -161,7 +161,7 @@ _calculate_d2_x_y(struct nhdp_domain *domain,
 }
 
 static uint32_t
-_calculate_d_x_y(struct nhdp_domain *domain,
+_calculate_d_x_y(const struct nhdp_domain *domain,
     struct n1_node *x, struct addr_node *y) {
   return _calculate_d1_x(domain, x) + _calculate_d2_x_y(domain, x, y);
 }
@@ -196,7 +196,7 @@ _calculate_d1_of_y(struct mpr_flooding_data *data, struct addr_node *y) {
  * @return 
  */
 uint32_t
-_calculate_d1_x_of_n2_addr(struct nhdp_domain *domain,
+_calculate_d1_x_of_n2_addr(const struct nhdp_domain *domain,
     struct neighbor_graph *graph, struct netaddr *addr) {
   struct n1_node *node_n1;
   struct nhdp_naddr *naddr;
@@ -222,7 +222,7 @@ _calculate_d1_x_of_n2_addr(struct nhdp_domain *domain,
  * @param interf
  */
 static void
-_calculate_n1(struct nhdp_domain *domain, struct mpr_flooding_data *data) {
+_calculate_n1(const struct nhdp_domain *domain, struct mpr_flooding_data *data) {
   struct nhdp_link *lnk;
 
   OONF_DEBUG(LOG_MPR, "Calculate N1 for interface %s",
@@ -249,7 +249,7 @@ _calculate_n1(struct nhdp_domain *domain, struct mpr_flooding_data *data) {
  * @return 
  */
 static void
-_calculate_n2(struct nhdp_domain *domain, struct mpr_flooding_data *data) {
+_calculate_n2(const struct nhdp_domain *domain, struct mpr_flooding_data *data) {
   struct n1_node *n1_neigh;
   struct nhdp_l2hop *twohop;
 
@@ -274,13 +274,13 @@ _calculate_n2(struct nhdp_domain *domain, struct mpr_flooding_data *data) {
  * @return 
  */
 static uint32_t
-_get_willingness_n1(struct nhdp_domain *domain __attribute__((unused)),
+_get_willingness_n1(const struct nhdp_domain *domain __attribute__((unused)),
     struct n1_node *node) {
   return node->neigh->flooding_willingness;
 }
 
 void
-mpr_calculate_neighbor_graph_flooding(struct nhdp_domain *domain, struct mpr_flooding_data *data) {
+mpr_calculate_neighbor_graph_flooding(const struct nhdp_domain *domain, struct mpr_flooding_data *data) {
   OONF_DEBUG(LOG_MPR, "Calculate neighbor graph for flooding MPRs");
 
   mpr_init_neighbor_graph(&data->neigh_graph, &_api_interface);
