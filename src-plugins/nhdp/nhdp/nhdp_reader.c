@@ -430,7 +430,7 @@ _cb_messagetlvs(struct rfc5444_reader_tlvblock_context *context) {
       _current.mprtypes, sizeof(_current.mprtypes),
       _nhdp_message_tlvs[IDX_TLV_MPRTYPES].tlv);
 
-  /* extract willingness */
+  /* extract willingness into temporary buffers */
   nhdp_domain_process_willingness_tlv(_current.mprtypes, _current.mprtypes_size,
         _nhdp_message_tlvs[IDX_TLV_WILLINGNESS].tlv);
 
@@ -689,6 +689,9 @@ _cb_addresstlvs_pass1_end(struct rfc5444_reader_tlvblock_context *context, bool 
       nhdp_db_link_disconnect_dualstack(_current.link);
     }
   }
+
+  /* copy willingness to permanent storage */
+  nhdp_domain_store_willingness(_current.neighbor);
 
   OONF_DEBUG(LOG_NHDP_R, "pass1 finished");
 

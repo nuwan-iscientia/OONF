@@ -54,6 +54,6 @@ struct mpr_flooding_data {
 };
 
 void mpr_calculate_neighbor_graph_flooding(
-    struct nhdp_domain *domain, struct mpr_flooding_data *data);
+    const struct nhdp_domain *domain, struct mpr_flooding_data *data);
 
 #endif

@@ -57,6 +57,12 @@
 struct _domain_parameters {
   char metric_name[NHDP_DOMAIN_METRIC_MAXLEN];
   char mpr_name[NHDP_DOMAIN_MPR_MAXLEN];
+  uint8_t mpr_willingness;
+};
+
+struct _generic_parameters {
+  char mpr_name[NHDP_DOMAIN_MPR_MAXLEN];
+  uint8_t mpr_willingness;
 };
 
 /* prototypes */
@@ -67,10 +73,30 @@ static void _cleanup(void);
 
 static void _cb_cfg_domain_changed(void);
 static void _cb_cfg_interface_changed(void);
+static void _cb_cfg_nhdp_changed(void);
 static int _cb_validate_domain_section(const char *section_name,
     struct cfg_named_section *, struct autobuf *);
 
 /* subsystem definition */
+static struct cfg_schema_entry _nhdp_entries[] = {
+  CFG_MAP_STRING_ARRAY(_generic_parameters, mpr_name, "mpr", "*",
+      "ID of the mpr algorithm used for this domain. '"CFG_DOMAIN_NO_MPR"'"
+      " means no mpr algorithm (everyone is MPR), '"CFG_DOMAIN_ANY_MPR"' means"
+      " any metric that is loaded (with fallback on '"CFG_DOMAIN_NO_MPR"').",
+      NHDP_DOMAIN_MPR_MAXLEN),
+  CFG_MAP_INT32_MINMAX(_generic_parameters, mpr_willingness, "willingness",
+      RFC7181_WILLINGNESS_DEFAULT_STRING,
+      "Flooding willingness for MPR calculation", 0, false,
+      RFC7181_WILLINGNESS_MIN, RFC7181_WILLINGNESS_MAX),
+};
+
+static struct cfg_schema_section _nhdp_section = {
+  .type = OONF_NHDP_SUBSYSTEM,
+  .cb_delta_handler = _cb_cfg_nhdp_changed,
+  .entries = _nhdp_entries,
+  .entry_count = ARRAYSIZE(_nhdp_entries),
+};
+
 static struct cfg_schema_entry _interface_entries[] = {
   CFG_MAP_ACL_V46(nhdp_interface, ifaddr_filter, "ifaddr_filter",
       "-127.0.0.0/8\0-::1\0" ACL_DEFAULT_ACCEPT,
@@ -87,6 +113,7 @@ static struct cfg_schema_section _interface_section = {
   .cb_delta_handler = _cb_cfg_interface_changed,
   .entries = _interface_entries,
   .entry_count = ARRAYSIZE(_interface_entries),
+  .next_section = &_nhdp_section,
 };
 
 static struct cfg_schema_entry _domain_entries[] = {
@@ -100,6 +127,9 @@ static struct cfg_schema_entry _domain_entries[] = {
       " means no mpr algorithm (everyone is MPR), '"CFG_DOMAIN_ANY_MPR"' means"
       " any metric that is loaded (with fallback on '"CFG_DOMAIN_NO_MPR"').",
       NHDP_DOMAIN_MPR_MAXLEN),
+  CFG_MAP_INT32_MINMAX(_domain_parameters, mpr_willingness, "willingness",
+      RFC7181_WILLINGNESS_DEFAULT_STRING, "Routing willingness used for MPR calculation",
+      0, false, RFC7181_WILLINGNESS_MIN, RFC7181_WILLINGNESS_MAX),
 };
 
 static struct cfg_schema_section _domain_section = {
@@ -332,7 +362,8 @@ _cb_cfg_domain_changed(void) {
     return;
   }
 
-  nhdp_domain_configure(ext, param.metric_name, param.mpr_name);
+  nhdp_domain_configure(ext, param.metric_name,
+      param.mpr_name, param.mpr_willingness);
 }
 
 /**
@@ -368,6 +399,18 @@ _cb_cfg_interface_changed(void) {
 
   /* apply new settings to interface */
   nhdp_interface_apply_settings(interf);
+}
+
+static void
+_cb_cfg_nhdp_changed(void) {
+  struct _generic_parameters param;
+  if (cfg_schema_tobin(&param, _nhdp_section.post,
+      _nhdp_entries, ARRAYSIZE(_nhdp_entries))) {
+    OONF_WARN(LOG_NHDP, "Cannot convert NHDP configuration.");
+    return;
+  }
+
+  nhdp_domain_set_flooding_mpr(param.mpr_name, param.mpr_willingness);
 }
 
 /**

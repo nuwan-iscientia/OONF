@@ -62,18 +62,18 @@
 
 /* FIXME remove unneeded includes */
 
-static bool _is_allowed_link_tuple(struct nhdp_domain *domain,
+static bool _is_allowed_link_tuple(const struct nhdp_domain *domain,
     struct nhdp_interface *current_interface, struct nhdp_link *lnk);
-static uint32_t _calculate_d1_x_of_n2_addr(struct nhdp_domain *domain,
+static uint32_t _calculate_d1_x_of_n2_addr(const struct nhdp_domain *domain,
     struct neighbor_graph *graph, struct netaddr *addr);
-static uint32_t _calculate_d_x_y(struct nhdp_domain *domain,
+static uint32_t _calculate_d_x_y(const struct nhdp_domain *domain,
     struct n1_node *x, struct addr_node *y);
-static uint32_t _calculate_d2_x_y(struct nhdp_domain *domain,
+static uint32_t _calculate_d2_x_y(const struct nhdp_domain *domain,
     struct n1_node *x, struct addr_node *y);
-static uint32_t _get_willingness_n1(struct nhdp_domain *domain,
+static uint32_t _get_willingness_n1(const struct nhdp_domain *domain,
     struct n1_node *node);
 
-static uint32_t _calculate_d1_of_y(struct nhdp_domain *domain,
+static uint32_t _calculate_d1_of_y(const struct nhdp_domain *domain,
     struct neighbor_graph *graph, struct addr_node *y);
 
 static struct neighbor_graph_interface _rt_api_interface = {
@@ -106,7 +106,7 @@ _is_reachable_neighbor_tuple(struct nhdp_neighbor *neigh) {
  * @return 
  */
 static bool
-_is_allowed_neighbor_tuple(struct nhdp_domain *domain __attribute__((unused)),
+_is_allowed_neighbor_tuple(const struct nhdp_domain *domain __attribute__((unused)),
     struct nhdp_neighbor *neigh) {
   if (_is_reachable_neighbor_tuple(neigh)) {
     // FIXME Willingness handling appears to be broken; routing willingness is always 0
@@ -117,7 +117,7 @@ _is_allowed_neighbor_tuple(struct nhdp_domain *domain __attribute__((unused)),
 }
 
 static bool
-_is_allowed_link_tuple(struct nhdp_domain *domain,
+_is_allowed_link_tuple(const struct nhdp_domain *domain,
     struct nhdp_interface *current_interface __attribute__((unused)),
     struct nhdp_link *lnk) {
   return _is_allowed_neighbor_tuple(domain, lnk->neigh);
@@ -138,7 +138,7 @@ _is_allowed_2hop_tuple(struct nhdp_l2hop *two_hop) {
  * @return 
  */
 static uint32_t
-_calculate_d1_x(struct nhdp_domain *domain, struct n1_node *x) {
+_calculate_d1_x(const struct nhdp_domain *domain, struct n1_node *x) {
   struct nhdp_neighbor_domaindata *neighdata;
 
   neighdata = nhdp_domain_get_neighbordata(domain, x->neigh);
@@ -152,7 +152,7 @@ _calculate_d1_x(struct nhdp_domain *domain, struct n1_node *x) {
  * @return 
  */
 static uint32_t
-_calculate_d2_x_y(struct nhdp_domain *domain, struct n1_node *x, struct addr_node *y) {
+_calculate_d2_x_y(const struct nhdp_domain *domain, struct n1_node *x, struct addr_node *y) {
   struct nhdp_l2hop *l2hop;
   struct nhdp_link *lnk;
   struct nhdp_l2hop_domaindata *twohopdata;
@@ -170,7 +170,7 @@ _calculate_d2_x_y(struct nhdp_domain *domain, struct n1_node *x, struct addr_nod
 }
 
 static uint32_t
-_calculate_d_x_y(struct nhdp_domain *domain, struct n1_node *x, struct addr_node *y) {
+_calculate_d_x_y(const struct nhdp_domain *domain, struct n1_node *x, struct addr_node *y) {
   return _calculate_d1_x(domain, x) + _calculate_d2_x_y(domain, x, y);
 }
 
@@ -180,7 +180,7 @@ _calculate_d_x_y(struct nhdp_domain *domain, struct n1_node *x, struct addr_node
  * @return 
  */
 static uint32_t
-_calculate_d1_of_y(struct nhdp_domain *domain,
+_calculate_d1_of_y(const struct nhdp_domain *domain,
     struct neighbor_graph *graph, struct addr_node *y) {
   struct n1_node *node_n1;
   struct nhdp_laddr *laddr;
@@ -205,7 +205,7 @@ _calculate_d1_of_y(struct nhdp_domain *domain,
  * @return 
  */
 static uint32_t
-_calculate_d1_x_of_n2_addr(struct nhdp_domain *domain,
+_calculate_d1_x_of_n2_addr(const struct nhdp_domain *domain,
     struct neighbor_graph *graph, struct netaddr *addr) {
   struct addr_node *node;
   uint32_t d1_x;
@@ -224,7 +224,7 @@ _calculate_d1_x_of_n2_addr(struct nhdp_domain *domain,
  * @param interf
  */
 static void
-_calculate_n1(struct nhdp_domain *domain, struct neighbor_graph *graph) {
+_calculate_n1(const struct nhdp_domain *domain, struct neighbor_graph *graph) {
   struct nhdp_neighbor *neigh;
 
   OONF_DEBUG(LOG_MPR, "Calculate N1 for routing MPRs");
@@ -271,7 +271,7 @@ _calculate_n2(struct neighbor_graph *graph) {
  * @return 
  */
 static uint32_t
-_get_willingness_n1(struct nhdp_domain *domain, struct n1_node *node) {
+_get_willingness_n1(const struct nhdp_domain *domain, struct n1_node *node) {
   struct nhdp_neighbor_domaindata *neighdata;
 
   neighdata = nhdp_domain_get_neighbordata(domain, node->neigh);
@@ -284,7 +284,7 @@ neighbor_graph_interface *_get_neighbor_graph_interface_routing(void) {
 }
 
 void
-mpr_calculate_neighbor_graph_routing(struct nhdp_domain *domain,
+mpr_calculate_neighbor_graph_routing(const struct nhdp_domain *domain,
     struct neighbor_graph *graph) {
   struct neighbor_graph_interface *methods;
 

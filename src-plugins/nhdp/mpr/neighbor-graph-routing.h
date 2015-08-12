@@ -46,7 +46,7 @@
 
 #include "nhdp/nhdp_domain.h"
 
-void mpr_calculate_neighbor_graph_routing(struct nhdp_domain *domain,
+void mpr_calculate_neighbor_graph_routing(const struct nhdp_domain *domain,
     struct neighbor_graph *graph);
 
 #endif

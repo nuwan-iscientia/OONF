@@ -135,6 +135,7 @@ static int _cb_create_text_neighbor_address(struct oonf_viewer_template *);
 #define KEY_NEIGHBOR_FLOOD_REMOTE   "neighbor_flood_remote"
 #define KEY_NEIGHBOR_SYMMETRIC      "neighbor_symmetric"
 #define KEY_NEIGHBOR_LINKCOUNT      "neighbor_linkcount"
+#define KEY_NEIGHBOR_FLOOD_WILL     "neighbor_flood_willingness"
 #define KEY_NEIGHBOR_ADDRESS        "neighbor_address"
 #define KEY_NEIGHBOR_ADDRESS_LOST   "neighbor_address_lost"
 #define KEY_NEIGHBOR_ADDRESS_VTIME  "neighbor_address_lost_vtime"
@@ -149,6 +150,7 @@ static int _cb_create_text_neighbor_address(struct oonf_viewer_template *);
 #define KEY_DOMAIN_MPR              "domain_mpr"
 #define KEY_DOMAIN_MPR_LOCAL        "domain_mpr_local"
 #define KEY_DOMAIN_MPR_REMOTE       "domain_mpr_remote"
+#define KEY_DOMAIN_MPR_WILL         "domain_mpr_willingness"
 
 /*
  * buffer space for values that will be assembled
@@ -187,6 +189,7 @@ static char                       _value_neighbor_flood_local[TEMPLATE_JSON_BOOL
 static char                       _value_neighbor_flood_remote[TEMPLATE_JSON_BOOL_LENGTH];
 static char                       _value_neighbor_symmetric[TEMPLATE_JSON_BOOL_LENGTH];
 static char                       _value_neighbor_linkcount[10];
+static char                       _value_neighbor_willingness[3];
 static struct netaddr_str         _value_neighbor_address;
 static char                       _value_neighbor_address_lost[TEMPLATE_JSON_BOOL_LENGTH];
 static struct isonumber_str       _value_neighbor_address_lost_vtime;
@@ -201,6 +204,7 @@ static struct nhdp_metric_str     _value_domain_metric_internal;
 static char                       _value_domain_mpr[NHDP_DOMAIN_MPR_MAXLEN];
 static char                       _value_domain_mpr_local[TEMPLATE_JSON_BOOL_LENGTH];
 static char                       _value_domain_mpr_remote[TEMPLATE_JSON_BOOL_LENGTH];
+static char                       _value_domain_mpr_will[3];
 
 
 /* definition of the template data entries for JSON and table output */
@@ -262,6 +266,7 @@ static struct abuf_template_data_entry _tde_domain_mpr[] = {
     { KEY_DOMAIN_MPR, _value_domain_mpr, true },
     { KEY_DOMAIN_MPR_LOCAL, _value_domain_mpr_local, true },
     { KEY_DOMAIN_MPR_REMOTE, _value_domain_mpr_remote, true},
+    { KEY_DOMAIN_MPR_WILL, _value_domain_mpr_will, false },
 };
 
 static struct abuf_template_data_entry _tde_link_addr[] = {
@@ -282,6 +287,7 @@ static struct abuf_template_data_entry _tde_neigh[] = {
     { KEY_NEIGHBOR_DUALSTACK, _value_neighbor_dualstack.buf, true },
     { KEY_NEIGHBOR_FLOOD_LOCAL, _value_neighbor_flood_local, true },
     { KEY_NEIGHBOR_FLOOD_REMOTE, _value_neighbor_flood_remote, true },
+    { KEY_NEIGHBOR_FLOOD_WILL, _value_neighbor_willingness, false },
     { KEY_NEIGHBOR_SYMMETRIC, _value_neighbor_symmetric, true },
     { KEY_NEIGHBOR_LINKCOUNT, _value_neighbor_linkcount, false },
 };
@@ -575,6 +581,8 @@ _initialize_nhdp_neighbor_mpr_values(struct nhdp_domain *domain,
       json_getbool(domaindata->neigh_is_mpr),
       sizeof(_value_domain_mpr_remote));
 
+  snprintf(_value_domain_mpr_will, sizeof(_value_domain_mpr_will),
+      "%d", domaindata->willingness);
 }
 
 static void
@@ -630,6 +638,8 @@ _initialize_nhdp_neighbor_values(struct nhdp_neighbor *neigh) {
   strscpy(_value_neighbor_flood_remote,
       json_getbool(neigh->neigh_is_flooding_mpr),
       sizeof(_value_neighbor_flood_remote));
+  snprintf(_value_neighbor_willingness, sizeof(_value_neighbor_willingness),
+      "%d", neigh->flooding_willingness);
 
   strscpy(_value_neighbor_symmetric,
       json_getbool(neigh->symmetric > 0),
