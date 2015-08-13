@@ -113,14 +113,11 @@ static void addAddresses(struct rfc5444_writer *wr) {
   for (i=0; i<tlvcount; i++) {
     ip._addr[3] = i+1;
 
+    addr = rfc5444_writer_add_address(wr, cpr.creator, &ip, false);
+
     if (tlv_value) {
       tlv_value[tlv_value_size-1] = (uint8_t)(i & 255);
-    }
-
-    addr = rfc5444_writer_add_address(wr, cpr.creator, &ip, false);
-    rfc5444_writer_add_addrtlv(wr, addr, &addrtlvs[0], tlv_value, tlv_value_size, false);
-
-    if (tlv_value) {
+      rfc5444_writer_add_addrtlv(wr, addr, &addrtlvs[0], tlv_value, tlv_value_size, false);
       tlv_value[tlv_value_size-1] = (tlv_value_size-1) & 255;
     }
   }
