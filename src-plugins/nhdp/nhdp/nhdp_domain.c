@@ -1035,7 +1035,7 @@ _apply_metric(struct nhdp_domain *domain, const char *metric_name) {
   /* look for metric implementation */
   metric = avl_find_element(&_domain_metrics, metric_name, metric, _node);
   if (metric == NULL) {
-    domain->metric = &_no_metric;
+    metric = &_no_metric;
   }
 
   /* copy new metric name */
