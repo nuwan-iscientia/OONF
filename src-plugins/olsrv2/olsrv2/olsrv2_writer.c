@@ -172,6 +172,24 @@ olsrv2_writer_send_tc(void) {
 }
 
 /**
+ * Set a new forwarding selector for OLSRv2 TC messages
+ * @param forward_target_selector pointer to forwarding selector
+ *   callback, NULL for NHDP dualstack forwarding selector
+ */
+void
+olsrv2_writer_set_forwarding_selector(
+    bool (*forward_target_selector)(struct rfc5444_writer_target *,
+      struct rfc5444_reader_tlvblock_context *context,
+      const uint8_t *buffer, size_t len)) {
+  if (forward_target_selector) {
+    _olsrv2_message->forward_target_selector = forward_target_selector;
+  }
+  else {
+    _olsrv2_message->forward_target_selector = nhdp_forwarding_selector;
+  }
+}
+
+/**
  * Send a TC for a specified address family if the originator is set
  * @param af_type address family type
  */
