@@ -99,7 +99,7 @@ rfc5444_writer_create_message(struct rfc5444_writer *writer, uint8_t msgid,
   struct rfc5444_writer_address *first_addr;
   struct rfc5444_writer_address *first_processed, *last_processed;
   struct rfc5444_writer_tlvtype *tlvtype;
-  struct rfc5444_writer_target *interface;
+  struct rfc5444_writer_target *target;
   struct list_entity current_list;
 
   struct rfc5444_writer_postprocessor *processor;
@@ -115,7 +115,7 @@ rfc5444_writer_create_message(struct rfc5444_writer *writer, uint8_t msgid,
   assert(writer->_state == RFC5444_WRITER_NONE);
 #endif
 
-  /* do nothing if no interface is defined */
+  /* do nothing if no target is defined */
   if (list_is_empty(&writer->_targets)) {
     return RFC5444_OKAY;
   }
@@ -128,29 +128,29 @@ rfc5444_writer_create_message(struct rfc5444_writer *writer, uint8_t msgid,
   }
 
   /*
-   * test if we need interface specific messages
+   * test if we need target specific messages
    * and this is not the single_if selector
    */
   if (!msg->target_specific) {
-    /* not interface specific */
+    /* not target specific */
     writer->msg_target = NULL;
   }
   else if (useIf == rfc5444_writer_singletarget_selector) {
-    /* interface specific, but single_if selector is used */
+    /* target specific, but single_if selector is used */
     writer->msg_target = param;
   }
   else {
-    /* interface specific, but generic selector is used */
+    /* target specific, but generic selector is used */
     enum rfc5444_result result;
 
-    list_for_each_element(&writer->_targets, interface, _target_node) {
-      /* check if we should send over this interface */
-      if (!useIf(writer, interface, param)) {
+    list_for_each_element(&writer->_targets, target, _target_node) {
+      /* check if we should send over this target */
+      if (!useIf(writer, target, param)) {
         continue;
       }
 
       /* create an unique message by recursive call */
-      result = rfc5444_writer_create_message(writer, msgid, addr_len, rfc5444_writer_singletarget_selector, interface);
+      result = rfc5444_writer_create_message(writer, msgid, addr_len, rfc5444_writer_singletarget_selector, target);
       if (result != RFC5444_OKAY) {
         return result;
       }
@@ -174,21 +174,21 @@ rfc5444_writer_create_message(struct rfc5444_writer *writer, uint8_t msgid,
     }
   }
   max_msg_size = writer->msg_size;
-  list_for_each_element(&writer->_targets, interface, _target_node) {
+  list_for_each_element(&writer->_targets, target, _target_node) {
     size_t interface_msg_mtu;
 
-    /* check if we should send over this interface */
-    if (!useIf(writer, interface, param)) {
+    /* check if we should send over this target */
+    if (!useIf(writer, target, param)) {
       continue;
     }
 
     /* start packet if necessary */
-    if (interface->_is_flushed) {
-      _rfc5444_writer_begin_packet(writer, interface);
+    if (target->_is_flushed) {
+      _rfc5444_writer_begin_packet(writer, target);
     }
 
-    interface_msg_mtu = interface->packet_size - processor_preallocation
-        - (interface->_pkt.header + interface->_pkt.added + interface->_pkt.allocated);
+    interface_msg_mtu = target->packet_size - processor_preallocation
+        - (target->_pkt.header + target->_pkt.added + target->_pkt.allocated);
     if (interface_msg_mtu < max_msg_size) {
       max_msg_size = interface_msg_mtu;
     }
@@ -428,7 +428,8 @@ bool rfc5444_writer_alltargets_selector(struct rfc5444_writer *writer __attribut
  *   RFC5444_... if an error happened
  */
 enum rfc5444_result
-rfc5444_writer_forward_msg(struct rfc5444_writer *writer, uint8_t *msg, size_t len) {
+rfc5444_writer_forward_msg(struct rfc5444_writer *writer,
+    struct rfc5444_reader_tlvblock_context *context, uint8_t *msg, size_t len) {
   struct rfc5444_writer_target *target;
   struct rfc5444_writer_message *rfc5444_msg;
   int cnt, hopcount = -1, hoplimit = -1;
@@ -441,7 +442,8 @@ rfc5444_writer_forward_msg(struct rfc5444_writer *writer, uint8_t *msg, size_t l
   assert(writer->_state == RFC5444_WRITER_NONE);
 #endif
 
-  rfc5444_msg = avl_find_element(&writer->_msgcreators, &msg[0], rfc5444_msg, _msgcreator_node);
+  rfc5444_msg = avl_find_element(&writer->_msgcreators,
+      &context->msg_type, rfc5444_msg, _msgcreator_node);
   if (rfc5444_msg == NULL) {
     /* error, no msgcreator found */
     return RFC5444_NO_MSGCREATOR;
@@ -457,7 +459,7 @@ rfc5444_writer_forward_msg(struct rfc5444_writer *writer, uint8_t *msg, size_t l
   list_for_each_element(&writer->_targets, target, _target_node) {
     size_t max;
 
-    if (!rfc5444_msg->forward_target_selector(target)) {
+    if (!rfc5444_msg->forward_target_selector(target, context, msg, len)) {
       continue;
     }
 
@@ -512,7 +514,7 @@ rfc5444_writer_forward_msg(struct rfc5444_writer *writer, uint8_t *msg, size_t l
 
   /* forward message */
   list_for_each_element(&writer->_targets, target, _target_node) {
-    if (!rfc5444_msg->forward_target_selector(target)) {
+    if (!rfc5444_msg->forward_target_selector(target, context, msg, len)) {
       continue;
     }
 

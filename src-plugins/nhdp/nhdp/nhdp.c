@@ -71,6 +71,8 @@ static int _init(void);
 static void _initiate_shutdown(void);
 static void _cleanup(void);
 
+static bool _forwarding_selector(struct rfc5444_writer_target *rfc5444_target);
+
 static void _cb_cfg_domain_changed(void);
 static void _cb_cfg_interface_changed(void);
 static void _cb_cfg_nhdp_changed(void);
@@ -281,13 +283,31 @@ nhdp_get_originator(int af_type) {
 /**
  * default implementation for rfc5444 flooding target selection to
  * handle dualstack correctly.
- * @param rfc5444_target
- * @return
+ * @param rfc5444_writer rfc5444 protocol to flood messages
+ * @param rfc5444_target rfc5444 target to flood message
+ * @param custom pointer for message flooding
+ * @return true if message should be flooded
  */
 bool
 nhdp_flooding_selector(struct rfc5444_writer *writer __attribute__((unused)),
     struct rfc5444_writer_target *rfc5444_target, void *ptr __attribute__((unused))) {
-  return nhdp_forwarding_selector(rfc5444_target);
+  return _forwarding_selector(rfc5444_target);
+}
+
+/**
+ * default implementation for rfc5444 forwarding selector to
+ * hangle dualstack correctly
+ * @param rfc5444_target rfc5444 target to flood message to
+ * @param context reader context of the message to be forwarded
+ * @param msg pointer to message buffer
+ * @param length of message buffer
+ * @return true if target corresponds to selection
+ */
+bool
+nhdp_forwarding_selector(struct rfc5444_writer_target *rfc5444_target,
+    struct rfc5444_reader_tlvblock_context *context __attribute__((unused)),
+    const uint8_t *msg __attribute((unused)), size_t len __attribute((unused))) {
+  return _forwarding_selector(rfc5444_target);
 }
 
 /**
@@ -298,8 +318,8 @@ nhdp_flooding_selector(struct rfc5444_writer *writer __attribute__((unused)),
  * @param ptr custom pointer, contains rfc5444 target
  * @return true if target corresponds to selection
  */
-bool
-nhdp_forwarding_selector(struct rfc5444_writer_target *rfc5444_target) {
+static bool
+_forwarding_selector(struct rfc5444_writer_target *rfc5444_target) {
   struct oonf_rfc5444_target *target;
   struct nhdp_interface *interf;
   bool is_ipv4, flood;

@@ -1109,9 +1109,9 @@ _cb_forward_message(
   protocol = container_of(context->reader, struct oonf_rfc5444_protocol, reader);
 
   /* forward message */
-  OONF_INFO(LOG_RFC5444, "Forwarding message type %u", buffer[0]);
+  OONF_INFO(LOG_RFC5444, "Forwarding message type %u", context->msg_type);
 
-  result = rfc5444_writer_forward_msg(&protocol->writer, buffer, length);
+  result = rfc5444_writer_forward_msg(&protocol->writer, context, buffer, length);
   if (result != RFC5444_OKAY && result != RFC5444_NO_MSGCREATOR) {
     OONF_WARN(LOG_RFC5444, "Error while forwarding message: %s (%d)",
         rfc5444_strerror(result), result);
