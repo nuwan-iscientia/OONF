@@ -50,5 +50,9 @@ int olsrv2_writer_init(struct oonf_rfc5444_protocol *)
 void olsrv2_writer_cleanup(void);
 
 EXPORT void olsrv2_writer_send_tc(void);
+EXPORT void olsrv2_writer_set_forwarding_selector(
+    bool (*forward_target_selector)(struct rfc5444_writer_target *,
+      struct rfc5444_reader_tlvblock_context *context,
+      const uint8_t *buffer, size_t len));
 
 #endif /* OLSRV2_WRITER_H_ */

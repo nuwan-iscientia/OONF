@@ -646,12 +646,12 @@ _do_timetlv_average_test(uint64_t decoded) {
       encoded, _timetlv_table[encoded],
       _timetlv_table[encoded-1], decoded);
 
-  if (encoded > 0) {
-    CHECK_TRUE(_timetlv_table[encoded-1] < decoded,
+  if (encoded != 0) {
+    CHECK_TRUE(_timetlv_table[encoded-1u] < decoded,
         "encode(%"PRIu64")=%"PRIu64", decode(%"PRIu64"-1)=%"PRIu64", %"PRIu64" >= %"PRIu64,
         decoded, encoded,
-        encoded, _timetlv_table[encoded-1],
-        _timetlv_table[encoded-1], decoded);
+        encoded, _timetlv_table[encoded-1u],
+        _timetlv_table[encoded-1u], decoded);
   }
 }
 

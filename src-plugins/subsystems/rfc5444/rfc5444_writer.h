@@ -293,7 +293,8 @@ struct rfc5444_writer_message {
       struct rfc5444_writer_address *, struct rfc5444_writer_address *, bool);
 
   /* callback to determine if a message shall be forwarded */
-  bool (*forward_target_selector)(struct rfc5444_writer_target *);
+  bool (*forward_target_selector)(struct rfc5444_writer_target *,
+      struct rfc5444_reader_tlvblock_context *context, const uint8_t *buffer, size_t len);
 
   /* number of bytes necessary for addressblocks including tlvs */
   size_t _bin_addr_size;
@@ -500,7 +501,7 @@ EXPORT enum rfc5444_result rfc5444_writer_create_message(
     rfc5444_writer_targetselector useIf, void *param);
 
 EXPORT enum rfc5444_result rfc5444_writer_forward_msg(struct rfc5444_writer *writer,
-    uint8_t *msg, size_t len);
+    struct rfc5444_reader_tlvblock_context *context, uint8_t *msg, size_t len);
 
 EXPORT void rfc5444_writer_flush(struct rfc5444_writer *, struct rfc5444_writer_target *, bool);
 
