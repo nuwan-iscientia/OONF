@@ -8,3 +8,4 @@
 /*.tar.gz
 /*.tar.bz2
 /*.zip
+/doxygen_sqlite3.db

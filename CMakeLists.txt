@@ -11,6 +11,15 @@ include (./cmake/lib_config.cmake)
 # include compiler flags
 include (./cmake/cc_flags.cmake)
 
+########################################
+#### get repository tag and version ####
+########################################
+
+include (cmake/get_version.cmake)
+IF(EXISTS "${PROJECT_BINARY_DIR}/version.cmake")
+  include (${PROJECT_BINARY_DIR}/version.cmake)
+ENDIF()
+
 ########################
 #### Doxygen target ####
 ########################
@@ -25,15 +34,6 @@ if(DOXYGEN_FOUND)
         COMMENT "Generating API documentation with Doxygen" VERBATIM
     )
 endif(DOXYGEN_FOUND)
-
-########################################
-#### get repository tag and version ####
-########################################
-
-include (cmake/get_version.cmake)
-IF(EXISTS "${PROJECT_BINARY_DIR}/version.cmake")
-  include (${PROJECT_BINARY_DIR}/version.cmake)
-ENDIF()
 
 #############################
 #### add tarball targets ####
