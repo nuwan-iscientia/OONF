@@ -324,8 +324,6 @@ oonf_stream_set_timeout(struct oonf_stream_session *con, uint64_t timeout) {
 /**
  * Close a TCP stream session
  * @param session pointer to stream session
- * @param force true if the session should be closed instantly,
- *   false if all data in queue should still be sent
  */
 void
 oonf_stream_close(struct oonf_stream_session *session) {

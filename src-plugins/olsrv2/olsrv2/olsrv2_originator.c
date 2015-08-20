@@ -108,7 +108,7 @@ olsrv2_originator_cleanup(void) {
 }
 
 /**
- * @param address type of originator
+ * @param af_type address type of originator
  * @return current originator address of specified type
  */
 const struct netaddr *

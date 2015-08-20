@@ -319,7 +319,7 @@ oonf_log_updatemask(void)
 }
 
 /**
- * @param pointer to storage object for time string
+ * @param buf buffer to storage object for time string
  * @return pointer to string containing the current walltime
  */
 const char *
@@ -350,6 +350,8 @@ struct timeval now;
  * @param no_header true if time header should not be created
  * @param file filename where the logging macro have been called
  * @param line line number where the logging macro have been called
+ * @param hexptr pointer to binary buffer that should be appended as a hexdump
+ * @param hexlen length of binary buffer to hexdump
  * @param format printf format string for log output plus a variable number of arguments
  */
 void

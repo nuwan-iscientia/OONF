@@ -242,6 +242,7 @@ oonf_plugins_hook(struct oonf_subsystem *plugin) {
 /**
  * Extracts the plugin name from a library name, including optional path,
  * prefix and/or postfix
+ * @param pluginname buffer for plugin name
  * @param libname library name
  * @return pointer to buffer with plugin name, must be freed later
  */

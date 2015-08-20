@@ -364,9 +364,10 @@ olsrv2_mpr_shall_process(
 /**
  * default implementation for rfc5444 forwarding handling according
  * to MPR settings.
- * @param context
- * @param vtime
- * @return
+ * @param context RFC5444 reader context
+ * @param source_address source address of RFC5444 message
+ * @param vtime validity time of message information
+ * @return true if message was forwarded, false otherwise
  */
 bool
 olsrv2_mpr_shall_forwarding(struct rfc5444_reader_tlvblock_context *context,

@@ -223,7 +223,7 @@ rfc5444_writer_add_addrtlv(struct rfc5444_writer *writer, struct rfc5444_writer_
  *
  * @param writer pointer to writer context
  * @param msg pointer to message object
- * @param address pointer network address
+ * @param naddr pointer network address
  * @param mandatory true if address is mandatory for all fragments of message
  * @return pointer to address object, NULL if an error happened
  */
@@ -388,7 +388,7 @@ rfc5444_writer_unregister_content_provider(
  *
  * @param writer pointer to writer context
  * @param msgid message type
- * @param target_specific true if an unique message must be created for each
+ * @param if_specific true if an unique message must be created for each
  *   interface
  * @return message object, NULL if an error happened
  */

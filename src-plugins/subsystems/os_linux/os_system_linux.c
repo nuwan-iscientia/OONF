@@ -445,20 +445,21 @@ os_system_netlink_drop_mc(struct os_system_netlink *nl,
 
 /**
  * Add an attribute to a netlink message
- * @param n pointer to netlink header
+ * @param nl pinter to os netlink handler
+ * @param nlmsg pointer to netlink header
  * @param type type of netlink attribute
  * @param data pointer to data of netlink attribute
  * @param len length of data of netlink attribute
  * @return -1 if netlink message got too large, 0 otherwise
  */
 int
-os_system_netlink_addreq(struct os_system_netlink *nl __attribute__((unused)),
-    struct nlmsghdr *n, int type, const void *data, int len) {
+os_system_netlink_addreq(struct os_system_netlink *nl,
+    struct nlmsghdr *nlmsg, int type, const void *data, int len) {
   struct nlattr *nl_attr;
   size_t aligned_msg_len, aligned_attr_len;
 
   /* calculate aligned length of message and new attribute */
-  aligned_msg_len = NLMSG_ALIGN(n->nlmsg_len);
+  aligned_msg_len = NLMSG_ALIGN(nlmsg->nlmsg_len);
   aligned_attr_len = NLA_HDRLEN + len;
 
   if (aligned_msg_len + aligned_attr_len > UIO_MAXIOV) {
@@ -466,12 +467,12 @@ os_system_netlink_addreq(struct os_system_netlink *nl __attribute__((unused)),
     return -1;
   }
 
-  nl_attr = (struct nlattr *) ((void*)((char *)n + aligned_msg_len));
+  nl_attr = (struct nlattr *) ((void*)((char *)nlmsg + aligned_msg_len));
   nl_attr->nla_type = type;
   nl_attr->nla_len = aligned_attr_len;
 
   /* fix length of netlink message */
-  n->nlmsg_len = aligned_msg_len + aligned_attr_len;
+  nlmsg->nlmsg_len = aligned_msg_len + aligned_attr_len;
 
   if (len) {
     memcpy((char *)nl_attr + NLA_HDRLEN, data, len);

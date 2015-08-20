@@ -202,7 +202,7 @@ dlep_router_add_session(struct dlep_router_if *interf,
 
 /**
  * Remove existing dlep router session
- * @param session dlep router session
+ * @param router_session dlep router session
  */
 void
 dlep_router_remove_session(struct dlep_router_session *router_session) {

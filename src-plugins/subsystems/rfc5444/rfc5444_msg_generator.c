@@ -422,6 +422,7 @@ bool rfc5444_writer_alltargets_selector(struct rfc5444_writer *writer __attribut
  * to be compatible with the readers forward_message callback.
  *
  * @param writer pointer to writer context
+ * @param context RFC5444 reader context of message
  * @param msg pointer to message to be forwarded
  * @param len number of bytes of message
  * @return RFC5444_OKAY if the message was put into the writer buffer,

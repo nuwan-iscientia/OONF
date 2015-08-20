@@ -152,7 +152,9 @@ static struct rate_info _mcs_table_80211n_40[77] = {
 
 /**
  * Send a netlink message to get the nl80211 physical capabilities
- * @param nl80211_id generic netlink id for nl80211
+ * @param nl pointer to netlink handler
+ * @param nl_msg pointer to netlink message
+ * @param hdr pointer to generic netlink header
  * @param interf nl80211 listener interface
  */
 void

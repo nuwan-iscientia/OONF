@@ -430,7 +430,7 @@ nhdp_domain_process_metric_linktlv(struct nhdp_domain *domain,
  * Process an in linkmetric tlv for a nhdp twohop neighbor
  * @param domain pointer to NHDP domain
  * @param l2hop pointer to nhdp twohop neighbor
- * @param tlvvalue value of metric tlv
+ * @param value value of metric tlv
  */
 void
 nhdp_domain_process_metric_2hoptlv(struct nhdp_domain *domain,
@@ -581,8 +581,8 @@ nhdp_domain_process_mprtypes_tlv(
  * Process an in MPR tlv for a NHDP link
  * @param mprtypes list of extenstions for MPR
  * @param mprtypes_size length of mprtypes array
- * @param lnk NHDP link
- * @param tlv MPR tlv
+ * @param neigh NHDP neighbor
+ * @param tlv MPR tlv context
  */
 void
 nhdp_domain_process_mpr_tlv(uint8_t *mprtypes, size_t mprtypes_size,
@@ -631,11 +631,9 @@ nhdp_domain_process_mpr_tlv(uint8_t *mprtypes, size_t mprtypes_size,
  * Process an in Willingness tlv and put values into
  * temporary storage in MPR handler object. Call
  * nhdp_domain_store_willingness to permanently store them later.
- * @param neighbor neighbor we received a willingness TLV from
  * @param mprtypes list of extenstions for MPR
  * @param mprtypes_size length of mprtypes array
- * @param tlvvalue willingness array to parse
- * @param tlvsize length of willingness array
+ * @param tlv Willingness tlv context
  */
 void
 nhdp_domain_process_willingness_tlv(
@@ -830,7 +828,7 @@ nhdp_domain_set_flooding_mpr(const char *mpr_name, uint8_t willingness) {
 /**
  * Sets the incoming metric of a link. This is the only function external
  * code should use to commit the calculated metric values to the nhdp db.
- * @param domain NHDP domain
+ * @param metric NHDP domain metric
  * @param lnk NHDP link
  * @param metric_in incoming metric value for NHDP link
  * @return true if metric changed, false otherwise

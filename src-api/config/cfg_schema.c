@@ -652,7 +652,7 @@ cfg_schema_help_acl(
  */
 void
 cfg_schema_help_bitmap256(
-    const struct cfg_schema_entry *entry __attribute((unused)),
+    const struct cfg_schema_entry *entry __attribute__((unused)),
     struct autobuf *out) {
   cfg_help_bitmap256(out, true);
 }

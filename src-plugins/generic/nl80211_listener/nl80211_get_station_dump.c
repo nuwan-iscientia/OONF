@@ -89,8 +89,10 @@ static int64_t _get_bitrate(struct nlattr *bitrate_attr);
 
 /**
  * Send a netlink message to get the nl80211 station dump
+ * @param nl pointer to netlink handler
+ * @param nl_msg pointer to netlink message
+ * @param hdr pointer to generic netlink header
  * @param interf nl80211 listener interface
- * @param nl80211_id generic netlink id for nl80211
  */
 void
 nl80211_send_get_station_dump(struct os_system_netlink *nl,

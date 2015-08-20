@@ -283,9 +283,9 @@ nhdp_get_originator(int af_type) {
 /**
  * default implementation for rfc5444 flooding target selection to
  * handle dualstack correctly.
- * @param rfc5444_writer rfc5444 protocol to flood messages
+ * @param writer rfc5444 protocol to flood messages
  * @param rfc5444_target rfc5444 target to flood message
- * @param custom pointer for message flooding
+ * @param ptr custom pointer for message flooding callback
  * @return true if message should be flooded
  */
 bool
@@ -300,13 +300,13 @@ nhdp_flooding_selector(struct rfc5444_writer *writer __attribute__((unused)),
  * @param rfc5444_target rfc5444 target to flood message to
  * @param context reader context of the message to be forwarded
  * @param msg pointer to message buffer
- * @param length of message buffer
+ * @param len length of message buffer
  * @return true if target corresponds to selection
  */
 bool
 nhdp_forwarding_selector(struct rfc5444_writer_target *rfc5444_target,
     struct rfc5444_reader_tlvblock_context *context __attribute__((unused)),
-    const uint8_t *msg __attribute((unused)), size_t len __attribute((unused))) {
+    const uint8_t *msg __attribute__((unused)), size_t len __attribute__((unused))) {
   return _forwarding_selector(rfc5444_target);
 }
 

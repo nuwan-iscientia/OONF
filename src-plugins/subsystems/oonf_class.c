@@ -336,8 +336,8 @@ oonf_class_extension_add(struct oonf_class_extension *ext) {
 }
 
 /**
- * Remove listener from class
- * @param l pointer to listener
+ * Remove extension from class
+ * @param ext pointer to class extension
  */
 void
 oonf_class_extension_remove(struct oonf_class_extension *ext) {

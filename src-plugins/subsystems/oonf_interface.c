@@ -211,8 +211,8 @@ oonf_interface_remove_listener(
 /**
  * Trigger a potential change in the interface settings. Normally
  * called by os_system code
- * @param name interface name
- * @param down true if interface is going down
+ * @param if_index interface index
+ * @param down true if interface is going down, false otherwise
  */
 void
 oonf_interface_trigger_ifindex(unsigned if_index, bool down) {
@@ -259,7 +259,7 @@ oonf_interface_trigger(struct os_interface *interf) {
 /**
  * Trigger the interface change handler after a short waiting period
  * to accumulate multiple change events.
- * @param interf pointer to olsr interface
+ * @param listener pointer to interface change handler
  */
 void
 oonf_interface_trigger_handler(struct oonf_interface_listener *listener) {
@@ -377,10 +377,11 @@ oonf_interface_get_prefix_from_dst(
 
 /**
  * Calculate the IP address a socket should bind to
+ * @param af_type address family for result
  * @param filter filter for IP address to bind on
  * @param ifdata interface to bind to socket on, NULL if not
  *   bound to an interface.
- * @return 0 if an IP was calculated, -1 otherwise
+ * @return pointer to address, NULL if no valid address was found
  */
 const struct netaddr *
 oonf_interface_get_bindaddress(int af_type,

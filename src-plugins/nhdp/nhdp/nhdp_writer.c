@@ -143,7 +143,7 @@ nhdp_writer_cleanup(void) {
 /**
  * Send a NHDP Hello through the specified interface. This might result
  * in both an IPv4 and IPv6 message
- * @param interf NHDP interface
+ * @param ninterf NHDP interface
  */
 void
 nhdp_writer_send_hello(struct nhdp_interface *ninterf) {

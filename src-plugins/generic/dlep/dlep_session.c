@@ -55,8 +55,14 @@ dlep_session_init(void) {
 
 /**
  * Initialize a session, will hook in the base extension
- * @param session
- * @return
+ * @param session session to initialize
+ * @param l2_ifname name of layer2 interface for dlep session
+ * @param l2_origin layer2 db origin id for session
+ * @param out output buffer for session
+ * @param radio true if this is a radio session,
+ *   false for a router session
+ * @param log_source logging source for session
+ * @return -1 if an error happened, 0 otherwise
  */
 int
 dlep_session_add(struct dlep_session *session, const char *l2_ifname,

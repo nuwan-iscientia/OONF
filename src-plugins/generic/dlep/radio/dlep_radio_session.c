@@ -99,7 +99,7 @@ dlep_radio_session_initialize_tcp_callbacks(
 
 /**
  * Remove existing dlep radio session
- * @param session dlep radio session
+ * @param radio_session dlep radio session
  */
 void
 dlep_radio_remove_session(struct dlep_radio_session *radio_session) {

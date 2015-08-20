@@ -77,7 +77,7 @@ rfc7182_get_hash_name(enum rfc7182_icv_hash hash) {
 
 /**
  * Give name of rfc 7182 crypto
- * @param crypto crypto-id
+ * @param crypt crypto-id
  * @return name of crypto
  */
 const char *

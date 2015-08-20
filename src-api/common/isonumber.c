@@ -59,7 +59,7 @@ static const char *_isonumber_u64_to_string(char *out,
  * @param out pointer to output buffer
  * @param number number to convert.
  * @param unit unit to be appended at the end, can be NULL
- * @param maxfraction maximum number of fractional digits
+ * @param fraction number of fractional digits
  * @param binary true if conversion should use 1024 as factor,
  *   false for default 1000 conversion factor
  * @param raw true if the whole text conversion should be bypassed
@@ -158,7 +158,7 @@ isonumber_to_s64(int64_t *dst, const char *iso, int fractions, bool binary) {
  * to an unsigned 64bit integer.
  * @param dst pointer to destination variable
  * @param iso pointer to string source
- * @param fractions number of fractional digits, might be zero
+ * @param fraction number of fractional digits, might be zero
  * @param binary true if prefixes should use factor 1024, false if they should
  *   use a factor of 1000
  * @return -1 if an error happened, 0 otherwise

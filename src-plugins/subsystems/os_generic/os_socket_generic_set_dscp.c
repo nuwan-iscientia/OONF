@@ -51,6 +51,7 @@
  * Sets the DSCP value for outgoing packets on a socket
  * @param sock socket file descriptor
  * @param dscp dscp value
+ * @param ipv6 true if IPv6 dscp should be set, false otherwise
  * @return -1 if an error happened, 0 otherwise
  */
 int

@@ -146,7 +146,7 @@ oonf_packet_add(struct oonf_packet_socket *pktsocket,
 /**
  * Add a new raw packet socket handler
  * @param pktsocket pointer to an initialized packet socket struct
- * @param int IP protocol number
+ * @param protocol IP protocol number
  * @param local pointer local IP address of packet socket
  * @param interf pointer to interface to bind socket on, NULL
  *   if socket should not be bound to interface

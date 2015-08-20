@@ -127,7 +127,8 @@ _cleanup(void) {
 
 /**
  * Initialize a new duplicate set
- * @param set pointer to duplicate set;
+ * @param set pointer to duplicate set
+ * @param type type of duplicate set
  */
 void
 oonf_duplicate_set_add(struct oonf_duplicate_set *set, enum oonf_dupset_type type) {

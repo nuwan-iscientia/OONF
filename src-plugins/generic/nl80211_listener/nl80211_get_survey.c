@@ -81,6 +81,13 @@
 #include "nl80211_listener/nl80211_listener.h"
 #include "nl80211_listener/nl80211_get_survey.h"
 
+/**
+ * Send a netlink message to get the nl80211 survey dump
+ * @param nl pointer to netlink handler
+ * @param nl_msg pointer to netlink message
+ * @param hdr pointer to generic netlink header
+ * @param interf nl80211 listener interface
+ */
 void
 nl80211_send_get_survey(struct os_system_netlink *nl, struct nlmsghdr *nl_msg,
     struct genlmsghdr *hdr, struct nl80211_if *interf) {
@@ -94,6 +101,11 @@ nl80211_send_get_survey(struct os_system_netlink *nl, struct nlmsghdr *nl_msg,
       &if_index, sizeof(if_index));
 }
 
+/**
+ * Process NL80211_CMD_NEW_SURVEY_RESULTS message
+ * @param interf nl80211 listener interface
+ * @param hdr pointer to netlink message header
+ */
 void
 nl80211_process_get_survey_result(struct nl80211_if *interf, struct nlmsghdr *hdr) {
   struct genlmsghdr *gnlh;
