@@ -9,3 +9,5 @@
 /*.tar.bz2
 /*.zip
 /doxygen_sqlite3.db
+/doxygen_objdb_*.tmp
+/doxygen_entrydb_*.tmp
