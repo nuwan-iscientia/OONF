@@ -114,13 +114,13 @@ oonf_logcfg_init(void) {
 void
 oonf_logcfg_cleanup(void) {
   /* clean up former handlers */
-  if (list_is_node_added(&_stderr_handler.node)) {
+  if (list_is_node_added(&_stderr_handler._node)) {
     oonf_log_removehandler(&_stderr_handler);
   }
-  if (list_is_node_added(&_syslog_handler.node)) {
+  if (list_is_node_added(&_syslog_handler._node)) {
     oonf_log_removehandler(&_syslog_handler);
   }
-  if (list_is_node_added(&_file_handler.node)) {
+  if (list_is_node_added(&_file_handler._node)) {
     FILE *f;
 
     f = _file_handler.custom;
@@ -169,7 +169,7 @@ oonf_logcfg_apply(struct cfg_db *db) {
 
   /* and finally modify the logging handlers */
   /* log.file */
-  if (activate_file && !list_is_node_added(&_file_handler.node)) {
+  if (activate_file && !list_is_node_added(&_file_handler._node)) {
     FILE *f;
 
     f = fopen(file_name, "w");
@@ -182,7 +182,7 @@ oonf_logcfg_apply(struct cfg_db *db) {
       activate_file = false;
     }
   }
-  else if (!activate_file && list_is_node_added(&_file_handler.node)) {
+  else if (!activate_file && list_is_node_added(&_file_handler._node)) {
     FILE *f = _file_handler.custom;
     oonf_log_removehandler(&_file_handler);
 
@@ -193,10 +193,10 @@ oonf_logcfg_apply(struct cfg_db *db) {
   /* log.stderr (activate if syslog and file are offline) */
   activate_stderr |= !(activate_syslog || activate_file);
 
-  if (activate_stderr && !list_is_node_added(&_stderr_handler.node)) {
+  if (activate_stderr && !list_is_node_added(&_stderr_handler._node)) {
     oonf_log_addhandler(&_stderr_handler);
   }
-  else if (!activate_stderr && list_is_node_added(&_stderr_handler.node)) {
+  else if (!activate_stderr && list_is_node_added(&_stderr_handler._node)) {
     oonf_log_removehandler(&_stderr_handler);
   }
 
@@ -205,10 +205,10 @@ oonf_logcfg_apply(struct cfg_db *db) {
     activate_syslog |= !activate_file;
   }
 
-  if (activate_syslog && !list_is_node_added(&_syslog_handler.node)) {
+  if (activate_syslog && !list_is_node_added(&_syslog_handler._node)) {
     oonf_log_addhandler(&_syslog_handler);
   }
-  else if (!activate_syslog && list_is_node_added(&_syslog_handler.node)) {
+  else if (!activate_syslog && list_is_node_added(&_syslog_handler._node)) {
     oonf_log_removehandler(&_syslog_handler);
   }
 

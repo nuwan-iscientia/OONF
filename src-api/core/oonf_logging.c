@@ -53,7 +53,7 @@
 #include "core/oonf_logging.h"
 #include "core/os_core.h"
 
-#define FOR_ALL_LOGHANDLERS(handler, iterator) list_for_each_element_safe(&_handler_list, handler, node, iterator)
+#define FOR_ALL_LOGHANDLERS(handler, iterator) list_for_each_element_safe(&_handler_list, handler, _node, iterator)
 
 uint8_t log_global_mask[LOG_MAXIMUM_SOURCES];
 
@@ -171,7 +171,7 @@ oonf_log_cleanup(void)
 void
 oonf_log_addhandler(struct oonf_log_handler_entry *h)
 {
-  list_add_tail(&_handler_list, &h->node);
+  list_add_tail(&_handler_list, &h->_node);
   oonf_log_updatemask();
 }
 
@@ -182,7 +182,7 @@ oonf_log_addhandler(struct oonf_log_handler_entry *h)
 void
 oonf_log_removehandler(struct oonf_log_handler_entry *h)
 {
-  list_remove(&h->node);
+  list_remove(&h->_node);
   oonf_log_updatemask();
 }
 

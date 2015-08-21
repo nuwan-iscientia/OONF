@@ -49,12 +49,29 @@
 #include "config/cfg_schema.h"
 #include "core/oonf_subsystem.h"
 
+/**
+ * global configuration data for core API
+ */
 struct oonf_config_global {
+  /*! list of plugins to be loaded */
   struct strarray plugin;
+
+  /*! additional path to look for plugins */
   char *plugin_path;
+
+  /*! name/path of pidfile */
   char *pidfile;
+
+  /*! name/path for lockfile */
   char *lockfile;
+
+  /*! true if framework should fork into background */
   bool fork;
+
+  /**
+   * true if framework should return an error if configuration
+   * contains an unknown section
+   */
   bool failfast;
 };
 
@@ -64,7 +81,7 @@ struct oonf_config_global {
 /* name of parameter in 'global' section to load plugins */
 #define CFG_GLOBAL_PLUGIN    "plugin"
 
-EXPORT extern struct oonf_config_global config_global;
+extern struct oonf_config_global config_global;
 
 int oonf_cfg_init(int argc, char **argv,
     const char *) __attribute__((warn_unused_result));

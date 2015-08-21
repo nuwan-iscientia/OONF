@@ -55,34 +55,37 @@
 
 #define DECLARE_OONF_PLUGIN(subsystem) EXPORT void hookup_plugin_ ## subsystem (void) __attribute__ ((constructor)); void hookup_plugin_ ## subsystem (void) { oonf_plugins_hook(&subsystem); }
 
-/*
+/**
  * description of a subsystem of the OONF-API.
  * In theory, ALL fields except for name are optional.
  */
 struct oonf_subsystem {
-  /* name of the subsystem */
+  /*! name of the subsystem */
   const char *name;
 
-  /* list of dependencies of this subsystem */
+  /*! array of dependencies of this subsystem */
   const char **dependencies;
+
+  /*! number of dependencies of this subsystem */
   size_t dependencies_count;
 
-  /* description of the subsystem */
+  /*! description of the subsystem */
   const char *descr;
 
-  /* author of the subsystem */
+  /*! author of the subsystem */
   const char *author;
 
-  /* First configuration section of subsystem, might be NULL */
+  /*! First configuration section of subsystem, might be NULL */
   struct cfg_schema_section *cfg_section;
 
-  /*
+  /**
    * Will be called once during the initialization of the subsystem.
    * Other subsystems may not be initialized during this time.
+   * @return -1 if an error happened, 0 otherwise
    */
   int (*init) (void);
 
-  /*
+  /**
    * Will be called when the routing agent begins to shut down.
    * Subsystems should stop sending normal network traffic and begin
    * to shutdown, but they will run for a few more hundred milliseconds
@@ -93,13 +96,13 @@ struct oonf_subsystem {
    */
   void (*initiate_shutdown) (void);
 
-  /*
+  /**
    * Will be called once during the cleanup of the subsystem.
    * Other subsystems might already be cleanup up during this time.
    */
   void (*cleanup) (void);
 
-  /*
+  /**
    * Will be called early during initialization, even before command
    * line arguments are parsed and the configuration is loaded. The
    * callback is meant for cfgio/cfgparser implementations to hook
@@ -107,31 +110,31 @@ struct oonf_subsystem {
    */
   void (*early_cfg_init) (void);
 
-  /* true if the subsystem can be (de)activated during runtime */
+  /*! true if the subsystem can be (de)activated during runtime */
   bool can_cleanup;
 
-  /* true if this subsystem does not need a logging source */
+  /*! true if this subsystem does not need a logging source */
   bool no_logging;
 
-  /* logging source for subsystem */
+  /*! logging source for subsystem */
   enum oonf_log_source logging;
 
-  /* true if the subsystem is initialized */
+  /*! true if the subsystem is initialized */
   bool _initialized;
 
-  /* true if unload of plugin is in progress */
+  /*! true if unload of plugin is in progress */
   bool _unload_initiated;
 
-  /* temporary variable to detect circular dependencies */
+  /*! temporary variable to detect circular dependencies */
   bool _dependency_missing;
 
-  /* pointer to dlopen handle */
+  /*! pointer to dlopen handle */
   void *_dlhandle;
 
-  /* which template was used to load plugin */
+  /*! which template was used to load plugin */
   int _dlpath_index;
 
-  /* hook into subsystem tree */
+  /*! hook into subsystem tree */
   struct avl_node _node;
 };
 
@@ -140,7 +143,11 @@ EXPORT void oonf_subsystem_configure(struct cfg_schema *schema,
 EXPORT void oonf_subsystem_unconfigure(struct cfg_schema *schema,
     struct oonf_subsystem *subsystem);
 
+/**
+ * Buffer for text representation of subsystem name
+ */
 struct oonf_plugin_namebuf {
+  /*! text array for maxmimum length subsystem name */
   char name[OONF_SUBSYSTEM_NAMESIZE];
 };
 

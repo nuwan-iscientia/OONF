@@ -84,14 +84,32 @@ enum oonf_log_source {
   LOG_MAXIMUM_SOURCES = 64,
 };
 
+/**
+ * Parameters for logging handler call
+ */
 struct oonf_log_parameters {
+  /*! severity of logging event */
   enum oonf_log_severity severity;
+
+  /*! source of logging event */
   enum oonf_log_source source;
+
+  /*! true if no header should be added to logging event */
   bool no_header;
+
+  /*! file where the logging event happened */
   const char *file;
+
+  /*! line number where the logging event happened */
   int line;
+
+  /*! logging output */
   char *buffer;
+
+  /*! number of bytes used for the timestamp in the buffer */
   int timeLength;
+
+  /*! number of bytes used for the logging prefix in the buffer */
   int prefixLength;
 };
 
@@ -159,23 +177,35 @@ struct oonf_log_parameters {
 #define OONF_WARN_NH(source, format, args...) _OONF_LOG(LOG_SEVERITY_WARN, source, true, NULL, 0, format, ##args)
 #define OONF_WARN_HEX(source, hexptr, hexlen, format, args...) _OONF_LOG(LOG_SEVERITY_WARN, source, false, hexptr, hexlen, format, ##args)
 
-typedef void log_handler_cb(struct oonf_log_handler_entry *, struct oonf_log_parameters *);
-
+/**
+ * Definition of a logging handler
+ */
 struct oonf_log_handler_entry {
-  struct list_entity node;
-  log_handler_cb *handler;
+  /*! hook into global list of logging handlers */
+  struct list_entity _node;
 
-  /* user_bitmask */
+  /**
+   * Callback that handles a logging event
+   * @param pointer to this structure
+   * @param parameters for logging event
+   */
+  void (*handler)(struct oonf_log_handler_entry *entry, struct oonf_log_parameters *param);
+
+  /*! user_bitmask */
   uint8_t user_bitmask[LOG_MAXIMUM_SOURCES];
 
-  /* internal copy of user_bitmask */
+  /*! internal copy of user_bitmask */
   uint8_t _processed_bitmask[LOG_MAXIMUM_SOURCES];
 
-  /* custom data for user */
+  /*! custom data for user */
   void *custom;
 };
 
+/**
+ * Buffer for text representation of walltime
+ */
 struct oonf_walltime_str {
+  /*! string array for maximum length walltime */
   char buf[sizeof("00:00:00.000")];
 };
 

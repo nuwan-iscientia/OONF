@@ -44,15 +44,23 @@
 
 #include "common/common_types.h"
 
+/**
+ * This structure contains the library data defined in the build script
+ */
 struct oonf_libdata {
+  /*! version of the library */
   const char *version;
 
+  /*! git commit of library */
   const char *git_commit;
 
+  /*! prefix for shared library names */
   const char *sharedlibrary_prefix;
+
+  /*! suffix for shared library names */
   const char *sharedlibrary_postfix;
 };
 
-EXPORT extern const struct oonf_libdata *oonf_libdata_get(void);
+EXPORT const struct oonf_libdata *oonf_libdata_get(void);
 
 #endif /* BUILDDATA_H_ */

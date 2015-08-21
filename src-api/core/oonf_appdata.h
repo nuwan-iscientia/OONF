@@ -44,15 +44,29 @@
 
 #include "common/common_types.h"
 
+/**
+ * This structure contains the application data defined in the build script
+ */
 struct oonf_appdata {
+  /*! name of the application */
   const char *app_name;
+
+  /*! text that will be displayed after the --version command output */
   const char *versionstring_trailer;
+
+  /*! text that will be displayed before the --help command output */
   const char *help_prefix;
+
+  /*! text that will be displayed after the --help command output */
   const char *help_suffix;
 
+  /*! name and path of the default lockfile */
   const char *default_lockfile;
+
+  /*! name of the default configuration handler */
   const char *default_cfg_handler;
 
+  /*! true if application needs root access */
   const bool need_root;
 };
 
