@@ -53,16 +53,16 @@
  * large string buffers.
  */
 struct autobuf {
-  /* total number of bytes allocated in the buffer */
+  /*! total number of bytes allocated in the buffer */
   size_t _total;
 
-  /* currently number of used bytes */
+  /*! currently number of used bytes */
   size_t _len;
 
-  /* pointer to allocated memory */
+  /*! pointer to allocated memory */
   char *_buf;
 
-  /* an error happened since the last stream cleanup */
+  /*! an error happened since the last stream cleanup */
   bool _error;
 };
 

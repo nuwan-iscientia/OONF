@@ -82,13 +82,13 @@ enum { NETADDR_MAX_LENGTH = 16 };
  * At the moment we support AF_INET, AF_INET6 and AF_MAC48
  */
 struct netaddr {
-  /* 16 bytes of memory for address */
+  /*! 16 bytes of memory for address */
   uint8_t _addr[NETADDR_MAX_LENGTH];
 
-  /* address type */
+  /*! address type */
   uint8_t _type;
 
-  /* address prefix length */
+  /*! address prefix length */
   uint8_t _prefix_len;
 };
 
@@ -97,9 +97,16 @@ struct netaddr {
  * to all variants without casting and compiler warnings.
  */
 union netaddr_socket {
+  /*! IPv4 sockaddr */
   struct sockaddr_in v4;
+
+  /*! IPv6 sockaddr */
   struct sockaddr_in6 v6;
+
+  /*! generic sockaddr */
   struct sockaddr std;
+
+  /*! storage object for sockaddr */
   struct sockaddr_storage storage;
 };
 
@@ -123,6 +130,7 @@ enum {
  * and netaddr_socket objects
  */
 struct netaddr_str {
+  /*! buffer for maximum length netaddr string representation */
   char buf[INET6_ADDRSTRLEN+16];
 };
 

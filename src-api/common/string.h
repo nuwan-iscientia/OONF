@@ -54,7 +54,7 @@ enum { STRARRAY_BLOCKSIZE = 64 };
 /* macro to initialize a static string array */
 #define STRARRAY_INIT(str) { .value = (str), .length = sizeof(str) }
 
-/*
+/**
  * Represents a string or an array of strings
  * The strings (including the zero byte) are just appended
  * into a large binary buffer. The struct contains a pointer
@@ -64,16 +64,21 @@ enum { STRARRAY_BLOCKSIZE = 64 };
  * while remove operations are done with memmove
  */
 struct strarray {
-  /* pointer to the first string */
+  /*! pointer to the first string */
   char *value;
 
-  /* total length of all strings including zero-bytes */
+  /*! total length of all strings including zero-bytes */
   size_t length;
 };
 
+/**
+ * Constant value variant of strarray
+ */
 struct const_strarray {
+    /*! pointer to the first string */
   const char *value;
 
+  /*! total length of all strings including zero-bytes */
   size_t length;
 };
 

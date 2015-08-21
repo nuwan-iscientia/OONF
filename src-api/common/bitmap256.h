@@ -47,23 +47,43 @@
 #define BITMAP256_ALL  "all"
 #define BITMAP256_NONE "none"
 
+/**
+ * Bitarray with 256 bits length
+ */
 struct bitmap256 {
-  uint64_t b[256/64];
+  /*! array for 256 bits */
+  uint64_t b[256/sizeof(uint64_t)/8];
 };
 
-bool bitmap256_is_subset(struct bitmap256 *set, struct bitmap256 *subset);
+EXPORT bool bitmap256_is_subset(struct bitmap256 *set, struct bitmap256 *subset);
 
-static INLINE bool
+/**
+ * get a bit of the bit array
+ * @param map pointer to bit array
+ * @param bit index of bit
+ * @return content of the bit
+ */
+static inline bool
 bitmap256_get(struct bitmap256 *map, uint8_t bit) {
   return ((map->b[bit >> 6]) & (1ull << (bit & 63ull))) != 0;
 }
 
-static INLINE void
+/**
+ * set a bit of the bit array
+ * @param map pointer to bit array
+ * @param bit index of bit
+ */
+static inline void
 bitmap256_set(struct bitmap256 *map, uint8_t bit) {
   map->b[bit >> 6] |= 1ull << (bit & 63ull);
 }
 
-static INLINE void
+/**
+ * reset a bit of the bit array
+ * @param map pointer to bit array
+ * @param bit index of bit
+ */
+static inline void
 bitmap256_reset(struct bitmap256 *map, uint8_t bit) {
   map->b[bit >> 6] &= ~(1ull << (bit & 63ull));
 }

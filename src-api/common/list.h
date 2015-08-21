@@ -54,14 +54,10 @@
  * have a link to the head, no NULL element.
  */
 struct list_entity {
-  /**
-   * Pointer to next element in list or to list head if last element
-   */
+  /*! pointer to next element in list or to list head if last element */
   struct list_entity *next;
 
-  /**
-   * Pointer to previous element in list or list head if first element
-   */
+  /*! Pointer to previous element in list or list head if first element */
   struct list_entity *prev;
 };
 

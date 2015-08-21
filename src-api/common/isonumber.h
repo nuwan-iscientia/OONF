@@ -44,11 +44,12 @@
 
 #include "common/common_types.h"
 
-/*
+/**
  * buffer for the string representation of a fractional
  * number with iso prefix.
  */
 struct isonumber_str {
+    /*! buffer for longest possibloe iso prefixed number */
     char buf[48];
 };
 

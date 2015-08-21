@@ -53,24 +53,57 @@ enum {
   TEMPLATE_MAX_KEYS         = 32
 };
 
+/**
+ * Defines a single Template key/value data entry
+ */
 struct abuf_template_data_entry {
+  /*! key of the data entry */
   const char *key;
+
+  /*! value of the data entry */
   const char *value;
+
+  /*! true if the data is a string, false if it is a number */
   bool string;
 };
 
+/**
+ * Represents an array of data entries that can be used to
+ * build a complete template
+ */
 struct abuf_template_data {
+  /*! pointer to array of data entries */
   struct abuf_template_data_entry *data;
+
+  /*! number of data entries in array */
   size_t count;
-};
-struct abuf_template_storage_entry {
-  struct abuf_template_data_entry *data;
-  size_t start, end;
 };
 
+/**
+ * Stores which byte range has to be replaced by a certain data entry
+ */
+struct abuf_template_storage_entry {
+  /*! pointer to data entry */
+  struct abuf_template_data_entry *data;
+
+  /*! first byte to be replaced with data entry value */
+  size_t start;
+
+  /*! first byte after the replaced format string */
+  size_t end;
+};
+
+/**
+ * Preprocessed template format string
+ */
 struct abuf_template_storage {
+  /*! number of templates used in format string */
   size_t count;
+
+  /*! format string for template */
   const char *format;
+
+  /*! mapping of used templates to byte positions in format string */
   struct abuf_template_storage_entry indices[TEMPLATE_MAX_KEYS];
 };
 

@@ -46,12 +46,14 @@
 #include "common/autobuf.h"
 #include "common/template.h"
 
-/* This struct contains the session variables for JSON generation */
+/**
+ * contains the session variables for JSON generation
+ */
 struct json_session {
-  /* pointer to output buffer */
+  /*! pointer to output buffer */
   struct autobuf *out;
 
-  /* true if we just started a new object/array */
+  /*! true if we just started a new object/array */
   bool empty;
 };
 
