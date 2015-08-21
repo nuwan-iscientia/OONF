@@ -53,11 +53,14 @@ enum {
   RFC5444_SIG_MAX_CRYPTSIZE = RFC5444_MAX_PACKET_SIZE,
 };
 
+/**
+ * Unique key for a rfc5444 signature
+ */
 struct rfc5444_signature_key {
-  /* has function id */
+  /*! hash function id */
   uint8_t  hash_function;
 
-  /* crypto function id */
+  /*! crypto function id */
   uint8_t  crypt_function;
 };
 
@@ -67,12 +70,14 @@ enum rfc5444_sigid_check {
   RFC5444_SIGID_DROP,
 };
 
-/* object representing a registered signature */
+/**
+ * object representing a registered signature
+ */
 struct rfc5444_signature {
-  /* data that makes the unique key of a signature */
+  /*! data that makes the unique key of a signature */
   struct rfc5444_signature_key key;
 
-  /* true if signature is source specific */
+  /*! true if signature is source specific */
   bool source_specific;
 
   /**
@@ -107,28 +112,30 @@ struct rfc5444_signature {
    */
   const void *(*getKeyId)(struct rfc5444_signature *sig, size_t *length);
 
-  /* true if message/packet should be dropped if signature is invalid */
+  /*! true if message/packet should be dropped if signature is invalid */
   bool drop_if_invalid;
 
   /* the following data will be filled by the API */
 
-  /* source IP address of packet to be signed/checked */
+  /*! source IP address of packet to be signed/checked */
   const struct netaddr *source;
 
-  /* pointer to cryptographic hash of signature */
+  /*! pointer to cryptographic hash of signature */
   struct rfc7182_hash *hash;
 
-  /* pointer to cryptographic function of signature */
+  /*! pointer to cryptographic function of signature */
   struct rfc7182_crypt *crypt;
 
-  /* true if signature has been validated */
+  /*! true if signature has been validated */
   bool verified;
 
-  /* true if signature is essential for the current check */
+  /*! true if signature is essential for the current check */
   bool _must_be_verified;
 
+  /*! rfc5444 postprocessor to add the signature */
   struct rfc5444_writer_postprocessor _postprocessor;
 
+  /*! hook into the registered signature tree */
   struct avl_node _node;
 };
 

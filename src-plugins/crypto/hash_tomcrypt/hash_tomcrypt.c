@@ -14,7 +14,7 @@
  *   notice, this list of conditions and the following disclaimer in
  *   the documentation and/or other materials provided with the
  *   distribution.
- * * Neither the name of olsr.org, olsrd nor the names of its
+ * * Neither the tomcrypt_name of olsr.org, olsrd nor the names of its
  *   contributors may be used to endorse or promote products derived
  *   from this software without specific prior written permission.
  *
@@ -50,9 +50,17 @@
 
 #define LOG_HASH_TOMCRYPT _hash_tomcrypt_subsystem.logging
 
+/**
+ * Libtomcrypt extension for hash definition
+ */
 struct tomcrypt_hash {
+  /*! rfc7182 hash provider */
   struct rfc7182_hash h;
-  const char *name;
+
+  /*! tomcrypt string id of hash */
+  const char *tomcrypt_name;
+
+  /*! tomcrypt index of hash */
   int idx;
 };
 
@@ -92,7 +100,7 @@ static struct tomcrypt_hash _hashes[] = {
       .hash = _cb_sha_hash,
       .hash_length = 160 / 8,
     },
-    .name = "sha1",
+    .tomcrypt_name = "sha1",
   },
   {
     .h = {
@@ -100,7 +108,7 @@ static struct tomcrypt_hash _hashes[] = {
       .hash = _cb_sha_hash,
       .hash_length = 224 / 8,
     },
-    .name = "sha224",
+    .tomcrypt_name = "sha224",
   },
   {
     .h = {
@@ -108,7 +116,7 @@ static struct tomcrypt_hash _hashes[] = {
       .hash = _cb_sha_hash,
       .hash_length = 256 / 8,
     },
-    .name = "sha256",
+    .tomcrypt_name = "sha256",
   },
   {
     .h = {
@@ -116,7 +124,7 @@ static struct tomcrypt_hash _hashes[] = {
       .hash = _cb_sha_hash,
       .hash_length = 384 / 8,
     },
-    .name = "sha384",
+    .tomcrypt_name = "sha384",
   },
   {
     .h = {
@@ -124,7 +132,7 @@ static struct tomcrypt_hash _hashes[] = {
       .hash = _cb_sha_hash,
       .hash_length = 512 / 8,
     },
-    .name = "sha512",
+    .tomcrypt_name = "sha512",
   },
 };
 
@@ -152,10 +160,10 @@ _init(void) {
 
   /* register hashes with rfc5444 signature API */
   for (i=0; i<ARRAYSIZE(_hashes); i++) {
-    _hashes[i].idx = find_hash(_hashes[i].name);
+    _hashes[i].idx = find_hash(_hashes[i].tomcrypt_name);
     if (_hashes[i].idx != -1) {
       OONF_INFO(LOG_HASH_TOMCRYPT, "Add %s hash to rfc7182 API",
-          _hashes[i].name);
+          rfc7182_get_hash_name(_hashes[i].h.type));
       rfc7182_add_hash(&_hashes[i].h);
     }
   }

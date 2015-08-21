@@ -45,12 +45,14 @@
 #include "common/common_types.h"
 #include "common/avl.h"
 
-/* representation of a hash function for signatures */
+/**
+ * representation of a hash function for signatures
+ */
 struct rfc7182_hash {
-  /* RFC7182 hash id */
+  /*! RFC7182 hash id */
   uint8_t type;
 
-  /* might be used as additional information for the crypto algorithm */
+  /*! might be used as additional information for the crypto algorithm */
   size_t hash_length;
 
   /**
@@ -67,11 +69,15 @@ struct rfc7182_hash {
       void *dst, size_t *dst_len,
       const void *src, size_t src_len);
 
+  /*! hook into the tree of registered hashes */
   struct avl_node _node;
 };
 
+/**
+ * representation of a crypto function for signatures
+ */
 struct rfc7182_crypt {
-  /* RFC7182 crypto ID */
+  /*! RFC7182 crypto ID */
   uint8_t type;
 
   /**
@@ -153,6 +159,7 @@ struct rfc7182_crypt {
       const void *src, size_t src_len,
       const void *key, size_t key_len);
 
+  /*! hook into the tree of registered crypto functions */
   struct avl_node _node;
 };
 
@@ -168,12 +175,20 @@ EXPORT void rfc7182_add_crypt(struct rfc7182_crypt *);
 EXPORT void rfc7182_remove_crypt(struct rfc7182_crypt *);
 EXPORT struct avl_tree *rfc7182_get_crypt_tree(void);
 
+/**
+ * @param id RFC7182 hash id
+ * @return hash provider, NULL if unregistered id
+ */
 static INLINE struct rfc7182_hash *
 rfc7182_get_hash(uint8_t id) {
   struct rfc7182_hash *hash;
   return avl_find_element(rfc7182_get_hash_tree(), &id, hash, _node);
 }
 
+/**
+ * @param id RDC7182 crypto id
+ * @return crypto provider, NULL if unregistered id
+ */
 static INLINE struct rfc7182_crypt *
 rfc7182_get_crypt(uint8_t id) {
   struct rfc7182_crypt *crypt;

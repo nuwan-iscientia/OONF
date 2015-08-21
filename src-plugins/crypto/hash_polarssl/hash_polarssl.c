@@ -58,11 +58,6 @@
 
 #define LOG_HASH_POLARSSL _hash_polarssl_subsystem.logging
 
-struct polarssl_hash {
-  struct rfc7182_hash h;
-  const char *name;
-};
-
 /* function prototypes */
 static int _init(void);
 static void _cleanup(void);
@@ -107,51 +102,36 @@ static struct oonf_subsystem _hash_polarssl_subsystem = {
 DECLARE_OONF_PLUGIN(_hash_polarssl_subsystem);
 
 /* definition for all sha1/2 hashes */
-static struct polarssl_hash _hashes[] = {
+static struct rfc7182_hash _hashes[] = {
 #ifdef POLARSSL_SHA1_C
   {
-    .h = {
-      .type = RFC7182_ICV_HASH_SHA_1,
-      .hash = _cb_sha1_hash,
-      .hash_length = 160 / 8,
-    },
-    .name = "sha1",
+    .type = RFC7182_ICV_HASH_SHA_1,
+    .hash = _cb_sha1_hash,
+    .hash_length = 160 / 8,
   },
 #endif
 #ifdef POLARSSL_SHA1_C
   {
-    .h = {
-      .type = RFC7182_ICV_HASH_SHA_224,
-      .hash = _cb_sha256_hash,
-      .hash_length = 224 / 8,
-    },
-    .name = "sha224",
+    .type = RFC7182_ICV_HASH_SHA_224,
+    .hash = _cb_sha256_hash,
+    .hash_length = 224 / 8,
   },
   {
-    .h = {
-      .type = RFC7182_ICV_HASH_SHA_256,
-      .hash = _cb_sha256_hash,
-      .hash_length = 256 / 8,
-    },
-    .name = "sha256",
+    .type = RFC7182_ICV_HASH_SHA_256,
+    .hash = _cb_sha256_hash,
+    .hash_length = 256 / 8,
   },
 #endif
 #ifdef POLARSSL_SHA1_C
   {
-    .h = {
-      .type = RFC7182_ICV_HASH_SHA_384,
-      .hash = _cb_sha512_hash,
-      .hash_length = 384 / 8,
-    },
-    .name = "sha384",
+    .type = RFC7182_ICV_HASH_SHA_384,
+    .hash = _cb_sha512_hash,
+    .hash_length = 384 / 8,
   },
   {
-    .h = {
-      .type = RFC7182_ICV_HASH_SHA_512,
-      .hash = _cb_sha512_hash,
-      .hash_length = 512 / 8,
-    },
-    .name = "sha512",
+    .type = RFC7182_ICV_HASH_SHA_512,
+    .hash = _cb_sha512_hash,
+    .hash_length = 512 / 8,
   },
 #endif
 };
@@ -174,8 +154,8 @@ _init(void) {
   /* register hashes with rfc5444 signature API */
   for (i=0; i<ARRAYSIZE(_hashes); i++) {
     OONF_INFO(LOG_HASH_POLARSSL, "Add %s hash to rfc7182 API",
-        _hashes[i].name);
-    rfc7182_add_hash(&_hashes[i].h);
+        rfc7182_get_hash_name(_hashes[i].type));
+    rfc7182_add_hash(&_hashes[i]);
   }
 
   rfc7182_add_crypt(&_hmac);
@@ -192,7 +172,7 @@ _cleanup(void) {
 
   /* register hashes with rfc5444 signature API */
   for (i=0; i<ARRAYSIZE(_hashes); i++) {
-    rfc7182_remove_hash(&_hashes[i].h);
+    rfc7182_remove_hash(&_hashes[i]);
   }
 
   rfc7182_remove_crypt(&_hmac);

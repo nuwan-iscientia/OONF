@@ -54,20 +54,41 @@
 
 #define LOG_SHAREDKEY_SIG _sharedkey_sig_subsystem.logging
 
+/**
+ * Configuration of a shared-key signature
+ */
 struct sharedkey_signature {
+  /*! name of the signature for registration */
   char name[16];
+
+  /*! cryptographic key for signature */
   char key[256];
+
+  /*! id of signature, might have length 0 */
   char id[256];
 
+  /*! bitarray of messages the signature should be applied to */
   struct bitmap256 msgtype;
+
+  /*! true if signature should be applied on packet level */
   bool packet;
+
+  /*! true if source IP should be included into signature */
   bool source_specific;
+
+  /*! true if message/packet should be dropped if signature is bad/missing */
   bool drop_if_invalid;
 
+  /*! hash id for signature */
   enum rfc7182_icv_hash hash;
+
+  /*! crypto id for signature */
   enum rfc7182_icv_crypt crypt;
 
+  /*! rfc7182 signature provider */
   struct rfc5444_signature _signature;
+
+  /*! hook into tree of configured shared key signatures */
   struct avl_node _node;
 };
 /* function prototypes */

@@ -128,13 +128,13 @@ static uint8_t _static_message_buffer[RFC5444_MAX_PACKET_SIZE];
 static uint8_t _crypt_buffer[RFC5444_MAX_PACKET_SIZE];
 
 /* listeners for crypto and hash algorithms */
-struct oonf_class_extension _hash_listener = {
+static struct oonf_class_extension _hash_listener = {
   .ext_name = "rfc5444 signatures",
   .class_name = OONF_RFC7182_HASH_CLASS,
   .cb_add = _cb_hash_added,
   .cb_remove = _cb_hash_removed,
 };
-struct oonf_class_extension _crypt_listener = {
+static struct oonf_class_extension _crypt_listener = {
   .ext_name = "rfc5444 signatures",
   .class_name = OONF_RFC7182_CRYPTO_CLASS,
   .cb_add = _cb_crypt_added,

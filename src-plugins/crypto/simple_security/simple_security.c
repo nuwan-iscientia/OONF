@@ -58,43 +58,63 @@
 /* definitions */
 #define LOG_SIMPLE_SECURITY _simple_security_subsystem.logging
 
-/* Plugin binary configuration */
+/**
+ * simple security configuration
+ */
 struct sise_config {
+  /*! binary cryptographic key for signature (not null-terminated) */
   char key[256];
+
+  /*! length of cryptographic key */
   size_t key_length;
 
+  /*! validity time for replay protection */
   uint64_t vtime;
+
+  /*! delay until sequence number query is sent */
   uint64_t trigger_delay;
 
+  /*! maximum amount of sequence number increase we accept */
   uint32_t window_size;
 };
 
+/**
+ * Interface specific key for neighbor
+ */
 struct neighbor_key {
+  /*! src IP of RFC5444 packet of neighbor on this interface */
   struct netaddr src;
+
+  /*! interface index */
   unsigned if_index;
 };
 
+/**
+ * Known neighbor with sequence number and protocol data
+ */
 struct neighbor_node {
-  /* key for AVL tree */
+  /*! key for AVL tree */
   struct neighbor_key key;
 
-  /* last counter we have received from this neighbor */
+  /*! last counter we have received from this neighbor */
   uint32_t last_counter;
 
-  /* commands for packet generation */
+  /*! query id, NULL if no query should be generated */
   uint32_t send_query;
+
+  /*! response id, NULL if no response was received */
   uint32_t send_response;
 
-  /* reference for RFC5444 unicast communication */
+  /*! reference for RFC5444 unicast communication */
   struct oonf_rfc5444_target *_target;
 
-  /* timer to remove this node from memory after some time */
+  /*! timer to remove this node from memory after some time */
   struct oonf_timer_instance _vtime;
 
-  /* timer to delay generation of a challenge/response */
+  /*! timer to delay generation of a challenge/response */
   struct oonf_timer_instance _trigger;
 
-  /* node for global AVL tree */
+  /*! node for global AVL tree */
   struct avl_node _node;
 };
 static int _init(void);
