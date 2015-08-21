@@ -51,21 +51,34 @@ struct cfg_io;
 
 #include "config/cfg.h"
 
-/* Represents a single IO-Handler */
+/**
+ *  Represents a single IO-Handler
+ */
 struct cfg_io {
-  /* node for global tree in cfg_io.c */
+  /*! node for global tree in cfg_io.c */
   struct avl_node node;
 
-  /* name of io handler */
+  /*! name of io handler */
   const char *name;
 
-  /* true if this is the default handler */
+  /*! true if this is the default handler */
   bool def;
 
-  /* callback to load a configuration */
+  /**
+   * callback to load a configuration
+   * @param param user parameter for configuration loader
+   * @param log buffer for text output of the loader
+   * @return configuration database, NULL if an error happened
+   */
   struct cfg_db *(*load)(const char *param, struct autobuf *log);
 
-  /* callback to save a configuration */
+  /**
+   * callback to save a configuration
+   * @param param user parameter for configuration storage
+   * @param src configuration database to save
+   * @param log buffer for text output while storing the data
+   * @return -1 if an error happened, 0 otherwise
+   */
   int (*save)(const char *param, struct cfg_db *src, struct autobuf *log);
 };
 

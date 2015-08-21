@@ -54,57 +54,65 @@ struct cfg_entry;
 
 #include "config/cfg_schema.h"
 
-/* Represents a single database with configuration entries */
+/**
+ * Represents a single database with configuration entries
+ */
 struct cfg_db {
-  /* tree of all sections of this db */
+  /*! tree of all sections of this db */
   struct avl_tree sectiontypes;
 
-  /* linked schema of db */
+  /*! linked schema of db */
   struct cfg_schema *schema;
 };
 
-/* Represents a section type in a configuration database */
+/**
+ * Represents a section type in a configuration database
+ */
 struct cfg_section_type {
-  /* node for tree in database */
+  /*! node for tree in database */
   struct avl_node node;
 
-  /* name of type */
+  /*! name of type */
   const char *type;
 
-  /* backpointer to database */
+  /*! backpointer to database */
   struct cfg_db *db;
 
-  /* tree of named sections */
+  /*! tree of named sections */
   struct avl_tree names;
 };
 
-/* Represents a named section in a configuration database */
+/**
+ * Represents a named section in a configuration database
+ */
 struct cfg_named_section {
-  /* node for tree in section type */
+  /*! node for tree in section type */
   struct avl_node node;
 
-  /* name of named section */
+  /*! name of named section */
   const char *name;
 
-  /* backpointer to section type */
+  /*! backpointer to section type */
   struct cfg_section_type *section_type;
 
-  /* tree of entries */
+  /*! tree of entries */
   struct avl_tree entries;
 };
 
-/* Represents a configuration entry */
+/**
+ * Represents a configuration entry
+ */
 struct cfg_entry {
-  /* node for tree in named section */
+  /*! node for tree in named section */
   struct avl_node node;
 
-  /* name of entry */
+  /*! name of entry */
   char *name;
 
-  /* value of entry, might contain multiple strings */
+  /*! value of entry, might contain multiple strings */
   struct strarray val;
 
-  /* backpointer to named section */
+  /*! backpointer to named section */
   struct cfg_named_section *named_section;
 };
 

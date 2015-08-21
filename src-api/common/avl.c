@@ -47,8 +47,8 @@
 #include "common/list.h"
 #include "common/avl.h"
 
-static struct avl_node *_avl_find_rec(struct avl_node *node,
-    const void *key, avl_tree_comp comp, int *cmp_result);
+static struct avl_node *_avl_find_rec(struct avl_node *node, const void *key,
+    int (*comp) (const void *k1, const void *k2), int *cmp_result);
 static void _avl_insert_before(struct avl_tree *tree,
     struct avl_node *pos_node, struct avl_node *node);
 static void _avl_insert_after(struct avl_tree *tree,
@@ -69,7 +69,9 @@ static struct avl_node *_avl_local_min(struct avl_node *node);
  *   elements with the same
  */
 void
-avl_init(struct avl_tree *tree, avl_tree_comp comp, bool allow_dups)
+avl_init(struct avl_tree *tree,
+    int (*comp) (const void *k1, const void *k2),
+    bool allow_dups)
 {
   list_init_head(&tree->list_head);
   tree->root = NULL;
@@ -332,7 +334,8 @@ avl_remove(struct avl_tree *tree, struct avl_node *node)
  * @return pointer to result of the lookup (avl_node)
  */
 static struct avl_node *
-_avl_find_rec(struct avl_node *node, const void *key, avl_tree_comp comp, int *cmp_result)
+_avl_find_rec(struct avl_node *node, const void *key,
+    int (*comp) (const void *k1, const void *k2), int *cmp_result)
 {
   int diff;
 

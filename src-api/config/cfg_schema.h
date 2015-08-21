@@ -179,14 +179,17 @@ struct cfg_schema_entry;
 /* convenience definition for configuration that only allows access from loopback */
 #define ACL_LOCALHOST_ONLY "+127.0.0.1/8\0+::1/128\0" ACL_DEFAULT_REJECT
 
+/**
+ * Definition of a configuration schema
+ */
 struct cfg_schema {
-  /* tree of sections of this schema */
+  /*! tree of sections of this schema */
   struct avl_tree sections;
 
-  /* tree of schema entries of this schema */
+  /*! tree of schema entries of this schema */
   struct avl_tree entries;
 
-  /* list of delta handlers of this schema */
+  /*! list of delta handlers of this schema */
   struct list_entity handlers;
 };
 
@@ -220,85 +223,124 @@ enum cfg_schema_section_mode {
   CFG_SSMODE_MAX,
 };
 
-/*
+/**
  * Represents the schema of all named sections within
  * a certain type
  */
 struct cfg_schema_section {
-  /* node for global section tree, initialized by schema_add() */
+  /*! node for global section tree, initialized by schema_add() */
   struct avl_node _section_node;
 
-  /* name of section type, key for section_node */
+  /*! name of section type, key for section_node */
   const char *type;
 
-  /* name of default section if mode is CFG_SSMODE_NAMED_WITH_DEFAULT */
+  /*! name of default section if mode is CFG_SSMODE_NAMED_WITH_DEFAULT */
   const char *def_name;
 
-  /* mode of this section, see above */
+  /*! mode of this section, see above */
   enum cfg_schema_section_mode mode;
 
-  /* help text for section */
+  /*! help text for section */
   const char *help;
 
-  /* callback for checking configuration of section */
+  /**
+   * callback for checking configuration of section
+   * @param section_name name of the configuration section including type
+   * @param named configuration section to validate
+   * @param log buffer for text output of validator
+   * @return -1 if section was invalid, 0 otherwise
+   */
   int (*cb_validate)(const char *section_name,
-      struct cfg_named_section *, struct autobuf *);
+      struct cfg_named_section *named, struct autobuf *log);
 
-  /* node for global delta handler tree, initialized by delta_add() */
+  /*! node for global delta handler tree, initialized by delta_add() */
   struct list_entity _delta_node;
 
-  /* callback for delta handling, NULL if not interested */
+  /**
+   * callback for delta handling, NULL if not interested
+   */
   void (*cb_delta_handler)(void);
 
-  /*
-   * pointer to former and later version of changed section, only valid
+  /**
+   * pointer to former version of changed section, only valid
    * during call of cb_delta_handler
    */
-  struct cfg_named_section *pre, *post;
+  struct cfg_named_section *pre;
 
-  /*
+  /**
+   * pointer to later version of changed section, only valid
+   * during call of cb_delta_handler
+   */
+  struct cfg_named_section *post;
+
+  /**
    * Name of configured section (or NULL if unnamed section), only valid
    * during call of cb_delta_handler
    */
   const char *section_name;
 
-  /* list of entries in section */
+  /*! array of entries in section */
   struct cfg_schema_entry *entries;
+
+  /*! number of entries in section */
   size_t entry_count;
 
-  /* pointer to next section for subsystem initialization */
+  /*! pointer to next section for subsystem initialization */
   struct cfg_schema_section *next_section;
 };
 
+/**
+ * Key (used for avl) of a schema entry
+ */
 struct cfg_schema_entry_key {
-  const char *type, *entry;
+  /*! section type of entry */
+  const char *type;
+
+  /*! key of entry */
+  const char *entry;
 };
 
-/* Represents the schema of a configuration entry */
+/**
+ * Represents the schema of a configuration entry
+ */
 struct cfg_schema_entry {
-  /* node for global section tree */
+  /*! node for global section tree */
   struct avl_node _node;
+
+  /*! pointer to schema section */
   struct cfg_schema_section *_parent;
 
-  /* name of entry */
+  /*! name of entry */
   struct cfg_schema_entry_key key;
 
-  /* default value */
+  /*! default value */
   struct const_strarray def;
 
-  /* help text for entry */
+  /*! help text for entry */
   const char *help;
 
-  /* value is a list of parameters instead of a single one */
+  /*! value is a list of parameters instead of a single one */
   bool list;
 
-  /* callback for checking value and giving help for an entry */
+  /**
+   * callback for checking value and giving help for an entry
+   * @param entry pointer to schema entry
+   * @param section_name name of section including type
+   * @param value value of entry
+   * @param out buffer for text output of validation
+   * @return -1 if entry was invalid, 0 otherwise
+   */
   int (*cb_validate)(const struct cfg_schema_entry *entry,
       const char *section_name, const char *value, struct autobuf *out);
 
+  /**
+   * Outputs a help string for this schema entry
+   * @param entry pointer to schema entry
+   * @param out buffer for help text
+   */
   void (*cb_valhelp)(const struct cfg_schema_entry *entry, struct autobuf *out);
 
-  /* parameters for validator functions */
+  /*! parameters for validator functions */
   union {
     int8_t i8[8];
     uint8_t u8[8];
@@ -313,15 +355,26 @@ struct cfg_schema_entry {
     void *ptr;
   } validate_param[3];
 
-  /* callback for converting string into binary */
+  /**
+   * callback for converting the text value of an entry into binary
+   * @param s_entry pointer to schema entry
+   * @param value text value of the entry
+   * @param ptr pointer to binary data structure to put data into
+   * @return -1 if an error happened, 0 otherwise
+   */
   int (*cb_to_binary)(const struct cfg_schema_entry *s_entry,
       const struct const_strarray *value, void *ptr);
 
-  /* offset of current binary data compared to reference pointer */
+  /*! offset of current binary data compared to reference pointer */
   size_t bin_offset;
 
-  /* return values for delta comparision */
-  const struct const_strarray *pre, *post;
+  /*! pointer to value before change (for delta calculation) */
+  const struct const_strarray *pre;
+
+  /*! pointer to value after change (for delta calculation) */
+  const struct const_strarray *post;
+
+  /*! true if the value changed (for delta calculation) */
   bool delta_changed;
 };
 

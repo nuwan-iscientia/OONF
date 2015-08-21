@@ -95,15 +95,6 @@ struct avl_node {
 };
 
 /**
- * Prototype for avl comparators
- * @param k1 first key
- * @param k2 second key
- * @param ptr custom data for tree comparator
- * @return +1 if k1>k2, -1 if k1<k2, 0 if k1==k2
- */
-typedef int (*avl_tree_comp) (const void *k1, const void *k2);
-
-/**
  * This struct is the central management part of an avl tree.
  * One of them is necessary for each avl_tree.
  */
@@ -131,15 +122,16 @@ struct avl_tree {
   bool allow_dups;
 
   /**
-   * pointer to the tree comparator
-   *
-   * First two parameters are keys to compare,
-   * third parameter is a copy of cmp_ptr
+   * Prototype for avl comparators
+   * @param k1 first key
+   * @param k2 second key
+   * @return +1 if k1>k2, -1 if k1<k2, 0 if k1==k2
    */
-  avl_tree_comp comp;
+  int (*comp)(const void *k1, const void *k2);
 };
 
-EXPORT void avl_init(struct avl_tree *, avl_tree_comp, bool);
+EXPORT void avl_init(struct avl_tree *,
+    int (*comp) (const void *k1, const void *k2), bool);
 EXPORT struct avl_node *avl_find(const struct avl_tree *, const void *);
 EXPORT struct avl_node *avl_find_greaterequal(const struct avl_tree *tree, const void *key);
 EXPORT struct avl_node *avl_find_lessequal(const struct avl_tree *tree, const void *key);

@@ -56,11 +56,14 @@ struct cfg_instance;
 
 #define CFG_IO_URL_SPLITTER "://"
 
+/**
+ * Instance of a configuration handler with default io handler
+ */
 struct cfg_instance {
-  /* tree of io handlers and format parsers */
+  /*! tree of io handlers and format parsers */
   struct avl_tree io_tree;
 
-  /* name of default io file handler */
+  /*! name of default io file handler */
   const char *default_io;
 };
 

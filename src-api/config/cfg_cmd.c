@@ -48,11 +48,19 @@
 #include "config/cfg_io.h"
 #include "config/cfg_cmd.h"
 
-/* internal struct to get result for argument parsing */
+/**
+ *  contains data parsing logic */
 struct _parsed_argument {
+  /*! pointer to null terminated section type, NULL if no section type */
   char *section_type;
+
+  /*! pointer to null terminated section name, NULL if no section name */
   char *section_name;
+
+  /*! pointer to null terminated key, NULL if no key */
   char *entry_key;
+
+  /*! pointer to null terminated value, NULL if no value */
   char *entry_value;
 };
 
