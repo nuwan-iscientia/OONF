@@ -50,20 +50,34 @@
 #include "nhdp/nhdp.h"
 #include "olsrv2/olsrv2.h"
 
-/* per-domain data for locally attached networks */
+/**
+ * per-domain data for locally attached networks
+ */
 struct olsrv2_lan_domaindata {
+  /*! outgoing metric value for LAN */
   uint32_t outgoing_metric;
+
+  /*! routing metric (distance) for LAN */
   uint8_t distance;
+
+  /*! true if LAN is active for this domain */
   bool active;
 };
 
-/* one locally attached network */
+/**
+ *  one locally attached network
+ */
 struct olsrv2_lan_entry {
+  /*! unique key for LAN entry */
   struct os_route_key prefix;
 
+  /*! hook into global tree of LANs */
   struct avl_node _node;
 
+  /*! true if LAN has same distance on all active domains */
   bool same_distance;
+
+  /*! domain specific LAN data */
   struct olsrv2_lan_domaindata _domaindata[NHDP_MAXIMUM_DOMAINS];
 };
 

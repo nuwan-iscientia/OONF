@@ -75,12 +75,23 @@ enum {
   IDX_ADDRTLV_SRC_PREFIX,
 };
 
-/* session data during TC parsing */
+/**
+ * session data during TC parsing
+ */
 struct _olsrv2_data {
+  /*! pointer to tc node of current data */
   struct olsrv2_tc_node *node;
+
+  /*! validity time of current data */
   uint64_t vtime;
+
+  /*! true if current TC is not fragmented */
   bool complete_tc;
+
+  /*! MPR type value of current TC */
   uint8_t mprtypes[NHDP_MAXIMUM_DOMAINS];
+
+  /*! number of entries in MPR type value */
   size_t mprtypes_size;
 };
 

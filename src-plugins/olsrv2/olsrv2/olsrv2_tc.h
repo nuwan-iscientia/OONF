@@ -67,124 +67,126 @@ enum olsrv2_target_type {
 
 struct olsrv2_tc_edge;
 
-/*
+/**
  * represents a target that can be reached through a tc node.
  *
  * Might be another tc node, a neighbor address or an attached
  * network.
  */
 struct olsrv2_tc_target {
-  /* address or prefix of this node of the topology graph */
+  /*! address or prefix of this node of the topology graph */
   struct os_route_key prefix;
 
-  /* type of target */
+  /*! type of target */
   enum olsrv2_target_type type;
 
-  /* internal data for dijkstra run */
+  /*! internal data for dijkstra run */
   struct olsrv2_dijkstra_node _dijkstra;
 };
 
-/*
+/**
  * represents a tc node which might be connected to other
  * nodes and endpoints.
  */
 struct olsrv2_tc_node {
-  /* substructure to define target for Dijkstra Algorithm */
+  /*! substructure to define target for Dijkstra Algorithm */
   struct olsrv2_tc_target target;
 
-  /* answer set number */
+  /*! answer set number */
   uint16_t ansn;
 
-  /* reported interval time */
+  /*! reported interval time */
   uint64_t interval_time;
 
-  /* node has announced it can do source specific routing */
+  /*! node has announced it can do source specific routing */
   bool source_specific;
 
-  /* true if node has source specific attached networks per domain */
+  /*! true if node has source specific attached networks per domain */
   bool ss_attached_networks[NHDP_MAXIMUM_DOMAINS];
 
-  /* time until this node has to be removed */
+  /*! time until this node has to be removed */
   struct oonf_timer_instance _validity_time;
 
-  /* tree of olsrv2_tc_edges */
+  /*! tree of olsrv2_tc_edges */
   struct avl_tree _edges;
 
-  /* tree of olsrv2_tc_attached_networks */
+  /*! tree of olsrv2_tc_attached_networks */
   struct avl_tree _attached_networks;
 
-  /* node for tree of tc_nodes */
+  /*! node for tree of tc_nodes */
   struct avl_node _originator_node;
 };
 
-/* represents an edge between two tc nodes */
+/**
+ * represents an edge between two tc nodes
+ */
 struct olsrv2_tc_edge {
-  /* pointer to source of edge */
+  /*! pointer to source of edge */
   struct olsrv2_tc_node *src;
 
-  /* pointer to destination of edge */
+  /*! pointer to destination of edge */
   struct olsrv2_tc_node *dst;
 
-  /* pointer to inverse edge */
+  /*! pointer to inverse edge */
   struct olsrv2_tc_edge *inverse;
 
-  /* link cost of edge */
+  /*! link cost of edge */
   uint32_t cost[NHDP_MAXIMUM_DOMAINS];
 
-  /* answer set number which set this edge */
+  /*! answer set number which set this edge */
   uint16_t ansn;
 
-  /*
+  /**
    * true if this link is only virtual
    * (it only exists because the inverse edge was received).
    */
   bool virtual;
 
-  /* node for tree of source node */
+  /*! node for tree of source node */
   struct avl_node _node;
 };
 
-/*
+/**
  * represents a connection from a tc node to
  * an endpoint, either a neighbor address or an attached network
  */
 struct olsrv2_tc_attachment {
-  /* pointer to source of edge */
+  /*! pointer to source of edge */
   struct olsrv2_tc_node *src;
 
-  /* pointer to destination of edge */
+  /*! pointer to destination of edge */
   struct olsrv2_tc_endpoint *dst;
 
-  /* link cost of edge */
+  /*! link cost of edge */
   uint32_t cost[NHDP_MAXIMUM_DOMAINS];
 
-  /* distance to attached network */
+  /*! distance to attached network */
   uint8_t distance[NHDP_MAXIMUM_DOMAINS];
 
-  /* answer set number which set this edge */
+  /*! answer set number which set this edge */
   uint16_t ansn;
 
-  /* node for tree of source node */
+  /*! node for tree of source node */
   struct avl_node _src_node;
 
-  /* node for tree of endpoint nodes */
+  /*! node for tree of endpoint nodes */
   struct avl_node _endpoint_node;
 };
 
-/*
+/**
  * Represents an endpoint of the Dijkstra graph, which
  * does not spawn new edges of the graph.
  *
  * Might be a neighbor address or an attached network
  */
 struct olsrv2_tc_endpoint {
-  /* substructure to define target for Dijkstra Algorithm */
+  /*! substructure to define target for Dijkstra Algorithm */
   struct olsrv2_tc_target target;
 
-  /* tree of attached networks */
+  /*! tree of attached networks */
   struct avl_tree _attached_networks;
 
-  /* node for global tree of endpoints */
+  /*! node for global tree of endpoints */
   struct avl_node _node;
 };
 

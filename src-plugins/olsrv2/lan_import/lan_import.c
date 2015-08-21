@@ -60,26 +60,35 @@
 /* definitions */
 #define LOG_LAN_IMPORT _import_subsystem.logging
 
+/**
+ * configuration of one LAN import instance
+ */
 struct _import_entry {
-  /* name of the lan import */
+  /*! name of the lan import */
   char name[16];
 
-  /* domain of the lan import */
+  /*! domain of the lan import */
   int32_t domain;
 
-  /* address filter */
+  /*! address filter */
   struct netaddr_acl filter;
+
+  /*! filter by prefix length, -1 to ignore */
   int32_t prefix_length;
 
-  /* interface name filter */
+  /*! filter by interface name, length null to ignore*/
   char ifname[IF_NAMESIZE];
 
-  /* additional filters for lan event, 0 if not matched */
+  /*! filter by routing table id, 0 to ignore */
   int32_t table;
+
+  /*! filter by routing protocol id, 0 to ignore */
   int32_t protocol;
+
+  /*! filter by routing metric, 0 to ignore */
   int32_t distance;
 
-  /* tree of all configured lan import */
+  /*! tree of all configured lan import */
   struct avl_node _node;
 };
 

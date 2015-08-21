@@ -75,22 +75,43 @@
 #define LAN_OPTION_DOMAIN "domain="
 #define LAN_OPTION_DIST   "dist="
 
+/**
+ * olsrv2 plugin config
+ */
 struct _config {
+  /*! topology control interval */
   uint64_t tc_interval;
+
+  /*! topology control validity */
   uint64_t tc_validity;
 
+  /*! olsrv2 f_hold_time */
   uint64_t f_hold_time;
+
+  /*! olsrv2 p_hold_time */
   uint64_t p_hold_time;
+
+  /*! IP filter for routable addresses */
   struct netaddr_acl routable;
 
-  /* configuration for originator set */
+  /*! IP filter for valid originator */
   struct netaddr_acl originator_acl;
 };
 
+/**
+ * Additional parameters of a single locally attached network
+ */
 struct _lan_data {
+  /*! domain of LAN */
   struct nhdp_domain *domain;
+
+  /*! source prefix */
   struct netaddr source_prefix;
+
+  /*! olsrv2 metric */
   uint32_t metric;
+
+  /*! routing metric (distance) */
   uint32_t dist;
 };
 

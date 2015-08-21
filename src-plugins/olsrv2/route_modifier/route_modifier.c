@@ -59,23 +59,32 @@
 /* definitions */
 #define LOG_ROUTE_MODIFIER _routemodifier_subsystem.logging
 
+/**
+ * Configuration of a route modifier instance
+ */
 struct _routemodifier {
-  /* name of the routing filter */
+  /*! name of the routing filter */
   char name[16];
 
-  /* domain of the routing filter */
+  /*! domain of the routing filter */
   int32_t domain;
 
-  /* address filter */
+  /*! address filter */
   struct netaddr_acl filter;
+
+  /*! filter by prefix length, -1 to ignore */
   int32_t prefix_length;
 
-  /* modifiers of routes that match the filter, 0 if not modified */
+  /*! filter by routing table id, 0 to ignore */
   int32_t table;
+
+  /*! filter by routing protocol id, 0 to ignore */
   int32_t protocol;
+
+  /*! filter by routing metric, 0 to ignore */
   int32_t distance;
 
-  /* tree of all configured routing filters */
+  /*! tree of all configured routing filters */
   struct avl_node _node;
 };
 

@@ -47,13 +47,17 @@
 #include "common/netaddr.h"
 #include "subsystems/oonf_timer.h"
 
-/*
+/**
  * Former originator address of the local node
  */
 struct olsrv2_originator_set_entry {
+  /*! old originator IP */
   struct netaddr originator;
 
+  /*! hook into global tree of old originator IPs */
   struct avl_node _node;
+
+  /*! timer until this data can be removed */
   struct oonf_timer_instance _vtime;
 };
 

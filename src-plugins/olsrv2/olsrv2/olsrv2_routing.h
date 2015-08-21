@@ -55,107 +55,122 @@
 
 #define OLSRv2_DIJKSTRA_RATE_LIMITATION 1000
 
-/* representation of a node in the dijkstra tree */
+/**
+ * representation of a node in the dijkstra tree
+ */
 struct olsrv2_dijkstra_node {
-  /* hook into the working list of the dijkstra */
+  /*! hook into the working list of the dijkstra */
   struct avl_node _node;
 
-  /* total path cost */
+  /*! total path cost */
   uint32_t path_cost;
 
-  /* path hops to the target */
+  /*! path hops to the target */
   uint8_t path_hops;
 
-  /* hopcount to be inserted into the route */
+  /*! hopcount to be inserted into the route */
   uint8_t distance;
 
-  /* pointer to nhpd neighbor that represents the first hop */
+  /*! pointer to nhpd neighbor that represents the first hop */
   struct nhdp_neighbor *first_hop;
 
-  /*
+  /**
    * address of the last originator in the routing tree before
    * the destination
    */
   const struct netaddr *last_originator;
 
-  /* true if route is single-hop */
+  /*! true if route is single-hop */
   bool single_hop;
 
-  /* true if this node is ourself */
+  /*! true if this node is ourself */
   bool local;
 
-  /* true if node already has been processed */
+  /*! true if node already has been processed */
   bool done;
 };
 
-/* representation of one target in the routing entry set */
+/**
+ * representation of one target in the routing entry set
+ */
 struct olsrv2_routing_entry {
-  /* Settings for the kernel route */
+  /*! Settings for the kernel route */
   struct os_route route;
 
-  /* nhdp domain of route */
+  /*! nhdp domain of route */
   struct nhdp_domain *domain;
 
-  /* path cost to reach the target */
+  /*! path cost to reach the target */
   uint32_t path_cost;
 
-  /* path hops to the target */
+  /*! path hops to the target */
   uint8_t path_hops;
 
-  /* originator address of next hop */
+  /*! originator address of next hop */
   struct netaddr next_originator;
 
-  /* originator of last hop before target */
+  /*! originator of last hop before target */
   struct netaddr last_originator;
 
-  /*
+  /**
    * true if the entry represents a route that should be in the kernel,
    * false if the entry should be removed from the kernel
    */
   bool set;
 
-  /* true if this route is being processed by the kernel at the moment */
+  /*! true if this route is being processed by the kernel at the moment */
   bool in_processing;
 
-  /* forwarding information before the current dijkstra run */
+  /*! interface index before the current dijkstra run */
   unsigned _old_if_index;
+
+  /*! next hop before the current dijkstra run */
   struct netaddr _old_next_hop;
+
+  /*! distance before the current dijkstra run */
   uint8_t _old_distance;
 
-  /* hook into working queues */
+  /*! hook into working queues */
   struct list_entity _working_node;
 
-  /* global node */
+  /*! global node */
   struct avl_node _node;
 };
 
-/* routing domain specific parameters */
+/**
+ * routing domain specific parameters
+ */
 struct olsrv2_routing_domain {
-  /* true if IPv4 routes should set a source IP */
+  /*! true if IPv4 routes should set a source IP */
   bool use_srcip_in_routes;
 
-  /* protocol number for routes */
+  /*! protocol number for routes */
   int protocol;
 
-  /* routing table number for routes */
+  /*! routing table number for routes */
   int table;
 
-  /* metric value that should be used for routes */
+  /*! metric value that should be used for routes */
   int distance;
 
-  /* domain uses source specific routing */
+  /*! domain uses source specific routing */
   bool source_specific;
 };
 
-/* A filter that can modify or drop the result of the Dijkstra algorithm */
+/**
+ * A filter that can modify or drop the result of the Dijkstra algorithm
+ */
 struct olsrv2_routing_filter {
-  /*
+  /**
    * callback for routing filter, return false to drop route.
    * filter can modify rt_table, rt_protocol and rt_metric.
+   * @param domain NHDP domain
+   * @param route operation system route
+   * @return true if route should still be set, false if it should be dropped
    */
-  bool (*filter)(struct nhdp_domain *, struct os_route *);
+  bool (*filter)(struct nhdp_domain *domain , struct os_route *route);
 
-  /* node to hold all routing filters together */
+  /*! node to hold all routing filters together */
   struct list_entity _node;
 };
 
