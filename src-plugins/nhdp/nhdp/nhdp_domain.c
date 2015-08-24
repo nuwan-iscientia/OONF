@@ -695,9 +695,14 @@ nhdp_domain_store_willingness(struct nhdp_neighbor *neigh) {
   struct nhdp_domain *domain;
 
   neigh->flooding_willingness = _flooding_domain._tmp_willingness;
+  OONF_DEBUG(LOG_NHDP_R, "Set flooding willingness: %u",
+      neigh->flooding_willingness);
+
   list_for_each_element(&_domain_list, domain, _node) {
     neighdata = nhdp_domain_get_neighbordata(domain, neigh);
     neighdata->willingness = domain->_tmp_willingness;
+    OONF_DEBUG(LOG_NHDP_R, "Set routing willingness for domain %u: %u",
+        domain->ext, neighdata->willingness);
   }
 }
 
@@ -1078,10 +1083,10 @@ static void
 _apply_mpr(struct nhdp_domain *domain, const char *mpr_name, uint8_t willingness) {
   struct nhdp_domain_mpr *mpr;
 
+  domain->local_willingness = willingness;
+
   /* check if we have to remove the old mpr first */
   if (strcasecmp(domain->mpr_name, mpr_name) == 0) {
-    domain->local_willingness = willingness;
-
     /* nothing else to do, we already have the right MPR */
     return;
   }
@@ -1108,7 +1113,6 @@ _apply_mpr(struct nhdp_domain *domain, const char *mpr_name, uint8_t willingness
   /* link domain and mpr */
   domain->mpr->_refcount--;
   domain->mpr = mpr;
-  domain->local_willingness = willingness;
 
   /* activate mpr */
   if (mpr->_refcount == 0 && mpr->enable) {

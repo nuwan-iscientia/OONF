@@ -690,9 +690,6 @@ _cb_addresstlvs_pass1_end(struct rfc5444_reader_tlvblock_context *context, bool 
     }
   }
 
-  /* copy willingness to permanent storage */
-  nhdp_domain_store_willingness(_current.neighbor);
-
   OONF_DEBUG(LOG_NHDP_R, "pass1 finished");
 
   return RFC5444_OKAY;
@@ -965,6 +962,9 @@ _cb_msg_pass2_end(struct rfc5444_reader_tlvblock_context *context, bool dropped)
 
   /* overwrite originator of neighbor entry */
   nhdp_db_neighbor_set_originator(_current.neighbor, &context->orig_addr);
+
+  /* copy willingness to permanent storage */
+  nhdp_domain_store_willingness(_current.neighbor);
 
   /* update MPR sets and link metrics */
   nhdp_domain_neighbor_changed(_current.neighbor);
