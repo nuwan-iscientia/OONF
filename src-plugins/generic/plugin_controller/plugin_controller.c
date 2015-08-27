@@ -54,7 +54,11 @@
 /* definitions */
 #define LOG_PLUGINCTRL _oonf_plugin_controller_subsystem.logging
 
-struct _acl_config {
+/**
+ * Plugin conroller configuration
+ */
+struct _plugin_controller_config {
+  /*! access control list for telnet command */
   struct netaddr_acl acl;
 };
 
@@ -73,7 +77,7 @@ struct oonf_telnet_command _telnet_commands[] = {
 
 /* configuration */
 static struct cfg_schema_entry _plugin_controller_entries[] = {
-  CFG_MAP_ACL(_acl_config, acl, "acl", ACL_LOCALHOST_ONLY, "acl for plugin controller"),
+  CFG_MAP_ACL(_plugin_controller_config, acl, "acl", ACL_LOCALHOST_ONLY, "acl for plugin controller"),
 };
 
 static struct cfg_schema_section _plugin_controller_section = {
@@ -83,7 +87,7 @@ static struct cfg_schema_section _plugin_controller_section = {
   .entry_count = ARRAYSIZE(_plugin_controller_entries),
 };
 
-struct _acl_config _config;
+struct _plugin_controller_config _config;
 
 /* plugin declaration */
 static const char *_dependencies[] = {

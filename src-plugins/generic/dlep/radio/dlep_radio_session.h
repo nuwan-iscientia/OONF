@@ -52,17 +52,20 @@
 #include "dlep/dlep_session.h"
 #include "dlep/radio/dlep_radio_session.h"
 
+/**
+ * DLEP radio session state
+ */
 struct dlep_radio_session {
-  /* basic content for tcp stream */
+  /*! basic struct for tcp stream, must be first in struct! */
   struct oonf_stream_session stream;
 
-  /* generic DLEP session */
+  /*! generic DLEP session */
   struct dlep_session session;
 
-  /* back pointer to interface session */
+  /*! back pointer to interface session */
   struct dlep_radio_if *interface;
 
-  /* node for session tree of interface */
+  /*! node for session tree of interface */
   struct avl_node _node;
 };
 

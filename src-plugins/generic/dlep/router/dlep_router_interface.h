@@ -47,7 +47,11 @@
 #include "dlep/dlep_session.h"
 #include "dlep/dlep_interface.h"
 
+/**
+ * DLEP router interface
+ */
 struct dlep_router_if {
+  /*! generic DLEP interface */
   struct dlep_if interf;
 };
 

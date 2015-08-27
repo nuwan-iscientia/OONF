@@ -50,11 +50,17 @@
 #include "dlep/dlep_session.h"
 #include "dlep/dlep_interface.h"
 
+/**
+ * DLEP radio session
+ */
 struct dlep_radio_if {
+  /*! generic DLEP interface session */
   struct dlep_if interf;
 
-  /* TCP socket for client session */
+  /*! TCP socket for client session */
   struct oonf_stream_managed tcp;
+
+  /*! configuration of TCP socket */
   struct oonf_stream_managed_config tcp_config;
 };
 

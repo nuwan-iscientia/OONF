@@ -18,141 +18,309 @@ struct dlep_extension;
 
 #include "dlep/dlep_session.h"
 
+/**
+ * Extension for a specific DLEP signal
+ */
 struct dlep_extension_signal {
-    /* signal id */
-    uint16_t id;
+  /*! signal id */
+  uint16_t id;
 
-    /* array of supported tlv ids */
-    const uint16_t *supported_tlvs;
-    size_t supported_tlv_count;
+  /*! array of supported tlv ids */
+  const uint16_t *supported_tlvs;
 
-    /* array of mandatory tlv ids */
-    const uint16_t *mandatory_tlvs;
-    size_t mandatory_tlv_count;
+  /*! number of supported tlv ids */
+  size_t supported_tlv_count;
 
-    /* array of tlvs that are allowed multiple times */
-    const uint16_t *duplicate_tlvs;
-    size_t duplicate_tlv_count;
+  /*! array of mandatory tlv ids */
+  const uint16_t *mandatory_tlvs;
 
-    enum dlep_parser_error (*process_radio)(
-        struct dlep_extension *, struct dlep_session *);
-    enum dlep_parser_error (*process_router)(
-        struct dlep_extension *, struct dlep_session *);
-    int (*add_radio_tlvs)(struct dlep_extension *,
-        struct dlep_session *, const struct netaddr *);
-    int (*add_router_tlvs)(struct dlep_extension *,
-        struct dlep_session *, const struct netaddr *);
+  /*! number of mandatory tlv ids */
+  size_t mandatory_tlv_count;
+
+  /*! array of tlvs that are allowed multiple times */
+  const uint16_t *duplicate_tlvs;
+
+  /*! number of tlvs that are allowed multiple times */
+  size_t duplicate_tlv_count;
+
+  /**
+   * Callback for processing radio data
+   * @param ext this dlep extension
+   * @param session current dlep session
+   * @return dlep error code
+   */
+  enum dlep_parser_error (*process_radio)(
+      struct dlep_extension *ext, struct dlep_session *session);
+
+  /**
+   * Callback for processing router data
+   * @param ext this dlep extension
+   * @param session current dlep session
+   * @return dlep error code
+   */
+  enum dlep_parser_error (*process_router)(
+      struct dlep_extension *ext, struct dlep_session *session);
+
+  /**
+   * Callback to add TLVs to the extended radio signal
+   * @param ext this dlep extension
+   * @param session current dlep session
+   * @param neigh neighbor used for this signal, might be NULL
+   * @return -1 if an error happened, 0 otherwise
+   */
+  int (*add_radio_tlvs)(struct dlep_extension *ext,
+      struct dlep_session *session, const struct netaddr *neigh);
+
+  /**
+   * Callback to add TLVs to the extended router signal
+   * @param ext this dlep extension
+   * @param session current dlep session
+   * @param neigh neighbor used for this signal, might be NULL
+   * @return -1 if an error happened, 0 otherwise
+   */
+  int (*add_router_tlvs)(struct dlep_extension *ext,
+      struct dlep_session *session, const struct netaddr *neigh);
 };
 
+/**
+ * one TLV used by a DLEP extension
+ */
 struct dlep_extension_tlv {
-    uint16_t id;
-    uint16_t length_min;
-    uint16_t length_max;
+  /*! tlv id */
+  uint16_t id;
+
+  /*! minimal length of tlv value */
+  uint16_t length_min;
+
+  /*! maximal length of tlv value */
+  uint16_t length_max;
 };
 
+/**
+ * implementation of a DLEP signal.
+ *
+ * This is used for extensions that must be split
+ * into radio and router code. The dlep_extension_add_processing()
+ * function will add the implementation to the callbacks in
+ * dlep_extension_signal.
+ */
 struct dlep_extension_implementation {
-    uint16_t id;
+  /*! extension id */
+  uint16_t id;
 
-    enum dlep_parser_error (*process)(
-        struct dlep_extension *, struct dlep_session *);
-    int (*add_tlvs)(struct dlep_extension *,
-        struct dlep_session *, const struct netaddr *);
+  /**
+   * Callback for data processing
+   * @param ext this dlep extension
+   * @param session current dlep session
+   * @return dlep error code
+   */
+  enum dlep_parser_error (*process)(
+      struct dlep_extension *ext, struct dlep_session *session);
+
+  /**
+   * Callback to add TLVs to the extended signal
+   * @param ext this dlep extension
+   * @param session current dlep session
+   * @param neigh neighbor used for this signal, might be NULL
+   * @return -1 if an error happened, 0 otherwise
+   */
+  int (*add_tlvs)(struct dlep_extension *ext,
+      struct dlep_session *session, const struct netaddr *neigh);
 };
 
+/**
+ * Defines an mapping between a layer2_neighbor element and
+ * a DLEP TLV
+ */
 struct dlep_neighbor_mapping {
-    uint16_t dlep;
-    uint16_t length;
+  /*! dlep tlv id */
+  uint16_t dlep;
 
-    enum oonf_layer2_neighbor_index layer2;
+  /*! binary length of tlv */
+  uint16_t length;
 
-    bool mandatory;
-    uint64_t default_value;
+  /*! layer2 neighbor id */
+  enum oonf_layer2_neighbor_index layer2;
 
-    int (*from_tlv)(struct oonf_layer2_data *, struct dlep_session *,
-        uint16_t tlv);
-    int (*to_tlv)(struct dlep_writer *, struct oonf_layer2_data *,
-        uint16_t tlv, uint16_t length);
+  /*! TLV is mandatory */
+  bool mandatory;
+
+  /*! default value for mandatory TLVs */
+  uint64_t default_value;
+
+  /**
+   * callback to transform a TLV into layer2 data
+   * @param l2data layer2 data
+   * @param session dlep session
+   * @param tlv tlv id
+   * @return -1 if an error happened, 0 otherwise
+   */
+  int (*from_tlv)(struct oonf_layer2_data *l2data,
+      struct dlep_session *session, uint16_t tlv);
+
+  /**
+   * callback to transform layer2 data into a DLEP tlv
+   * @param writer dlep writer
+   * @param l2data layer2 data
+   * @param tlv tlv id
+   * @param length tlv length
+   * @return -1 if an error happened, 0 otherwise
+   */
+  int (*to_tlv)(struct dlep_writer *writer,
+      struct oonf_layer2_data *l2data,
+      uint16_t tlv, uint16_t length);
 };
 
+/**
+ * Defines an mapping between a layer2_network element and
+ * a DLEP TLV
+ */
 struct dlep_network_mapping {
-    uint16_t dlep;
-    uint16_t length;
+  /*! dlep tlv id */
+  uint16_t dlep;
 
-    enum oonf_layer2_network_index layer2;
+  /*! binary length of tlv */
+  uint16_t length;
 
-    bool mandatory;
-    uint64_t default_value;
+  /*! layer2 network index */
+  enum oonf_layer2_network_index layer2;
 
-    int (*from_tlv)(struct oonf_layer2_data *, struct dlep_session *,
-        uint16_t tlv);
-    int (*to_tlv)(struct dlep_writer *, struct oonf_layer2_data *,
-        uint16_t tlv, uint16_t length);
+  /*! TLV is mandatory */
+  bool mandatory;
+
+  /*! default value for mandatory TLVs */
+  uint64_t default_value;
+
+  /**
+   * callback to transform a TLV into layer2 data
+   * @param l2data layer2 data
+   * @param session dlep session
+   * @param tlv tlv id
+   * @return -1 if an error happened, 0 otherwise
+   */
+  int (*from_tlv)(struct oonf_layer2_data *l2data,
+      struct dlep_session *session, uint16_t tlv);
+
+  /**
+   * callback to transform layer2 data into a DLEP tlv
+   * @param writer dlep writer
+   * @param l2data layer2 data
+   * @param tlv tlv id
+   * @param length tlv length
+   * @return -1 if an error happened, 0 otherwise
+   */
+  int (*to_tlv)(struct dlep_writer *writer,
+      struct oonf_layer2_data *l2data,
+      uint16_t tlv, uint16_t length);
 };
 
+/**
+ * definition of a DLEP extension
+ */
 struct dlep_extension {
-    /* id of dlep extension, -1 for base protocol */
-    int id;
+  /*! id of dlep extension, -1 for base protocol */
+  int id;
 
-    /* name of extension for debugging purpose */
-    const char *name;
+  /*! name of extension for debugging purpose */
+  const char *name;
 
-    /* array of dlep signals used by this extension */
-    struct dlep_extension_signal *signals;
-    size_t signal_count;
+  /*! array of dlep signals used by this extension */
+  struct dlep_extension_signal *signals;
 
-    /* array of dlep tlvs used by this extension */
-    struct dlep_extension_tlv *tlvs;
-    size_t tlv_count;
+  /*! number of dlep signals used by this extension */
+  size_t signal_count;
 
-    /*
-     * array of id mappings between DLEP tlvs
-     * and oonf-layer2 neighbor data
-     */
-    struct dlep_neighbor_mapping *neigh_mapping;
-    size_t neigh_mapping_count;
+  /*! array of dlep tlvs used by this extension */
+  struct dlep_extension_tlv *tlvs;
 
-    /*
-     * array of id mappings between DLEP tlvs
-     * and oonf-layer2 network data
-     */
-    struct dlep_network_mapping *if_mapping;
-    size_t if_mapping_count;
+  /*! number of dlep tlvs used by this extension */
+  size_t tlv_count;
 
-    /* callbacks for session creation and teardown */
-    void (*cb_session_init_radio)(struct dlep_session *);
-    void (*cb_session_init_router)(struct dlep_session *);
-    void (*cb_session_apply_radio)(struct dlep_session *);
-    void (*cb_session_apply_router)(struct dlep_session *);
-    void (*cb_session_cleanup_radio)(struct dlep_session *);
-    void (*cb_session_cleanup_router)(struct dlep_session *);
+  /**
+   * array of id mappings between DLEP tlvs
+   * and oonf-layer2 neighbor data
+   */
+  struct dlep_neighbor_mapping *neigh_mapping;
 
-    /* node for global tree of extensions */
-    struct avl_node _node;
+  /*! number of id mappings for layer2 neighbor data */
+  size_t neigh_mapping_count;
+
+  /**
+   * array of id mappings between DLEP tlvs
+   * and oonf-layer2 network data
+   */
+  struct dlep_network_mapping *if_mapping;
+
+  /*! number of id mappings for layer2 network data */
+  size_t if_mapping_count;
+
+  /**
+   * Callback to initialize a new radio session
+   * @param session dlep session
+   */
+  void (*cb_session_init_radio)(struct dlep_session *session);
+
+  /**
+   * Callback to initialize a new router session
+   * @param session dlep session
+   */
+  void (*cb_session_init_router)(struct dlep_session *session);
+
+  /**
+   * Callback to apply new interface sessions to a new radio session
+   * @param session dlep session
+   */
+  void (*cb_session_apply_radio)(struct dlep_session *session);
+
+  /**
+   * Callback to apply new interface sessions to a new router session
+   * @param session dlep session
+   */
+  void (*cb_session_apply_router)(struct dlep_session *session);
+
+  /**
+   * Callback to cleanup all resources of a radio session
+   * @param session dlep session
+   */
+  void (*cb_session_cleanup_radio)(struct dlep_session *session);
+
+  /**
+   * Callback to cleanup all resources of a router session
+   * @param session dlep session
+   */
+  void (*cb_session_cleanup_router)(struct dlep_session *session);
+
+  /*! node for global tree of extensions */
+  struct avl_node _node;
 };
 
 EXPORT void dlep_extension_init(void);
 EXPORT void dlep_extension_add(struct dlep_extension *);
 EXPORT struct avl_tree *dlep_extension_get_tree(void);
 EXPORT void dlep_extension_add_processing(struct dlep_extension *, bool radio,
-    struct dlep_extension_implementation *proc, size_t proc_count);
+  struct dlep_extension_implementation *proc, size_t proc_count);
 EXPORT const uint16_t *dlep_extension_get_ids(uint16_t *length);
 
 EXPORT int dlep_extension_router_process_peer_init_ack(
-    struct dlep_extension *, struct dlep_session *session);
+  struct dlep_extension *, struct dlep_session *session);
 EXPORT int dlep_extension_router_process_peer_update(
-    struct dlep_extension *, struct dlep_session *session);
+  struct dlep_extension *, struct dlep_session *session);
 EXPORT int dlep_extension_router_process_destination(
-    struct dlep_extension *, struct dlep_session *session);
+  struct dlep_extension *, struct dlep_session *session);
 EXPORT int dlep_extension_radio_write_peer_init_ack(
-    struct dlep_extension *ext, struct dlep_session *session,
-    const struct netaddr *neigh);
+  struct dlep_extension *ext, struct dlep_session *session,
+  const struct netaddr *neigh);
 EXPORT int dlep_extension_radio_write_peer_update(
-    struct dlep_extension *ext, struct dlep_session *session,
-    const struct netaddr *neigh);
+  struct dlep_extension *ext, struct dlep_session *session,
+  const struct netaddr *neigh);
 EXPORT int dlep_extension_radio_write_destination(
-    struct dlep_extension *ext, struct dlep_session *session,
-    const struct netaddr *neigh);
+  struct dlep_extension *ext, struct dlep_session *session,
+  const struct netaddr *neigh);
 
+/**
+ * @param id dlep extension id
+ * @return dlep extension, NULL if not found
+ */
 static INLINE struct dlep_extension *
 dlep_extension_get(int32_t id) {
   struct dlep_extension *ext;

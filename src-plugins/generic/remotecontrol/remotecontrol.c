@@ -64,16 +64,28 @@
 /* Definitions */
 #define LOG_REMOTECONTROL _oonf_remotecontrol_subsystem.logging
 
+/**
+ * Remote control configuration
+ */
 struct _remotecontrol_cfg {
+  /*! access control list for telnet plugin */
   struct netaddr_acl acl;
 };
 
+/**
+ * Remote control session for telnet command
+ */
 struct _remotecontrol_session {
+  /*! hook into list of sessions */
   struct list_entity node;
+
+  /*! telnet cleanup hooks */
   struct oonf_telnet_cleanup cleanup;
 
+  /*! logging mask for telnet command */
   uint8_t mask[LOG_MAXIMUM_SOURCES];
 
+  /*! route object for routing queries */
   struct os_route route;
 };
 

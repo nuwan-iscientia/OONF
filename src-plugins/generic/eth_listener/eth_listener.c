@@ -61,7 +61,11 @@
 /* definitions */
 #define LOG_ETH _eth_listener_subsystem.logging
 
+/**
+ * Configuration object for eth listener
+ */
 struct _eth_config {
+  /*! interval between two updates */
   uint64_t interval;
 };
 

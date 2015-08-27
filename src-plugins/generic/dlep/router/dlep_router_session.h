@@ -56,23 +56,26 @@ enum dlep_router_session_state {
   DLEP_ROUTER_SESSION_TERMINATE,
 };
 
+/**
+ * DLEP session of a router
+ */
 struct dlep_router_session {
-  /* basic content for tcp stream */
+  /*! basic struct for tcp stream, must be first in struct! */
   struct oonf_stream_session *stream;
 
-  /* remote socket of radio */
+  /*! remote socket of radio */
   union netaddr_socket remote_socket;
 
-  /* TCP client socket for session */
+  /*! TCP client socket for session */
   struct oonf_stream_socket tcp;
 
-  /* generic DLEP session */
+  /*! generic DLEP session */
   struct dlep_session session;
 
-  /* back pointer to interface session */
+  /*! back pointer to interface session */
   struct dlep_router_if *interface;
 
-  /* remember all streams bound to an interface */
+  /*! remember all streams bound to an interface */
   struct avl_node _node;
 };
 

@@ -49,9 +49,17 @@
 /* definitions */
 #define LOG_EXAMPLE _example_subsystem.logging
 
+/**
+ * Configuration of example plugin
+ */
 struct _example_config {
+  /*! a timestamp */
   uint64_t start;
+
+  /*! another timestamp */
   uint64_t interval;
+
+  /*! some internal data stored int config struct */
   uint64_t counter;
 };
 

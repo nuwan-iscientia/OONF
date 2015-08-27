@@ -80,8 +80,44 @@
 #include "nl80211_listener/nl80211_listener.h"
 
 /* definitions */
+
+/**
+ * nl80211 configuration
+ */
 struct _nl80211_config {
+  /*! interval between two series of netlink probes */
   uint64_t interval;
+};
+
+/**
+ * definition of a query to the nl80211 subsystem
+ */
+struct _nl80211_query {
+  /*! netlink command that should be queried later */
+  uint8_t cmd;
+
+  /**
+   * Callback to send query
+   * @param nl netlink handler
+   * @param nl_msg netlink message header
+   * @param hdr generic message header
+   * @param interf netlink interface
+   */
+  void (* send)(struct os_system_netlink *nl, struct nlmsghdr *nl_msg,
+      struct genlmsghdr *hdr, struct nl80211_if *interf);
+
+  /**
+   * Callback to process incoming netlink data
+   * @param interf netlink interface
+   * @param hdr netlink message header
+   */
+  void (* process)(struct nl80211_if *interf, struct nlmsghdr *hdr);
+
+  /**
+   * Finalize the processing of the netlink query
+   * @param interf netlink interface
+   */
+  void (* finalize)(struct nl80211_if *interf);
 };
 
 enum _nl80211_cfg_idx {
@@ -103,14 +139,7 @@ enum _if_query {
   QUERY_COUNT,
 };
 
-static struct {
-  uint8_t cmd;
-
-  void (* send)(struct os_system_netlink *nl, struct nlmsghdr *nl_msg,
-      struct genlmsghdr *hdr, struct nl80211_if *interf);
-  void (* process)(struct nl80211_if *interf, struct nlmsghdr*);
-  void (* finalize)(struct nl80211_if *interf);
-} _if_query_ops[QUERY_COUNT] =
+static struct _nl80211_query _if_query_ops[QUERY_COUNT] =
 {
     [QUERY_GET_IF] = {
         NL80211_CMD_NEW_INTERFACE,

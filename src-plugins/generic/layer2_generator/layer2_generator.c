@@ -67,11 +67,23 @@ static void _cb_l2gen_event(void *ptr);
 
 static void _cb_config_changed(void);
 
+/**
+ * Configuration of layer2 generator
+ */
 struct _l2_generator_config {
+  /*! interval between two layer2 event generations */
   uint64_t interval;
+
+  /*! true if generator is active */
   bool active;
-  char interface[64];
+
+  /*! name of interface for event generation */
+  char interface[IF_NAMESIZE];
+
+  /*! neighbor mac address for event generation */
   struct netaddr neighbor;
+
+  /*! proxied MAC behind neighbor for event generation */
   struct netaddr destination;
 };
 
@@ -93,7 +105,7 @@ static struct cfg_schema_entry _l2gen_entries[] = {
       "Interval between L2 generator events",
       500),
   CFG_MAP_STRING_ARRAY(_l2_generator_config, interface, "interface", "eth0",
-      "Mac address of example radio", 64),
+      "Interface of example radio", IF_NAMESIZE),
   CFG_MAP_NETADDR_MAC48(_l2_generator_config, neighbor, "neighbor", "02:00:00:00:00:01",
       "Mac address of example radio", false, false),
   CFG_MAP_NETADDR_MAC48(_l2_generator_config, destination, "destination", "02:00:00:00:00:02",

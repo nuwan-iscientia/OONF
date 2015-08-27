@@ -49,19 +49,41 @@
 
 #define OONF_NL80211_LISTENER_SUBSYSTEM "nl80211_listener"
 
+/**
+ * Session data of an interface where the listener is probing
+ */
 struct nl80211_if {
+  /*! name of interface */
   char name[IF_NAMESIZE];
 
+  /*! interface listener */
   struct oonf_interface_listener if_listener;
 
+  /*! layer2 network object of interface */
   struct oonf_layer2_net *l2net;
 
+  /*! physical interface id, might be different because of VLANs */
   int phy_if;
-  uint64_t max_tx, max_rx;
+
+  /*! maximum tx rate */
+  uint64_t max_tx;
+
+  /*! maximum rx rate */
+  uint64_t max_rx;
+
+  /*! true if data of interface were changed */
   bool ifdata_changed;
 
-  bool _remove, _if_section, _nl80211_section;
+  /*! true if interface should be removed */
+  bool _remove;
 
+  /*! true if interface section config was already committed for interface */
+  bool _if_section;
+
+  /*! true if nl80211 section config was already committed for interface */
+  bool _nl80211_section;
+
+  /*! hook into tree of nl80211 interfaces */
   struct avl_node _node;
 };
 
@@ -76,6 +98,10 @@ void nl80211_cleanup_l2net_data(struct oonf_layer2_net *l2net);
 bool nl80211_change_l2neigh_data(struct oonf_layer2_neigh *l2neigh,
     enum oonf_layer2_neighbor_index idx, uint64_t value);
 
+/**
+ * @param interf nl80211 interface
+ * @returns nl80211 interface index
+ */
 static INLINE unsigned
 nl80211_get_if_index(struct nl80211_if *interf) {
   return interf->if_listener.interface->data.index;

@@ -82,11 +82,14 @@
 #include "nl80211_listener/nl80211_listener.h"
 #include "nl80211_listener/nl80211_get_wiphy.h"
 
+/**
+ * object to store rate info table entry
+ */
 struct rate_info {
-  /* long (800 ns) guard interval */
+  /*! long (800 ns) guard interval */
   uint16_t lgi;
 
-  /* short (400 ns) guard interval */
+  /*! short (400 ns) guard interval */
   uint16_t sgi;
 };
 
