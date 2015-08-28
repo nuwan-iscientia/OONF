@@ -54,14 +54,29 @@
 #include "nhdp/nhdp.h"
 
 /* definitions */
+
+/**
+ * Parameters of a NHDP domain
+ */
 struct _domain_parameters {
+  /*! name of metric algorithm */
   char metric_name[NHDP_DOMAIN_METRIC_MAXLEN];
+
+  /*! name of mpr algorithm for routing */
   char mpr_name[NHDP_DOMAIN_MPR_MAXLEN];
+
+  /*! routing willingness */
   uint8_t mpr_willingness;
 };
 
+/**
+ * generic paramters for all domains
+ */
 struct _generic_parameters {
-  char mpr_name[NHDP_DOMAIN_MPR_MAXLEN];
+  /*! name of MPR algorithm for flooding */
+  char flooding_mpr_name[NHDP_DOMAIN_MPR_MAXLEN];
+
+  /*! routing willingness */
   uint8_t mpr_willingness;
 };
 
@@ -81,7 +96,7 @@ static int _cb_validate_domain_section(const char *section_name,
 
 /* subsystem definition */
 static struct cfg_schema_entry _nhdp_entries[] = {
-  CFG_MAP_STRING_ARRAY(_generic_parameters, mpr_name, "mpr", "*",
+  CFG_MAP_STRING_ARRAY(_generic_parameters, flooding_mpr_name, "mpr", "*",
       "ID of the mpr algorithm used for this domain. '"CFG_DOMAIN_NO_MPR"'"
       " means no mpr algorithm (everyone is MPR), '"CFG_DOMAIN_ANY_MPR"' means"
       " any metric that is loaded (with fallback on '"CFG_DOMAIN_NO_MPR"').",
@@ -430,7 +445,7 @@ _cb_cfg_nhdp_changed(void) {
     return;
   }
 
-  nhdp_domain_set_flooding_mpr(param.mpr_name, param.mpr_willingness);
+  nhdp_domain_set_flooding_mpr(param.flooding_mpr_name, param.mpr_willingness);
 }
 
 /**

@@ -67,11 +67,20 @@
 
 #define CFG_LINK_ENTRY "link"
 
+/**
+ * Session data for a configured constant metric
+ */
 struct _linkcost {
+  /*! hook into tree of configured metrics */
   struct avl_node _node;
 
+  /*! name of interface */
   char if_name[IF_NAMESIZE];
+
+  /*! neighbor IP the metric is restricted to, NULL if interface generic */
   struct netaddr neighbor;
+
+  /*! configured metric */
   uint32_t cost;
 };
 

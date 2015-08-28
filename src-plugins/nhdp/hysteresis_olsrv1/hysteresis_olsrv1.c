@@ -58,17 +58,37 @@
 /* definitions and constants */
 #define LOG_HYSTERESIS_OLSRV1 _olsrv2_hysteresis_olsrv1_subsystem.logging
 
+/**
+ * hysteresis plugin configuration
+ */
 struct _config {
+  /*! hysteresis threshold to accept a link (multiplied by 1000) */
   int accept;
+
+  /*! hysteresis threshold to reject a link (multiplied by 1000) */
   int reject;
+
+  /*! alpha factor for exponential aging (multiplied by 1000) */
   int scaling;
 };
 
+/**
+ * extension of nhdp_link class for hysteresis calculation
+ */
 struct link_hysteresis_data {
-  uint64_t interval;
-  int32_t quality;
-  bool pending, lost;
+  /*! itime time delivered by neighbors Hello */
+  uint64_t itime;
 
+  /*! current hysteresis quality of this link */
+  int32_t quality;
+
+  /*! true if the link is considered pending */
+  bool pending;
+
+  /*! true if the link is considered lost */
+  bool lost;
+
+  /*! timer until the next NHDP Hello should arrive */
   struct oonf_timer_instance interval_timer;
 };
 
@@ -144,9 +164,9 @@ struct oonf_class_extension _link_extenstion = {
   .cb_remove = _cb_link_removed,
 };
 
-/* timer class to measure interval between Hellos */
+/* timer class to measure itime between Hellos */
 struct oonf_timer_class _hello_timer_info = {
-  .name = "Hello interval timeout for hysteresis",
+  .name = "Hello itime timeout for hysteresis",
   .callback = _cb_timer_hello_lost,
 };
 
@@ -262,7 +282,7 @@ _cb_link_removed(void *ptr) {
  * @param lnk nhdp link
  * @param context RFC5444 message context
  * @param vtime validity time
- * @param itime interval time, 0 if not set
+ * @param itime itime time, 0 if not set
  */
 static void
 _cb_update_hysteresis(struct nhdp_link *lnk,
@@ -274,14 +294,14 @@ _cb_update_hysteresis(struct nhdp_link *lnk,
   /* update hysteresis because of received hello */
   _update_hysteresis(lnk, data, false);
 
-  /* store interval */
-  data->interval = lnk->itime_value;
+  /* store itime */
+  data->itime = lnk->itime_value;
 
   /* first timer gets a delay */
-  if (data->interval == 0) {
-    data->interval = lnk->vtime_value;
+  if (data->itime == 0) {
+    data->itime = lnk->vtime_value;
   }
-  oonf_timer_set(&data->interval_timer, (data->interval * 3) / 2);
+  oonf_timer_set(&data->interval_timer, (data->itime * 3) / 2);
 }
 
 /**
@@ -344,7 +364,7 @@ _cb_timer_hello_lost(void *ptr) {
   _update_hysteresis(ptr, data, true);
 
   /* reactivate timer */
-  oonf_timer_set(&data->interval_timer, data->interval);
+  oonf_timer_set(&data->interval_timer, data->itime);
 }
 
 /**

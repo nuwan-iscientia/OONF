@@ -77,10 +77,10 @@ enum {
  * Represents a NHDP link metric pair
  */
 struct nhdp_metric {
-  /* incoming link metric cost */
+  /*! incoming link metric cost */
   uint32_t in;
 
-  /* outgoing link metric cost */
+  /*! outgoing link metric cost */
   uint32_t out;
 };
 
@@ -88,7 +88,7 @@ struct nhdp_metric {
  * Data for one NHDP domain of a link
  */
 struct nhdp_link_domaindata {
-  /* incoming and outgoing metric cost */
+  /*! incoming and outgoing metric cost */
   struct nhdp_metric metric;
 };
 
@@ -96,22 +96,22 @@ struct nhdp_link_domaindata {
  * Data for one NHDP domain of a neighbor
  */
 struct nhdp_neighbor_domaindata {
-  /* incoming and outgoing metric cost */
+  /*! incoming and outgoing metric cost */
   struct nhdp_metric metric;
 
-  /* pointer to the best link available to the neighbor */
+  /*! pointer to the best link available to the neighbor */
   struct nhdp_link *best_link;
 
-  /* interface index for the best link available to the neighbor */
+  /*! interface index for the best link available to the neighbor */
   unsigned best_link_ifindex;
 
-  /* true if the local router has been selected as a MPR by the neighbor */
+  /*! true if the local router has been selected as a MPR by the neighbor */
   bool local_is_mpr;
 
-  /* true if the neighbor has been selected as a MPR by this router */
+  /*! true if the neighbor has been selected as a MPR by this router */
   bool neigh_is_mpr;
 
-  /* Routing willingness of neighbor */
+  /*! Routing willingness of neighbor */
   uint8_t willingness;
 };
 
@@ -119,6 +119,7 @@ struct nhdp_neighbor_domaindata {
  * Data for one NHDP domain of a 2-hop neighbor
  */
 struct nhdp_l2hop_domaindata {
+  /*! incoming and outgoing metric */
   struct nhdp_metric metric;
 };
 
@@ -127,61 +128,61 @@ struct nhdp_l2hop_domaindata {
  * of a one-hop neighbor.
  */
 struct nhdp_link {
-  /* last received validity time */
+  /*! last received validity time */
   uint64_t vtime_value;
 
-  /* last received interval time */
+  /*! last received interval time */
   uint64_t itime_value;
 
-  /* timer that fires if this link is not symmetric anymore */
+  /*! timer that fires if this link is not symmetric anymore */
   struct oonf_timer_instance sym_time;
 
-  /* timer that fires if the last received neighbor HELLO timed out */
+  /*! timer that fires if the last received neighbor HELLO timed out */
   struct oonf_timer_instance heard_time;
 
-  /* timer that fires when the link has to be removed from the database */
+  /*! timer that fires when the link has to be removed from the database */
   struct oonf_timer_instance vtime;
 
-  /* cached status of the linked */
+  /*! cached status of the linked */
   enum nhdp_link_status status;
 
-  /* pointer to local interface for this link */
+  /*! pointer to local interface for this link */
   struct nhdp_interface *local_if;
 
-  /* pointer to other (dualstack) representation of this link */
+  /*! pointer to other (dualstack) representation of this link */
   struct nhdp_link *dualstack_partner;
 
-  /* pointer to neighbor entry of the other side of the link */
+  /*! pointer to neighbor entry of the other side of the link */
   struct nhdp_neighbor *neigh;
 
-  /* interface address used for NHDP of remote link end */
+  /*! interface address used for NHDP of remote link end */
   struct netaddr if_addr;
 
-  /* mac address of remote link end */
+  /*! mac address of remote link end */
   struct netaddr remote_mac;
 
-  /* internal field for NHDP processing */
+  /*! internal field for NHDP processing */
   int _process_count;
 
-  /* tree of local addresses of the other side of the link */
+  /*! tree of local addresses of the other side of the link */
   struct avl_tree _addresses;
 
-  /* tree of two-hop addresses reachable through the other side of the link */
+  /*! tree of two-hop addresses reachable through the other side of the link */
   struct avl_tree _2hop;
 
-  /* member entry for global list of nhdp links */
+  /*! member entry for global list of nhdp links */
   struct list_entity _global_node;
 
-  /* member entry for nhdp links of local interface */
+  /*! member entry for nhdp links of local interface */
   struct list_entity _if_node;
 
-  /* member entry for nhdp links of neighbor node */
+  /*! member entry for nhdp links of neighbor node */
   struct list_entity _neigh_node;
 
-  /* optional member node for interface tree of originators */
+  /*! optional member node for interface tree of originators */
   struct avl_node _originator_node;
 
-  /* Array of link metrics */
+  /*! Array of link metrics */
   struct nhdp_link_domaindata _domaindata[NHDP_MAXIMUM_DOMAINS];
 };
 
@@ -189,22 +190,22 @@ struct nhdp_link {
  * nhdp_laddr represents an interface address of a link
  */
 struct nhdp_laddr {
-  /* links interface address */
+  /*! links interface address */
   struct netaddr link_addr;
 
-  /* link entry for address */
+  /*! link entry for address */
   struct nhdp_link *link;
 
-  /* internal variable for NHDP processing */
+  /*! internal variable for NHDP processing */
   bool _might_be_removed;
 
-  /* member entry for addresses of neighbor link */
+  /*! member entry for addresses of neighbor link */
   struct avl_node _link_node;
 
-  /* member entry for addresss of neighbor */
+  /*! member entry for addresss of neighbor */
   struct avl_node _neigh_node;
 
-  /* member entry for interface tree of link addresses */
+  /*! member entry for interface tree of link addresses */
   struct avl_node _if_node;
 };
 
@@ -212,25 +213,25 @@ struct nhdp_laddr {
  * nhdp_l2hop represents an address of a two-hop neighbor
  */
 struct nhdp_l2hop {
-  /* address of two-hop neighbor */
+  /*! address of two-hop neighbor */
   struct netaddr twohop_addr;
 
-  /* true if neighbor is on the same interface as the link */
+  /*! true if neighbor is on the same interface as the link */
   bool same_interface;
 
-  /* link entry for two-hop address */
+  /*! link entry for two-hop address */
   struct nhdp_link *link;
 
-  /* validity time for this address */
+  /*! validity time for this address */
   struct oonf_timer_instance _vtime;
 
-  /* member entry for two-hop addresses of neighbor link */
+  /*! member entry for two-hop addresses of neighbor link */
   struct avl_node _link_node;
 
-  /* member entry for interface list of two-hop addresses */
+  /*! member entry for interface list of two-hop addresses */
   struct avl_node _if_node;
 
-  /* Array of link metrics */
+  /*! Array of link metrics */
   struct nhdp_l2hop_domaindata _domaindata[NHDP_MAXIMUM_DOMAINS];
 };
 
@@ -238,43 +239,43 @@ struct nhdp_l2hop {
  * nhdp_neighbor represents a neighbor node (with one or multiple interfaces
  */
 struct nhdp_neighbor {
-  /* originator address of this node, might by type AF_UNSPEC */
+  /*! originator address of this node, might by type AF_UNSPEC */
   struct netaddr originator;
 
-  /* number of links to this neighbor which are symmetric */
+  /*! number of links to this neighbor which are symmetric */
   int symmetric;
 
-  /* pointer to other (dualstack) representation of this neighbor */
+  /*! pointer to other (dualstack) representation of this neighbor */
   struct nhdp_neighbor *dualstack_partner;
 
-  /* true if the local router has been selected as a MPR by the neighbor */
+  /*! true if the local router has been selected as a MPR by the neighbor */
   bool local_is_flooding_mpr;
 
-  /* true if the neighbor has been selected as a MPR by this router */
+  /*! true if the neighbor has been selected as a MPR by this router */
   bool neigh_is_flooding_mpr;
 
-  /* Willingness of neighbor for flooding data */
+  /*! Willingness of neighbor for flooding data */
   uint8_t flooding_willingness;
 
-  /* internal field for NHDP processing */
+  /*! internal field for NHDP processing */
   int _process_count;
 
-  /* list of links for this neighbor */
+  /*! list of links for this neighbor */
   struct list_entity _links;
 
-  /* tree of addresses of this neighbor */
+  /*! tree of addresses of this neighbor */
   struct avl_tree _neigh_addresses;
 
-  /* tree of addresses of this neighbors links */
+  /*! tree of addresses of this neighbors links */
   struct avl_tree _link_addresses;
 
-  /* member entry for global list of neighbors */
+  /*! member entry for global list of neighbors */
   struct list_entity _global_node;
 
-  /* optional member node for global tree of originators */
+  /*! optional member node for global tree of originators */
   struct avl_node _originator_node;
 
-  /* Array of link metrics */
+  /*! Array of link metrics */
   struct nhdp_neighbor_domaindata _domaindata[NHDP_MAXIMUM_DOMAINS];
 };
 
@@ -283,26 +284,35 @@ struct nhdp_neighbor {
  * or a former (lost) address which will be removed soon
  */
 struct nhdp_naddr {
-  /* neighbor interface address */
+  /*! neighbor interface address */
   struct netaddr neigh_addr;
 
-  /* backlink to neighbor */
+  /*! backlink to neighbor */
   struct nhdp_neighbor *neigh;
 
-  /* link address usage counter */
+  /*! link address usage counter */
   int laddr_count;
 
-  /* validity time for this address when its lost */
+  /*! validity time for this address when its lost */
   struct oonf_timer_instance _lost_vtime;
 
-  /* member entry for neighbor address tree */
+  /*! member entry for neighbor address tree */
   struct avl_node _neigh_node;
 
-  /* member entry for global neighbor address tree */
+  /*! member entry for global neighbor address tree */
   struct avl_node _global_node;
 
-  /* temporary variables for NHDP Hello processing */
-  bool _this_if, _might_be_removed;
+  /**
+   * temporary variables for NHDP Hello processing
+   * true if address is part of the local interface
+   */
+  bool _this_if;
+
+  /**
+   * temporary variables for NHDP Hello processing
+   * true if address is considered for removal
+   */
+  bool _might_be_removed;
 };
 
 void nhdp_db_init(void);

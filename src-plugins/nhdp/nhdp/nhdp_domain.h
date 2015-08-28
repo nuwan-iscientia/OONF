@@ -57,74 +57,123 @@ enum {
   NHDP_DOMAIN_MPR_MAXLEN = 16,
 };
 
-/* Buffer for string representation of a linkmetric value */
+/**
+ * Buffer for string representation of a linkmetric value
+ */
 struct nhdp_metric_str {
+  /*! buffer for maximum sized text link metric */
   char buf[128];
 };
 
-/* Metric handler for a NHDP domain. */
+/**
+ *  Metric handler for a NHDP domain.
+ */
 struct nhdp_domain_metric {
-  /* name of linkmetric */
+  /*! name of linkmetric */
   const char *name;
 
-  /* range of metric */
-  uint32_t metric_minimum, metric_maximum;
+  /*! minimum metric value*/
+  uint32_t metric_minimum;
 
-  /* default values to initialize database */
-  uint32_t incoming_link_start, outgoing_link_start;
-  uint32_t incoming_2hop_start, outgoing_2hop_start;
+  /*! maximum metric value */
+  uint32_t metric_maximum;
 
-  /* true if metrics should not be handled by nhdp reader/writer */
+  /*! default incoming link metric */
+  uint32_t incoming_link_start;
+
+  /*! default outgoing link metric */
+  uint32_t outgoing_link_start;
+
+  /*! default incoming 2-hop link metric */
+  uint32_t incoming_2hop_start;
+
+  /*! default outgoing 2-hop link metric */
+  uint32_t outgoing_2hop_start;
+
+  /*! true if metrics should not be handled by nhdp reader/writer */
   bool no_default_handling;
 
-  /* conversion of link metric value into string function */
-  const char *(*link_to_string)(struct nhdp_metric_str *, uint32_t);
+  /**
+   * callback to convert link metric into string representation
+   * @param buf buffer to put string into
+   * @param cost link metric
+   * @return pointer to buffer
+   */
+  const char *(*link_to_string)(struct nhdp_metric_str *buf, uint32_t cost);
 
-  /* conversion of link metric value into string function */
-  const char *(*path_to_string)(struct nhdp_metric_str *,
+  /**
+   * callback to convert path metric into string representation
+   * @param buf buffer to put string into
+   * @param cost path metric
+   * @param hopcount hopcount of path
+   * @return pointer to buffer
+   */
+  const char *(*path_to_string)(struct nhdp_metric_str *buf,
       uint32_t cost,  uint8_t hopcount);
 
-  /* conversion of internal metric data into string */
+  /*! conversion of internal metric data into string */
+  /**
+   * callback to convert internal metric state into string
+   * @param buf buffer to put internal state into
+   * @param lnk nhdp link
+   * @return pointer to buffer
+   */
   const char *(*internal_link_to_string)(
-      struct nhdp_metric_str *, struct nhdp_link *);
+      struct nhdp_metric_str *buf, struct nhdp_link *lnk);
 
-  /* callbacks for enable/disable metric */
+  /**
+   * callback to enable metric
+   */
   void (*enable)(void);
+
+  /**
+   * callback to disable metric
+   */
   void (*disable)(void);
 
-  /* reference count */
+  /*! reference count */
   int _refcount;
 
-  /* node for tree of metrics */
+  /*! node for tree of metrics */
   struct avl_node _node;
 };
 
-/* MPR handler for a NHDP domain */
+/**
+ * MPR handler for a NHDP domain
+ */
 struct nhdp_domain_mpr {
-  /* name of handler */
+  /*! name of handler */
   const char *name;
 
-  /* calculate MPR set */
+  /**
+   * callback to calculate MPR set
+   */
   void (*update_mpr)(void);
 
-  /* callbacks for enable/disable mpr */
+  /**
+   * callback to enable mpr
+   */
   void (*enable)(void);
+
+  /**
+   * callback to disable mpr
+   */
   void (*disable)(void);
 
-  /* default value for neighbor MPR setting */
+  /*! default value for neighbor MPR setting */
   bool mpr_start;
 
-  /* default value for local MPR (selector) setting */
+  /*! default value for local MPR (selector) setting */
   bool mprs_start;
 
-  /* reference count */
+  /*! reference count */
   int _refcount;
 
-  /* node for tree of MPR algorithms */
+  /*! node for tree of MPR algorithms */
   struct avl_node _node;
 };
 
-/*
+/**
  * NHDP domain
  *
  * A domain is a topology on the mesh, including its own
@@ -132,40 +181,54 @@ struct nhdp_domain_mpr {
  * specified TLV extension value on MPR and LQ TLVs.
  */
 struct nhdp_domain {
+  /*! name of metric */
   char metric_name[NHDP_DOMAIN_METRIC_MAXLEN];
+
+  /*! name of MPR algorithm */
   char mpr_name[NHDP_DOMAIN_MPR_MAXLEN];
 
+  /*! pointer to metric definition */
   struct nhdp_domain_metric *metric;
+
+  /*! pointer to mpr definition */
   struct nhdp_domain_mpr *mpr;
 
+  /*! flooding willingness */
   uint8_t local_willingness;
 
-  /*
+  /**
    * true if a neighbor metric of this domain has changed
    * since the last reset of this variable
    */
   bool neighbor_metric_changed;
 
-  /* tlv extension */
+  /*! metric tlv extension */
   uint8_t ext;
 
-  /* index in the domain array */
+  /*! index in the domain array */
   int index;
 
-  /* temporary storage for willingness processing */
+  /*! temporary storage for willingness processing */
   uint8_t _tmp_willingness;
 
-  /* storage for the up to four additional link metrics */
+  /*! storage for the up to four additional link metrics */
   struct rfc5444_writer_tlvtype _metric_addrtlvs[4];
 
-  /* list of nhdp domains */
+  /*! list of nhdp domains */
   struct list_entity _node;
 };
 
-/* listener for NHDP domain updates */
+/**
+ * listener for NHDP domain updates
+ */
 struct nhdp_domain_listener {
-  void (*update)(struct nhdp_neighbor *);
+  /**
+   * Callback to inform about a NHDP neighbor update
+   * @param neigh neighbor that changed, NULL if multiple neighbors changed
+   */
+  void (*update)(struct nhdp_neighbor *neigh);
 
+  /*! hook into global domain updater list */
   struct list_entity _node;
 };
 

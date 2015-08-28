@@ -47,30 +47,52 @@
 
 #include "nhdp/nhdp_db.h"
 
-/*
+/**
  * Output buffer for hysteresis data string representation
  */
 struct nhdp_hysteresis_str {
+  /*! text buffer for maximum length string representation */
   char buf[128];
 };
 
-/* hysteresis handler */
+/**
+ * NHDP link hysteresis handler
+ */
 struct nhdp_hysteresis_handler {
-  /* name of the handler */
+  /*! name of the handler */
   const char *name;
 
-  /* update pending/Lost (and maybe quality) of links hysteresis */
-  void (*update_hysteresis)(struct nhdp_link *,
+  /**
+   * callback to update link hysteresis pending and lost status.
+   * Some implementations might also change their internal state
+   * @param lnk nhdp link
+   * @param context rfc5444 reader context
+   */
+  void (*update_hysteresis)(struct nhdp_link *lnk,
       struct rfc5444_reader_tlvblock_context *context);
 
-  /* returns true if link is pending */
-  bool (*is_pending)(struct nhdp_link *);
+  /**
+   * callback to check if link is pending
+   * @param lnk nhdp link
+   * @return true if link is pending
+   */
+  bool (*is_pending)(struct nhdp_link *lnk);
 
-  /* returns true if link is lost */
-  bool (*is_lost)(struct nhdp_link *);
+  /**
+   * callback to check if link is lost
+   * @param lnk nhdp link
+   * @return true if link is lost
+   */
+  bool (*is_lost)(struct nhdp_link *lnk);
 
-  /* returns text representation of hysteresis data */
-  const char *(*to_string)(struct nhdp_hysteresis_str *, struct nhdp_link *);
+  /**
+   * callback to convert hysteresis state into string representation
+   * @param buf buffer for text output
+   * @param lnk nhdp link
+   * @return pointer to buffer
+   */
+  const char *(*to_string)(
+      struct nhdp_hysteresis_str *buf, struct nhdp_link *lnk);
 };
 
 EXPORT void nhdp_hysteresis_set_handler(struct nhdp_hysteresis_handler *);

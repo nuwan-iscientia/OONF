@@ -60,27 +60,36 @@
 /* definitions and constants */
 #define LOG_PROBING _olsrv2_neighbor_probing_subsystem.logging
 
+/**
+ * Configuration of neighbor probing plugin
+ */
 struct _config {
-  /* Interval between two link probes */
+  /*! Interval between two link probes */
   uint64_t interval;
 
-  /* size of probe */
+  /*! size of probe */
   int32_t probe_size;
 
-  /* true to probe all DLEP interfaces */
+  /*! true to probe all DLEP interfaces */
   bool probe_dlep;
 };
 
+/**
+ * NHDP link extension for neighbor probing plugin
+ */
 struct _probing_link_data {
-  /* absolute timestamp of last check if probing is necessary */
+  /*! absolute timestamp of last check if probing is necessary */
   uint64_t last_probe_check;
 
-  /*
+  /**
    * number of bytes that had been sent to neighbor during last
    * probe check.
    */
   uint64_t last_tx_traffic;
 
+  /**
+   * pointer to RFC5444 target allocated for link neighbor
+   */
   struct oonf_rfc5444_target *target;
 };
 
