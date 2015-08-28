@@ -103,10 +103,10 @@ static struct rfc5444_reader_addrblock_entry *_alloc_addrblock_entry(void);
 static struct rfc5444_reader_tlvblock_entry *_alloc_tlvblock_entry(void);
 static struct rfc5444_writer_address *_alloc_address_entry(void);
 static struct rfc5444_writer_addrtlv *_alloc_addrtlv_entry(void);
-static void _free_addrblock_entry(void *);
-static void _free_tlvblock_entry(void *);
-static void _free_address_entry(void *);
-static void _free_addrtlv_entry(void *);
+static void _free_addrblock_entry(struct rfc5444_reader_addrblock_entry* addrblock);
+static void _free_tlvblock_entry(struct rfc5444_reader_tlvblock_entry *tlvblock);
+static void _free_address_entry(struct rfc5444_writer_address *);
+static void _free_addrtlv_entry(struct rfc5444_writer_addrtlv *);
 
 static void _cb_add_seqno(struct rfc5444_writer *, struct rfc5444_writer_target *);
 static void _cb_aggregation_event (void *);
@@ -1227,7 +1227,7 @@ _alloc_addrtlv_entry(void) {
  * @param pointer to addrblock
  */
 static void
-_free_addrblock_entry(void *addrblock) {
+_free_addrblock_entry(struct rfc5444_reader_addrblock_entry* addrblock) {
   oonf_class_free(&_addrblock_memcookie, addrblock);
 }
 
@@ -1236,7 +1236,7 @@ _free_addrblock_entry(void *addrblock) {
  * @param pointer to tlvblock
  */
 static void
-_free_tlvblock_entry(void *tlvblock) {
+_free_tlvblock_entry(struct rfc5444_reader_tlvblock_entry *tlvblock) {
   oonf_class_free(&_tlvblock_memcookie, tlvblock);
 }
 
@@ -1245,7 +1245,7 @@ _free_tlvblock_entry(void *tlvblock) {
  * @param pointer to tlvblock
  */
 static void
-_free_address_entry(void *address) {
+_free_address_entry(struct rfc5444_writer_address *address) {
   oonf_class_free(&_address_memcookie, address);
 }
 
@@ -1254,7 +1254,7 @@ _free_address_entry(void *address) {
  * @param pointer to tlvblock
  */
 static void
-_free_addrtlv_entry(void *addrtlv) {
+_free_addrtlv_entry(struct rfc5444_writer_addrtlv *addrtlv) {
   oonf_class_free(&_addrtlv_memcookie, addrtlv);
 }
 

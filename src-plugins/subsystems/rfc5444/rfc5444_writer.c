@@ -59,6 +59,8 @@ static void _lazy_free_message(struct rfc5444_writer *writer, struct rfc5444_wri
 static struct rfc5444_writer_message *_get_message(struct rfc5444_writer *writer, uint8_t msgid);
 static struct rfc5444_writer_address *_malloc_address_entry(void);
 static struct rfc5444_writer_addrtlv *_malloc_addrtlv_entry(void);
+static void _free_address_entry(struct rfc5444_writer_address *addr);
+static void _free_addrtlv_entry(struct rfc5444_writer_addrtlv *addrtlv);
 
 /**
  * @param type TLV type
@@ -85,9 +87,9 @@ rfc5444_writer_init(struct rfc5444_writer *writer) {
   if (!writer->malloc_addrtlv_entry)
     writer->malloc_addrtlv_entry = _malloc_addrtlv_entry;
   if (!writer->free_address_entry)
-    writer->free_address_entry = free;
+    writer->free_address_entry = _free_address_entry;
   if (!writer->free_addrtlv_entry)
-    writer->free_addrtlv_entry = free;
+    writer->free_addrtlv_entry = _free_addrtlv_entry;
 
   list_init_head(&writer->_targets);
 
@@ -694,4 +696,22 @@ _malloc_address_entry(void) {
 static struct rfc5444_writer_addrtlv*
 _malloc_addrtlv_entry(void) {
   return calloc(1, sizeof(struct rfc5444_writer_addrtlv));
+}
+
+/**
+ * Default deallocater for address objects
+ * @param addr pointer to address object
+ */
+static void
+_free_address_entry(struct rfc5444_writer_address *addr) {
+  free(addr);
+}
+
+/**
+ * Default deallocator for address tlv object.
+ * @param addrtlv pointer to address tlv object
+ */
+static void
+_free_addrtlv_entry(struct rfc5444_writer_addrtlv *addrtlv) {
+  free (addrtlv);
 }

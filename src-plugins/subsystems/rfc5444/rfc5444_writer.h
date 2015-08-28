@@ -88,30 +88,35 @@ enum {
  * of an address during message serialization.
  */
 struct rfc5444_writer_addrtlv {
-  /* backpointer to tlvtype */
+  /*! backpointer to tlvtype */
   struct rfc5444_writer_tlvtype *tlvtype;
 
-  /* tree _target_node of tlvs used by a single address */
+  /*! tree _target_node of tlvs used by a single address */
   struct avl_node addrtlv_node;
 
-  /* backpointer to address */
+  /*! backpointer to address */
   struct rfc5444_writer_address *address;
 
   /* tlv type and extension is stored in writer_tlvtype */
 
-  /* tlv value length */
+  /*! tlv value length */
   uint16_t length;
 
-  /*
+  /**
    * if multiple tlvs with the same type/ext have the same
-   * value for a continous block of addresses, they should
+   * value for a continuous block of addresses, they should
    * use the same storage for the value (the pointer should
    * be the same)
    */
   void *value;
 
-  /* internal data for address compression */
-  bool _same_value, _same_length;
+  /*! addresstlv has same value than for last address */
+  bool _same_value;
+
+  /*! addresstlv has same length than for last address */
+  bool _same_length;
+
+  /*! hook into current list of nodes */
   struct list_entity _current_tlv_node;
 };
 
@@ -120,36 +125,40 @@ struct rfc5444_writer_addrtlv {
  * message creation.
  */
 struct rfc5444_writer_address {
-  /* index of the address */
+  /*! index of the address */
   uint32_t index;
 
-  /* address/prefix */
+  /*! address/prefix */
   struct netaddr address;
 
-  /* node of address list in writer_message */
+  /*! node of address list in writer_message */
   struct list_entity _addr_list_node;
 
-  /* node of address list for current fragment */
+  /*! node of address list for current fragment */
   struct list_entity _addr_fragment_node;
 
-  /* node for quick access ( O(log n)) to addresses */
+  /*! node for quick access ( O(log n)) to addresses */
   struct avl_node _addr_tree_node;
 
-  /* tree to connect all TLVs of this address */
+  /*! tree to connect all TLVs of this address */
   struct avl_tree _addrtlv_tree;
 
-  /* address block with same prefix/prefixlen */
+  /*! address block head length */
   uint8_t _block_headlen;
+
+  /*! true if addresses have multiple prefix lengths */
   bool _block_multiple_prefixlen;
 
-  /* pointer to end of the block, NULL if this is not the start address */
+  /*! pointer to end of the block, NULL if this is not the start address */
   struct rfc5444_writer_address *_block_end;
 
-  /* pointer to start of the block, NULL if this is not the end address */
+  /*! pointer to start of the block, NULL if this is not the end address */
   struct rfc5444_writer_address *_block_start;
 
-  /* handle mandatory addresses for message fragmentation */
+  /*! true if address is mandatory in all fragments */
   bool _mandatory_addr;
+
+  /*! true if address has already been handled in earlier fragment */
   bool _done;
 };
 
@@ -158,26 +167,34 @@ struct rfc5444_writer_address {
  * to an address of a certain message type.
  */
 struct rfc5444_writer_tlvtype {
-  /* tlv type and extension is stored in writer_tlvtype */
+  /*! tlv type and extension is stored in writer_tlvtype */
   uint8_t type;
 
-  /* tlv extension type */
+  /*! tlv extension type */
   uint8_t exttype;
 
-  /* _target_node of tlvtype list in rfc5444_writer_message */
+  /*! node of tlvtype list in rfc5444_writer_message */
   struct list_entity _tlvtype_node;
 
-  /* back pointer to message creator */
+  /*! back pointer to message creator */
   struct rfc5444_writer_message *_creator;
 
-  /* tlv type*256 + tlv_exttype */
+  /*! tlv type*256 + tlv_exttype */
   int _full_type;
 
-  /* internal data for address compression */
+  /*! number of TLVs already compressed for specific head length */
   int _tlvblock_count[RFC5444_MAX_ADDRLEN];
+
+  /*! true if tlv has multiple values for specific head length */
   bool _tlvblock_multi[RFC5444_MAX_ADDRLEN];
+
+  /*! true if tlv has same value */
   bool _same_value;
+
+  /*! list of active nodes for tlv */
   struct list_entity _active_tlv_node;
+
+  /*! list of tlvs for current fragment */
   struct list_entity _current_tlv_list;
 };
 
@@ -186,23 +203,42 @@ struct rfc5444_writer_tlvtype {
  * tlvs for a message context.
  */
 struct rfc5444_writer_content_provider {
-  /* priority of content provider */
+  /*! priority of content provider */
   int32_t priority;
 
-  /* message type for this content provider */
+  /*! message type for this content provider */
   uint8_t msg_type;
 
-  /* callbacks for adding tlvs and addresses to a message */
-  void (*addMessageTLVs)(struct rfc5444_writer *);
-  void (*addAddresses)(struct rfc5444_writer *);
-  void (*finishMessageTLVs)(struct rfc5444_writer *,
+  /**
+   * Callback to add message tlvs to message
+   * @param writer rfc5444 writer
+   */
+  void (*addMessageTLVs)(struct rfc5444_writer *writer);
+
+  /**
+   * Callback to add addresses with TLVs to message
+   * @param writer rfc5444 writer
+   */
+  void (*addAddresses)(struct rfc5444_writer *writer);
+
+  /**
+   * Callback to notify that all addresses have been written
+   * and user can now set the earlier allocated message tlvs.
+   * This is called once per message fragment
+   * @param writer rfc5444 writer
+   * @param start first address of fragment
+   * @param end last address of fragment
+   * @param complete false if message has been fragmented,
+   *    true if message fit into MTU
+   */
+  void (*finishMessageTLVs)(struct rfc5444_writer *writer,
     struct rfc5444_writer_address *start,
     struct rfc5444_writer_address *end, bool complete);
 
-  /* node for tree of content providers for a message creator */
+  /*! node for tree of content providers for a message creator */
   struct avl_node _provider_node;
 
-  /* back pointer to message creator */
+  /*! back pointer to message creator */
   struct rfc5444_writer_message *creator;
 };
 
@@ -211,31 +247,55 @@ struct rfc5444_writer_content_provider {
  * the rfc5444 writer
  */
 struct rfc5444_writer_target {
-  /* buffer for packet generation */
+  /*! buffer for packet generation */
   uint8_t *packet_buffer;
 
-  /* maximum number of bytes per packets allowed for target */
+  /*! maximum number of bytes per packets allowed for target */
   size_t packet_size;
 
-  /* callback for target specific packet handling */
-  void (*addPacketHeader)(struct rfc5444_writer *, struct rfc5444_writer_target *);
-  void (*finishPacketHeader)(struct rfc5444_writer *, struct rfc5444_writer_target *);
-  void (*sendPacket)(struct rfc5444_writer *, struct rfc5444_writer_target *, void *, size_t);
+  /**
+   * Callback to set RFC5444 packet header
+   * @param writer rfc5444 writer
+   * @param target rfc5444 target
+   */
+  void (*addPacketHeader)(struct rfc5444_writer *writer,
+      struct rfc5444_writer_target *target);
 
-  /* internal handling for packet sequence numbers */
+  /**
+   * Callback to notify that all messages have been added and
+   * user can now modify the packet header again
+   * @param writer rfc5444 writer
+   * @param target rfc5444 target
+   */
+  void (*finishPacketHeader)(struct rfc5444_writer *writer,
+      struct rfc5444_writer_target *target);
+
+  /**
+   * Callback to send a RFC5444 packet to a socket or destination
+   * @param writer rfc5444 writer
+   * @param target rfc5444 target
+   * @param ptr pointer to packet data
+   * @param len length of packet
+   */
+  void (*sendPacket)(struct rfc5444_writer *writer,
+      struct rfc5444_writer_target *target, void *ptr, size_t len);
+
+  /*! true if packet should have a sequence number */
   bool _has_seqno;
+
+  /*! last used packet sequence number */
   uint16_t _seqno;
 
-  /* node for list of all targets*/
+  /*! node for list of all targets*/
   struct list_entity _target_node;
 
-  /* packet buffer is currently flushed */
+  /*! packet buffer is currently flushed */
   bool _is_flushed;
 
-  /* buffer for constructing the current packet */
+  /*! buffer for constructing the current packet */
   struct rfc5444_tlv_writer_data _pkt;
 
-  /* number of bytes used by messages */
+  /*! number of bytes used by messages */
   size_t _bin_msgs_size;
 };
 
@@ -244,62 +304,102 @@ struct rfc5444_writer_target {
  * be generated by the writer.
  */
 struct rfc5444_writer_message {
-  /* target node for tree of message creators */
+  /*! target node for tree of message creators */
   struct avl_node _msgcreator_node;
 
-  /* tree of message content providers */
+  /*! tree of message content providers */
   struct avl_tree _provider_tree;
 
-  /*
+  /**
    * true if the creator has already registered
    * false if the creator was registered because of a tlvtype or content
    * provider registration
    */
   bool _registered;
 
-  /* true if a different message must be generated for each target */
+  /*! true if a different message must be generated for each target */
   bool target_specific;
 
-  /* message type */
+  /*! message type */
   uint8_t type;
 
-  /* message hopcount */
+  /*! true if message should have a hopcount */
   bool has_hopcount;
+
+  /*! message hopcount */
   uint8_t hopcount;
 
-  /* message hoplimit */
+  /*! true if message should have a hoplimit */
   bool has_hoplimit;
+
+  /*! message hoplimit */
   uint8_t hoplimit;
 
-  /* message originator */
+  /*! true if message should have an originator */
   bool has_origaddr;
+
+  /*! message originator */
   uint8_t orig_addr[RFC5444_MAX_ADDRLEN];
 
-  /* message sequence number */
-  uint16_t seqno;
+  /*! true if message should have a sequence number */
   bool has_seqno;
 
-  /* head of writer_address list/tree */
+  /*! message sequence number */
+  uint16_t seqno;
+
+  /*! list of non-mandatory writer_addresses */
   struct list_entity _non_mandatory_addr_head;
+
+  /*! list of all writer_addresses */
   struct list_entity _addr_head;
+
+  /*! tree of writer addresses */
   struct avl_tree _addr_tree;
 
-  /* head of message specific tlvtype list */
+  /*! head of message specific tlvtype list */
   struct list_entity _msgspecific_tlvtype_head;
 
-  /* callbacks for controling the message header fields */
-  int (*addMessageHeader)(struct rfc5444_writer *, struct rfc5444_writer_message *);
-  void (*finishMessageHeader)(struct rfc5444_writer *, struct rfc5444_writer_message *,
-      struct rfc5444_writer_address *, struct rfc5444_writer_address *, bool);
+  /**
+   * Callback to set message header
+   * @param writer rfc5444 writer
+   * @param msg rfc5444 message
+   * @return -1 if an error happened, 0 otherwise
+   */
+  int (*addMessageHeader)(struct rfc5444_writer *writer,
+      struct rfc5444_writer_message *msg);
 
-  /* callback to determine if a message shall be forwarded */
-  bool (*forward_target_selector)(struct rfc5444_writer_target *,
-      struct rfc5444_reader_tlvblock_context *context, const uint8_t *buffer, size_t len);
+  /**
+   * Callback to notify that all addresses have been written
+   * and user can now modify the message header.
+   * This is called once per message fragment
+   * @param writer rfc5444 writer
+   * @param msg rfc5444 message
+   * @param start first address of fragment
+   * @param end last address of fragment
+   * @param complete false if message has been fragmented,
+   *    true if message fit into MTU
+   */
+  void (*finishMessageHeader)(struct rfc5444_writer *writer,
+      struct rfc5444_writer_message *msg,
+      struct rfc5444_writer_address *first,
+      struct rfc5444_writer_address *last, bool complete);
 
-  /* number of bytes necessary for addressblocks including tlvs */
+  /**
+   * callback to determine if a message shall be forwarded
+   * @param target rfc5444 target
+   * @param context rfc5444 message context
+   * @param buffer pointer to binary message
+   * @param len length of message
+   * @return true if message should be forwarded, false otherwise
+   */
+  bool (*forward_target_selector)(struct rfc5444_writer_target *target,
+      struct rfc5444_reader_tlvblock_context *context,
+      const uint8_t *buffer, size_t len);
+
+  /*! number of bytes necessary for addressblocks including tlvs */
   size_t _bin_addr_size;
 
-  /* custom user data */
+  /*! custom user data */
   void *user;
 };
 
@@ -308,26 +408,41 @@ struct rfc5444_writer_message {
  * tlvs to a packet header.
  */
 struct rfc5444_writer_pkthandler {
-  /* _target_node for list of packet handlers */
+  /*! node for list of packet handlers */
   struct list_entity _pkthandle_node;
 
-  /* callbacks for packet handler */
-  void (*addPacketTLVs)(struct rfc5444_writer *, struct rfc5444_writer_target *);
-  void (*finishPacketTLVs)(struct rfc5444_writer *, struct rfc5444_writer_target *);
+  /**
+   * Callback to add packet TLVs to packet
+   * @param writer rfc5444 packet
+   * @param target rfc5444 target
+   */
+  void (*addPacketTLVs)(struct rfc5444_writer *writer,
+      struct rfc5444_writer_target *target);
+
+  /**
+   * Callback to notify that all messages have been added and
+   * user can now set the earlier allocated packet TLVs.
+   * @param writer rfc5444 writer
+   * @param target rfc5444 target
+   */
+  void (*finishPacketTLVs)(struct rfc5444_writer *writer,
+      struct rfc5444_writer_target *target);
 };
 
-/* a post-processor for rfc5444 messages/packets */
+/**
+ * a post-processor for rfc5444 messages/packets
+ */
 struct rfc5444_writer_postprocessor {
-  /* node for treee of message post processors */
+  /*! node for treee of message post processors */
   struct avl_node _node;
 
-  /* order of message post-processors */
+  /*! order of message post-processors */
   int32_t priority;
 
-  /* number of bytes allocated for post-processor */
+  /*! number of bytes allocated for post-processor */
   uint16_t allocate_space;
 
-  /*
+  /**
    * true if post-processing must be done per target,
    * unused for packet post-processors
    */
@@ -361,54 +476,73 @@ struct rfc5444_writer_postprocessor {
  * rfc5444 writer.
  */
 struct rfc5444_writer {
-  /* buffer for messages */
+  /*! buffer for messages */
   uint8_t *msg_buffer;
 
-  /* address length of current message */
+  /*! address length of current message */
   uint8_t msg_addr_len;
 
-  /* length of message buffer */
+  /*! length of message buffer */
   size_t msg_size;
 
-  /* buffer for addrtlv values of a message */
+  /*! buffer for addrtlv values of a message */
   uint8_t *addrtlv_buffer;
+
+  /*! length of addrtlv buffer */
   size_t addrtlv_size;
 
-  /* callbacks for memory management, NULL for calloc()/free() */
-  struct rfc5444_writer_address* (*malloc_address_entry)(void);
-  struct rfc5444_writer_addrtlv* (*malloc_addrtlv_entry)(void);
+  /**
+   * Callback to allocate a writer_address, NULL for use calloc()
+   * @return writer address, NULL if out of memory
+   */
+  struct rfc5444_writer_address * (*malloc_address_entry)(void);
 
-  void (*free_address_entry)(void *);
-  void (*free_addrtlv_entry)(void *);
+  /**
+   * Callback to allocate an address tlv, NULL for use calloc()
+   * @return address tlv, NULL if out of memory
+   */
+  struct rfc5444_writer_addrtlv * (*malloc_addrtlv_entry)(void);
 
-  /*
+  /**
+   * Callback to free a writer_address, NULL for use free()
+   * @param addr writer address
+   */
+  void (*free_address_entry)(struct rfc5444_writer_address *addr);
+
+  /**
+   * Callback to free a address tlv, NULL for use free()
+   * @param addrtlv address tlv
+   */
+  void (*free_addrtlv_entry)(struct rfc5444_writer_addrtlv *addrtlv);
+
+  /**
    * target of current generated message
    * only used for target specific message types
    */
   struct rfc5444_writer_target *msg_target;
 
-  /* tree of all message handlers */
+  /*! tree of all message handlers */
   struct avl_tree _msgcreators;
 
-  /* list of all packet handlers */
+  /*! list of all packet handlers */
   struct list_entity _pkthandlers;
 
-  /* tree of packet post-processors */
+  /*! tree of packet post-processors */
   struct avl_tree _processors;
 
-  /* list of all targets */
+  /*! list of all targets */
   struct list_entity _targets;
 
-  /* list of generic tlvtypes */
+  /*! list of generic tlvtypes */
   struct list_entity _addr_tlvtype_head;
 
-  /* buffer for constructing the current message */
+  /*! buffer for constructing the current message */
   struct rfc5444_tlv_writer_data _msg;
 
-  /* number of bytes of addrtlv buffer currently used */
+  /*! number of bytes of addrtlv buffer currently used */
   size_t _addrtlv_used;
 
-  /* internal state of writer */
+  /*! internal state of writer */
   enum rfc5444_internal_state _state;
 };
 

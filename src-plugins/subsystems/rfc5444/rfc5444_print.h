@@ -45,15 +45,29 @@
 #include "common/autobuf.h"
 #include "rfc5444_reader.h"
 
+/**
+ * RFC5444 printer session
+ */
 struct rfc5444_print_session {
+  /*! output buffer */
   struct autobuf *output;
 
-  void (*print_packet)(struct rfc5444_print_session *);
+  /**
+   * Callback to print RFC5444 packet text representation
+   * @param session printer session
+   */
+  void (*print_packet)(struct rfc5444_print_session *session);
 
+  /*! packet consumer */
   struct rfc5444_reader_tlvblock_consumer _pkt;
+
+  /*! message consumer */
   struct rfc5444_reader_tlvblock_consumer _msg;
+
+  /*! address consumer */
   struct rfc5444_reader_tlvblock_consumer _addr;
 
+  /*! rfc5444 reader */
   struct rfc5444_reader *_reader;
 };
 

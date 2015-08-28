@@ -80,6 +80,8 @@ static void _free_consumer(struct avl_tree *consumer_tree,
     struct rfc5444_reader_tlvblock_consumer *consumer);
 static struct rfc5444_reader_addrblock_entry *_malloc_addrblock_entry(void);
 static struct rfc5444_reader_tlvblock_entry *_malloc_tlvblock_entry(void);
+static void _free_addrblock_entry(struct rfc5444_reader_addrblock_entry *entry);
+static void _free_tlvblock_entry(struct rfc5444_reader_tlvblock_entry *entry);
 
 static uint8_t rfc5444_get_pktversion(uint8_t v);
 
@@ -98,9 +100,9 @@ rfc5444_reader_init(struct rfc5444_reader *context) {
     context->malloc_tlvblock_entry = _malloc_tlvblock_entry;
 
   if (context->free_addrblock_entry == NULL)
-    context->free_addrblock_entry = free;
+    context->free_addrblock_entry = _free_addrblock_entry;
   if (context->free_tlvblock_entry == NULL)
-    context->free_tlvblock_entry = free;
+    context->free_tlvblock_entry = _free_tlvblock_entry;
 }
 
 /**
@@ -1343,6 +1345,24 @@ _malloc_addrblock_entry(void) {
 static struct rfc5444_reader_tlvblock_entry *
 _malloc_tlvblock_entry(void) {
   return calloc(1, sizeof(struct rfc5444_reader_tlvblock_entry));
+}
+
+/**
+ * Free an addressblock entry
+ * @param entry addressblock entry
+ */
+static void
+_free_addrblock_entry(struct rfc5444_reader_addrblock_entry *entry) {
+  free(entry);
+}
+
+/**
+ * Free an tlvblock entry
+ * @param entry tlvblock entry
+ */
+static void
+_free_tlvblock_entry(struct rfc5444_reader_tlvblock_entry *entry) {
+  free(entry);
 }
 
 /**

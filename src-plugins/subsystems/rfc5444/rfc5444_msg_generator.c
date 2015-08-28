@@ -56,12 +56,24 @@
 #include "rfc5444_writer.h"
 #include "rfc5444_api_config.h"
 
-/* data necessary for automatic address compression */
+/**
+ * data necessary for automatic address compression
+ */
 struct _rfc5444_internal_addr_compress_session {
+  /*! address at the start of the current block */
   struct rfc5444_writer_address *ptr;
+
+  /*! total number of bytes if this compression strategy is used */
   int total;
+
+  /*! number of bytes of current address block */
   int current;
-  bool multiplen, closed;
+
+  /*! true if address block has multiple prefix lengths */
+  bool multiplen;
+
+  /*! true if address block has to be closed */
+  bool closed;
 };
 
 static void _close_addrblock(struct _rfc5444_internal_addr_compress_session *acs,

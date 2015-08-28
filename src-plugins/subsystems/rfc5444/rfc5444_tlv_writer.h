@@ -44,12 +44,26 @@
 
 #include "common/common_types.h"
 
+/**
+ * tlv write session
+ */
 struct rfc5444_tlv_writer_data {
+  /*! pointer to binary buffer */
   uint8_t *buffer;
+
+  /*! size of header */
   size_t header;
+
+  /*! size of added TLVs */
   size_t added;
+
+  /*! size of allocated TLVs */
   size_t allocated;
+
+  /*! size of set TLVs */
   size_t set;
+
+  /*! maximum size allowed for TLVs */
   size_t max;
 };
 

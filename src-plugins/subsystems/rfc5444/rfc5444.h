@@ -64,7 +64,11 @@ enum {
   RFC7181_METRIC_INFINITE_PATH = 0xffffffff,
 };
 
+/**
+ * Binary Metric TLV value of RFC7181
+ */
 struct rfc7181_metric_field {
+  /*! two byte value */
   uint8_t b[2];
 };
 
@@ -78,7 +82,13 @@ EXPORT uint32_t rfc7181_metric_decode(struct rfc7181_metric_field *);
 
 EXPORT int rfc5444_seqno_difference(uint16_t, uint16_t);
 
-static INLINE int
+/**
+ * Compares two RFC5444 sequence numbers
+ * @param s1 first sequence number
+ * @param s2 second sequence number
+ * @return true if first is larger than second number
+ */
+static INLINE bool
 rfc5444_seqno_is_larger(uint16_t s1, uint16_t s2) {
   /*
    * The sequence number S1 is said to be "greater than" the sequence
@@ -90,23 +100,45 @@ rfc5444_seqno_is_larger(uint16_t s1, uint16_t s2) {
       || (s2 > s1 && (s2-s1) > (1<<15));
 }
 
-static INLINE int
+/**
+ * Compares two RFC5444 sequence numbers
+ * @param s1 first sequence number
+ * @param s2 second sequence number
+ * @return true if first is smaller than second number
+ */
+static INLINE bool
 rfc5444_seqno_is_smaller(uint16_t s1, uint16_t s2) {
   return s1 != s2 && !rfc5444_seqno_is_larger(s1, s2);
 }
 
+/**
+ * Test for metric flag
+ * @param metric metric field
+ * @param flag flag to test for
+ * @return true if flag is set, false otherwise
+ */
 static INLINE bool
 rfc7181_metric_has_flag(struct rfc7181_metric_field *metric,
     enum rfc7181_linkmetric_flags flag) {
   return (metric->b[0] & (uint8_t)flag) != 0;
 }
 
+/**
+ * Set a metric flag
+ * @param metric metric field
+ * @param flag flag to set
+ */
 static INLINE void
 rfc7181_metric_set_flag(struct rfc7181_metric_field *metric,
     enum rfc7181_linkmetric_flags flag) {
   metric->b[0] |= (uint8_t)flag;
 }
 
+/**
+ * Reset a metric flag
+ * @param metric metric field
+ * @param flag flag to reset
+ */
 static INLINE void
 rfc7181_metric_reset_flag(struct rfc7181_metric_field *metric,
     enum rfc7181_linkmetric_flags flag) {
