@@ -59,13 +59,23 @@ enum vif_type {
   OS_VIF_MAC,
 };
 
+/**
+ * Definition of a virtual interface
+ */
 struct os_vif {
+  /*! name of virtual interface */
   const char *if_name;
 
+  /*! file descriptor of interface, is being set by API */
   int fd;
+
+  /*! type of virtual interface */
   enum vif_type type;
 
+  /*! hook into global tree of virtual interfaces */
   struct avl_node _vif_node;
+
+  /*! os specific virtual interface data */
   struct os_vif_internal _internal;
 };
 
@@ -74,6 +84,11 @@ EXPORT void os_vif_close(struct os_vif *vif);
 
 EXPORT struct avl_tree *os_vif_get_tree(void);
 
+/**
+ * Get virtual interface handler
+ * @param name name of virtual interface
+ * @return handler, NULL if not found
+ */
 static INLINE struct os_vif *
 os_vif_get(const char *name) {
   struct os_vif *vif;

@@ -42,7 +42,11 @@
 #ifndef OS_VIF_LINUX_H_
 #define OS_VIF_LINUX_H_
 
+/**
+ * Linux internal data for handling virtual interfaces (tun/tap)
+ */
 struct os_vif_internal {
+  /* no internal data necessary */
 };
 
 #endif /* OS_VIF_LINUX_H_ */

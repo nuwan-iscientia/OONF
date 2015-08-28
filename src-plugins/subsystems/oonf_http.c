@@ -65,9 +65,17 @@
 /* Definitions */
 #define LOG_HTTP _oonf_http_subsystem.logging
 
+/**
+ * configuration of http plugin
+ */
 struct _http_config {
+  /*! http tcp configuration */
   struct oonf_stream_managed_config smc;
+
+  /*! directory for webserver functionality */
   char *www_dir;
+
+  /*! internal variable with file descriptor to webserver directory */
   int www_dir_fd;
 };
 /* HTTP text constants */

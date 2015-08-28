@@ -103,12 +103,24 @@ os_socket_connect(int sockfd, const union netaddr_socket *remote) {
   return connect(sockfd, &remote->std, sizeof(*remote));
 }
 
+/**
+ * Call posix accept()
+ * @param sockfd server socket to accept a connection from
+ * @param incoming buffer for storing the incoming source IP/port
+ * @return result of accept() call
+ */
 static INLINE int
 os_socket_accept(int sockfd, union netaddr_socket *incoming) {
   socklen_t len = sizeof(*incoming);
   return accept(sockfd, &incoming->std, &len);
 }
 
+/**
+ * Get socket error state
+ * @param fd file descriptor of socket
+ * @param value buffer to store error state
+ * @return result of getsockopt() call
+ */
 static INLINE int
 os_socket_get_socket_error(int fd, int *value) {
   socklen_t len = sizeof(*value);

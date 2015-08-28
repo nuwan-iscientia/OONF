@@ -55,63 +55,63 @@ struct oonf_timer_instance;
 /* timeslice is 100 ms */
 #define OONF_TIMER_SLICE 100ull
 
-/*
+/**
  * This struct defines a class of timers which have the same
  * type (periodic/non-periodic) and callback.
  */
 struct oonf_timer_class {
-  /* _node of timerinfo list */
+  /*! node of timerinfo list */
   struct list_entity _node;
 
-  /* name of this timer class */
+  /*! name of this timer class */
   const char *name;
 
-  /* callback function */
-  void (*callback) (void *);
+  /**
+   * Callback when timer is triggered
+   * @param ptr custom user pointer
+   */
+  void (*callback) (void *ptr);
 
-  /* true if this is a class of periodic timers */
+  /*! true if this is a class of periodic timers */
   bool periodic;
 
-  /* Stats, resource usage */
+  /*! Stats, resource usage */
   uint32_t usage;
 
-  /* Stats, resource churn */
+  /*! Stats, resource churn */
   uint32_t changes;
 
-  /* pointer to timer currently in callback */
+  /*! pointer to timer currently in callback */
   struct oonf_timer_instance *_timer_in_callback;
 
-  /* set to true if the current running timer has been stopped */
+  /*! set to true if the current running timer has been stopped */
   bool _timer_stopped;
 };
 
-/*
- * Our timer implementation is a based on individual timers arranged in
- * a double linked list hanging in a hierarchical list of timer slots.
- *
- * When an event is triggered, its callback is called with cb_context
- * as its parameter.
+/**
+ * A single timer instance of a timer class
  */
 struct oonf_timer_instance {
-  /* Tree membership */
+  /*! node of timer class tree of instances */
   struct avl_node _node;
 
-  /* backpointer to timer class */
+  /*! backpointer to timer class */
   struct oonf_timer_class *class;
 
-  /* the jitter expressed in percent */
+  /*! the jitter expressed in percent */
   uint8_t jitter_pct;
 
-  /* context pointer */
+  /* TODO: replace with pointer to the instance */
+  /*! context pointer, used as parameter in timer callback */
   void *cb_context;
 
-  /* timeperiod between two timer events for periodical timers */
+  /*! timeperiod between two timer events for periodical timers */
   uint64_t _period;
 
-  /* cache random() result for performance reasons */
+  /*! cache random() result for performance reasons */
   unsigned int _random;
 
-  /* absolute timestamp when timer will fire */
+  /*! absolute timestamp when timer will fire */
   uint64_t _clock;
 };
 

@@ -76,54 +76,88 @@ enum oonf_http_result {
   HTTP_START_FILE_TRANSFER = 99999,
 };
 
+/**
+ * HTTP session data
+ */
 struct oonf_http_session {
-  /* address of remote client */
+  /*! address of remote client */
   struct netaddr *remote;
 
-  const char *method; /* get/post/... */
+  /*! HTTP metric (get, post, ...) */
+  const char *method;
+
+  /*! HTTP request uri */
   const char *request_uri;
+
+  /*! HTTP request URI with decoded special characters */
   const char *decoded_request_uri;
+
+  /*! HTTP version */
   const char *http_version;
 
+  /* TODO: replace with strarray */
+  /*! array of HTTP header field names */
   char *header_name[OONF_HTTP_MAX_HEADERS];
+
+  /*! array of HTTP header field values */
   char *header_value[OONF_HTTP_MAX_HEADERS];
+
+  /*! number of HTTP header fields */
   size_t header_count;
 
-  /* parameter of the URI for GET/POST */
+  /*! array of HTTP GET/POST keys */
   char *param_name[OONF_HTTP_MAX_PARAMS];
+
+  /*! array of HTTP GET/POST values */
   char *param_value[OONF_HTTP_MAX_PARAMS];
+
+  /*! number of HTTP GET/POST values */
   size_t param_count;
 
-  /* content type for answer, NULL means plain/html */
+  /*! content type for answer, NULL means plain/html */
   const char *content_type;
 
-  /* parameters for file transfer */
+  /*! file descriptor to file that is being downloaded in this session */
   int transfer_fd;
+
+  /*! number of bytes already being downloaded */
   size_t transfer_length;
 };
 
+/**
+ * HTTP handler for a directory or file
+ */
 struct oonf_http_handler {
+  /*! hook into global http handler tree */
   struct avl_node node;
 
-  /* path of filename of content */
+  /*! path of filename of content */
   const char *site;
 
-  /* set by oonf_http_add to true if site is a directory */
+  /*! set by oonf_http_add to true if site is a directory */
   bool directory;
 
-  /* list of base64 encoded name:password combinations */
+  /*! list of base64 encoded name:password combinations */
   struct strarray auth;
 
-  /* list of IP addresses/ranges this site can be accessed from */
+  /*! list of IP addresses/ranges this site can be accessed from */
   struct netaddr_acl acl;
 
-  /* pointer to static content and length in bytes */
+  /*! pointer to static content for this handler */
   const char *content;
+
+  /*! length of static content in bytes */
   size_t content_size;
 
-  /* callback for custom generated content (called if content==NULL) */
+  /**
+   * Callback to generate dynamic content
+   * This is called if the content variable is NULL.
+   * @param out output buffer for content
+   * @param session http session object
+   * @return http result
+   */
   enum oonf_http_result (*content_handler)(
-      struct autobuf *out, struct oonf_http_session *);
+      struct autobuf *out, struct oonf_http_session *session);
 };
 
 EXPORT void oonf_http_add(struct oonf_http_handler *);

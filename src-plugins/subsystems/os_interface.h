@@ -53,9 +53,18 @@
 
 #define OONF_OS_INTERFACE_SUBSYSTEM "os_interface"
 
+/**
+ * operation system listener for interface events
+ */
 struct os_interface_if_listener {
+  /**
+   * Callback triggered when the interface changesd
+   * @param if_index interface index
+   * @param up true if interface is up
+   */
   void (*if_changed)(unsigned if_index, bool up);
 
+  /*! hook to global list of listeners */
   struct list_entity _node;
 };
 
@@ -70,60 +79,70 @@ struct os_interface_if_listener {
 #error "Unknown operation system"
 #endif
 
+/**
+ * Handler for changing an interface address
+ */
 struct os_interface_address {
-  /* used for delivering feedback about netlink commands */
+  /*! used for delivering feedback about netlink commands */
   struct os_interface_address_internal _internal;
 
-  /* interface address */
+  /*! interface address */
   struct netaddr address;
 
-  /* index of interface */
+  /*! index of interface */
   unsigned int if_index;
 
-  /* address scope */
+  /*! address scope */
   enum os_addr_scope scope;
 
-  /* set or reset address */
+  /*! set or reset address */
   bool set;
 
-  /* callback when operation is finished */
-  void (*cb_finished)(struct os_interface_address *, int error);
+  /**
+   * Callback triggered when interface address has been changed
+   * @param addr this interface address object
+   * @param error error code, 0 if everything is fine
+   */
+  void (*cb_finished)(struct os_interface_address *addr, int error);
 };
 
+/**
+ * Representation of an operation system interface
+ */
 struct os_interface {
-  /* data of interface */
+  /*! data of interface */
   struct os_interface_data data;
 
-  /*
+  /**
    * usage counter to allow multiple instances to add the same
    * interface
    */
   uint32_t usage_counter;
 
-  /*
+  /**
    * usage counter to keep track of the number of users on
    * this interface who want to send mesh traffic
    */
   uint32_t mesh_counter;
 
-  /*
+  /**
    * When an interface change handler triggers a 'interface not ready'
    * error the interface should be triggered again. The variable stores
    * the last interval until the next trigger.
    */
   uint64_t retrigger_timeout;
 
-  /*
+  /**
    * used to store internal state of interfaces before
    * configuring them for manet data forwarding.
    * Only used by os_specific code.
    */
   uint32_t _original_state;
 
-  /* hook interfaces into tree */
+  /*! hook interfaces into global tree */
   struct avl_node _node;
 
-  /* timer for lazy interface change handling */
+  /*! timer for lazy interface change handling */
   struct oonf_timer_instance _change_timer;
 };
 
@@ -139,6 +158,12 @@ EXPORT int os_interface_update(struct os_interface_data *, const char *);
 EXPORT int os_interface_init_mesh(struct os_interface *);
 EXPORT void os_interface_cleanup_mesh(struct os_interface *);
 
+/**
+ * Set mac address of interface
+ * @param ifdata interface data object
+ * @param mac new mac address
+ * @return -1 if an error happened, 0 otherwise
+ */
 static INLINE int
 os_interface_mac_set(struct os_interface_data *ifdata, struct netaddr *mac) {
   return os_interface_mac_set_by_name(ifdata->name, mac);

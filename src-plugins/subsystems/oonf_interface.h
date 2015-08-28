@@ -68,38 +68,41 @@
 /* interval after a failed interface change listener should be triggered again */
 #define IF_RETRIGGER_INTERVAL 1000ull
 
+/**
+ * Status listener for oonf interface
+ */
 struct oonf_interface_listener {
-  /* name of interface */
+  /*! name of interface */
   const char *name;
 
-  /*
+  /**
    * set to true if listener is on a mesh traffic interface.
    * keep this false if in doubt, true will trigger some interface
    * reconfiguration to allow forwarding of user traffic
    */
   bool mesh;
 
-  /*
-   * callback for interface change, should return -1 if the interface
-   * was not ready and the callback should be triggered again
+  /**
+   * callback for interface change event
+   * @param l pointer to this interface listener
+   * @return -1 if interface was not ready and
+   *   listener should be called again
    */
-  int (*process)(struct oonf_interface_listener *);
+  int (*process)(struct oonf_interface_listener *l);
 
-  /* true if process should be triggered again */
+  /*! true if process should be triggered again */
   bool trigger_again;
 
-  /*
-   * pointer to the interface this listener is registered to
-   */
+  /*! pointer to the interface this listener is registered to */
   struct os_interface *interface;
 
-  /*
+  /**
    * pointer to the interface data before the change happened, will be
    * set by the core while process() is called
    */
   struct os_interface_data *old;
 
-  /* hook into list of listeners */
+  /*! hook into list of listeners */
   struct list_entity _node;
 };
 

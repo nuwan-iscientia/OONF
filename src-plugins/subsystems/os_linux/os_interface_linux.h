@@ -50,9 +50,14 @@ enum os_addr_scope {
   OS_ADDR_SCOPE_GLOBAL = RT_SCOPE_UNIVERSE,
 };
 
+/**
+ * linux specifc data for changing an interface address
+ */
 struct os_interface_address_internal {
+  /*! hook into list of IP address change handlers */
   struct list_entity _node;
 
+  /*! netlink sequence number of command sent to the kernel */
   uint32_t nl_seq;
 };
 

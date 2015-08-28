@@ -158,39 +158,6 @@ oonf_class_remove(struct oonf_class *ci)
 }
 
 /**
- * Set a class to a new size. Can only be done as long as no
- * memory objects are allocated.
- * @param ci pointer to class
- */
-int
-oonf_class_resize(struct oonf_class *ci) {
-  struct oonf_class_extension *ext;
-  if (ci->_current_usage > 0) {
-    return -1;
-  }
-
-  /* round up size to make block extendable */
-  ci->total_size = _roundup(ci->size);
-
-  _free_freelist(ci);
-
-  /* recalculate offsets */
-  list_for_each_element(&ci->_extensions, ext, _node) {
-    ext->_offset = ci->total_size;
-    OONF_DEBUG(LOG_CLASS, "Class %s resized: "
-        " '%s' has offset %" PRINTF_SIZE_T_SPECIFIER " and size %" PRINTF_SIZE_T_SPECIFIER "\n",
-               ci->name, ext->ext_name, ext->_offset, ext->size);
-
-    ci->total_size = _roundup(ci->total_size + ext->size);
-  }
-
-  OONF_DEBUG(LOG_CLASS, "Class %s: resized to %" PRINTF_SIZE_T_SPECIFIER " bytes\n",
-             ci->name, ci->total_size);
-
-  return 0;
-}
-
-/**
  * Allocate a fixed amount of memory based on a passed in cookie type.
  * @param ci pointer to memcookie info
  * @return allocated memory

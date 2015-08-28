@@ -67,156 +67,211 @@ enum oonf_stream_errors {
   STREAM_SERVICE_UNAVAILABLE = 503,
 };
 
-/* represents a TCP stream */
+/**
+ * TCP stream socket
+ */
 struct oonf_stream_session {
-  /*
-   * public part of the session data
-   *
-   * variables marked RW might be written from txt commands, those with
-   * an "R" mark are read only
-   */
-
-  /* ip addr of peer (R) */
+  /*! ip addr of peer */
   struct netaddr remote_address;
 
-  /* full socket (ip, port, maybe interface) of peer (R) */
+  /*! full socket (ip, port, maybe interface) of peer */
   union netaddr_socket remote_socket;
 
-  /* output buffer, anything inside will be written to the peer as
-   * soon as possible */
+  /**
+   * output buffer, anything inside will be written to the peer as
+   * soon as possible
+   */
   struct autobuf out;
 
-  /*
-   * file input descriptor
+  /**
+   * file input descriptor for file upload
    *
    * will only be used in SEND_AND_QUIT state if out buffer is empty
    */
   int copy_fd;
 
-  /* number of bytes already copied and total to be copied */
-  size_t copy_bytes_sent, copy_total_size;
+  /*! number of bytes already copied in file upload */
+  size_t copy_bytes_sent;
 
-  /*
-   * internal part of the server
-   */
+  /*! total number of bytes to copy for file upload */
+  size_t copy_total_size;
+
+  /*! hook into list of tcp sessions of TCP socket */
   struct list_entity node;
 
-  /* backpointer to the stream socket */
-  struct oonf_stream_socket *comport;
+  /*! backpointer to the stream socket */
+  struct oonf_stream_socket *stream_socket;
 
-  /* scheduler handler for the session */
+  /*! scheduler handler for the session */
   struct oonf_socket_entry scheduler_entry;
 
-  /* timer for handling session timeout */
+  /*! timer for handling session timeout */
   struct oonf_timer_instance timeout;
 
-  /* input buffer for session */
+  /*! input buffer for session */
   struct autobuf in;
 
-  /*
+  /**
    * true if session user want to send before receiving anything. Will trigger
    * an empty read even as soon as session is connected
    */
   bool send_first;
 
-  /* true if session is still waiting for initial handshake to finish */
+  /*! true if session is still waiting for initial handshake to finish */
   bool wait_for_connect;
 
-  /* session event is just busy in scheduler */
+  /*! session event is just busy in scheduler */
   bool busy;
 
-  /* session has been remove while being busy */
+  /*! session has been remove while being busy */
   bool removed;
 
+  /*! state of the session */
   enum oonf_stream_session_state state;
 };
 
+/**
+ * Configuration of a stream socket
+ */
 struct oonf_stream_config {
-  /* memory cookie to allocate struct for tcp session */
+  /**
+   * memory cookie to allocate struct for tcp session
+   * the first part of this memory will be a tcp_steam_session!
+   */
   struct oonf_class *memcookie;
 
-  /* number of simultaneous sessions (default 10) */
+  /*! number of simultaneous sessions (default 10) */
   int allowed_sessions;
 
-  /*
+  /**
    * Timeout of the socket. A session will be closed if it does not
    * send or receive data for timeout milliseconds.
    */
   uint64_t session_timeout;
 
-  /* maximum allowed size of input buffer (default 65536) */
+  /*! maximum allowed size of input buffer (default 65536) */
   size_t maximum_input_buffer;
 
-  /*
+  /**
    * true if the socket wants to send data before it receives anything.
    * This will trigger an size 0 read event as soon as the socket is connected
    */
   bool send_first;
 
-  /* only clients that match the acl (if set) can connect */
+  /*! only clients that match the acl (if set) can connect */
   struct netaddr_acl *acl;
 
-  /* Called when a new session is created */
-  int (*init)(struct oonf_stream_session *);
-
-  /* Called when a TCP session ends */
-  void (*cleanup)(struct oonf_stream_session *);
-
-  /*
-   * An error happened during parsing the TCP session,
-   * the user of the session might want to create an error message
+  /**
+   * Callback to notify that a new session has been created
+   * @param session stream session
+   * @return -1 if an error happened, 0 otherwise
    */
-  void (*create_error)(struct oonf_stream_session *, enum oonf_stream_errors);
+  int (*init)(struct oonf_stream_session *session);
 
-  /*
-   * Called when new data will be available in the input buffer
+  /**
+   * Callback to notify that a stream session will be terminated
+   * @param session stream session
    */
-  enum oonf_stream_session_state (*receive_data)(struct oonf_stream_session *);
+  void (*cleanup)(struct oonf_stream_session *session);
+
+  /**
+   * Callback to notify that an error happened and the user might
+   * want to put an error message in the output buffer.
+   * @param session stream session
+   * @param error tcp stream error code
+   */
+  void (*create_error)(
+      struct oonf_stream_session *session, enum oonf_stream_errors error);
+
+  /**
+   * Callback that is called every times no data has been written
+   * into the input buffer
+   * @param stream stream session
+   * @return stream session status code
+   */
+  enum oonf_stream_session_state (*receive_data)(
+      struct oonf_stream_session *stream);
 
   /*
    * Called when we could write to the buffer but it is empty
    */
-  enum oonf_stream_session_state (*buffer_underrun)(struct oonf_stream_session *);
-
+  /**
+   * Callback to notify that the user asked scheduler to write
+   * data, but outgoing buffer is empty
+   * @param session stream session
+   * @return stream session status code
+   */
+  enum oonf_stream_session_state (*buffer_underrun)(
+      struct oonf_stream_session *session);
 };
 
-/*
+/**
  * Represents a TCP server socket or a configuration for a set of outgoing
  * TCP streams.
  */
 struct oonf_stream_socket {
+  /*! hook into global list of TCP sockets */
   struct list_entity _node;
 
+  /*! local address/port of socket */
   union netaddr_socket local_socket;
 
+  /*! list of open sessions of this socket */
   struct list_entity session;
 
+  /*! scheduler for handling server socket */
   struct oonf_socket_entry scheduler_entry;
 
+  /*! configuration of server socket */
   struct oonf_stream_config config;
 
-  /* optional back pointer for managed tcp sockets */
+  /*! optional back pointer for managed tcp sockets */
   struct oonf_stream_managed *managed;
 
+  /*! true if socket is currently busy in scheduler */
   bool busy;
+
+  /*! true if socket should be removed */
   bool remove;
+
+  /*! true if socket should be removed when output buffer is empty */
   bool remove_when_finished;
 };
 
+/**
+ * configuration of a managed dualstack TCP server socket
+ */
 struct oonf_stream_managed_config {
+  /*! access control for IP addresses allowed to access the socket */
   struct netaddr_acl acl;
+
+  /*! interface to bind to socket to, empty string for "all interfaces" */
   char interface[IF_NAMESIZE];
+
+  /*! ACL for selecting the address to bind the socket to */
   struct netaddr_acl bindto;
+
+  /*! port number for TCP server socket, 0 for random port */
   int32_t port;
 };
 
+/**
+ * managed dualstack TCP server socket
+ */
 struct oonf_stream_managed {
+  /*! stream socket for IPv4 */
   struct oonf_stream_socket socket_v4;
+
+  /*! stream socket for IPv6 */
   struct oonf_stream_socket socket_v6;
 
+  /*! configuration for both stream sockets */
   struct oonf_stream_config config;
 
+  /*! configuration of managed socket */
   struct oonf_stream_managed_config _managed_config;
+
+  /*! listener to interface the socket is bound to */
   struct oonf_interface_listener _if_listener;
 };
 

@@ -49,22 +49,34 @@
 
 #define OONF_SOCKET_SUBSYSTEM "socket"
 
-/* This struct represents a single registered socket handler */
+/**
+ * registered socket handler
+ */
 struct oonf_socket_entry {
-  /* file descriptor of the socket */
+  /*! file descriptor of the socket */
   int fd;
 
-  /* socket handler */
+  /**
+   * Callback when read or write event happens to socket
+   * @param fd file descriptor of socket
+   * @param data custom data pointer
+   * @param event_read true if a read event happened for the socket
+   * @param event_write true if a write event happened for the socket
+   */
   void (*process) (int fd, void *data,
       bool event_read, bool event_write);
 
-  /* custom data pointer for sockets */
+  /* TODO: process callback should be given a oonf_socket_entry instead */
+  /*! user data pointer */
   void *data;
 
-  /* event mask for socket handler */
-  bool event_read, event_write;
+  /*! true if socket wants to read data */
+  bool event_read;
 
-  /* list of socket handlers */
+  /*! true if socket wants to write data */
+  bool event_write;
+
+  /*! list of socket handlers */
   struct list_entity _node;
 };
 

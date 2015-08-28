@@ -224,7 +224,7 @@ _cb_tcp_lost(struct oonf_stream_session *tcp_session) {
   struct netaddr_str nbuf;
 #endif
 
-  router_session = container_of(tcp_session->comport, struct dlep_router_session, tcp);
+  router_session = container_of(tcp_session->stream_socket, struct dlep_router_session, tcp);
 
   OONF_DEBUG(LOG_DLEP_ROUTER, "Lost tcp session to %s",
       netaddr_socket_to_string(&nbuf, &tcp_session->remote_socket));
@@ -253,7 +253,7 @@ static enum oonf_stream_session_state
 _cb_tcp_receive_data(struct oonf_stream_session *tcp_session) {
   struct dlep_router_session *router_session;
 
-  router_session = container_of(tcp_session->comport, struct dlep_router_session, tcp);
+  router_session = container_of(tcp_session->stream_socket, struct dlep_router_session, tcp);
 
   return dlep_session_process_tcp(tcp_session, &router_session->session);
 }

@@ -52,33 +52,76 @@
 
 #define OS_SYSTEM_NETLINK_TIMEOUT 1000
 
+/**
+ * A buffer for transmitting netlink commands to the operation system
+ */
 struct os_system_netlink_buffer {
+  /*! hook into list of currently used buffers */
   struct list_entity _node;
-  uint32_t total, messages;
+
+  /*! total number of bytes in buffer */
+  uint32_t total;
+
+  /*! total number of messages in buffer */
+  uint32_t messages;
 };
 
+/**
+ * Linux netlink handler
+ */
 struct os_system_netlink {
+  /*! name of netlink handler */
   const char *name;
 
+  /*! socket handler for netlink communication */
   struct oonf_socket_entry socket;
+
+  /*! output buffer for netlink data */
   struct autobuf out;
+
+  /*! number of messages in output buffer */
   uint32_t out_messages;
 
-  /* link of data buffers to transmit */
+  /*! link of data buffers to transmit */
   struct list_entity buffered;
 
+  /*! subsystem that uses this netlink handler */
   struct oonf_subsystem *used_by;
 
+  /*! pointer to currently processed netlink message header */
   struct nlmsghdr *in;
+
+  /*! number of bytes of currently processed netlink message */
   size_t in_len;
 
+  /*! number of messages in transit to the kernel */
   int msg_in_transit;
 
+  /**
+   * Callback to handle incoming message from the kernel
+   * @param hdr netlink message header
+   */
   void (*cb_message)(struct nlmsghdr *hdr);
+
+  /**
+   * Callback to handle error message of kernel
+   * @param seq netlink sequence number that triggered the error
+   * @param error error code
+   */
   void (*cb_error)(uint32_t seq, int error);
+
+  /**
+   * Callback to notify the netlink communication timed out
+   */
   void (*cb_timeout)(void);
+
+  /**
+   * Callback to notify that a netlink message has been processed
+   * @param seq sequence number of the processed netlink message
+   */
   void (*cb_done)(uint32_t seq);
 
+  /*! netlink timeout handler */
   struct oonf_timer_instance timeout;
 };
 
@@ -98,6 +141,14 @@ EXPORT int os_system_netlink_addreq(struct os_system_netlink *nl,
 
 EXPORT int os_system_linux_get_ioctl_fd(int af_type);
 
+/**
+ * Adds an address TLV to a netlink stream
+ * @param nl netlink handler
+ * @param n netlink message header
+ * @param type netlink TLV type
+ * @param addr address
+ * @return -1 if an error happened, 0 otherwise
+ */
 static INLINE int
 os_system_netlink_addnetaddr(struct os_system_netlink *nl, struct nlmsghdr *n,
     int type, const struct netaddr *addr) {

@@ -46,13 +46,22 @@
 #include "common/avl.h"
 #include "common/list.h"
 
+/**
+ * linux specifc data for changing a kernel route
+ */
 struct os_route_internal {
+  /*! hook into list of route change handlers */
   struct avl_node _node;
 
+  /*! netlink sequence number of command sent to the kernel */
   uint32_t nl_seq;
 };
 
+/**
+ * linux specific data for listening to kernel route changes
+ */
 struct os_route_listener_internal {
+  /*! hook into list of kernel route listeners */
   struct list_entity _node;
 };
 #endif /* OS_ROUTING_LINUX_H_ */

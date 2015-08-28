@@ -54,55 +54,66 @@ enum oonf_class_event {
   OONF_OBJECT_REMOVED,
 };
 
+/**
+ * Buffer for text representation of an object
+ */
 struct oonf_objectkey_str {
+  /*! maximum length buffer for text */
   char buf[128];
 };
 
-/*
+/**
  * This structure represents a class of memory object, each with the same size.
  */
 struct oonf_class {
-  /* Name of class */
+  /*! Name of class */
   const char *name;
 
-  /* Size of memory blocks */
+  /*! Size of memory blocks in bytes */
   size_t size;
 
-  /*
+  /**
    * minimum number of chunks the allocator will keep
    * in the free list before starting to deallocate one
    */
   uint32_t min_free_count;
 
-  /*
-   * function pointer that converts a pointer to the object into a
-   * human readable key
+  /**
+   * Callback to convert object pointer into a human readable string
+   * @param buf output buffer for text
+   * @param cl oonf class
+   * @param ptr pointer to object
+   * @return pointer to buffer
    */
-  const char *(*to_keystring)(struct oonf_objectkey_str *, struct oonf_class *, void *);
+  const char *(*to_keystring)(
+      struct oonf_objectkey_str *buf, struct oonf_class *cl, void *ptr);
 
-  /* Size of class including extensions */
+  /*! Size of class including extensions in bytes */
   size_t total_size;
 
-  /* List node for classes */
+  /*! List node for classes */
   struct avl_node _node;
 
-  /* List head for recyclable blocks */
+  /*! List head for recyclable blocks */
   struct list_entity _free_list;
 
-  /* extensions of this class */
+  /*! extensions of this class */
   struct list_entity _extensions;
 
-  /* Length of free list */
+  /*! Length of free list */
   uint32_t _free_list_size;
 
-  /* Stats, resource usage */
+  /*! Stats, resource usage */
   uint32_t _current_usage;
 
-  /* Stats, allocated/recycled memory blocks */
-  uint32_t _allocated, _recycled;
+  /*! Stats, allocated memory blocks */
+  uint32_t _allocated;
+
+  /*! Stats, recycled memory blocks */
+  uint32_t _recycled;
 };
 
-/*
+/**
  * This structure defines a listener that can receive Add/Change/Remove
  * events for a certain class.
  *
@@ -110,28 +121,37 @@ struct oonf_class {
  * as no object has been allocated for the class in this moment.
  */
 struct oonf_class_extension {
-  /* name of the consumer */
+  /*! name of the consumer */
   const char *ext_name;
 
-  /* name of the provider */
+  /*! name of the provider */
   const char *class_name;
 
-  /* size of the extension */
+  /*! size of the extension */
   size_t size;
 
-  /* offset of the extension within the memory block */
+  /*! offset of the extension within the memory block */
   size_t _offset;
 
-  /* callback for 'cb_add object' event */
-  void (*cb_add)(void *);
+  /**
+   * Callback to notify that a class object was added
+   * @param ptr pointer to object
+   */
+  void (*cb_add)(void *ptr);
 
-  /* callback for 'cb_change object' event */
-  void (*cb_change)(void *);
+  /**
+   * Callback to notify that a class object was changed
+   * @param ptr pointer to object
+   */
+  void (*cb_change)(void *ptr);
 
-  /* callback for 'cb_remove object' event */
-  void (*cb_remove)(void *);
+  /**
+   * Callback to notify that a class object was removed
+   * @param ptr pointer to object
+   */
+  void (*cb_remove)(void *ptr);
 
-  /* node for hooking the consumer into the provider */
+  /*! node for hooking the consumer into the provider */
   struct list_entity _node;
 };
 
@@ -141,8 +161,6 @@ struct oonf_class_extension {
 /* Externals. */
 EXPORT void oonf_class_add(struct oonf_class *);
 EXPORT void oonf_class_remove(struct oonf_class *);
-EXPORT int oonf_class_resize(struct oonf_class *)
-    __attribute__((warn_unused_result));
 
 EXPORT void *oonf_class_malloc(struct oonf_class *)
     __attribute__((warn_unused_result));

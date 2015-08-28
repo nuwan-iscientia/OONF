@@ -59,8 +59,14 @@
 /* Definitions */
 #define LOG_OS_ROUTING _oonf_os_routing_subsystem.logging
 
+/**
+ * Array to translate between OONF route types and internal kernel types
+ */
 struct route_type_translation {
+  /*! OONF route type */
   enum os_route_type oonf;
+
+  /*! linux kernel route type */
   uint8_t os_linux;
 };
 

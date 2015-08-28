@@ -84,9 +84,17 @@
 #define OONF_LAYER2_NEIGH_TX_RLQ_KEY         "tx_rlq"
 #define OONF_LAYER2_NEIGH_RX_RLQ_KEY         "rx_rlq"
 
+/**
+ * Single data entry of layer2 network or neighbor
+ */
 struct oonf_layer2_data {
+  /*! data value */
   int64_t _value;
+
+  /*! true if the data contains value */
   bool _has_value;
+
+  /*! layer2 originator id */
   uint32_t _origin;
 };
 
@@ -139,80 +147,92 @@ enum oonf_layer2_neighbor_index {
   OONF_LAYER2_NEIGH_COUNT,
 };
 
+/**
+ * representation of a layer2 interface
+ */
 struct oonf_layer2_net {
-  /* name of local interface */
+  /*! name of local interface */
   char name[IF_NAMESIZE];
 
-  /* optional identification string */
+  /*! optional identification string */
   char if_ident[64];
 
-  /* interface type */
+  /*! interface type */
   enum oonf_layer2_network_type if_type;
 
-  /* interface listener to keep track of events and local mac address */
+  /*! interface listener to keep track of events and local mac address */
   struct oonf_interface_listener if_listener;
 
-  /* tree of remote neighbors */
+  /*! tree of remote neighbors */
   struct avl_tree neighbors;
 
-  /* absolute timestamp when network has been active last */
+  /*! absolute timestamp when network has been active last */
   uint64_t last_seen;
 
-  /* network wide layer 2 data */
+  /*! network wide layer 2 data */
   struct oonf_layer2_data data[OONF_LAYER2_NET_COUNT];
 
-  /* default values of neighbor layer2 data */
+  /*! default values of neighbor layer2 data */
   struct oonf_layer2_data neighdata[OONF_LAYER2_NEIGH_COUNT];
 
-  /* node to hook into global l2network tree */
+  /*! node to hook into global l2network tree */
   struct avl_node _node;
 };
 
+/**
+ * representation of a remote layer2 neighbor
+ */
 struct oonf_layer2_neigh {
-  /* remote mac address of neighbor */
+  /*! remote mac address of neighbor */
   struct netaddr addr;
 
-  /* back pointer to layer2 network */
+  /*! back pointer to layer2 network */
   struct oonf_layer2_net *network;
 
-  /* tree of proxied destinations */
+  /*! tree of proxied destinations */
   struct avl_tree destinations;
 
-  /* absolute timestamp when neighbor has been active last */
+  /*! absolute timestamp when neighbor has been active last */
   uint64_t last_seen;
 
-  /* neigbor layer 2 data */
+  /*! neigbor layer 2 data */
   struct oonf_layer2_data data[OONF_LAYER2_NEIGH_COUNT];
 
-  /* node to hook into tree of layer2 network */
+  /*! node to hook into tree of layer2 network */
   struct avl_node _node;
 };
 
+/**
+ * representation of a bridged MAC address behind a layer2 neighbor
+ */
 struct oonf_layer2_destination {
-  /* proxied mac address behind a layer2 neighbor */
+  /*! proxied mac address behind a layer2 neighbor */
   struct netaddr destination;
 
-  /* back pointer to layer2 neighbor */
+  /*! back pointer to layer2 neighbor */
   struct oonf_layer2_neigh *neighbor;
 
-  /* origin of this proxied address */
+  /*! origin of this proxied address */
   uint32_t origin;
 
-  /* node to hook into tree of layer2 neighbor */
+  /*! node to hook into tree of layer2 neighbor */
   struct avl_node _node;
 };
 
+/**
+ * Metadata of layer2 data entry for automatic processing
+ */
 struct oonf_layer2_metadata {
-  /* type of data */
+  /*! type of data */
   const char key[16];
 
-  /* unit (bit/s, byte, ...) */
+  /*! unit (bit/s, byte, ...) */
   const char unit[8];
 
-  /* number of fractional digits of the data */
+  /*! number of fractional digits of the data */
   const int fraction;
 
-  /* true if data is "base" 1024 instead of "base" 1000 */
+  /*! true if data is "base" 1024 instead of "base" 1000 */
   const bool binary;
 };
 

@@ -120,7 +120,7 @@ _cb_incoming_tcp(struct oonf_stream_session *tcp_session) {
   struct dlep_extension *ext;
 
   radio_session = container_of(tcp_session, struct dlep_radio_session, stream);
-  interface = container_of(tcp_session->comport->managed, struct dlep_radio_if, tcp);
+  interface = container_of(tcp_session->stream_socket->managed, struct dlep_radio_if, tcp);
 
   /* initialize back pointer */
   radio_session->interface = interface;

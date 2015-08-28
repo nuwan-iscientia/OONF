@@ -63,29 +63,57 @@ enum oonf_duplicate_result {
   OONF_DUPSET_MAX,
 };
 
+/**
+ * session data for detecting duplicate sequence numbers for addresses
+ */
 struct oonf_duplicate_set {
+  /*! tree of duplicate entries */
   struct avl_tree _tree;
+
+  /*! mask for detecting overflow */
   int64_t _mask;
+
+  /*! comparison limit to detect overflow */
   int64_t _limit;
+
+  /*! offset to fix overflow */
   int64_t _offset;
 };
 
+/**
+ * Unique key for duplicate entry
+ */
 struct oonf_duplicate_entry_key {
+  /*! address the sequence number referrs to */
   struct netaddr addr;
+
+  /*! message type of sequence number, mostly RFC5444 */
   uint8_t  msg_type;
 };
 
+/**
+ * State of duplicate detection for one unique key
+ */
 struct oonf_duplicate_entry {
+  /*! unique key for duplicate detection */
   struct oonf_duplicate_entry_key key;
 
+  /*! bit buffer for duplicate detection */
   uint64_t history;
+
+  /*! newest received sequence number */
   uint64_t current;
 
+  /*! number of too old consecutive sequence numbers without a newer one */
   uint16_t too_old_count;
 
+  /*! back pointer to duplicate set */
   struct oonf_duplicate_set *set;
 
+  /*! node for tree of duplicate set */
   struct avl_node _node;
+
+  /*! timer for removing outdated duplicate set data */
   struct oonf_timer_instance _vtime;
 };
 
@@ -109,6 +137,11 @@ EXPORT enum oonf_duplicate_result oonf_duplicate_test(
 
 EXPORT const char *oonf_duplicate_get_result_str(enum oonf_duplicate_result);
 
+/**
+ * returns if a sequence number result means it is new
+ * @param result sequence number processing result
+ * @return true if result was newer than the last one
+ */
 static INLINE bool
 oonf_duplicate_is_new(enum oonf_duplicate_result result) {
   return result == OONF_DUPSET_NEW || result == OONF_DUPSET_NEWEST || result == OONF_DUPSET_FIRST;

@@ -64,61 +64,72 @@ enum oonf_telnet_result {
   _TELNET_RESULT_UNKNOWN_COMMAND,
 };
 
-/*
+/**
  * represents a cleanup handler that must be called when the
  * telnet core is shut down.
  */
 struct oonf_telnet_cleanup {
-  /* pointer to telnet data */
+  /*! pointer to telnet data */
   struct oonf_telnet_data *data;
 
-  /* callback for cleanup */
-  void (*cleanup_handler)(struct oonf_telnet_cleanup *);
+  /**
+   * Callback that a telnet session is to be cleaned up
+   * @param cleanup registered cleanup handler
+   */
+  void (*cleanup_handler)(struct oonf_telnet_cleanup *cleanup);
 
-  /* custom data pointer for cleanup handler */
+  /*! custom data pointer for cleanup handler */
   void *custom;
 
-  /* node for list of cleanup handlers */
+  /*! node for list of cleanup handlers */
   struct list_entity node;
 };
 
-/*
+/**
  * represents the data part of a telnet connection to a client
  */
 struct oonf_telnet_data {
-  /* address of remote communication partner */
+  /*! address of remote communication partner */
   struct netaddr *remote;
 
-  /* output buffer for telnet commands */
+  /*! output buffer for telnet commands */
   struct autobuf *out;
 
-  /* current telnet command and parameters */
+  /*! current telnet command */
   const char *command;
+
+  /*! current telnet parameters */
   const char *parameter;
 
-  /* remember if echo mode is active */
+  /*! true if echo mode is active */
   bool show_echo;
 
-  /* millisecond timeout between commands */
+  /*! millisecond timeout between commands */
   uint32_t timeout_value;
 
-  /* callback and data to stop a continous output txt command */
-  void (*stop_handler)(struct oonf_telnet_data *);
+  /**
+   * Callback triggered to stop continuous data output
+   * @param data this telnet data object
+   */
+  void (*stop_handler)(struct oonf_telnet_data *data);
+
+  /*! custom data for stop handler */
   void *stop_data[4];
 
+  /*! list of cleanup handlers */
   struct list_entity cleanup_list;
 };
 
-/*
+/**
  * represents a full telnet session including socket
  */
 struct oonf_telnet_session {
+  /*! telnet TCP stream session */
   struct oonf_stream_session session;
+
+  /*! telnet data */
   struct oonf_telnet_data data;
 };
-
-typedef enum oonf_telnet_result (*oonf_telnethandler)
-    (struct oonf_telnet_data *con);
 
 #if !defined(REMOVE_HELPTEXT)
 #define TELNET_CMD(cmd, cb, helptext, args...) { .command = (cmd), .handler = (cb), .help = helptext, ##args }
@@ -126,24 +137,34 @@ typedef enum oonf_telnet_result (*oonf_telnethandler)
 #define TELNET_CMD(cmd, cb, helptext, args...) { .command = (cmd), .handler = (cb), .help = "", ##args }
 #endif
 
-/* represents a telnet command */
+/**
+ * represents a telnet command
+ */
 struct oonf_telnet_command {
-  /* name of telnet command */
+  /*! name of telnet command */
   const char *command;
 
-  /* help text for telnet command, NULL if it uses a custom help handler */
+  /*! help text for telnet command, NULL if it uses a custom help handler */
   const char *help;
 
-  /* access control list for telnet command, NULL if not used */
+  /*! access control list for telnet command, NULL if not used */
   struct netaddr_acl *acl;
 
-  /* handler for telnet command */
-  oonf_telnethandler handler;
+  /**
+   * callback triggered when telnet command is called
+   * @param con telnet data
+   * @return telnet result
+   */
+  enum oonf_telnet_result (*handler)(struct oonf_telnet_data *con);
 
-  /* handler for help text */
-  oonf_telnethandler help_handler;
+  /**
+   * callback triggered when help command for telnet command is called
+   * @param con telnet data
+   * @return telnet result
+   */
+  enum oonf_telnet_result (*help_handler)(struct oonf_telnet_data *con);
 
-  /* node for tree of telnet commands */
+  /*! node for tree of telnet commands */
   struct avl_node _node;
 };
 

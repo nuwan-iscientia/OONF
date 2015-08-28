@@ -60,53 +60,138 @@
 
 struct oonf_packet_socket;
 
+/**
+ * Configuraten of a packet socket
+ */
 struct oonf_packet_config {
+  /*! pointer to buffer for incoming data */
   void *input_buffer;
+
+  /*! length of input buffer */
   size_t input_buffer_length;
 
-  void (*receive_data)(struct oonf_packet_socket *,
+  /**
+   * Callback triggered when an UDP packet has been received
+   * @param psock packet socket
+   * @param from IP source address
+   * @param ptr pointer to packet data
+   * @param length length of packet data
+   */
+  void (*receive_data)(struct oonf_packet_socket *psock,
       union netaddr_socket *from, void *ptr, size_t length);
 
+  /*! true if the outgoing UDP traffic should not be routed */
   bool dont_route;
+
+  /*! user defined pointer */
   void *user;
 };
 
+/**
+ * Definition of a packet socket
+ */
 struct oonf_packet_socket {
+  /*! hook into global list of packet sockets */
   struct list_entity node;
 
+  /*! scheduler hook to handle incoming and outgoing data */
   struct oonf_socket_entry scheduler_entry;
+
+  /*! address and port of the local UDP socket */
   union netaddr_socket local_socket;
+
+  /*! IP protocol number for raw sockets */
   int protocol;
 
+  /*! outgoing buffer */
   struct autobuf out;
 
+  /*! interface data the socket is bound to */
   struct os_interface_data *interface;
 
+  /*! configuration of packet socket */
   struct oonf_packet_config config;
 };
 
+/**
+ * Configuration of a managed dualstack unicast
+ * (and optionally multicast) UDP socket
+ */
 struct oonf_packet_managed_config {
+  /*! access control list for incoming source IP addresses */
   struct netaddr_acl acl;
+
+  /*! name to bind to socket on */
   char interface[IF_NAMESIZE];
+
+  /*! access control list to restrict the IPs the socket is bound to */
   struct netaddr_acl bindto;
+
+  /*! IPv4 multicast address for socket */
   struct netaddr multicast_v4;
+
+  /*! IPv6 multicast address for socket */
   struct netaddr multicast_v6;
-  int32_t port, multicast_port, protocol;
+
+  /*! unicast UDP port for socket, 0 for random port */
+  int32_t port;
+
+  /*! multicast UDP port for socket, 0 for same as unicast port */
+  int32_t multicast_port;
+
+  /*! IP protocol id for socket, used for raw sockets */
+  int32_t protocol;
+
+  /*! true if multicast should be looped locally */
   bool loop_multicast;
-  bool mesh, rawip;
+
+  /*! true if socket needs interface to switch to mesh mode */
+  bool mesh;
+
+  /*! true if this is a raw IP socket */
+  bool rawip;
+
+  /*! IP dscp value for outgoing traffic */
   int32_t dscp;
 };
 
+/**
+ * managed dualstack UDP socket
+ */
 struct oonf_packet_managed {
-  struct oonf_packet_socket socket_v4, multicast_v4;
-  struct oonf_packet_socket socket_v6, multicast_v6;
+  /**
+   * socket for send/receive IPv4 UDP unicast
+   * and sending IPv4 UDP multicast
+   */
+  struct oonf_packet_socket socket_v4;
 
+  /*! socket for receiving IPv4 UDP multicast */
+  struct oonf_packet_socket multicast_v4;
+
+  /**
+   * socket for send/receive IPv6 UDP unicast
+   * and sending IPv6 UDP multicast
+   */
+  struct oonf_packet_socket socket_v6;
+
+  /*! socket for receiving IPv4 UDP multicast */
+  struct oonf_packet_socket multicast_v6;
+
+  /*! socket configuration that will be used for all four sockets */
   struct oonf_packet_config config;
 
-  /* callback fired when someone applies settings to the socket */
-  void (*cb_settings_change)(struct oonf_packet_managed *, bool changed);
+  /**
+   * Callback to inform about a change of socket settings
+   * @param managed managed socket
+   * @param changed true if one of the sockets had to be reconfigured
+   */
+  void (*cb_settings_change)(
+      struct oonf_packet_managed *managed, bool changed);
 
+  /*! configuration of managed socket */
   struct oonf_packet_managed_config _managed_config;
+
+  /*! interface listener to detect changes */
   struct oonf_interface_listener _if_listener;
 };
 

@@ -61,9 +61,20 @@
 /* constants and definitions */
 #define LOG_RFC5444 _oonf_rfc5444_subsystem.logging
 
+/**
+ * RFC5444 configuration
+ */
 struct _rfc5444_config {
+  /*! port number to be used for RFC5444 communication */
   int32_t port;
+
+  /*! IP protocol number to be used for RFC5444 communication */
   int ip_proto;
+
+  /**
+   * interval to wait for aggregating
+   * RFC5444 messages on the same target
+   */
   uint64_t aggregation_interval;
 };
 

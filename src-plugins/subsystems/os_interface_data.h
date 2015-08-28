@@ -45,40 +45,50 @@
 #include "common/common_types.h"
 #include "common/netaddr.h"
 
+/**
+ * Representation of interface knowledge of the operation system
+ */
 struct os_interface_data {
-  /* Interface addresses with mesh-wide scope (at least) */
-  const struct netaddr *if_v4, *if_v6;
+  /*! IPv4 Interface addresses with mesh-wide scope (at least) */
+  const struct netaddr *if_v4;
 
-  /* IPv6 Interface address with global scope */
+  /*! IPv5 Interface addresses with mesh-wide scope (at least) */
+  const struct netaddr *if_v6;
+
+  /*! IPv6 Interface address with global scope */
   const struct netaddr *linklocal_v6_ptr;
 
-  /* mac address of interface */
+  /*! mac address of interface */
   struct netaddr mac;
 
-  /* list of all addresses of the interface */
+  /*! list of all addresses of the interface */
   struct netaddr *addresses;
+
+  /*! number of addresses of the interface */
   size_t addrcount;
 
-  /* list of all prefixes of the interface */
+  /*! list of all prefixes of the interface */
   struct netaddr *prefixes;
+
+  /*! number of prefixes of the interface */
   size_t prefixcount;
 
-  /* interface name */
+  /*! interface name */
   char name[IF_NAMESIZE];
 
-  /* interface index */
+  /*! interface index */
   unsigned index;
 
-  /*
+  /**
    * interface index of base interface (for vlan),
    * same for normal interface
    */
   unsigned base_index;
 
-  /* true if the interface exists and is up */
+  /*! true if the interface exists and is up */
   bool up;
 
-  /* true if this is a loopback interface */
+  /*! true if this is a loopback interface */
   bool loopback;
 };
 

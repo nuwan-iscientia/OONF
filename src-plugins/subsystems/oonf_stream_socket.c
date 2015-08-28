@@ -463,13 +463,13 @@ _stream_close(struct oonf_stream_session *session) {
     return;
   }
 
-  if (session->comport->config.cleanup) {
-    session->comport->config.cleanup(session);
+  if (session->stream_socket->config.cleanup) {
+    session->stream_socket->config.cleanup(session);
   }
 
   oonf_timer_stop(&session->timeout);
 
-  session->comport->config.allowed_sessions++;
+  session->stream_socket->config.allowed_sessions++;
   list_remove(&session->node);
 
   os_socket_close(session->scheduler_entry.fd);
@@ -478,7 +478,7 @@ _stream_close(struct oonf_stream_session *session) {
   abuf_free(&session->in);
   abuf_free(&session->out);
 
-  oonf_class_free(session->comport->config.memcookie, session);
+  oonf_class_free(session->stream_socket->config.memcookie, session);
 }
 
 /**
@@ -658,7 +658,7 @@ _create_session(struct oonf_stream_socket *stream_socket,
   oonf_socket_add(&session->scheduler_entry);
 
   session->send_first = stream_socket->config.send_first;
-  session->comport = stream_socket;
+  session->stream_socket = stream_socket;
 
   session->remote_address = *remote_addr;
   session->remote_socket = *remote_socket;
@@ -728,7 +728,7 @@ _cb_parse_connection(int fd, void *data, bool event_read, bool event_write) {
   struct netaddr_str buf;
 
   session = data;
-  s_sock = session->comport;
+  s_sock = session->stream_socket;
 
   OONF_DEBUG(LOG_STREAM, "Parsing connection of socket %d\n", fd);
 

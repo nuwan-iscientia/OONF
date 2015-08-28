@@ -59,45 +59,49 @@
 #define OONF_VIEWER_DATA_FORMAT     "data"
 #define OONF_VIEWER_DATA_RAW_FORMAT "dataraw"
 
-/*
+/**
  * This struct defines a template engine command that can output both
  * table and JSON.
  */
 struct oonf_viewer_template {
-  /* output buffer */
+  /*! output buffer */
   struct autobuf *out;
 
-  /* true if output should be in JSON format */
+  /*! true if output should be in JSON format */
   bool create_json;
 
-  /* true if isonumbers should be raw */
+  /*! true if isonumbers should be raw */
   bool create_raw;
 
-  /* true if skips the enclosing JSON brackets */
+  /*! true if skips the enclosing JSON brackets */
   bool create_only_data;
 
-  /* pointer to template data array to get key/value pairs */
+  /*! pointer to template data array to get key/value pairs */
   struct abuf_template_data *data;
 
-  /* size of template data array */
+  /*! size of template data array */
   size_t data_size;
 
-  /* name of the JSON object which contains the key*/
+  /*! name of the JSON object which contains the key*/
   const char *json_name;
 
-  /* single line help text for overview about command */
+  /*! single line help text for overview about command */
   const char *help_line;
 
-  /* full help text about this template output */
+  /*! full help text about this template output */
   const char *help;
 
-  /* callback to generate content */
+  /**
+   * Callback triggered to generate the content of the template
+   * @param this viewer template
+   * @return -1 if an error happened, 0 otherwise
+   */
   int (*cb_function)(struct oonf_viewer_template *);
 
-  /* internal variable for template engine storage array */
+  /*! internal variable for template engine storage array */
   struct abuf_template_storage *_storage;
 
-  /* internal variable for JSON generation */
+  /*! internal variable for JSON generation */
   struct json_session _json;
 };
 

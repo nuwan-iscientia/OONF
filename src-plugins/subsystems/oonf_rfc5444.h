@@ -94,141 +94,154 @@ enum {
 
 struct oonf_rfc5444_target;
 
-/*
+/**
  * Representation of a rfc5444 based protocol
  */
 struct oonf_rfc5444_protocol {
-  /* name of the protocol */
+  /*! name of the protocol */
   char name[32];
 
-  /* port number of the protocol */
+  /*! port number of the protocol */
   uint16_t port;
 
-  /*
+  /**
    * true if the local port must be the protocol port,
    * false if it may be random
    */
   bool fixed_local_port;
 
-  /* IP protocol number for raw IP communication */
+  /** IP protocol number for raw IP communication */
   int ip_proto;
 
-  /*
-   * this variables are only valid during packet processing and contain
-   * additional information about the current packet
-   */
+  /*! source address of currently parsed RFC5444 packet */
   struct netaddr *input_address;
+
+  /*! source address and port of currently parsed RFC5444 packet */
   union netaddr_socket *input_socket;
+
+  /*! interface of currently parsed RFC5444 packet */
   struct oonf_rfc5444_interface *input_interface;
+
+  /*! true if currently parsed RFC5444 packet was multicast */
   bool input_is_multicast;
 
-  /* RFC5444 reader and writer for this protocol instance */
+  /*! RFC5444 reader for this protocol instance */
   struct rfc5444_reader reader;
+
+  /*! RFC5444 writer for this protocol instance */
   struct rfc5444_writer writer;
 
-  /* processed set as defined in OLSRv2 */
+  /*! processed set as defined in OLSRv2 */
   struct oonf_duplicate_set processed_set;
 
-  /* forwarded set as defined in OLSRv2 */
+  /*! forwarded set as defined in OLSRv2 */
   struct oonf_duplicate_set forwarded_set;
 
-  /* node for tree of protocols */
+  /*! node for tree of protocols */
   struct avl_node _node;
 
-  /* tree of interfaces for this protocol */
+  /*! tree of interfaces for this protocol */
   struct avl_tree _interface_tree;
 
-  /* reference count of this protocol */
+  /*! reference count of this protocol */
   int _refcount;
 
-  /* number of users who need a packet sequence number for all packets */
+  /*! number of users who need a packet sequence number for all packets */
   int _pktseqno_refcount;
 
-  /* next protocol message sequence number */
+  /*! next protocol message sequence number */
   uint16_t _msg_seqno;
 
-  /* message buffer for protocol */
+  /*! message buffer for protocol */
   uint8_t _msg_buffer[RFC5444_MAX_MESSAGE_SIZE];
 
-  /* buffer for addresstlvs before splitting the message */
+  /*! buffer for addresstlvs before splitting the message */
   uint8_t _addrtlv_buffer[RFC5444_ADDRTLV_BUFFER];
 };
 
-/*
+/**
  * Representation of a rfc5444 interface of a protocol
  */
 struct oonf_rfc5444_interface {
-  /* name of interface */
+  /*! name of interface */
   char name[IF_NAMESIZE];
 
-  /* backpointer to protocol */
+  /*! backpointer to protocol */
   struct oonf_rfc5444_protocol *protocol;
 
-  /* Node for tree of interfaces in protocol */
+  /*! Node for tree of interfaces in protocol */
   struct avl_node _node;
 
-  /* tree of unicast targets */
+  /*! tree of unicast targets */
   struct avl_tree _target_tree;
 
-  /* tree of interface event listeners of this interface */
+  /*! tree of interface event listeners of this interface */
   struct list_entity _listener;
 
-  /* socket for this interface */
+  /*! managed socket for this interface */
   struct oonf_packet_managed _socket;
 
-  /* current socket configuration of this interface */
+  /*! current socket configuration of this interface */
   struct oonf_packet_managed_config _socket_config;
 
-  /* pointer to ipv4/ipv6 targets for this interface */
-  struct oonf_rfc5444_target *multicast4, *multicast6;
+  /*! pointer to ipv4 multicast targets for this interface */
+  struct oonf_rfc5444_target *multicast4;
 
-  /* number of users of this interface */
+  /*! pointer to ipv6 multicast targets for this interface */
+  struct oonf_rfc5444_target *multicast6;
+
+  /*! number of users of this interface */
   int _refcount;
 };
 
-/*
+/**
  * Represents a listener to the interface events of a rfc5444 interface
  */
 struct oonf_rfc5444_interface_listener {
-  /* callback fired when an event happens */
-  void (*cb_interface_changed)(struct oonf_rfc5444_interface_listener *, bool changed);
+  /**
+   * Callback to signal a change of the RFC5444 interface
+   * @param l this interface listener
+   * @param changed true if a socket had to be reconfigured
+   */
+  void (*cb_interface_changed)(
+      struct oonf_rfc5444_interface_listener *l, bool changed);
 
-  /* backpointer to interface */
+  /*! backpointer to rfc5444 interface */
   struct oonf_rfc5444_interface *interface;
 
-  /* node for list of listeners of an interface */
+  /*! node for list of listeners of an interface */
   struct list_entity _node;
 };
 
-/*
+/**
  * Represents a target (destination IP) of a rfc5444 interface
  */
 struct oonf_rfc5444_target {
-  /* rfc5444 API representation of the target */
+  /*! rfc5444 API representation of the target */
   struct rfc5444_writer_target rfc5444_target;
 
-  /* destination IP */
+  /*! destination IP */
   struct netaddr dst;
 
-  /* backpointer to interface */
+  /*! backpointer to interface */
   struct oonf_rfc5444_interface *interface;
 
-  /* node for tree of targets for unicast interfaces */
+  /*! node for tree of targets for unicast interfaces */
   struct avl_node _node;
 
-  /* timer for message aggregation on interface */
+  /*! timer for message aggregation on interface */
   struct oonf_timer_instance _aggregation;
 
-  /* number of users of this target */
+  /*! number of users of this target */
   int _refcount;
 
-  /* number of users requesting a packet sequence number for this target */
+  /*! number of users requesting a packet sequence number for this target */
   int _pktseqno_refcount;
 
-  /* last packet sequence number used for this target */
+  /*! last packet sequence number used for this target */
   uint16_t _pktseqno;
 
-  /* packet output buffer for target */
+  /*! packet output buffer for target */
   uint8_t _packet_buffer[RFC5444_MAX_PACKET_SIZE];
 };
 

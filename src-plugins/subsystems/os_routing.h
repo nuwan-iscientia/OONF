@@ -73,7 +73,11 @@
 #define RT_TABLE_UNSPEC 0
 #endif
 
+/**
+ * Struct for text representation of a route
+ */
 struct os_route_str {
+  /*! text buffer for maximum length of representation */
   char buf[
            /* header */
            1+
@@ -107,51 +111,81 @@ enum os_route_type {
   OS_ROUTE_NAT,
 };
 
+/**
+ * key of a route, both source and destination prefix
+ */
 struct os_route_key {
+  /*! destination prefix of route */
   struct netaddr dst;
+
+  /*! source prefix of route */
   struct netaddr src;
 };
 
+/**
+ * Handler for changing a route in the kernel
+ * or querying the route status
+ */
 struct os_route {
-  /* used for delivering feedback about netlink commands */
+  /*! used for delivering feedback about netlink commands */
   struct os_route_internal _internal;
 
-  /* address family */
+  /*! address family */
   unsigned char family;
 
-  /* type of route */
+  /*! type of route */
   enum os_route_type type;
 
-  /* combination of source and destination */
+  /*! combination of source and destination */
   struct os_route_key key;
 
-  /* gateway and destination */
+  /*! gateway and destination */
   struct netaddr gw;
 
-  /* source IP that should be used for outgoing IP packets of this route */
+  /*! source IP that should be used for outgoing IP packets of this route */
   struct netaddr src_ip;
 
-  /* metric of the route */
+  /*! metric of the route */
   int metric;
 
-  /* routing table and routing protocol */
-  unsigned char table, protocol;
+  /*! routing table protocol */
+  unsigned char table;
 
-  /* index of outgoing interface */
+  /*! routing routing protocol */
+  unsigned char protocol;
+
+  /*! index of outgoing interface */
   unsigned int if_index;
 
-  /* callback when operation is finished */
-  void (*cb_finished)(struct os_route *, int error);
+  /**
+   * Callback triggered when the route has been set
+   * @param route this route object
+   * @param error -1 if an error happened, 0 otherwise
+   */
+  void (*cb_finished)(struct os_route *route, int error);
 
-  /* callback for os_routing_query() */
+  /**
+   * Callback triggered for each route found in the FIB
+   * @param filter this route object used to filter the
+   *   data from the kernel
+   * @param route kernel route that matches the filter
+   */
   void (*cb_get)(struct os_route *filter, struct os_route *route);
 };
 
+/**
+ * Listener for kernel route changes
+ */
 struct os_route_listener {
-  /* used for delivering feedback about netlink commands */
+  /*! used for delivering feedback about netlink commands */
   struct os_route_listener_internal _internal;
 
-  /* callback called for each routing event */
+  /**
+   * Callback triggered when a route changes in the kernel
+   * @param route changed route
+   * @param set true if route has been set/changed,
+   *   false if it has been removed
+   */
   void (*cb_get)(const struct os_route *route, bool set);
 };
 
@@ -175,17 +209,30 @@ EXPORT void os_route_init_half_os_route_key(
     struct netaddr *any, struct netaddr *specific,
     const struct netaddr *source);
 
+/**
+ * Initialize a source specific route key with a destination.
+ * Overwrites the source prefix with the IP_ANY of the
+ * corresponding address family
+ * @param prefix target source specific route key
+ * @param destination destination prefix
+ */
 static INLINE void
 os_route_init_sourcespec_prefix(struct os_route_key *prefix,
     const struct netaddr *destination) {
   os_route_init_half_os_route_key(&prefix->src, &prefix->dst, destination);
 }
 
+/**
+ * Initialize a source specific route key with a source.
+ * Overwrites the destination prefix with the IP_ANY of the
+ * corresponding address family
+ * @param prefix target source specific route key
+ * @param source source prefix
+ */
 static INLINE void
 os_route_init_sourcespec_src_prefix(struct os_route_key *prefix,
     const struct netaddr *source) {
   os_route_init_half_os_route_key(&prefix->dst, &prefix->src, source);
 }
-
 
 #endif /* OS_ROUTING_H_ */
