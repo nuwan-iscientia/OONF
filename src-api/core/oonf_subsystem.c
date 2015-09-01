@@ -110,7 +110,7 @@ struct autobuf _dlopen_data_buffer;
  * Initialize the plugin loader system
  */
 int
-oonf_plugins_init(void) {
+oonf_subsystem_init(void) {
   if (abuf_init(&_dlopen_data_buffer)) {
     return -1;
   }
@@ -131,7 +131,7 @@ oonf_plugins_init(void) {
  * Disable and unload all plugins
  */
 void
-oonf_plugins_cleanup(void) {
+oonf_subsystem_cleanup(void) {
   struct oonf_subsystem *plugin, *iterator;
 
   avl_for_each_element_safe(&oonf_plugin_tree, plugin, _node, iterator) {
@@ -199,7 +199,7 @@ oonf_subsystem_unconfigure(struct cfg_schema *schema,
  * @param path default path
  */
 void
-oonf_plugins_set_path(const char *path) {
+oonf_subsystem_set_path(const char *path) {
   _dlopen_data[IDX_DLOPEN_PATH].value = path;
 }
 
@@ -207,7 +207,7 @@ oonf_plugins_set_path(const char *path) {
  * Tell plugins to begin to shutdown
  */
 void
-oonf_plugins_initiate_shutdown(void) {
+oonf_subsystem_initiate_shutdown(void) {
   struct oonf_subsystem *plugin, *iterator;
 
   avl_for_each_element_safe(&oonf_plugin_tree, plugin, _node, iterator) {
@@ -225,12 +225,12 @@ oonf_plugins_initiate_shutdown(void) {
  * @param plugin pointer to plugin definition
  */
 void
-oonf_plugins_hook(struct oonf_subsystem *plugin) {
+oonf_subsystem_hook(struct oonf_subsystem *plugin) {
   /* make sure plugin tree is initialized */
   _init_plugin_tree();
 
   /* check if plugin is already in tree */
-  if (oonf_plugins_get(plugin->name)) {
+  if (oonf_subsystem_get(plugin->name)) {
     return;
   }
 
@@ -247,8 +247,8 @@ oonf_plugins_hook(struct oonf_subsystem *plugin) {
  * @return pointer to buffer with plugin name, must be freed later
  */
 void
-oonf_plugins_extract_name(
-    struct oonf_plugin_namebuf *pluginname, const char *libname) {
+oonf_subsystem_extract_name(
+    struct oonf_subsystem_namebuf *pluginname, const char *libname) {
   size_t start, end;
   char *ptr;
 
@@ -288,14 +288,14 @@ oonf_plugins_extract_name(
  * @return plugin db object
  */
 struct oonf_subsystem *
-oonf_plugins_load(const char *libname)
+oonf_subsystem_load(const char *libname)
 {
   struct oonf_subsystem *plugin;
   void *dlhandle;
   int idx;
 
   /* see if the plugin is there */
-  if ((plugin = oonf_plugins_get(libname)) == NULL) {
+  if ((plugin = oonf_subsystem_get(libname)) == NULL) {
     /* attempt to load the plugin */
     dlhandle = _open_plugin(libname, &idx);
 
@@ -305,7 +305,7 @@ oonf_plugins_load(const char *libname)
     }
 
     /* plugin should be in the tree now */
-    if ((plugin = oonf_plugins_get(libname)) == NULL) {
+    if ((plugin = oonf_subsystem_get(libname)) == NULL) {
       OONF_WARN(LOG_PLUGINS, "dynamic library loading failed: \"%s\"!\n", dlerror());
       dlclose(dlhandle);
       return NULL;
@@ -324,7 +324,7 @@ oonf_plugins_load(const char *libname)
  * @return -1 if initialization failed, 0 otherwise
  */
 int
-oonf_plugins_call_init(struct oonf_subsystem *plugin) {
+oonf_subsystem_call_init(struct oonf_subsystem *plugin) {
   /* start recursive dependency tracking */
   return _init_plugin(plugin);
 }
@@ -334,7 +334,7 @@ oonf_plugins_call_init(struct oonf_subsystem *plugin) {
  * @param plugin pointer to plugin db object
  */
 void
-oonf_plugins_initiate_unload(struct oonf_subsystem *plugin) {
+oonf_subsystem_initiate_unload(struct oonf_subsystem *plugin) {
   if (plugin->initiate_shutdown) {
     plugin->initiate_shutdown();
     plugin->_unload_initiated = true;
@@ -348,7 +348,7 @@ oonf_plugins_initiate_unload(struct oonf_subsystem *plugin) {
  * @return 0 if plugin was removed, -1 otherwise
  */
 int
-oonf_plugins_unload(struct oonf_subsystem *plugin) {
+oonf_subsystem_unload(struct oonf_subsystem *plugin) {
   if (plugin->initiate_shutdown != NULL && !plugin->_unload_initiated) {
     return -1;
   }
@@ -389,7 +389,7 @@ _init_plugin(struct oonf_subsystem *plugin) {
   plugin->_dependency_missing = true;
 
   for (i=0; i<plugin->dependencies_count; i++) {
-    dep = oonf_plugins_get(plugin->dependencies[i]);
+    dep = oonf_subsystem_get(plugin->dependencies[i]);
     if (!dep) {
       OONF_WARN(LOG_PLUGINS, "Dependency '%s' missing for '%s'",
           plugin->dependencies[i], plugin->name);

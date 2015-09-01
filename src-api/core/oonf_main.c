@@ -170,7 +170,7 @@ oonf_main(int argc, char **argv, const struct oonf_appdata *appdata) {
   }
 
   /* prepare plugin initialization */
-  oonf_plugins_init();
+  oonf_subsystem_init();
 
   /* initialize configuration system */
   if (oonf_cfg_init(argc, argv, appdata->default_cfg_handler)) {
@@ -272,7 +272,7 @@ oonf_main(int argc, char **argv, const struct oonf_appdata *appdata) {
   return_code = mainloop(argc, argv, appdata);
 
   /* tell plugins shutdown is in progress */
-  oonf_plugins_initiate_shutdown();
+  oonf_subsystem_initiate_shutdown();
 
   /* wait for 500 ms and process socket events */
   while(!_handle_scheduling());
@@ -280,7 +280,7 @@ oonf_main(int argc, char **argv, const struct oonf_appdata *appdata) {
 oonf_cleanup:
   /* free plugins */
   oonf_cfg_unconfigure_plugins();
-  oonf_plugins_cleanup();
+  oonf_subsystem_cleanup();
 
   /* free logging/config bridge resources */
   oonf_logcfg_cleanup();

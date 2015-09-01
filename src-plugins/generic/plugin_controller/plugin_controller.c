@@ -160,13 +160,13 @@ _cb_telnet_plugin(struct oonf_telnet_data *data) {
     plugin_name++;
   }
 
-  plugin = oonf_plugins_get(plugin_name);
+  plugin = oonf_subsystem_get(plugin_name);
   if (str_hasnextword(data->parameter, "load") == NULL) {
     if (plugin != NULL) {
       abuf_appendf(data->out, "Plugin %s already loaded\n", plugin_name);
       return TELNET_RESULT_ACTIVE;
     }
-    plugin = oonf_plugins_load(plugin_name);
+    plugin = oonf_subsystem_load(plugin_name);
     if (plugin != NULL) {
       abuf_appendf(data->out, "Plugin %s successfully loaded\n", plugin_name);
     }
@@ -182,7 +182,7 @@ _cb_telnet_plugin(struct oonf_telnet_data *data) {
   }
 
   if (str_hasnextword(data->parameter, "unload") == NULL) {
-    if (oonf_plugins_unload(plugin)) {
+    if (oonf_subsystem_unload(plugin)) {
       abuf_appendf(data->out, "Could not unload plugin %s\n", plugin_name);
     }
     else {

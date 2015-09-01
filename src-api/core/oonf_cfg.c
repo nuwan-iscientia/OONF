@@ -229,7 +229,7 @@ oonf_cfg_is_running(void) {
 int
 oonf_cfg_loadplugins(void) {
   struct oonf_subsystem *plugin, *plugin_it;
-  struct oonf_plugin_namebuf nbuf;
+  struct oonf_subsystem_namebuf nbuf;
   char *ptr;
   bool found;
 
@@ -240,7 +240,7 @@ oonf_cfg_loadplugins(void) {
       continue;
     }
 
-    oonf_plugins_extract_name(&nbuf, ptr);
+    oonf_subsystem_extract_name(&nbuf, ptr);
 
     if (oonf_cfg_load_plugin(nbuf.name) == NULL && config_global.failfast) {
       return -1;
@@ -258,9 +258,9 @@ oonf_cfg_loadplugins(void) {
 
     /* search if plugin should still be active */
     strarray_for_each_element(&config_global.plugin, ptr) {
-      oonf_plugins_extract_name(&nbuf, ptr);
+      oonf_subsystem_extract_name(&nbuf, ptr);
 
-      if (oonf_plugins_get(nbuf.name) == plugin) {
+      if (oonf_subsystem_get(nbuf.name) == plugin) {
         found = true;
         break;
       }
@@ -269,13 +269,13 @@ oonf_cfg_loadplugins(void) {
     if (!found) {
       /* TODO: initiate shutdown */
       /* if not, unload it (if not static) */
-      oonf_plugins_unload(plugin);
+      oonf_subsystem_unload(plugin);
     }
   }
 
   /* initialize all plugins */
   avl_for_each_element_safe(&oonf_plugin_tree, plugin, _node, plugin_it) {
-    if (oonf_plugins_call_init(plugin)) {
+    if (oonf_subsystem_call_init(plugin)) {
       return -1;
     }
   }
@@ -286,13 +286,13 @@ struct oonf_subsystem *
 oonf_cfg_load_plugin(const char *name) {
   struct oonf_subsystem *plugin;
 
-  plugin = oonf_plugins_get(name);
+  plugin = oonf_subsystem_get(name);
   if (plugin) {
     /* already loaded */
     return plugin;
   }
 
-  plugin = oonf_plugins_load(name);
+  plugin = oonf_subsystem_load(name);
   if (plugin) {
     oonf_subsystem_configure(&_oonf_schema, plugin);
   }
@@ -312,7 +312,7 @@ oonf_cfg_initplugins(void) {
   struct oonf_subsystem *plugin;
 
   avl_for_each_element(&oonf_plugin_tree, plugin, _node) {
-    oonf_plugins_call_init(plugin);
+    oonf_subsystem_call_init(plugin);
   }
 }
 
@@ -454,7 +454,7 @@ oonf_cfg_update_globalcfg(bool raw) {
       named, _global_entries, ARRAYSIZE(_global_entries));
 
   /* set plugin path */
-  oonf_plugins_set_path(config_global.plugin_path);
+  oonf_subsystem_set_path(config_global.plugin_path);
 
   return result;
 }

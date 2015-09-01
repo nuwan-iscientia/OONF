@@ -53,7 +53,7 @@
 
 #define OONF_SUBSYSTEM_NAMESIZE 32
 
-#define DECLARE_OONF_PLUGIN(subsystem) EXPORT void hookup_plugin_ ## subsystem (void) __attribute__ ((constructor)); void hookup_plugin_ ## subsystem (void) { oonf_plugins_hook(&subsystem); }
+#define DECLARE_OONF_PLUGIN(subsystem) EXPORT void hookup_subsystem_ ## subsystem (void) __attribute__ ((constructor)); void hookup_subsystem_ ## subsystem (void) { oonf_subsystem_hook(&subsystem); }
 
 /**
  * description of a subsystem of the OONF-API.
@@ -86,7 +86,7 @@ struct oonf_subsystem {
   int (*init) (void);
 
   /**
-   * Will be called when the routing agent begins to shut down.
+   * Will be called when the application begins to shut down.
    * Subsystems should stop sending normal network traffic and begin
    * to shutdown, but they will run for a few more hundred milliseconds
    * until the cleanup() callback tells them to finally shut down.
@@ -122,7 +122,7 @@ struct oonf_subsystem {
   /*! true if the subsystem is initialized */
   bool _initialized;
 
-  /*! true if unload of plugin is in progress */
+  /*! true if unload of subsystem is in progress */
   bool _unload_initiated;
 
   /*! temporary variable to detect circular dependencies */
@@ -131,52 +131,50 @@ struct oonf_subsystem {
   /*! pointer to dlopen handle */
   void *_dlhandle;
 
-  /*! which template was used to load plugin */
+  /*! which template was used to load subsystem */
   int _dlpath_index;
 
   /*! hook into subsystem tree */
   struct avl_node _node;
 };
 
-EXPORT void oonf_subsystem_configure(struct cfg_schema *schema,
-    struct oonf_subsystem *subsystem);
-EXPORT void oonf_subsystem_unconfigure(struct cfg_schema *schema,
-    struct oonf_subsystem *subsystem);
-
 /**
  * Buffer for text representation of subsystem name
  */
-struct oonf_plugin_namebuf {
+struct oonf_subsystem_namebuf {
   /*! text array for maxmimum length subsystem name */
   char name[OONF_SUBSYSTEM_NAMESIZE];
 };
 
 EXPORT extern struct avl_tree oonf_plugin_tree;
 
-EXPORT int oonf_plugins_init(void);
-EXPORT void oonf_plugins_initiate_shutdown(void);
-EXPORT void oonf_plugins_cleanup(void);
-EXPORT void oonf_plugins_set_path(const char *path);
+EXPORT void oonf_subsystem_hook(struct oonf_subsystem *subsystem);
+EXPORT struct oonf_subsystem *oonf_subsystem_load(const char *);
+EXPORT int oonf_subsystem_unload(struct oonf_subsystem *);
 
-EXPORT void oonf_plugins_hook(struct oonf_subsystem *subsystem);
+int oonf_subsystem_init(void);
+void oonf_subsystem_initiate_shutdown(void);
+void oonf_subsystem_cleanup(void);
 
-EXPORT int oonf_plugins_call_init(struct oonf_subsystem *plugin);
-EXPORT void oonf_plugins_call_cleanup(struct oonf_subsystem *plugin);
+void oonf_subsystem_set_path(const char *path);
 
-EXPORT void oonf_plugins_extract_name(
-    struct oonf_plugin_namebuf *buf, const char *libname);
+void oonf_subsystem_configure(struct cfg_schema *schema,
+    struct oonf_subsystem *subsystem);
+void oonf_subsystem_unconfigure(struct cfg_schema *schema,
+    struct oonf_subsystem *subsystem);
 
-EXPORT struct oonf_subsystem *oonf_plugins_load(const char *);
-EXPORT void oonf_plugins_initiate_unload(struct oonf_subsystem *);
-EXPORT int oonf_plugins_unload(struct oonf_subsystem *);
+void oonf_subsystem_initiate_unload(struct oonf_subsystem *);
+int oonf_subsystem_call_init(struct oonf_subsystem *plugin);
+void oonf_subsystem_extract_name(
+    struct oonf_subsystem_namebuf *buf, const char *libname);
 
 /**
- * Query for a certain plugin name
+ * Query for a certain subsystem name
  * @param libname name of plugin
  * @return pointer to plugin db entry, NULL if not found
  */
 static INLINE struct oonf_subsystem *
-oonf_plugins_get(const char *libname) {
+oonf_subsystem_get(const char *libname) {
   struct oonf_subsystem *plugin;
 
   return avl_find_element(&oonf_plugin_tree, libname, plugin, _node);
