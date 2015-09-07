@@ -387,15 +387,7 @@ static struct oonf_timer_class _remote_heartbeat_class = {
 
 struct dlep_extension *
 dlep_base_proto_init(void) {
-  if (avl_is_node_added(&_base_proto._node)) {
-    return &_base_proto;
-  }
-
-  _base_proto._node.key = &_base_proto.id;
-  avl_insert(dlep_extension_get_tree(), &_base_proto._node);
-
-  oonf_timer_add(&_local_heartbeat_class);
-  oonf_timer_add(&_remote_heartbeat_class);
+  dlep_extension_add(&_base_proto);
   return &_base_proto;
 }
 

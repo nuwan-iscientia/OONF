@@ -222,11 +222,6 @@ static struct dlep_extension _base_metric = {
 
 struct dlep_extension *
 dlep_base_metric_init(void) {
-  if (avl_is_node_added(&_base_metric._node)) {
-    return &_base_metric;
-  }
-
-  _base_metric._node.key = &_base_metric.id;
-  avl_insert(dlep_extension_get_tree(), &_base_metric._node);
+  dlep_extension_add(&_base_metric);
   return &_base_metric;
 }

@@ -147,11 +147,6 @@ static struct dlep_extension _l2_stats = {
 
 struct dlep_extension *
 dlep_l2_statistics_init(void) {
-  if (avl_is_node_added(&_l2_stats._node)) {
-    return &_l2_stats;
-  }
-
-  _l2_stats._node.key = &_l2_stats.id;
-  avl_insert(dlep_extension_get_tree(), &_l2_stats._node);
+  dlep_extension_add(&_l2_stats);
   return &_l2_stats;
 }
