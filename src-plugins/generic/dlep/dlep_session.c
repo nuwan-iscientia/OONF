@@ -17,11 +17,11 @@ enum {
 
 static int _update_allowed_tlvs(struct dlep_session_parser *parser);
 static enum dlep_parser_error _parse_tlvstream(
-    struct dlep_session_parser *parser, const uint8_t *buffer, size_t length);
+    struct dlep_session *session, const uint8_t *buffer, size_t length);
 static enum dlep_parser_error _check_mandatory(
-    struct dlep_session_parser *parser, uint16_t signal_type);
+    struct dlep_session *session, uint16_t signal_type);
 static enum dlep_parser_error _check_duplicate(
-    struct dlep_session_parser *parser, uint16_t signal_type);
+    struct dlep_session *session, uint16_t signal_type);
 static enum dlep_parser_error _call_extension_processing(
     struct dlep_session *parser, uint16_t signal_type);
 static struct dlep_parser_tlv *_add_session_tlv(
@@ -526,21 +526,21 @@ _update_allowed_tlvs(struct dlep_session_parser *parser) {
 static enum dlep_parser_error
 _process_tlvs(struct dlep_session *session,
     uint16_t signal_type, uint16_t signal_length, const uint8_t *tlvs) {
-  struct dlep_session_parser *parser;
   enum dlep_parser_error result;
 
-  parser = &session->parser;
+  OONF_DEBUG(session->log_source, "Parse signal %u with length %u",
+      signal_type, signal_length);
 
   /* start at the beginning of the tlvs */
-  if ((result = _parse_tlvstream(parser, tlvs, signal_length))) {
+  if ((result = _parse_tlvstream(session, tlvs, signal_length))) {
     OONF_DEBUG(session->log_source, "parse_tlvstream result: %d", result);
     return result;
   }
-  if ((result = _check_mandatory(parser, signal_type))) {
+  if ((result = _check_mandatory(session, signal_type))) {
     OONF_DEBUG(session->log_source, "check_mandatory result: %d", result);
     return result;
   }
-  if ((result = _check_duplicate(parser, signal_type))) {
+  if ((result = _check_duplicate(session, signal_type))) {
     OONF_DEBUG(session->log_source, "check_duplicate result: %d", result);
     return result;
   }
@@ -575,8 +575,9 @@ _cb_destination_timeout(void *ptr) {
 }
 
 static enum dlep_parser_error
-_parse_tlvstream(struct dlep_session_parser *parser,
+_parse_tlvstream(struct dlep_session *session,
     const uint8_t *buffer, size_t length) {
+  struct dlep_session_parser *parser;
   struct dlep_parser_tlv *tlv;
   struct dlep_parser_value *value;
   uint16_t tlv_type;
@@ -584,6 +585,7 @@ _parse_tlvstream(struct dlep_session_parser *parser,
   size_t tlv_count, idx;
   int i;
 
+  parser = &session->parser;
   parser->tlv_ptr = buffer;
   tlv_count = 0;
   idx = 0;
@@ -609,6 +611,9 @@ _parse_tlvstream(struct dlep_session_parser *parser,
     tlv_length = ntohs(tlv_length);
 
     if (idx + tlv_length > length) {
+      OONF_WARN(session->log_source, "TLV %u incomplete: "
+          "%"PRINTF_SIZE_T_SPECIFIER" > %"PRINTF_SIZE_T_SPECIFIER,
+          tlv_type, idx + tlv_length, length);
       return DLEP_NEW_PARSER_INCOMPLETE_TLV;
     }
 
@@ -620,6 +625,9 @@ _parse_tlvstream(struct dlep_session_parser *parser,
 
     /* check length */
     if (tlv->length_max < tlv_length || tlv->length_min > tlv_length) {
+      OONF_WARN(session->log_source, "TLV %u has wrong size,"
+          " %"PRINTF_SIZE_T_SPECIFIER" is not between %u and %u",
+          tlv_type, idx + tlv_length, tlv->length_min, tlv->length_max);
       return DLEP_NEW_PARSER_ILLEGAL_TLV_LENGTH;
     }
 
@@ -668,11 +676,14 @@ _parse_tlvstream(struct dlep_session_parser *parser,
 }
 
 static enum dlep_parser_error
-_check_mandatory(struct dlep_session_parser *parser, uint16_t signal_type) {
+_check_mandatory(struct dlep_session *session, uint16_t signal_type) {
+  struct dlep_session_parser *parser;
   struct dlep_parser_tlv *tlv;
   struct dlep_extension_signal *extsig;
   struct dlep_extension *ext;
   size_t e,s,t;
+
+  parser = &session->parser;
 
   for (e = 0; e < parser->extension_count; e++) {
     ext = parser->extensions[e];
@@ -689,10 +700,16 @@ _check_mandatory(struct dlep_session_parser *parser, uint16_t signal_type) {
       for (t = 0; t < extsig->mandatory_tlv_count; t++) {
         tlv = dlep_parser_get_tlv(parser, extsig->mandatory_tlvs[t]);
         if (!tlv) {
+          OONF_WARN(session->log_source, "Could not find tlv data for"
+              " mandatory TLV %u in extension %u",
+              extsig->mandatory_tlvs[t], ext->id);
           return DLEP_NEW_PARSER_INTERNAL_ERROR;
         }
 
         if (tlv->tlv_first == -1) {
+          OONF_WARN(session->log_source, "Missing mandatory TLV"
+              " %u in extension %u",
+              extsig->mandatory_tlvs[t], ext->id);
           return DLEP_NEW_PARSER_MISSING_MANDATORY_TLV;
         }
       }
@@ -702,12 +719,15 @@ _check_mandatory(struct dlep_session_parser *parser, uint16_t signal_type) {
 }
 
 static enum dlep_parser_error
-_check_duplicate(struct dlep_session_parser *parser, uint16_t signal_type) {
+_check_duplicate(struct dlep_session *session, uint16_t signal_type) {
+  struct dlep_session_parser *parser;
   struct dlep_parser_tlv *tlv;
   struct dlep_extension_signal *extsig;
   struct dlep_extension *ext;
   size_t e, s, t;
   bool okay;
+
+  parser = &session->parser;
 
   avl_for_each_element(&parser->allowed_tlvs, tlv, _node) {
     if (tlv->tlv_first == tlv->tlv_last) {
@@ -738,6 +758,8 @@ _check_duplicate(struct dlep_session_parser *parser, uint16_t signal_type) {
       }
     }
     if (!okay) {
+      OONF_WARN(session->log_source, "Duplicate not allowed"
+          " for TLV %u in extension %u", tlv->id, ext->id);
       return DLEP_NEW_PARSER_DUPLICATE_TLV;
     }
   }
