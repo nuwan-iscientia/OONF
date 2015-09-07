@@ -262,18 +262,11 @@ dlep_extension_radio_write_peer_update(
 int
 dlep_extension_radio_write_destination(struct dlep_extension *ext,
     struct dlep_session *session, const struct netaddr *neigh) {
-  struct oonf_layer2_net *l2net;
   struct oonf_layer2_neigh *l2neigh;
   struct netaddr_str nbuf;
   int result;
 
-  l2net = oonf_layer2_net_get(session->l2_listener.name);
-  if (!l2net) {
-    OONF_WARN(session->log_source, "Could not find l2net for new interface");
-    return -1;
-  }
-
-  l2neigh = oonf_layer2_neigh_get(l2net, neigh);
+  l2neigh = dlep_session_get_local_l2_neighbor(session, neigh);
   if (!l2neigh) {
     OONF_WARN(session->log_source, "Could not find l2neigh "
         "for neighbor %s", netaddr_to_string(&nbuf, neigh));

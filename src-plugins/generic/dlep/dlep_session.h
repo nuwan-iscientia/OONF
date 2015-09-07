@@ -258,6 +258,8 @@ void dlep_session_remove_local_neighbor(
     struct dlep_session *session, struct dlep_local_neighbor *local);
 struct dlep_local_neighbor *dlep_session_get_local_neighbor(
     struct dlep_session *session, const struct netaddr *neigh);
+struct oonf_layer2_neigh *dlep_session_get_local_l2_neighbor(
+    struct dlep_session *session, const struct netaddr *neigh);
 
 /**
  * get the dlep session tlv

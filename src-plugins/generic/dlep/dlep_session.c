@@ -394,6 +394,38 @@ dlep_session_get_local_neighbor(struct dlep_session *session,
       neigh, local, _node);
 }
 
+struct oonf_layer2_neigh *
+dlep_session_get_local_l2_neighbor(struct dlep_session *session,
+    const struct netaddr *neigh) {
+  struct dlep_local_neighbor *dlep_neigh;
+  struct oonf_layer2_neigh *l2neigh;
+  struct oonf_layer2_net *l2net;
+#ifdef OONF_LOG_DEBUG_INFO
+  struct netaddr_str nbuf;
+#endif
+
+  dlep_neigh = dlep_session_get_local_neighbor(session, neigh);
+  if (!dlep_neigh) {
+    OONF_INFO(session->log_source, "Could not find local neighbor for %s",
+        netaddr_to_string(&nbuf, neigh));
+    return NULL;
+  }
+
+  l2net = oonf_layer2_net_get(session->l2_listener.name);
+  if (!l2net) {
+    OONF_DEBUG(session->log_source, "Could not find l2net for new neighbor");
+    return NULL;
+  }
+
+  l2neigh = oonf_layer2_neigh_get(l2net, &dlep_neigh->neigh_addr);
+  if (!l2neigh) {
+    OONF_INFO(session->log_source, "Could not find l2neigh "
+        "for neighbor %s", netaddr_to_string(&nbuf, neigh));
+    return NULL;
+  }
+  return l2neigh;
+}
+
 static int
 _generate_signal(struct dlep_session *session, uint16_t signal,
     const struct netaddr *neighbor) {

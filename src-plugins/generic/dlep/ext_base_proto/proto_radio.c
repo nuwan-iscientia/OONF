@@ -278,6 +278,7 @@ _radio_process_destination_up(
     struct dlep_session *session) {
   struct netaddr mac;
   if (dlep_reader_mac_tlv(&mac, session, NULL)) {
+    OONF_INFO(session->log_source, "No mac TLV found");
     return -1;
   }
 
