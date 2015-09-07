@@ -401,8 +401,8 @@ _generate_signal(struct dlep_session *session, uint16_t signal,
   struct dlep_extension *ext;
   size_t e,s;
 
-#ifdef OONF_LOG_DEBUG_INFO
   size_t len;
+#ifdef OONF_LOG_DEBUG_INFO
   struct netaddr_str nbuf1, nbuf2;
 #endif
 
@@ -411,9 +411,8 @@ _generate_signal(struct dlep_session *session, uint16_t signal,
       session->l2_listener.name,
       netaddr_socket_to_string(&nbuf2, &session->remote_socket));
 
-#ifdef OONF_LOG_DEBUG_INFO
   len = abuf_getlen(session->writer.out);
-#endif
+
   /* generate signal */
   dlep_writer_start_signal(&session->writer, signal);
   for (e=0; e<session->parser.extension_count; e++) {
@@ -428,6 +427,7 @@ _generate_signal(struct dlep_session *session, uint16_t signal,
         OONF_DEBUG(session->log_source,
             "Add tlvs for radio extension %d", ext->id);
         if (ext->signals[s].add_radio_tlvs(ext, session, neighbor)) {
+          abuf_setlen(session->writer.out, len);
           return -1;
         }
       }
@@ -435,6 +435,7 @@ _generate_signal(struct dlep_session *session, uint16_t signal,
         OONF_DEBUG(session->log_source,
             "Add tlvs for router extension %d", ext->id);
         if (ext->signals[s].add_router_tlvs(ext, session, neighbor)) {
+          abuf_setlen(session->writer.out, len);
           return -1;
         }
       }
@@ -701,14 +702,14 @@ _check_mandatory(struct dlep_session *session, uint16_t signal_type) {
         tlv = dlep_parser_get_tlv(parser, extsig->mandatory_tlvs[t]);
         if (!tlv) {
           OONF_WARN(session->log_source, "Could not find tlv data for"
-              " mandatory TLV %u in extension %u",
+              " mandatory TLV %u in extension %d",
               extsig->mandatory_tlvs[t], ext->id);
           return DLEP_NEW_PARSER_INTERNAL_ERROR;
         }
 
         if (tlv->tlv_first == -1) {
           OONF_WARN(session->log_source, "Missing mandatory TLV"
-              " %u in extension %u",
+              " %u in extension %d",
               extsig->mandatory_tlvs[t], ext->id);
           return DLEP_NEW_PARSER_MISSING_MANDATORY_TLV;
         }
@@ -759,7 +760,7 @@ _check_duplicate(struct dlep_session *session, uint16_t signal_type) {
     }
     if (!okay) {
       OONF_WARN(session->log_source, "Duplicate not allowed"
-          " for TLV %u in extension %u", tlv->id, ext->id);
+          " for TLV %u in extension %d", tlv->id, ext->id);
       return DLEP_NEW_PARSER_DUPLICATE_TLV;
     }
   }
