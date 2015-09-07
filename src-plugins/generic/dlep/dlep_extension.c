@@ -94,6 +94,7 @@ int
 dlep_extension_router_process_peer_init_ack(
     struct dlep_extension *ext, struct dlep_session *session) {
   struct oonf_layer2_net *l2net;
+  int result;
 
   if (session->next_signal != DLEP_PEER_INITIALIZATION_ACK) {
     /* ignore unless we are in initialization mode */
@@ -102,16 +103,23 @@ dlep_extension_router_process_peer_init_ack(
 
   l2net = oonf_layer2_net_add(session->l2_listener.name);
   if (!l2net) {
+    OONF_INFO(session->log_source,
+        "Could not find l2net for interface");
     return -1;
   }
 
-  if (dlep_reader_map_l2neigh_data(l2net->neighdata, session, ext)) {
-    OONF_DEBUG(session->log_source, "tlv mapping failed");
-    return -1;
+  result = dlep_reader_map_l2neigh_data(l2net->neighdata, session, ext);
+  if (result) {
+    OONF_INFO(session->log_source, "tlv mapping for extension %d failed: %d",
+        ext->id, result);
+    return result;
   }
-  if (dlep_reader_map_l2net_data(l2net->data, session, ext)) {
-    OONF_DEBUG(session->log_source, "tlv mapping failed");
-    return -1;
+
+  result = dlep_reader_map_l2net_data(l2net->data, session, ext);
+  if (result) {
+    OONF_INFO(session->log_source, "tlv mapping for extension %d failed: %d",
+        ext->id, result);
+    return result;
   }
   return 0;
 }
@@ -120,6 +128,7 @@ int
 dlep_extension_router_process_peer_update(
     struct dlep_extension *ext, struct dlep_session *session) {
   struct oonf_layer2_net *l2net;
+  int result;
 
   if (session->next_signal != DLEP_PEER_INITIALIZATION_ACK) {
     /* ignore unless we are in initialization mode */
@@ -128,16 +137,22 @@ dlep_extension_router_process_peer_update(
 
   l2net = oonf_layer2_net_add(session->l2_listener.name);
   if (!l2net) {
+    OONF_INFO(session->log_source, "Could not add l2net for new interface");
     return -1;
   }
 
-  if (dlep_reader_map_l2neigh_data(l2net->neighdata, session, ext)) {
-    OONF_DEBUG(session->log_source, "tlv mapping failed");
-    return -1;
+  result = dlep_reader_map_l2neigh_data(l2net->neighdata, session, ext);
+  if (result) {
+    OONF_INFO(session->log_source, "tlv mapping for extension %d failed: %d",
+        ext->id, result);
+    return result;
   }
-  if (dlep_reader_map_l2net_data(l2net->data, session, ext)) {
-    OONF_DEBUG(session->log_source, "tlv mapping failed");
-    return -1;
+
+  result = dlep_reader_map_l2net_data(l2net->data, session, ext);
+  if (result) {
+    OONF_INFO(session->log_source, "tlv mapping for extension %d failed: %d",
+        ext->id, result);
+    return result;
   }
   return 0;
 }
@@ -146,28 +161,31 @@ int
 dlep_extension_router_process_destination(
     struct dlep_extension *ext, struct dlep_session *session) {
   struct oonf_layer2_net *l2net;
-   struct oonf_layer2_neigh *l2neigh;
-   struct netaddr mac;
+  struct oonf_layer2_neigh *l2neigh;
+  struct netaddr mac;
+  int result;
 
-   if (dlep_reader_mac_tlv(&mac, session, NULL)) {
-     OONF_DEBUG(session->log_source, "mac tlv missing");
-     return -1;
-   }
+  if (dlep_reader_mac_tlv(&mac, session, NULL)) {
+    OONF_INFO(session->log_source, "mac tlv missing");
+    return -1;
+  }
 
-   l2net = oonf_layer2_net_get(session->l2_listener.name);
-   if (!l2net) {
-     return 0;
-   }
-   l2neigh = oonf_layer2_neigh_add(l2net, &mac);
-   if (!l2neigh) {
-     return 0;
-   }
+  l2net = oonf_layer2_net_get(session->l2_listener.name);
+  if (!l2net) {
+    return 0;
+  }
+  l2neigh = oonf_layer2_neigh_add(l2net, &mac);
+  if (!l2neigh) {
+    return 0;
+  }
 
-   if (dlep_reader_map_l2neigh_data(l2neigh->data, session, ext)) {
-     OONF_DEBUG(session->log_source, "tlv mapping failed");
-     return -1;
-   }
-   return 0;
+  result = dlep_reader_map_l2neigh_data(l2neigh->data, session, ext);
+  if (result) {
+    OONF_INFO(session->log_source, "tlv mapping for extension %d failed: %d",
+        ext->id, result);
+    return result;
+  }
+  return 0;
 }
 
 int
@@ -177,10 +195,12 @@ dlep_extension_radio_write_peer_init_ack(
   struct oonf_layer2_net *l2net;
   struct oonf_layer2_data *l2data;
   size_t i;
+  int result;
 
   /* first make sure defaults are set correctly */
   l2net = oonf_layer2_net_add(session->l2_listener.name);
   if (!l2net) {
+    OONF_WARN(session->log_source, "Could not add l2net for new interface");
     return -1;
   }
 
@@ -198,14 +218,22 @@ dlep_extension_radio_write_peer_init_ack(
   }
 
   /* write default metric values */
-  if (dlep_writer_map_l2neigh_data(&session->writer, ext,
-      l2net->neighdata)) {
-    return -1;
+  result = dlep_writer_map_l2neigh_data(&session->writer, ext,
+      l2net->neighdata);
+  if (result) {
+    OONF_WARN(session->log_source, "tlv mapping for extension %d failed: %d",
+        ext->id, result);
+    return result;
   }
 
   /* write network wide data */
-  return dlep_writer_map_l2net_data(&session->writer, ext,
-      l2net->data);
+  result = dlep_writer_map_l2net_data(&session->writer, ext, l2net->data);
+  if(result) {
+    OONF_WARN(session->log_source, "tlv mapping for extension %d failed: %d",
+        ext->id, result);
+    return result;
+  }
+  return 0;
 }
 
 int
@@ -213,15 +241,20 @@ dlep_extension_radio_write_peer_update(
     struct dlep_extension *ext, struct dlep_session *session,
     const struct netaddr *neigh __attribute__((unused))) {
   struct oonf_layer2_net *l2net;
+  int result;
 
   l2net = oonf_layer2_net_get(session->l2_listener.name);
   if (!l2net) {
+    OONF_WARN(session->log_source, "Could not find l2net for new interface");
     return -1;
   }
 
-  if (dlep_writer_map_l2neigh_data(&session->writer, ext,
-      l2net->neighdata)) {
-    return -1;
+  result = dlep_writer_map_l2neigh_data(&session->writer, ext,
+      l2net->neighdata);
+  if (result) {
+    OONF_WARN(session->log_source, "tlv mapping for extension %d failed: %d",
+        ext->id, result);
+    return result;
   }
   return 0;
 }
@@ -231,20 +264,29 @@ dlep_extension_radio_write_destination(struct dlep_extension *ext,
     struct dlep_session *session, const struct netaddr *neigh) {
   struct oonf_layer2_net *l2net;
   struct oonf_layer2_neigh *l2neigh;
+  struct netaddr_str nbuf;
+  int result;
 
   l2net = oonf_layer2_net_get(session->l2_listener.name);
   if (!l2net) {
+    OONF_WARN(session->log_source, "Could not find l2net for new interface");
     return -1;
   }
 
   l2neigh = oonf_layer2_neigh_get(l2net, neigh);
   if (!l2neigh) {
+    OONF_WARN(session->log_source, "Could not find l2neigh "
+        "for neighbor %s", netaddr_to_string(&nbuf, neigh));
     return -1;
   }
 
-  if (dlep_writer_map_l2neigh_data(&session->writer, ext,
-      l2neigh->data)) {
-    return -1;
+  result = dlep_writer_map_l2neigh_data(&session->writer, ext,
+      l2neigh->data);
+  if (result) {
+    OONF_WARN(session->log_source, "tlv mapping for extension %d"
+        " and neighbor %s failed: %d",
+        ext->id, netaddr_to_string(&nbuf, neigh), result);
+    return result;
   }
   return 0;
 }

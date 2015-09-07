@@ -15,7 +15,7 @@ enum {
   SESSION_VALUE_STEP = 128,
 };
 
-static int _update_allowed_tlvs(struct dlep_session_parser *parser);
+static int _update_allowed_tlvs(struct dlep_session *session);
 static enum dlep_parser_error _parse_tlvstream(
     struct dlep_session *session, const uint8_t *buffer, size_t length);
 static enum dlep_parser_error _check_mandatory(
@@ -124,7 +124,7 @@ dlep_session_add(struct dlep_session *session, const char *l2_ifname,
     }
   }
 
-  if (_update_allowed_tlvs(parser)) {
+  if (_update_allowed_tlvs(session)) {
     OONF_WARN(session->log_source,
         "Could not update allowed TLVs for %s", l2_ifname);
     dlep_session_remove(session);
@@ -219,8 +219,7 @@ dlep_session_update_extensions(struct dlep_session *session,
     }
   }
 
-  _update_allowed_tlvs(&session->parser);
-  return 0;
+  return _update_allowed_tlvs(session);
 }
 
 enum oonf_stream_session_state
@@ -453,7 +452,7 @@ int
 dlep_session_generate_signal(struct dlep_session *session, uint16_t signal,
     const struct netaddr *neighbor) {
   if (_generate_signal(session, signal, neighbor)) {
-    OONF_DEBUG(session->log_source, "Could not generate signal");
+    OONF_WARN(session->log_source, "Could not generate signal %u", signal);
     return -1;
   }
   return dlep_writer_finish_signal(&session->writer, session->log_source);
@@ -464,9 +463,11 @@ dlep_session_generate_signal_status(struct dlep_session *session,
     uint16_t signal, const struct netaddr *neighbor,
     enum dlep_status status, const char *msg) {
   if (_generate_signal(session, signal, neighbor)) {
+    OONF_WARN(session->log_source, "Could not generate signal %u", signal);
     return -1;
   }
   if (dlep_writer_add_status(&session->writer, status, msg)) {
+    OONF_WARN(session->log_source, "Could not add status TLV");
     return -1;
   }
   return dlep_writer_finish_signal(&session->writer, session->log_source);
@@ -476,20 +477,31 @@ struct dlep_parser_value *
 dlep_session_get_tlv_value(
     struct dlep_session *session, uint16_t tlvtype) {
   struct dlep_parser_tlv *tlv;
+  struct dlep_parser_value *value;
 
   tlv = dlep_parser_get_tlv(&session->parser, tlvtype);
-  if (tlv) {
-    return dlep_session_get_tlv_first_value(session, tlv);
+  if (!tlv) {
+    OONF_INFO(session->log_source, "Could not find TLV type %u", tlvtype);
+    return NULL;
   }
-  return NULL;
+
+  value = dlep_session_get_tlv_first_value(session, tlv);
+  if (!value) {
+    OONF_INFO(session->log_source, "Could not find value of TLV type %u", tlvtype);
+    return NULL;
+  }
+  return value;
 }
 
 static int
-_update_allowed_tlvs(struct dlep_session_parser *parser) {
+_update_allowed_tlvs(struct dlep_session *session) {
+  struct dlep_session_parser *parser;
   struct dlep_parser_tlv *tlv, *tlv_it;
   struct dlep_extension *ext;
   size_t e, t;
   uint16_t id;
+
+  parser = &session->parser;
 
   /* remove all existing allowed tlvs */
   avl_for_each_element_safe(&parser->allowed_tlvs, tlv, _node, tlv_it) {
@@ -517,6 +529,8 @@ _update_allowed_tlvs(struct dlep_session_parser *parser) {
       else if (
           tlv->length_min != ext->tlvs[t].length_min
           || tlv->length_max != ext->tlvs[t].length_max) {
+        OONF_WARN(session->log_source, "Two extensions conflict about"
+            " tlv %u minimal/maximum length", id);
         return -1;
       }
     }

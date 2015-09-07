@@ -249,6 +249,8 @@ _router_process_peer_offer(
     result = oonf_interface_get_prefix_from_dst(&addr, ifdata);
     if (!result) {
       /* no possible way to communicate */
+      OONF_DEBUG(session->log_source,
+          "No matching prefix for incoming connection found");
       return -1;
     }
     netaddr_socket_init(&remote, &addr, port, ifdata->index);
@@ -271,6 +273,7 @@ _router_process_peer_init_ack(
     struct dlep_extension *ext __attribute__((unused)),
     struct dlep_session *session) {
   struct oonf_layer2_net *l2net;
+  int result;
 
   if (session->next_signal != DLEP_PEER_INITIALIZATION_ACK) {
     /* ignore unless we are in initialization mode */
@@ -280,7 +283,7 @@ _router_process_peer_init_ack(
   /* mandatory heartbeat tlv */
   if (dlep_reader_heartbeat_tlv(
       &session->remote_heartbeat_interval, session, NULL)) {
-    OONF_WARN(session->log_source, "no heartbeat tlv, should not happen!");
+    OONF_INFO(session->log_source, "no heartbeat tlv, should not happen!");
     return -1;
   }
 
@@ -289,9 +292,11 @@ _router_process_peer_init_ack(
     return -1;
   }
 
-  if (dlep_reader_map_l2neigh_data(l2net->neighdata, session, _base)) {
-    OONF_DEBUG(session->log_source, "tlv mapping failed");
-    return -1;
+  result = dlep_reader_map_l2neigh_data(l2net->neighdata, session, _base);
+  if (result) {
+    OONF_INFO(session->log_source, "tlv mapping failed for extension %u: %u",
+        ext->id, result);
+    return result;
   }
 
   OONF_DEBUG(session->log_source, "Remote heartbeat interval %"PRIu64,
@@ -312,12 +317,17 @@ _router_process_peer_update(
     struct dlep_extension *ext __attribute__((unused)),
     struct dlep_session *session) {
   struct oonf_layer2_net *l2net;
+  int result;
 
   l2net = oonf_layer2_net_add(session->l2_listener.name);
   if (!l2net) {
     return -1;
   }
-  if (dlep_reader_map_l2neigh_data(l2net->neighdata, session, _base)) {
+
+  result = dlep_reader_map_l2neigh_data(l2net->neighdata, session, _base);
+  if (result) {
+    OONF_INFO(session->log_source, "tlv mapping failed for extension %u: %u",
+        ext->id, result);
     return -1;
   }
 
@@ -340,9 +350,10 @@ _router_process_destination_up(
   struct oonf_layer2_net *l2net;
   struct oonf_layer2_neigh *l2neigh;
   struct netaddr mac;
+  int result;
 
   if (dlep_reader_mac_tlv(&mac, session, NULL)) {
-    OONF_DEBUG(session->log_source, "mac tlv missing");
+    OONF_INFO(session->log_source, "mac tlv missing");
     return -1;
   }
 
@@ -359,9 +370,11 @@ _router_process_destination_up(
         DLEP_STATUS_REQUEST_DENIED, "Not enough memory");
   }
 
-  if (dlep_reader_map_l2neigh_data(l2neigh->data, session, _base)) {
-    OONF_DEBUG(session->log_source, "tlv mapping failed");
-    return -1;
+  result = dlep_reader_map_l2neigh_data(l2neigh->data, session, _base);
+  if (result) {
+    OONF_INFO(session->log_source, "tlv mapping failed for extension %u: %u",
+        ext->id, result);
+    return result;
   }
 
   return dlep_session_generate_signal(
@@ -420,6 +433,7 @@ _router_process_destination_update(
   struct oonf_layer2_net *l2net;
   struct oonf_layer2_neigh *l2neigh;
   struct netaddr mac;
+  int result;
 
   if (dlep_reader_mac_tlv(&mac, session, NULL)) {
     return -1;
@@ -436,8 +450,11 @@ _router_process_destination_update(
     return 0;
   }
 
-  if (dlep_reader_map_l2neigh_data(l2neigh->data, session, _base)) {
-    return -1;
+  result = dlep_reader_map_l2neigh_data(l2neigh->data, session, _base);
+  if (result) {
+    OONF_INFO(session->log_source, "tlv mapping failed for extension %u: %u",
+        ext->id, result);
+    return result;
   }
 
   return 0;

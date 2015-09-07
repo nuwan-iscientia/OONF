@@ -207,7 +207,7 @@ _radio_process_peer_init(
   /* mandatory heartbeat tlv */
   if (dlep_reader_heartbeat_tlv(
       &session->remote_heartbeat_interval, session, NULL)) {
-    OONF_WARN(session->log_source, "no heartbeat tlv, should not happen!");
+    OONF_INFO(session->log_source, "no heartbeat tlv");
     return -1;
   }
 
@@ -333,6 +333,7 @@ _radio_process_destination_down_ack(
   struct dlep_local_neighbor *local;
   struct netaddr mac;
   if (dlep_reader_mac_tlv(&mac, session, NULL)) {
+    OONF_INFO(session->log_source, "Could not read MAC tlv");
     return -1;
   }
 

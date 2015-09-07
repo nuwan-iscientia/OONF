@@ -297,7 +297,7 @@ dlep_reader_map_l2neigh_data(struct oonf_layer2_data *data,
     map = &ext->neigh_mapping[i];
 
     if (map->from_tlv(&data[map->layer2], session, map->dlep)) {
-      return -1;
+      return -(i+1);
     }
   }
   return 0;
@@ -314,7 +314,7 @@ dlep_reader_map_l2net_data(struct oonf_layer2_data *data,
     map = &ext->if_mapping[i];
 
     if (map->from_tlv(&data[map->layer2], session, map->dlep)) {
-      return -1;
+      return -(i+1);
     }
   }
   return 0;

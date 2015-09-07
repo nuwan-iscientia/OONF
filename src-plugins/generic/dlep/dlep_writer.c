@@ -317,7 +317,7 @@ dlep_writer_map_l2neigh_data(struct dlep_writer *writer,
 
     if (map->to_tlv(writer, &data[map->layer2],
         map->dlep, map->length)) {
-      return -1;
+      return -(i+1);
     }
   }
   return 0;
@@ -334,7 +334,7 @@ dlep_writer_map_l2net_data(struct dlep_writer *writer,
 
     if (map->to_tlv(writer, &data[map->layer2],
         map->dlep, map->length)) {
-      return -1;
+      return -(i+1);
     }
   }
   return 0;
