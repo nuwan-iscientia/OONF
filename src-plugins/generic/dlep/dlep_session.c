@@ -405,7 +405,7 @@ dlep_session_get_local_l2_neighbor(struct dlep_session *session,
   struct dlep_local_neighbor *dlep_neigh;
   struct oonf_layer2_neigh *l2neigh;
   struct oonf_layer2_net *l2net;
-#ifdef OONF_LOG_DEBUG_INFO
+#ifdef OONF_LOG_INFO
   struct netaddr_str nbuf;
 #endif
 
@@ -784,7 +784,7 @@ _check_duplicate(struct dlep_session *session, uint16_t signal_type) {
   struct dlep_session_parser *parser;
   struct dlep_parser_tlv *tlv;
   struct dlep_extension_signal *extsig;
-  struct dlep_extension *ext;
+  struct dlep_extension *ext = NULL;
   size_t e, s, t;
   bool okay;
 
