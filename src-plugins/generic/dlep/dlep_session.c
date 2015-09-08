@@ -69,6 +69,7 @@ dlep_session_add(struct dlep_session *session, const char *l2_ifname,
     uint32_t l2_origin, struct autobuf *out, bool radio,
     enum oonf_log_source log_source) {
   struct dlep_session_parser *parser;
+  struct dlep_extension *ext;
   int32_t i;
 
   parser = &session->parser;
@@ -94,7 +95,7 @@ dlep_session_add(struct dlep_session *session, const char *l2_ifname,
 
   /* allocate memory for the pointers */
   parser->extensions = calloc(
-      DLEP_EXTENSION_BASE_COUNT, sizeof(struct dlep_extension *));
+      dlep_extension_get_tree()->count, sizeof(struct dlep_extension *));
   if (!parser->extensions) {
     OONF_WARN(session->log_source,
         "Cannot allocate extension buffer for %s", l2_ifname);
@@ -103,7 +104,7 @@ dlep_session_add(struct dlep_session *session, const char *l2_ifname,
   }
 
   /* remember the sessions */
-  parser->extension_count = DLEP_EXTENSION_BASE_COUNT;
+  parser->extension_count =  dlep_extension_get_tree()->count;
 
   parser->values = calloc(SESSION_VALUE_STEP,
       sizeof(struct dlep_parser_value));
@@ -114,14 +115,10 @@ dlep_session_add(struct dlep_session *session, const char *l2_ifname,
     return -1;
   }
 
-  for (i=0; i<DLEP_EXTENSION_BASE_COUNT; i++) {
-    parser->extensions[i] = dlep_extension_get(-(i+1));
-    if (!parser->extensions[i]) {
-      OONF_WARN(session->log_source,
-          "default extension not found");
-      dlep_session_remove(session);
-      return -1;
-    }
+  i = 0;
+  avl_for_each_element( dlep_extension_get_tree(), ext, _node) {
+    parser->extensions[i] = ext;
+    i++;
   }
 
   if (_update_allowed_tlvs(session)) {
@@ -172,14 +169,14 @@ dlep_session_remove(struct dlep_session *session) {
  */
 void
 dlep_session_terminate(struct dlep_session *session) {
-  if (session->next_signal != DLEP_ALL_SIGNALS) {
+  if (session->restrict_signal != DLEP_ALL_SIGNALS) {
     return;
   }
 
   dlep_session_generate_signal(
       session, DLEP_PEER_TERMINATION, NULL);
   session->cb_send_buffer(session, 0);
-  session->next_signal = DLEP_PEER_TERMINATION_ACK;
+  session->restrict_signal = DLEP_PEER_TERMINATION_ACK;
 }
 
 int
@@ -189,8 +186,8 @@ dlep_session_update_extensions(struct dlep_session *session,
   size_t count, i;
   uint16_t extid;
 
-  /* keep entry 0 untouched, that is the base extension */
-  count = 1;
+  /* keep entry a few entries untouched, these are the base extensions */
+  count = DLEP_EXTENSION_BASE_COUNT;
   for (i=0; i<extcount; i++) {
     memcpy(&extid, &extvalues[i*2], sizeof(extid));
 
@@ -210,8 +207,8 @@ dlep_session_update_extensions(struct dlep_session *session,
     session->parser.extension_count = count;
   }
 
-  count = 1;
-  for (i=1; i<extcount; i++) {
+  count = DLEP_EXTENSION_BASE_COUNT;
+  for (i=0; i<extcount; i++) {
     memcpy(&extid, &extvalues[i*2], sizeof(extid));
     if ((ext = dlep_extension_get(ntohs(extid)))) {
       session->parser.extensions[count] = ext;
@@ -251,7 +248,8 @@ dlep_session_process_tcp(struct oonf_stream_session *tcp_session,
     /* send answer */
     oonf_stream_flush(tcp_session);
   }
-  if (session->next_signal == DLEP_KILL_SESSION) {
+
+  if (session->restrict_signal == DLEP_KILL_SESSION) {
     return STREAM_SESSION_CLEANUP;
   }
   return STREAM_SESSION_ACTIVE;
@@ -296,6 +294,9 @@ dlep_session_process_signal(struct dlep_session *session,
 #ifdef OONF_LOG_DEBUG_INFO
   struct netaddr_str nbuf;
 #endif
+
+  session->next_restrict_signal = DLEP_KEEP_RESTRICTION;
+
   if (length < 4) {
     /* not enough data for a signal type */
     OONF_DEBUG(session->log_source, "Not enough data to process"
@@ -331,19 +332,23 @@ dlep_session_process_signal(struct dlep_session *session,
       netaddr_socket_to_string(&nbuf, &session->remote_socket),
       length);
 
-  if (session->next_signal != DLEP_ALL_SIGNALS
-      && session->next_signal != signal_type) {
-    OONF_DEBUG(session->log_source, "Signal should have been %u,"
-        " drop session", session->next_signal);
+  if (session->restrict_signal != DLEP_ALL_SIGNALS
+      && session->restrict_signal != signal_type) {
+    OONF_DEBUG(session->log_source, "Signal should have been %d,"
+        " drop session", session->restrict_signal);
     /* we only accept a single type and we got the wrong one */
     return -1;
   }
 
   result = _process_tlvs(session,
       signal_type, signal_length, &buffer[4]);
+
   if (result != DLEP_NEW_PARSER_OKAY) {
     OONF_WARN(session->log_source, "Parser error: %d", result);
     _send_terminate(session);
+  }
+  else if (session->next_restrict_signal != DLEP_KEEP_RESTRICTION) {
+    session->restrict_signal = session->next_restrict_signal;
   }
 
   /* skip forward */
@@ -522,6 +527,9 @@ dlep_session_get_tlv_value(
     OONF_INFO(session->log_source, "Could not find value of TLV type %u", tlvtype);
     return NULL;
   }
+  else {
+    OONF_DEBUG(session->log_source, "TLV %u has value", tlvtype);
+  }
   return value;
 }
 
@@ -535,10 +543,9 @@ _update_allowed_tlvs(struct dlep_session *session) {
 
   parser = &session->parser;
 
-  /* remove all existing allowed tlvs */
+  /* mark all existing allowed tlvs */
   avl_for_each_element_safe(&parser->allowed_tlvs, tlv, _node, tlv_it) {
-    avl_remove(&parser->allowed_tlvs, &tlv->_node);
-    oonf_class_free(&_tlv_class, tlv);
+    tlv->remove = true;
   }
 
   /* allocate new allowed tlvs structures */
@@ -565,8 +572,19 @@ _update_allowed_tlvs(struct dlep_session *session) {
             " tlv %u minimal/maximum length", id);
         return -1;
       }
+
+      tlv->remove = false;
     }
   }
+
+  /* remove all existing allowed tlvs that are not supported anymore */
+  avl_for_each_element_safe(&parser->allowed_tlvs, tlv, _node, tlv_it) {
+    if (tlv->remove) {
+      avl_remove(&parser->allowed_tlvs, &tlv->_node);
+      oonf_class_free(&_tlv_class, tlv);
+    }
+  }
+
   return 0;
 }
 
@@ -603,11 +621,12 @@ _process_tlvs(struct dlep_session *session,
 
 static void
 _send_terminate(struct dlep_session *session) {
-  if (session->next_signal != DLEP_PEER_DISCOVERY
-      && session->next_signal != DLEP_PEER_OFFER) {
+  if (session->restrict_signal != DLEP_PEER_DISCOVERY
+      && session->restrict_signal != DLEP_PEER_OFFER) {
     dlep_session_generate_signal(session, DLEP_PEER_TERMINATION, NULL);
 
-    session->next_signal = DLEP_PEER_TERMINATION_ACK;
+    session->restrict_signal = DLEP_PEER_TERMINATION_ACK;
+    session->next_restrict_signal = DLEP_PEER_TERMINATION_ACK;
   }
 }
 
@@ -630,7 +649,6 @@ _parse_tlvstream(struct dlep_session *session,
   uint16_t tlv_type;
   uint16_t tlv_length;
   size_t tlv_count, idx;
-  int i;
 
   parser = &session->parser;
   parser->tlv_ptr = buffer;
@@ -667,6 +685,8 @@ _parse_tlvstream(struct dlep_session *session,
     /* check if tlv is supported */
     tlv = dlep_parser_get_tlv(parser, tlv_type);
     if (!tlv) {
+      OONF_INFO(session->log_source, "Unsupported TLV %u",
+          tlv_type);
       return DLEP_NEW_PARSER_UNSUPPORTED_TLV;
     }
 
@@ -682,13 +702,15 @@ _parse_tlvstream(struct dlep_session *session,
     if (parser->value_max_count == tlv_count) {
       /* allocate more */
       value = realloc(parser->values,
-          sizeof(*value) * tlv_count + SESSION_VALUE_STEP);
+          sizeof(*value) * (tlv_count + SESSION_VALUE_STEP));
       if (!value) {
         return DLEP_NEW_PARSER_OUT_OF_MEMORY;
       }
       parser->value_max_count += SESSION_VALUE_STEP;
       parser->values = value;
     }
+
+    OONF_DEBUG_HEX(session->log_source, &buffer[idx], tlv_length, "Received TLV %u", tlv_type);
 
     /* remember tlv value */
     value = &parser->values[tlv_count];
@@ -711,14 +733,6 @@ _parse_tlvstream(struct dlep_session *session,
     idx += tlv_length;
   }
 
-  avl_for_each_element(&parser->allowed_tlvs, tlv, _node) {
-    i = tlv->tlv_first;
-    while (i != -1) {
-      value = &parser->values[i];
-
-      i = value->tlv_next;
-    }
-  }
   return DLEP_NEW_PARSER_OKAY;
 }
 

@@ -496,5 +496,5 @@ _cb_remote_heartbeat(void *ptr) {
 
   /* terminate session */
   dlep_session_generate_signal(session, DLEP_PEER_TERMINATION, NULL);
-  session->next_signal = DLEP_PEER_TERMINATION_ACK;
+  session->restrict_signal = DLEP_PEER_TERMINATION_ACK;
 }

@@ -66,6 +66,7 @@ enum dlep_extensions {
 
 enum dlep_signals {
   /* control numbers for session handling */
+  DLEP_KEEP_RESTRICTION             = -3,
   DLEP_KILL_SESSION                 = -2,
   DLEP_ALL_SIGNALS                  = -1,
 
@@ -131,6 +132,7 @@ enum dlep_tlvs {
   DLEP_FRAMES_T_TLV,
   DLEP_BYTES_R_TLV,
   DLEP_BYTES_T_TLV,
+  DLEP_THROUGHPUT_T_TLV,
   DLEP_FRAMES_RETRIES_TLV,
   DLEP_FRAMES_FAILED_TLV,
 

@@ -128,7 +128,7 @@ dlep_base_proto_router_init(void) {
 
 static void
 _cb_init_router(struct dlep_session *session) {
-  if (session->next_signal == DLEP_PEER_INITIALIZATION_ACK) {
+  if (session->restrict_signal == DLEP_PEER_INITIALIZATION_ACK) {
     /*
      * we are waiting for a Peer Init Ack,
      * so we need to send a Peer Init
@@ -144,7 +144,7 @@ _cb_init_router(struct dlep_session *session) {
 static void
 _cb_apply_router(struct dlep_session *session) {
   OONF_DEBUG(session->log_source, "Initialize base router session");
-  if (session->next_signal == DLEP_PEER_OFFER) {
+  if (session->restrict_signal == DLEP_PEER_OFFER) {
     /*
      * we are waiting for a Peer Offer,
      * so we need to send Peer Discovery messages
@@ -198,7 +198,7 @@ _router_process_peer_offer(
   uint16_t port;
   struct os_interface_data *ifdata;
 
-  if (session->next_signal != DLEP_PEER_OFFER) {
+  if (session->restrict_signal != DLEP_PEER_OFFER) {
     /* ignore unless we are in discovery mode */
     return 0;
   }
@@ -273,9 +273,11 @@ _router_process_peer_init_ack(
     struct dlep_extension *ext __attribute__((unused)),
     struct dlep_session *session) {
   struct oonf_layer2_net *l2net;
+  struct dlep_parser_value *value;
+  const uint8_t *ptr;
   int result;
 
-  if (session->next_signal != DLEP_PEER_INITIALIZATION_ACK) {
+  if (session->restrict_signal != DLEP_PEER_INITIALIZATION_ACK) {
     /* ignore unless we are in initialization mode */
     return 0;
   }
@@ -285,6 +287,15 @@ _router_process_peer_init_ack(
       &session->remote_heartbeat_interval, session, NULL)) {
     OONF_INFO(session->log_source, "no heartbeat tlv, should not happen!");
     return -1;
+  }
+
+  /* optional extension supported tlv */
+  value = dlep_session_get_tlv_value(session, DLEP_EXTENSIONS_SUPPORTED_TLV);
+  if (value) {
+    ptr = dlep_session_get_tlv_binary(session, value);
+    if (dlep_session_update_extensions(session, ptr, value->length/2)) {
+      return -1;
+    }
   }
 
   l2net = oonf_layer2_net_add(session->l2_listener.name);
@@ -307,7 +318,7 @@ _router_process_peer_init_ack(
 
   dlep_base_proto_print_status(session);
 
-  session->next_signal = DLEP_ALL_SIGNALS;
+  session->next_restrict_signal = DLEP_ALL_SIGNALS;
 
   return 0;
 }
@@ -473,7 +484,7 @@ _router_write_peer_discovery(
     struct dlep_extension *ext __attribute__((unused)),
     struct dlep_session *session,
     const struct netaddr *addr __attribute__((unused))) {
-  if (session->next_signal != DLEP_PEER_OFFER) {
+  if (session->restrict_signal != DLEP_PEER_OFFER) {
     return -1;
   }
   return 0;

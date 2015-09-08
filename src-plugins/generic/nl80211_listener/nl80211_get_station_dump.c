@@ -231,6 +231,15 @@ nl80211_process_get_station_dump_result(struct nl80211_if *interf,
               OONF_LAYER2_NEIGH_TX_THROUGHPUT, rate * 1024ll);
   }
 
+  /* signal strength is special too */
+  if (sinfo[NL80211_STA_INFO_SIGNAL]) {
+    int8_t signal;
+
+    signal = nla_get_u8(sinfo[NL80211_STA_INFO_SIGNAL]);
+    nl80211_change_l2neigh_data(l2neigh,
+        OONF_LAYER2_NEIGH_RX_SIGNAL, signal * 1000ll);
+  }
+
   /* remove old data */
   nl80211_cleanup_l2neigh_data(l2neigh);
 

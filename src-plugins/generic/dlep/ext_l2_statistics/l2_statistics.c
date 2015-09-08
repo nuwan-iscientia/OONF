@@ -21,6 +21,9 @@ static const uint16_t _peer_initack_tlvs[] = {
     DLEP_FRAMES_T_TLV,
     DLEP_FRAMES_RETRIES_TLV,
     DLEP_FRAMES_FAILED_TLV,
+    DLEP_BYTES_R_TLV,
+    DLEP_BYTES_T_TLV,
+    DLEP_THROUGHPUT_T_TLV,
 };
 static const uint16_t _peer_initack_mandatory[] = {
     DLEP_FRAMES_R_TLV,
@@ -33,6 +36,9 @@ static const uint16_t _peer_update_tlvs[] = {
     DLEP_FRAMES_T_TLV,
     DLEP_FRAMES_RETRIES_TLV,
     DLEP_FRAMES_FAILED_TLV,
+    DLEP_BYTES_R_TLV,
+    DLEP_BYTES_T_TLV,
+    DLEP_THROUGHPUT_T_TLV,
 };
 
 /* destination up/update */
@@ -42,6 +48,9 @@ static const uint16_t _dst_tlvs[] = {
     DLEP_FRAMES_T_TLV,
     DLEP_FRAMES_RETRIES_TLV,
     DLEP_FRAMES_FAILED_TLV,
+    DLEP_BYTES_R_TLV,
+    DLEP_BYTES_T_TLV,
+    DLEP_THROUGHPUT_T_TLV,
 };
 static const uint16_t _dst_mandatory[] = {
     DLEP_MAC_ADDRESS_TLV,
@@ -91,6 +100,9 @@ static struct dlep_extension_tlv _tlvs[] = {
     { DLEP_FRAMES_T_TLV, 8, 8 },
     { DLEP_FRAMES_RETRIES_TLV, 8, 8 },
     { DLEP_FRAMES_FAILED_TLV, 8, 8 },
+    { DLEP_BYTES_R_TLV, 8, 8 },
+    { DLEP_BYTES_T_TLV, 8, 8 },
+    { DLEP_THROUGHPUT_T_TLV, 8,8 },
 };
 
 static struct dlep_neighbor_mapping _neigh_mappings[] = {
@@ -126,6 +138,27 @@ static struct dlep_neighbor_mapping _neigh_mappings[] = {
     {
         .dlep          = DLEP_FRAMES_FAILED_TLV,
         .layer2        = OONF_LAYER2_NEIGH_TX_FAILED,
+        .length        = 8,
+        .from_tlv      = dlep_reader_map_identity,
+        .to_tlv        = dlep_writer_map_identity,
+    },
+    {
+        .dlep          = DLEP_BYTES_R_TLV,
+        .layer2        = OONF_LAYER2_NEIGH_RX_BYTES,
+        .length        = 8,
+        .from_tlv      = dlep_reader_map_identity,
+        .to_tlv        = dlep_writer_map_identity,
+    },
+    {
+        .dlep          = DLEP_BYTES_T_TLV,
+        .layer2        = OONF_LAYER2_NEIGH_TX_BYTES,
+        .length        = 8,
+        .from_tlv      = dlep_reader_map_identity,
+        .to_tlv        = dlep_writer_map_identity,
+    },
+    {
+        .dlep          = DLEP_THROUGHPUT_T_TLV,
+        .layer2        = OONF_LAYER2_NEIGH_TX_THROUGHPUT,
         .length        = 8,
         .from_tlv      = dlep_reader_map_identity,
         .to_tlv        = dlep_writer_map_identity,

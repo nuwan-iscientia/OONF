@@ -51,7 +51,7 @@ dlep_extension_add(struct dlep_extension *ext) {
 
   avl_for_each_element(&_extension_tree, ext, _node) {
     if (ext->id >= 0 && ext->id <= 0xffff) {
-      ptr[_id_array_length] = ext->id;
+      ptr[_id_array_length] = htons(ext->id);
       _id_array_length++;
     }
   }
@@ -96,7 +96,7 @@ dlep_extension_router_process_peer_init_ack(
   struct oonf_layer2_net *l2net;
   int result;
 
-  if (session->next_signal != DLEP_PEER_INITIALIZATION_ACK) {
+  if (session->restrict_signal != DLEP_PEER_INITIALIZATION_ACK) {
     /* ignore unless we are in initialization mode */
     return 0;
   }
@@ -130,7 +130,7 @@ dlep_extension_router_process_peer_update(
   struct oonf_layer2_net *l2net;
   int result;
 
-  if (session->next_signal != DLEP_PEER_INITIALIZATION_ACK) {
+  if (session->restrict_signal != DLEP_PEER_INITIALIZATION_ACK) {
     /* ignore unless we are in initialization mode */
     return 0;
   }
@@ -204,6 +204,7 @@ dlep_extension_radio_write_peer_init_ack(
     return -1;
   }
 
+  /* adding default neighbor data for mandatory values */
   for (i=0; i<ext->neigh_mapping_count; i++) {
     if (!ext->neigh_mapping[i].mandatory) {
       continue;
@@ -217,9 +218,23 @@ dlep_extension_radio_write_peer_init_ack(
     }
   }
 
+  /* adding default interface data for mandatory values */
+  for (i=0; i<ext->if_mapping_count; i++) {
+    if (!ext->if_mapping[i].mandatory) {
+      continue;
+    }
+
+    l2data = &l2net->data[ext->if_mapping[i].layer2];
+
+    if (!oonf_layer2_has_value(l2data)) {
+      oonf_layer2_set_value(l2data, session->l2_origin,
+          ext->if_mapping[i].default_value);
+    }
+  }
+
   /* write default metric values */
   result = dlep_writer_map_l2neigh_data(&session->writer, ext,
-      l2net->neighdata);
+      l2net->neighdata, NULL);
   if (result) {
     OONF_WARN(session->log_source, "tlv mapping for extension %d failed: %d",
         ext->id, result);
@@ -250,7 +265,7 @@ dlep_extension_radio_write_peer_update(
   }
 
   result = dlep_writer_map_l2neigh_data(&session->writer, ext,
-      l2net->neighdata);
+      l2net->neighdata, NULL);
   if (result) {
     OONF_WARN(session->log_source, "tlv mapping for extension %d failed: %d",
         ext->id, result);
@@ -274,7 +289,7 @@ dlep_extension_radio_write_destination(struct dlep_extension *ext,
   }
 
   result = dlep_writer_map_l2neigh_data(&session->writer, ext,
-      l2neigh->data);
+      l2neigh->data, l2neigh->network->neighdata);
   if (result) {
     OONF_WARN(session->log_source, "tlv mapping for extension %d"
         " and neighbor %s failed: %d",

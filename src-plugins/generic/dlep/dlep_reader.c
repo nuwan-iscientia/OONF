@@ -263,25 +263,24 @@ dlep_reader_map_identity(struct oonf_layer2_data *data,
     switch (value->length) {
       case 8:
         memcpy(&tmp64, dlepvalue, 8);
-        tmp64 = be64toh(tmp64);
+        l2value = (int64_t) be64toh(tmp64);
         break;
       case 4:
         memcpy(&tmp32, dlepvalue, 4);
-        tmp64 = ntohl(tmp32);
+        l2value = (int32_t) ntohl(tmp32);
         break;
       case 2:
         memcpy(&tmp16, dlepvalue, 2);
-        tmp64 = ntohs(tmp16);
+        l2value = (int16_t) ntohs(tmp16);
         break;
       case 1:
         memcpy(&tmp8, dlepvalue, 1);
-        tmp64 = tmp8;
+        l2value = (int8_t) tmp8;
         break;
       default:
         return -1;
     }
 
-    memcpy(&l2value, &tmp64, 8);
     oonf_layer2_set_value(data, session->l2_origin, l2value);
   }
   return 0;

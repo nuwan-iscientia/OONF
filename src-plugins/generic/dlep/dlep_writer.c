@@ -110,6 +110,8 @@ dlep_writer_finish_signal(struct dlep_writer *writer,
   /* put it into the signal */
   memcpy(&writer->signal_start_ptr[2], &buffer, sizeof(buffer));
 
+  OONF_DEBUG_HEX(source, writer->signal_start_ptr, length,
+      "Finished signal %u:", writer->signal_type);
   return 0;
 }
 
@@ -271,31 +273,35 @@ dlep_writer_add_supported_extensions(struct dlep_writer *writer,
 int
 dlep_writer_map_identity(struct dlep_writer *writer,
     struct oonf_layer2_data *data, uint16_t tlv, uint16_t length) {
-  int64_t l2value;
+  int64_t l2value64;
   uint64_t tmp64;
   uint32_t tmp32;
   uint16_t tmp16;
   uint8_t tmp8;
   void *value;
 
-  l2value = oonf_layer2_get_value(data);
-  memcpy(&tmp64, &l2value, 8);
+  if (!oonf_layer2_has_value(data)) {
+    /* no data available */
+    return 0;
+  }
+
+  l2value64 = oonf_layer2_get_value(data);
 
   switch (length) {
     case 8:
-      tmp64 = htobe64(tmp64);
+      tmp64 = htobe64((uint64_t)l2value64);
       value = &tmp64;
       break;
     case 4:
-      tmp32 = htonl(tmp64);
+      tmp32 = htonl((uint32_t)((int32_t)l2value64));
       value = &tmp32;
       break;
     case 2:
-      tmp16 = htons(tmp64);
+      tmp16 = htons((uint16_t)((int16_t)l2value64));
       value = &tmp16;
       break;
     case 1:
-      tmp8 = tmp64;
+      tmp8 = (uint8_t)((int8_t)l2value64);
       value = &tmp8;
       break;
     default:
@@ -308,15 +314,21 @@ dlep_writer_map_identity(struct dlep_writer *writer,
 
 int
 dlep_writer_map_l2neigh_data(struct dlep_writer *writer,
-    struct dlep_extension *ext, struct oonf_layer2_data *data) {
+    struct dlep_extension *ext, struct oonf_layer2_data *data,
+    struct oonf_layer2_data *def) {
   struct dlep_neighbor_mapping *map;
+  struct oonf_layer2_data *ptr;
   size_t i;
 
   for (i=0; i<ext->neigh_mapping_count; i++) {
     map = &ext->neigh_mapping[i];
 
-    if (map->to_tlv(writer, &data[map->layer2],
-        map->dlep, map->length)) {
+    ptr = &data[map->layer2];
+    if (!oonf_layer2_has_value(ptr) && def) {
+      ptr = &def[map->layer2];
+    }
+
+    if (map->to_tlv(writer, ptr, map->dlep, map->length)) {
       return -(i+1);
     }
   }

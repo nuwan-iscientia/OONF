@@ -113,20 +113,20 @@ static struct dlep_extension_signal _signals[] = {
 static struct dlep_extension_tlv _tlvs[] = {
     { DLEP_FREQUENCY_TLV, 8, 16 },
     { DLEP_BANDWIDTH_TLV, 8, 16 },
-    { DLEP_NOISE_LEVEL_TLV, 8, 8 },
+    { DLEP_NOISE_LEVEL_TLV, 4, 4 },
     { DLEP_CHANNEL_ACTIVE_TLV, 8, 8 },
     { DLEP_CHANNEL_BUSY_TLV, 8, 8 },
     { DLEP_CHANNEL_RX_TLV, 8, 8 },
     { DLEP_CHANNEL_TX_TLV, 8, 8 },
-    { DLEP_SIGNAL_RX_TLV, 8, 8 },
-    { DLEP_SIGNAL_TX_TLV, 8, 8 },
+    { DLEP_SIGNAL_RX_TLV, 4, 4 },
+    { DLEP_SIGNAL_TX_TLV, 4, 4 },
 };
 
 static struct dlep_neighbor_mapping _neigh_mappings[] = {
     {
         .dlep          = DLEP_SIGNAL_RX_TLV,
         .layer2        = OONF_LAYER2_NEIGH_RX_SIGNAL,
-        .length        = 2,
+        .length        = 4,
 
         .from_tlv      = dlep_reader_map_identity,
         .to_tlv        = dlep_writer_map_identity,
@@ -134,7 +134,7 @@ static struct dlep_neighbor_mapping _neigh_mappings[] = {
     {
         .dlep          = DLEP_SIGNAL_TX_TLV,
         .layer2        = OONF_LAYER2_NEIGH_TX_SIGNAL,
-        .length        = 2,
+        .length        = 4,
 
         .from_tlv      = dlep_reader_map_identity,
         .to_tlv        = dlep_writer_map_identity,
@@ -165,7 +165,7 @@ static struct dlep_network_mapping _net_mappings[] = {
     {
         .dlep          = DLEP_NOISE_LEVEL_TLV,
         .layer2        = OONF_LAYER2_NET_NOISE,
-        .length        = 2,
+        .length        = 4,
 
         .from_tlv      = dlep_reader_map_identity,
         .to_tlv        = dlep_writer_map_identity,

@@ -162,7 +162,7 @@ dlep_base_proto_radio_init(void) {
 
 static void
 _cb_init_radio(struct dlep_session *session) {
-  if (session->next_signal == DLEP_PEER_INITIALIZATION) {
+  if (session->restrict_signal == DLEP_PEER_INITIALIZATION) {
     /*
      * we are waiting for a Peer Init,
      */
@@ -182,7 +182,7 @@ static int
 _radio_process_peer_discovery(
     struct dlep_extension *ext __attribute__((unused)),
     struct dlep_session *session) {
-  if (session->next_signal != DLEP_PEER_DISCOVERY) {
+  if (session->restrict_signal != DLEP_PEER_DISCOVERY) {
     /* ignore unless we are in discovery mode */
     return 0;
   }
@@ -199,7 +199,7 @@ _radio_process_peer_init(
   struct dlep_parser_value *value;
   const uint8_t *ptr;
 
-  if (session->next_signal != DLEP_PEER_INITIALIZATION) {
+  if (session->restrict_signal != DLEP_PEER_INITIALIZATION) {
     /* ignore unless we are in initialization mode */
     return 0;
   }
@@ -251,7 +251,7 @@ _radio_process_peer_init(
     }
   }
 
-  session->next_signal = DLEP_ALL_SIGNALS;
+  session->next_restrict_signal = DLEP_ALL_SIGNALS;
 
   return 0;
 }

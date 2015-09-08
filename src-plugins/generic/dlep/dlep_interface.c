@@ -59,7 +59,7 @@ dlep_if_add(struct dlep_if *interf, const char *ifname,
   /* initialize session */
   interf->session.cb_send_buffer = _cb_send_multicast;
   interf->session.cb_end_session = NULL;
-  interf->session.next_signal =
+  interf->session.restrict_signal =
       radio ? DLEP_PEER_DISCOVERY : DLEP_PEER_OFFER;
   interf->session.writer.out = &interf->udp_out;
 

@@ -55,6 +55,9 @@ struct dlep_parser_tlv {
   /*! maximal length of tlv */
   uint16_t length_max;
 
+  /*! used to remove unsupported TLVs */
+  bool remove;
+
   /*! node for session tlv tree */
   struct avl_node _node;
 };
@@ -177,8 +180,11 @@ struct dlep_session {
   /*! copy of local configuration */
   struct dlep_session_config cfg;
 
-  /*! next expected signal for session */
-  enum dlep_signals next_signal;
+  /*! restrict incoming signals to a special signal */
+  enum dlep_signals restrict_signal;
+
+  /*! initialize restrict signal with this variable after processing if not 0 */
+  enum dlep_signals next_restrict_signal;
 
   /*! true if this is a radio session */
   bool radio;
