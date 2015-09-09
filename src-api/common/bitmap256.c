@@ -47,6 +47,12 @@
 
 #include "bitmap256.h"
 
+/**
+ * Test if a bitmap is a subset of another bitmap
+ * @param set reference bitmap
+ * @param subset potential subset bitmap
+ * @return true if it is a subset of the reference, false otherwise
+ */
 bool
 bitmap256_is_subset(struct bitmap256 *set, struct bitmap256 *subset) {
   size_t i;

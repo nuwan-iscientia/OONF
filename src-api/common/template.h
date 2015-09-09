@@ -49,11 +49,17 @@
 #include "common/common_types.h"
 #include "common/autobuf.h"
 
+/*! text name for json boolean true value */
 #define TEMPLATE_JSON_TRUE            "true"
+
+/*! text name for json boolean false value */
 #define TEMPLATE_JSON_FALSE           "false"
 
 enum {
+  /*! length of text buffer for json boolean */
   TEMPLATE_JSON_BOOL_LENGTH = 6,
+
+  /*! maximum number of template keys per template */
   TEMPLATE_MAX_KEYS         = 32
 };
 

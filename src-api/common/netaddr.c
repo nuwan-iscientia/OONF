@@ -63,28 +63,50 @@ static bool _binary_is_in_subnet(const struct netaddr *subnet,
     const void *bin);
 
 /* predefined network prefixes */
+
+/*! unspecified network address */
 const struct netaddr NETADDR_UNSPEC = { {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}, AF_UNSPEC, 0 };
 
+/*! IPv4 default prefix */
 const struct netaddr NETADDR_IPV4_ANY = { {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}, AF_INET, 0 };
+
+/*! IPv6 default prefix */
 const struct netaddr NETADDR_IPV6_ANY = { {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}, AF_INET6, 0 };
 
+/*! IPv4 NULL address */
 const struct netaddr NETADDR_IPV4_BINDTO_ANY = { {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}, AF_INET, 32 };
+
+/*! IPv6 NULL address */
 const struct netaddr NETADDR_IPV6_BINDTO_ANY = { {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}, AF_INET6, 128 };
 
+/*! IPv4 multicast prefix */
 const struct netaddr NETADDR_IPV4_MULTICAST = { { 224,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}, AF_INET, 4 };
+
+/*! IPv6 multicast prefix */
 const struct netaddr NETADDR_IPV6_MULTICAST = { { 0xff,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}, AF_INET6, 8 };
 
+/*! IPv4 linklocal prefix */
 const struct netaddr NETADDR_IPV4_LINKLOCAL = { { 169,254,0,0,0,0,0,0,0,0,0,0,0,0,0,0}, AF_INET, 16 };
+
+/*! IPv6 linklocal prefix */
 const struct netaddr NETADDR_IPV6_LINKLOCAL = { { 0xfe,0x80,0,0,0,0,0,0,0,0,0,0,0,0,0,0}, AF_INET6, 10 };
 
+/*! IPv6 unique local prefix */
 const struct netaddr NETADDR_IPV6_ULA = { { 0xfc,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}, AF_INET6, 7 };
 
+/*! IPv6 ipv4-compatible prefix */
 const struct netaddr NETADDR_IPV6_IPV4COMPATIBLE = { {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}, AF_INET6, 96 };
+
+/*! IPv6 ipv4-mapped prefix */
 const struct netaddr NETADDR_IPV6_IPV4MAPPED = { {0,0,0,0,0,0,0,0,0,0,0xff,0xff,0,0,0,0}, AF_INET6, 96 };
 
+/*! IPv4 loopback prefix */
 const struct netaddr NETADDR_IPV4_LOOPBACK_NET = { {127,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0}, AF_INET, 8 };
+
+/*! IPv6 loopback address */
 const struct netaddr NETADDR_IPV6_LOOPBACK = { {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1}, AF_INET6, 128 };
 
+/*! socket for binding to any IPv4 address */
 const union netaddr_socket NETADDR_SOCKET_IPV4_ANY = {
   .v4 = {
       .sin_family = AF_INET,
@@ -92,6 +114,8 @@ const union netaddr_socket NETADDR_SOCKET_IPV4_ANY = {
       .sin_addr.s_addr = 0,
   }
 };
+
+/*! socket for binding to any IPv6 address */
 const union netaddr_socket NETADDR_SOCKET_IPV6_ANY = {
   .v6 = {
       .sin6_family = AF_INET6,

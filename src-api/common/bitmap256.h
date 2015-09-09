@@ -48,7 +48,10 @@
 
 #include "common/common_types.h"
 
+/*! keyword for setting all bits in a bitmap */
 #define BITMAP256_ALL  "all"
+
+/*! keyword for clearing all bits in a bitmap */
 #define BITMAP256_NONE "none"
 
 /**

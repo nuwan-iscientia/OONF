@@ -54,24 +54,24 @@
  */
 // __asm__(".symver memcpy,memcpy@GLIBC_2.2.5");
 
-/* support EXPORT macro of OONF */
 #ifndef EXPORT
-#  define EXPORT __attribute__((visibility ("default")))
+/*! Macro to declare a function should be visible for other subsystems */
+#define EXPORT __attribute__((visibility ("default")))
 #endif
 
 /* give everyone an arraysize implementation */
 #ifndef ARRAYSIZE
+/**
+ * @param a reference of an array (not a pointer!)
+ * @returns number of elements in array
+ */
 #define ARRAYSIZE(a)  (sizeof(a) / sizeof(*(a)))
 #endif
 
-/* convert the value into a string */
 #ifndef STRINGIFY
+/*! converts the parameter of the macro into a string */
 #define STRINGIFY(x) #x
 #endif
-
-/* time constants */
-#define MSEC_PER_SEC 1000ull
-#define USEC_PER_MSEC 1000ull
 
 /*
  * This force gcc to always inline, which prevents errors
@@ -79,26 +79,23 @@
  */
 #ifndef INLINE
 #ifdef __GNUC__
+/*! force inlining with GCC */
 #define INLINE inline __attribute__((always_inline))
 #else
+/*! default to normal inlining */
 #define INLINE inline
 #endif
 #endif
 
 /* printf size_t modifiers*/
-#if defined(WIN32)
-  #define PRINTF_SIZE_T_SPECIFIER     "Iu"
-  #define PRINTF_SIZE_T_HEX_SPECIFIER "Ix"
-  #define PRINTF_SSIZE_T_SPECIFIER    "Id"
-  #define PRINTF_PTRDIFF_T_SPECIFIER  "Id"
-#elif defined(__GNUC__)
-  #define PRINTF_SIZE_T_SPECIFIER     "zu"
-  #define PRINTF_SIZE_T_HEX_SPECIFIER "zx"
-  #define PRINTF_SSIZE_T_SPECIFIER    "zd"
-  #define PRINTF_PTRDIFF_T_SPECIFIER  "zd"
+#if defined(__GNUC__)
+#define PRINTF_SIZE_T_SPECIFIER     "zu"
+#define PRINTF_SIZE_T_HEX_SPECIFIER "zx"
+#define PRINTF_SSIZE_T_SPECIFIER    "zd"
+#define PRINTF_PTRDIFF_T_SPECIFIER  "zd"
 #else
-  /* maybe someone can check what to do about LLVM/Clang? */
-  #error Please implement size_t modifiers
+/* maybe someone can check what to do about LLVM/Clang? */
+#error Please implement size_t modifiers
 #endif
 
 #include <limits.h>
@@ -108,72 +105,7 @@
 #include <inttypes.h>
 #include <stdbool.h>
 #else
-
-/*
- * This include file creates stdint/stdbool datatypes for
- * visual studio, because microsoft does not support C99
- */
-
-typedef unsigned char uint8_t;
-typedef unsigned short uint16_t;
-typedef unsigned int uint32_t;
-typedef unsigned long long uint64_t;
-typedef signed char int8_t;
-typedef signed short int16_t;
-typedef signed int int32_t;
-typedef signed long long int64_t;
-
-/* Minimum of signed integral types.  */
-#ifndef INT8_MIN
-# define INT8_MIN   (-128)
-#endif
-#ifndef INT16_MIN
-# define INT16_MIN    (-32767-1)
-#endif
-#ifndef INT32_MIN
-# define INT32_MIN    (-2147483647-1)
-#endif
-
-/* Maximum of signed integral types.  */
-#ifndef INT8_MAX
-# define INT8_MAX   (127)
-#endif
-#ifndef INT16_MAX
-# define INT16_MAX    (32767)
-#endif
-#ifndef INT32_MAX
-# define INT32_MAX    (2147483647)
-#endif
-
-/* Maximum of unsigned integral types.  */
-#ifndef UINT8_MAX
-# define UINT8_MAX    (255)
-#endif
-#ifndef UINT16_MAX
-# define UINT16_MAX   (65535)
-#endif
-#ifndef UINT32_MAX
-# define UINT32_MAX   (4294967295U)
-#endif
-
-/* printf modifier for int64_t and uint64_t */
-#ifndef PRId64
-#define PRId64        "lld"
-#endif
-#ifndef PRIu64
-#define PRIu64        "llu"
-#endif
-
-#ifdef __GNUC__
-/* we simulate a C99 environment */
-#define bool _Bool
-#define true 1
-#define false 0
-#define __bool_true_false_are_defined 1
-#else
-#error No boolean available, please extende common/common_types.h
-#endif /* __GNUC__ */
-
+#error "OONF needs C99"
 #endif /* __STDC_VERSION__ && __STDC_VERSION__ >= 199901L */
 
 #endif /* COMMON_TYPES_H_ */

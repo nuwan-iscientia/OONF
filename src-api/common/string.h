@@ -53,9 +53,15 @@
 
 #include "common/common_types.h"
 
-enum { STRARRAY_BLOCKSIZE = 64 };
+enum {
+  /*! block size for allocated string arrays */
+  STRARRAY_BLOCKSIZE = 64
+};
 
-/* macro to initialize a static string array */
+/**
+ * Macro to statically initialize a string array
+ * @param str string array representation
+ */
 #define STRARRAY_INIT(str) { .value = (str), .length = sizeof(str) }
 
 /**

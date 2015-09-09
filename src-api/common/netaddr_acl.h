@@ -56,9 +56,17 @@
  * Used preprocessor instead of variables to allow building
  * larger strings, e.g. "-127.0.0.1 " ACL_FIRST_ACCEPT
  */
+
+/*! text name for checking the reject list of an ACL first */
 #define ACL_FIRST_REJECT "first_reject"
+
+/*! text name for checking the accept list of an ACL first */
 #define ACL_FIRST_ACCEPT "first_accept"
+
+/*! text name for accepting an address if no list matches */
 #define ACL_DEFAULT_ACCEPT "default_accept"
+
+/*! text name for rejecting an address if no list matches */
 #define ACL_DEFAULT_REJECT "default_reject"
 
 /**

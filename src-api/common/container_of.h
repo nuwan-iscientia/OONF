@@ -49,8 +49,8 @@
 #include <stddef.h>
 #include "common/common_types.h"
 
-/* allow compilation with c99 mode */
 #ifndef typeof
+/*! map typeof macro to builtin typeof */
 #define typeof(x) __typeof__(x)
 #endif
 
@@ -69,6 +69,8 @@
 
 /**
  * Helper function for NULL safe container_of macro
+ * @param ptr pointer to embedded element or NULL
+ * @param offset offset to surrounding struct
  */
 static INLINE void *
 __container_of_if_notnull(void *ptr, size_t offset) {

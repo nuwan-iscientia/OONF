@@ -53,6 +53,14 @@
 
 #define OONF_CLOCK_SUBSYSTEM "clock"
 
+enum {
+  /*! number of milliseconds in a second */
+  MSEC_PER_SEC = 1000ull,
+
+  /*! number of microseconds in a millisecond */
+  USEC_PER_MSEC = 1000ull,
+};
+
 /* definitions for config parser usage */
 #define CFG_VALIDATE_CLOCK(p_name, p_def, p_help, args...)                  CFG_VALIDATE_INT64_MINMAX(p_name, p_def, p_help, 3, false, 0, INT64_MAX, ##args)
 #define CFG_VALIDATE_CLOCK_MIN(p_name, p_def, p_help, min, args...)         CFG_VALIDATE_INT64_MINMAX(p_name, p_def, p_help, 3, false, min, INT64_MAX, ##args)

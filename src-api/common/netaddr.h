@@ -65,20 +65,32 @@
 #include "common/common_types.h"
 #include "common/autobuf.h"
 
-/* Pseude address families for mac/eui64 */
 enum {
+  /*! address family for 48-bit mac address */
   AF_MAC48 = AF_MAX + 1,
+
+  /*! address family for 64-bit EUI-64 address */
   AF_EUI64 = AF_MAX + 2,
 };
 
-/* maximum number of octets for address */
-enum { NETADDR_MAX_LENGTH = 16 };
+enum {
+  /*! maximum length of a network address in octets */
+  NETADDR_MAX_LENGTH = 16
+};
 
-/* text names for defining netaddr prefixes */
+/*! text name for IPv4_ANY prefix */
 #define NETADDR_STR_ANY4       "any4"
+
+/*! text name for IPv6 ANY prefix */
 #define NETADDR_STR_ANY6       "any6"
+
+/*! text name for IPv4 linklocal prefix */
 #define NETADDR_STR_LINKLOCAL4 "linklocal4"
+
+/*! text name for IPv6 linklocal prefix */
 #define NETADDR_STR_LINKLOCAL6 "linklocal6"
+
+/*! text name for IPv6 unique local prefix */
 #define NETADDR_STR_ULA        "ula"
 
 /**
