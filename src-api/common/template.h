@@ -39,6 +39,10 @@
  *
  */
 
+/**
+ * @file ./src-api/common/template.h
+ */
+
 #ifndef TEMPLATE_H_
 #define TEMPLATE_H_
 

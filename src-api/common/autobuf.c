@@ -39,6 +39,10 @@
  *
  */
 
+/**
+ * @file ./src-api/common/autobuf.c
+ */
+
 #include <errno.h>
 #include <stdarg.h>
 #include <stdio.h>

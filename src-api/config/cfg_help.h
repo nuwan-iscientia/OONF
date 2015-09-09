@@ -39,6 +39,10 @@
  *
  */
 
+/**
+ * @file ./src-api/config/cfg_help.h
+ */
+
 #ifndef CFG_HELP_H_
 #define CFG_HELP_H_
 

@@ -39,6 +39,10 @@
  *
  */
 
+/**
+ * @file ./src-api/common/avl_comp.h
+ */
+
 #ifndef AVL_COMP_H_
 #define AVL_COMP_H_
 

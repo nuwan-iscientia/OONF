@@ -39,6 +39,10 @@
  *
  */
 
+/**
+ * @file ./src-api/config/cfg_cmd.h
+ */
+
 #ifndef CFG_CMD_H_
 #define CFG_CMD_H_
 

@@ -39,6 +39,10 @@
  *
  */
 
+/**
+ * @file ./src-api/config/cfg_schema.h
+ */
+
 #ifndef CFG_SCHEMA_H_
 #define CFG_SCHEMA_H_
 

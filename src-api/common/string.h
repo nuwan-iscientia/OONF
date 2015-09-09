@@ -39,6 +39,10 @@
  *
  */
 
+/**
+ * @file ./src-api/common/string.h
+ */
+
 #ifndef COMMON_STRING_H_
 #define COMMON_STRING_H_
 

@@ -39,6 +39,10 @@
  *
  */
 
+/**
+ * @file ./src-api/core/os_core.h
+ */
+
 #ifndef OS_CORE_H_
 #define OS_CORE_H_
 

@@ -39,6 +39,10 @@
  *
  */
 
+/**
+ * @file ./src-api/config/cfg_help.c
+ */
+
 #include "common/common_types.h"
 #include "common/autobuf.h"
 #include "common/bitmap256.h"

@@ -39,6 +39,10 @@
  *
  */
 
+/**
+ * @file ./src-api/common/string.c
+ */
+
 #include <assert.h>
 #include <ctype.h>
 #include <errno.h>

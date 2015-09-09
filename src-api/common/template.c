@@ -39,6 +39,10 @@
  *
  */
 
+/**
+ * @file ./src-api/common/template.c
+ */
+
 #include <stdio.h>
 #include <stdlib.h>
 

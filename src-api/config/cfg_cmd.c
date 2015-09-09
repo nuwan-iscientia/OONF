@@ -39,6 +39,10 @@
  *
  */
 
+/**
+ * @file ./src-api/config/cfg_cmd.c
+ */
+
 #include <stdlib.h>
 #include <strings.h>
 #include <regex.h>

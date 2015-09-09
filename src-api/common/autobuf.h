@@ -39,6 +39,10 @@
  *
  */
 
+/**
+ * @file ./src-api/common/autobuf.h
+ */
+
 #ifndef _COMMON_AUTOBUF_H
 #define _COMMON_AUTOBUF_H
 

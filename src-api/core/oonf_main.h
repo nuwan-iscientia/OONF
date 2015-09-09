@@ -39,6 +39,10 @@
  *
  */
 
+/**
+ * @file ./src-api/core/oonf_main.h
+ */
+
 #ifndef OONF_MAIN_H_
 #define OONF_MAIN_H_
 

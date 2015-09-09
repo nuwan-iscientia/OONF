@@ -39,6 +39,10 @@
  *
  */
 
+/**
+ * @file ./src-api/config/cfg_db.h
+ */
+
 #ifndef CFG_DB_H_
 #define CFG_DB_H_
 

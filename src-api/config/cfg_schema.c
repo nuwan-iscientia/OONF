@@ -39,6 +39,10 @@
  *
  */
 
+/**
+ * @file ./src-api/config/cfg_schema.c
+ */
+
 #include <assert.h>
 #include <errno.h>
 #include <limits.h>

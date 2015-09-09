@@ -39,6 +39,10 @@
  *
  */
 
+/**
+ * @file ./src-api/core/oonf_logging.h
+ */
+
 #ifndef OONF_LOGGING_H_
 #define OONF_LOGGING_H_
 

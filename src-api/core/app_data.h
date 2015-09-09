@@ -39,6 +39,10 @@
  *
  */
 
+/**
+ * @file ./src-api/core/app_data.h
+ */
+
 #ifndef OONF_APP_CONFIG_H_
 #define OONF_APP_CONFIG_H_
 
