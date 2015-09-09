@@ -39,6 +39,10 @@
  *
  */
 
+/**
+ * @file ./examples/rfc5444_reader_writer/writer.h
+ */
+
 #ifndef WRITER_H_
 #define WRITER_H_
 

@@ -39,6 +39,10 @@
  *
  */
 
+/**
+ * @file ./tests/rfc5444/test_rfc5444.c
+ */
+
 #include "common/common_types.h"
 #include "rfc5444/rfc5444.h"
 #include "cunit/cunit.h"

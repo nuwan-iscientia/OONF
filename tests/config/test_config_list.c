@@ -39,6 +39,10 @@
  *
  */
 
+/**
+ * @file ./tests/config/test_config_list.c
+ */
+
 #include <stdio.h>
 
 #include "config/cfg_schema.h"

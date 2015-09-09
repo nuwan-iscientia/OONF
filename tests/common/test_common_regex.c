@@ -39,6 +39,10 @@
  *
  */
 
+/**
+ * @file ./tests/common/test_common_regex.c
+ */
+
 #include <stdio.h>
 
 #include "common/common_types.h"
