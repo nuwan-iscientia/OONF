@@ -86,7 +86,15 @@ struct cfg_io {
   int (*save)(const char *param, struct cfg_db *src, struct autobuf *log);
 };
 
-#define CFG_FOR_ALL_IO(instance, io, iterator) avl_for_each_element_safe(&(instance)->io_tree, io, node, iterator)
+/**
+ * Macro to iterate over all IO handlers of a configuration instance
+ * This macro should be used similar to a for() or while() construct
+ * @param instance configuration instance
+ * @param io reference of io handler variable,
+ *   will be used as the iterator variable
+ * @param safeit helper reference of of io handler variable
+ */
+#define CFG_FOR_ALL_IO(instance, io, safeit) avl_for_each_element_safe(&(instance)->io_tree, io, node, safeit)
 
 EXPORT void cfg_io_add(struct cfg_instance *, struct cfg_io *);
 EXPORT void cfg_io_remove(struct cfg_instance *, struct cfg_io *);

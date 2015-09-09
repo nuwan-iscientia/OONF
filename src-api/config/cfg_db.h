@@ -120,9 +120,35 @@ struct cfg_entry {
   struct cfg_named_section *named_section;
 };
 
-#define CFG_FOR_ALL_SECTION_TYPES(db, s_type, iterator) avl_for_each_element_safe(&db->sectiontypes, s_type, node, iterator)
-#define CFG_FOR_ALL_SECTION_NAMES(s_type, s_name, iterator) avl_for_each_element_safe(&s_type->names, s_name, node, iterator)
-#define CFG_FOR_ALL_ENTRIES(s_name, entry, iterator) avl_for_each_element_safe(&s_name->entries, entry, node, iterator)
+/**
+ * Iterate over all sections types in a configuration database.
+ * This macro should be used similar to a for() or while() construct
+ * @param db configuration database
+ * @param s_type reference of section type variable,
+ *   will be used as the iterator variable
+ * @param safeit helper reference of of section type variable
+ */
+#define CFG_FOR_ALL_SECTION_TYPES(db, s_type, safeit) avl_for_each_element_safe(&db->sectiontypes, s_type, node, safeit)
+
+/**
+ * Iterate over all named sections in a section type.
+ * This macro should be used similar to a for() or while() construct
+ * @param s_type configuration section type
+ * @param s_name reference of named section variable,
+ *   will be used as the iterator variable
+ * @param safeit helper reference of of named section variable
+ */
+#define CFG_FOR_ALL_SECTION_NAMES(s_type, s_name, safeit) avl_for_each_element_safe(&s_type->names, s_name, node, safeit)
+
+/**
+ * Iterate over all entries in a named section.
+ * This macro should be used similar to a for() or while() construct
+ * @param s_name named configuration section
+ * @param entry reference of configuration entry variable,
+ *   will be used as the iterator variable
+ * @param safeit helper reference of configuration entry variable
+ */
+#define CFG_FOR_ALL_ENTRIES(s_name, entry, safeit) avl_for_each_element_safe(&s_name->entries, entry, node, safeit)
 
 EXPORT struct cfg_db *cfg_db_add(void);
 EXPORT void cfg_db_remove(struct cfg_db *);

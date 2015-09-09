@@ -53,20 +53,38 @@
 #include "config/cfg_help.h"
 #include "config/cfg.h"
 
+/*! prefix before help text parameter explanation */
 #define _PREFIX "    "
 
+/**
+ * Produce help text for string with maximum length
+ * @param out output buffer
+ * @param len maximum length
+ */
 void
 cfg_help_strlen(struct autobuf *out, size_t len) {
   cfg_append_printable_line(out, _PREFIX "Parameter must have a maximum"
       " length of %"PRINTF_SIZE_T_SPECIFIER" characters", len);
 }
 
+/**
+ * Produce help text for printable string with maximum length
+ * @param out output buffer
+ * @param len maximum length
+ */
 void
 cfg_help_printable(struct autobuf *out, size_t len) {
   cfg_help_printable(out, len);
   cfg_append_printable_line(out, _PREFIX "Parameter must only contain printable characters.");
 }
 
+/**
+ * Produce help text for a choice of multiple constants
+ * @param out output buffer
+ * @param preamble true if preamble should be printed
+ * @param choices array of string pointers with available choices
+ * @param choice_count number of choices in array
+ */
 void
 cfg_help_choice(struct autobuf *out, bool preamble,
     const char **choices, size_t choice_count) {
@@ -84,6 +102,15 @@ cfg_help_choice(struct autobuf *out, bool preamble,
   abuf_puts(out, "\n");
 }
 
+/**
+ * Produce help text for an fixed point interger
+ * @param out output buffer
+ * @param min minimal value
+ * @param max maximal value
+ * @param bytelen number of bytes the storage types has
+ * @param fraction number of fractional digits
+ * @param base2 true if iso prefixes should use factor 1024
+ */
 void
 cfg_help_int(struct autobuf *out,
     int64_t min, int64_t max, uint16_t bytelen, uint16_t fraction, bool base2) {
@@ -123,6 +150,14 @@ cfg_help_int(struct autobuf *out,
   }
 }
 
+/**
+ * Produce help text for a network address
+ * @param out output buffer
+ * @param preamble true if preamble should be printed
+ * @param prefix true if address can be a prefix, false for addresses only
+ * @param af_types array of address family types
+ * @param af_types_count number of address family types
+ */
 void
 cfg_help_netaddr(struct autobuf *out, bool preamble,
     bool prefix, const int8_t *af_types, size_t af_types_count) {
@@ -174,6 +209,14 @@ cfg_help_netaddr(struct autobuf *out, bool preamble,
   abuf_puts(out, "\n");
 }
 
+/**
+ * Produce help text for access control list
+ * @param out output buffer
+ * @param preamble true if preamble should be printed
+ * @param prefix true if ACL can accept a prefix
+ * @param af_types array of address family types
+ * @param af_types_count number of address family types
+ */
 void
 cfg_help_acl(struct autobuf *out, bool preamble,
     bool prefix, const int8_t *af_types, size_t af_types_count) {
@@ -195,6 +238,11 @@ cfg_help_acl(struct autobuf *out, bool preamble,
       _PREFIX "    (default mode is '" ACL_FIRST_ACCEPT "' and '" ACL_DEFAULT_REJECT "')\n");
 }
 
+/**
+ * Produce help text for bitmap of 256 bit length
+ * @param out output buffer
+ * @param preamble true if preamble should be printed
+ */
 void
 cfg_help_bitmap256(struct autobuf *out, bool preamble) {
   if (preamble) {

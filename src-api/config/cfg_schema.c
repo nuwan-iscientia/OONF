@@ -77,8 +77,13 @@ static void _handle_named_section_change(struct cfg_schema_section *s_section,
 static int _handle_db_changes(struct cfg_db *pre_change,
     struct cfg_db *post_change, bool startup);
 
+/*! string array with boolean options with value true */
 const char *CFGLIST_BOOL_TRUE[] = { CFGLIST_BOOL_TRUE_VALUES };
+
+/*! string arrray with valid boolean options */
 const char *CFGLIST_BOOL[] = { CFGLIST_BOOL_VALUES };
+
+/*! text values for configuration schema modes */
 const char *CFG_SCHEMA_SECTIONMODE[CFG_SSMODE_MAX] = {
   [CFG_SSMODE_UNNAMED] = "unnamed",
   [CFG_SSMODE_NAMED] = "named",

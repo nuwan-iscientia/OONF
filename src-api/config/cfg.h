@@ -58,6 +58,7 @@ struct cfg_instance;
 #include "config/cfg_cmd.h"
 #include "config/cfg_io.h"
 
+/*! Separator for configuration URL */
 #define CFG_IO_URL_SPLITTER "://"
 
 /**

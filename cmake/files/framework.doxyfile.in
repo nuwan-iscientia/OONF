@@ -1,4 +1,4 @@
-# Doxyfile 1.8.9.1
+WF# Doxyfile 1.8.9.1
 
 # This file describes the settings to be used by the documentation system
 # doxygen (www.doxygen.org) for a project.
@@ -2148,7 +2148,7 @@ DOT_NUM_THREADS        = 0
 # The default value is: Helvetica.
 # This tag requires that the tag HAVE_DOT is set to YES.
 
-DOT_FONTNAME           = FreeSans
+DOT_FONTNAME           = 
 
 # The DOT_FONTSIZE tag can be used to set the size (in points) of the font of
 # dot graphs.

@@ -68,9 +68,17 @@ struct cfg_schema_entry;
 
 /* macros for creating schema entries */
 #if !defined(REMOVE_HELPTEXT)
-#define _CFG_VALIDATE(p_name, p_def, p_help,args...)                         { .key.entry = (p_name), .def = { .value = (p_def), .length = sizeof(p_def)}, .help = (p_help), ##args }
+/**
+ * Helper macro to produce a cfg_schema_entry.
+ * Help text can be switched off by preprocessor.
+ * @param p_name parameter name
+ * @param p_def parameter default value
+ * @param p_help help text for configuration entry
+ * @param args variable list of additional arguments
+ */
+#define _CFG_VALIDATE(p_name, p_def, p_help, args...)                         { .key.entry = (p_name), .def = { .value = (p_def), .length = sizeof(p_def)}, .help = (p_help), ##args }
 #else
-#define _CFG_VALIDATE(p_name, p_def, p_help,args...)                         { .key.entry = (p_name), .def = { .value = (p_def), .length = sizeof(p_def)}, ##args }
+#define _CFG_VALIDATE(p_name, p_def, p_help, args...)                         { .key.entry = (p_name), .def = { .value = (p_def), .length = sizeof(p_def)}, ##args }
 #endif
 
 /*
@@ -92,33 +100,288 @@ struct cfg_schema_entry;
  *     CFG_VALIDATE_INT32_MINMAX("number", "0", "help for number parameter", 0, 10),
  * };
  */
+
+/**
+ * Helper macro to create a cfg_schema_entry for an integer parameter
+ * @param p_name parameter name
+ * @param p_def parameter default value
+ * @param p_help help text for configuration entry
+ * @param size number of bytes for integer storage
+ * @param fraction number of fractional digits
+ * @param base2 true if iso prefixes should use factor 1024
+ * @param min minimal allowed parameter value
+ * @param max maximum allowed parameter value
+ * @param args variable list of additional arguments
+ */
 #define _CFG_VALIDATE_INT(p_name, p_def, p_help, size, fraction, base2, min, max, args...)   _CFG_VALIDATE(p_name, p_def, p_help, .cb_validate = cfg_schema_validate_int, .cb_valhelp = cfg_schema_help_int, .validate_param = {{.i64 = (min)}, {.i64 = (max)}, {.i16 = {size, fraction, !!(base2) ? 2 : 10}}}, ##args )
 
+/**
+ * Creates a cfg_schema_entry for a parameter that does not need to be validated
+ * @param p_name parameter name
+ * @param p_def parameter default value
+ * @param p_help help text for configuration entry
+ * @param args variable list of additional arguments
+ */
 #define CFG_VALIDATE_STRING(p_name, p_def, p_help, args...)                                  _CFG_VALIDATE(p_name, p_def, p_help, ##args)
+
+/**
+ * Creates a cfg_schema_entry for a string parameter with a maximum length
+ * @param p_name parameter name
+ * @param p_def parameter default value
+ * @param p_help help text for configuration entry
+ * @param maxlen maximum number of characters in string
+ * @param args variable list of additional arguments
+ */
 #define CFG_VALIDATE_STRING_LEN(p_name, p_def, p_help, maxlen, args...)                      _CFG_VALIDATE(p_name, p_def, p_help, .cb_validate = cfg_schema_validate_strlen, .cb_valhelp = cfg_schema_help_strlen, .validate_param = {{.s = (maxlen) }}, ##args )
+
+/**
+ * Creates a cfg_schema_entry for a string parameter with
+ * only printable characters
+ * @param p_name parameter name
+ * @param p_def parameter default value
+ * @param p_help help text for configuration entry
+ * @param args variable list of additional arguments
+ */
 #define CFG_VALIDATE_PRINTABLE(p_name, p_def, p_help, args...)                               _CFG_VALIDATE(p_name, p_def, p_help, .cb_validate = cfg_schema_validate_printable, .cb_valhelp = cfg_schema_help_printable, .validate_param = {{.s = INT32_MAX }}, ##args )
+
+/**
+ * Creates a cfg_schema_entry for a string parameter with a maximum length
+ * and only printable characters
+ * @param p_name parameter name
+ * @param p_def parameter default value
+ * @param p_help help text for configuration entry
+ * @param maxlen maximum number of characters in string
+ * @param args variable list of additional arguments
+ */
 #define CFG_VALIDATE_PRINTABLE_LEN(p_name, p_def, p_help, maxlen, args...)                   _CFG_VALIDATE(p_name, p_def, p_help, .cb_validate = cfg_schema_validate_printable, .cb_valhelp = cfg_schema_help_printable, .validate_param = {{.s = (maxlen) }}, ##args )
+
+/**
+ * Creates a cfg_schema_entry for a parameter that can be choosen
+ * from a fixed list.
+ * @param p_name parameter name
+ * @param p_def parameter default value
+ * @param p_help help text for configuration entry
+ * @param p_list reference to an array of string pointers with the options
+ *   (not a pointer to the array, ARRAYSIZE() would not work)
+ * @param args variable list of additional arguments
+ */
 #define CFG_VALIDATE_CHOICE(p_name, p_def, p_help, p_list, args...)                          _CFG_VALIDATE(p_name, p_def, p_help, .cb_validate = cfg_schema_validate_choice, .cb_valhelp = cfg_schema_help_choice, .validate_param = {{.ptr = (p_list)}, { .s = ARRAYSIZE(p_list)}}, ##args )
+
+/**
+ * Creates a cfg_schema_entry for a 32 bit signed integer parameter
+ * @param p_name parameter name
+ * @param p_def parameter default value
+ * @param p_help help text for configuration entry
+ * @param fraction number of fractional digits
+ * @param base2 true if iso-prefixes should use factor 1024
+ * @param args variable list of additional arguments
+ */
 #define CFG_VALIDATE_INT32(p_name, p_def, p_help, fraction, base2, args...)                  _CFG_VALIDATE_INT(p_name, p_def, p_help, 4, fraction, base2, INT32_MIN, INT32_MAX, ##args)
+
+/**
+ * Creates a cfg_schema_entry for a 64 bit signed integer parameter
+ * @param p_name parameter name
+ * @param p_def parameter default value
+ * @param p_help help text for configuration entry
+ * @param fraction number of fractional digits
+ * @param base2 true if iso-prefixes should use factor 1024
+ * @param args variable list of additional arguments
+ */
 #define CFG_VALIDATE_INT64(p_name, p_def, p_help, fraction, base2, args...)                  _CFG_VALIDATE_INT(p_name, p_def, p_help, 8, fraction, base2, INT64_MIN, INT64_MAX, ##args)
+
+/**
+ * Creates a cfg_schema_entry for a 32 bit signed integer parameter
+ * with a fixed range of possible values
+ * @param p_name parameter name
+ * @param p_def parameter default value
+ * @param p_help help text for configuration entry
+ * @param fraction number of fractional digits
+ * @param base2 true if iso-prefixes should use factor 1024
+ * @param min minimal allowed value
+ * @param max maximal allowed value
+ * @param args variable list of additional arguments
+ */
 #define CFG_VALIDATE_INT32_MINMAX(p_name, p_def, p_help, fraction, base2, min, max, args...) _CFG_VALIDATE_INT(p_name, p_def, p_help, 4, fraction, base2, min, max, ##args)
+
+/**
+ * Creates a cfg_schema_entry for a 64 bit signed integer parameter
+ * with a fixed range of possible values
+ * @param p_name parameter name
+ * @param p_def parameter default value
+ * @param p_help help text for configuration entry
+ * @param fraction number of fractional digits
+ * @param base2 true if iso-prefixes should use factor 1024
+ * @param min minimal allowed value
+ * @param max maximal allowed value
+ * @param args variable list of additional arguments
+ */
 #define CFG_VALIDATE_INT64_MINMAX(p_name, p_def, p_help, fraction, base2, min, max, args...) _CFG_VALIDATE_INT(p_name, p_def, p_help, 8, fraction, base2, min, max, ##args)
+
+/**
+ * Creates a cfg_schema_entry for a network address of any type
+ * @param p_name parameter name
+ * @param p_def parameter default value
+ * @param p_help help text for configuration entry
+ * @param prefix true if the parameter also allows prefixes
+ * @param unspec true if the parameter also allows an unspecified address
+ * @param args variable list of additional arguments
+ */
 #define CFG_VALIDATE_NETADDR(p_name, p_def, p_help, prefix, unspec, args...)                 _CFG_VALIDATE(p_name, p_def, p_help, .cb_validate = cfg_schema_validate_netaddr, .cb_valhelp = cfg_schema_help_netaddr, .validate_param = {{.i8 = {AF_MAC48, AF_EUI64, AF_INET, AF_INET6, !!(unspec) ? AF_UNSPEC : -1}}, {.b = !!(prefix)}}, ##args )
+
+/**
+ * Creates a cfg_schema_entry for a layer-2 network address,
+ * either MAC or EUI-64
+ * @param p_name parameter name
+ * @param p_def parameter default value
+ * @param p_help help text for configuration entry
+ * @param prefix true if the parameter also allows prefixes
+ * @param unspec true if the parameter also allows an unspecified address
+ * @param args variable list of additional arguments
+ */
 #define CFG_VALIDATE_NETADDR_HWADDR(p_name, p_def, p_help, prefix, unspec, args...)          _CFG_VALIDATE(p_name, p_def, p_help, .cb_validate = cfg_schema_validate_netaddr, .cb_valhelp = cfg_schema_help_netaddr, .validate_param = {{.i8 = {AF_MAC48, AF_EUI64, -1,-1, !!(unspec) ? AF_UNSPEC : -1}}, {.b = !!(prefix)}}, ##args )
+
+/**
+ * Creates a cfg_schema_entry for a MAC (ethernet) network address
+ * @param p_name parameter name
+ * @param p_def parameter default value
+ * @param p_help help text for configuration entry
+ * @param prefix true if the parameter also allows prefixes
+ * @param unspec true if the parameter also allows an unspecified address
+ * @param args variable list of additional arguments
+ */
 #define CFG_VALIDATE_NETADDR_MAC48(p_name, p_def, p_help, prefix, unspec, args...)           _CFG_VALIDATE(p_name, p_def, p_help, .cb_validate = cfg_schema_validate_netaddr, .cb_valhelp = cfg_schema_help_netaddr, .validate_param = {{.i8 = {AF_MAC48, -1,-1,-1, !!(unspec) ? AF_UNSPEC : -1}}, {.b = !!(prefix)}}, ##args )
+
+/**
+ * Creates a cfg_schema_entry for an EUI-64 network address
+ * @param p_name parameter name
+ * @param p_def parameter default value
+ * @param p_help help text for configuration entry
+ * @param prefix true if the parameter also allows prefixes
+ * @param unspec true if the parameter also allows an unspecified address
+ * @param args variable list of additional arguments
+ */
 #define CFG_VALIDATE_NETADDR_EUI64(p_name, p_def, p_help, prefix, unspec, args...)           _CFG_VALIDATE(p_name, p_def, p_help, .cb_validate = cfg_schema_validate_netaddr, .cb_valhelp = cfg_schema_help_netaddr, .validate_param = {{.i8 = {AF_EUI64, -1,-1,-1, !!(unspec) ? AF_UNSPEC : -1}}, {.b = !!(prefix)}}, ##args )
+
+/**
+ * Creates a cfg_schema_entry for an IPv4 network address
+ * @param p_name parameter name
+ * @param p_def parameter default value
+ * @param p_help help text for configuration entry
+ * @param prefix true if the parameter also allows prefixes
+ * @param unspec true if the parameter also allows an unspecified address
+ * @param args variable list of additional arguments
+ */
 #define CFG_VALIDATE_NETADDR_V4(p_name, p_def, p_help, prefix, unspec, args...)              _CFG_VALIDATE(p_name, p_def, p_help, .cb_validate = cfg_schema_validate_netaddr, .cb_valhelp = cfg_schema_help_netaddr, .validate_param = {{.i8 = {AF_INET, -1,-1,-1, !!(unspec) ? AF_UNSPEC : -1}}, {.b = !!(prefix)}}, ##args )
+
+/**
+ * Creates a cfg_schema_entry for an IPv6 network address
+ * @param p_name parameter name
+ * @param p_def parameter default value
+ * @param p_help help text for configuration entry
+ * @param prefix true if the parameter also allows prefixes
+ * @param unspec true if the parameter also allows an unspecified address
+ * @param args variable list of additional arguments
+ */
 #define CFG_VALIDATE_NETADDR_V6(p_name, p_def, p_help, prefix, unspec, args...)              _CFG_VALIDATE(p_name, p_def, p_help, .cb_validate = cfg_schema_validate_netaddr, .cb_valhelp = cfg_schema_help_netaddr, .validate_param = {{.i8 = {AF_INET6, -1,-1,-1, !!(unspec) ? AF_UNSPEC : -1}}, {.b = !!(prefix)}}, ##args )
+
+/**
+ * Creates a cfg_schema_entry for an IP network address
+ * (either IPv4 or IPv6)
+ * @param p_name parameter name
+ * @param p_def parameter default value
+ * @param p_help help text for configuration entry
+ * @param prefix true if the parameter also allows prefixes
+ * @param unspec true if the parameter also allows an unspecified address
+ * @param args variable list of additional arguments
+ */
 #define CFG_VALIDATE_NETADDR_V46(p_name, p_def, p_help, prefix, unspec, args...)             _CFG_VALIDATE(p_name, p_def, p_help, .cb_validate = cfg_schema_validate_netaddr, .cb_valhelp = cfg_schema_help_netaddr, .validate_param = {{.i8 = {AF_INET, AF_INET6, -1,-1, !!(unspec) ? AF_UNSPEC : -1}}, {.b = !!(prefix)}}, ##args )
+
+/**
+ * Creates a cfg_schema_entry for a network address based
+ * access control list.
+ * @param p_name parameter name
+ * @param p_def parameter default value
+ * @param p_help help text for configuration entry
+ * @param args variable list of additional arguments
+ */
 #define CFG_VALIDATE_ACL(p_name, p_def, p_help, args...)                                     _CFG_VALIDATE(p_name, p_def, p_help, .cb_validate = cfg_schema_validate_acl, .cb_valhelp = cfg_schema_help_acl, .list = true, .validate_param = {{.i8 = {AF_MAC48, AF_EUI64, AF_INET, AF_INET6, -1}}, {.b = true}}, ##args )
+
+/**
+ * Creates a cfg_schema_entry for a network address based
+ * access control list for MAC (ethernet) or EUI-64 addresses.
+ * @param p_name parameter name
+ * @param p_def parameter default value
+ * @param p_help help text for configuration entry
+ * @param args variable list of additional arguments
+ */
 #define CFG_VALIDATE_ACL_HWADDR(p_name, p_def, p_help, args...)                              _CFG_VALIDATE(p_name, p_def, p_help, .cb_validate = cfg_schema_validate_acl, .cb_valhelp = cfg_schema_help_acl, .list = true, .validate_param = {{.i8 = {AF_MAC48, AF_EUI64, -1, -1, -1}}, {.b = true}}, ##args )
+
+/**
+ * Creates a cfg_schema_entry for a network address based
+ * access control list for MAC (ethernet) addresses.
+ * @param p_name parameter name
+ * @param p_def parameter default value
+ * @param p_help help text for configuration entry
+ * @param args variable list of additional arguments
+ */
 #define CFG_VALIDATE_ACL_MAC48(p_name, p_def, p_help, args...)                               _CFG_VALIDATE(p_name, p_def, p_help, .cb_validate = cfg_schema_validate_acl, .cb_valhelp = cfg_schema_help_acl, .list = true, .validate_param = {{.i8 = {AF_MAC48, -1, -1, -1, -1}}, {.b = true}}, ##args )
+
+/**
+ * Creates a cfg_schema_entry for a network address based
+ * access control list for EUI-64 addresses.
+ * @param p_name parameter name
+ * @param p_def parameter default value
+ * @param p_help help text for configuration entry
+ * @param args variable list of additional arguments
+ */
 #define CFG_VALIDATE_ACL_EUI64(p_name, p_def, p_help, args...)                               _CFG_VALIDATE(p_name, p_def, p_help, .cb_validate = cfg_schema_validate_acl, .cb_valhelp = cfg_schema_help_acl, .list = true, .validate_param = {{.i8 = {AF_EUI64, -1, -1, -1, -1}}, {.b = true}}, ##args )
+
+/**
+ * Creates a cfg_schema_entry for a network address based
+ * access control list for IPv4 addresses.
+ * @param p_name parameter name
+ * @param p_def parameter default value
+ * @param p_help help text for configuration entry
+ * @param args variable list of additional arguments
+ */
 #define CFG_VALIDATE_ACL_V4(p_name, p_def, p_help, args...)                                  _CFG_VALIDATE(p_name, p_def, p_help, .cb_validate = cfg_schema_validate_acl, .cb_valhelp = cfg_schema_help_acl, .list = true, .validate_param = {{.i8 = {AF_INET, -1, -1, -1, -1}}, {.b = true}}, ##args )
+
+/**
+ * Creates a cfg_schema_entry for a network address based
+ * access control list for IPv6 addresses.
+ * @param p_name parameter name
+ * @param p_def parameter default value
+ * @param p_help help text for configuration entry
+ * @param args variable list of additional arguments
+ */
 #define CFG_VALIDATE_ACL_V6(p_name, p_def, p_help, args...)                                  _CFG_VALIDATE(p_name, p_def, p_help, .cb_validate = cfg_schema_validate_acl, .cb_valhelp = cfg_schema_help_acl, .list = true, .validate_param = {{.i8 = {AF_INET6, -1, -1, -1, -1}}, {.b = true}}, ##args )
+
+/**
+ * Creates a cfg_schema_entry for a network address based
+ * access control list for IP (either IPv4 or IPv6) addresses.
+ * @param p_name parameter name
+ * @param p_def parameter default value
+ * @param p_help help text for configuration entry
+ * @param args variable list of additional arguments
+ */
 #define CFG_VALIDATE_ACL_V46(p_name, p_def, p_help, args...)                                 _CFG_VALIDATE(p_name, p_def, p_help, .cb_validate = cfg_schema_validate_acl, .cb_valhelp = cfg_schema_help_acl, .list = true, .validate_param = {{.i8 = {AF_INET, AF_INET6, -1, -1, -1}}, {.b = true}}, ##args )
+
+/**
+ * Creates a cfg_schema_entry for 256 bit bitmap.
+ * @param p_name parameter name
+ * @param p_def parameter default value
+ * @param p_help help text for configuration entry
+ * @param args variable list of additional arguments
+ */
 #define CFG_VALIDATE_BITMAP256(p_name, p_def, p_help, args...)                               _CFG_VALIDATE(p_name, p_def, p_help, .cb_validate = cfg_schema_validate_bitmap256, .cb_valhelp = cfg_schema_help_bitmap256, .list = true, ##args )
 
+/**
+ * Creates a cfg_schema_entry for a boolean parameter
+ * @param p_name parameter name
+ * @param p_def parameter default value
+ * @param p_help help text for configuration entry
+ * @param args variable list of additional arguments
+ */
 #define CFG_VALIDATE_BOOL(p_name, p_def, p_help, args...)                                    CFG_VALIDATE_CHOICE(p_name, p_def, p_help, CFGLIST_BOOL, ##args)
 
 /*
@@ -147,40 +410,429 @@ struct cfg_schema_entry;
  *     CFG_MAP_INT_MINMAX(bin_data, int_value, "number", "0", "help for number parameter", 0, 10),
  * };
  */
+
+/**
+ * Helper macro to create a cfg_schema_entry for an integer parameter
+ * that can be mapped into a binary struct.
+ * @param p_reference reference to instance of struct
+ * @param p_field name of field in the struct for the parameter,
+ *   it must be an interger
+ * @param p_name parameter name
+ * @param p_def parameter default value
+ * @param p_help help text for configuration entry
+ * @param size number of bytes for integer storage
+ * @param fraction number of fractional digits
+ * @param base2 true if iso prefixes should use factor 1024
+ * @param min minimal allowed parameter value
+ * @param max maximum allowed parameter value
+ * @param args variable list of additional arguments
+ */
 #define _CFG_MAP_INT(p_reference, p_field, p_name, p_def, p_help, size, fraction, base2, min, max, args...)   _CFG_VALIDATE_INT(p_name, p_def, p_help, size, fraction, base2, min, max, .cb_to_binary = cfg_schema_tobin_int, .bin_offset = offsetof(struct p_reference, p_field), ##args )
 
+/**
+ * Creates a cfg_schema_entry for a parameter that does not need to be validated
+ * and can be mapped into a binary struct
+ * @param p_reference reference to instance of struct
+ * @param p_field name of field in the struct for the parameter,
+ *   it must be a string pointer
+ * @param p_name parameter name
+ * @param p_def parameter default value
+ * @param p_help help text for configuration entry
+ * @param args variable list of additional arguments
+ */
 #define CFG_MAP_STRING(p_reference, p_field, p_name, p_def, p_help, args...)                                  _CFG_VALIDATE(p_name, p_def, p_help, .cb_to_binary = cfg_schema_tobin_strptr, .bin_offset = offsetof(struct p_reference, p_field), ##args )
+
+/**
+ * Creates a cfg_schema_entry for a string parameter with a maximum length
+ * and can be mapped into a binary struct
+ * @param p_reference reference to instance of struct
+ * @param p_field name of field in the struct for the parameter,
+ *   it must be a string pointer
+ * @param p_name parameter name
+ * @param p_def parameter default value
+ * @param p_help help text for configuration entry
+ * @param maxlen maximum number of characters in string
+ * @param args variable list of additional arguments
+ */
 #define CFG_MAP_STRING_LEN(p_reference, p_field, p_name, p_def, p_help, maxlen, args...)                      CFG_VALIDATE_STRING_LEN(p_name, p_def, p_help, maxlen, .cb_to_binary = cfg_schema_tobin_strptr, .bin_offset = offsetof(struct p_reference, p_field), ##args)
+
+/**
+ * Creates a cfg_schema_entry for a string parameter with a maximum length
+ * and can be mapped into a binary struct
+ * @param p_reference reference to instance of struct
+ * @param p_field name of field in the struct for the parameter,
+ *   it must be a string array
+ * @param p_name parameter name
+ * @param p_def parameter default value
+ * @param p_help help text for configuration entry
+ * @param maxlen maximum number of characters in string
+ * @param args variable list of additional arguments
+ */
 #define CFG_MAP_STRING_ARRAY(p_reference, p_field, p_name, p_def, p_help, maxlen, args...)                    CFG_VALIDATE_STRING_LEN(p_name, p_def, p_help, maxlen, .cb_to_binary = cfg_schema_tobin_strarray, .bin_offset = offsetof(struct p_reference, p_field), ##args )
+
+/**
+ * Creates a cfg_schema_entry for a string parameter with
+ * only printable characters and can be mapped into a binary struct
+ * @param p_reference reference to instance of struct
+ * @param p_field name of field in the struct for the parameter,
+ *   it must be a string pointer
+ * @param p_name parameter name
+ * @param p_def parameter default value
+ * @param p_help help text for configuration entry
+ * @param args variable list of additional arguments
+ */
 #define CFG_MAP_PRINTABLE(p_reference, p_field, p_name, p_def, p_help, args...)                               CFG_VALIDATE_PRINTABLE(p_name, p_def, p_help, .cb_to_binary = cfg_schema_tobin_strptr, .bin_offset = offsetof(struct p_reference, p_field), ##args)
-#define CFG_MAP_PRINTABLE_LEN(p_reference, p_field, p_name, p_def, p_help, args...)                           CFG_VALIDATE_PRINTABLE_LEN(p_name, p_def, p_help, maxlen, .cb_to_binary = cfg_schema_tobin_strptr, .bin_offset = offsetof(struct p_reference, p_field), ##args)
+
+/**
+ * Creates a cfg_schema_entry for a string parameter with a maximum length,
+ * only printable characters and can be mapped into a binary struct
+ * @param p_reference reference to instance of struct
+ * @param p_field name of field in the struct for the parameter,
+ *   it must be a string pointer
+ * @param p_name parameter name
+ * @param p_def parameter default value
+ * @param p_help help text for configuration entry
+ * @param maxlen maximum number of characters in string
+ * @param args variable list of additional arguments
+ */
+#define CFG_MAP_PRINTABLE_LEN(p_reference, p_field, p_name, p_def, p_help, maxlen, args...)                   CFG_VALIDATE_PRINTABLE_LEN(p_name, p_def, p_help, maxlen, .cb_to_binary = cfg_schema_tobin_strptr, .bin_offset = offsetof(struct p_reference, p_field), ##args)
+
+/**
+ * Creates a cfg_schema_entry for a string parameter with a maximum length,
+ * only printable characters and can be mapped into a binary struct
+ * @param p_reference reference to instance of struct
+ * @param p_field name of field in the struct for the parameter,
+ *   it must be a string array
+ * @param p_name parameter name
+ * @param p_def parameter default value
+ * @param p_help help text for configuration entry
+ * @param maxlen maximum number of characters in string
+ * @param args variable list of additional arguments
+ */
 #define CFG_MAP_PRINTABLE_ARRAY(p_reference, p_field, p_name, p_def, p_help, maxlen, args...)                 CFG_VALIDATE_PRINTABLE_LEN(p_name, p_def, p_help, maxlen, .cb_to_binary = cfg_schema_tobin_strarray, .bin_offset = offsetof(struct p_reference, p_field), ##args)
+
+/**
+ * Creates a cfg_schema_entry for a parameter that can be choosen
+ * @param p_reference reference to instance of struct
+ * @param p_field name of field in the struct for the parameter,
+ *   it must be an integer for the index of the selected choice
+ * @param p_name parameter name
+ * from a fixed list and can be mapped into a binary struct
+ * @param p_def parameter default value
+ * @param p_help help text for configuration entry
+ * @param p_list reference to an array of string pointers with the options
+ *   (not a pointer to the array, ARRAYSIZE() would not work)
+ * @param args variable list of additional arguments
+ */
 #define CFG_MAP_CHOICE(p_reference, p_field, p_name, p_def, p_help, p_list, args...)                          CFG_VALIDATE_CHOICE(p_name, p_def, p_help, p_list, .cb_to_binary = cfg_schema_tobin_choice, .bin_offset = offsetof(struct p_reference, p_field), ##args)
+
+/**
+ * Creates a cfg_schema_entry for a 32 bit signed integer parameter
+ * that can be mapped into a binary struct
+ * @param p_reference reference to instance of struct
+ * @param p_field name of field in the struct for the parameter,
+ *   it must be a 32 bit integer
+ * @param p_name parameter name
+ * @param p_def parameter default value
+ * @param p_help help text for configuration entry
+ * @param fraction number of fractional digits
+ * @param base2 true if iso-prefixes should use factor 1024
+ * @param args variable list of additional arguments
+ */
 #define CFG_MAP_INT32(p_reference, p_field, p_name, p_def, p_help, fraction, base2, args...)                  _CFG_MAP_INT(p_reference, p_field, p_name, p_def, p_help, 4, fraction, base2, INT32_MIN, INT32_MAX, ##args)
+
+/**
+ * Creates a cfg_schema_entry for a 64 bit signed integer parameter
+ * that can be mapped into a binary struct
+ * @param p_reference reference to instance of struct
+ * @param p_field name of field in the struct for the parameter,
+ *   it must be a 64 bit integer
+ * @param p_name parameter name
+ * @param p_def parameter default value
+ * @param p_help help text for configuration entry
+ * @param fraction number of fractional digits
+ * @param base2 true if iso-prefixes should use factor 1024
+ * @param args variable list of additional arguments
+ */
 #define CFG_MAP_INT64(p_reference, p_field, p_name, p_def, p_help, fraction, base2, args...)                  _CFG_MAP_INT(p_reference, p_field, p_name, p_def, p_help, 8, fraction, base2, INT64_MIN, INT64_MAX, ##args)
+
+/**
+ * Creates a cfg_schema_entry for a 32 bit signed integer parameter
+ * that can be mapped into a binary struct
+ * @param p_reference reference to instance of struct
+ * @param p_field name of field in the struct for the parameter,
+ *   it must be a 32 bit integer
+ * @param p_name parameter name
+ * @param p_def parameter default value
+ * @param p_help help text for configuration entry
+ * @param fraction number of fractional digits
+ * @param base2 true if iso-prefixes should use factor 1024
+ * @param min minimal allowed value
+ * @param max maximal allowed value
+ * @param args variable list of additional arguments
+ */
 #define CFG_MAP_INT32_MINMAX(p_reference, p_field, p_name, p_def, p_help, fraction, base2, min, max, args...) _CFG_MAP_INT(p_reference, p_field, p_name, p_def, p_help, 4, fraction, base2, min, max, ##args)
+
+/**
+ * Creates a cfg_schema_entry for a 64 bit signed integer parameter
+ * that can be mapped into a binary struct
+ * @param p_reference reference to instance of struct
+ * @param p_field name of field in the struct for the parameter,
+ *   it must be a 64 bit integer
+ * @param p_name parameter name
+ * @param p_def parameter default value
+ * @param p_help help text for configuration entry
+ * @param fraction number of fractional digits
+ * @param base2 true if iso-prefixes should use factor 1024
+ * @param min minimal allowed value
+ * @param max maximal allowed value
+ * @param args variable list of additional arguments
+ */
 #define CFG_MAP_INT64_MINMAX(p_reference, p_field, p_name, p_def, p_help, fraction, base2, min, max, args...) _CFG_MAP_INT(p_reference, p_field, p_name, p_def, p_help, 8, fraction, base2, min, max, ##args)
+
+/**
+ * Creates a cfg_schema_entry for a network address of any type
+ * that can be mapped into a binary struct
+ * @param p_reference reference to instance of struct
+ * @param p_field name of field in the struct for the parameter,
+ *   it must be a netaddr struct
+ * @param p_name parameter name
+ * @param p_def parameter default value
+ * @param p_help help text for configuration entry
+ * @param prefix true if the parameter also allows prefixes
+ * @param unspec true if the parameter also allows an unspecified address
+ * @param args variable list of additional arguments
+ */
 #define CFG_MAP_NETADDR(p_reference, p_field, p_name, p_def, p_help, prefix, unspec, args...)                 CFG_VALIDATE_NETADDR(p_name, p_def, p_help, prefix, unspec, .cb_to_binary = cfg_schema_tobin_netaddr, .bin_offset = offsetof(struct p_reference, p_field), ##args)
+
+/**
+ * Creates a cfg_schema_entry for a layer-2 network address,
+ * either MAC or EUI-64 that can be mapped into a binary struct
+ * @param p_reference reference to instance of struct
+ * @param p_field name of field in the struct for the parameter,
+ *   it must be a netaddr struct
+ * @param p_name parameter name
+ * @param p_def parameter default value
+ * @param p_help help text for configuration entry
+ * @param prefix true if the parameter also allows prefixes
+ * @param unspec true if the parameter also allows an unspecified address
+ * @param args variable list of additional arguments
+ */
 #define CFG_MAP_NETADDR_HWADDR(p_reference, p_field, p_name, p_def, p_help, prefix, unspec, args...)          CFG_VALIDATE_NETADDR_HWADDR(p_name, p_def, p_help, prefix, unspec, .cb_to_binary = cfg_schema_tobin_netaddr, .bin_offset = offsetof(struct p_reference, p_field), ##args)
+
+/**
+ * Creates a cfg_schema_entry for a MAC (ethernet) network address
+ * that can be mapped into a binary struct
+ * @param p_reference reference to instance of struct
+ * @param p_field name of field in the struct for the parameter,
+ *   it must be a netaddr struct
+ * @param p_name parameter name
+ * @param p_def parameter default value
+ * @param p_help help text for configuration entry
+ * @param prefix true if the parameter also allows prefixes
+ * @param unspec true if the parameter also allows an unspecified address
+ * @param args variable list of additional arguments
+ */
 #define CFG_MAP_NETADDR_MAC48(p_reference, p_field, p_name, p_def, p_help, prefix, unspec, args...)           CFG_VALIDATE_NETADDR_MAC48(p_name, p_def, p_help, prefix, unspec, .cb_to_binary = cfg_schema_tobin_netaddr, .bin_offset = offsetof(struct p_reference, p_field), ##args)
+
+/**
+ * Creates a cfg_schema_entry for an EUI-64 network address
+ * that can be mapped into a binary struct
+ * @param p_reference reference to instance of struct
+ * @param p_field name of field in the struct for the parameter,
+ *   it must be a netaddr struct
+ * @param p_name parameter name
+ * @param p_def parameter default value
+ * @param p_help help text for configuration entry
+ * @param prefix true if the parameter also allows prefixes
+ * @param unspec true if the parameter also allows an unspecified address
+ * @param args variable list of additional arguments
+ */
 #define CFG_MAP_NETADDR_EUI64(p_reference, p_field, p_name, p_def, p_help, prefix, unspec, args...)           CFG_VALIDATE_NETADDR_EUI64(p_name, p_def, p_help, prefix, unspec, .cb_to_binary = cfg_schema_tobin_netaddr, .bin_offset = offsetof(struct p_reference, p_field), ##args)
+
+/**
+ * Creates a cfg_schema_entry for an IPv4 network address
+ * that can be mapped into a binary struct
+ * @param p_reference reference to instance of struct
+ * @param p_field name of field in the struct for the parameter,
+ *   it must be a netaddr struct
+ * @param p_name parameter name
+ * @param p_def parameter default value
+ * @param p_help help text for configuration entry
+ * @param prefix true if the parameter also allows prefixes
+ * @param unspec true if the parameter also allows an unspecified address
+ * @param args variable list of additional arguments
+ */
 #define CFG_MAP_NETADDR_V4(p_reference, p_field, p_name, p_def, p_help, prefix, unspec, args...)              CFG_VALIDATE_NETADDR_V4(p_name, p_def, p_help, prefix, unspec, .cb_to_binary = cfg_schema_tobin_netaddr, .bin_offset = offsetof(struct p_reference, p_field), ##args)
+
+/**
+ * Creates a cfg_schema_entry for an IPv6 network address
+ * that can be mapped into a binary struct
+ * @param p_reference reference to instance of struct
+ * @param p_field name of field in the struct for the parameter,
+ *   it must be a netaddr struct
+ * @param p_name parameter name
+ * @param p_def parameter default value
+ * @param p_help help text for configuration entry
+ * @param prefix true if the parameter also allows prefixes
+ * @param unspec true if the parameter also allows an unspecified address
+ * @param args variable list of additional arguments
+ */
 #define CFG_MAP_NETADDR_V6(p_reference, p_field, p_name, p_def, p_help, prefix, unspec, args...)              CFG_VALIDATE_NETADDR_V6(p_name, p_def, p_help, prefix, unspec, .cb_to_binary = cfg_schema_tobin_netaddr, .bin_offset = offsetof(struct p_reference, p_field), ##args)
+
+/**
+ * Creates a cfg_schema_entry for an IP network address
+ * (either IPv4 or IPv6) that can be mapped into a binary struct
+ * @param p_reference reference to instance of struct
+ * @param p_field name of field in the struct for the parameter,
+ *   it must be a netaddr struct
+ * @param p_name parameter name
+ * @param p_def parameter default value
+ * @param p_help help text for configuration entry
+ * @param prefix true if the parameter also allows prefixes
+ * @param unspec true if the parameter also allows an unspecified address
+ * @param args variable list of additional arguments
+ */
 #define CFG_MAP_NETADDR_V46(p_reference, p_field, p_name, p_def, p_help, prefix, unspec, args...)             CFG_VALIDATE_NETADDR_V46(p_name, p_def, p_help, prefix, unspec, .cb_to_binary = cfg_schema_tobin_netaddr, .bin_offset = offsetof(struct p_reference, p_field), ##args)
+
+/**
+ * Creates a cfg_schema_entry for a network address based
+ * access control list that can be mapped into a binary struct
+ * @param p_reference reference to instance of struct
+ * @param p_field name of field in the struct for the parameter,
+ *   it must be a netaddr_acl struct
+ * @param p_name parameter name
+ * @param p_def parameter default value
+ * @param p_help help text for configuration entry
+ * @param args variable list of additional arguments
+ */
 #define CFG_MAP_ACL(p_reference, p_field, p_name, p_def, p_help, args...)                                     CFG_VALIDATE_ACL(p_name, p_def, p_help, .cb_to_binary = cfg_schema_tobin_acl, .bin_offset = offsetof(struct p_reference, p_field), ##args)
+
+/**
+ * Creates a cfg_schema_entry for a network address based
+ * access control list for MAC (ethernet) or EUI-64 addresses
+ * that can be mapped into a binary struct
+ * @param p_reference reference to instance of struct
+ * @param p_field name of field in the struct for the parameter,
+ *   it must be a netaddr_acl struct
+ * @param p_name parameter name
+ * @param p_def parameter default value
+ * @param p_help help text for configuration entry
+ * @param args variable list of additional arguments
+ */
 #define CFG_MAP_ACL_HWADDR(p_reference, p_field, p_name, p_def, p_help, args...)                              CFG_VALIDATE_ACL_HWADDR(p_name, p_def, p_help, .cb_to_binary = cfg_schema_tobin_acl, .bin_offset = offsetof(struct p_reference, p_field), ##args)
+
+/**
+ * Creates a cfg_schema_entry for a network address based
+ * access control list for MAC (ethernet) addresses
+ * that can be mapped into a binary struct
+ * @param p_reference reference to instance of struct
+ * @param p_field name of field in the struct for the parameter,
+ *   it must be a netaddr_acl struct
+ * @param p_name parameter name
+ * @param p_def parameter default value
+ * @param p_help help text for configuration entry
+ * @param args variable list of additional arguments
+ */
 #define CFG_MAP_ACL_MAC48(p_reference, p_field, p_name, p_def, p_help, args...)                               CFG_VALIDATE_ACL_MAC48(p_name, p_def, p_help, .cb_to_binary = cfg_schema_tobin_acl, .bin_offset = offsetof(struct p_reference, p_field), ##args)
+
+/**
+ * Creates a cfg_schema_entry for a network address based
+ * access control list for EUI-64 addresses
+ * that can be mapped into a binary struct
+ * @param p_reference reference to instance of struct
+ * @param p_field name of field in the struct for the parameter,
+ *   it must be a netaddr_acl struct
+ * @param p_name parameter name
+ * @param p_def parameter default value
+ * @param p_help help text for configuration entry
+ * @param args variable list of additional arguments
+ */
 #define CFG_MAP_ACL_EUI64(p_reference, p_field, p_name, p_def, p_help, args...)                               CFG_VALIDATE_ACL_EUI64(p_name, p_def, p_help, .cb_to_binary = cfg_schema_tobin_acl, .bin_offset = offsetof(struct p_reference, p_field), ##args)
+
+/**
+ * Creates a cfg_schema_entry for a network address based
+ * access control list for IPv4 addresses
+ * that can be mapped into a binary struct
+ * @param p_reference reference to instance of struct
+ * @param p_field name of field in the struct for the parameter,
+ *   it must be a netaddr_acl struct
+ * @param p_name parameter name
+ * @param p_def parameter default value
+ * @param p_help help text for configuration entry
+ * @param args variable list of additional arguments
+ */
 #define CFG_MAP_ACL_V4(p_reference, p_field, p_name, p_def, p_help, args...)                                  CFG_VALIDATE_ACL_V4(p_name, p_def, p_help, .cb_to_binary = cfg_schema_tobin_acl, .bin_offset = offsetof(struct p_reference, p_field), ##args)
+
+/**
+ * Creates a cfg_schema_entry for a network address based
+ * access control list for IPv6 addresses
+ * that can be mapped into a binary struct
+ * @param p_reference reference to instance of struct
+ * @param p_field name of field in the struct for the parameter,
+ *   it must be a netaddr_acl struct
+ * @param p_name parameter name
+ * @param p_def parameter default value
+ * @param p_help help text for configuration entry
+ * @param args variable list of additional arguments
+ */
 #define CFG_MAP_ACL_V6(p_reference, p_field, p_name, p_def, p_help, args...)                                  CFG_VALIDATE_ACL_V6(p_name, p_def, p_help, .cb_to_binary = cfg_schema_tobin_acl, .bin_offset = offsetof(struct p_reference, p_field), ##args)
+
+/**
+ * Creates a cfg_schema_entry for a network address based
+ * access control list for IP (either IPv4 or IPv6) addresses
+ * that can be mapped into a binary struct
+ * @param p_reference reference to instance of struct
+ * @param p_field name of field in the struct for the parameter,
+ *   it must be a netaddr_acl struct
+ * @param p_name parameter name
+ * @param p_def parameter default value
+ * @param p_help help text for configuration entry
+ * @param args variable list of additional arguments
+ */
 #define CFG_MAP_ACL_V46(p_reference, p_field, p_name, p_def, p_help, args...)                                 CFG_VALIDATE_ACL_V46(p_name, p_def, p_help, .cb_to_binary = cfg_schema_tobin_acl, .bin_offset = offsetof(struct p_reference, p_field), ##args)
+
+/**
+ * Creates a cfg_schema_entry for 256 bit bitmap that can be
+ * mapped into a binary struct.
+ * @param p_reference reference to instance of struct
+ * @param p_field name of field in the struct for the parameter,
+ *   it must be a bitmap256 struct
+ * @param p_name parameter name
+ * @param p_def parameter default value
+ * @param p_help help text for configuration entry
+ * @param args variable list of additional arguments
+ */
 #define CFG_MAP_BITMAP256(p_reference, p_field, p_name, p_def, p_help, args...)                               CFG_VALIDATE_BITMAP256(p_name, p_def, p_help, .cb_to_binary = cfg_schema_tobin_bitmap256, .bin_offset = offsetof(struct p_reference, p_field), ##args)
 
+/**
+ * Creates a cfg_schema_entry for a boolean parameter
+ * that can be mapped into a binary struct.
+ * @param p_reference reference to instance of struct
+ * @param p_field name of field in the struct for the parameter,
+ *   it must be a bool
+ * @param p_name parameter name
+ * @param p_def parameter default value
+ * @param p_help help text for configuration entry
+ * @param args variable list of additional arguments
+ */
 #define CFG_MAP_BOOL(p_reference, p_field, p_name, p_def, p_help, args...)                                    CFG_VALIDATE_BOOL(p_name, p_def, p_help, .cb_to_binary = cfg_schema_tobin_bool, .bin_offset = offsetof(struct p_reference, p_field), ##args)
+
+/**
+ * Creates a cfg_schema_entry for list of strings that can
+ * be mapped into a binary struct
+ * @param p_reference reference to instance of struct
+ * @param p_field name of field in the struct for the parameter,
+ *   it must be a strarray struct
+ * @param p_name parameter name
+ * @param p_def parameter default value
+ * @param p_help help text for configuration entry
+ * @param args variable list of additional arguments
+ */
 #define CFG_MAP_STRINGLIST(p_reference, p_field, p_name, p_def, p_help, args...)                              _CFG_VALIDATE(p_name, p_def, p_help, .cb_to_binary = cfg_schema_tobin_stringlist, .bin_offset = offsetof(struct p_reference, p_field), .list = true, ##args )
 
 
-/* convenience definition for configuration that only allows access from loopback */
+/*! convenience definition for configuration that only allows access from loopback */
 #define ACL_LOCALHOST_ONLY "+127.0.0.1/8\0+::1/128\0" ACL_DEFAULT_REJECT
 
 /**
@@ -197,34 +849,37 @@ struct cfg_schema {
   struct list_entity handlers;
 };
 
+/**
+ * Possible modes for a schema section
+ */
 enum cfg_schema_section_mode {
-  /*
+  /**
    * normal unnamed section, delta handlers will be triggered at
    * startup even it does not exist in the configuration file
    *
    * default setting
    */
-  CFG_SSMODE_UNNAMED = 0,
+  CFG_SSMODE_UNNAMED = 0,       //!< CFG_SSMODE_UNNAMED
 
-  /*
+  /**
    * named section, delta handlers will always trigger for this
    */
-  CFG_SSMODE_NAMED,
+  CFG_SSMODE_NAMED,             //!< CFG_SSMODE_NAMED
 
-  /*
+  /**
    * named section, configuration demands at least one existing
    * section of this type to be valid.
    */
-  CFG_SSMODE_NAMED_MANDATORY,
+  CFG_SSMODE_NAMED_MANDATORY,   //!< CFG_SSMODE_NAMED_MANDATORY
 
-  /*
+  /**
    * named section, if none exists the configuration will create
    * a temporary (and empty) section with the defined default name.
    */
-  CFG_SSMODE_NAMED_WITH_DEFAULT,
+  CFG_SSMODE_NAMED_WITH_DEFAULT,//!< CFG_SSMODE_NAMED_WITH_DEFAULT
 
-  /* always last */
-  CFG_SSMODE_MAX,
+  /*! number of configuration section modes */
+  CFG_SSMODE_MAX,               //!< CFG_SSMODE_MAX
 };
 
 /**
@@ -382,7 +1037,10 @@ struct cfg_schema_entry {
   bool delta_changed;
 };
 
+/*! List of strings that are considered valid boolean options */
 #define CFGLIST_BOOL_VALUES "true", "1", "on", "yes", "false", "0", "off", "no"
+
+/*! List of string that are boolean options with value true */
 #define CFGLIST_BOOL_TRUE_VALUES "true", "1", "on", "yes"
 
 EXPORT extern const char *CFGLIST_BOOL_TRUE[4];
