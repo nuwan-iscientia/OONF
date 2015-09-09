@@ -39,6 +39,10 @@
  *
  */
 
+/**
+ * @file src-plugins/nhdp/mpr/selection-rfc7181.h
+ */
+
 #include "neighbor-graph.h"
 
 #ifndef __SELECTION_RFC7181__

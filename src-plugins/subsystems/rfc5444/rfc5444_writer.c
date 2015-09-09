@@ -39,6 +39,10 @@
  *
  */
 
+/**
+ * @file src-plugins/subsystems/rfc5444/rfc5444_writer.c
+ */
+
 #include <assert.h>
 #include <stdlib.h>
 #include <string.h>

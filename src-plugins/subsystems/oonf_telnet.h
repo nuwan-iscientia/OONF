@@ -39,6 +39,10 @@
  *
  */
 
+/**
+ * @file src-plugins/subsystems/oonf_telnet.h
+ */
+
 #ifndef OONF_TELNET_H_
 #define OONF_TELNET_H_
 

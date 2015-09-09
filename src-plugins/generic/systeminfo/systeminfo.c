@@ -39,6 +39,10 @@
  *
  */
 
+/**
+ * @file src-plugins/generic/systeminfo/systeminfo.c
+ */
+
 #include <stdio.h>
 
 #include "common/common_types.h"

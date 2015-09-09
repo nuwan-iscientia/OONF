@@ -39,6 +39,10 @@
  *
  */
 
+/**
+ * @file src-plugins/generic/dlep/ext_base_metric/metric.h
+ */
+
 #ifndef _METRIC_H_
 #define _METRIC_H_
 

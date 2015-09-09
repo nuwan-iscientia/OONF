@@ -39,6 +39,10 @@
  *
  */
 
+/**
+ * @file src-plugins/olsrv2/olsrv2info/olsrv2info.h
+ */
+
 #ifndef OLSRV2INFO_H_
 #define OLSRV2INFO_H_
 

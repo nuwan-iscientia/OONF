@@ -39,6 +39,10 @@
  *
  */
 
+/**
+ * @file src-plugins/nhdp/mpr/neighbor-graph.c
+ */
+
 #include <stdio.h>
 #include "nhdp/nhdp.h"
 #include "nhdp/nhdp_db.h"

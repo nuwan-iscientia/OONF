@@ -39,6 +39,10 @@
  *
  */
 
+/**
+ * @file src-plugins/generic/nl80211_listener/nl80211_get_survey.h
+ */
+
 #ifndef NL80211_GET_SURVEY_H_
 #define NL80211_GET_SURVEY_H_
 

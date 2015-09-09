@@ -39,6 +39,10 @@
  *
  */
 
+/**
+ * @file src-plugins/generic/plugin_controller/plugin_controller.h
+ */
+
 #ifndef PLUGIN_CONTROLLER_H_
 #define PLUGIN_CONTROLLER_H_
 

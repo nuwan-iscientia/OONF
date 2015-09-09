@@ -39,6 +39,10 @@
  *
  */
 
+/**
+ * @file src-plugins/generic/dlep/dlep_extension.h
+ */
+
 #ifndef _DLEP_EXTENSION_H_
 #define _DLEP_EXTENSION_H_
 

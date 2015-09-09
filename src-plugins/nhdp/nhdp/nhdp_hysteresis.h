@@ -39,6 +39,10 @@
  *
  */
 
+/**
+ * @file src-plugins/nhdp/nhdp/nhdp_hysteresis.h
+ */
+
 #ifndef NHDP_HYSTERESIS_H_
 #define NHDP_HYSTERESIS_H_
 

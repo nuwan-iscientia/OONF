@@ -39,6 +39,10 @@
  *
  */
 
+/**
+ * @file src-plugins/generic/layer2info/layer2info.c
+ */
+
 #include <stdio.h>
 
 #include "common/common_types.h"

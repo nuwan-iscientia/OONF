@@ -39,6 +39,10 @@
  *
  */
 
+/**
+ * @file src-plugins/olsrv2/olsrv2/olsrv2_reader.h
+ */
+
 #ifndef OLSRV2_READER_H_
 #define OLSRV2_READER_H_
 

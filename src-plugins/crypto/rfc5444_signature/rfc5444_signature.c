@@ -39,6 +39,10 @@
  *
  */
 
+/**
+ * @file src-plugins/crypto/rfc5444_signature/rfc5444_signature.c
+ */
+
 #include "common/common_types.h"
 #include "common/avl.h"
 #include "common/avl_comp.h"

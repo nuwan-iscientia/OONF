@@ -39,6 +39,10 @@
  *
  */
 
+/**
+ * @file src-plugins/crypto/hash_polarssl/hash_polarssl.h
+ */
+
 #ifndef HASH_POLARSSL_H_
 #define HASH_POLARSSL_H_
 

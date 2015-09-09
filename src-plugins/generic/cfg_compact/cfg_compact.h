@@ -39,6 +39,10 @@
  *
  */
 
+/**
+ * @file src-plugins/generic/cfg_compact/cfg_compact.h
+ */
+
 #ifndef CFG_COMPACT_H_
 #define CFG_COMPACT_H_
 

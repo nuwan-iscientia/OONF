@@ -39,6 +39,10 @@
  *
  */
 
+/**
+ * @file src-plugins/subsystems/os_linux/os_vif_linux.h
+ */
+
 #ifndef OS_VIF_LINUX_H_
 #define OS_VIF_LINUX_H_
 

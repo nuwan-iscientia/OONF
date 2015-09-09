@@ -39,6 +39,10 @@
  *
  */
 
+/**
+ * @file src-plugins/nhdp/nhdp/nhdp_interfaces.c
+ */
+
 #include <assert.h>
 
 #include "common/common_types.h"

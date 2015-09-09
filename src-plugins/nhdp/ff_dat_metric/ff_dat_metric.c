@@ -39,6 +39,10 @@
  *
  */
 
+/**
+ * @file src-plugins/nhdp/ff_dat_metric/ff_dat_metric.c
+ */
+
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <errno.h>

@@ -39,6 +39,10 @@
  *
  */
 
+/**
+ * @file src-plugins/subsystems/oonf_socket.h
+ */
+
 #ifndef OONF_SOCKET_H_
 #define OONF_SOCKET_H_
 

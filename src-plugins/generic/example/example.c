@@ -39,6 +39,10 @@
  *
  */
 
+/**
+ * @file src-plugins/generic/example/example.c
+ */
+
 #include "common/common_types.h"
 #include "config/cfg_schema.h"
 #include "core/oonf_subsystem.h"

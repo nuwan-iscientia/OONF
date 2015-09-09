@@ -39,6 +39,10 @@
  *
  */
 
+/**
+ * @file src-plugins/crypto/simple_security/simple_security.h
+ */
+
 #ifndef SIMPLE_SECURITY_H_
 #define SIMPLE_SECURITY_H_
 

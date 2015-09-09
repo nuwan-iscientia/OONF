@@ -39,6 +39,10 @@
  *
  */
 
+/**
+ * @file src-plugins/generic/plugin_controller/plugin_controller.c
+ */
+
 #include "common/common_types.h"
 #include "common/autobuf.h"
 #include "common/netaddr.h"

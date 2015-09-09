@@ -39,6 +39,10 @@
  *
  */
 
+/**
+ * @file src-plugins/subsystems/oonf_http.h
+ */
+
 #ifndef OONF_HTTP_H_
 #define OONF_HTTP_H_
 

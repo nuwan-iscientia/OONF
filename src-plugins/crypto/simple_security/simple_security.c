@@ -39,6 +39,10 @@
  *
  */
 
+/**
+ * @file src-plugins/crypto/simple_security/simple_security.c
+ */
+
 #include <string.h>
 
 #include "common/common_types.h"

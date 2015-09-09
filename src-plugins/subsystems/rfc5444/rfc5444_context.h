@@ -38,6 +38,10 @@
  * the copyright holders.
  *
  */
+
+/**
+ * @file src-plugins/subsystems/rfc5444/rfc5444_context.h
+ */
 #ifndef RFC5444_CONTEXT_H_
 #define RFC5444_CONTEXT_H_
 

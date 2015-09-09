@@ -39,6 +39,10 @@
  *
  */
 
+/**
+ * @file src-plugins/subsystems/os_interface_data.h
+ */
+
 #ifndef OS_INTERFACE_DATA_H_
 #define OS_INTERFACE_DATA_H_
 

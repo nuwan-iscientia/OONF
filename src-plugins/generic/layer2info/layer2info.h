@@ -39,6 +39,10 @@
  *
  */
 
+/**
+ * @file src-plugins/generic/layer2info/layer2info.h
+ */
+
 #ifndef LAYER2INFO_H_
 #define LAYER2INFO_H_
 

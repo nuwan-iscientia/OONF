@@ -39,6 +39,10 @@
  *
  */
 
+/**
+ * @file src/main.c
+ */
+
 #include "common/common_types.h"
 #include "core/oonf_main.h"
 

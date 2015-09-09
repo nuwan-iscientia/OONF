@@ -39,6 +39,10 @@
  *
  */
 
+/**
+ * @file src-plugins/olsrv2/olsrv2/olsrv2_internal.h
+ */
+
 #ifndef OLSRV2_INTERNAL_H_
 #define OLSRV2_INTERNAL_H_
 

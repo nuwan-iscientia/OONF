@@ -39,6 +39,10 @@
  *
  */
 
+/**
+ * @file src-plugins/generic/dlep/ext_l1_statistics/l1_statistics.h
+ */
+
 #ifndef _DLEP_L1_STATISTICS_H_
 #define _DLEP_L1_STATISTICS_H_
 

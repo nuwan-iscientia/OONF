@@ -39,6 +39,10 @@
  *
  */
 
+/**
+ * @file src-plugins/generic/cfg_uciloader/cfg_uciloader.c
+ */
+
 #include <errno.h>
 #include <fcntl.h>
 #include <string.h>

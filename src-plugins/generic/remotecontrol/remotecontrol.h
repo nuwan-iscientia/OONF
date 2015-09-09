@@ -39,6 +39,10 @@
  *
  */
 
+/**
+ * @file src-plugins/generic/remotecontrol/remotecontrol.h
+ */
+
 #ifndef REMOTECONTROL_H_
 #define REMOTECONTROL_H_
 

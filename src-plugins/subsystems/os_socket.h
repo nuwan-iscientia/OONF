@@ -39,6 +39,10 @@
  *
  */
 
+/**
+ * @file src-plugins/subsystems/os_socket.h
+ */
+
 #ifndef OS_SOCKET_H_
 #define OS_SOCKET_H_
 

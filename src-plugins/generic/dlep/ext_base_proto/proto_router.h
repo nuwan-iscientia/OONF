@@ -39,6 +39,10 @@
  *
  */
 
+/**
+ * @file src-plugins/generic/dlep/ext_base_proto/proto_router.h
+ */
+
 #ifndef _PROTO_ROUTER_H_
 #define _PROTO_ROUTER_H_
 

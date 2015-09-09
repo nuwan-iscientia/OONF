@@ -39,6 +39,10 @@
  *
  */
 
+/**
+ * @file src-plugins/generic/link_config/link_config.c
+ */
+
 #include "common/avl.h"
 #include "common/avl_comp.h"
 #include "common/common_types.h"

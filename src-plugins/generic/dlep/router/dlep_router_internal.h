@@ -39,6 +39,10 @@
  *
  */
 
+/**
+ * @file src-plugins/generic/dlep/router/dlep_router_internal.h
+ */
+
 #ifndef DLEP_ROUTER_INTERNAL_H_
 #define DLEP_ROUTER_INTERNAL_H_
 

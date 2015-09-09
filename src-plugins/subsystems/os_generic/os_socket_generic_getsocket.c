@@ -39,6 +39,10 @@
  *
  */
 
+/**
+ * @file src-plugins/subsystems/os_generic/os_socket_generic_getsocket.c
+ */
+
 #include <errno.h>
 #include <fcntl.h>
 

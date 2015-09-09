@@ -39,6 +39,10 @@
  *
  */
 
+/**
+ * @file src-plugins/generic/layer2_generator/layer2_generator.c
+ */
+
 #include <stdio.h>
 
 #include "common/common_types.h"

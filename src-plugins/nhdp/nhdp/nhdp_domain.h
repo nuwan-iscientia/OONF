@@ -39,6 +39,10 @@
  *
  */
 
+/**
+ * @file src-plugins/nhdp/nhdp/nhdp_domain.h
+ */
+
 #ifndef NHDP_DOMAIN_H_
 #define NHDP_DOMAIN_H_
 

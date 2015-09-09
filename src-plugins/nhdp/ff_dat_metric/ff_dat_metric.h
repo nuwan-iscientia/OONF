@@ -39,6 +39,10 @@
  *
  */
 
+/**
+ * @file src-plugins/nhdp/ff_dat_metric/ff_dat_metric.h
+ */
+
 #ifndef FF_DAT_METRIC_H_
 #define FF_DAT_METRIC_H_
 

@@ -39,6 +39,10 @@
  *
  */
 
+/**
+ * @file src-plugins/subsystems/os_linux/os_clock_linux.h
+ */
+
 #ifndef OS_CLOCK_LINUX_H_
 #define OS_CLOCK_LINUX_H_
 

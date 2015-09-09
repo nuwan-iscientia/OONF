@@ -39,6 +39,10 @@
  *
  */
 
+/**
+ * @file src-plugins/subsystems/oonf_viewer.h
+ */
+
 #ifndef OONF_VIEWER_H_
 #define OONF_VIEWER_H_
 

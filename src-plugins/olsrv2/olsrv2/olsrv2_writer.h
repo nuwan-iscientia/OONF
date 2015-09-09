@@ -39,6 +39,10 @@
  *
  */
 
+/**
+ * @file src-plugins/olsrv2/olsrv2/olsrv2_writer.h
+ */
+
 #ifndef OLSRV2_WRITER_H_
 #define OLSRV2_WRITER_H_
 

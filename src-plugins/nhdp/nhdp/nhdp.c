@@ -39,6 +39,10 @@
  *
  */
 
+/**
+ * @file src-plugins/nhdp/nhdp/nhdp.c
+ */
+
 #include "common/common_types.h"
 #include "config/cfg_schema.h"
 #include "core/oonf_logging.h"

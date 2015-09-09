@@ -39,6 +39,10 @@
  *
  */
 
+/**
+ * @file src-plugins/generic/systeminfo/systeminfo.h
+ */
+
 #ifndef SYSTEMINFO_H_
 #define SYSTEMINFO_H_
 

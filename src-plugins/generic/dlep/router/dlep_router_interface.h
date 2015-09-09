@@ -39,6 +39,10 @@
  *
  */
 
+/**
+ * @file src-plugins/generic/dlep/router/dlep_router_interface.h
+ */
+
 #ifndef DLEP_ROUTER_INTERFACE_H_
 #define DLEP_ROUTER_INTERFACE_H_
 

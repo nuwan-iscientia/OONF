@@ -39,6 +39,10 @@
  *
  */
 
+/**
+ * @file src-plugins/subsystems/oonf_packet_socket.c
+ */
+
 #include <errno.h>
 
 #include "common/common_types.h"

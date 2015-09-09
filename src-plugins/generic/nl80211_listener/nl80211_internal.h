@@ -39,6 +39,10 @@
  *
  */
 
+/**
+ * @file src-plugins/generic/nl80211_listener/nl80211_internal.h
+ */
+
 #ifndef NL80211_INTERNAL_H_
 #define NL80211_INTERNAL_H_
 

@@ -39,6 +39,10 @@
  *
  */
 
+/**
+ * @file src-plugins/generic/cfg_uciloader/cfg_uciloader.h
+ */
+
 #ifndef CFG_UCILOADER_H_
 #define CFG_UCILOADER_H_
 

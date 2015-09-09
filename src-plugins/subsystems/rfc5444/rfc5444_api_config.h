@@ -39,6 +39,10 @@
  *
  */
 
+/**
+ * @file src-plugins/subsystems/rfc5444/rfc5444_api_config.h
+ */
+
 #ifndef RFC5444_API_CONFIG_H_
 #define RFC5444_API_CONFIG_H_
 

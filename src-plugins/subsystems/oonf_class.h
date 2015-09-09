@@ -39,6 +39,10 @@
  *
  */
 
+/**
+ * @file src-plugins/subsystems/oonf_class.h
+ */
+
 #ifndef _OONF_CLASS_H
 #define _OONF_CLASS_H
 

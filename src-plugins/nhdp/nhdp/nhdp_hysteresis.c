@@ -39,6 +39,10 @@
  *
  */
 
+/**
+ * @file src-plugins/nhdp/nhdp/nhdp_hysteresis.c
+ */
+
 #include "common/common_types.h"
 #include "core/oonf_logging.h"
 #include "subsystems/oonf_rfc5444.h"

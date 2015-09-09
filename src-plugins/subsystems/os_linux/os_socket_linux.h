@@ -39,6 +39,10 @@
  *
  */
 
+/**
+ * @file src-plugins/subsystems/os_linux/os_socket_linux.h
+ */
+
 #ifndef OS_SOCKET_LINUX_H_
 #define OS_SOCKET_LINUX_H_
 

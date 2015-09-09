@@ -39,6 +39,10 @@
  *
  */
 
+/**
+ * @file src-plugins/nhdp/mpr/mpr_internal.h
+ */
+
 #ifndef MPR_INTERNAL_H_
 #define MPR_INTERNAL_H_
 #include "core/oonf_logging.h"

@@ -39,6 +39,10 @@
  *
  */
 
+/**
+ * @file src-plugins/nhdp/nhdp/nhdp_db.h
+ */
+
 #ifndef NHDP_DB_H_
 #define NHDP_DB_H_
 

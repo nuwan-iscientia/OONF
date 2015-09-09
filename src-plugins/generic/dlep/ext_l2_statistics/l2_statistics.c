@@ -39,6 +39,10 @@
  *
  */
 
+/**
+ * @file src-plugins/generic/dlep/ext_l2_statistics/l2_statistics.c
+ */
+
 #include "common/common_types.h"
 #include "common/avl.h"
 

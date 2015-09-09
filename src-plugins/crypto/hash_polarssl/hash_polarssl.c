@@ -39,6 +39,10 @@
  *
  */
 
+/**
+ * @file src-plugins/crypto/hash_polarssl/hash_polarssl.c
+ */
+
 #include <polarssl/config.h>
 #ifdef POLARSSL_SHA1_C
 #include <polarssl/sha1.h>

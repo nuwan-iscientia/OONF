@@ -39,6 +39,10 @@
  *
  */
 
+/**
+ * @file src-plugins/generic/nl80211_listener/nl80211_get_interface.h
+ */
+
 #ifndef NL80211_GET_INTERFACE_H_
 #define NL80211_GET_INTERFACE_H_
 

@@ -39,6 +39,10 @@
  *
  */
 
+/**
+ * @file src-plugins/subsystems/oonf_viewer.c
+ */
+
 #include "common/common_types.h"
 #include "common/autobuf.h"
 #include "common/json.h"

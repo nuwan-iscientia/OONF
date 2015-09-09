@@ -39,6 +39,10 @@
  *
  */
 
+/**
+ * @file src-plugins/nhdp/mpr/neighbor-graph-flooding.h
+ */
+
 #ifndef __NEIGHBOR_GRAPH_FLOODING__
 #define __NEIGHBOR_GRAPH_FLOODING__
 

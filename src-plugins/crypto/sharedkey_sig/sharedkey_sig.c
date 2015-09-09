@@ -39,6 +39,10 @@
  *
  */
 
+/**
+ * @file src-plugins/crypto/sharedkey_sig/sharedkey_sig.c
+ */
+
 #include "common/common_types.h"
 #include "common/avl.h"
 #include "common/avl_comp.h"

@@ -39,6 +39,10 @@
  *
  */
 
+/**
+ * @file src-plugins/nhdp/constant_metric/constant_metric.c
+ */
+
 #include <errno.h>
 #include <stdio.h>
 

@@ -39,6 +39,10 @@
  *
  */
 
+/**
+ * @file src-plugins/subsystems/oonf_layer2.h
+ */
+
 #ifndef OONF_LAYER2_H_
 #define OONF_LAYER2_H_
 

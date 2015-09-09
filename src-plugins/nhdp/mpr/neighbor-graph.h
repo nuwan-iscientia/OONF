@@ -39,6 +39,10 @@
  *
  */
 
+/**
+ * @file src-plugins/nhdp/mpr/neighbor-graph.h
+ */
+
 #ifndef __NEIGHBOR_GRAPH__
 #define __NEIGHBOR_GRAPH__
 

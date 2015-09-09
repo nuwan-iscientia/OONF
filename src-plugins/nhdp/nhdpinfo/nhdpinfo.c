@@ -39,6 +39,10 @@
  *
  */
 
+/**
+ * @file src-plugins/nhdp/nhdpinfo/nhdpinfo.c
+ */
+
 #include "common/common_types.h"
 #include "common/autobuf.h"
 #include "common/template.h"

@@ -38,6 +38,10 @@
  * the copyright holders.
  *
  */
+
+/**
+ * @file src-plugins/subsystems/rfc5444/rfc5444_print.h
+ */
 #ifndef PRINT_RFC5444_H_
 #define PRINT_RFC5444_H_
 

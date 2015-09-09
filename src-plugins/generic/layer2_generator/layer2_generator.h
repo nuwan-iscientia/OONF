@@ -39,6 +39,10 @@
  *
  */
 
+/**
+ * @file src-plugins/generic/layer2_generator/layer2_generator.h
+ */
+
 #ifndef LAYER2_GENERATOR_H_
 #define LAYER2_GENERATOR_H_
 

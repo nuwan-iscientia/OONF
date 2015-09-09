@@ -39,6 +39,10 @@
  *
  */
 
+/**
+ * @file src-plugins/subsystems/oonf_duplicate_set.c
+ */
+
 #include "common/avl.h"
 #include "common/avl_comp.h"
 #include "common/common_types.h"

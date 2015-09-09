@@ -39,6 +39,10 @@
  *
  */
 
+/**
+ * @file src-plugins/nhdp/mpr/mpr.h
+ */
+
 #ifndef MPR_H_
 #define MPR_H_
 

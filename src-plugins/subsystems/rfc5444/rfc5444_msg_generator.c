@@ -39,6 +39,10 @@
  *
  */
 
+/**
+ * @file src-plugins/subsystems/rfc5444/rfc5444_msg_generator.c
+ */
+
 // #define DEBUG_OUTPUT
 
 #include <assert.h>

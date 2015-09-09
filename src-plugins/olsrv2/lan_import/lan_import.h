@@ -39,6 +39,10 @@
  *
  */
 
+/**
+ * @file src-plugins/olsrv2/lan_import/lan_import.h
+ */
+
 #ifndef LAN_IMPORT_H_
 #define LAN_IMPORT_H_
 

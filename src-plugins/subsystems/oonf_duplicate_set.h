@@ -39,6 +39,10 @@
  *
  */
 
+/**
+ * @file src-plugins/subsystems/oonf_duplicate_set.h
+ */
+
 #ifndef OONF_DUPLICATE_SET_H_
 #define OONF_DUPLICATE_SET_H_
 

@@ -39,6 +39,10 @@
  *
  */
 
+/**
+ * @file src-plugins/generic/link_config/link_config.h
+ */
+
 #ifndef OONF_LINKCONFIG_H_
 #define OONF_LINKCONFIG_H_
 

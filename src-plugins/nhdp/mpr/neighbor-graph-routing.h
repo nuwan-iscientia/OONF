@@ -39,6 +39,10 @@
  *
  */
 
+/**
+ * @file src-plugins/nhdp/mpr/neighbor-graph-routing.h
+ */
+
 #include "neighbor-graph.h"
 
 #ifndef __NEIGHBOR_GRAPH_ROUTING__

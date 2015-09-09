@@ -39,6 +39,10 @@
  *
  */
 
+/**
+ * @file src-plugins/generic/remotecontrol/remotecontrol.c
+ */
+
 #include <stdlib.h>
 
 #include "common/common_types.h"

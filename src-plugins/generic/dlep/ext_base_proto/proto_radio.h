@@ -39,6 +39,10 @@
  *
  */
 
+/**
+ * @file src-plugins/generic/dlep/ext_base_proto/proto_radio.h
+ */
+
 #ifndef _PROTO_RADIO_H_
 #define _PROTO_RADIO_H_
 

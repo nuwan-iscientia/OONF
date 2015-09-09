@@ -39,6 +39,10 @@
  *
  */
 
+/**
+ * @file src-plugins/nhdp/nhdp/nhdp_domain.c
+ */
+
 #include <stdio.h>
 
 #include "common/avl.h"

@@ -39,6 +39,10 @@
  *
  */
 
+/**
+ * @file src-plugins/nhdp/neighbor_probing/neighbor_probing.c
+ */
+
 #include "common/avl.h"
 #include "common/common_types.h"
 #include "common/list.h"

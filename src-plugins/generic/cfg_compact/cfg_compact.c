@@ -39,6 +39,10 @@
  *
  */
 
+/**
+ * @file src-plugins/generic/cfg_compact/cfg_compact.c
+ */
+
 #include <errno.h>
 #include <fcntl.h>
 #include <string.h>

@@ -39,6 +39,10 @@
  *
  */
 
+/**
+ * @file src-plugins/nhdp/nhdpcheck/nhdpcheck.h
+ */
+
 #ifndef NHDPCHECK_H_
 #define NHDPCHECK_H_
 

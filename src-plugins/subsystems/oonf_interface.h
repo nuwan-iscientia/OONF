@@ -39,6 +39,10 @@
  *
  */
 
+/**
+ * @file src-plugins/subsystems/oonf_interface.h
+ */
+
 #ifndef INTERFACE_H_
 #define INTERFACE_H_
 

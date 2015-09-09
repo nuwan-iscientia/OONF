@@ -39,6 +39,10 @@
  *
  */
 
+/**
+ * @file src-plugins/subsystems/os_system.h
+ */
+
 #ifndef OS_SYSTEM_H_
 #define OS_SYSTEM_H_
 

@@ -39,6 +39,10 @@
  *
  */
 
+/**
+ * @file src-plugins/subsystems/oonf_stream_socket.c
+ */
+
 #include <string.h>
 #include <stdlib.h>
 #include <errno.h>

@@ -39,6 +39,10 @@
  *
  */
 
+/**
+ * @file src-plugins/generic/example/example.h
+ */
+
 #ifndef EXAMPLE_H_
 #define EXAMPLE_H_
 

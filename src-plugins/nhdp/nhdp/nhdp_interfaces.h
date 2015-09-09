@@ -39,6 +39,10 @@
  *
  */
 
+/**
+ * @file src-plugins/nhdp/nhdp/nhdp_interfaces.h
+ */
+
 #ifndef NHDP_INTERFACES_H_
 #define NHDP_INTERFACES_H_
 

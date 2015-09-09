@@ -39,6 +39,10 @@
  *
  */
 
+/**
+ * @file src-plugins/nhdp/hysteresis_olsrv1/hysteresis_olsrv1.h
+ */
+
 #ifndef HYSTERESIS_OONFV1_H_
 #define HYSTERESIS_OONFV1_H_
 

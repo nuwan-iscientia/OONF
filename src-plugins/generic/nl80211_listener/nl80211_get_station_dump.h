@@ -39,6 +39,10 @@
  *
  */
 
+/**
+ * @file src-plugins/generic/nl80211_listener/nl80211_get_station_dump.h
+ */
+
 #ifndef NL80211_GET_STATION_DUMP_H_
 #define NL80211_GET_STATION_DUMP_H_
 
