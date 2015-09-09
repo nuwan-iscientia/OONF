@@ -39,6 +39,13 @@
  *
  */
 
+/**
+ * @file
+
+/**
+ * @file ./tests/config/test_config_mapping.c
+ */
+
 #include "config/cfg_db.h"
 #include "config/cfg_schema.h"
 

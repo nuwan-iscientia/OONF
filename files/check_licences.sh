@@ -1,6 +1,7 @@
 #!/bin/sh
 
 LEN=`cat ./files/default_licence.txt |wc -c`
+LEN=$((LEN - 1))
 
 OKAY=0
 BAD=0

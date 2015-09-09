@@ -39,6 +39,13 @@
  *
  */
 
+/**
+ * @file
+
+/**
+ * @file ./tests/common/test_common_avl.c
+ */
+
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
