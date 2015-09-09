@@ -38,13 +38,6 @@
  * the copyright holders.
  *
  */
-
-/**
- * @file
-
-/**
- * @file ./tests/rfc5444/special/test_nhdp_1.c
- */
 #include <assert.h>
 #include <stdlib.h>
 #include <string.h>

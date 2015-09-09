@@ -38,13 +38,6 @@
  * the copyright holders.
  *
  */
-
-/**
- * @file
-
-/**
- * @file ./tests/rfc5444/test_rfc5444_writer_ifspecific.c
- */
 #include <assert.h>
 #include <stdlib.h>
 #include <string.h>

@@ -39,13 +39,6 @@
  *
  */
 
-/**
- * @file
-
-/**
- * @file ./tests/config/test_config_cmd.c
- */
-
 #include <string.h>
 
 #include "common/autobuf.h"

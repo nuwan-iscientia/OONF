@@ -39,13 +39,6 @@
  *
  */
 
-/**
- * @file
-
-/**
- * @file ./tests/config/test_config_delta.c
- */
-
 #include "common/autobuf.h"
 #include "common/netaddr.h"
 #include "common/string.h"

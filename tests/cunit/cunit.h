@@ -39,13 +39,6 @@
  *
  */
 
-/**
- * @file
-
-/**
- * @file ./tests/cunit/cunit.h
- */
-
 #ifndef CUNIT_H_
 #define CUNIT_H_
 
