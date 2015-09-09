@@ -55,8 +55,13 @@
 
 #include "core/oonf_logging.h"
 
+/*! maximum size of subsystem name */
 #define OONF_SUBSYSTEM_NAMESIZE 32
 
+/**
+ * Declaration of a subsystem. Creates a constructor that hooks the subsystem into the core.
+ * @param subsystem pointer to subsystem defintion
+ */
 #define DECLARE_OONF_PLUGIN(subsystem) EXPORT void hookup_subsystem_ ## subsystem (void) __attribute__ ((constructor)); void hookup_subsystem_ ## subsystem (void) { oonf_subsystem_hook(&subsystem); }
 
 /**

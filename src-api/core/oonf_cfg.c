@@ -63,7 +63,8 @@ enum {
   IDX_LOCKFILE,
   IDX_PLUGINS,
 };
-/* global config */
+
+/*! binary global configuration */
 struct oonf_config_global config_global;
 
 static struct cfg_instance _oonf_cfg_instance;
@@ -105,6 +106,9 @@ static struct cfg_schema_section _global_section = {
 
 /**
  * Initializes the olsrd configuration subsystem
+ * @param argc argument counter of main()
+ * @param argv argument vector of main ()
+ * @param default_cfg_handler name of default io handler
  * @return -1 if an error happened, 0 otherwise
  */
 int
@@ -226,12 +230,12 @@ oonf_cfg_is_running(void) {
 }
 
 /**
- * Load all plugins that are not already loaded and remove
- * the plugins that are not needed anymore.
+ * Load all subsystems that are not already loaded and remove
+ * the subsystems that are not needed anymore.
  * @return -1 if an error happened, 0 otherwise
  */
 int
-oonf_cfg_loadplugins(void) {
+oonf_cfg_load_subsystems(void) {
   struct oonf_subsystem *plugin, *plugin_it;
   struct oonf_subsystem_namebuf nbuf;
   char *ptr;
@@ -246,7 +250,7 @@ oonf_cfg_loadplugins(void) {
 
     oonf_subsystem_extract_name(&nbuf, ptr);
 
-    if (oonf_cfg_load_plugin(nbuf.name) == NULL && config_global.failfast) {
+    if (oonf_cfg_load_subsystem(nbuf.name) == NULL && config_global.failfast) {
       return -1;
     }
   }
@@ -286,8 +290,13 @@ oonf_cfg_loadplugins(void) {
   return 0;
 }
 
+/**
+ * Load a new subsystem and configure it
+ * @param name name of subsystem
+ * @return pointer to subsystem, NULL if an error happened
+ */
 struct oonf_subsystem *
-oonf_cfg_load_plugin(const char *name) {
+oonf_cfg_load_subsystem(const char *name) {
   struct oonf_subsystem *plugin;
 
   plugin = oonf_subsystem_get(name);
@@ -303,14 +312,20 @@ oonf_cfg_load_plugin(const char *name) {
   return plugin;
 }
 
+/**
+ * Call 'unconfigure' callbacks of all subsystems
+ */
 void
-oonf_cfg_unconfigure_plugins(void) {
+oonf_cfg_unconfigure_subsystems(void) {
   struct oonf_subsystem *plugin, *plugin_it;
   avl_for_each_element_safe(&oonf_plugin_tree, plugin, _node, plugin_it) {
     oonf_subsystem_unconfigure(&_oonf_schema, plugin);
   }
 }
 
+/**
+ * Call 'init' callback of all subsystems
+ */
 void
 oonf_cfg_initplugins(void) {
   struct oonf_subsystem *plugin;
@@ -347,7 +362,7 @@ oonf_cfg_apply(void) {
     goto apply_failed;
   }
 
-  if (oonf_cfg_loadplugins()) {
+  if (oonf_cfg_load_subsystems()) {
     goto apply_failed;
   }
 

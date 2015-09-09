@@ -57,11 +57,22 @@
 #include "core/oonf_logging.h"
 #include "core/oonf_logging_cfg.h"
 
+/*! configuration section for logging definition */
 #define LOG_SECTION     "log"
+
+/*! configuration entry for debug level logging */
 #define LOG_DEBUG_ENTRY "debug"
+
+/*! configuration entry for info level logging */
 #define LOG_INFO_ENTRY  "info"
+
+/*! configuration entry for activating stderr logging */
 #define LOG_STDERR_ENTRY "stderr"
+
+/*! configuration entry for activating syslog logging */
 #define LOG_SYSLOG_ENTRY "syslog"
+
+/*! configuration entry for activating file logging */
 #define LOG_FILE_ENTRY   "file"
 
 /* prototype for configuration change handler */

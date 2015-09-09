@@ -57,9 +57,6 @@
 #include "core/oonf_logging.h"
 #include "core/os_core.h"
 
-#define FOR_ALL_LOGHANDLERS(handler, iterator) list_for_each_element_safe(&_handler_list, handler, _node, iterator)
-
-uint8_t log_global_mask[LOG_MAXIMUM_SOURCES];
 
 static struct list_entity _handler_list;
 static struct autobuf _logbuffer;
@@ -68,7 +65,10 @@ static const struct oonf_libdata *_libdata;
 static uint8_t _default_mask;
 static size_t _max_sourcetext_len, _max_severitytext_len, _source_count;
 
-/* names for buildin logging targets */
+/*! global mask of all active logging levels per source */
+uint8_t log_global_mask[LOG_MAXIMUM_SOURCES];
+
+/*! names for build-in logging targets */
 const char *LOG_SOURCE_NAMES[LOG_MAXIMUM_SOURCES] = {
   /* all logging sources */
   [LOG_ALL]           = "all",
@@ -83,6 +83,7 @@ const char *LOG_SOURCE_NAMES[LOG_MAXIMUM_SOURCES] = {
   [LOG_SUBSYSTEMS]    = "subsystems",
 };
 
+/*! names of logging severities */
 const char *LOG_SEVERITY_NAMES[LOG_SEVERITY_MAX+1] = {
   [LOG_SEVERITY_DEBUG] = "DEBUG",
   [LOG_SEVERITY_INFO]  = "INFO",
@@ -155,7 +156,7 @@ oonf_log_cleanup(void)
   enum oonf_log_source src;
 
   /* remove all handlers */
-  FOR_ALL_LOGHANDLERS(h, iterator) {
+  list_for_each_element_safe(&_handler_list, h, _node, iterator) {
     oonf_log_removehandler(h);
   }
 
@@ -293,7 +294,7 @@ oonf_log_updatemask(void)
   /* first reset global mask */
   oonf_log_mask_clear(log_global_mask);
 
-  FOR_ALL_LOGHANDLERS(h, iterator) {
+  list_for_each_element_safe(&_handler_list, h, _node, iterator) {
     for (src = 0; src < LOG_MAXIMUM_SOURCES; src++) {
       /* copy user defined mask */
       mask = h->user_bitmask[src];
@@ -412,7 +413,7 @@ oonf_log(enum oonf_log_severity severity, enum oonf_log_source source, bool no_h
   }
   else {
     /* call all log handlers */
-    FOR_ALL_LOGHANDLERS(h, iterator) {
+    list_for_each_element_safe(&_handler_list, h, _node, iterator) {
       if (oonf_log_mask_test(h->_processed_bitmask, source, severity)) {
         h->handler(h, &param);
       }

@@ -52,6 +52,13 @@
 
 #include "core/oonf_logging.h"
 
+/**
+ * Creates a cfg_schema_entry for a logging source parameter.
+ * @param p_name parameter name
+ * @param p_def parameter default value
+ * @param p_help help text for configuration entry
+ * @param args variable list of additional arguments
+ */
 #define CFG_VALIDATE_LOGSOURCE(p_name, p_def, p_help, args...) _CFG_VALIDATE(p_name, p_def, p_help, .cb_validate = oonf_logcfg_schema_validate, .cb_valhelp = oonf_logcfg_schema_help, ##args )
 
 EXPORT void oonf_logcfg_init(void);

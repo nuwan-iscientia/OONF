@@ -67,25 +67,25 @@ enum oonf_log_severity {
   LOG_SEVERITY_MAX   = 1<<2,
 };
 
-/* Defines the builtin sources of a logging event. */
+/*! Defines the builtin sources of a logging event. */
 enum oonf_log_source {
-  /* all logging sources */
+  /*! all logging sources */
   LOG_ALL,
 
-  /* the 'default' logging source */
+  /*! the 'default' logging source */
   LOG_MAIN,
 
-  /* logging sources for the core */
+  /*! logging sources for the core */
   LOG_LOGGING,
   LOG_CONFIG,
   LOG_PLUGINS,
   LOG_SUBSYSTEMS,
 
-  /* this one must be the last ones of the normal enums ! */
+  /*! this one must be the last ones of the normal enums ! */
   LOG_CORESOURCE_COUNT,
 
-  /* maximum number of logging sources supported by API */
-  LOG_MAXIMUM_SOURCES = 64,
+  /*! maximum number of logging sources supported by API */
+  LOG_MAXIMUM_SOURCES = 128,
 };
 
 /**
@@ -151,35 +151,186 @@ struct oonf_log_parameters {
 #define BASEPATH_LENGTH 0
 #endif
 
+/**
+ * Helper macro to define a logging macro
+ * @param severity logging severity
+ * @param source logging source
+ * @param no_header true if the header should not be printed
+ * @param hexptr pointer to buffer that should be hexdumped, NULL if no hexdump
+ * @param hexlen length of buffer to be hexdumped, 0 if no hexdump
+ * @param format printf style format string
+ * @param args variable number of parameters for format string
+ */
 #define _OONF_LOG(severity, source, no_header, hexptr, hexlen, format, args...) do { if (oonf_log_mask_test(log_global_mask, source, severity)) oonf_log(severity, source, no_header, &__FILE__[BASEPATH_LENGTH], __LINE__, hexptr, hexlen, format, ##args); } while(0)
 
 #ifdef OONF_LOG_DEBUG_INFO
+/**
+ * Add a DEBUG level logging to the log handlers
+ * @param source logging source
+ * @param format printf style format string
+ * @param args variable number of parameters for format string
+ */
 #define OONF_DEBUG(source, format, args...) _OONF_LOG(LOG_SEVERITY_DEBUG, source, false, NULL, 0, format, ##args)
+
+/**
+ * Add a DEBUG level logging without header to the log handlers
+ * @param source logging source
+ * @param format printf style format string
+ * @param args variable number of parameters for format string
+ */
 #define OONF_DEBUG_NH(source, format, args...) _OONF_LOG(LOG_SEVERITY_DEBUG, source, true, NULL, 0, format, ##args)
+
+/**
+ * Add a DEBUG level logging and a hexdump to the log handlers
+ * @param source logging source
+ * @param hexptr pointer to buffer that should be hexdumped
+ * @param hexlen length of buffer to be hexdumped
+ * @param format printf style format string
+ * @param args variable number of parameters for format string
+ */
 #define OONF_DEBUG_HEX(source, hexptr, hexlen, format, args...) _OONF_LOG(LOG_SEVERITY_DEBUG, source, false, hexptr, hexlen, format, ##args)
+
+/**
+ * Checks if a logging source should produce DEBUG level output
+ * @param source logging source
+ * @return true if DEBUG logging is active for source, false otherwise
+ */
 #define OONF_TEST_DEBUG(source) oonf_log_mask_test(log_global_mask, source, LOG_SEVERITY_DEBUG)
 #else
+/**
+ * Add a DEBUG level logging to the log handlers
+ * @param source logging source
+ * @param format printf style format string
+ * @param args variable number of parameters for format string
+ */
 #define OONF_DEBUG(source, format, args...) do { } while(0)
+
+/**
+ * Add a DEBUG level logging without header to the log handlers
+ * @param source logging source
+ * @param format printf style format string
+ * @param args variable number of parameters for format string
+ */
 #define OONF_DEBUG_NH(source, format, args...) do { } while(0)
+
+/**
+ * Add a DEBUG level logging and a hexdump to the log handlers
+ * @param source logging source
+ * @param hexptr pointer to buffer that should be hexdumped
+ * @param hexlen length of buffer to be hexdumped
+ * @param format printf style format string
+ * @param args variable number of parameters for format string
+ */
 #define OONF_DEBUG_HEX(source, hexptr, hexlen, format, args...) do { } while(0)
+
+/**
+ * Checks if a logging source should produce DEBUG level output
+ * @param source logging source
+ * @return true if DEBUG logging is active for source, false otherwise
+ */
 #define OONF_TEST_DEBUG(source) false
 #endif
 
 #ifdef OONF_LOG_INFO
+/**
+ * Add a INFO level logging to the log handlers
+ * @param source logging source
+ * @param format printf style format string
+ * @param args variable number of parameters for format string
+ */
 #define OONF_INFO(source, format, args...) _OONF_LOG(LOG_SEVERITY_INFO, source, false, NULL, 0, format, ##args)
+
+/**
+ * Add a INFO level logging without header to the log handlers
+ * @param source logging source
+ * @param format printf style format string
+ * @param args variable number of parameters for format string
+ */
 #define OONF_INFO_NH(source, format, args...) _OONF_LOG(LOG_SEVERITY_INFO, source, true, NULL, 0, format, ##args)
+
+/**
+ * Add a INFO level logging and a hexdump to the log handlers
+ * @param source logging source
+ * @param hexptr pointer to buffer that should be hexdumped
+ * @param hexlen length of buffer to be hexdumped
+ * @param format printf style format string
+ * @param args variable number of parameters for format string
+ */
 #define OONF_INFO_HEX(source, hexptr, hexlen, format, args...) _OONF_LOG(LOG_SEVERITY_INFO, source, false, hexptr, hexlen, format, ##args)
+
+/**
+ * Checks if a logging source should produce INFO level output
+ * @param source logging source
+ * @return true if INFO logging is active for source, false otherwise
+ */
 #define OONF_TEST_INFO(source) oonf_log_mask_test(log_global_mask, source, LOG_SEVERITY_INFO)
 #else
+/**
+ * Add a INFO level logging to the log handlers
+ * @param source logging source
+ * @param format printf style format string
+ * @param args variable number of parameters for format string
+ */
 #define OONF_INFO(source, format, args...) do { } while(0)
+
+/**
+ * Add a INFO level logging without header to the log handlers
+ * @param source logging source
+ * @param format printf style format string
+ * @param args variable number of parameters for format string
+ */
 #define OONF_INFO_NH(source, format, args...) do { } while(0)
+
+/**
+ * Add a INFO level logging and a hexdump to the log handlers
+ * @param source logging source
+ * @param hexptr pointer to buffer that should be hexdumped
+ * @param hexlen length of buffer to be hexdumped
+ * @param format printf style format string
+ * @param args variable number of parameters for format string
+ */
 #define OONF_INFO_HEX(source, hexptr, hexlen, format, args...) do { } while(0)
+
+/**
+ * Checks if a logging source should produce INFO level output
+ * @param source logging source
+ * @return true if INFO logging is active for source, false otherwise
+ */
 #define OONF_TEST_INFO(source) false
 #endif
 
+/**
+ * Add a WARN level logging to the log handlers
+ * @param source logging source
+ * @param format printf style format string
+ * @param args variable number of parameters for format string
+ */
 #define OONF_WARN(source, format, args...) _OONF_LOG(LOG_SEVERITY_WARN, source, false, NULL, 0, format, ##args)
+
+/**
+ * Add a WARN level logging without header to the log handlers
+ * @param source logging source
+ * @param format printf style format string
+ * @param args variable number of parameters for format string
+ */
 #define OONF_WARN_NH(source, format, args...) _OONF_LOG(LOG_SEVERITY_WARN, source, true, NULL, 0, format, ##args)
+
+/**
+ * Add a WARN level logging and a hexdump to the log handlers
+ * @param source logging source
+ * @param hexptr pointer to buffer that should be hexdumped
+ * @param hexlen length of buffer to be hexdumped
+ * @param format printf style format string
+ * @param args variable number of parameters for format string
+ */
 #define OONF_WARN_HEX(source, hexptr, hexlen, format, args...) _OONF_LOG(LOG_SEVERITY_WARN, source, false, hexptr, hexlen, format, ##args)
+
+/**
+ * Checks if a logging source should produce WARN level output
+ * @param source logging source
+ * @return always true
+ */
+#define OONF_TEST_WARN(source) true
 
 /**
  * Definition of a logging handler
@@ -213,6 +364,12 @@ struct oonf_walltime_str {
   char buf[sizeof("00:00:00.000")];
 };
 
+/**
+ * Macro to iterate over all logging severities
+ * This macro should be used similar to a for() or while() construct
+ * @param sev reference of log_severity variable,
+ *   will be used as the iterator variable
+ */
 #define OONF_FOR_ALL_LOGSEVERITIES(sev) for (sev = LOG_SEVERITY_MIN; sev <= LOG_SEVERITY_MAX; sev <<= 1)
 
 EXPORT extern uint8_t log_global_mask[LOG_MAXIMUM_SOURCES];

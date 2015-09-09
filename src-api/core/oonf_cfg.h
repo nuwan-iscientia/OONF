@@ -79,21 +79,14 @@ struct oonf_config_global {
   bool failfast;
 };
 
-/* section types for configuration */
+/*! section types for configuration */
 #define CFG_SECTION_GLOBAL   "global"
 
-/* name of parameter in 'global' section to load plugins */
+/*! name of parameter in 'global' section to load plugins */
 #define CFG_GLOBAL_PLUGIN    "plugin"
 
 extern struct oonf_config_global config_global;
 
-int oonf_cfg_init(int argc, char **argv,
-    const char *) __attribute__((warn_unused_result));
-void oonf_cfg_cleanup(void);
-int oonf_cfg_loadplugins(void) __attribute__((warn_unused_result));
-struct oonf_subsystem *oonf_cfg_load_plugin(const char *name);
-void oonf_cfg_unconfigure_plugins(void);
-void oonf_cfg_initplugins(void);
 EXPORT int oonf_cfg_apply(void) __attribute__((warn_unused_result));
 EXPORT int oonf_cfg_rollback(void);
 EXPORT void oonf_cfg_exit(void);
@@ -113,7 +106,14 @@ EXPORT int oonf_cfg_get_argc(void);
 EXPORT char **oonf_cfg_get_argv(void);
 
 /* do not use this in plugins */
-EXPORT int oonf_cfg_update_globalcfg(bool) __attribute__((warn_unused_result));
-EXPORT int oonf_cfg_clear_rawdb(void) __attribute__((warn_unused_result));
+int oonf_cfg_init(int argc, char **argv,
+    const char *) __attribute__((warn_unused_result));
+void oonf_cfg_cleanup(void);
+int oonf_cfg_load_subsystems(void) __attribute__((warn_unused_result));
+struct oonf_subsystem *oonf_cfg_load_subsystem(const char *name);
+void oonf_cfg_unconfigure_subsystems(void);
+void oonf_cfg_initplugins(void);
+int oonf_cfg_update_globalcfg(bool) __attribute__((warn_unused_result));
+int oonf_cfg_clear_rawdb(void) __attribute__((warn_unused_result));
 
 #endif /* OONF_CFG_H_ */

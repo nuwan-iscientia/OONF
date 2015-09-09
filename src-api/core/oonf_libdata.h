@@ -65,6 +65,11 @@ struct oonf_libdata {
   const char *sharedlibrary_postfix;
 };
 
-EXPORT const struct oonf_libdata *oonf_libdata_get(void);
+/**
+ * Automatically generated function that returns a pointer to the
+ * library data defined in the cmake cache and by the build environment
+ * @return pointer to library data
+ */
+const struct oonf_libdata *oonf_libdata_get(void);
 
 #endif /* BUILDDATA_H_ */

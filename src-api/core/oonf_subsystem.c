@@ -95,8 +95,9 @@ static const char *DLOPEN_PATTERNS[] = {
   "%PRE%%LIB%%POST%",
 };
 
-/* Local functions */
+/*! global tree of plugins */
 struct avl_tree oonf_plugin_tree;
+
 static bool _plugin_tree_initialized = false;
 
 /* library loading patterns */
@@ -108,10 +109,11 @@ static struct abuf_template_data_entry _dlopen_data[] = {
   [IDX_DLOPEN_VER]     =  { .key = "VER" },
 };
 
-struct autobuf _dlopen_data_buffer;
+static struct autobuf _dlopen_data_buffer;
 
 /**
  * Initialize the plugin loader system
+ * @return -1 if an error happened, 0 otherwise
  */
 int
 oonf_subsystem_init(void) {
@@ -145,6 +147,12 @@ oonf_subsystem_cleanup(void) {
   abuf_free(&_dlopen_data_buffer);
 }
 
+/**
+ * Add the configuration of a subsystem to the global schema
+ * and do early initialization
+ * @param schema pointer to configuration schema
+ * @param subsystem pointer to subsystem
+ */
 void
 oonf_subsystem_configure(struct cfg_schema *schema,
     struct oonf_subsystem *subsystem) {
@@ -182,6 +190,11 @@ oonf_subsystem_configure(struct cfg_schema *schema,
   }
 }
 
+/**
+ * Remove the configuration of a subsystem from the global schema
+ * @param schema pointer to configuration schema
+ * @param subsystem pointer to subsystem
+ */
 void
 oonf_subsystem_unconfigure(struct cfg_schema *schema,
     struct oonf_subsystem *subsystem) {

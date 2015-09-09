@@ -48,6 +48,11 @@
 
 #include "core/oonf_logging.h"
 
+/**
+ * Automatically generated function that returns a pointer to the
+ * application data defined in the /src directory
+ * @return pointer to application data
+ */
 const struct oonf_appdata *oonf_appdata_get(void);
 
 #endif /* OONF_APP_CONFIG_H_ */

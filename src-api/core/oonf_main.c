@@ -85,9 +85,17 @@ static char *_schema_name;
 static int (*_handle_scheduling)(void) = NULL;
 static int (*_handle_unused_argument)(const char *) = NULL;
 
+/**
+ * index values for additional command line options
+ */
 enum argv_short_options {
+  /*! --schema option */
   argv_option_schema = 256,
+
+  /*! --Xearlydebug option */
   argv_option_debug_early,
+
+  /*! --Xignoreunknown */
   argv_option_ignore_unknown,
 };
 
@@ -145,6 +153,10 @@ static const char *help_text =
 
 /**
  * Main program
+ * @param argc argument counter
+ * @param argv argument vector
+ * @param appdata application data
+ * @return application return code to shell
  */
 int
 oonf_main(int argc, char **argv, const struct oonf_appdata *appdata) {
@@ -206,7 +218,7 @@ oonf_main(int argc, char **argv, const struct oonf_appdata *appdata) {
   }
 
   /* load plugins */
-  if (oonf_cfg_loadplugins()) {
+  if (oonf_cfg_load_subsystems()) {
     goto oonf_cleanup;
   }
 
@@ -283,7 +295,7 @@ oonf_main(int argc, char **argv, const struct oonf_appdata *appdata) {
 
 oonf_cleanup:
   /* free plugins */
-  oonf_cfg_unconfigure_plugins();
+  oonf_cfg_unconfigure_subsystems();
   oonf_subsystem_cleanup();
 
   /* free logging/config bridge resources */
@@ -301,6 +313,11 @@ oonf_cleanup:
   return return_code;
 }
 
+/**
+ * Set the callback to the central scheduler
+ * @param scheduler pointer to scheduler function
+ * @return -1 if scheduler is already set
+ */
 int
 oonf_main_set_scheduler(int (*scheduler)(void)) {
   if (_handle_scheduling) {
@@ -311,6 +328,11 @@ oonf_main_set_scheduler(int (*scheduler)(void)) {
   return 0;
 }
 
+/**
+ * Set a handler for command line parameters that are not used by main()
+ * @param parameter_handler pointer to parameter handler function
+ * @return -1 if parameter handler is already set
+ */
 int
 oonf_main_set_parameter_handler(int (*parameter_handler)(const char *)) {
   if (_handle_unused_argument) {
@@ -320,6 +342,9 @@ oonf_main_set_parameter_handler(int (*parameter_handler)(const char *)) {
   return 0;
 }
 
+/**
+ * @return true if event scheduler should return to the mainloop
+ */
 bool
 oonf_main_shall_stop_scheduler(void) {
   return oonf_cfg_is_commit_set()
@@ -533,7 +558,7 @@ parse_commandline(int argc, char **argv,
         return_code = 0;
         break;
       case 'p':
-        if (oonf_cfg_load_plugin(optarg) == NULL) {
+        if (oonf_cfg_load_subsystem(optarg) == NULL) {
           return_code = 1;
         }
         else {
