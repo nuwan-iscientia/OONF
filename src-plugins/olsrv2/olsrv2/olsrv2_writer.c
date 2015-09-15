@@ -59,6 +59,7 @@
 #include "olsrv2/olsrv2_internal.h"
 #include "olsrv2/olsrv2_lan.h"
 #include "olsrv2/olsrv2_originator.h"
+#include "olsrv2/olsrv2_routing.h"
 #include "olsrv2/olsrv2_writer.h"
 
 /* constants */
@@ -548,7 +549,7 @@ _cb_finishMessageTLVs(struct rfc5444_writer *writer,
   uint16_t ansn;
 
   /* get ANSN */
-  ansn = htons(olsrv2_update_ansn());
+  ansn = htons(olsrv2_routing_get_ansn());
 
   rfc5444_writer_set_messagetlv(writer, RFC7181_MSGTLV_CONT_SEQ_NUM,
       complete ? RFC7181_CONT_SEQ_NUM_COMPLETE : RFC7181_CONT_SEQ_NUM_INCOMPLETE,

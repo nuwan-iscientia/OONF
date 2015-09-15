@@ -115,6 +115,9 @@ struct nhdp_neighbor_domaindata {
   /*! true if the neighbor has been selected as a MPR by this router */
   bool neigh_is_mpr;
 
+  /*! true if the neighbor was a MPR of this router before the MPR recalculation */
+  bool _neigh_was_mpr;
+
   /*! Routing willingness of neighbor */
   uint8_t willingness;
 };
@@ -125,6 +128,9 @@ struct nhdp_neighbor_domaindata {
 struct nhdp_l2hop_domaindata {
   /*! incoming and outgoing metric */
   struct nhdp_metric metric;
+
+  /*! metric used for last MPR calculation */
+  uint32_t _last_used_outgoing_metric;
 };
 
 /**
@@ -146,6 +152,9 @@ struct nhdp_link {
 
   /*! timer that fires when the link has to be removed from the database */
   struct oonf_timer_instance vtime;
+
+  /*! last status of the linked, used to detect status changes */
+  enum nhdp_link_status last_status;
 
   /*! cached status of the linked */
   enum nhdp_link_status status;

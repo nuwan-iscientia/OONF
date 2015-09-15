@@ -970,14 +970,14 @@ _cb_msg_pass2_end(struct rfc5444_reader_tlvblock_context *context, bool dropped)
   /* copy willingness to permanent storage */
   nhdp_domain_store_willingness(_current.neighbor);
 
-  /* update MPR sets and link metrics */
-  nhdp_domain_neighbor_changed(_current.neighbor);
-
   /* update ip flooding settings */
   nhdp_interface_update_status(_current.localif);
 
   /* update link status */
   nhdp_db_link_update_status(_current.link);
+
+  /* update MPR sets and link metrics */
+  nhdp_domain_recalculate_mpr(false);
 
   return RFC5444_OKAY;
 }

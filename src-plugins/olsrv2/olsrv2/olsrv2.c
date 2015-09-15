@@ -53,7 +53,6 @@
 #include "config/cfg_schema.h"
 #include "core/oonf_logging.h"
 #include "core/oonf_subsystem.h"
-#include "core/os_core.h"
 #include "subsystems/oonf_rfc5444.h"
 #include "subsystems/oonf_telnet.h"
 #include "subsystems/oonf_timer.h"
@@ -235,8 +234,6 @@ struct oonf_interface_listener _if_listener = {
 /* global variables */
 static struct oonf_rfc5444_protocol *_protocol;
 
-static uint16_t _ansn;
-
 /* Additional logging sources */
 enum oonf_log_source LOG_OLSRV2;
 enum oonf_log_source LOG_OLSRV2_R;
@@ -260,16 +257,18 @@ _early_cfg_init(void) {
  */
 static int
 _init(void) {
-  if (os_core_get_random(&_ansn, sizeof(_ansn))) {
-    return -1;
-  }
-
   _protocol = oonf_rfc5444_add_protocol(RFC5444_PROTOCOL, true);
   if (_protocol == NULL) {
     return -1;
   }
 
   if (olsrv2_writer_init(_protocol)) {
+    oonf_rfc5444_remove_protocol(_protocol);
+    return -1;
+  }
+
+  if (olsrv2_routing_init()) {
+    olsrv2_writer_cleanup();
     oonf_rfc5444_remove_protocol(_protocol);
     return -1;
   }
@@ -282,7 +281,6 @@ _init(void) {
   olsrv2_originator_init();
   olsrv2_reader_init(_protocol);
   olsrv2_tc_init();
-  olsrv2_routing_init();
 
   /* initialize timer */
   oonf_timer_add(&_tc_timer_class);
@@ -487,37 +485,6 @@ olsrv2_mpr_shall_forwarding(struct rfc5444_reader_tlvblock_context *context,
       context->seqno,
       neigh->local_is_flooding_mpr ? "true" : "false", neigh->symmetric);
   return forward;
-}
-
-/**
- * @return current answer set number for local topology database
- */
-uint16_t
-olsrv2_get_ansn(void) {
-  return _ansn;
-}
-
-/**
- * Update answer set number if metric of a neighbor changed since last update.
- * @return new answer set number, might be the same if no metric changed.
- */
-uint16_t
-olsrv2_update_ansn(void) {
-  struct nhdp_domain *domain;
-  bool changed;
-
-  changed = false;
-  list_for_each_element(nhdp_domain_get_list(), domain, _node) {
-    if (domain->neighbor_metric_changed) {
-      changed = true;
-      domain->neighbor_metric_changed = false;
-    }
-  }
-
-  if (changed) {
-    _ansn++;
-  }
-  return _ansn;
 }
 
 /**

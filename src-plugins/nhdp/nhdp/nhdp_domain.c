@@ -67,9 +67,9 @@ static void _apply_mpr(struct nhdp_domain *domain,
     const char *mpr_name, uint8_t willingness);
 static void _remove_mpr(struct nhdp_domain *);
 
-static void _cb_update_everyone_mpr(void);
+static void _cb_update_everyone_mpr(struct nhdp_domain *);
 
-static void _recalculate_neighbor_metric(struct nhdp_domain *domain,
+static bool _recalculate_neighbor_metric(struct nhdp_domain *domain,
         struct nhdp_neighbor *neigh);
 static const char *_link_to_string(struct nhdp_metric_str *, uint32_t);
 static const char *_path_to_string(struct nhdp_metric_str *, uint32_t, uint8_t);
@@ -455,86 +455,90 @@ nhdp_domain_process_metric_2hoptlv(struct nhdp_domain *domain,
   }
 }
 
-/**
- * Neighborhood changed in terms of metrics or connectivity.
- * This will trigger a MPR set recalculation.
- */
-void
-nhdp_domain_neighborhood_changed(void) {
-  struct nhdp_domain_listener *listener;
-  struct nhdp_domain *domain;
+static bool
+_recalculate_neighbor_metrics(struct nhdp_domain *domain) {
   struct nhdp_neighbor *neigh;
-  
-  list_for_each_element(&_domain_list, domain, _node) {
-    list_for_each_element(nhdp_db_get_neigh_list(), neigh, _global_node) {
-      _recalculate_neighbor_metric(domain, neigh);
-    }
+  bool changed;
 
-    if (domain->mpr->update_mpr != NULL) {
-      domain->mpr->update_mpr();
-    }
+  /* recalculate the neighbor metrics and see if they changed */
+  changed = false;
+  list_for_each_element(nhdp_db_get_neigh_list(), neigh, _global_node) {
+    changed |= _recalculate_neighbor_metric(domain, neigh);
   }
 
-  // TODO: flooding mpr ?
-  // (Why do we need to consider flooding MPRs here?)
+  if (changed) {
+    OONF_DEBUG(LOG_NHDP, "Domain ext %u metric changed", domain->ext);
+  }
+  return changed;
+}
 
-  list_for_each_element(&_domain_listener_list, listener, _node) {
-    if (listener->update) {
-      listener->update(NULL);
-    }
+static bool
+_recalculate_mpr_set(struct nhdp_domain *domain) {
+  struct nhdp_neighbor *neigh;
+  struct nhdp_neighbor_domaindata *neighdata;
+
+  if (!domain->mpr->update_mpr) {
+    return false;
   }
 
-  /* check if we still have routing MPR selectors */
-  OONF_DEBUG(LOG_NHDP, "Checking if we still have routing MPR selectors");
-  _node_is_selected_as_mpr = false;
+  /* remember old MPR set */
+  list_for_each_element(nhdp_db_get_neigh_list(), neigh, _global_node) {
+    neighdata = nhdp_domain_get_neighbordata(domain, neigh);
+    neighdata->_neigh_was_mpr = neighdata->neigh_is_mpr;
+  }
 
-  list_for_each_element(&_domain_list, domain, _node) {
-    list_for_each_element(nhdp_db_get_neigh_list(), neigh, _global_node) {
-      if (nhdp_domain_get_neighbordata(domain, neigh)->local_is_mpr) {
-        _node_is_selected_as_mpr = true;
-        return;
-      }
+  /* update MPR set */
+  domain->mpr->update_mpr(domain);
+
+  /* check for changes */
+  list_for_each_element(nhdp_db_get_neigh_list(), neigh, _global_node) {
+    neighdata = nhdp_domain_get_neighbordata(domain, neigh);
+    if (neighdata->_neigh_was_mpr != neighdata->neigh_is_mpr) {
+      OONF_DEBUG(LOG_NHDP, "Domain ext %u MPR set changed", domain->ext);
+      return true;
     }
   }
+  return false;
 }
 
 /**
- * One neighbor changed in terms of metrics or connectivity.
  * This will trigger a MPR set recalculation.
- * @param neigh neighbor where the changed happened
+ * @param force_change force a MPR recalculation and dijkstra trigger
+ *    even if the existing neighbor set didn't change
  */
 void
-nhdp_domain_neighbor_changed(struct nhdp_neighbor *neigh) {
+nhdp_domain_recalculate_mpr(bool force_change) {
   struct nhdp_domain_listener *listener;
   struct nhdp_domain *domain;
+
+  bool changed_metric[NHDP_MAXIMUM_DOMAINS];
+  bool changed_mpr[NHDP_MAXIMUM_DOMAINS];
+
+  memset(changed_metric, 0, sizeof(changed_metric));
+  memset(changed_mpr, 0, sizeof(changed_mpr));
   
-
+  OONF_DEBUG(LOG_NHDP, "Recalculating MPR set?");
   list_for_each_element(&_domain_list, domain, _node) {
-    _recalculate_neighbor_metric(domain, neigh);
+    /* recalculate the neighbor metrics and see if they changed */
+    changed_metric[domain->index] = _recalculate_neighbor_metrics(domain);
 
-    if (domain->mpr->update_mpr != NULL) {
-      domain->mpr->update_mpr();
+    if (changed_metric[domain->index]) {
+      /* recalculate routing MPRs */
+      changed_mpr[domain->index] = _recalculate_mpr_set(domain);
+
+      if (domain->ext == _flooding_domain.ext && domain->mpr->update_mpr) {
+        /* recalculating flooding MPR */
+        domain->mpr->update_mpr(&_flooding_domain);
+      }
     }
-  }
 
-  // TODO: flooding mpr ?
-  // (Why do we need to consider flooding MPRs here?)
-
-  list_for_each_element(&_domain_listener_list, listener, _node) {
-    if (listener->update) {
-      listener->update(neigh);
-    }
-  }
-
-  /* check if we still have routing MPR selectors */
-  OONF_DEBUG(LOG_NHDP, "Checking if we still have routing MPR selectors");
-  _node_is_selected_as_mpr = false;
-
-  list_for_each_element(&_domain_list, domain, _node) {
-    list_for_each_element(nhdp_db_get_neigh_list(), neigh, _global_node) {
-      if (nhdp_domain_get_neighbordata(domain, neigh)->local_is_mpr) {
-        _node_is_selected_as_mpr = true;
-        return;
+    list_for_each_element(&_domain_listener_list, listener, _node) {
+      /* trigger domain listeners */
+      if ((force_change || changed_metric[domain->index]) && listener->metric_update) {
+        listener->metric_update(domain);
+      }
+      if ((force_change || changed_mpr[domain->index]) && listener->mpr_update) {
+        listener->mpr_update(domain);
       }
     }
   }
@@ -583,7 +587,7 @@ nhdp_domain_process_mprtypes_tlv(
 
 /**
  * Process an in MPR tlv for a NHDP link
- * @param mprtypes list of extenstions for MPR
+ * @param mprtypes list of extensions for MPR
  * @param mprtypes_size length of mprtypes array
  * @param neigh NHDP neighbor
  * @param tlv MPR tlv context
@@ -628,6 +632,16 @@ nhdp_domain_process_mpr_tlv(uint8_t *mprtypes, size_t mprtypes_size,
 
     OONF_DEBUG(LOG_NHDP_R, "Routing MPR for neighbor in domain %u: %s",
         domain->ext, nhdp_domain_get_neighbordata(domain, neigh)->local_is_mpr ? "true" : "false");
+  }
+
+  _node_is_selected_as_mpr = false;
+  list_for_each_element(&_domain_list, domain, _node) {
+    list_for_each_element(nhdp_db_get_neigh_list(), neigh, _global_node) {
+      if (nhdp_domain_get_neighbordata(domain, neigh)->local_is_mpr) {
+        _node_is_selected_as_mpr = true;
+        return;
+      }
+    }
   }
 }
 
@@ -835,6 +849,13 @@ nhdp_domain_set_flooding_mpr(const char *mpr_name, uint8_t willingness) {
 }
 
 /**
+ * @return the virtual flooding domain
+ */
+const struct nhdp_domain *
+nhdp_domain_get_flooding_domain(void) {
+  return &_flooding_domain;
+}
+/**
  * Sets the incoming metric of a link. This is the only function external
  * code should use to commit the calculated metric values to the nhdp db.
  * @param metric NHDP domain metric
@@ -873,22 +894,29 @@ nhdp_domain_get_listener_list(void) {
 
 /**
  * Recalculate the 'best link/metric' values of a neighbor
+ * and check for two-hop outgoing link metric changes
  * @param domain NHDP domain
  * @param neigh NHDP neighbor
+ * @param neighdata NHDP neighbor domaindata
+ * @return true if the MPR set has to be recalculated
  */
-static void
+static bool
 _recalculate_neighbor_metric(
     struct nhdp_domain *domain,
     struct nhdp_neighbor *neigh) {
   struct nhdp_link *lnk;
   struct nhdp_link_domaindata *linkdata;
+  struct nhdp_l2hop *l2hop;
+  struct nhdp_l2hop_domaindata *l2hopdata;
   struct nhdp_neighbor_domaindata *neighdata;
-  struct nhdp_metric oldmetric;
+  uint32_t old_outgoing;
+  bool changed;
 
   neighdata = nhdp_domain_get_neighbordata(domain, neigh);
+  changed = false;
 
-  /* copy old metric value */
-  memcpy(&oldmetric, &neighdata->metric, sizeof(oldmetric));
+    /* copy old metric value */
+  old_outgoing = neighdata->metric.out;
 
   /* reset metric */
   neighdata->metric.in = RFC7181_METRIC_INFINITE;
@@ -896,11 +924,15 @@ _recalculate_neighbor_metric(
 
   /* reset best link */
   neighdata->best_link = NULL;
+  neighdata->best_link_ifindex = 0;
 
   /* get best metric */
   list_for_each_element(&neigh->_links, lnk, _neigh_node) {
-    linkdata = nhdp_domain_get_linkdata(domain, lnk);
+    if (lnk->status != NHDP_LINK_SYMMETRIC) {
+      continue;
+    }
 
+    linkdata = nhdp_domain_get_linkdata(domain, lnk);
     if (linkdata->metric.out < neighdata->metric.out) {
       neighdata->metric.out = linkdata->metric.out;
       neighdata->best_link = lnk;
@@ -908,17 +940,21 @@ _recalculate_neighbor_metric(
     if (linkdata->metric.in < neighdata->metric.in) {
       neighdata->metric.in = linkdata->metric.in;
     }
+
+    /* check for changes in outgoing 2-hop metrics */
+    avl_for_each_element(&lnk->_2hop, l2hop, _link_node) {
+      l2hopdata = nhdp_domain_get_l2hopdata(domain, l2hop);
+
+      changed |= l2hopdata->metric.out != l2hopdata->_last_used_outgoing_metric;
+      l2hopdata->_last_used_outgoing_metric = l2hopdata->metric.out;
+    }
   }
 
   if (neighdata->best_link != NULL) {
     neighdata->best_link_ifindex =
         nhdp_interface_get_coreif(neighdata->best_link->local_if)->data.index;
   }
-
-  if (memcmp(&oldmetric, &neighdata->metric, sizeof(oldmetric)) != 0) {
-    /* mark metric as updated */
-    domain->neighbor_metric_changed = true;
-  }
+  return changed || neighdata->metric.out != old_outgoing;
 }
 
 /**
@@ -1141,23 +1177,19 @@ _remove_mpr(struct nhdp_domain *domain) {
 }
 
 static void
-_cb_update_everyone_mpr(void) {
+_cb_update_everyone_mpr(struct nhdp_domain *domain) {
   struct nhdp_neighbor *neigh;
-  struct nhdp_domain *domain;
   struct nhdp_neighbor_domaindata *domaindata;
 
   list_for_each_element(nhdp_db_get_neigh_list(), neigh, _global_node) {
-    if (_flooding_domain.mpr == &_everyone_mprs) {
+    if (&_flooding_domain == domain) {
       neigh->neigh_is_flooding_mpr =
           neigh->flooding_willingness > RFC7181_WILLINGNESS_NEVER;
     }
-
-    list_for_each_element(nhdp_domain_get_list(), domain, _node) {
-      if (domain->mpr == &_everyone_mprs) {
-        domaindata = nhdp_domain_get_neighbordata(domain, neigh);
-        domaindata->neigh_is_mpr =
-            domaindata->willingness > RFC7181_WILLINGNESS_NEVER;
-      }
+    else if (domain->mpr == &_everyone_mprs) {
+      domaindata = nhdp_domain_get_neighbordata(domain, neigh);
+      domaindata->neigh_is_mpr =
+          domaindata->willingness > RFC7181_WILLINGNESS_NEVER;
     }
   }
 }

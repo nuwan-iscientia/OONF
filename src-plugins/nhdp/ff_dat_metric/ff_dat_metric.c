@@ -551,7 +551,6 @@ _cb_dat_sampling(void *ptr __attribute__((unused))) {
   uint32_t metric_value;
   int rx_bitrate;
   int i;
-  bool change_happened;
 
 #ifdef OONF_LOG_DEBUG_INFO
   struct nhdp_laddr *laddr;
@@ -559,8 +558,6 @@ _cb_dat_sampling(void *ptr __attribute__((unused))) {
 #endif
 
   OONF_DEBUG(LOG_FF_DAT, "Calculate Metric from sampled data");
-
-  change_happened = false;
 
   list_for_each_element(nhdp_db_get_link_list(), lnk, _global_node) {
     ldata = oonf_class_get_extension(&_link_extenstion, lnk);
@@ -651,7 +648,7 @@ _cb_dat_sampling(void *ptr __attribute__((unused))) {
     }
 
     /* set metric for incoming link */
-    change_happened |= nhdp_domain_set_incoming_metric(
+    nhdp_domain_set_incoming_metric(
         &_datff_handler, lnk, metric_value);
 
     OONF_DEBUG(LOG_FF_DAT, "New sampling rate for link %s (%s):"
@@ -667,11 +664,6 @@ _cb_dat_sampling(void *ptr __attribute__((unused))) {
     }
     ldata->buckets[ldata->activePtr].received = 0;
     ldata->buckets[ldata->activePtr].total = 0;
-  }
-
-  /* update neighbor metrics */
-  if (change_happened) {
-    nhdp_domain_neighborhood_changed();
   }
 }
 

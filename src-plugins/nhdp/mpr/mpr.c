@@ -71,13 +71,11 @@
 
 /* FIXME remove unneeded includes */
 
-/* definitions */
-#define LOG_MPR _nhdp_mpr_subsystem.logging
-
 /* prototypes */
+static void _early_cfg_init(void);
 static int _init(void);
 static void _cleanup(void);
-static void _cb_update_mpr(void);
+static void _cb_update_mpr(struct nhdp_domain *);
 
 static const char *_dependencies[] = {
   OONF_CLASS_SUBSYSTEM,
@@ -91,6 +89,7 @@ static struct oonf_subsystem _nhdp_mpr_subsystem = {
   .descr = "RFC7181 Appendix B MPR Plugin",
   .author = "Jonathan Kirchhoff",
 
+  .early_cfg_init = _early_cfg_init,
   .init = _init,
   .cleanup = _cleanup,
 };
@@ -102,6 +101,13 @@ static struct nhdp_domain_mpr _mpr_handler = {
   .mpr_start = false,
   .mprs_start = false,
 };
+
+enum oonf_log_source LOG_MPR;
+
+static void
+_early_cfg_init(void) {
+  LOG_MPR = _nhdp_mpr_subsystem.logging;
+}
 
 /**
  * Initialize plugin
@@ -183,7 +189,7 @@ static void
 _clear_nhdp_flooding(void) {
   struct nhdp_link *current_link;
 
-  OONF_DEBUG(LOG_MPR, "Updating FLOODING MPRs");
+  OONF_DEBUG(LOG_MPR, "Clear FLOODING MPRs");
 
   list_for_each_element(nhdp_db_get_link_list(), current_link, _global_node) {
     current_link->neigh->neigh_is_flooding_mpr = false;
@@ -191,16 +197,11 @@ _clear_nhdp_flooding(void) {
 }
 
 static void
-_update_flooding_mpr(void) {
+_update_flooding_mpr(struct nhdp_domain *domain) {
   struct mpr_flooding_data flooding_data;
 
   memset(&flooding_data, 0, sizeof(flooding_data));
   
-  if (nhdp_domain_get_flooding()->mpr != &_mpr_handler) {
-    /* we are not the flooding mpr */
-    return;
-  }
-
   /* FIXME Currently, the flooding set is calculated incrementally (i.e. 
    in a coordinated way as suggested by RFC 7181; however, this should
    be configurable (and other selection algorithms might not be compatible
@@ -209,56 +210,61 @@ _update_flooding_mpr(void) {
   /* FIXME How to support the coordination flooding and routing MPRs 
    * selection? */
   /* calculate flooding MPRs */
+
+  OONF_DEBUG(LOG_MPR, "Recalculating flooding MPR");
+
   _clear_nhdp_flooding();
   avl_for_each_element(nhdp_interface_get_tree(), flooding_data.current_interface, _node) {
     OONF_DEBUG(LOG_MPR, "Calculating flooding MPRs for interface %s",
         nhdp_interface_get_name(flooding_data.current_interface));
     
-    mpr_calculate_neighbor_graph_flooding(
-        nhdp_domain_get_flooding(), &flooding_data);
-    mpr_calculate_mpr_rfc7181(nhdp_domain_get_flooding(),
-        &flooding_data.neigh_graph);
+    mpr_calculate_neighbor_graph_flooding(domain, &flooding_data);
+    mpr_calculate_mpr_rfc7181(domain, &flooding_data.neigh_graph);
     mpr_print_sets(&flooding_data.neigh_graph);
     _update_nhdp_flooding(&flooding_data.neigh_graph);
   }
 
   /* free memory */
   mpr_clear_neighbor_graph(&flooding_data.neigh_graph);
+
+  OONF_DEBUG(LOG_MPR, "Finished recalculating MPRs");
 }
 
 static void
-_update_routing_mpr(void) {
+_update_routing_mpr(struct nhdp_domain *domain) {
   struct neighbor_graph routing_graph;
-  struct nhdp_domain *domain;
 
-  list_for_each_element(nhdp_domain_get_list(), domain, _node) {
-    if (domain->mpr != &_mpr_handler) {
-      /* we are not the routing MPR for this domain */
-      continue;
-    }
-    memset(&routing_graph, 0, sizeof(routing_graph));
+  OONF_DEBUG(LOG_MPR, "Recalculating MPR for domain %u", domain->ext);
 
-    mpr_calculate_neighbor_graph_routing(domain, &routing_graph);
-    mpr_calculate_mpr_rfc7181(domain, &routing_graph);
-    mpr_print_sets(&routing_graph);
-    _update_nhdp_routing(&routing_graph);
-  }
+  memset(&routing_graph, 0, sizeof(routing_graph));
+  mpr_calculate_neighbor_graph_routing(domain, &routing_graph);
+  mpr_calculate_mpr_rfc7181(domain, &routing_graph);
+  mpr_print_sets(&routing_graph);
+  _update_nhdp_routing(&routing_graph);
+  mpr_clear_neighbor_graph(&routing_graph);
+
+  OONF_DEBUG(LOG_MPR, "Finished recalculating MPRs");
 }
 
 /**
  * Callback triggered when an MPR update is required
+ * @param domain NHDP domain
  */
 static void
-_cb_update_mpr(void) {
-  OONF_DEBUG(LOG_MPR, "Recalculating MPRs");
+_cb_update_mpr(struct nhdp_domain *domain) {
+  if (domain->mpr != &_mpr_handler) {
+    OONF_WARN(LOG_MPR,
+        "Wrong MPR handler called for domain extension %u", domain->ext);
+    return;
+  }
 
-  /* calculate flooding MPRs */
-  _update_flooding_mpr();
-  
-  /* calculate routing MPRs */
-  _update_routing_mpr();
-
-  OONF_DEBUG(LOG_MPR, "Finished recalculating MPRs");
+  /* calculate MPRs */
+  if (domain == nhdp_domain_get_flooding_domain()) {
+    _update_flooding_mpr(domain);
+  }
+  else {
+    _update_routing_mpr(domain);
+  }
 }
 
 #if 0

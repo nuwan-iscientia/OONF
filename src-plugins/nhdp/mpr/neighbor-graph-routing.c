@@ -112,9 +112,8 @@ _is_reachable_neighbor_tuple(struct nhdp_neighbor *neigh) {
 static bool
 _is_allowed_neighbor_tuple(const struct nhdp_domain *domain __attribute__((unused)),
     struct nhdp_neighbor *neigh) {
-  if (_is_reachable_neighbor_tuple(neigh)) {
-    // FIXME Willingness handling appears to be broken; routing willingness is always 0
-    //      && neigh->_domaindata[0].willingness > RFC5444_WILLINGNESS_NEVER) {
+  if (_is_reachable_neighbor_tuple(neigh)
+      && neigh->_domaindata[0].willingness > RFC7181_WILLINGNESS_NEVER) {
     return true;
   }
   return false;
@@ -233,7 +232,7 @@ _calculate_n1(const struct nhdp_domain *domain, struct neighbor_graph *graph) {
 
   OONF_DEBUG(LOG_MPR, "Calculate N1 for routing MPRs");
 
-  list_for_each_element(nhdp_db_get_link_list(), neigh, _global_node) {
+  list_for_each_element(nhdp_db_get_neigh_list(), neigh, _global_node) {
     if (_is_allowed_neighbor_tuple(domain, neigh)) {
       mpr_add_n1_node_to_set(&graph->set_n1, neigh, NULL);
     }
