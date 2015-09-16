@@ -312,8 +312,8 @@ static struct dlep_extension_signal _signals[] = {
 /* supported TLVs of this extension */
 static struct dlep_extension_tlv _tlvs[] = {
     { DLEP_STATUS_TLV, 1,65535 },
-    { DLEP_IPV4_CONPOINT_TLV, 6,6 },
-    { DLEP_IPV6_CONPOINT_TLV, 18,18 },
+    { DLEP_IPV4_CONPOINT_TLV, 5,7 },
+    { DLEP_IPV6_CONPOINT_TLV, 17,19 },
     { DLEP_PEER_TYPE_TLV, 1,255 },
     { DLEP_HEARTBEAT_INTERVAL_TLV, 2,2 },
     { DLEP_EXTENSIONS_SUPPORTED_TLV, 2, 65534 },
