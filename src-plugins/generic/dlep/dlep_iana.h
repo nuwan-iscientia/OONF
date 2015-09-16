@@ -56,7 +56,7 @@ enum {
   DLEP_PORT = 22222,
 };
 
-#define DLEP_DRAFT_15_VERSION "DLEP"
+#define DLEP_DRAFT_16_PREFIX "DLEP"
 
 enum dlep_extensions {
   DLEP_EXTENSION_BASE_COUNT      =  2,
@@ -75,26 +75,25 @@ enum dlep_signals {
   DLEP_ALL_SIGNALS                  = -1,
 
   /* signal types */
-  DLEP_PEER_DISCOVERY               =  0,
-  DLEP_PEER_OFFER                   =  1,
-  DLEP_PEER_INITIALIZATION          =  2,
-  DLEP_PEER_INITIALIZATION_ACK      =  3,
-  DLEP_PEER_UPDATE                  =  4,
-  DLEP_PEER_UPDATE_ACK              =  5,
-  DLEP_PEER_TERMINATION             =  6,
-  DLEP_PEER_TERMINATION_ACK         =  7,
-  DLEP_DESTINATION_UP               =  8,
-  DLEP_DESTINATION_UP_ACK           =  9,
-  DLEP_DESTINATION_DOWN             = 10,
-  DLEP_DESTINATION_DOWN_ACK         = 11,
-  DLEP_DESTINATION_UPDATE           = 12,
-  DLEP_HEARTBEAT                    = 13,
-  DLEP_LINK_CHARACTERISTICS_REQUEST = 14,
-  DLEP_LINK_CHARACTERISTICS_ACK     = 15,
+  DLEP_PEER_DISCOVERY               =  1,
+  DLEP_PEER_OFFER                   =  2,
+  DLEP_PEER_INITIALIZATION          =  3,
+  DLEP_PEER_INITIALIZATION_ACK      =  4,
+  DLEP_PEER_UPDATE                  =  5,
+  DLEP_PEER_UPDATE_ACK              =  6,
+  DLEP_PEER_TERMINATION             =  7,
+  DLEP_PEER_TERMINATION_ACK         =  8,
+  DLEP_DESTINATION_UP               =  9,
+  DLEP_DESTINATION_UP_ACK           = 10,
+  DLEP_DESTINATION_DOWN             = 11,
+  DLEP_DESTINATION_DOWN_ACK         = 12,
+  DLEP_DESTINATION_UPDATE           = 13,
+  DLEP_HEARTBEAT                    = 14,
+  DLEP_LINK_CHARACTERISTICS_REQUEST = 15,
+  DLEP_LINK_CHARACTERISTICS_ACK     = 16,
 };
 
 enum dlep_tlvs {
-  DLEP_VERSION_TLV                 =  0,
   DLEP_STATUS_TLV                  =  1,
   DLEP_IPV4_CONPOINT_TLV           =  2,
   DLEP_IPV6_CONPOINT_TLV           =  3,

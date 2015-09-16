@@ -234,6 +234,7 @@ _router_process_peer_offer(
   const struct netaddr *result = NULL;
   struct netaddr addr;
   uint16_t port;
+  bool tls;
   struct os_interface_data *ifdata;
 
   if (session->restrict_signal != DLEP_PEER_OFFER) {
@@ -253,11 +254,15 @@ _router_process_peer_offer(
   /* IPv6 offer */
   value = dlep_session_get_tlv_value(session, DLEP_IPV6_CONPOINT_TLV);
   while (value) {
-    if (dlep_reader_ipv6_conpoint_tlv(&addr, &port, session, value)) {
+    if (dlep_reader_ipv6_conpoint_tlv(
+        &addr, &port, &tls, session, value)) {
       return -1;
     }
 
-    if (netaddr_is_in_subnet(&NETADDR_IPV6_LINKLOCAL, &addr)
+    if (tls) {
+      /* TLS not supported at the moment */
+    }
+    else if (netaddr_is_in_subnet(&NETADDR_IPV6_LINKLOCAL, &addr)
         || result == NULL) {
       result = oonf_interface_get_prefix_from_dst(&addr, ifdata);
       if (result) {
@@ -270,13 +275,18 @@ _router_process_peer_offer(
   /* IPv4 offer */
   value = dlep_session_get_tlv_value(session, DLEP_IPV4_CONPOINT_TLV);
   while (value && !result) {
-    if (dlep_reader_ipv4_conpoint_tlv(&addr, &port, session, value)) {
+    if (dlep_reader_ipv4_conpoint_tlv(&addr, &port, &tls, session, value)) {
       return -1;
     }
 
-    result = oonf_interface_get_prefix_from_dst(&addr, ifdata);
-    if (result) {
-      netaddr_socket_init(&remote, &addr, port, ifdata->index);
+    if (tls) {
+      /* TLS not supported at the moment */
+    }
+    else {
+      result = oonf_interface_get_prefix_from_dst(&addr, ifdata);
+      if (result) {
+        netaddr_socket_init(&remote, &addr, port, ifdata->index);
+      }
     }
     value = dlep_session_get_next_tlv_value(session, value);
   }

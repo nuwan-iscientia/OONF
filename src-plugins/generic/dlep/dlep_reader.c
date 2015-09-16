@@ -166,7 +166,8 @@ dlep_reader_ipv6_tlv(struct netaddr *ipv6, bool *add,
 }
 
 int
-dlep_reader_ipv4_conpoint_tlv(struct netaddr *addr, uint16_t *port,
+dlep_reader_ipv4_conpoint_tlv(
+    struct netaddr *addr, uint16_t *port, bool *tls,
     struct dlep_session *session, struct dlep_parser_value *value) {
   uint16_t tmp;
   const uint8_t *ptr;
@@ -178,20 +179,35 @@ dlep_reader_ipv4_conpoint_tlv(struct netaddr *addr, uint16_t *port,
     }
   }
 
+  if (value->length != 5 && value->length != 7) {
+    return -1;
+  }
+
   ptr = dlep_session_get_tlv_binary(session, value);
-  if (value->length == 6) {
-    memcpy(&tmp, &ptr[4], sizeof(tmp));
+
+  /* handle TLS flag */
+  if (ptr[0] > 1) {
+    /* invalid TLS flag */
+    return -1;
+  }
+  *tls = ptr[0] == 1;
+
+  /* handle port */
+  if (value->length == 7) {
+    memcpy(&tmp, &ptr[5], sizeof(tmp));
     *port = ntohs(tmp);
   }
   else {
     *port = DLEP_PORT;
   }
 
-  return netaddr_from_binary(addr, ptr, 4, AF_INET);
+  /* handle IP */
+  return netaddr_from_binary(addr, &ptr[1], 4, AF_INET);
 }
 
 int
-dlep_reader_ipv6_conpoint_tlv(struct netaddr *addr, uint16_t *port,
+dlep_reader_ipv6_conpoint_tlv(
+    struct netaddr *addr, uint16_t *port, bool *tls,
     struct dlep_session *session, struct dlep_parser_value *value) {
   uint16_t tmp;
   const uint8_t *ptr;
@@ -203,16 +219,30 @@ dlep_reader_ipv6_conpoint_tlv(struct netaddr *addr, uint16_t *port,
     }
   }
 
+  if (value->length != 17 && value->length != 19) {
+    return -1;
+  }
+
   ptr = dlep_session_get_tlv_binary(session, value);
-  if (value->length == 18) {
-    memcpy(&tmp, &ptr[16], sizeof(tmp));
+
+  /* handle TLS flag */
+  if (ptr[0] > 1) {
+    /* invalid TLS flag */
+    return -1;
+  }
+  *tls = ptr[0] == 1;
+
+  /* handle port */
+  if (value->length == 19) {
+    memcpy(&tmp, &ptr[17], sizeof(tmp));
     *port = ntohs(tmp);
   }
   else {
     *port = DLEP_PORT;
   }
 
-  return netaddr_from_binary(addr, ptr, 16, AF_INET6);
+  /* handle IP */
+  return netaddr_from_binary(addr, &ptr[1], 16, AF_INET6);
 }
 
 int

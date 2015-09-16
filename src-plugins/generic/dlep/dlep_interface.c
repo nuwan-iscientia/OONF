@@ -58,7 +58,7 @@ static void _cb_receive_udp(struct oonf_packet_socket *,
     union netaddr_socket *from, void *ptr, size_t length);
 static void _cb_send_multicast(struct dlep_session *session, int af_family);
 
-static const char _DLEP_VERSION[] = DLEP_DRAFT_15_VERSION;
+static const char _DLEP_PREFIX[] = DLEP_DRAFT_16_PREFIX;
 
 int
 dlep_if_add(struct dlep_if *interf, const char *ifname,
@@ -74,9 +74,9 @@ dlep_if_add(struct dlep_if *interf, const char *ifname,
     return -1;
   }
 
-  /* add dlep version to buffer */
+  /* add dlep prefix to buffer */
   abuf_memcpy(&interf->udp_out,
-      _DLEP_VERSION, sizeof(_DLEP_VERSION) - 1);
+      _DLEP_PREFIX, sizeof(_DLEP_PREFIX) - 1);
 
   if (dlep_session_add(&interf->session,
       interf->l2_ifname, l2_origin,
@@ -171,20 +171,20 @@ _cb_receive_udp(struct oonf_packet_socket *pkt,
     return;
   }
 
-  if (length < sizeof(_DLEP_VERSION) - 1) {
-    /* ignore unknown version */
+  if (length < sizeof(_DLEP_PREFIX) - 1) {
+    /* ignore unknown prefix */
     return;
   }
 
-  if (memcmp(buffer, _DLEP_VERSION, sizeof(_DLEP_VERSION)-1) != 0) {
+  if (memcmp(buffer, _DLEP_PREFIX, sizeof(_DLEP_PREFIX)-1) != 0) {
     OONF_WARN(interf->session.log_source,
         "Incoming UDP packet with unknown signature");
     return;
   }
 
   /* advance pointer and fix length */
-  buffer += (sizeof(_DLEP_VERSION) - 1);
-  length -= (sizeof(_DLEP_VERSION) - 1);
+  buffer += (sizeof(_DLEP_PREFIX) - 1);
+  length -= (sizeof(_DLEP_PREFIX) - 1);
 
   /* copy socket information */
   memcpy(&interf->session.remote_socket, from,
@@ -203,16 +203,16 @@ _cb_receive_udp(struct oonf_packet_socket *pkt,
     return;
   }
 
-  if (abuf_getlen(interf->session.writer.out) > sizeof(_DLEP_VERSION) - 1) {
+  if (abuf_getlen(interf->session.writer.out) > sizeof(_DLEP_PREFIX) - 1) {
     /* send an unicast response */
     oonf_packet_send_managed(&interf->udp, from,
         abuf_getptr(interf->session.writer.out),
         abuf_getlen(interf->session.writer.out));
     abuf_clear(interf->session.writer.out);
 
-    /* add dlep version to buffer */
+    /* add dlep prefix to buffer */
     abuf_memcpy(interf->session.writer.out,
-        _DLEP_VERSION, sizeof(_DLEP_VERSION) - 1);
+        _DLEP_PREFIX, sizeof(_DLEP_PREFIX) - 1);
   }
 
   netaddr_socket_invalidate(&interf->session.remote_socket);
@@ -222,7 +222,7 @@ static void
 _cb_send_multicast(struct dlep_session *session, int af_family) {
   struct dlep_if *interf;
 
-  if (abuf_getlen(session->writer.out) <= sizeof(_DLEP_VERSION) - 1
+  if (abuf_getlen(session->writer.out) <= sizeof(_DLEP_PREFIX) - 1
       || !netaddr_socket_is_unspec(&session->remote_socket)) {
     return;
   }
@@ -246,6 +246,6 @@ _cb_send_multicast(struct dlep_session *session, int af_family) {
 
   abuf_clear(session->writer.out);
 
-  /* add dlep version to buffer */
-  abuf_memcpy(session->writer.out, _DLEP_VERSION, sizeof(_DLEP_VERSION) - 1);
+  /* add dlep prefix to buffer */
+  abuf_memcpy(session->writer.out, _DLEP_PREFIX, sizeof(_DLEP_PREFIX) - 1);
 }

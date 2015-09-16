@@ -415,14 +415,16 @@ _radio_write_peer_offer(
 
   netaddr_from_socket(&local_addr, &radio_if->tcp.socket_v4.local_socket);
   if (netaddr_get_address_family(&local_addr) == AF_INET) {
+    /* no support for TLS at the moment */
     dlep_writer_add_ipv4_conpoint_tlv(&session->writer,
-        &local_addr, radio_if->tcp_config.port);
+        &local_addr, radio_if->tcp_config.port, false);
   }
 
   netaddr_from_socket(&local_addr, &radio_if->tcp.socket_v6.local_socket);
   if (netaddr_get_address_family(&local_addr) == AF_INET6) {
+    /* no support for TLS at the moment */
     dlep_writer_add_ipv6_conpoint_tlv(&session->writer,
-        &local_addr, radio_if->tcp_config.port);
+        &local_addr, radio_if->tcp_config.port, false);
   }
   return 0;
 }

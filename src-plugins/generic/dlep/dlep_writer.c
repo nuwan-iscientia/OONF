@@ -192,8 +192,8 @@ dlep_writer_add_ipv6_tlv(struct dlep_writer *writer,
 
 void
 dlep_writer_add_ipv4_conpoint_tlv(struct dlep_writer *writer,
-    const struct netaddr *addr, uint16_t port) {
-  uint8_t value[6];
+    const struct netaddr *addr, uint16_t port, bool tls) {
+  uint8_t value[7];
 
   if (netaddr_get_address_family(addr) != AF_INET) {
     return;
@@ -203,8 +203,9 @@ dlep_writer_add_ipv4_conpoint_tlv(struct dlep_writer *writer,
   port = htons(port);
 
   /* copy data into value buffer */
-  netaddr_to_binary(&value[0], addr, sizeof(value));
-  memcpy(&value[4], &port, sizeof(port));
+  value[0] = tls ? 1 : 0;
+  netaddr_to_binary(&value[1], addr, sizeof(value));
+  memcpy(&value[5], &port, sizeof(port));
 
   dlep_writer_add_tlv(writer,
       DLEP_IPV4_CONPOINT_TLV, &value, sizeof(value));
@@ -212,8 +213,8 @@ dlep_writer_add_ipv4_conpoint_tlv(struct dlep_writer *writer,
 
 void
 dlep_writer_add_ipv6_conpoint_tlv(struct dlep_writer *writer,
-    const struct netaddr *addr, uint16_t port) {
-  uint8_t value[18];
+    const struct netaddr *addr, uint16_t port, bool tls) {
+  uint8_t value[19];
 
   if (netaddr_get_address_family(addr) != AF_INET6) {
     return;
@@ -223,8 +224,9 @@ dlep_writer_add_ipv6_conpoint_tlv(struct dlep_writer *writer,
   port = htons(port);
 
   /* copy data into value buffer */
-  netaddr_to_binary(&value[0], addr, sizeof(value));
-  memcpy(&value[16], &port, sizeof(port));
+  value[0] = tls ? 1 : 0;
+  netaddr_to_binary(&value[1], addr, sizeof(value));
+  memcpy(&value[17], &port, sizeof(port));
 
   dlep_writer_add_tlv(writer,
       DLEP_IPV6_CONPOINT_TLV, &value, sizeof(value));
