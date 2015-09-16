@@ -69,8 +69,11 @@ static void _remove_mpr(struct nhdp_domain *);
 
 static void _cb_update_everyone_mpr(struct nhdp_domain *);
 
+static bool _recalculate_neighbor_metrics(struct nhdp_domain *domain);
 static bool _recalculate_neighbor_metric(struct nhdp_domain *domain,
         struct nhdp_neighbor *neigh);
+static bool _recalculate_mpr_set(struct nhdp_domain *domain);
+
 static const char *_link_to_string(struct nhdp_metric_str *, uint32_t);
 static const char *_path_to_string(struct nhdp_metric_str *, uint32_t, uint8_t);
 static const char *_int_to_string(struct nhdp_metric_str *, struct nhdp_link *);
@@ -455,52 +458,6 @@ nhdp_domain_process_metric_2hoptlv(struct nhdp_domain *domain,
   }
 }
 
-static bool
-_recalculate_neighbor_metrics(struct nhdp_domain *domain) {
-  struct nhdp_neighbor *neigh;
-  bool changed;
-
-  /* recalculate the neighbor metrics and see if they changed */
-  changed = false;
-  list_for_each_element(nhdp_db_get_neigh_list(), neigh, _global_node) {
-    changed |= _recalculate_neighbor_metric(domain, neigh);
-  }
-
-  if (changed) {
-    OONF_DEBUG(LOG_NHDP, "Domain ext %u metric changed", domain->ext);
-  }
-  return changed;
-}
-
-static bool
-_recalculate_mpr_set(struct nhdp_domain *domain) {
-  struct nhdp_neighbor *neigh;
-  struct nhdp_neighbor_domaindata *neighdata;
-
-  if (!domain->mpr->update_mpr) {
-    return false;
-  }
-
-  /* remember old MPR set */
-  list_for_each_element(nhdp_db_get_neigh_list(), neigh, _global_node) {
-    neighdata = nhdp_domain_get_neighbordata(domain, neigh);
-    neighdata->_neigh_was_mpr = neighdata->neigh_is_mpr;
-  }
-
-  /* update MPR set */
-  domain->mpr->update_mpr(domain);
-
-  /* check for changes */
-  list_for_each_element(nhdp_db_get_neigh_list(), neigh, _global_node) {
-    neighdata = nhdp_domain_get_neighbordata(domain, neigh);
-    if (neighdata->_neigh_was_mpr != neighdata->neigh_is_mpr) {
-      OONF_DEBUG(LOG_NHDP, "Domain ext %u MPR set changed", domain->ext);
-      return true;
-    }
-  }
-  return false;
-}
-
 /**
  * This will trigger a MPR set recalculation.
  * @param force_change force a MPR recalculation and dijkstra trigger
@@ -649,7 +606,7 @@ nhdp_domain_process_mpr_tlv(uint8_t *mprtypes, size_t mprtypes_size,
  * Process an in Willingness tlv and put values into
  * temporary storage in MPR handler object. Call
  * nhdp_domain_store_willingness to permanently store them later.
- * @param mprtypes list of extenstions for MPR
+ * @param mprtypes list of extensions for MPR
  * @param mprtypes_size length of mprtypes array
  * @param tlv Willingness tlv context
  */
@@ -881,16 +838,77 @@ nhdp_domain_set_incoming_metric(struct nhdp_domain_metric *metric,
   return changed;
 }
 
+/**
+ * @return list of domains
+ */
 struct list_entity *
 nhdp_domain_get_list(void) {
   return &_domain_list;
 }
 
+/**
+ * @return list of event listeners for domain metric/mpr triggers
+ */
 struct list_entity *
 nhdp_domain_get_listener_list(void) {
   return &_domain_listener_list;
 }
 
+/**
+ * Recalculate the neighbor metrics of a NHDP domain
+ * @param domain NHDP domain
+ * @return if neighbor metric or two-hop link metric changed
+ */
+static bool
+_recalculate_neighbor_metrics(struct nhdp_domain *domain) {
+  struct nhdp_neighbor *neigh;
+  bool changed;
+
+  /* recalculate the neighbor metrics and see if they changed */
+  changed = false;
+  list_for_each_element(nhdp_db_get_neigh_list(), neigh, _global_node) {
+    changed |= _recalculate_neighbor_metric(domain, neigh);
+  }
+
+  if (changed) {
+    OONF_DEBUG(LOG_NHDP, "Domain ext %u metric changed", domain->ext);
+  }
+  return changed;
+}
+
+/**
+ * Recalculate the MPR set of a NHDP domain
+ * @param domain nhdp domain
+ * @return true if the MPR set changed
+ */
+static bool
+_recalculate_mpr_set(struct nhdp_domain *domain) {
+  struct nhdp_neighbor *neigh;
+  struct nhdp_neighbor_domaindata *neighdata;
+
+  if (!domain->mpr->update_mpr) {
+    return false;
+  }
+
+  /* remember old MPR set */
+  list_for_each_element(nhdp_db_get_neigh_list(), neigh, _global_node) {
+    neighdata = nhdp_domain_get_neighbordata(domain, neigh);
+    neighdata->_neigh_was_mpr = neighdata->neigh_is_mpr;
+  }
+
+  /* update MPR set */
+  domain->mpr->update_mpr(domain);
+
+  /* check for changes */
+  list_for_each_element(nhdp_db_get_neigh_list(), neigh, _global_node) {
+    neighdata = nhdp_domain_get_neighbordata(domain, neigh);
+    if (neighdata->_neigh_was_mpr != neighdata->neigh_is_mpr) {
+      OONF_DEBUG(LOG_NHDP, "Domain ext %u MPR set changed", domain->ext);
+      return true;
+    }
+  }
+  return false;
+}
 
 /**
  * Recalculate the 'best link/metric' values of a neighbor
@@ -898,7 +916,7 @@ nhdp_domain_get_listener_list(void) {
  * @param domain NHDP domain
  * @param neigh NHDP neighbor
  * @param neighdata NHDP neighbor domaindata
- * @return true if the MPR set has to be recalculated
+ * @return true neighbor metric or the two-hop link metrics changed
  */
 static bool
 _recalculate_neighbor_metric(
