@@ -823,6 +823,7 @@ nhdp_db_link_update_status(struct nhdp_link *lnk) {
   /* trigger change event */
   if (lnk->last_status != lnk->status) {
     oonf_class_event(&_link_info, lnk, OONF_OBJECT_CHANGED);
+    nhdp_domain_recalculate_mpr(true);
   }
 }
 
