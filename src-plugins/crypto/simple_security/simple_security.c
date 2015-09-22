@@ -252,7 +252,7 @@ static struct oonf_timer_class _query_trigger_class = {
 };
 
 /* global "timestamp" for replay protection */
-uint32_t _local_timestamp = 1;
+static uint32_t _local_timestamp = 1;
 
 /**
  * Constructor of subsystem

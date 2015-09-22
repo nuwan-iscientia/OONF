@@ -46,15 +46,21 @@
 #ifndef SIMPLE_SECURITY_H_
 #define SIMPLE_SECURITY_H_
 
+/*! subsystem identifier */
 #define OONF_SIMPLE_SECURITY_SUBSYSTEM "simple_security"
 
+/**
+ * Extra RFC5444 TLVs defined by this subsystem
+ */
 enum {
-  /* packet TLV */
-  RFC5444_PKTTLV_CHALLENGE = 224,
+  /*! packet TLV */
+  RFC5444_PKTTLV_CHALLENGE = 224,//!< RFC5444_PKTTLV_CHALLENGE
 
-  /* challenge TLV extensions */
-  RFC5444_CHALLENGE_QUERY = 1,
-  RFC5444_CHALLENGE_RESPONSE = 2,
+  /*! challenge QUERY TLV */
+  RFC5444_CHALLENGE_QUERY = 1,   //!< RFC5444_CHALLENGE_QUERY
+
+  /*! challenge RESPONSE TLV */
+  RFC5444_CHALLENGE_RESPONSE = 2,//!< RFC5444_CHALLENGE_RESPONSE
 };
 
 #endif /* SIMPLE_SECURITY_H_ */

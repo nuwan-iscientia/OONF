@@ -175,13 +175,16 @@ static struct oonf_subsystem _sharedkey_sig_subsystem = {
 DECLARE_OONF_PLUGIN(_sharedkey_sig_subsystem);
 
 /* storage for configured signatures */
-struct oonf_class _sig_class = {
+static struct oonf_class _sig_class = {
   .name = "Shared signature",
   .size = sizeof(struct sharedkey_signature),
 };
 
-struct avl_tree _sig_tree;
+static struct avl_tree _sig_tree;
 
+/**
+ * Initialize configuration parameters for subsystem
+ */
 static void
 _early_cfg_init(void) {
   /* we cannot do this statically because we draw the data from another subsystem */
@@ -220,6 +223,11 @@ _cleanup(void) {
   oonf_class_remove(&_sig_class);
 }
 
+/**
+ * Add a signature instance to tree
+ * @param name name of signature instance
+ * @return initialized signature instance, NULL if out of memory
+ */
 static struct sharedkey_signature *
 _add_sig(const char *name) {
   struct sharedkey_signature *sig;
@@ -239,6 +247,10 @@ _add_sig(const char *name) {
   return sig;
 }
 
+/**
+ * @param name name of a signature instance
+ * @return pointer to signature instance, NULL if not found
+ */
 static struct sharedkey_signature *
 _get_sig(const char *name) {
   struct sharedkey_signature *sig;
@@ -246,6 +258,10 @@ _get_sig(const char *name) {
   return avl_find_element(&_sig_tree, name, sig, _node);
 }
 
+/**
+ * Removes a signature instance from tree
+ * @param sig pointer to signature instance
+ */
 static void
 _remove_sig(struct sharedkey_signature *sig) {
   rfc5444_sig_remove(&sig->_signature);
@@ -253,6 +269,13 @@ _remove_sig(struct sharedkey_signature *sig) {
   oonf_class_free(&_sig_class, sig);
 }
 
+/**
+ * Callback to verify the signature ID
+ * @param sig signature instance
+ * @param id pointer to signature ID
+ * @param len length of signature ID
+ * @return okay, skip or drop
+ */
 static enum rfc5444_sigid_check
 _cb_verify_id(struct rfc5444_signature *sig, const void *id, size_t len) {
   struct sharedkey_signature *sk_sig;
@@ -270,6 +293,12 @@ _cb_verify_id(struct rfc5444_signature *sig, const void *id, size_t len) {
   return result ? RFC5444_SIGID_OKAY : RFC5444_SIGID_DROP;
 }
 
+/**
+ * Callback to check if a signature type is handled by this subsystem
+ * @param sig signature instance
+ * @param msg_type RFC5444 message type, -1 for packet signature
+ * @return true if subsystem will handle this signature
+ */
 static bool
 _cb_is_matching_signature(struct rfc5444_signature *sig, int msg_type) {
   struct sharedkey_signature *sk_sig;
@@ -290,6 +319,12 @@ _cb_is_matching_signature(struct rfc5444_signature *sig, int msg_type) {
   return bitmap256_get(&sk_sig->msgtype, msg_type);
 }
 
+/**
+ * Get the cryptographic key for the signature
+ * @param sig signature instance
+ * @param length pointer to length field to store key length
+ * @returns pointer to cryptographic key
+ */
 static const void *
 _cb_getCryptoKey(struct rfc5444_signature *sig, size_t *length) {
   struct sharedkey_signature *sk_sig;
@@ -303,6 +338,12 @@ _cb_getCryptoKey(struct rfc5444_signature *sig, size_t *length) {
   return sk_sig->key;
 }
 
+/**
+ * Get key id of signature
+ * @param sig signature instance
+ * @param length pointer to length field to store id length
+ * @returns pointer to id
+ */
 static const void *
 _cb_getKeyId(struct rfc5444_signature *sig, size_t *length) {
   struct sharedkey_signature *sk_sig;
@@ -316,6 +357,9 @@ _cb_getKeyId(struct rfc5444_signature *sig, size_t *length) {
   return sk_sig->id;
 }
 
+/**
+ * Callback to handle configuration changes
+ */
 static void
 _cb_config_changed(void) {
   struct sharedkey_signature *sig;

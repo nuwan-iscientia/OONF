@@ -59,8 +59,9 @@
 #define OONF_SUBSYSTEM_NAMESIZE 32
 
 /**
+ * @def DECLARE_OONF_PLUGIN
  * Declaration of a subsystem. Creates a constructor that hooks the subsystem into the core.
- * @param subsystem pointer to subsystem defintion
+ * @param subsystem pointer to subsystem definition
  */
 #define DECLARE_OONF_PLUGIN(subsystem) EXPORT void hookup_subsystem_ ## subsystem (void) __attribute__ ((constructor)); void hookup_subsystem_ ## subsystem (void) { oonf_subsystem_hook(&subsystem); }
 

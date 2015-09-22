@@ -48,6 +48,7 @@
 
 #include "common/common_types.h"
 
+/*! subsystem identifier */
 #define OONF_HASH_POLARSSL_SUBSYSTEM "hash_polarssl"
 
 #endif /* HASH_POLARSSL_H_ */

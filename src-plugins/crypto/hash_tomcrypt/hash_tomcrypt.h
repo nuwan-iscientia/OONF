@@ -48,6 +48,7 @@
 
 #include "common/common_types.h"
 
+/*! subsystem identifier */
 #define OONF_HASH_TOMCRYPT_SUBSYSTEM "hash_tomcrypt"
 
 #endif /* HASH_LIBTOMCRYPT_H_ */
