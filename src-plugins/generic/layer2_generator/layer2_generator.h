@@ -46,9 +46,7 @@
 #ifndef LAYER2_GENERATOR_H_
 #define LAYER2_GENERATOR_H_
 
-#include "common/common_types.h"
-#include "core/oonf_subsystem.h"
-
+/*! subsystem identifier */
 #define OONF_L2GEN_SUBSYSTEM "layer2_generator"
 
 #endif /* LAYER2_GENERATOR_H_ */

@@ -51,6 +51,7 @@
 #include "subsystems/oonf_interface.h"
 #include "subsystems/oonf_layer2.h"
 
+/*! subsystem identifier */
 #define OONF_NL80211_LISTENER_SUBSYSTEM "nl80211_listener"
 
 /**
@@ -98,7 +99,6 @@ bool nl80211_change_l2net_data(struct oonf_layer2_net *l2net,
 bool nl80211_change_l2net_neighbor_default(struct oonf_layer2_net *l2net,
     enum oonf_layer2_neighbor_index idx, uint64_t value);
 void nl80211_cleanup_l2neigh_data(struct oonf_layer2_neigh *l2neigh);
-void nl80211_cleanup_l2net_data(struct oonf_layer2_net *l2net);
 bool nl80211_change_l2neigh_data(struct oonf_layer2_neigh *l2neigh,
     enum oonf_layer2_neighbor_index idx, uint64_t value);
 

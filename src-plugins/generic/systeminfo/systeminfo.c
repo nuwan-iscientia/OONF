@@ -63,10 +63,6 @@
 /* definitions */
 #define LOG_SYSTEMINFO _oonf_systeminfo_subsystem.logging
 
-/* name of telnet subcommands/JSON nodes */
-#define _JSON_NAME_TIME        "time"
-#define _JSON_NAME_VERSION     "version"
-
 /* prototypes */
 static int _init(void);
 static void _cleanup(void);
@@ -85,10 +81,17 @@ static int _cb_create_text_version(struct oonf_viewer_template *);
  *
  * The keys are API, so they should not be changed after published
  */
+
+/*! template key for system wall-time */
 #define KEY_TIME_SYSTEM                 "time_system"
+
+/*! template key for internal OONF relative timestamp */
 #define KEY_TIME_INTERNAL               "time_internal"
 
+/*! template key for version text */
 #define KEY_VERSION_TEXT                "version_text"
+
+/*! template key for version git commit */
 #define KEY_VERSION_COMMIT              "version_commit"
 
 /*
@@ -126,13 +129,13 @@ static struct oonf_viewer_template _templates[] = {
     {
         .data = _td_time,
         .data_size = ARRAYSIZE(_td_time),
-        .json_name = _JSON_NAME_TIME,
+        .json_name = "time",
         .cb_function = _cb_create_text_time,
     },
     {
         .data = _td_version,
         .data_size = ARRAYSIZE(_td_version),
-        .json_name = _JSON_NAME_VERSION,
+        .json_name = "version",
         .cb_function = _cb_create_text_version,
     },
 };
@@ -150,7 +153,7 @@ static const char *_dependencies[] = {
   OONF_VIEWER_SUBSYSTEM,
 };
 
-struct oonf_subsystem _olsrv2_systeminfo_subsystem = {
+static struct oonf_subsystem _olsrv2_systeminfo_subsystem = {
   .name = OONF_SYSTEMINFO_SUBSYSTEM,
   .dependencies = _dependencies,
   .dependencies_count = ARRAYSIZE(_dependencies),

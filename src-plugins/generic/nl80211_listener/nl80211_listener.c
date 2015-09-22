@@ -124,23 +124,29 @@ struct _nl80211_query {
   void (* finalize)(struct nl80211_if *interf);
 };
 
+/**
+ * Index number for nl80211 configuration entries
+ */
 enum _nl80211_cfg_idx {
-  IDX_INTERVAL,
-  IDX_INTERFACES,
+  IDX_INTERVAL,  //!< IDX_INTERVAL
+  IDX_INTERFACES,//!< IDX_INTERFACES
 };
 
+/**
+ * index numbers for netlink queries done by listener
+ */
 enum _if_query {
-  QUERY_START       = 0,
-  QUERY_GET_IF      = 0,
-  QUERY_GET_WIPHY   = 1,
-  QUERY_GET_SURVEY  = 2,
-  QUERY_GET_MPP     = 3,
-  QUERY_GET_STATION = 4,
-  QUERY_END         = 5,
+  QUERY_START       = 0,//!< QUERY_START
+  QUERY_GET_IF      = 0,//!< QUERY_GET_IF
+  QUERY_GET_WIPHY   = 1,//!< QUERY_GET_WIPHY
+  QUERY_GET_SURVEY  = 2,//!< QUERY_GET_SURVEY
+  QUERY_GET_MPP     = 3,//!< QUERY_GET_MPP
+  QUERY_GET_STATION = 4,//!< QUERY_GET_STATION
+  QUERY_END         = 5,//!< QUERY_END
 
-  QUERY_GET_FAMILY  = 6,
+  QUERY_GET_FAMILY  = 6,//!< QUERY_GET_FAMILY
 
-  QUERY_COUNT,
+  QUERY_COUNT,          //!< QUERY_COUNT
 };
 
 static struct _nl80211_query _if_query_ops[QUERY_COUNT] =
@@ -329,6 +335,12 @@ _cleanup(void) {
   os_system_netlink_remove(&_netlink_handler);
 }
 
+/**
+ * Add a layer2 destination to the database
+ * @param l2neigh layer2 neighbor
+ * @param dstmac destination mac address
+ * @return layer2 destination
+ */
 struct oonf_layer2_destination *
 nl80211_add_dst(struct oonf_layer2_neigh *l2neigh, const struct netaddr *dstmac) {
   struct oonf_layer2_destination *dst;
@@ -389,6 +401,11 @@ nl80211_change_l2neigh_data(struct oonf_layer2_neigh *l2neigh,
   return oonf_layer2_change_value(&l2neigh->data[idx], _layer2_origin, value);
 }
 
+/**
+ * Get a nl80211 interface from tree
+ * @param name interface name
+ * @return nl80211 interface, NULL if not found
+ */
 static struct nl80211_if *
 _nl80211_if_get(const char *name) {
   struct nl80211_if *interf;
@@ -396,6 +413,11 @@ _nl80211_if_get(const char *name) {
   return avl_find_element(&_nl80211_if_tree, name, interf, _node);
 }
 
+/**
+ * Add a nl80211 interface to the tree
+ * @param name interface name
+ * @return nl80211 interface, NULL if out of memory
+ */
 static struct nl80211_if *
 _nl80211_if_add(const char *name) {
   struct nl80211_if *interf;
@@ -441,6 +463,10 @@ _nl80211_if_add(const char *name) {
   return interf;
 }
 
+/**
+ * Remove a nl80211 interface from tree
+ * @param interf nl80211 interface
+ */
 static void
 _nl80211_if_remove(struct nl80211_if *interf) {
   avl_remove(&_nl80211_if_tree, &interf->_node);
@@ -484,6 +510,11 @@ _cb_transmission_event(void *ptr __attribute__((unused))) {
   }
 }
 
+/**
+ * Send a netlink message to the nl80211 subsystem
+ * @param interf nl80211 interface for message
+ * @param query query id
+ */
 static void
 _send_netlink_message(struct nl80211_if *interf, enum _if_query query) {
   struct genlmsghdr *hdr;
@@ -519,6 +550,9 @@ _send_netlink_message(struct nl80211_if *interf, enum _if_query query) {
   os_system_netlink_send(&_netlink_handler, _nl_msg);
 }
 
+/**
+ * Proceed to next query
+ */
 static void
 _get_next_query(void) {
   if (avl_is_empty(&_nl80211_if_tree)) {
@@ -559,6 +593,9 @@ _get_next_query(void) {
   }
 }
 
+/**
+ * Trigger the next netlink query
+ */
 static void
 _trigger_next_netlink_query(void) {
   if (!_nl80211_id || !_nl80211_multicast_group) {
@@ -621,6 +658,11 @@ _cb_nl_message(struct nlmsghdr *hdr) {
   }
 }
 
+/**
+ * Callback triggered when a netlink message failes
+ * @param seq sequence number
+ * @param error error code
+ */
 static void
 _cb_nl_error(uint32_t seq __attribute((unused)), int error __attribute((unused))) {
   OONF_DEBUG(LOG_NL80211, "seq %u: Received error %d", seq, error);
@@ -629,6 +671,9 @@ _cb_nl_error(uint32_t seq __attribute((unused)), int error __attribute((unused))
   }
 }
 
+/**
+ * Callback triggered when one or more netlink messages time out
+ */
 static void
 _cb_nl_timeout(void) {
   OONF_DEBUG(LOG_NL80211, "Received timeout");
@@ -640,6 +685,10 @@ _cb_nl_timeout(void) {
   }
 }
 
+/**
+ * Callback triggered when a netlink message is done
+ * @param seq sequence number
+ */
 static void
 _cb_nl_done(uint32_t seq __attribute((unused))) {
   OONF_DEBUG(LOG_NL80211, "%u: Received done", seq);

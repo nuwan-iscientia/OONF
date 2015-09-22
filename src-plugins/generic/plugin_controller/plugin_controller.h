@@ -46,10 +46,7 @@
 #ifndef PLUGIN_CONTROLLER_H_
 #define PLUGIN_CONTROLLER_H_
 
-
-#include "common/common_types.h"
-#include "core/oonf_subsystem.h"
-
+/*! subsystem identifier */
 #define OONF_PLUGIN_CONTROLLER_SUBSYSTEM "plugin_controller"
 
 #endif /* PLUGIN_CONTROLLER_H_ */

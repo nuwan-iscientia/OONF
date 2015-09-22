@@ -63,13 +63,13 @@
 #define LOG_NHDPINFO _olsrv2_nhdpinfo_subsystem.logging
 
 /* name of telnet subcommands/JSON nodes */
-#define _JSON_NAME_INTERFACE     "interface"
+#define __JSON_NAME_INTERFACE     "interface"
 #define _JSON_NAME_IFADDR        "if_addr"
 #define _JSON_NAME_LINK          "link"
 #define _JSON_NAME_DOMAIN        "domain"
 #define _JSON_NAME_LADDR         "link_addr"
 #define _JSON_NAME_TWOHOP        "link_twohop"
-#define _JSON_NAME_NEIGHBOR      "neighbor"
+#define __JSON_NAME_NEIGHBOR      "neighbor"
 #define _JSON_NAME_NADDR         "neighbor_addr"
 
 /* prototypes */
@@ -106,7 +106,7 @@ static int _cb_create_text_neighbor_address(struct oonf_viewer_template *);
  *
  * The keys are API, so they should not be changed after published
  */
-#define KEY_IF                      "if"
+#define __KEY_IF                      "if"
 #define KEY_IF_BINDTO_V4            "if_bindto_v4"
 #define KEY_IF_BINDTO_V6            "if_bindto_v6"
 #define KEY_IF_MAC                  "if_mac"
@@ -213,11 +213,11 @@ static char                       _value_domain_mpr_will[3];
 
 /* definition of the template data entries for JSON and table output */
 static struct abuf_template_data_entry _tde_if_key[] = {
-    { KEY_IF, _value_if, true },
+    { __KEY_IF, _value_if, true },
 };
 
 static struct abuf_template_data_entry _tde_if[] = {
-    { KEY_IF, _value_if, true },
+    { __KEY_IF, _value_if, true },
     { KEY_IF_BINDTO_V4, _value_if_bindto_v4.buf, true },
     { KEY_IF_BINDTO_V6, _value_if_bindto_v6.buf, true },
     { KEY_IF_MAC, _value_if_mac.buf, true },
@@ -347,7 +347,7 @@ static struct oonf_viewer_template _templates[] = {
     {
         .data = _td_if,
         .data_size = ARRAYSIZE(_td_if),
-        .json_name = _JSON_NAME_INTERFACE,
+        .json_name = __JSON_NAME_INTERFACE,
         .cb_function = _cb_create_text_interface,
     },
     {
@@ -377,7 +377,7 @@ static struct oonf_viewer_template _templates[] = {
     {
         .data = _td_neigh,
         .data_size = ARRAYSIZE(_td_neigh),
-        .json_name = _JSON_NAME_NEIGHBOR,
+        .json_name = __JSON_NAME_NEIGHBOR,
         .cb_function = _cb_create_text_neighbor,
     },
     {

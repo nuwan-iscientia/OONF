@@ -70,6 +70,8 @@ static void _parse_strarray(struct strarray *array, const char *ifname,
 static void _cb_config_changed(void);
 
 /* define configuration entries */
+
+/*! configuration validator for linkdata */
 #define CFG_VALIDATE_LINKDATA(link_index, p_help, args...)         _CFG_VALIDATE("", "", p_help, .cb_validate = _cb_validate_linkdata, .validate_param = {{ .i32 = { link_index }}}, .list = true, ##args )
 
 static struct cfg_schema_entry _link_config_if_entries[] = {

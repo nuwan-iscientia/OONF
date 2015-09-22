@@ -73,7 +73,7 @@ static void _cleanup(void);
 static enum oonf_telnet_result _cb_telnet_plugin(struct oonf_telnet_data *data);
 static void _cb_config_changed(void);
 
-struct oonf_telnet_command _telnet_commands[] = {
+static struct oonf_telnet_command _telnet_commands[] = {
   TELNET_CMD("plugin", _cb_telnet_plugin,
         "control plugins dynamically, parameters are 'list',"
         "'load <plugin>' and 'unload <plugin>'"),
@@ -91,7 +91,7 @@ static struct cfg_schema_section _plugin_controller_section = {
   .entry_count = ARRAYSIZE(_plugin_controller_entries),
 };
 
-struct _plugin_controller_config _config;
+static struct _plugin_controller_config _config;
 
 /* plugin declaration */
 static const char *_dependencies[] = {

@@ -46,9 +46,7 @@
 #ifndef SYSTEMINFO_H_
 #define SYSTEMINFO_H_
 
-#include "common/common_types.h"
-#include "core/oonf_subsystem.h"
-
+/*! subsystem identifier */
 #define OONF_SYSTEMINFO_SUBSYSTEM "systeminfo"
 
 #endif /* SYSTEMINFO_H_ */
