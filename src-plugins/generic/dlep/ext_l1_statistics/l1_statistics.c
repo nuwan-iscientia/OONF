@@ -257,12 +257,25 @@ static struct dlep_extension _l1_stats = {
   .if_mapping_count = ARRAYSIZE(_net_mappings),
 };
 
+/**
+ * Get the layer1 statistics DLEP extension
+ * @return this extension
+ */
 struct dlep_extension *
 dlep_l1_statistics_init(void) {
   dlep_extension_add(&_l1_stats);
   return &_l1_stats;
 }
 
+/**
+ * Maps frequency or bandwidth array from DLEP TLVs
+ * into layer2 network objects
+ * @param data layer2 data object
+ * @param session dlep session
+ * @param dlep_tlv dlep tlv
+ * @param l2idx layer2 index
+ * @return -1 if an error happened, 0 otherwise
+ */
 static int
 dlep_reader_map_array(struct oonf_layer2_data *data,
     struct dlep_session *session, uint16_t dlep_tlv,
@@ -313,6 +326,13 @@ dlep_reader_map_array(struct oonf_layer2_data *data,
   return 0;
 }
 
+/**
+ * Read frequency TLV into layer2 database objects
+ * @param data layer2 network data array
+ * @param session dlep session
+ * @param dlep_tlv dlep TLV id
+ * @return -1 if an error happened, 0 otherwise
+ */
 static int
 dlep_reader_map_frequency(struct oonf_layer2_data *data,
     struct dlep_session *session, uint16_t dlep_tlv) {
@@ -320,6 +340,13 @@ dlep_reader_map_frequency(struct oonf_layer2_data *data,
       OONF_LAYER2_NET_FREQUENCY_1);
 }
 
+/**
+ * Read bandwidth TLV into layer2 database objects
+ * @param data layer2 network data array
+ * @param session dlep session
+ * @param dlep_tlv dlep TLV id
+ * @return -1 if an error happened, 0 otherwise
+ */
 static int
 dlep_reader_map_bandwidth(struct oonf_layer2_data *data,
     struct dlep_session *session, uint16_t dlep_tlv) {
@@ -327,6 +354,16 @@ dlep_reader_map_bandwidth(struct oonf_layer2_data *data,
       OONF_LAYER2_NET_BANDWIDTH_1);
 }
 
+/**
+ * Map bandwidth or frequency from layer2 network data into
+ * DLEP TLV
+ * @param writer dlep writer
+ * @param data layer2 network data
+ * @param tlv dlep tlv id
+ * @param length tlv length
+ * @param l2idx layer2 network index
+ * @return -1 if an error happened, 0 otherwise
+ */
 int
 dlep_writer_map_array(struct dlep_writer *writer,
     struct oonf_layer2_data *data, uint16_t tlv, uint16_t length,
@@ -368,6 +405,14 @@ dlep_writer_map_array(struct dlep_writer *writer,
   return 0;
 }
 
+/**
+ * Map layer2 frequency to DLEP TLV
+ * @param writer dlep writer
+ * @param data layer2 network data array
+ * @param tlv DLEP tlv id
+ * @param length tlv length
+ * @return -1 if an error happened, 0 otherwise
+ */
 static int
 dlep_writer_map_frequency(struct dlep_writer *writer,
     struct oonf_layer2_data *data, uint16_t tlv, uint16_t length) {
@@ -375,6 +420,14 @@ dlep_writer_map_frequency(struct dlep_writer *writer,
       OONF_LAYER2_NET_FREQUENCY_1);
 }
 
+/**
+ * Map layer2 bandwidth to DLEP TLV
+ * @param writer dlep writer
+ * @param data layer2 network data array
+ * @param tlv DLEP tlv id
+ * @param length tlv length
+ * @return -1 if an error happened, 0 otherwise
+ */
 static int
 dlep_writer_map_bandwidth(struct dlep_writer *writer,
     struct oonf_layer2_data *data, uint16_t tlv, uint16_t length) {

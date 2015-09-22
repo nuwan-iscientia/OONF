@@ -69,9 +69,9 @@ void dlep_writer_add_peer_type_tlv(struct dlep_writer *writer,
     const char *peer_type);
 int dlep_writer_add_mac_tlv(struct dlep_writer *writer,
     const struct netaddr *mac);
-int dlep_writer_add_ipv4_tlv(struct dlep_writer *writer,
+void dlep_writer_add_ipv4_tlv(struct dlep_writer *writer,
     const struct netaddr *ipv4, bool add);
-int dlep_writer_add_ipv6_tlv(struct dlep_writer *writer,
+void dlep_writer_add_ipv6_tlv(struct dlep_writer *writer,
     const struct netaddr *ipv6, bool add);
 void dlep_writer_add_ipv4_conpoint_tlv(struct dlep_writer *writer,
     const struct netaddr *addr, uint16_t port, bool tls);

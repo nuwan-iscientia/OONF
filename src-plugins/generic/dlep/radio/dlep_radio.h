@@ -46,6 +46,7 @@
 #ifndef DLEP_RADIO_H_
 #define DLEP_RADIO_H_
 
+/*! subsystem identifier */
 #define OONF_DLEP_RADIO_SUBSYSTEM "dlep_radio"
 
 #endif /* DLEP_RADIO_H_ */

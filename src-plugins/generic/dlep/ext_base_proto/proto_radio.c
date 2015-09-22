@@ -184,6 +184,9 @@ static struct oonf_class_extension _layer2_dst_listener = {
 
 static struct dlep_extension *_base;
 
+/**
+ * Initialize the radios DLEP base protocol extension
+ */
 void
 dlep_base_proto_radio_init(void) {
   _base = dlep_base_proto_init();
@@ -197,6 +200,10 @@ dlep_base_proto_radio_init(void) {
   _base->cb_session_cleanup_radio = _cb_cleanup_radio;
 }
 
+/**
+ * Callback to initialize the radio session
+ * @param session dlep session
+ */
 static void
 _cb_init_radio(struct dlep_session *session) {
   if (session->restrict_signal == DLEP_PEER_INITIALIZATION) {
@@ -210,11 +217,21 @@ _cb_init_radio(struct dlep_session *session) {
   session->cb_destination_timeout = _cb_destination_timeout;
 }
 
+/**
+ * Callback to cleanup the radio session
+ * @param session dlep session
+ */
 static void
 _cb_cleanup_radio(struct dlep_session *session) {
   dlep_base_proto_stop_timers(session);
 }
 
+/**
+ * Process the peer discovery signal
+ * @param ext (this) dlep extension
+ * @param session dlep session
+ * @return -1 if an error happened, 0 otherwise
+ */
 static int
 _radio_process_peer_discovery(
     struct dlep_extension *ext __attribute__((unused)),
@@ -226,6 +243,12 @@ _radio_process_peer_discovery(
   return dlep_session_generate_signal(session, DLEP_PEER_OFFER, NULL);
 }
 
+/**
+ * Process the peer initialization message
+ * @param ext (this) dlep extension
+ * @param session dlep session
+ * @return -1 if an error happened, 0 otherwise
+ */
 static int
 _radio_process_peer_init(
     struct dlep_extension *ext __attribute__((unused)),
@@ -293,6 +316,12 @@ _radio_process_peer_init(
   return 0;
 }
 
+/**
+ * Process the peer update message
+ * @param ext (this) dlep extension
+ * @param session dlep session
+ * @return -1 if an error happened, 0 otherwise
+ */
 static int
 _radio_process_peer_update(
     struct dlep_extension *ext __attribute__((unused)),
@@ -301,6 +330,12 @@ _radio_process_peer_update(
   return dlep_session_generate_signal(session, DLEP_PEER_UPDATE_ACK, NULL);
 }
 
+/**
+ * Process the peer update ack message
+ * @param ext (this) dlep extension
+ * @param session dlep session
+ * @return always 0
+ */
 static int
 _radio_process_peer_update_ack(
     struct dlep_extension *ext __attribute__((unused)),
@@ -309,6 +344,12 @@ _radio_process_peer_update_ack(
   return 0;
 }
 
+/**
+ * Process the destination up message
+ * @param ext (this) dlep extension
+ * @param session dlep session
+ * @return -1 if an error happened, 0 otherwise
+ */
 static int
 _radio_process_destination_up(
     struct dlep_extension *ext __attribute__((unused)),
@@ -324,6 +365,12 @@ _radio_process_destination_up(
       session, DLEP_DESTINATION_UP_ACK, &mac);
 }
 
+/**
+ * Process the destination up ack message
+ * @param ext (this) dlep extension
+ * @param session dlep session
+ * @return -1 if an error happened, 0 otherwise
+ */
 static int
 _radio_process_destination_up_ack(
     struct dlep_extension *ext __attribute__((unused)),
@@ -350,6 +397,12 @@ _radio_process_destination_up_ack(
   return 0;
 }
 
+/**
+ * Process the destination down message
+ * @param ext (this) dlep extension
+ * @param session dlep session
+ * @return -1 if an error happened, 0 otherwise
+ */
 static int
 _radio_process_destination_down(
     struct dlep_extension *ext __attribute__((unused)),
@@ -364,6 +417,12 @@ _radio_process_destination_down(
       session, DLEP_DESTINATION_DOWN_ACK, &mac);
 }
 
+/**
+ * Process the destination down ack message
+ * @param ext (this) dlep extension
+ * @param session dlep session
+ * @return -1 if an error happened, 0 otherwise
+ */
 static int
 _radio_process_destination_down_ack(
     struct dlep_extension *ext __attribute__((unused)),
@@ -384,20 +443,41 @@ _radio_process_destination_down_ack(
   return 0;
 }
 
+/**
+ * Process the destination update message
+ * @param ext (this) dlep extension
+ * @param session dlep session
+ * @return always 0
+ */
 static int
 _radio_process_destination_update(
     struct dlep_extension *ext __attribute__((unused)),
     struct dlep_session *session __attribute__((unused))) {
+  /* TODO: IP address change processing ? */
   return 0;
 }
 
+/**
+ * Process the link characteristic message
+ * @param ext (this) dlep extension
+ * @param session dlep session
+ * @return -1 if an error happened, 0 otherwise
+ */
 static int
 _radio_process_link_char_request(
     struct dlep_extension *ext __attribute__((unused)),
     struct dlep_session *session __attribute__((unused))) {
+  /* TODO: Link characteristic processing ? */
   return 0;
 }
 
+/**
+ * Generate a peer offer signal
+ * @param ext (this) dlep extension
+ * @param session dlep session
+ * @param addr mac address the message should refer to
+ * @return -1 if an error happened, 0 otherwise
+ */
 static int
 _radio_write_peer_offer(
     struct dlep_extension *ext __attribute__((unused)),
@@ -429,6 +509,13 @@ _radio_write_peer_offer(
   return 0;
 }
 
+/**
+ * Generate a peer init ack signal
+ * @param ext (this) dlep extension
+ * @param session dlep session
+ * @param addr mac address the message should refer to
+ * @return -1 if an error happened, 0 otherwise
+ */
 static int
 _radio_write_peer_init_ack(
     struct dlep_extension *ext __attribute__((unused)),
@@ -456,6 +543,13 @@ _radio_write_peer_init_ack(
   return 0;
 }
 
+/**
+ * Helper function to add a layer2 neighbor to a dlep session
+ * @param session dlep session
+ * @param l2neigh layer2 neighbor
+ * @param l2dest layer2 destination (might be NULL)
+ * @param mac MAC address of other endpoint
+ */
 static void
 _l2_neigh_added_to_session(struct dlep_session *session,
     struct oonf_layer2_neigh *l2neigh,
@@ -479,6 +573,12 @@ _l2_neigh_added_to_session(struct dlep_session *session,
   }
 }
 
+/**
+ * Helper function triggered for a new layer2 neighbor
+ * @param l2neigh layer2 neighbor
+ * @param l2dest layer2 destination (might be NULL)
+ * @param mac MAC address of other endpoint
+ */
 static void
 _l2_neigh_added(struct oonf_layer2_neigh *l2neigh,
     struct oonf_layer2_destination *l2dest, const struct netaddr *mac) {
@@ -501,6 +601,12 @@ _l2_neigh_added(struct oonf_layer2_neigh *l2neigh,
   }
 }
 
+/**
+ * Helper function triggered when a layer2 neighbor changed
+ * @param l2neigh layer2 neighbor
+ * @param l2dest layer2 destination (might be NULL)
+ * @param mac MAC address of other endpoint
+ */
 static void
 _l2_neigh_changed(struct oonf_layer2_neigh *l2neigh,
     struct oonf_layer2_destination *l2dest, const struct netaddr *mac) {
@@ -558,6 +664,12 @@ _l2_neigh_changed(struct oonf_layer2_neigh *l2neigh,
   }
 }
 
+/**
+ * Helper function triggered when a layer2 neighbor is removed
+ * @param l2neigh layer2 neighbor
+ * @param l2dest layer2 destination (might be NULL)
+ * @param mac MAC address of other endpoint
+ */
 static void
 _l2_neigh_removed(struct oonf_layer2_neigh *l2neigh,
     struct oonf_layer2_destination *l2dest, const struct netaddr *mac) {
@@ -596,6 +708,10 @@ _l2_neigh_removed(struct oonf_layer2_neigh *l2neigh,
 
 }
 
+/**
+ * Callback triggered when a layer2 neighbor object has been added
+ * @param ptr layer2 neighbor
+ */
 static void
 _cb_l2_neigh_added(void *ptr) {
   struct oonf_layer2_neigh *l2neigh = ptr;
@@ -603,6 +719,10 @@ _cb_l2_neigh_added(void *ptr) {
   _l2_neigh_added(l2neigh, NULL, &l2neigh->addr);
 }
 
+/**
+ * Callback triggered when a layer2 neighbor object has been changed
+ * @param ptr layer2 neighbor
+ */
 static void
 _cb_l2_neigh_changed(void *ptr) {
   struct oonf_layer2_neigh *l2neigh;
@@ -616,6 +736,10 @@ _cb_l2_neigh_changed(void *ptr) {
   }
 }
 
+/**
+ * Callback triggered when a layer2 neighbor object has been removed
+ * @param ptr layer2 neighbor
+ */
 static void
 _cb_l2_neigh_removed(void *ptr) {
   struct oonf_layer2_neigh *l2neigh = ptr;
@@ -623,6 +747,10 @@ _cb_l2_neigh_removed(void *ptr) {
   _l2_neigh_removed(l2neigh, NULL, &l2neigh->addr);
 }
 
+/**
+ * Callback triggered when a layer2 destination object has been added
+ * @param ptr layer2 destination
+ */
 static void
 _cb_l2_dst_added(void *ptr) {
   struct oonf_layer2_destination *l2dst = ptr;
@@ -630,6 +758,10 @@ _cb_l2_dst_added(void *ptr) {
   _l2_neigh_added(l2dst->neighbor, NULL, &l2dst->destination);
 }
 
+/**
+ * Callback triggered when a layer2 destination object has been removed
+ * @param ptr layer2 destination
+ */
 static void
 _cb_l2_dst_removed(void *ptr) {
   struct oonf_layer2_destination *l2dst = ptr;
@@ -637,6 +769,11 @@ _cb_l2_dst_removed(void *ptr) {
   _l2_neigh_removed(l2dst->neighbor, NULL, &l2dst->destination);
 }
 
+/**
+ * Callback triggered when a destination up/down ack times out
+ * @param session dlep session
+ * @param local local DLEP neighbor
+ */
 static void
 _cb_destination_timeout(struct dlep_session *session,
     struct dlep_local_neighbor *local) {

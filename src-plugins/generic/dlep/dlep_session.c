@@ -55,7 +55,11 @@
 #include "dlep/dlep_writer.h"
 #include "dlep/dlep_session.h"
 
+/**
+ * internal constants of DLEP session
+ */
 enum {
+  /*! size increase step for DLEP value storage */
   SESSION_VALUE_STEP = 128,
 };
 
@@ -90,6 +94,9 @@ static struct oonf_timer_class _destination_ack_class = {
     .callback = _cb_destination_timeout,
 };
 
+/**
+ * Initialize DLEP session system
+ */
 void
 dlep_session_init(void) {
   oonf_class_add(&_tlv_class);
@@ -177,6 +184,10 @@ dlep_session_add(struct dlep_session *session, const char *l2_ifname,
   return 0;
 }
 
+/**
+ * Remove a DLEP session
+ * @param session dlep session
+ */
 void
 dlep_session_remove(struct dlep_session *session) {
   struct dlep_parser_tlv *tlv, *tlv_it;
@@ -223,6 +234,13 @@ dlep_session_terminate(struct dlep_session *session) {
   session->restrict_signal = DLEP_PEER_TERMINATION_ACK;
 }
 
+/**
+ * Update the list of active dlep extensions for a session
+ * @param session dlep session
+ * @param extvalues array with allowed DLEP sessions
+ * @param extcount number of bytes in array
+ * @return -1 if an error happened, 0 otherwise
+ */
 int
 dlep_session_update_extensions(struct dlep_session *session,
     const uint8_t *extvalues, size_t extcount) {
@@ -263,6 +281,12 @@ dlep_session_update_extensions(struct dlep_session *session,
   return _update_allowed_tlvs(session);
 }
 
+/**
+ * Process data in DLEP session TCP input buffer
+ * @param tcp_session TCP session
+ * @param session DLEP session
+ * @return new TCP session state
+ */
 enum oonf_stream_session_state
 dlep_session_process_tcp(struct oonf_stream_session *tcp_session,
     struct dlep_session *session) {
@@ -299,6 +323,14 @@ dlep_session_process_tcp(struct oonf_stream_session *tcp_session,
   return STREAM_SESSION_ACTIVE;
 }
 
+/**
+ * Process the content of a buffer as DLEP signal(s)
+ * @param session dlep session
+ * @param buffer pointer to buffer
+ * @param length length of buffer
+ * @return number of bytes of buffer which were parsed and
+ *   can be removed, -1 if an error happened
+ */
 ssize_t
 dlep_session_process_buffer(
     struct dlep_session *session, const void *buffer, size_t length) {
@@ -328,6 +360,13 @@ dlep_session_process_buffer(
   return offset;
 }
 
+/**
+ * Process a DLEP signal/message
+ * @param session dlep session
+ * @param ptr pointer to buffer with DLEP signal/message
+ * @param length length of buffer
+ * @return numberr of bytes parsed, 0 if an error happened
+ */
 size_t
 dlep_session_process_signal(struct dlep_session *session,
     const void *ptr, size_t length) {
@@ -399,6 +438,12 @@ dlep_session_process_signal(struct dlep_session *session,
   return signal_length + 4;
 }
 
+/**
+ * Add a neighbor to the local DLEP storage
+ * @param session dlep session
+ * @param neigh neighbor MAC address
+ * @return pointer to dlep neighbor, NULL if out of memory
+ */
 struct dlep_local_neighbor *
 dlep_session_add_local_neighbor(struct dlep_session *session,
     const struct netaddr *neigh) {
@@ -427,6 +472,11 @@ dlep_session_add_local_neighbor(struct dlep_session *session,
   return local;
 }
 
+/**
+ * Remove a neighbor from the DLEP storage
+ * @param session dlep session
+ * @param local DLEP neighbor
+ */
 void
 dlep_session_remove_local_neighbor(struct dlep_session *session,
     struct dlep_local_neighbor *local) {
@@ -435,14 +485,12 @@ dlep_session_remove_local_neighbor(struct dlep_session *session,
   oonf_class_free(&_local_neighbor_class, local);
 }
 
-struct dlep_local_neighbor *
-dlep_session_get_local_neighbor(struct dlep_session *session,
-    const struct netaddr *neigh) {
-  struct dlep_local_neighbor *local;
-  return avl_find_element(&session->local_neighbor_tree,
-      neigh, local, _node);
-}
-
+/**
+ * Get the layer2 neigbor for a DLEP session MAC address
+ * @param session dlep session
+ * @param neigh MAC address of neighbor
+ * @return layer2 neighbor, NULL if not found
+ */
 struct oonf_layer2_neigh *
 dlep_session_get_local_l2_neighbor(struct dlep_session *session,
     const struct netaddr *neigh) {
@@ -475,6 +523,14 @@ dlep_session_get_local_l2_neighbor(struct dlep_session *session,
   return l2neigh;
 }
 
+/**
+ * Generate a DLEP signal/message
+ * @param session dlep session
+ * @param signal signal id
+ * @param neighbor neighbor MAC address the signal should refer to,
+ *   might be NULL
+ * @return -1 if an error happened, 0 otherwise
+ */
 static int
 _generate_signal(struct dlep_session *session, uint16_t signal,
     const struct netaddr *neighbor) {
@@ -529,6 +585,14 @@ _generate_signal(struct dlep_session *session, uint16_t signal,
   return 0;
 }
 
+/**
+ * Generate a DLEP signal/message
+ * @param session dlep session
+ * @param signal signal id
+ * @param neighbor neighbor MAC address the signal should refer to,
+ *   might be NULL
+ * @return -1 if an error happened, 0 otherwise
+ */
 int
 dlep_session_generate_signal(struct dlep_session *session, uint16_t signal,
     const struct netaddr *neighbor) {
@@ -539,6 +603,16 @@ dlep_session_generate_signal(struct dlep_session *session, uint16_t signal,
   return dlep_writer_finish_signal(&session->writer, session->log_source);
 }
 
+/**
+ * Generate a DLEP signal/message with a DLEP status TLV
+ * @param session dlep session
+ * @param signal signal id
+ * @param neighbor neighbor MAC address the signal should refer to,
+ *   might be NULL
+ * @param status DLEP status code
+ * @param msg ZERO terminated DLEP status text
+ * @return -1 if an error happened, 0 otherwise
+ */
 int
 dlep_session_generate_signal_status(struct dlep_session *session,
     uint16_t signal, const struct netaddr *neighbor,
@@ -554,6 +628,12 @@ dlep_session_generate_signal_status(struct dlep_session *session,
   return dlep_writer_finish_signal(&session->writer, session->log_source);
 }
 
+/**
+ * Get the value of the first DLEP TLV of a specific type
+ * @param session dlep session
+ * @param tlvtype DLEP TLV type
+ * @return DLEP value, NULL if not found
+ */
 struct dlep_parser_value *
 dlep_session_get_tlv_value(
     struct dlep_session *session, uint16_t tlvtype) {
@@ -577,6 +657,12 @@ dlep_session_get_tlv_value(
   return value;
 }
 
+/**
+ * Update the list of allowed TLVs based on the list of allowed
+ * extensions
+ * @param session dlep session
+ * @return -1 if extensions are inconsistent, 0 otherwise
+ */
 static int
 _update_allowed_tlvs(struct dlep_session *session) {
   struct dlep_session_parser *parser;
@@ -632,6 +718,14 @@ _update_allowed_tlvs(struct dlep_session *session) {
   return 0;
 }
 
+/**
+ * Parse a DLEP tlv
+ * @param session dlep session
+ * @param signal_type dlep signal/message type
+ * @param signal_length signal/message length
+ * @param tlvs pointer to bytearray with TLVs
+ * @return dlep parser status
+ */
 static enum dlep_parser_error
 _process_tlvs(struct dlep_session *session,
     uint16_t signal_type, uint16_t signal_length, const uint8_t *tlvs) {
@@ -663,6 +757,10 @@ _process_tlvs(struct dlep_session *session,
   return DLEP_NEW_PARSER_OKAY;
 }
 
+/**
+ * terminate a DLEP session
+ * @param session dlep session
+ */
 static void
 _send_terminate(struct dlep_session *session) {
   if (session->restrict_signal != DLEP_PEER_DISCOVERY
@@ -674,6 +772,10 @@ _send_terminate(struct dlep_session *session) {
   }
 }
 
+/**
+ * Callback when a destination up/down signal times out
+ * @param ptr local dlep neighbor
+ */
 static void
 _cb_destination_timeout(void *ptr) {
   struct dlep_local_neighbor *local;
@@ -684,6 +786,13 @@ _cb_destination_timeout(void *ptr) {
   }
 }
 
+/**
+ * parse a stream of DLEP tlvs
+ * @param session dlep session
+ * @param buffer TLV buffer
+ * @param length buffer size
+ * @return DLEP parser status
+ */
 static enum dlep_parser_error
 _parse_tlvstream(struct dlep_session *session,
     const uint8_t *buffer, size_t length) {
@@ -780,6 +889,12 @@ _parse_tlvstream(struct dlep_session *session,
   return DLEP_NEW_PARSER_OKAY;
 }
 
+/**
+ * Check if all mandatory TLVs were found
+ * @param session dlep session
+ * @param signal_type dlep signal/message type
+ * @return dlep parser status
+ */
 static enum dlep_parser_error
 _check_mandatory(struct dlep_session *session, uint16_t signal_type) {
   struct dlep_session_parser *parser;
@@ -823,6 +938,12 @@ _check_mandatory(struct dlep_session *session, uint16_t signal_type) {
   return DLEP_NEW_PARSER_OKAY;
 }
 
+/**
+ * Check if all duplicate TLVs were allowed to be duplicates
+ * @param session dlep session
+ * @param signal_type dlep signal/message type
+ * @return dlep parser status
+ */
 static enum dlep_parser_error
 _check_duplicate(struct dlep_session *session, uint16_t signal_type) {
   struct dlep_session_parser *parser;
@@ -871,6 +992,12 @@ _check_duplicate(struct dlep_session *session, uint16_t signal_type) {
   return DLEP_NEW_PARSER_OKAY;
 }
 
+/**
+ * Call extension processing hooks for parsed signal/message
+ * @param session dlep session
+ * @param signal_type dlep signal/message type
+ * @return dlep parser status
+ */
 static enum dlep_parser_error
 _call_extension_processing(struct dlep_session *session, uint16_t signal_type) {
   struct dlep_extension *ext;
@@ -904,6 +1031,12 @@ _call_extension_processing(struct dlep_session *session, uint16_t signal_type) {
   return DLEP_NEW_PARSER_OKAY;
 }
 
+/**
+ * Add a TLV to the allowed TLVs of a DLEP session
+ * @param parser dlep session parser
+ * @param id DLEP TLV id
+ * @return dlep parser TLV, NULL if out of memory
+ */
 static struct dlep_parser_tlv *
 _add_session_tlv(struct dlep_session_parser *parser, uint16_t id) {
   struct dlep_parser_tlv *tlv;

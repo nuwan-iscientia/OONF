@@ -423,12 +423,20 @@ static struct oonf_timer_class _remote_heartbeat_class = {
   .callback = _cb_remote_heartbeat,
 };
 
+/**
+ * Get base protocol DLEP extension
+ * @return this extension
+ */
 struct dlep_extension *
 dlep_base_proto_init(void) {
   dlep_extension_add(&_base_proto);
   return &_base_proto;
 }
 
+/**
+ * Start local heartbeat timer
+ * @param session dlep session
+ */
 void
 dlep_base_proto_start_local_heartbeat(struct dlep_session *session) {
   /* timer for local heartbeat generation */
@@ -438,6 +446,10 @@ dlep_base_proto_start_local_heartbeat(struct dlep_session *session) {
       session->cfg.heartbeat_interval);
 }
 
+/**
+ * Start remote heartbeat timer
+ * @param session dlep session
+ */
 void
 dlep_base_proto_start_remote_heartbeat(struct dlep_session *session) {
   /* timeout for remote heartbeats */
@@ -447,6 +459,10 @@ dlep_base_proto_start_remote_heartbeat(struct dlep_session *session) {
       session->remote_heartbeat_interval * 2);
 }
 
+/**
+ * Stop both heartbeat timers
+ * @param session dlep session
+ */
 void
 dlep_base_proto_stop_timers(struct dlep_session *session) {
   OONF_DEBUG(session->log_source, "Cleanup base session");
@@ -454,6 +470,11 @@ dlep_base_proto_stop_timers(struct dlep_session *session) {
   oonf_timer_stop(&session->remote_heartbeat_timeout);
 }
 
+/**
+ * Print content of the DLEP STATUS TLV to debug
+ * @param session dlep session
+ * @return dlep status
+ */
 enum dlep_status
 dlep_base_proto_print_status(struct dlep_session *session) {
   enum dlep_status status;
@@ -468,6 +489,10 @@ dlep_base_proto_print_status(struct dlep_session *session) {
   return DLEP_STATUS_OKAY;
 }
 
+/**
+ * Print DLEP peer type to debug
+ * @param session dlep session
+ */
 void
 dlep_base_proto_print_peer_type(struct dlep_session *session) {
   char text[256];
@@ -478,6 +503,12 @@ dlep_base_proto_print_peer_type(struct dlep_session *session) {
   }
 }
 
+/**
+ * Process a DLEP peer termination message
+ * @param ext (this) dlep extension
+ * @param session dlep session
+ * @return -1 if an error happened, 0 otherwise
+ */
 int
 dlep_base_proto_process_peer_termination(
     struct dlep_extension *ext __attribute__((unused)),
@@ -487,6 +518,12 @@ dlep_base_proto_process_peer_termination(
   return dlep_session_generate_signal(session, DLEP_PEER_TERMINATION_ACK, NULL);
 }
 
+/**
+ * Process a DLEP peer termination ack message
+ * @param ext (this) dlep extension
+ * @param session dlep session
+ * @return -1 if an error happened, 0 otherwise
+ */
 int
 dlep_base_proto_process_peer_termination_ack(
     struct dlep_extension *ext __attribute__((unused)),
@@ -497,6 +534,12 @@ dlep_base_proto_process_peer_termination_ack(
   return 0;
 }
 
+/**
+ * Process a DLEP heartbeat message
+ * @param ext (this) dlep extension
+ * @param session dlep session
+ * @return -1 if an error happened, 0 otherwise
+ */
 int
 dlep_base_proto_process_heartbeat(
     struct dlep_extension *ext __attribute__((unused)),
@@ -507,6 +550,13 @@ dlep_base_proto_process_heartbeat(
   return 0;
 }
 
+/**
+ * Write the mac address TLV into the DLEP message
+ * @param ext (this) dlep extension
+ * @param session dlep session
+ * @param neigh mac address to write into TLV
+ * @return -1 if an error happened, 0 otherwise
+ */
 int
 dlep_base_proto_write_mac_only(
     struct dlep_extension *ext __attribute__((unused)),
@@ -517,6 +567,10 @@ dlep_base_proto_write_mac_only(
   return 0;
 }
 
+/**
+ * Callback triggered when to generate a new heartbeat
+ * @param ptr dlep session
+ */
 static void
 _cb_local_heartbeat(void *ptr) {
   struct dlep_session *session = ptr;
@@ -525,6 +579,10 @@ _cb_local_heartbeat(void *ptr) {
   session->cb_send_buffer(session, 0);
 }
 
+/**
+ * Callback triggered when the remote heartbeat times out
+ * @param ptr dlep session
+ */
 static void
 _cb_remote_heartbeat(void *ptr) {
   struct dlep_session *session = ptr;

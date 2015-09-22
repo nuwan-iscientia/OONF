@@ -60,6 +60,15 @@ static void _cb_send_multicast(struct dlep_session *session, int af_family);
 
 static const char _DLEP_PREFIX[] = DLEP_DRAFT_16_PREFIX;
 
+/**
+ * Add a new interface to this dlep instance
+ * @param interf pointer to interface
+ * @param ifname name of interface
+ * @param l2_origin layer2 originator that shall be used
+ * @param log_src logging source that shall be used
+ * @param radio true if it is a radio interface, false for router
+ * @return -1 if an error happened, 0 otherwise
+ */
 int
 dlep_if_add(struct dlep_if *interf, const char *ifname,
     uint32_t l2_origin, enum oonf_log_source log_src, bool radio) {
@@ -149,10 +158,10 @@ dlep_if_remove(struct dlep_if *interface) {
 }
 /**
  * Callback to receive UDP data through oonf_packet_managed API
- * @param pkt
- * @param from
- * @param ptr
- * @param length
+ * @param pkt packet socket
+ * @param from network socket the packet was received from
+ * @param ptr pointer to packet data
+ * @param length length of packet data
  */
 static void
 _cb_receive_udp(struct oonf_packet_socket *pkt,
@@ -218,6 +227,11 @@ _cb_receive_udp(struct oonf_packet_socket *pkt,
   netaddr_socket_invalidate(&interf->session.remote_socket);
 }
 
+/**
+ * Callback to send multicast over interface
+ * @param session dlep session
+ * @param af_family address family for multicast
+ */
 static void
 _cb_send_multicast(struct dlep_session *session, int af_family) {
   struct dlep_if *interf;
