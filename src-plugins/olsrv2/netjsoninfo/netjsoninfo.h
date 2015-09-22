@@ -46,6 +46,7 @@
 #ifndef NETJSONINFO_H_
 #define NETJSONINFO_H_
 
+/*! subsystem identifier */
 #define OONF_NETJSONINFO_SUBSYSTEM "netjsoninfo"
 
 #endif /* NETJSONINFO_H_ */

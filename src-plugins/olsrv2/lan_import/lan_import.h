@@ -46,6 +46,7 @@
 #ifndef LAN_IMPORT_H_
 #define LAN_IMPORT_H_
 
+/*! subsystem identifier */
 #define OONF_LAN_IMPORT_SUBSYSTEM "lan_import"
 
 #endif /* LAN_IMPORT_H_ */
