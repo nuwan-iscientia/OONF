@@ -51,6 +51,7 @@
 
 #include "core/os_core.h"
 
+/*! default folder for Linux lockfile */
 #define OS_CORE_LOCKFILE_FOLDER        "/var/run/"
 
 /**

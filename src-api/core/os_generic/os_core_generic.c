@@ -55,6 +55,7 @@
 
 /**
  * Initialize core
+ * @param appname name of the application for syslog
  */
 void
 os_core_init(const char *appname) {
