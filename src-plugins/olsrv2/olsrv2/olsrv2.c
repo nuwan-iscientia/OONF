@@ -68,15 +68,29 @@
 #include "olsrv2/olsrv2_writer.h"
 
 /* definitions */
+
+/*! configuration option for locally attached networks */
 #define _LOCAL_ATTACHED_NETWORK_KEY "lan"
 
-#define LAN_DEFAULT_DOMAIN   0
-#define LAN_DEFAULT_METRIC   1
-#define LAN_DEFAULT_DISTANCE 2
+/**
+ * Default values for locally attached network parameters
+ */
+enum _lan_option_defaults {
+  LAN_DEFAULT_DOMAIN    = 0,//!< LAN_DEFAULT_DOMAIN
+  LAN_DEFAULT_METRIC    = 1,//!< LAN_DEFAULT_METRIC
+  LAN_DEFAULT_DISTANCE  = 2,//!< LAN_DEFAULT_DISTANCE
+};
 
+/*! locally attached network option for source-specific prefix */
 #define LAN_OPTION_SRC    "src="
+
+/*! locally attached network option for outgoing metric */
 #define LAN_OPTION_METRIC "metric="
+
+/*! locally attached network option for domain */
 #define LAN_OPTION_DOMAIN "domain="
+
+/*! locally attached network option for hopcount distance */
 #define LAN_OPTION_DIST   "dist="
 
 /**
@@ -228,7 +242,7 @@ static struct oonf_timer_instance _tc_timer = {
 };
 
 /* global interface listener */
-struct oonf_interface_listener _if_listener = {
+static struct oonf_interface_listener _if_listener = {
   .process = _cb_if_event,
 };
 

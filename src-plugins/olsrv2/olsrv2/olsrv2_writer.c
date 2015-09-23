@@ -62,11 +62,24 @@
 #include "olsrv2/olsrv2_writer.h"
 
 /* constants */
+
+/**
+ * olsrv2 index values for address tlvs
+ */
 enum olsrv2_addrtlv_idx {
+  /*! index of neighbor address tlv */
   IDX_ADDRTLV_NBR_ADDR_TYPE,
+
+  /*! index of destination specific gateway tlv */
   IDX_ADDRTLV_GATEWAY_DSTSPEC,
+
+  /*! index of source specific gateway tlv */
   IDX_ADDRTLV_GATEWAY_SRCSPEC,
+
+  /*! index of source specific default gateway tlv */
   IDX_ADDRTLV_GATEWAY_SRCSPEC_DEF,
+
+  /*! index of source prefix tlv */
   IDX_ADDRTLV_GATEWAY_SRC_PREFIX,
 };
 

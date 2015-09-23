@@ -183,6 +183,10 @@ olsrv2_lan_remove(struct nhdp_domain *domain,
   _remove(entry);
 }
 
+/**
+ * Get tree of locally attached networks
+ * @return lan tree
+ */
 struct avl_tree *
 olsrv2_lan_get_tree(void) {
   return &_lan_tree;

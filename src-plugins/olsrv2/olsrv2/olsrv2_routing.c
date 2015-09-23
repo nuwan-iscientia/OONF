@@ -349,11 +349,20 @@ olsrv2_routing_set_domain_parameter(struct nhdp_domain *domain,
   _trigger_dijkstra = true;
 }
 
+/**
+ * Get tree of olsrv2 routing entries
+ * @param domain nhdp domain
+ * @return tree of routing entries
+ */
 struct avl_tree *
 olsrv2_routing_get_tree(struct nhdp_domain *domain) {
   return &_routing_tree[domain->index];
 }
 
+/**
+ * Get list of olsrv2 routing filters
+ * @return filter list
+ */
 struct list_entity *
 olsrv2_routing_get_filter_list(void) {
   return &_routing_filter_list;

@@ -157,7 +157,8 @@ static struct oonf_rfc5444_protocol *_protocol = NULL;
 static struct _olsrv2_data _current;
 
 /**
- * Initialize nhdp reader
+ * Initialize olsrv2 reader
+ * @param p RFC5444 protocol instance
  */
 void
 olsrv2_reader_init(struct oonf_rfc5444_protocol *p) {

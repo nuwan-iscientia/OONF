@@ -57,7 +57,8 @@
 #include "nhdp/nhdp_db.h"
 #include "nhdp/nhdp_domain.h"
 
-#define OLSRv2_DIJKSTRA_RATE_LIMITATION 1000
+/*! minimum time between two dijkstra calculations in milliseconds */
+enum { OLSRv2_DIJKSTRA_RATE_LIMITATION = 1000 };
 
 /**
  * representation of a node in the dijkstra tree

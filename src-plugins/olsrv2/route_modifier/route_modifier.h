@@ -46,6 +46,7 @@
 #ifndef ROUTEMODIFIER_H_
 #define ROUTEMODIFIER_H_
 
+/*! subsystem identifier */
 #define OONF_ROUTE_MODIFIER_SUBSYSTEM "route_modifier"
 
 #endif /* ROUTEMODIFIER_H_ */
