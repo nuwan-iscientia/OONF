@@ -72,6 +72,7 @@
 #include <stdio.h>
 
 #ifndef SOL_NETLINK
+/*! socket netlink type */
 #define SOL_NETLINK 270
 #endif
 
@@ -199,6 +200,9 @@ os_system_is_ipv6_supported(void) {
 }
 
 /**
+ * @param v1 first version number part
+ * @param v2 second version number part
+ * @param v3 third version number part
  * @return true if linux kernel is at least a specific version
  */
 bool
@@ -352,6 +356,10 @@ os_system_netlink_remove(struct os_system_netlink *nl) {
   abuf_free(&nl->out);
 }
 
+/**
+ * add netlink message to buffer
+ * @param nl netlink message
+ */
 static void
 _enqueue_netlink_buffer(struct os_system_netlink *nl) {
   struct os_system_netlink_buffer *bufptr;

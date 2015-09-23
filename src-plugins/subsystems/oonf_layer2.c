@@ -81,37 +81,37 @@ DECLARE_OONF_PLUGIN(_oonf_layer2_subsystem);
 
 /* layer2 neighbor metadata */
 static const struct oonf_layer2_metadata _oonf_layer2_metadata_neigh[OONF_LAYER2_NEIGH_COUNT] = {
-  [OONF_LAYER2_NEIGH_TX_SIGNAL]      = { .key = OONF_LAYER2_NEIGH_TX_SIGNAL_KEY, .unit = "dBm", .fraction = 3 },
-  [OONF_LAYER2_NEIGH_RX_SIGNAL]      = { .key = OONF_LAYER2_NEIGH_RX_SIGNAL_KEY, .unit = "dBm", .fraction = 3 },
-  [OONF_LAYER2_NEIGH_TX_BITRATE]     = { .key = OONF_LAYER2_NEIGH_TX_BITRATE_KEY, .unit = "bit/s", .binary = true },
-  [OONF_LAYER2_NEIGH_RX_BITRATE]     = { .key = OONF_LAYER2_NEIGH_RX_BITRATE_KEY, .unit = "bit/s", .binary = true },
-  [OONF_LAYER2_NEIGH_TX_MAX_BITRATE] = { .key = OONF_LAYER2_NEIGH_TX_MAX_BITRATE_KEY, .unit = "bit/s", .binary = true },
-  [OONF_LAYER2_NEIGH_RX_MAX_BITRATE] = { .key = OONF_LAYER2_NEIGH_RX_MAX_BITRATE_KEY, .unit = "bit/s", .binary = true },
-  [OONF_LAYER2_NEIGH_TX_BYTES]       = { .key = OONF_LAYER2_NEIGH_TX_BYTES_KEY, .unit = "byte", .binary = true },
-  [OONF_LAYER2_NEIGH_RX_BYTES]       = { .key = OONF_LAYER2_NEIGH_RX_BYTES_KEY, .unit = "byte", .binary = true },
-  [OONF_LAYER2_NEIGH_TX_FRAMES]      = { .key = OONF_LAYER2_NEIGH_TX_FRAMES_KEY },
-  [OONF_LAYER2_NEIGH_RX_FRAMES]      = { .key = OONF_LAYER2_NEIGH_RX_FRAMES_KEY },
-  [OONF_LAYER2_NEIGH_TX_THROUGHPUT]  = { .key = OONF_LAYER2_NEIGH_TX_THROUGHPUT_KEY, .unit = "bit/s", .binary = true },
-  [OONF_LAYER2_NEIGH_TX_RETRIES]     = { .key = OONF_LAYER2_NEIGH_TX_RETRIES_KEY },
-  [OONF_LAYER2_NEIGH_TX_FAILED]      = { .key = OONF_LAYER2_NEIGH_TX_FAILED_KEY },
-  [OONF_LAYER2_NEIGH_LATENCY]        = { .key = OONF_LAYER2_NEIGH_LATENCY_KEY, .unit = "s", .fraction = 6 },
-  [OONF_LAYER2_NEIGH_TX_RESOURCES]   = { .key = OONF_LAYER2_NEIGH_TX_RESOURCES_KEY },
-  [OONF_LAYER2_NEIGH_RX_RESOURCES]   = { .key = OONF_LAYER2_NEIGH_RX_RESOURCES_KEY },
-  [OONF_LAYER2_NEIGH_TX_RLQ]         = { .key = OONF_LAYER2_NEIGH_TX_RLQ_KEY },
-  [OONF_LAYER2_NEIGH_RX_RLQ]         = { .key = OONF_LAYER2_NEIGH_RX_RLQ_KEY },
+  [OONF_LAYER2_NEIGH_TX_SIGNAL]      = { .key = "tx_signal", .unit = "dBm", .fraction = 3 },
+  [OONF_LAYER2_NEIGH_RX_SIGNAL]      = { .key = "rx_signal", .unit = "dBm", .fraction = 3 },
+  [OONF_LAYER2_NEIGH_TX_BITRATE]     = { .key = "tx_bitrate", .unit = "bit/s", .binary = true },
+  [OONF_LAYER2_NEIGH_RX_BITRATE]     = { .key = "rx_bitrate", .unit = "bit/s", .binary = true },
+  [OONF_LAYER2_NEIGH_TX_MAX_BITRATE] = { .key = "tx_max_bitrate", .unit = "bit/s", .binary = true },
+  [OONF_LAYER2_NEIGH_RX_MAX_BITRATE] = { .key = "rx_max_bitrate", .unit = "bit/s", .binary = true },
+  [OONF_LAYER2_NEIGH_TX_BYTES]       = { .key = "tx_bytes", .unit = "byte", .binary = true },
+  [OONF_LAYER2_NEIGH_RX_BYTES]       = { .key = "rx_bytes", .unit = "byte", .binary = true },
+  [OONF_LAYER2_NEIGH_TX_FRAMES]      = { .key = "tx_frames" },
+  [OONF_LAYER2_NEIGH_RX_FRAMES]      = { .key = "rx_frames" },
+  [OONF_LAYER2_NEIGH_TX_THROUGHPUT]  = { .key = "tx_throughput", .unit = "bit/s", .binary = true },
+  [OONF_LAYER2_NEIGH_TX_RETRIES]     = { .key = "tx_retries" },
+  [OONF_LAYER2_NEIGH_TX_FAILED]      = { .key = "tx_failed" },
+  [OONF_LAYER2_NEIGH_LATENCY]        = { .key = "latency", .unit = "s", .fraction = 6 },
+  [OONF_LAYER2_NEIGH_TX_RESOURCES]   = { .key = "tx_resources" },
+  [OONF_LAYER2_NEIGH_RX_RESOURCES]   = { .key = "rx_resources" },
+  [OONF_LAYER2_NEIGH_TX_RLQ]         = { .key = "tx_rlq" },
+  [OONF_LAYER2_NEIGH_RX_RLQ]         = { .key = "rx_rlq" },
 };
 
 /* layer2 network metadata */
 static const struct oonf_layer2_metadata _oonf_layer2_metadata_net[OONF_LAYER2_NET_COUNT] = {
-  [OONF_LAYER2_NET_FREQUENCY_1]     = { .key = OONF_LAYER2_NET_FREQUENCY_1_KEY, .unit = "Hz" },
-  [OONF_LAYER2_NET_FREQUENCY_2]     = { .key = OONF_LAYER2_NET_FREQUENCY_2_KEY, .unit = "Hz" },
-  [OONF_LAYER2_NET_BANDWIDTH_1]     = { .key = OONF_LAYER2_NET_BANDWIDTH_1_KEY, .unit = "Hz" },
-  [OONF_LAYER2_NET_BANDWIDTH_2]     = { .key = OONF_LAYER2_NET_BANDWIDTH_2_KEY, .unit = "Hz" },
-  [OONF_LAYER2_NET_NOISE]           = { .key = OONF_LAYER2_NET_NOISE_KEY, .unit="dBm", .fraction = 3 },
-  [OONF_LAYER2_NET_CHANNEL_ACTIVE]  = { .key = OONF_LAYER2_NET_CHANNEL_ACTIVE_KEY, .unit="s", .fraction = 9 },
-  [OONF_LAYER2_NET_CHANNEL_BUSY]    = { .key = OONF_LAYER2_NET_CHANNEL_BUSY_KEY, .unit="s", .fraction = 9 },
-  [OONF_LAYER2_NET_CHANNEL_RX]      = { .key = OONF_LAYER2_NET_CHANNEL_RX_KEY, .unit="s", .fraction = 9 },
-  [OONF_LAYER2_NET_CHANNEL_TX]      = { .key = OONF_LAYER2_NET_CHANNEL_TX_KEY, .unit="s", .fraction = 9 },
+  [OONF_LAYER2_NET_FREQUENCY_1]     = { .key = "frequency1", .unit = "Hz" },
+  [OONF_LAYER2_NET_FREQUENCY_2]     = { .key = "frequency2", .unit = "Hz" },
+  [OONF_LAYER2_NET_BANDWIDTH_1]     = { .key = "bandwidth1", .unit = "Hz" },
+  [OONF_LAYER2_NET_BANDWIDTH_2]     = { .key = "bandwidth2", .unit = "Hz" },
+  [OONF_LAYER2_NET_NOISE]           = { .key = "noise", .unit="dBm", .fraction = 3 },
+  [OONF_LAYER2_NET_CHANNEL_ACTIVE]  = { .key = "ch_active", .unit="s", .fraction = 9 },
+  [OONF_LAYER2_NET_CHANNEL_BUSY]    = { .key = "ch_busy", .unit="s", .fraction = 9 },
+  [OONF_LAYER2_NET_CHANNEL_RX]      = { .key = "ch_rx", .unit="s", .fraction = 9 },
+  [OONF_LAYER2_NET_CHANNEL_TX]      = { .key = "ch_tx", .unit="s", .fraction = 9 },
 };
 
 static const char *oonf_layer2_network_type[OONF_LAYER2_TYPE_COUNT] = {
@@ -362,6 +362,7 @@ oonf_layer2_neigh_add(struct oonf_layer2_net *l2net,
  * object.
  * @param l2neigh layer-2 neighbor
  * @param origin originator number
+ * @return true if a value was resetted, false otherwise
  */
 bool
 oonf_layer2_neigh_cleanup(struct oonf_layer2_neigh *l2neigh, uint32_t origin) {
@@ -434,6 +435,14 @@ oonf_layer2_neigh_commit(struct oonf_layer2_neigh *l2neigh) {
   return true;
 }
 
+/**
+ * add a layer2 destination (a MAC address behind a neighbor) to
+ * the layer2 database
+ * @param l2neigh layer2 neighbor of the destination
+ * @param destination destination address
+ * @param origin layer2 origin
+ * @return layer2 destination, NULL if out of memory
+ */
 struct oonf_layer2_destination *
 oonf_layer2_destination_add(struct oonf_layer2_neigh *l2neigh,
     const struct netaddr *destination, uint32_t origin) {
@@ -464,6 +473,10 @@ oonf_layer2_destination_add(struct oonf_layer2_neigh *l2neigh,
   return l2dst;
 }
 
+/**
+ * Remove a layer2 destination
+ * @param l2dst layer2 destination
+ */
 void
 oonf_layer2_destination_remove(struct oonf_layer2_destination *l2dst) {
   if (!avl_is_node_added(&l2dst->_node)) {
@@ -560,21 +573,40 @@ oonf_layer2_change_value(struct oonf_layer2_data *l2data,
   return changed;
 }
 
+/**
+ * get neighbor metric metadata
+ * @param idx neighbor metric index
+ * @return metadata object
+ */
 const struct oonf_layer2_metadata *
 oonf_layer2_get_neigh_metadata(enum oonf_layer2_neighbor_index idx) {
   return &_oonf_layer2_metadata_neigh[idx];
 }
 
+/**
+ * get network metric metadata
+ * @param idx network metric index
+ * @return metadata object
+ */
 const struct oonf_layer2_metadata *
 oonf_layer2_get_net_metadata(enum oonf_layer2_network_index idx) {
   return &_oonf_layer2_metadata_net[idx];
 }
 
+/**
+ * get text representation of network type
+ * @param type network type
+ * @return text representation
+ */
 const char *
 oonf_layer2_get_network_type(enum oonf_layer2_network_type type) {
   return oonf_layer2_network_type[type];
 }
 
+/**
+ * get tree of layer2 networks
+ * @return network tree
+ */
 struct avl_tree *
 oonf_layer2_get_network_tree(void) {
   return &_oonf_layer2_net_tree;

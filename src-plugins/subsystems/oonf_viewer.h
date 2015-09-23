@@ -54,13 +54,28 @@
 #include "core/oonf_subsystem.h"
 #include "subsystems/oonf_telnet.h" /* compile-time dependency */
 
+/*! subsystem identifier */
 #define OONF_VIEWER_SUBSYSTEM "viewer"
 
+/*! viewer should return raw numbers, not iso-prefixes */
 #define OONF_VIEWER_RAW_FORMAT      "raw"
+
+/*! viewer should only return the names of the fields */
 #define OONF_VIEWER_HEAD_FORMAT     "head"
+
+/*! viewer should output json format */
 #define OONF_VIEWER_JSON_FORMAT     "json"
+
+/*! viewer should output json format with raw numbers */
 #define OONF_VIEWER_JSON_RAW_FORMAT "jsonraw"
+
+/*! viewer should output json format without surrounding object brackets */
 #define OONF_VIEWER_DATA_FORMAT     "data"
+
+/**
+ * viewer should output json format with raw numbers
+ * and without surrounding object brackets
+ */
 #define OONF_VIEWER_DATA_RAW_FORMAT "dataraw"
 
 /**

@@ -56,6 +56,7 @@
 #include "core/oonf_logging.h"
 #include "subsystems/os_system.h"
 
+/*! subsystem identifier */
 #define OONF_OS_ROUTING_SUBSYSTEM "os_routing"
 
 /* include os-specific headers */
@@ -71,9 +72,11 @@
 
 /* make sure default values for routing are there */
 #ifndef RTPROT_UNSPEC
+/*! unspecified routing protocol */
 #define RTPROT_UNSPEC 0
 #endif
 #ifndef RT_TABLE_UNSPEC
+/*! unspecified routing table */
 #define RT_TABLE_UNSPEC 0
 #endif
 
@@ -102,6 +105,9 @@ struct os_route_str {
            + 2];
 };
 
+/**
+ * types of kernel routes
+ */
 enum os_route_type {
   OS_ROUTE_UNDEFINED,
   OS_ROUTE_UNICAST,

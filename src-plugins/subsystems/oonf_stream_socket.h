@@ -57,17 +57,34 @@
 #include "subsystems/oonf_socket.h"
 #include "subsystems/oonf_timer.h"
 
+/*! subsystem identifier */
 #define OONF_STREAM_SUBSYSTEM "stream_socket"
 
+/**
+ * TCP session states
+ */
 enum oonf_stream_session_state {
+  /*! tcp session is active */
   STREAM_SESSION_ACTIVE,
+
+  /*! tcp session will send its current buffer content and terminate */
   STREAM_SESSION_SEND_AND_QUIT,
+
+  /*! tcp session will terminate */
   STREAM_SESSION_CLEANUP,
 };
 
+/**
+ * generic stream errors useful for HTTP and telnet
+ */
 enum oonf_stream_errors {
+  /*! remote endpoint is not permitted to use service */
   STREAM_REQUEST_FORBIDDEN = 403,
+
+  /*! input buffer overflow */
   STREAM_REQUEST_TOO_LARGE = 413,
+
+  /*! too many incoming sessions */
   STREAM_SERVICE_UNAVAILABLE = 503,
 };
 

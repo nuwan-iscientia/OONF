@@ -52,6 +52,7 @@
 #include "common/common_types.h"
 #include "core/oonf_subsystem.h"
 
+/*! subsystem identifier */
 #define OONF_OS_CLOCK_SUBSYSTEM "os_clock"
 
 #if defined(__linux__)

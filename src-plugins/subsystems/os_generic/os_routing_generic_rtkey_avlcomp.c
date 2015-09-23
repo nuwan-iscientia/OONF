@@ -47,6 +47,12 @@
 
 #include "subsystems/os_routing.h"
 
+/**
+ * avl comparator for routing key
+ * @param p1 routing key 1
+ * @param p2 routing key 2
+ * @return -1 if p1<p2, 1 if p1>p2, 0 otherwise
+ */
 int
 os_route_avl_cmp_route_key(const void *p1, const void *p2) {
   const struct os_route_key *ss1, *ss2;

@@ -56,10 +56,9 @@
 
 #ifndef _WIN32
 #include <net/if.h>
-#else
-#define IF_NAMESIZE 16
 #endif
 
+/*! subsystem identifier */
 #define OONF_PACKET_SUBSYSTEM "packet_socket"
 
 struct oonf_packet_socket;

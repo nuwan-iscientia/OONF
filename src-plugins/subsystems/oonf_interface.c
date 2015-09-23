@@ -67,7 +67,7 @@
 /* Definitions */
 #define LOG_INTERFACE _oonf_interface_subsystem.logging
 
-/* timeinterval to delay change in interface to trigger actions */
+/*! timeinterval to delay change in interface to trigger actions */
 #define OONF_INTERFACE_CHANGE_INTERVAL 100
 
 /* prototypes */
@@ -427,6 +427,10 @@ oonf_interface_get_bindaddress(int af_type,
   return result;
 }
 
+/**
+ * Get tree of OONF managed interfaces
+ * @return interface tree
+ */
 struct avl_tree *
 oonf_interface_get_tree(void) {
   return &_oonf_interface_tree;

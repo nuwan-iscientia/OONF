@@ -57,6 +57,7 @@
 #include "subsystems/oonf_timer.h"
 #include "subsystems/os_interface.h"
 
+/*! subsystem identifier */
 #define OONF_OS_SOCKET_SUBSYSTEM "os_socket"
 
 /* pre-declare inlines */

@@ -55,6 +55,7 @@
 #include "subsystems/oonf_timer.h"
 #include "subsystems/os_interface_data.h"
 
+/*! subsystem identifier */
 #define OONF_OS_INTERFACE_SUBSYSTEM "os_interface"
 
 /**

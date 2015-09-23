@@ -103,7 +103,7 @@ static struct oonf_subsystem _oonf_os_routing_subsystem = {
 DECLARE_OONF_PLUGIN(_oonf_os_routing_subsystem);
 
 /* translation table between route types */
-struct route_type_translation _type_translation[] = {
+static struct route_type_translation _type_translation[] = {
     { OS_ROUTE_UNICAST, RTN_UNICAST },
     { OS_ROUTE_LOCAL, RTN_LOCAL },
     { OS_ROUTE_BROADCAST, RTN_BROADCAST },
@@ -120,7 +120,7 @@ static const uint32_t _rtnetlink_mcast[] = {
   RTNLGRP_IPV4_ROUTE, RTNLGRP_IPV6_ROUTE
 };
 
-struct os_system_netlink _rtnetlink_socket = {
+static struct os_system_netlink _rtnetlink_socket = {
   .name = "routing",
   .used_by = &_oonf_os_routing_subsystem,
   .cb_message = _cb_rtnetlink_message,
@@ -129,7 +129,7 @@ struct os_system_netlink _rtnetlink_socket = {
   .cb_timeout = _cb_rtnetlink_timeout,
 };
 
-struct os_system_netlink _rtnetlink_event_socket = {
+static struct os_system_netlink _rtnetlink_event_socket = {
   .name = "routing listener",
   .used_by = &_oonf_os_routing_subsystem,
   .cb_message = _cb_rtnetlink_event_message,
@@ -199,6 +199,12 @@ _cleanup(void) {
   os_system_netlink_remove(&_rtnetlink_event_socket);
 }
 
+/**
+ * Check if kernel supports source-specific routing
+ * @param af_family address family
+ * @return true if source-specific routing is supported for
+ *   address family
+ */
 bool
 os_routing_supports_source_specific(int af_family) {
   if (af_family == AF_INET) {
@@ -349,16 +355,27 @@ os_routing_is_in_progress(struct os_route *route) {
   return avl_is_node_added(&route->_internal._node);
 }
 
+/**
+ * @return wildcard route
+ */
 const struct os_route *
 os_routing_get_wildcard_route(void) {
   return &OS_ROUTE_WILDCARD;
 }
 
+/**
+ * Add routing change listener
+ * @param listener routing change listener
+ */
 void
 os_routing_listener_add(struct os_route_listener *listener) {
   list_add_tail(&_rtnetlink_listener, &listener->_internal._node);
 }
 
+/**
+ * Remove routing change listener
+ * @param listener routing change listener
+ */
 void
 os_routing_listener_remove(struct os_route_listener *listener) {
   list_remove(&listener->_internal._node);

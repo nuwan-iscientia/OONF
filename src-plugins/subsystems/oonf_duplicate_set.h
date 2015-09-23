@@ -51,20 +51,41 @@
 #include "common/netaddr.h"
 #include "subsystems/oonf_timer.h"
 
+/*! subsystem identifier */
 #define OONF_DUPSET_SUBSYSTEM "duplicate_set"
 
-enum { OONF_DUPSET_MAXIMUM_TOO_OLD = 8 };
+/**
+ * duplicate set constants
+ */
+enum {
+  /**
+   * number of consecutive 'too old' sequence numbers before
+   * algorithm resets
+   */
+  OONF_DUPSET_MAXIMUM_TOO_OLD = 8
+};
 
+/**
+ * results of a duplicate check
+ */
 enum oonf_duplicate_result {
+  /*! much older than cached number */
   OONF_DUPSET_TOO_OLD,
-  OONF_DUPSET_DUPLICATE,
-  OONF_DUPSET_CURRENT,
-  OONF_DUPSET_NEW,
-  OONF_DUPSET_NEWEST,
-  OONF_DUPSET_FIRST,
 
-  /* this one must be the last entry */
-  OONF_DUPSET_MAX,
+  /*! duplicate */
+  OONF_DUPSET_DUPLICATE,
+
+  /*! unknown number within the sliding window */
+  OONF_DUPSET_NEW,
+
+  /*! exactly the latest cached number */
+  OONF_DUPSET_CURRENT,
+
+  /*! newer than the latest cached number */
+  OONF_DUPSET_NEWEST,
+
+  /*! sequence number was the first tested with the duplicate set */
+  OONF_DUPSET_FIRST,
 };
 
 /**
@@ -121,10 +142,20 @@ struct oonf_duplicate_entry {
   struct oonf_timer_instance _vtime;
 };
 
+/**
+ * bitwidth of duplicate set
+ */
 enum oonf_dupset_type {
+  /*! 8 bit duplicate set */
   OONF_DUPSET_8BIT,
+
+  /*! 16 bit duplicate set */
   OONF_DUPSET_16BIT,
+
+  /*! 32 bit duplicate set */
   OONF_DUPSET_32BIT,
+
+  /*! 64 bit duplicate set */
   OONF_DUPSET_64BIT,
 };
 
@@ -148,7 +179,9 @@ EXPORT const char *oonf_duplicate_get_result_str(enum oonf_duplicate_result);
  */
 static INLINE bool
 oonf_duplicate_is_new(enum oonf_duplicate_result result) {
-  return result == OONF_DUPSET_NEW || result == OONF_DUPSET_NEWEST || result == OONF_DUPSET_FIRST;
+  return result == OONF_DUPSET_NEW
+      || result == OONF_DUPSET_NEWEST
+      || result == OONF_DUPSET_FIRST;
 }
 
 #endif /* OONF_DUPLICATE_SET_H_ */

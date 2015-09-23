@@ -51,8 +51,12 @@
 #include "config/cfg.h"
 #include "config/cfg_schema.h"
 
+/*! subsystem identifier */
 #define OONF_CLOCK_SUBSYSTEM "clock"
 
+/**
+ * Clock multiplied constants
+ */
 enum {
   /*! number of milliseconds in a second */
   MSEC_PER_SEC = 1000ull,
@@ -61,15 +65,100 @@ enum {
   USEC_PER_MSEC = 1000ull,
 };
 
-/* definitions for config parser usage */
+/**
+ * Creates a cfg_schema_entry for a clock value
+ * @param p_name parameter name
+ * @param p_def parameter default value
+ * @param p_help help text for configuration entry
+ * @param args variable list of additional arguments
+ */
 #define CFG_VALIDATE_CLOCK(p_name, p_def, p_help, args...)                  CFG_VALIDATE_INT64_MINMAX(p_name, p_def, p_help, 3, false, 0, INT64_MAX, ##args)
+
+/**
+ * Creates a cfg_schema_entry for a clock value with defined minimum
+ * @param p_name parameter name
+ * @param p_def parameter default value
+ * @param p_help help text for configuration entry
+ * @param min minimal allowed clock value
+ * @param args variable list of additional arguments
+ */
 #define CFG_VALIDATE_CLOCK_MIN(p_name, p_def, p_help, min, args...)         CFG_VALIDATE_INT64_MINMAX(p_name, p_def, p_help, 3, false, min, INT64_MAX, ##args)
+
+/**
+ * Creates a cfg_schema_entry for a clock value with defined maximum
+ * @param p_name parameter name
+ * @param p_def parameter default value
+ * @param p_help help text for configuration entry
+ * @param max maximal allowed clock value
+ * @param args variable list of additional arguments
+ */
 #define CFG_VALIDATE_CLOCK_MAX(p_name, p_def, p_help, max, args...)         CFG_VALIDATE_INT64_MINMAX(p_name, p_def, p_help, 3, false, 0, max, ##args)
+
+/**
+ * Creates a cfg_schema_entry for a clock value with minimum and maximum
+ * @param p_name parameter name
+ * @param p_def parameter default value
+ * @param p_help help text for configuration entry
+ * @param min minimal allowed clock value
+ * @param max maximal allowed clock value
+ * @param args variable list of additional arguments
+ */
 #define CFG_VALIDATE_CLOCK_MINMAX(p_name, p_def, p_help, min, max, args...) CFG_VALIDATE_INT64_MINMAX(p_name, p_def, p_help, 3, false, min, max, ##args)
 
+/**
+ * Creates a cfg_schema_entry for a clock value that
+ * can be mapped into a binary struct
+ * @param p_reference reference to instance of struct
+ * @param p_field name of field in the struct for the parameter,
+ *   it must be a string array
+ * @param p_name parameter name
+ * @param p_def parameter default value
+ * @param p_help help text for configuration entry
+ * @param args variable list of additional arguments
+ */
 #define CFG_MAP_CLOCK(p_reference, p_field, p_name, p_def, p_help, args...)                  CFG_MAP_INT64_MINMAX(p_reference, p_field, p_name, p_def, p_help, 3, false, 0, INT64_MAX, ##args)
+
+/**
+ * Creates a cfg_schema_entry for a clock value with minimal value that
+ * can be mapped into a binary struct
+ * @param p_reference reference to instance of struct
+ * @param p_field name of field in the struct for the parameter,
+ *   it must be a string array
+ * @param p_name parameter name
+ * @param p_def parameter default value
+ * @param p_help help text for configuration entry
+ * @param min minimal allowed clock value
+ * @param args variable list of additional arguments
+ */
 #define CFG_MAP_CLOCK_MIN(p_reference, p_field, p_name, p_def, p_help, min, args...)         CFG_MAP_INT64_MINMAX(p_reference, p_field, p_name, p_def, p_help, 3, false, min, INT64_MAX, ##args)
+
+/**
+ * Creates a cfg_schema_entry for a clock value with maximal value that
+ * can be mapped into a binary struct
+ * @param p_reference reference to instance of struct
+ * @param p_field name of field in the struct for the parameter,
+ *   it must be a string array
+ * @param p_name parameter name
+ * @param p_def parameter default value
+ * @param p_help help text for configuration entry
+ * @param max maximal allowed clock value
+ * @param args variable list of additional arguments
+ */
 #define CFG_MAP_CLOCK_MAX(p_reference, p_field, p_name, p_def, p_help, max, args...)         CFG_MAP_INT64_MINMAX(p_reference, p_field, p_name, p_def, p_help, 3, false, 0, max, ##args)
+
+/**
+ * Creates a cfg_schema_entry for a clock value with minimal
+ * and maximal value that can be mapped into a binary struct
+ * @param p_reference reference to instance of struct
+ * @param p_field name of field in the struct for the parameter,
+ *   it must be a string array
+ * @param p_name parameter name
+ * @param p_def parameter default value
+ * @param p_help help text for configuration entry
+ * @param min minimal allowed clock value
+ * @param max maximal allowed clock value
+ * @param args variable list of additional arguments
+ */
 #define CFG_MAP_CLOCK_MINMAX(p_reference, p_field, p_name, p_def, p_help, min, max, args...) CFG_MAP_INT64_MINMAX(p_reference, p_field, p_name, p_def, p_help, 3, false, min, max, ##args)
 
 EXPORT int oonf_clock_update(void) __attribute__((warn_unused_result));

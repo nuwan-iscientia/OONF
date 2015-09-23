@@ -78,7 +78,7 @@ static struct oonf_class _dupset_class = {
 };
 
 /* dupset result names */
-static const char *OONF_DUPSET_RESULT_STR[OONF_DUPSET_MAX] = {
+static const char *OONF_DUPSET_RESULT_STR[] = {
   [OONF_DUPSET_TOO_OLD]   = "too old",
   [OONF_DUPSET_DUPLICATE] = "duplicate",
   [OONF_DUPSET_CURRENT]   = "current",
@@ -294,8 +294,8 @@ _seqno_difference(struct oonf_duplicate_set *set, uint64_t seqno1, uint64_t seqn
  *   to leave the entry unchanged.
  * @return OONF_DUPSET_TOO_OLD if sequence number is more than 32 behind
  *   the current one, OONF_DUPSET_DUPLICATE if the number is in the set,
- *   OONF_DUPSET_CURRENT if the number is exactly the current seqence number,
- *   OONF_DUPSET_NEW if the number was added to the set and OONF_DUPSET_NEWEST
+ *   OONF_DUPSET_CURRENT if the number is exactly the current sequence number,
+ *   OONF_DUPSET_ if the number was added to the set and OONF_DUPSET_NEWEST
  *   if the sequence number is newer than the newest in the set
  */
 enum oonf_duplicate_result
@@ -357,6 +357,11 @@ _test(struct oonf_duplicate_set *dupset,
   return OONF_DUPSET_NEWEST;
 }
 
+/**
+ * Get text representation of duplicate check result
+ * @param result duplicate check result
+ * @return text representation
+ */
 const char *
 oonf_duplicate_get_result_str(enum oonf_duplicate_result result) {
   return OONF_DUPSET_RESULT_STR[result];

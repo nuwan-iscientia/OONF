@@ -235,7 +235,7 @@ oonf_class_free(struct oonf_class *ci, void *ptr)
    * ten blocks on the free list.
    */
   if (ci->_free_list_size < ci->min_free_count
-      || (ci->_free_list_size < ci->_current_usage / OONF_CLASS_FREE_THRESHOLD)) {
+      || (ci->_free_list_size < ci->_current_usage / 10)) {
     item = ptr;
 
     list_add_tail(&ci->_free_list, item);
@@ -350,11 +350,20 @@ oonf_class_event(struct oonf_class *c, void *ptr, enum oonf_class_event evt) {
   OONF_DEBUG(LOG_CLASS, "Fire event finished");
 }
 
+/**
+ * get tree of memory classes
+ * @return class tree
+ */
 struct avl_tree *
 oonf_class_get_tree(void) {
   return &_classes_tree;
 }
 
+/**
+ * get name of memory class event
+ * @param event type of event
+ * @return name of event
+ */
 const char *
 oonf_class_get_event_name(enum oonf_class_event event) {
   return OONF_CLASS_EVENT_NAME[event];

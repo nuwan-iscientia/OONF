@@ -55,21 +55,22 @@
 
 #include "subsystems/oonf_timer.h"
 
+/*! subsystem identifier */
 #define OONF_INTERFACE_SUBSYSTEM "interface"
 
-/* memory class for oonf interfaces */
+/*! memory class for oonf interfaces */
 #define OONF_CLASS_INTERFACE             "oonf_interface"
 
-/*
- * Configuration settings for interface section
- */
+/*! interface configuration section name */
 #define CFG_INTERFACE_SECTION      "interface"
+
+/*! interface configuration section mode */
 #define CFG_INTERFACE_SECTION_MODE CFG_SSMODE_NAMED
 
-/* wildcard name for interfaces */
+/*! wildcard name for interfaces */
 #define OONF_INTERFACE_WILDCARD "any"
 
-/* interval after a failed interface change listener should be triggered again */
+/*! interval after a failed interface change listener should be triggered again */
 #define IF_RETRIGGER_INTERVAL 1000ull
 
 /**

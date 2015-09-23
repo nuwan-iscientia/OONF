@@ -166,3 +166,12 @@ os_vif_close(struct os_vif *vif) {
     avl_remove(&_vif_tree, &vif->_vif_node);
   }
 }
+
+/**
+ * get virtual interface tree
+ * @return vif tree
+ */
+struct avl_tree *
+os_vif_get_tree(void) {
+  return &_vif_tree;
+}

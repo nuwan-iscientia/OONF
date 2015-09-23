@@ -340,6 +340,10 @@ oonf_timer_getNextEvent(void) {
   return first->_clock;
 }
 
+/**
+ * get list of active timer classes
+ * @return timer class list
+ */
 struct list_entity *
 oonf_timer_get_list(void) {
   return &_timer_info_list;

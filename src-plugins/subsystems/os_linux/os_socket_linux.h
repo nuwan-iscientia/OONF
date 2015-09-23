@@ -54,10 +54,8 @@
 
 #include "../os_socket.h"
 
-/* name of the loopback interface */
+/*! name of the loopback interface */
 #define IF_LOOPBACK_NAME "lo"
-
-EXPORT int os_socket_linux_get_ioctl_fd(int af_type);
 
 /**
  * Close a file descriptor

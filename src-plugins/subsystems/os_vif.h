@@ -49,6 +49,7 @@
 #include "common/common_types.h"
 #include "common/avl.h"
 
+/*! subsystem identifier */
 #define OONF_OS_VIF_SUBSYSTEM "os_vif"
 
 /* include os-specific headers */
@@ -58,8 +59,14 @@
 #error "Unknown operation system"
 #endif
 
+/**
+ * types of virtual interfaces
+ */
 enum vif_type {
+  /*! IP level virtual interface */
   OS_VIF_IP,
+
+  /*! MAC level virtual interface */
   OS_VIF_MAC,
 };
 

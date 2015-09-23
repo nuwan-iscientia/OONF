@@ -54,6 +54,7 @@
 #include "subsystems/oonf_socket.h"
 #include "subsystems/oonf_timer.h"
 
+/*! default timeout for netlink messages */
 #define OS_SYSTEM_NETLINK_TIMEOUT 1000
 
 /**

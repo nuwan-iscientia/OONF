@@ -51,6 +51,7 @@
 #include "common/avl.h"
 #include "common/netaddr_acl.h"
 
+/*! subsystem identifier */
 #define OONF_SOCKET_SUBSYSTEM "socket"
 
 /**
