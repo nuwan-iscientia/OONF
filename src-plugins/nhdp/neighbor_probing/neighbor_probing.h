@@ -46,16 +46,14 @@
 #ifndef NEIGHBOR_PROBING_H_
 #define NEIGHBOR_PROBING_H_
 
-#include "common/common_types.h"
-#include "core/oonf_subsystem.h"
-
+/*! subsystem identifier */
 #define OONF_NEIGHBOR_PROBING_SUBSYSTEM "neighbor_probing"
 
 enum {
-  /* message type for probing */
+  /*! message type for probing */
   RFC5444_MSGTYPE_PROBING = 192,
 
-  /* message specifc TLV */
+  /*! message specific probing TLV */
   RFC5444_MSGTLV_PROBING = 128,
 };
 

@@ -46,9 +46,7 @@
 #ifndef NHDPCHECK_H_
 #define NHDPCHECK_H_
 
-#include "common/common_types.h"
-#include "core/oonf_subsystem.h"
-
+/*! subsystem identifier */
 #define OONF_NHDPCHECK_SUBSYSTEM "nhdpcheck"
 
 #endif /* NHDPCHECK_H_ */

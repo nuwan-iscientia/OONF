@@ -60,20 +60,43 @@ struct nhdp_laddr;
 
 #include "nhdp/nhdp.h"
 
+/*! memory class for NHDP links */
 #define NHDP_CLASS_LINK             "nhdp_link"
+
+/*! memory class for NHDP link address */
 #define NHDP_CLASS_LINK_ADDRESS     "nhdp_laddr"
+
+/*! memory class for NHDP 2hop link */
 #define NHDP_CLASS_LINK_2HOP        "nhdp_l2hop"
+
+/*! memory class for NHDP neighbor */
 #define NHDP_CLASS_NEIGHBOR         "nhdp_neighbor"
+
+/*! memory class for NHDP neighbor address */
 #define NHDP_CLASS_NEIGHBOR_ADDRESS "nhdp_naddr"
 
+/**
+ * link status of NHDP neighbors
+ */
 enum nhdp_link_status {
-  NHDP_LINK_PENDING   = -1,                          //!< NHDP_LINK_PENDING
-  NHDP_LINK_LOST      = RFC6130_LINKSTATUS_LOST,     //!< NHDP_LINK_LOST
-  NHDP_LINK_SYMMETRIC = RFC6130_LINKSTATUS_SYMMETRIC,//!< NHDP_LINK_SYMMETRIC
-  NHDP_LINK_HEARD     = RFC6130_LINKSTATUS_HEARD,    //!< NHDP_LINK_HEARD
+  /*! link is pending */
+  NHDP_LINK_PENDING   = -1,
+
+  /*! link is lost */
+  NHDP_LINK_LOST      = RFC6130_LINKSTATUS_LOST,
+
+  /*! link is symmetric */
+  NHDP_LINK_SYMMETRIC = RFC6130_LINKSTATUS_SYMMETRIC,
+
+  /*! link has been heard */
+  NHDP_LINK_HEARD     = RFC6130_LINKSTATUS_HEARD,
 };
 
+/**
+ * NHDP db constants
+ */
 enum {
+  /*! maximum text length of link status */
   NHDP_LINK_STATUS_TXTLENGTH = 10
 };
 

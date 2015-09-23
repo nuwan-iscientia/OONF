@@ -76,8 +76,6 @@ struct _config {
   uint64_t startup_delay;
 };
 
-#define _MODE_DETECT "detect"
-
 /**
  * NHDP interface class extension of autoll4 plugin
  */

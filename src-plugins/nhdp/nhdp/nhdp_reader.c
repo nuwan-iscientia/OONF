@@ -87,9 +87,9 @@ static void _cleanup_error(void);
 static enum rfc5444_result _pass2_process_localif(struct netaddr *addr, uint8_t local_if);
 static void _handle_originator(struct rfc5444_reader_tlvblock_context *context);
 
-static enum rfc5444_result
-_cb_messagetlvs(struct rfc5444_reader_tlvblock_context *context);
-enum rfc5444_result _cb_failed_constraints(
+static enum rfc5444_result _cb_messagetlvs(
+    struct rfc5444_reader_tlvblock_context *context);
+static enum rfc5444_result _cb_failed_constraints(
       struct rfc5444_reader_tlvblock_context *context);
 
 static enum rfc5444_result
@@ -195,6 +195,7 @@ static struct {
 
 /**
  * Initialize nhdp reader
+ * @param p rfc5444 protocol
  */
 void
 nhdp_reader_init(struct oonf_rfc5444_protocol *p) {
@@ -471,7 +472,7 @@ _cb_messagetlvs(struct rfc5444_reader_tlvblock_context *context) {
   return RFC5444_OKAY;
 }
 
-enum rfc5444_result
+static enum rfc5444_result
 _cb_failed_constraints(struct rfc5444_reader_tlvblock_context *context __attribute__((unused))) {
 #ifdef OONF_LOG_INFO
   struct netaddr_str nbuf;

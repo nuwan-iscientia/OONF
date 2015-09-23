@@ -159,9 +159,9 @@ static void _cb_link_changed(void *);
 static void _cb_link_removed(void *);
 
 static void _cb_dat_sampling(void *);
-void _calculate_link_neighborhood(struct nhdp_link *lnk,
+static void _calculate_link_neighborhood(struct nhdp_link *lnk,
     struct link_datff_data *ldata);
-int _calculate_loss_exponent(int link_neigborhood);
+static int _calculate_dynamic_loss_exponent(int link_neigborhood);
 static uint32_t _apply_packet_loss(struct nhdp_link *lnk,
     struct link_datff_data *ldata,
     uint32_t metric, uint32_t received, uint32_t total);
@@ -185,13 +185,24 @@ static int _cb_cfg_validate(const char *section_name,
 static void _cb_cfg_changed(void);
 
 /* plugin declaration */
+
+/**
+ * loss scaling options
+ */
 enum idx_loss_scaling {
+  /*! linear loss scaling */
   IDX_LOSS_LINEAR,
+
+  /*! quadratic loss scaling */
   IDX_LOSS_QUADRATIC,
+
+  /*! cubic loss scaling */
   IDX_LOSS_CUBIC,
+
+  /*! dynamic loss scaling */
   IDX_LOSS_DYNAMIC,
 };
-const char *LOSS_SCALING[] = {
+static const char *LOSS_SCALING[] = {
   [IDX_LOSS_LINEAR]    = "linear",
   [IDX_LOSS_QUADRATIC] = "quadratic",
   [IDX_LOSS_CUBIC]     = "cubic",
@@ -675,7 +686,12 @@ _cb_dat_sampling(void *ptr __attribute__((unused))) {
   }
 }
 
-void
+/**
+ * Calculate how many neigbors a link has
+ * @param lnk nhdp link
+ * @param data ff data link data
+ */
+static void
 _calculate_link_neighborhood(struct nhdp_link *lnk, struct link_datff_data *data) {
   struct nhdp_l2hop *l2hop;
   struct nhdp_laddr *laddr;
@@ -695,8 +711,13 @@ _calculate_link_neighborhood(struct nhdp_link *lnk, struct link_datff_data *data
   data->link_neigborhood = count;
 }
 
-int
-_calculate_loss_exponent(int link_neigborhood) {
+/**
+ * Calculate the loss exponentiation based on the link neigborhood size
+ * @param link_neigborhood link neighborhood count
+ * @return loss exponent
+ */
+static int
+_calculate_dynamic_loss_exponent(int link_neigborhood) {
   if (link_neigborhood < 4) {
     return 1;
   }
@@ -752,7 +773,7 @@ _apply_packet_loss(struct nhdp_link *lnk,
       loss_exponent = 3;
       break;
     case IDX_LOSS_DYNAMIC:
-      loss_exponent = _calculate_loss_exponent(ldata->link_neigborhood);
+      loss_exponent = _calculate_dynamic_loss_exponent(ldata->link_neigborhood);
       break;
     default:
       loss_exponent = 1;

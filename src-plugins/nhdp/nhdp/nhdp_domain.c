@@ -76,7 +76,7 @@ static const char *_path_to_string(struct nhdp_metric_str *, uint32_t, uint8_t);
 static const char *_int_to_string(struct nhdp_metric_str *, struct nhdp_link *);
 
 /* domain class */
-struct oonf_class _domain_class = {
+static struct oonf_class _domain_class = {
   .name = NHDP_CLASS_DOMAIN,
   .size = sizeof(struct nhdp_domain),
 };
@@ -118,7 +118,7 @@ static struct avl_tree _domain_metrics;
 static struct avl_tree _domain_mprs;
 
 /* flooding domain */
-struct nhdp_domain _flooding_domain;
+static struct nhdp_domain _flooding_domain;
 
 /* NHDP RFC5444 protocol */
 static struct oonf_rfc5444_protocol *_protocol;
@@ -860,16 +860,32 @@ nhdp_domain_set_incoming_metric(struct nhdp_domain_metric *metric,
   return changed;
 }
 
+/**
+ * get list of nhdp domains
+ * @return domain list
+ */
 struct list_entity *
 nhdp_domain_get_list(void) {
   return &_domain_list;
 }
 
+/**
+ * get list of nhdp domain listeners for metric/mpr changes
+ * @return listener list
+ */
 struct list_entity *
 nhdp_domain_get_listener_list(void) {
   return &_domain_listener_list;
 }
 
+/**
+ * get current NHDP flooding domain
+ * @return flooding domain
+ */
+const struct nhdp_domain *
+nhdp_domain_get_flooding(void) {
+  return &_flooding_domain;
+}
 
 /**
  * Recalculate the 'best link/metric' values of a neighbor
@@ -1034,7 +1050,7 @@ _apply_metric(struct nhdp_domain *domain, const char *metric_name) {
   }
 
   /* Handle wildcard metric name first */
-  if (strcasecmp(metric_name, CFG_DOMAIN_ANY_METRIC) == 0
+  if (strcasecmp(metric_name, CFG_DOMAIN_ANY_METRIC_MPR) == 0
       && !avl_is_empty(&_domain_metrics)) {
     metric_name = avl_first_element(&_domain_metrics, metric, _node)->name;
   }
@@ -1069,7 +1085,7 @@ _remove_metric(struct nhdp_domain *domain) {
   if (!domain->metric->_refcount && domain->metric->disable) {
     domain->metric->disable();
   }
-  strscpy(domain->metric_name, CFG_DOMAIN_NO_METRIC, sizeof(domain->metric_name));
+  strscpy(domain->metric_name, CFG_DOMAIN_NO_METRIC_MPR, sizeof(domain->metric_name));
   domain->metric = &_no_metric;
   domain->metric->_refcount++;
 }
@@ -1100,7 +1116,7 @@ _apply_mpr(struct nhdp_domain *domain, const char *mpr_name, uint8_t willingness
   }
 
   /* Handle wildcard mpr name first */
-  if (strcasecmp(mpr_name, CFG_DOMAIN_ANY_METRIC) == 0
+  if (strcasecmp(mpr_name, CFG_DOMAIN_ANY_METRIC_MPR) == 0
       && !avl_is_empty(&_domain_mprs)) {
     mpr_name = avl_first_element(&_domain_mprs, mpr, _node)->name;
   }
@@ -1135,7 +1151,7 @@ _remove_mpr(struct nhdp_domain *domain) {
   if (!domain->mpr->_refcount && domain->mpr->disable) {
     domain->mpr->disable();
   }
-  strscpy(domain->mpr_name, CFG_DOMAIN_NO_MPR, sizeof(domain->mpr_name));
+  strscpy(domain->mpr_name, CFG_DOMAIN_NO_METRIC_MPR, sizeof(domain->mpr_name));
   domain->mpr = &_everyone_mprs;
   domain->mpr->_refcount++;
 }

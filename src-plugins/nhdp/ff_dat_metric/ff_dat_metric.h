@@ -46,14 +46,14 @@
 #ifndef FF_DAT_METRIC_H_
 #define FF_DAT_METRIC_H_
 
-#include "common/common_types.h"
-#include "core/oonf_subsystem.h"
-
+/*! subsystem identification */
 #define OONF_FF_DAT_METRIC_SUBSYSTEM "ff_dat_metric"
 
-/* definitions and constants */
+/**
+ * ff data metric constants
+ */
 enum {
-  /* frame transmission success bewteen 1/8 and 8/8 */
+  /* frame transmission success between 1/8 and 8/8 */
   DATFF_FRAME_SUCCESS_RANGE = 1<<3,
 
   /*

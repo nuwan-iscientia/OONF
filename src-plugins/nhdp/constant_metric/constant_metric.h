@@ -46,10 +46,7 @@
 #ifndef CONSTANT_METRIC_H_
 #define CONSTANT_METRIC_H_
 
-#include "common/common_types.h"
-#include "core/oonf_subsystem.h"
-
-/* definitions and constants */
+/*! subsystem identification */
 #define OONF_CONSTANT_METRIC_SUBSYSTEM "constant_metric"
 
 #endif /* CONSTANT_METRIC_H_ */

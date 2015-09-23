@@ -104,6 +104,8 @@ static struct nhdp_interface *_nhdp_if = NULL;
 
 /**
  * Initialize nhdp writer
+ * @param p rfc5444 protocol
+ * @return -1 if an error happened, 0 otherwise
  */
 int
 nhdp_writer_init(struct oonf_rfc5444_protocol *p) {

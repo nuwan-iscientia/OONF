@@ -69,8 +69,6 @@
 /* constants and definitions */
 #define LOG_CONSTANT_METRIC _olsrv2_constant_metric_subsystem.logging
 
-#define CFG_LINK_ENTRY "link"
-
 /**
  * Session data for a configured constant metric
  */
@@ -103,7 +101,7 @@ static void _cb_cfg_changed(void);
 
 /* plugin declaration */
 static struct cfg_schema_entry _constant_entries[] = {
-  _CFG_VALIDATE(CFG_LINK_ENTRY, "", "Defines the static cost to the link to a neighbor."
+  _CFG_VALIDATE("link", "", "Defines the static cost to the link to a neighbor."
       " Value consists of the originator address followed by the link cost",
       .cb_validate = _cb_validate_link, .list = true),
 };
@@ -167,7 +165,7 @@ static struct oonf_class _linkcost_class = {
   .size = sizeof(struct _linkcost),
 };
 
-struct avl_tree _linkcost_tree;
+static struct avl_tree _linkcost_tree;
 
 /**
  * Initialize plugin

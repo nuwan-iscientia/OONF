@@ -59,7 +59,7 @@ static const char * _to_string(struct nhdp_hysteresis_str *buf,
     struct nhdp_link *lnk);
 
 /* default handler */
-struct nhdp_hysteresis_handler _handler = {
+static struct nhdp_hysteresis_handler _handler = {
   .name = "No NHDP hysteresis",
   .update_hysteresis = _update_hysteresis,
   .is_pending = _is_pending,

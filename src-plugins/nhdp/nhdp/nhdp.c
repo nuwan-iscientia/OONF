@@ -101,9 +101,9 @@ static int _cb_validate_domain_section(const char *section_name,
 /* subsystem definition */
 static struct cfg_schema_entry _nhdp_entries[] = {
   CFG_MAP_STRING_ARRAY(_generic_parameters, flooding_mpr_name, "mpr", "*",
-      "ID of the mpr algorithm used for this domain. '"CFG_DOMAIN_NO_MPR"'"
-      " means no mpr algorithm (everyone is MPR), '"CFG_DOMAIN_ANY_MPR"' means"
-      " any metric that is loaded (with fallback on '"CFG_DOMAIN_NO_MPR"').",
+      "ID of the mpr algorithm used for this domain. '"CFG_DOMAIN_NO_METRIC_MPR"'"
+      " means no mpr algorithm (everyone is MPR), '"CFG_DOMAIN_ANY_METRIC_MPR"' means"
+      " any metric that is loaded (with fallback on '"CFG_DOMAIN_NO_METRIC_MPR"').",
       NHDP_DOMAIN_MPR_MAXLEN),
   CFG_MAP_INT32_MINMAX(_generic_parameters, mpr_willingness, "willingness",
       RFC7181_WILLINGNESS_DEFAULT_STRING,
@@ -138,15 +138,15 @@ static struct cfg_schema_section _interface_section = {
 };
 
 static struct cfg_schema_entry _domain_entries[] = {
-  CFG_MAP_STRING_ARRAY(_domain_parameters, metric_name, "metric", CFG_DOMAIN_ANY_METRIC,
-      "ID of the routing metric used for this domain. '"CFG_DOMAIN_NO_METRIC"'"
-      " means no metric (hopcount!), '"CFG_DOMAIN_ANY_METRIC"' means any metric"
-      " that is loaded (with fallback on '"CFG_DOMAIN_NO_METRIC"').",
+  CFG_MAP_STRING_ARRAY(_domain_parameters, metric_name, "metric", CFG_DOMAIN_ANY_METRIC_MPR,
+      "ID of the routing metric used for this domain. '"CFG_DOMAIN_NO_METRIC_MPR"'"
+      " means no metric (hopcount!), '"CFG_DOMAIN_ANY_METRIC_MPR"' means any metric"
+      " that is loaded (with fallback on '"CFG_DOMAIN_NO_METRIC_MPR"').",
       NHDP_DOMAIN_METRIC_MAXLEN),
-  CFG_MAP_STRING_ARRAY(_domain_parameters, mpr_name,  "mpr", CFG_DOMAIN_ANY_MPR,
-      "ID of the mpr algorithm used for this domain. '"CFG_DOMAIN_NO_MPR"'"
-      " means no mpr algorithm (everyone is MPR), '"CFG_DOMAIN_ANY_MPR"' means"
-      " any metric that is loaded (with fallback on '"CFG_DOMAIN_NO_MPR"').",
+  CFG_MAP_STRING_ARRAY(_domain_parameters, mpr_name,  "mpr", CFG_DOMAIN_ANY_METRIC_MPR,
+      "ID of the mpr algorithm used for this domain. '"CFG_DOMAIN_NO_METRIC_MPR"'"
+      " means no mpr algorithm (everyone is MPR), '"CFG_DOMAIN_ANY_METRIC_MPR"' means"
+      " any metric that is loaded (with fallback on '"CFG_DOMAIN_NO_METRIC_MPR"').",
       NHDP_DOMAIN_MPR_MAXLEN),
   CFG_MAP_INT32_MINMAX(_domain_parameters, mpr_willingness, "willingness",
       RFC7181_WILLINGNESS_DEFAULT_STRING, "Routing willingness used for MPR calculation",

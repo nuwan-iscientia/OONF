@@ -46,10 +46,7 @@
 #ifndef AUTO_LL4_H_
 #define AUTO_LL4_H_
 
-#include "common/common_types.h"
-#include "core/oonf_subsystem.h"
-
-/* definitions and constants */
+/*! subsystem identification */
 #define OONF_AUTO_LL4_SUBSYSTEM "auto_ll4"
 
 #endif /* AUTO_LL4_H_ */
