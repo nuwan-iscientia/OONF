@@ -82,7 +82,5 @@ EXPORT void rfc5444_print_remove(
 
 EXPORT enum rfc5444_result rfc5444_print_direct(
     struct autobuf *out, void *buffer, size_t length);
-EXPORT void rfc5444_print_hexdump(
-    struct autobuf *out, const char *prefix, void *buffer, size_t length);
 
 #endif /* PRINT_RFC5444_H_ */

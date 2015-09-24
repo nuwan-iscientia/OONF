@@ -48,6 +48,12 @@
 
 #include "core/app_data.h"
 
+/**
+ * Generic main function to call CORE API
+ * @param argc argument counter
+ * @param argv argument vector
+ * @return shell exit code
+ */
 int
 main(int argc, char **argv) {
   return oonf_main(argc, argv, oonf_appdata_get());

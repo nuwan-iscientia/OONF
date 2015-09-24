@@ -56,13 +56,6 @@ struct rfc5444_writer_message;
 #include "rfc5444_context.h"
 #include "rfc5444_reader.h"
 #include "rfc5444_tlv_writer.h"
-/*
- * Macros to iterate over existing addresses in a message(fragment)
- * during message generation (finishMessageHeader/finishMessageTLVs
- * callbacks)
- */
-#define for_each_fragment_address(first, last, address, loop) list_for_element_range(first, last, address, addr_node, loop)
-#define for_each_message_address(message, address, loop) list_for_each_element(&message->addr_head, address, addr_node, loop)
 
 /**
  * state machine values for the writer.
@@ -628,8 +621,16 @@ EXPORT void rfc5444_writer_register_target(struct rfc5444_writer *writer,
 EXPORT void rfc5444_writer_unregister_target(
     struct rfc5444_writer *writer, struct rfc5444_writer_target *target);
 
-/* prototype for message creation target filter */
-typedef bool (*rfc5444_writer_targetselector)(struct rfc5444_writer *, struct rfc5444_writer_target *, void *);
+/**
+ * prototype for message creation target filter
+ * @param writer rfc5444 writer
+ * @param target rfc5444 target
+ * @param custom custom data pointer
+ * @return true if target is selected
+ */
+typedef bool (*rfc5444_writer_targetselector)(
+    struct rfc5444_writer *writer,
+    struct rfc5444_writer_target *target, void *custom);
 
 EXPORT bool rfc5444_writer_singletarget_selector(struct rfc5444_writer *, struct rfc5444_writer_target *, void *);
 EXPORT bool rfc5444_writer_alltargets_selector(struct rfc5444_writer *, struct rfc5444_writer_target *, void *);

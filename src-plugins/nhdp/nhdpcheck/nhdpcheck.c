@@ -102,7 +102,7 @@ static enum rfc5444_result _cb_addresstlvs(
 /* definition of the RFC5444 reader components */
 static struct rfc5444_reader_tlvblock_consumer _nhdp_message_consumer = {
   .order = RFC5444_VALIDATOR_PRIORITY,
-  .msg_id = RFC5444_MSGTYPE_HELLO,
+  .msg_id = RFC6130_MSGTYPE_HELLO,
   .start_callback = _cb_message_start_callback,
   .block_callback = _cb_messagetlvs,
 };
@@ -114,7 +114,7 @@ static struct rfc5444_reader_tlvblock_consumer_entry _nhdp_message_tlvs[] = {
 
 static struct rfc5444_reader_tlvblock_consumer _nhdp_address_consumer = {
   .order = RFC5444_VALIDATOR_PRIORITY,
-  .msg_id = RFC5444_MSGTYPE_HELLO,
+  .msg_id = RFC6130_MSGTYPE_HELLO,
   .block_callback = _cb_addresstlvs,
 };
 

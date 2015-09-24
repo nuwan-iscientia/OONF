@@ -105,7 +105,7 @@ static enum rfc5444_result _cb_msg_pass2_end(
 /* definition of the RFC5444 reader components */
 static struct rfc5444_reader_tlvblock_consumer _nhdp_message_pass1_consumer = {
   .order = RFC5444_MAIN_PARSER_PRIORITY,
-  .msg_id = RFC5444_MSGTYPE_HELLO,
+  .msg_id = RFC6130_MSGTYPE_HELLO,
   .block_callback = _cb_messagetlvs,
   .block_callback_failed_constraints = _cb_failed_constraints,
   .end_callback = _cb_addresstlvs_pass1_end,
@@ -129,7 +129,7 @@ static struct rfc5444_reader_tlvblock_consumer_entry _nhdp_message_tlvs[] = {
 
 static struct rfc5444_reader_tlvblock_consumer _nhdp_address_pass1_consumer = {
   .order = RFC5444_MAIN_PARSER_PRIORITY,
-  .msg_id = RFC5444_MSGTYPE_HELLO,
+  .msg_id = RFC6130_MSGTYPE_HELLO,
   .addrblock_consumer = true,
   .block_callback = _cb_addresstlvs_pass1,
   .block_callback_failed_constraints = _cb_failed_constraints,
@@ -144,14 +144,14 @@ static struct rfc5444_reader_tlvblock_consumer_entry _nhdp_address_pass1_tlvs[] 
 
 static struct rfc5444_reader_tlvblock_consumer _nhdp_message_pass2_consumer = {
   .order = RFC5444_MAIN_PARSER_PRIORITY + 1,
-  .msg_id = RFC5444_MSGTYPE_HELLO,
+  .msg_id = RFC6130_MSGTYPE_HELLO,
   .end_callback = _cb_msg_pass2_end,
   .block_callback_failed_constraints = _cb_failed_constraints,
 };
 
 static struct rfc5444_reader_tlvblock_consumer _nhdp_address_pass2_consumer= {
   .order = RFC5444_MAIN_PARSER_PRIORITY + 1,
-  .msg_id = RFC5444_MSGTYPE_HELLO,
+  .msg_id = RFC6130_MSGTYPE_HELLO,
   .addrblock_consumer = true,
   .block_callback = _cb_addr_pass2_block,
   .block_callback_failed_constraints = _cb_failed_constraints,

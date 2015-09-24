@@ -54,6 +54,11 @@
 #include "rfc5444_api_config.h"
 
 #if DISALLOW_CONSUMER_CONTEXT_DROP == true
+/**
+ * Helper function to allow to switch consumer context drop on/off
+ * @param value value if context drop is allowed
+ * @param def value if context drop is not allowed
+ */
 #define RFC5444_CONSUMER_DROP_ONLY(value, def) (def)
 #else
 #define RFC5444_CONSUMER_DROP_ONLY(value, def) (value)

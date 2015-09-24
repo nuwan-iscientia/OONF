@@ -85,7 +85,7 @@ static void _write_metric_tlv(struct rfc5444_writer *writer,
 static struct rfc5444_writer_message *_nhdp_message = NULL;
 
 static struct rfc5444_writer_content_provider _nhdp_msgcontent_provider = {
-  .msg_type = RFC5444_MSGTYPE_HELLO,
+  .msg_type = RFC6130_MSGTYPE_HELLO,
   .addMessageTLVs = _cb_addMessageTLVs,
   .addAddresses = _cb_addAddresses,
 };
@@ -112,7 +112,7 @@ nhdp_writer_init(struct oonf_rfc5444_protocol *p) {
   _protocol = p;
 
   _nhdp_message = rfc5444_writer_register_message(
-      &_protocol->writer, RFC5444_MSGTYPE_HELLO, true);
+      &_protocol->writer, RFC6130_MSGTYPE_HELLO, true);
   if (_nhdp_message == NULL) {
     OONF_WARN(LOG_NHDP_W, "Could not register NHDP Hello message");
     return -1;
@@ -175,14 +175,14 @@ nhdp_writer_send_hello(struct nhdp_interface *ninterf) {
   _nhdp_if = ninterf;
 
   /* send IPv4 (if socket is active) */
-  result = oonf_rfc5444_send_if(ninterf->rfc5444_if.interface->multicast4, RFC5444_MSGTYPE_HELLO);
+  result = oonf_rfc5444_send_if(ninterf->rfc5444_if.interface->multicast4, RFC6130_MSGTYPE_HELLO);
   if (result < 0) {
     OONF_WARN(LOG_NHDP_W, "Could not send NHDP message to %s: %s (%d)",
         netaddr_to_string(&buf, &ninterf->rfc5444_if.interface->multicast4->dst), rfc5444_strerror(result), result);
   }
 
   /* send IPV6 (if socket is active) */
-  result = oonf_rfc5444_send_if(ninterf->rfc5444_if.interface->multicast6, RFC5444_MSGTYPE_HELLO);
+  result = oonf_rfc5444_send_if(ninterf->rfc5444_if.interface->multicast6, RFC6130_MSGTYPE_HELLO);
   if (result < 0) {
     OONF_WARN(LOG_NHDP_W, "Could not send NHDP message to %s: %s (%d)",
         netaddr_to_string(&buf, &ninterf->rfc5444_if.interface->multicast6->dst), rfc5444_strerror(result), result);
