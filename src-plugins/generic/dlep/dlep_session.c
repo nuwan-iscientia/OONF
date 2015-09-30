@@ -66,14 +66,16 @@ enum {
 static int _update_allowed_tlvs(struct dlep_session *session);
 static enum dlep_parser_error _parse_tlvstream(
     struct dlep_session *session, const uint8_t *buffer, size_t length);
-static enum dlep_parser_error _check_mandatory(
-    struct dlep_session *session, uint16_t signal_type);
-static enum dlep_parser_error _check_duplicate(
-    struct dlep_session *session, uint16_t signal_type);
-static enum dlep_parser_error _call_extension_processing(
-    struct dlep_session *parser, uint16_t signal_type);
+static enum dlep_parser_error _check_mandatory(struct dlep_session *session,
+    struct dlep_extension *ext, uint16_t signal_type);
+static enum dlep_parser_error _check_duplicate(struct dlep_session *session,
+    struct dlep_extension *ext, uint16_t signal_type);
+static enum dlep_parser_error _call_extension_processing(struct dlep_session *parser,
+    struct dlep_extension *ext, uint16_t signal_type);
 static struct dlep_parser_tlv *_add_session_tlv(
     struct dlep_session_parser *parser, uint16_t id);
+static enum dlep_parser_error _handle_extension(struct dlep_session *session,
+    struct dlep_extension *ext, uint16_t signal_type);
 static enum dlep_parser_error _process_tlvs(struct dlep_session *,
     uint16_t signal_type, uint16_t signal_length, const uint8_t *tlvs);
 static void _send_terminate(struct dlep_session *session);
@@ -498,26 +500,28 @@ dlep_session_get_local_l2_neighbor(struct dlep_session *session,
   struct oonf_layer2_neigh *l2neigh;
   struct oonf_layer2_net *l2net;
 #ifdef OONF_LOG_INFO
-  struct netaddr_str nbuf;
+  struct netaddr_str nbuf1, nbuf2;
 #endif
 
   dlep_neigh = dlep_session_get_local_neighbor(session, neigh);
   if (!dlep_neigh) {
     OONF_INFO(session->log_source, "Could not find local neighbor for %s",
-        netaddr_to_string(&nbuf, neigh));
+        netaddr_to_string(&nbuf1, neigh));
     return NULL;
   }
 
   l2net = oonf_layer2_net_get(session->l2_listener.name);
   if (!l2net) {
-    OONF_DEBUG(session->log_source, "Could not find l2net for new neighbor");
+    OONF_DEBUG(session->log_source, "Could not find l2net %s for new neighbor",
+        session->l2_listener.name);
     return NULL;
   }
 
   l2neigh = oonf_layer2_neigh_get(l2net, &dlep_neigh->neigh_addr);
   if (!l2neigh) {
     OONF_INFO(session->log_source, "Could not find l2neigh "
-        "for neighbor %s", netaddr_to_string(&nbuf, neigh));
+        "for neighbor %s (%s)", netaddr_to_string(&nbuf1, neigh),
+        netaddr_to_string(&nbuf2, &dlep_neigh->neigh_addr));
     return NULL;
   }
   return l2neigh;
@@ -719,6 +723,52 @@ _update_allowed_tlvs(struct dlep_session *session) {
 }
 
 /**
+ * Check constraints of extensions and call the relevant callbacks
+ * @param session dlep session
+ * @param ext dlep extension
+ * @param signal_type signal type
+ * @return dlep parser error, 0 of everything is fine
+ */
+static enum dlep_parser_error
+_handle_extension(struct dlep_session *session,
+    struct dlep_extension *ext, uint16_t signal_type) {
+  enum dlep_parser_error result;
+  bool active;
+  size_t e;
+
+  active = false;
+
+  /* only handle active extensions */
+  for (e=0; e<session->parser.extension_count; e++) {
+    if (session->parser.extensions[e] == ext) {
+      active = true;
+      break;
+    }
+  }
+  if (!active) {
+    /* not active at the moment */
+    return DLEP_NEW_PARSER_OKAY;
+  }
+
+  if ((result = _check_mandatory(session, ext, signal_type))) {
+    OONF_DEBUG(session->log_source, "check_mandatory result: %d", result);
+    return result;
+  }
+  if ((result = _check_duplicate(session, ext, signal_type))) {
+    OONF_DEBUG(session->log_source, "check_duplicate result: %d", result);
+    return result;
+  }
+
+  if ((result = _call_extension_processing(session, ext, signal_type))) {
+    OONF_DEBUG(session->log_source,
+        "extension processing failed: %d", result);
+    return result;
+  }
+
+  return DLEP_NEW_PARSER_OKAY;
+}
+
+/**
  * Parse a DLEP tlv
  * @param session dlep session
  * @param signal_type dlep signal/message type
@@ -730,6 +780,7 @@ static enum dlep_parser_error
 _process_tlvs(struct dlep_session *session,
     uint16_t signal_type, uint16_t signal_length, const uint8_t *tlvs) {
   enum dlep_parser_error result;
+  struct dlep_extension *ext;
 
   OONF_DEBUG(session->log_source, "Parse signal %u with length %u",
       signal_type, signal_length);
@@ -739,19 +790,11 @@ _process_tlvs(struct dlep_session *session,
     OONF_DEBUG(session->log_source, "parse_tlvstream result: %d", result);
     return result;
   }
-  if ((result = _check_mandatory(session, signal_type))) {
-    OONF_DEBUG(session->log_source, "check_mandatory result: %d", result);
-    return result;
-  }
-  if ((result = _check_duplicate(session, signal_type))) {
-    OONF_DEBUG(session->log_source, "check_duplicate result: %d", result);
-    return result;
-  }
 
-  if ((result = _call_extension_processing(session, signal_type))) {
-    OONF_DEBUG(session->log_source,
-        "extension processing failed: %d", result);
-    return result;
+  avl_for_each_element(dlep_extension_get_tree(), ext, _node) {
+    if ((result = _handle_extension(session, ext, signal_type))) {
+      return result;
+    }
   }
 
   return DLEP_NEW_PARSER_OKAY;
@@ -892,47 +935,46 @@ _parse_tlvstream(struct dlep_session *session,
 /**
  * Check if all mandatory TLVs were found
  * @param session dlep session
+ * @param ext dlep extension
  * @param signal_type dlep signal/message type
  * @return dlep parser status
  */
 static enum dlep_parser_error
-_check_mandatory(struct dlep_session *session, uint16_t signal_type) {
+_check_mandatory(struct dlep_session *session,
+    struct dlep_extension *ext, uint16_t signal_type) {
   struct dlep_session_parser *parser;
   struct dlep_parser_tlv *tlv;
   struct dlep_extension_signal *extsig;
-  struct dlep_extension *ext;
-  size_t e,s,t;
+  size_t s,t;
 
   parser = &session->parser;
 
-  for (e = 0; e < parser->extension_count; e++) {
-    ext = parser->extensions[e];
+  extsig = NULL;
+  for (s = 0; s < ext->signal_count; s++) {
+    if (ext->signals[s].id == signal_type) {
+      extsig = &ext->signals[s];
+      break;
+    }
+  }
 
-    extsig = NULL;
-    for (s = 0; s < ext->signal_count; s++) {
-      if (ext->signals[s].id == signal_type) {
-        extsig = &ext->signals[s];
-        break;
-      }
+  if (!extsig) {
+    return DLEP_NEW_PARSER_OKAY;
+  }
+
+  for (t = 0; t < extsig->mandatory_tlv_count; t++) {
+    tlv = dlep_parser_get_tlv(parser, extsig->mandatory_tlvs[t]);
+    if (!tlv) {
+      OONF_WARN(session->log_source, "Could not find tlv data for"
+          " mandatory TLV %u in extension %d",
+          extsig->mandatory_tlvs[t], ext->id);
+      return DLEP_NEW_PARSER_INTERNAL_ERROR;
     }
 
-    if (extsig) {
-      for (t = 0; t < extsig->mandatory_tlv_count; t++) {
-        tlv = dlep_parser_get_tlv(parser, extsig->mandatory_tlvs[t]);
-        if (!tlv) {
-          OONF_WARN(session->log_source, "Could not find tlv data for"
-              " mandatory TLV %u in extension %d",
-              extsig->mandatory_tlvs[t], ext->id);
-          return DLEP_NEW_PARSER_INTERNAL_ERROR;
-        }
-
-        if (tlv->tlv_first == -1) {
-          OONF_WARN(session->log_source, "Missing mandatory TLV"
-              " %u in extension %d",
-              extsig->mandatory_tlvs[t], ext->id);
-          return DLEP_NEW_PARSER_MISSING_MANDATORY_TLV;
-        }
-      }
+    if (tlv->tlv_first == -1) {
+      OONF_WARN(session->log_source, "Missing mandatory TLV"
+          " %u in extension %d",
+          extsig->mandatory_tlvs[t], ext->id);
+      return DLEP_NEW_PARSER_MISSING_MANDATORY_TLV;
     }
   }
   return DLEP_NEW_PARSER_OKAY;
@@ -941,46 +983,45 @@ _check_mandatory(struct dlep_session *session, uint16_t signal_type) {
 /**
  * Check if all duplicate TLVs were allowed to be duplicates
  * @param session dlep session
+ * @param ext dlep extension
  * @param signal_type dlep signal/message type
  * @return dlep parser status
  */
 static enum dlep_parser_error
-_check_duplicate(struct dlep_session *session, uint16_t signal_type) {
+_check_duplicate(struct dlep_session *session,
+    struct dlep_extension *ext, uint16_t signal_type) {
   struct dlep_session_parser *parser;
   struct dlep_parser_tlv *tlv;
   struct dlep_extension_signal *extsig;
-  struct dlep_extension *ext = NULL;
-  size_t e, s, t;
+  size_t s, t, dt;
   bool okay;
 
   parser = &session->parser;
 
-  avl_for_each_element(&parser->allowed_tlvs, tlv, _node) {
-    if (tlv->tlv_first == tlv->tlv_last) {
+  extsig = NULL;
+  for (s = 0; s < ext->signal_count; s++) {
+    extsig = &ext->signals[s];
+    if (ext->signals[s].id == signal_type) {
+      extsig = &ext->signals[s];
+      break;
+    }
+  }
+
+  if (!extsig) {
+    return DLEP_NEW_PARSER_OKAY;
+  }
+
+  for (t = 0; t < extsig->supported_tlv_count; t++) {
+    tlv = avl_find_element(&parser->allowed_tlvs, &extsig->supported_tlvs[t], tlv, _node);
+    if (tlv == NULL || tlv->tlv_first == tlv->tlv_last) {
       continue;
     }
 
-    /* multiple tlvs of the same kind */
     okay = false;
-    for (e = 0; e < parser->extension_count && !okay; e++) {
-      ext = parser->extensions[e];
-
-      extsig = NULL;
-      for (s = 0; s < ext->signal_count; s++) {
-        extsig = &ext->signals[s];
-        if (ext->signals[s].id == signal_type) {
-          extsig = &ext->signals[s];
-          break;
-        }
-      }
-
-      if (extsig) {
-        for (t = 0; t < extsig->duplicate_tlv_count; t++) {
-          if (extsig->duplicate_tlvs[t] == tlv->id) {
-            okay = true;
-            break;
-          }
-        }
+    for (dt = 0; dt < extsig->duplicate_tlv_count; dt++) {
+      if (extsig->duplicate_tlvs[dt] == tlv->id) {
+        okay = true;
+        break;
       }
     }
     if (!okay) {
@@ -995,38 +1036,35 @@ _check_duplicate(struct dlep_session *session, uint16_t signal_type) {
 /**
  * Call extension processing hooks for parsed signal/message
  * @param session dlep session
+ * @param ext dlep_extension
  * @param signal_type dlep signal/message type
  * @return dlep parser status
  */
 static enum dlep_parser_error
-_call_extension_processing(struct dlep_session *session, uint16_t signal_type) {
-  struct dlep_extension *ext;
-  size_t e, s;
+_call_extension_processing(struct dlep_session *session,
+    struct dlep_extension *ext, uint16_t signal_type) {
+  size_t s;
 
-  for (e=0; e<session->parser.extension_count; e++) {
-    ext = session->parser.extensions[e];
-
-    for (s=0; s<ext->signal_count; s++) {
-      if (ext->signals[s].id != signal_type) {
-        continue;
-      }
-
-      if (session->radio) {
-        if (ext->signals[s].process_radio(ext, session)) {
-          OONF_DEBUG(session->log_source,
-              "Error in radio signal processing of extension '%s'", ext->name);
-          return -1;
-        }
-      }
-      else {
-        if (ext->signals[s].process_router(ext, session)) {
-          OONF_DEBUG(session->log_source,
-              "Error in router signal processing of extension '%s'", ext->name);
-          return -1;
-        }
-      }
-      break;
+  for (s=0; s<ext->signal_count; s++) {
+    if (ext->signals[s].id != signal_type) {
+      continue;
     }
+
+    if (session->radio) {
+      if (ext->signals[s].process_radio(ext, session)) {
+        OONF_DEBUG(session->log_source,
+            "Error in radio signal processing of extension '%s'", ext->name);
+        return -1;
+      }
+    }
+    else {
+      if (ext->signals[s].process_router(ext, session)) {
+        OONF_DEBUG(session->log_source,
+            "Error in router signal processing of extension '%s'", ext->name);
+        return -1;
+      }
+    }
+    break;
   }
   return DLEP_NEW_PARSER_OKAY;
 }

@@ -81,9 +81,8 @@ static int _radio_write_peer_offer(struct dlep_extension *,
 static int _radio_write_peer_init_ack(struct dlep_extension *,
     struct dlep_session *session, const struct netaddr *);
 
-static void _l2_neigh_added_to_session(
-    struct dlep_session *session, struct oonf_layer2_neigh *l2neigh,
-      struct oonf_layer2_destination *l2dest, const struct netaddr *mac);
+static void _l2_neigh_added_to_session(struct dlep_session *session,
+    struct oonf_layer2_neigh *l2neigh, const struct netaddr *mac);
 static void _l2_neigh_added(struct oonf_layer2_neigh *l2neigh,
       struct oonf_layer2_destination *l2dest, const struct netaddr *mac);
 
@@ -259,6 +258,8 @@ _radio_process_peer_init(
   struct dlep_parser_value *value;
   const uint8_t *ptr;
 
+  struct netaddr_str nbuf;
+
   if (session->restrict_signal != DLEP_PEER_INITIALIZATION) {
     /* ignore unless we are in initialization mode */
     return 0;
@@ -280,6 +281,8 @@ _radio_process_peer_init(
   /* optional peer type tlv */
   dlep_base_proto_print_peer_type(session);
 
+  OONF_DEBUG(session->log_source, "0.1");
+
   /* optional extension supported tlv */
   value = dlep_session_get_tlv_value(session, DLEP_EXTENSIONS_SUPPORTED_TLV);
   if (value) {
@@ -289,27 +292,38 @@ _radio_process_peer_init(
     }
   }
 
+  OONF_DEBUG(session->log_source, "0.2");
+
   if (dlep_session_generate_signal(
       session, DLEP_PEER_INITIALIZATION_ACK, NULL)) {
     return -1;
   }
 
   /* trigger DESTINATION UP for all existing elements in l2 db */
+  OONF_DEBUG(session->log_source, "1: %s", session->l2_listener.name);
   l2net = oonf_layer2_net_get(session->l2_listener.name);
   if (l2net) {
+    OONF_DEBUG(session->log_source, "2");
     avl_for_each_element(&l2net->neighbors, l2neigh, _node) {
+      OONF_DEBUG(session->log_source, "3: %s", netaddr_to_string(&nbuf, &l2neigh->addr));
+
       if (session->cfg.send_neighbors) {
-        _l2_neigh_added_to_session(session, l2neigh, NULL, &l2neigh->addr);
+        OONF_DEBUG(session->log_source, "Add local neighbor: %s",
+            netaddr_to_string(&nbuf, &l2neigh->addr));
+        _l2_neigh_added_to_session(session, l2neigh, &l2neigh->addr);
       }
 
       if (session->cfg.send_proxied) {
         avl_for_each_element(&l2neigh->destinations, l2dest, _node) {
+          OONF_DEBUG(session->log_source, "Add proxied neighbor: %s",
+              netaddr_to_string(&nbuf, &l2dest->destination));
           _l2_neigh_added_to_session(
-              session, l2neigh, l2dest, &l2dest->destination);
+              session, l2neigh, &l2dest->destination);
         }
       }
     }
   }
+  OONF_DEBUG(session->log_source, "4");
 
   session->next_restrict_signal = DLEP_ALL_SIGNALS;
 
@@ -547,24 +561,17 @@ _radio_write_peer_init_ack(
  * Helper function to add a layer2 neighbor to a dlep session
  * @param session dlep session
  * @param l2neigh layer2 neighbor
- * @param l2dest layer2 destination (might be NULL)
  * @param mac MAC address of other endpoint
  */
 static void
 _l2_neigh_added_to_session(struct dlep_session *session,
-    struct oonf_layer2_neigh *l2neigh,
-      struct oonf_layer2_destination *l2dest, const struct netaddr *mac) {
+    struct oonf_layer2_neigh *l2neigh, const struct netaddr *mac) {
   struct dlep_local_neighbor *local;
 
   local = dlep_session_add_local_neighbor(session, mac);
 
   if (local) {
-    if (l2dest) {
-      memcpy(&local->neigh_addr, &l2neigh->addr, sizeof(local->neigh_addr));
-    }
-    else {
-      netaddr_invalidate(&local->neigh_addr);
-    }
+    memcpy(&local->neigh_addr, &l2neigh->addr, sizeof(local->neigh_addr));
 
     dlep_session_generate_signal(session, DLEP_DESTINATION_UP, mac);
     local->state = DLEP_NEIGHBOR_UP_SENT;
@@ -597,7 +604,7 @@ _l2_neigh_added(struct oonf_layer2_neigh *l2neigh,
     if (!l2dest && !radio_session->session.cfg.send_neighbors) {
       continue;
     }
-    _l2_neigh_added_to_session(&radio_if->interf.session, l2neigh, l2dest, mac);
+    _l2_neigh_added_to_session(&radio_if->interf.session, l2neigh, mac);
   }
 }
 
@@ -631,12 +638,7 @@ _l2_neigh_changed(struct oonf_layer2_neigh *l2neigh,
         &radio_session->session, mac);
 
     if (local) {
-      if (l2dest) {
-        memcpy(&local->neigh_addr, &l2neigh->addr, sizeof(local->neigh_addr));
-      }
-      else {
-        netaddr_invalidate(&local->neigh_addr);
-      }
+      memcpy(&local->neigh_addr, &l2neigh->addr, sizeof(local->neigh_addr));
 
       switch (local->state) {
         case DLEP_NEIGHBOR_UP_SENT:
