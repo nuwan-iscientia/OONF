@@ -291,6 +291,9 @@ _radio_process_peer_init(
       return -1;
     }
   }
+  else if (dlep_session_update_extensions(session, NULL, 0)) {
+    return -1;
+  }
 
   if (dlep_session_generate_signal(
       session, DLEP_PEER_INITIALIZATION_ACK, NULL)) {

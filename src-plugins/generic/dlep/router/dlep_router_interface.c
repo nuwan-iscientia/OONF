@@ -99,7 +99,7 @@ dlep_router_interface_init(void) {
   dlep_base_proto_router_init();
   dlep_base_metric_init();
   dlep_l1_statistics_init();
-  dlep_l2_statistics_init();
+//  dlep_l2_statistics_init();
 
   _shutting_down = false;
 

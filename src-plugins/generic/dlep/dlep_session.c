@@ -250,6 +250,8 @@ dlep_session_update_extensions(struct dlep_session *session,
   size_t count, i;
   uint16_t extid;
 
+  OONF_INFO(session->log_source, "Update session extension list");
+
   /* keep entry a few entries untouched, these are the base extensions */
   count = DLEP_EXTENSION_BASE_COUNT;
   for (i=0; i<extcount; i++) {
@@ -257,6 +259,7 @@ dlep_session_update_extensions(struct dlep_session *session,
 
     if (dlep_extension_get(ntohs(extid))) {
       count++;
+      OONF_INFO(session->log_source, "Add extension: %d", ntohs(extid));
     }
   }
 

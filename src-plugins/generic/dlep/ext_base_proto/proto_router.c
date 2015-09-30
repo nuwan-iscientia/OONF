@@ -376,6 +376,9 @@ _router_process_peer_init_ack(
       return -1;
     }
   }
+  else if (dlep_session_update_extensions(session, NULL, 0)) {
+    return -1;
+  }
 
   l2net = oonf_layer2_net_add(session->l2_listener.name);
   if (!l2net) {
