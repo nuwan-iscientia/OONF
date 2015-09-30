@@ -281,8 +281,6 @@ _radio_process_peer_init(
   /* optional peer type tlv */
   dlep_base_proto_print_peer_type(session);
 
-  OONF_DEBUG(session->log_source, "0.1");
-
   /* optional extension supported tlv */
   value = dlep_session_get_tlv_value(session, DLEP_EXTENSIONS_SUPPORTED_TLV);
   if (value) {
@@ -292,21 +290,15 @@ _radio_process_peer_init(
     }
   }
 
-  OONF_DEBUG(session->log_source, "0.2");
-
   if (dlep_session_generate_signal(
       session, DLEP_PEER_INITIALIZATION_ACK, NULL)) {
     return -1;
   }
 
   /* trigger DESTINATION UP for all existing elements in l2 db */
-  OONF_DEBUG(session->log_source, "1: %s", session->l2_listener.name);
   l2net = oonf_layer2_net_get(session->l2_listener.name);
   if (l2net) {
-    OONF_DEBUG(session->log_source, "2");
     avl_for_each_element(&l2net->neighbors, l2neigh, _node) {
-      OONF_DEBUG(session->log_source, "3: %s", netaddr_to_string(&nbuf, &l2neigh->addr));
-
       if (session->cfg.send_neighbors) {
         OONF_DEBUG(session->log_source, "Add local neighbor: %s",
             netaddr_to_string(&nbuf, &l2neigh->addr));
@@ -323,8 +315,6 @@ _radio_process_peer_init(
       }
     }
   }
-  OONF_DEBUG(session->log_source, "4");
-
   session->next_restrict_signal = DLEP_ALL_SIGNALS;
 
   return 0;

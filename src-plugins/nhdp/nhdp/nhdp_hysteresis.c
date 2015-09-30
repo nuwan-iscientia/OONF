@@ -104,7 +104,6 @@ static void
 _update_hysteresis(struct nhdp_link *lnk __attribute__((unused)),
     struct rfc5444_reader_tlvblock_context *context __attribute__((unused))) {
   /* do nothing */
-  OONF_DEBUG(LOG_MAIN, "1");
   return;
 }
 
