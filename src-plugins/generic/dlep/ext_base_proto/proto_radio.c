@@ -258,7 +258,9 @@ _radio_process_peer_init(
   struct dlep_parser_value *value;
   const uint8_t *ptr;
 
+#ifdef OONF_LOG_DEBUG_INFO
   struct netaddr_str nbuf;
+#endif
 
   if (session->restrict_signal != DLEP_PEER_INITIALIZATION) {
     /* ignore unless we are in initialization mode */
