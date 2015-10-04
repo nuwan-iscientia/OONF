@@ -45,50 +45,50 @@
 #include "common/common_types.h"
 
 /**
- * Element included into a olsrv2_heap.
+ * Element included into a heap_root.
  */
-struct olsrv2_heap_node{
+struct heap_node {
     /**
      * node's key based on the link cost type.
      */
     const void *ckey;
 
     /**
-     * Pointer to parent node in the olsrv2_heap, NULL if root node.
+     * Pointer to parent node in the heap_root, NULL if root node.
      */
-    struct olsrv2_heap_node *parent;
+    struct heap_node *parent;
 
     /**
      * Pointer to left child, NULL if there isn't.
      */
-    struct olsrv2_heap_node *left;
+    struct heap_node *left;
 
     /**
      * Pointer to right child, NULL if there isn't.
      */
-    struct olsrv2_heap_node *right;
+    struct heap_node *right;
 };
 
 /**
- * Manager struct of the olsrv2_heap.
- * One of them is necessary for each olsrv2_heap.
+ * Manager struct of the heap_root.
+ * One of them is necessary for each heap_root.
  */
-struct olsrv2_heap {
+struct heap_root {
     /**
-     * Number of nodes in the olsrv2_heap.
+     * Number of nodes in the heap_root.
      */
     unsigned int count;
 
     /**
-     * Pointer to the root node of the olsrv2_heap, NULL if olsrv2_heap is empty.
+     * Pointer to the root node of the heap_root, NULL if heap_root is empty.
      */
-    struct olsrv2_heap_node *root_node;
+    struct heap_node *root_node;
 
     /**
-     * Pointer to the rightest node of the lowest level in the olsrv2_heap,
-     * NULL if olsrv2_heap is empty.
+     * Pointer to the rightest node of the lowest level in the heap_root,
+     * NULL if heap_root is empty.
      */
-    struct olsrv2_heap_node *last_node;
+    struct heap_node *last_node;
 
     /**
      * Prototype for avl comparators
@@ -99,49 +99,49 @@ struct olsrv2_heap {
     int (*comp)(const void *k1, const void *k2);
 };
 
-EXPORT void heap_init(struct olsrv2_heap *root,
+EXPORT void heap_init(struct heap_root *root,
     int (*comp) (const void *k1, const void *k2));
-EXPORT void heap_decrease_key(struct olsrv2_heap *root, struct olsrv2_heap_node *node);
-EXPORT void heap_insert(struct olsrv2_heap *root, struct olsrv2_heap_node *node);
-EXPORT struct olsrv2_heap_node *heap_extract_min(struct olsrv2_heap *root);
-EXPORT bool heap_is_node_added(struct olsrv2_heap *root, struct olsrv2_heap_node *node);
+EXPORT void heap_decrease_key(struct heap_root *root, struct heap_node *node);
+EXPORT void heap_insert(struct heap_root *root, struct heap_node *node);
+EXPORT struct heap_node *heap_extract_min(struct heap_root *root);
+EXPORT bool heap_is_node_added(struct heap_root *root, struct heap_node *node);
 
 /**
- * @param root pointer to binary olsrv2_heap
- * @return size of olsrv2_heap, 0 if is empty
+ * @param root pointer to binary heap_root
+ * @return size of heap_root, 0 if is empty
  */
 static INLINE unsigned int
-heap_get_size(struct olsrv2_heap *root)
+heap_get_size(struct heap_root *root)
 {
     return root->count;
 }
 
 /**
- * @param root pointer to binary olsrv2_heap
+ * @param root pointer to binary heap_root
  * @return pointer to root node
  */
-static INLINE struct olsrv2_heap_node*
-heap_get_root_node(struct olsrv2_heap *root)
+static INLINE struct heap_node*
+heap_get_root_node(struct heap_root *root)
 {
     return root->root_node;
 }
 
 /**
- * @param root pointer to binary olsrv2_heap
- * @return true if the olsrv2_heap is empty, false otherwise
+ * @param root pointer to binary heap_root
+ * @return true if the heap_root is empty, false otherwise
  */
 static INLINE bool
-heap_is_empty(struct olsrv2_heap *root)
+heap_is_empty(struct heap_root *root)
 {
     return root->count == 0;
 }
 
 /**
- * Initialize a olsrv2_heap node
- * @param node pointer to the olsrv2_heap node
+ * Initialize a heap_root node
+ * @param node pointer to the heap_root node
  */
 static INLINE void
-heap_init_node(struct olsrv2_heap_node *node)
+heap_init_node(struct heap_node *node)
 {
     node->parent = node->left = node->right = NULL;
 }

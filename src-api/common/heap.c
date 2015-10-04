@@ -42,33 +42,32 @@
 #include <string.h>
 
 #include "common/common_types.h"
-
-#include "olsrv2/olsrv2_heap.h"
+#include "common/heap.h"
 
 static unsigned int heap_perfect_log2 (unsigned int number);
-static struct olsrv2_heap_node* heap_find_parent_insert_node(struct olsrv2_heap *root);
-static void heap_swap_left(struct olsrv2_heap *root, struct olsrv2_heap_node *node);
-static void heap_swap_right(struct olsrv2_heap *root, struct olsrv2_heap_node *node);
-static void heap_increase_key(struct olsrv2_heap *root, struct olsrv2_heap_node *node);
-static struct olsrv2_heap_node* heap_find_last_node(struct olsrv2_heap *root);
+static struct heap_node* heap_find_parent_insert_node(struct heap_root *root);
+static void heap_swap_left(struct heap_root *root, struct heap_node *node);
+static void heap_swap_right(struct heap_root *root, struct heap_node *node);
+static void heap_increase_key(struct heap_root *root, struct heap_node *node);
+static struct heap_node* heap_find_last_node(struct heap_root *root);
 
 /**
- * Initialize a new olsrv2_heap struct
- * @param root pointer to binary olsrv2_heap
+ * Initialize a new heap_root struct
+ * @param root pointer to binary heap_root
  */
 void
-heap_init(struct olsrv2_heap *root, int (*comp) (const void *k1, const void *k2))
+heap_init(struct heap_root *root, int (*comp) (const void *k1, const void *k2))
 {
   memset(root, 0, sizeof(*root));
   root->comp = comp;
 }
 
 /**
- * @param node pointer to node of the olsrv2_heap
- * @return true if node is currently in the olsrv2_heap, false otherwise
+ * @param node pointer to node of the heap_root
+ * @return true if node is currently in the heap_root, false otherwise
  */
 bool
-heap_is_node_added(struct olsrv2_heap *root, struct olsrv2_heap_node *node)
+heap_is_node_added(struct heap_root *root, struct heap_node *node)
 {
   if(node){
     if(node->parent || node->left || node->right)
@@ -80,9 +79,9 @@ heap_is_node_added(struct olsrv2_heap *root, struct olsrv2_heap_node *node)
 }
 
 /**
- * test if the last binary olsrv2_heap's level is full
- * @param number of elements in the olsrv2_heap
- * @return the difference between the binary olsrv2_heap's size and a full binary olsrv2_heap with the same height.
+ * test if the last binary heap_root's level is full
+ * @param number of elements in the heap_root
+ * @return the difference between the binary heap_root's size and a full binary heap_root with the same height.
  */
 static unsigned int
 heap_perfect_log2 (unsigned int number)
@@ -93,15 +92,15 @@ heap_perfect_log2 (unsigned int number)
 }
 
 /**
- * finds the parent node of the new node that will be inserted in the binary olsrv2_heap
- * @param root pointer to binary olsrv2_heap
+ * finds the parent node of the new node that will be inserted in the binary heap_root
+ * @param root pointer to binary heap_root
  * @return the pointer to parent node
  */
 
-static struct olsrv2_heap_node*
-heap_find_parent_insert_node(struct olsrv2_heap *root)
+static struct heap_node*
+heap_find_parent_insert_node(struct heap_root *root)
 {
-    struct olsrv2_heap_node *aux = root->last_node;
+    struct heap_node *aux = root->last_node;
     unsigned int N = root->count+1;
     if ( !heap_perfect_log2(N) ){
         aux = root->root_node;
@@ -126,16 +125,16 @@ heap_find_parent_insert_node(struct olsrv2_heap *root)
 
 
 /**
- * updates the olsrv2_heap after node's key value be changed to a better value
- * @param root pointer to binary olsrv2_heap
+ * updates the heap_root after node's key value be changed to a better value
+ * @param root pointer to binary heap_root
  * @param node pointer to the node changed
  */
 void
-heap_decrease_key(struct olsrv2_heap *root, struct olsrv2_heap_node *node)
+heap_decrease_key(struct heap_root *root, struct heap_node *node)
 {
-    struct olsrv2_heap_node *parent = node->parent;
-    struct olsrv2_heap_node *left = node->left;
-    struct olsrv2_heap_node *right = node->right;
+    struct heap_node *parent = node->parent;
+    struct heap_node *left = node->left;
+    struct heap_node *right = node->right;
     if(!parent)
         return;
     if(root->comp(parent->ckey,node->ckey) > 0){
@@ -187,14 +186,14 @@ heap_decrease_key(struct olsrv2_heap *root, struct olsrv2_heap_node *node)
 }
 
 /**
- * inserts the node in the binary olsrv2_heap
- * @param root pointer to binary olsrv2_heap
+ * inserts the node in the binary heap_root
+ * @param root pointer to binary heap_root
  * @param node pointer to node that will be inserted
  */
 void
-heap_insert(struct olsrv2_heap *root, struct olsrv2_heap_node *node)
+heap_insert(struct heap_root *root, struct heap_node *node)
 {
-    struct olsrv2_heap_node *parent = NULL;
+    struct heap_node *parent = NULL;
 
     heap_init_node(node);
 
@@ -219,15 +218,15 @@ heap_insert(struct olsrv2_heap *root, struct olsrv2_heap_node *node)
 
 /**
  * swaps the node with its left child
- * @param root pointer to binary olsrv2_heap
+ * @param root pointer to binary heap_root
  * @param node pointer to node that will be swapped
  */
 static void
-heap_swap_left(struct olsrv2_heap *root, struct olsrv2_heap_node *node)
+heap_swap_left(struct heap_root *root, struct heap_node *node)
 {
-    struct olsrv2_heap_node *parent = node->parent;
-    struct olsrv2_heap_node *left = node->left;
-    struct olsrv2_heap_node *right = node->right;
+    struct heap_node *parent = node->parent;
+    struct heap_node *left = node->left;
+    struct heap_node *right = node->right;
 
     node->parent = left;
     node->left = left->left;
@@ -256,15 +255,15 @@ heap_swap_left(struct olsrv2_heap *root, struct olsrv2_heap_node *node)
 
 /**
  * swaps the node with its right child
- * @param root pointer to binary olsrv2_heap
+ * @param root pointer to binary heap_root
  * @param node pointer to node that will be swapped
  */
 static void
-heap_swap_right(struct olsrv2_heap *root, struct olsrv2_heap_node *node)
+heap_swap_right(struct heap_root *root, struct heap_node *node)
 {
-    struct olsrv2_heap_node *parent = node->parent;
-    struct olsrv2_heap_node *left = node->left;
-    struct olsrv2_heap_node *right = node->right;
+    struct heap_node *parent = node->parent;
+    struct heap_node *left = node->left;
+    struct heap_node *right = node->right;
 
     node->parent = right;
     node->left = right->left;
@@ -292,15 +291,15 @@ heap_swap_right(struct olsrv2_heap *root, struct olsrv2_heap_node *node)
 }
 
 /**
- * updates the olsrv2_heap after node's key value be changed to a worse value
- * @param root pointer to binary olsrv2_heap
+ * updates the heap_root after node's key value be changed to a worse value
+ * @param root pointer to binary heap_root
  * @param node pointer to the node changed
  */
 static void
-heap_increase_key(struct olsrv2_heap *root, struct olsrv2_heap_node *node)
+heap_increase_key(struct heap_root *root, struct heap_node *node)
 {
-    struct olsrv2_heap_node *left = node->left;
-    struct olsrv2_heap_node *right = node->right;
+    struct heap_node *left = node->left;
+    struct heap_node *right = node->right;
     if(left && root->comp(node->ckey, left->ckey) > 0){
         if(right && root->comp(node->ckey, right->ckey) > 0){
             if(root->comp(left->ckey, right->ckey) < 0) {
@@ -321,14 +320,14 @@ heap_increase_key(struct olsrv2_heap *root, struct olsrv2_heap_node *node)
 }
 
 /**
- * finds the last node of the binary olsrv2_heap
- * @param root pointer to binary olsrv2_heap
+ * finds the last node of the binary heap_root
+ * @param root pointer to binary heap_root
  * @return the pointer to last node
  */
-static struct olsrv2_heap_node*
-heap_find_last_node(struct olsrv2_heap *root)
+static struct heap_node*
+heap_find_last_node(struct heap_root *root)
 {
-    struct olsrv2_heap_node *aux = root->last_node;
+    struct heap_node *aux = root->last_node;
     unsigned int N = root->count+1;
     if ( !heap_perfect_log2(N) ){
         aux = root->root_node;
@@ -347,15 +346,15 @@ heap_find_last_node(struct olsrv2_heap *root)
 }
 
 /**
- * extracts the best node from binary olsrv2_heap
- * @param root pointer to binary olsrv2_heap
+ * extracts the best node from binary heap_root
+ * @param root pointer to binary heap_root
  * @return the pointer to best node
  */
-struct olsrv2_heap_node *
-heap_extract_min(struct olsrv2_heap *root)
+struct heap_node *
+heap_extract_min(struct heap_root *root)
 {
-    struct olsrv2_heap_node *min_node = root->root_node;
-    struct olsrv2_heap_node *new_min = root->last_node;
+    struct heap_node *min_node = root->root_node;
+    struct heap_node *new_min = root->last_node;
     if(!min_node)
         return NULL;
     root->count--;

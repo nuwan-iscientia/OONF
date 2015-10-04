@@ -2,6 +2,7 @@ SET(OONF_COMMON_SRCS  autobuf.c
                       avl_comp.c
                       avl.c
                       bitmap256.c
+                      heap.c
                       isonumber.c
                       json.c
                       netaddr.c
@@ -13,6 +14,7 @@ SET(OONF_COMMON_INCLUDES autobuf.h
                          avl_comp.h
                          avl.h
                          bitmap256.h
+                         heap.h
                          common_types.h
                          container_of.h
                          isonumber.h

@@ -48,6 +48,7 @@
 #include "common/avl.h"
 #include "common/avl_comp.h"
 #include "common/common_types.h"
+#include "common/heap.h"
 #include "common/list.h"
 #include "common/netaddr.h"
 #include "core/oonf_logging.h"
@@ -60,7 +61,6 @@
 #include "nhdp/nhdp_domain.h"
 #include "nhdp/nhdp_interfaces.h"
 
-#include "olsrv2/olsrv2_heap.h"
 #include "olsrv2/olsrv2_internal.h"
 #include "olsrv2/olsrv2_lan.h"
 #include "olsrv2/olsrv2_originator.h"
@@ -122,7 +122,7 @@ static bool _trigger_dijkstra = false;
 static struct avl_tree _routing_tree[NHDP_MAXIMUM_DOMAINS];
 static struct list_entity _routing_filter_list;
 
-static struct olsrv2_heap _dijkstra_working_heap;
+static struct heap_root _dijkstra_working_heap;
 static struct list_entity _kernel_queue;
 
 static bool _initiate_shutdown = false;
@@ -772,7 +772,7 @@ _handle_working_queue(struct nhdp_domain *domain,
   struct olsrv2_tc_edge *tc_edge;
   struct olsrv2_tc_attachment *tc_attached;
   struct olsrv2_tc_endpoint *tc_endpoint;
-  struct olsrv2_heap_node *heapnode;
+  struct heap_node *heapnode;
 #ifdef OONF_LOG_DEBUG_INFO
   struct netaddr_str nbuf1, nbuf2;
 #endif
