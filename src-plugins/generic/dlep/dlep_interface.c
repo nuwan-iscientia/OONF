@@ -45,7 +45,7 @@
 
 #include "common/common_types.h"
 #include "common/avl.h"
-#include "common/avl_comp.h"
+#include "common/key_comp.h"
 #include "subsystems/oonf_packet_socket.h"
 
 #include "dlep/dlep_extension.h"
@@ -96,7 +96,7 @@ dlep_if_add(struct dlep_if *interf, const char *ifname,
   }
 
   /* initialize stream list */
-  avl_init(&interf->session_tree, avl_comp_netaddr_socket, false);
+  avl_init(&interf->session_tree, key_comp_netaddr_socket, false);
 
   /* initialize discovery socket */
   interf->udp.config.user = interf;

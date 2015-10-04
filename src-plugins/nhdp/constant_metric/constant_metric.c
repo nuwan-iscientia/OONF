@@ -49,7 +49,7 @@
 #include "common/common_types.h"
 #include "common/autobuf.h"
 #include "common/avl.h"
-#include "common/avl_comp.h"
+#include "common/key_comp.h"
 #include "config/cfg_schema.h"
 #include "config/cfg_validate.h"
 #include "core/oonf_cfg.h"
@@ -287,9 +287,9 @@ _avlcmp_linkcost(const void *ptr1, const void *ptr2) {
   lk1 = ptr1;
   lk2 = ptr2;
 
-  result = avl_comp_strcasecmp(&lk1->if_name, &lk2->if_name);
+  result = key_comp_strcasecmp(&lk1->if_name, &lk2->if_name);
   if (result == 0) {
-    result = avl_comp_netaddr(&lk1->neighbor, &lk2->neighbor);
+    result = key_comp_netaddr(&lk1->neighbor, &lk2->neighbor);
   }
   return result;
 }

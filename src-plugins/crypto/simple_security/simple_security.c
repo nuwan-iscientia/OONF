@@ -47,7 +47,7 @@
 
 #include "common/common_types.h"
 #include "common/avl.h"
-#include "common/avl_comp.h"
+#include "common/key_comp.h"
 #include "common/netaddr.h"
 #include "config/cfg_schema.h"
 #include "core/oonf_subsystem.h"

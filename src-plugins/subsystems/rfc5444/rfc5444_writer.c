@@ -48,8 +48,8 @@
 #include <string.h>
 
 #include "common/avl.h"
-#include "common/avl_comp.h"
 #include "common/common_types.h"
+#include "common/key_comp.h"
 #include "common/list.h"
 #include "rfc5444_context.h"
 #include "rfc5444_writer.h"
@@ -105,8 +105,8 @@ rfc5444_writer_init(struct rfc5444_writer *writer) {
   list_init_head(&writer->_targets);
   list_init_head(&writer->_addr_tlvtype_head);
 
-  avl_init(&writer->_msgcreators, avl_comp_uint8, false);
-  avl_init(&writer->_processors, avl_comp_int32, true);
+  avl_init(&writer->_msgcreators, key_comp_uint8, false);
+  avl_init(&writer->_processors, key_comp_int32, true);
 
 #if WRITER_STATE_MACHINE == true
   writer->_state = RFC5444_WRITER_NONE;
@@ -262,7 +262,7 @@ rfc5444_writer_add_address(struct rfc5444_writer *writer __attribute__ ((unused)
     address->_addr_tree_node.key = &address->address;
     avl_insert(&msg->_addr_tree, &address->_addr_tree_node);
 
-    avl_init(&address->_addrtlv_tree, avl_comp_uint32, true);
+    avl_init(&address->_addrtlv_tree, key_comp_uint32, true);
   }
 
   address->_mandatory_addr |= mandatory;
@@ -584,10 +584,10 @@ _get_message(struct rfc5444_writer *writer, uint8_t msgid) {
   }
 
   /* initialize list/tree heads */
-  avl_init(&msg->_provider_tree, avl_comp_int32, true);
+  avl_init(&msg->_provider_tree, key_comp_int32, true);
   list_init_head(&msg->_msgspecific_tlvtype_head);
 
-  avl_init(&msg->_addr_tree, avl_comp_netaddr, false);
+  avl_init(&msg->_addr_tree, key_comp_netaddr, false);
   list_init_head(&msg->_addr_head);
   list_init_head(&msg->_non_mandatory_addr_head);
   return msg;

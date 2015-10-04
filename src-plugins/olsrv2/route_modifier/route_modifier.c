@@ -45,8 +45,8 @@
 
 #include "common/autobuf.h"
 #include "common/avl.h"
-#include "common/avl_comp.h"
 #include "common/common_types.h"
+#include "common/key_comp.h"
 #include "common/list.h"
 #include "common/netaddr.h"
 #include "common/netaddr_acl.h"
@@ -168,7 +168,7 @@ static struct avl_tree _modifier_tree;
  */
 static int
 _init(void) {
-  avl_init(&_modifier_tree, avl_comp_strcasecmp, false);
+  avl_init(&_modifier_tree, key_comp_strcasecmp, false);
   oonf_class_add(&_modifier_class);
   olsrv2_routing_filter_add(&_dijkstra_filter);
   return 0;

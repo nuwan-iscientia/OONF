@@ -44,8 +44,8 @@
  */
 
 #include "common/avl.h"
-#include "common/avl_comp.h"
 #include "common/common_types.h"
+#include "common/key_comp.h"
 #include "common/netaddr.h"
 #include "config/cfg_schema.h"
 #include "core/oonf_subsystem.h"
@@ -150,7 +150,7 @@ _init(void) {
   oonf_class_add(&_l2neighbor_class);
   oonf_class_add(&_l2dst_class);
 
-  avl_init(&_oonf_layer2_net_tree, avl_comp_strcasecmp, false);
+  avl_init(&_oonf_layer2_net_tree, key_comp_strcasecmp, false);
   return 0;
 }
 
@@ -220,7 +220,7 @@ oonf_layer2_net_add(const char *ifname) {
   avl_insert(&_oonf_layer2_net_tree, &l2net->_node);
 
   /* initialize tree of neighbors and proxies */
-  avl_init(&l2net->neighbors, avl_comp_netaddr, false);
+  avl_init(&l2net->neighbors, key_comp_netaddr, false);
 
   /* initialize interface listener */
   l2net->if_listener.name = l2net->name;
@@ -350,7 +350,7 @@ oonf_layer2_neigh_add(struct oonf_layer2_net *l2net,
 
   avl_insert(&l2net->neighbors, &l2neigh->_node);
 
-  avl_init(&l2neigh->destinations, avl_comp_netaddr, false);
+  avl_init(&l2neigh->destinations, key_comp_netaddr, false);
 
   oonf_class_event(&_l2neighbor_class, l2neigh, OONF_OBJECT_ADDED);
 

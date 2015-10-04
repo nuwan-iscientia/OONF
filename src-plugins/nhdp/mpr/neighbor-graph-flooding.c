@@ -51,8 +51,8 @@
 #include "common/common_types.h"
 #include "common/autobuf.h"
 #include "common/avl.h"
-#include "common/avl_comp.h"
 #include "common/container_of.h"
+#include "common/key_comp.h"
 #include "config/cfg_schema.h"
 #include "core/oonf_logging.h"
 #include "subsystems/oonf_class.h"
@@ -61,6 +61,7 @@
 
 #include "mpr/mpr_internal.h"
 #include "mpr/neighbor-graph-flooding.h"
+
 #include "mpr/neighbor-graph.h"
 #include "mpr/mpr.h"
 

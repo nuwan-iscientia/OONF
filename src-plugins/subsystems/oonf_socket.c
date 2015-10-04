@@ -50,7 +50,7 @@
 #include <errno.h>
 
 #include "common/avl.h"
-#include "common/avl_comp.h"
+#include "common/key_comp.h"
 #include "subsystems/oonf_clock.h"
 #include "core/oonf_logging.h"
 #include "core/oonf_main.h"

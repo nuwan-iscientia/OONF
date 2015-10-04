@@ -44,8 +44,8 @@
  */
 
 #include "common/avl.h"
-#include "common/avl_comp.h"
 #include "common/common_types.h"
+#include "common/key_comp.h"
 #include "common/netaddr.h"
 #include "rfc5444/rfc5444.h"
 #include "core/oonf_subsystem.h"
@@ -384,7 +384,7 @@ _avl_cmp_dupkey(const void *p1, const void *p2) {
     return (int)(k1->msg_type) - (int)(k2->msg_type);
   }
 
-  return avl_comp_netaddr(&k1->addr, &k2->addr);
+  return key_comp_netaddr(&k1->addr, &k2->addr);
 }
 
 /**

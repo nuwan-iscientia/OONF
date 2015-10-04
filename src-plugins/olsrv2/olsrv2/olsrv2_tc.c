@@ -44,8 +44,8 @@
  */
 
 #include "common/avl.h"
-#include "common/avl_comp.h"
 #include "common/common_types.h"
+#include "common/key_comp.h"
 #include "common/netaddr.h"
 #include "subsystems/oonf_class.h"
 #include "subsystems/oonf_rfc5444.h"
@@ -102,7 +102,7 @@ olsrv2_tc_init(void) {
   oonf_class_add(&_tc_attached_class);
   oonf_class_add(&_tc_endpoint_class);
 
-  avl_init(&_tc_tree, avl_comp_netaddr, false);
+  avl_init(&_tc_tree, key_comp_netaddr, false);
   avl_init(&_tc_endpoint_tree, os_route_avl_cmp_route_key, true);
 }
 
@@ -161,7 +161,7 @@ olsrv2_tc_node_add(struct netaddr *originator,
     node->_originator_node.key = &node->target.prefix.dst;
 
     /* initialize node */
-    avl_init(&node->_edges, avl_comp_netaddr, false);
+    avl_init(&node->_edges, key_comp_netaddr, false);
     avl_init(&node->_attached_networks, os_route_avl_cmp_route_key, false);
 
     node->_validity_time.class = &_validity_info;

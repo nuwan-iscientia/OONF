@@ -45,8 +45,8 @@
 
 #include "common/common_types.h"
 #include "common/avl.h"
-#include "common/avl_comp.h"
 #include "common/bitmap256.h"
+#include "common/key_comp.h"
 #include "config/cfg_schema.h"
 #include "core/oonf_subsystem.h"
 #include "subsystems/oonf_class.h"
@@ -206,7 +206,7 @@ _early_cfg_init(void) {
 static int
 _init(void) {
   oonf_class_add(&_sig_class);
-  avl_init(&_sig_tree, avl_comp_strcasecmp, false);
+  avl_init(&_sig_tree, key_comp_strcasecmp, false);
   return 0;
 }
 

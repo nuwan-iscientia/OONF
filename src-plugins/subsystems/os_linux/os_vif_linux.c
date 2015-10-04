@@ -53,7 +53,7 @@
 
 #include "common/common_types.h"
 #include "common/avl.h"
-#include "common/avl_comp.h"
+#include "common/key_comp.h"
 #include "core/oonf_subsystem.h"
 #include "subsystems/os_vif.h"
 
@@ -84,7 +84,7 @@ static struct avl_tree _vif_tree;
  */
 static int
 _init(void) {
-  avl_init(&_vif_tree, avl_comp_strcasecmp, false);
+  avl_init(&_vif_tree, key_comp_strcasecmp, false);
   return 0;
 }
 

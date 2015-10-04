@@ -46,8 +46,8 @@
 #include <stdio.h>
 
 #include "common/avl.h"
-#include "common/avl_comp.h"
 #include "common/common_types.h"
+#include "common/key_comp.h"
 #include "common/list.h"
 #include "common/netaddr.h"
 #include "core/oonf_cfg.h"
@@ -58,6 +58,7 @@
 #include "nhdp/nhdp.h"
 #include "nhdp/nhdp_db.h"
 #include "nhdp/nhdp_domain.h"
+
 #include "nhdp/nhdp_interfaces.h"
 #include "nhdp/nhdp_internal.h"
 
@@ -138,8 +139,8 @@ nhdp_domain_init(struct oonf_rfc5444_protocol *p) {
   list_init_head(&_domain_list);
   list_init_head(&_domain_listener_list);
 
-  avl_init(&_domain_metrics, avl_comp_strcasecmp, false);
-  avl_init(&_domain_mprs, avl_comp_strcasecmp, false);
+  avl_init(&_domain_metrics, key_comp_strcasecmp, false);
+  avl_init(&_domain_mprs, key_comp_strcasecmp, false);
 
   /* initialize flooding domain */
   _flooding_domain.metric = &_no_metric;

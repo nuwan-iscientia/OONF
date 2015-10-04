@@ -48,7 +48,7 @@
 
 #include "common/common_types.h"
 #include "common/avl.h"
-#include "common/avl_comp.h"
+#include "common/key_comp.h"
 #include "common/netaddr.h"
 
 #include "config/cfg_schema.h"
@@ -62,6 +62,7 @@
 #include "dlep/dlep_iana.h"
 #include "dlep/dlep_writer.h"
 #include "dlep/radio/dlep_radio.h"
+
 #include "dlep/radio/dlep_radio_interface.h"
 #include "dlep/radio/dlep_radio_internal.h"
 

@@ -49,8 +49,8 @@
 #include <fcntl.h>
 
 #include "common/avl.h"
-#include "common/avl_comp.h"
 #include "common/common_types.h"
+#include "common/key_comp.h"
 #include "common/netaddr.h"
 #include "common/netaddr_acl.h"
 
@@ -63,7 +63,6 @@
 #include "core/os_core.h"
 #include "subsystems/oonf_stream_socket.h"
 #include "subsystems/oonf_telnet.h"
-
 #include "subsystems/oonf_http.h"
 
 /* Definitions */
@@ -215,7 +214,7 @@ DECLARE_OONF_PLUGIN(_oonf_http_subsystem);
 static int
 _init(void) {
   oonf_stream_add_managed(&_http_managed_socket);
-  avl_init(&_http_site_tree, avl_comp_strcasecmp, false);
+  avl_init(&_http_site_tree, key_comp_strcasecmp, false);
 
   oonf_http_add(&_telnet_handler);
   oonf_http_add(&_file_handler);

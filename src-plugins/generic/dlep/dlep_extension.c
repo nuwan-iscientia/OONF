@@ -47,8 +47,7 @@
 
 #include "common/common_types.h"
 #include "common/avl.h"
-#include "common/avl_comp.h"
-
+#include "common/key_comp.h"
 #include "subsystems/oonf_layer2.h"
 
 #include "dlep/dlep_reader.h"
@@ -66,7 +65,7 @@ static uint16_t _id_array_length = 0;
  */
 void
 dlep_extension_init(void) {
-  avl_init(&_extension_tree, avl_comp_int32, false);
+  avl_init(&_extension_tree, key_comp_int32, false);
 }
 
 /**

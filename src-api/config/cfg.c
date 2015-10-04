@@ -48,10 +48,10 @@
 
 #include "common/autobuf.h"
 #include "common/avl.h"
-#include "common/avl_comp.h"
 #include "common/common_types.h"
 #include "config/cfg_io.h"
 #include "config/cfg.h"
+#include "../common/key_comp.h"
 
 static int avl_comp_cfgio(const void *txt1, const void *txt2);
 /**

@@ -46,9 +46,9 @@
 #include <string.h>
 #include <stdio.h>
 
+#include "../../../src-api/common/key_comp.h"
 #include "common/common_types.h"
 #include "common/avl.h"
-#include "common/avl_comp.h"
 #include "rfc5444/rfc5444_reader.h"
 #include "test_rfc5444_interop.h"
 
@@ -410,7 +410,7 @@ test_interop2010(struct test_packet *p) {
 void
 add_test(struct test_packet *p) {
   if (_test_tree.comp == NULL) {
-    avl_init(&_test_tree, avl_comp_strcasecmp, false);
+    avl_init(&_test_tree, key_comp_strcasecmp, false);
   }
 
   p->_node.key = p->test;

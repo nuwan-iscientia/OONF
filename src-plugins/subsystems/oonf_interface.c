@@ -47,8 +47,8 @@
 
 #include "common/common_types.h"
 #include "common/avl.h"
-#include "common/avl_comp.h"
 #include "common/list.h"
+#include "common/key_comp.h"
 #include "common/netaddr.h"
 #include "common/netaddr_acl.h"
 #include "common/string.h"
@@ -139,7 +139,7 @@ _init(void) {
   oonf_timer_add(&_change_timer_info);
   oonf_class_add(&_if_class);
 
-  avl_init(&_oonf_interface_tree, avl_comp_strcasecmp, false);
+  avl_init(&_oonf_interface_tree, key_comp_strcasecmp, false);
   list_init_head(&_interface_listener);
 
   os_interface_listener_add(&_iflistener);

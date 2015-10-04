@@ -53,12 +53,12 @@
 #include "common/common_types.h"
 #include "common/list.h"
 #include "common/avl.h"
-#include "common/avl_comp.h"
 #include "common/template.h"
 #include "config/cfg_schema.h"
 #include "core/oonf_libdata.h"
 #include "core/oonf_logging.h"
 #include "core/oonf_subsystem.h"
+#include "../common/key_comp.h"
 
 /* constants */
 enum {
@@ -381,7 +381,7 @@ _init_plugin_tree(void) {
     return;
   }
 
-  avl_init(&oonf_plugin_tree, avl_comp_strcasecmp, false);
+  avl_init(&oonf_plugin_tree, key_comp_strcasecmp, false);
   _plugin_tree_initialized = true;
 }
 

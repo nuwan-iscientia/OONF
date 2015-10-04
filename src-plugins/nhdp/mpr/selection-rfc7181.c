@@ -51,8 +51,8 @@
 #include "common/common_types.h"
 #include "common/autobuf.h"
 #include "common/avl.h"
-#include "common/avl_comp.h"
 #include "common/container_of.h"
+#include "common/key_comp.h"
 #include "config/cfg_schema.h"
 #include "core/oonf_logging.h"
 #include "subsystems/oonf_rfc5444.h"
@@ -275,7 +275,7 @@ _select_greatest_by_property(const struct nhdp_domain *domain,
   greatest_prop_node = NULL;
   current_prop = greatest_prop = number_of_greatest = 0;
 
-  avl_init(&tmp_candidate_subset, avl_comp_netaddr, false);
+  avl_init(&tmp_candidate_subset, key_comp_netaddr, false);
 
   if (graph->set_mpr_candidates.count > 0) {
     /* We already have MPR candidates, so we need to select from these

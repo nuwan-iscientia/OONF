@@ -59,7 +59,7 @@
 
 #include "common/autobuf.h"
 #include "common/avl.h"
-#include "common/avl_comp.h"
+#include "common/key_comp.h"
 #include "common/common_types.h"
 #include "common/netaddr.h"
 #include "common/netaddr_acl.h"
@@ -309,7 +309,7 @@ _init(void) {
 
   /* initialize nl80211 if storage system */
   oonf_class_add(&_nl80211_if_class);
-  avl_init(&_nl80211_if_tree, avl_comp_strcasecmp, false);
+  avl_init(&_nl80211_if_tree, key_comp_strcasecmp, false);
 
   /* get layer2 origin */
   _layer2_origin = oonf_layer2_register_origin();

@@ -45,7 +45,7 @@
 
 #include "common/common_types.h"
 #include "common/avl.h"
-#include "common/avl_comp.h"
+#include "common/key_comp.h"
 #include "common/netaddr.h"
 #include "common/netaddr_acl.h"
 

@@ -52,7 +52,6 @@
 
 #include "common/common_types.h"
 #include "common/avl.h"
-#include "common/avl_comp.h"
 #include "common/bitmap256.h"
 #include "common/isonumber.h"
 #include "common/netaddr.h"
@@ -62,6 +61,8 @@
 #include "config/cfg_db.h"
 #include "config/cfg_help.h"
 #include "config/cfg_schema.h"
+
+#include "../common/key_comp.h"
 #include "config/cfg_validate.h"
 
 static bool _validate_cfg_entry(

@@ -45,7 +45,7 @@
 
 #include "common/common_types.h"
 #include "common/avl.h"
-#include "common/avl_comp.h"
+#include "common/key_comp.h"
 #include "common/list.h"
 #include "common/netaddr.h"
 
@@ -144,9 +144,9 @@ static struct list_entity _link_list;
  */
 void
 nhdp_db_init(void) {
-  avl_init(&_naddr_tree, avl_comp_netaddr, false);
+  avl_init(&_naddr_tree, key_comp_netaddr, false);
   list_init_head(&_neigh_list);
-  avl_init(&_neigh_originator_tree, avl_comp_netaddr, false);
+  avl_init(&_neigh_originator_tree, key_comp_netaddr, false);
   list_init_head(&_link_list);
 
   oonf_class_add(&_neigh_info);
@@ -205,8 +205,8 @@ nhdp_db_neighbor_add(void) {
   OONF_DEBUG(LOG_NHDP, "New Neighbor: 0x%0zx", (size_t)neigh);
 
   /* initialize trees and lists */
-  avl_init(&neigh->_neigh_addresses, avl_comp_netaddr, false);
-  avl_init(&neigh->_link_addresses, avl_comp_netaddr, true);
+  avl_init(&neigh->_neigh_addresses, key_comp_netaddr, false);
+  avl_init(&neigh->_link_addresses, key_comp_netaddr, true);
   list_init_head(&neigh->_links);
 
   /* hook into global neighbor list */
@@ -515,8 +515,8 @@ nhdp_db_link_add(struct nhdp_neighbor *neigh, struct nhdp_interface *local_if) {
   list_add_tail(&_link_list, &lnk->_global_node);
 
   /* init local trees */
-  avl_init(&lnk->_addresses, avl_comp_netaddr, false);
-  avl_init(&lnk->_2hop, avl_comp_netaddr, false);
+  avl_init(&lnk->_addresses, key_comp_netaddr, false);
+  avl_init(&lnk->_2hop, key_comp_netaddr, false);
 
   /* init timers */
   lnk->sym_time.class = &_link_symtime_info;

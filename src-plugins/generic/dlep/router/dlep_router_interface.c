@@ -48,7 +48,7 @@
 
 #include "common/common_types.h"
 #include "common/avl.h"
-#include "common/avl_comp.h"
+#include "common/key_comp.h"
 #include "common/netaddr.h"
 
 #include "subsystems/oonf_class.h"
@@ -91,7 +91,7 @@ static uint32_t _l2_origin;
 void
 dlep_router_interface_init(void) {
   oonf_class_add(&_router_if_class);
-  avl_init(&_interface_tree, avl_comp_strcasecmp, false);
+  avl_init(&_interface_tree, key_comp_strcasecmp, false);
 
   dlep_extension_init();
   dlep_session_init();

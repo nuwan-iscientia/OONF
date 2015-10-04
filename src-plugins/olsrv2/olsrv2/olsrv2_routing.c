@@ -46,9 +46,9 @@
 #include <errno.h>
 
 #include "common/avl.h"
-#include "common/avl_comp.h"
 #include "common/common_types.h"
 #include "common/heap.h"
+#include "common/key_comp.h"
 #include "common/list.h"
 #include "common/netaddr.h"
 #include "core/oonf_logging.h"
@@ -141,7 +141,7 @@ olsrv2_routing_init(void) {
     avl_init(&_routing_tree[i], os_route_avl_cmp_route_key, false);
   }
   list_init_head(&_routing_filter_list);
-  heap_init(&_dijkstra_working_heap, avl_comp_uint32);
+  heap_init(&_dijkstra_working_heap, key_comp_uint32);
   list_init_head(&_kernel_queue);
 
   nhdp_domain_listener_add(&_nhdp_listener);

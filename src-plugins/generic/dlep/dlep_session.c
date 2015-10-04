@@ -45,7 +45,7 @@
 
 #include "common/common_types.h"
 #include "common/avl.h"
-#include "common/avl_comp.h"
+#include "common/key_comp.h"
 #include "core/oonf_logging.h"
 #include "subsystems/oonf_class.h"
 #include "subsystems/oonf_stream_socket.h"
@@ -127,8 +127,8 @@ dlep_session_add(struct dlep_session *session, const char *l2_ifname,
 
   parser = &session->parser;
 
-  avl_init(&parser->allowed_tlvs, avl_comp_uint16, false);
-  avl_init(&session->local_neighbor_tree, avl_comp_netaddr, false);
+  avl_init(&parser->allowed_tlvs, key_comp_uint16, false);
+  avl_init(&session->local_neighbor_tree, key_comp_netaddr, false);
 
   session->log_source = log_source;
   session->l2_origin = l2_origin;

@@ -53,7 +53,7 @@
 
 #include "common/common_types.h"
 #include "common/avl.h"
-#include "common/avl_comp.h"
+#include "common/key_comp.h"
 #include "core/oonf_subsystem.h"
 #include "subsystems/os_system.h"
 
@@ -177,7 +177,7 @@ _init(void) {
     os_system_netlink_remove(&_rtnetlink_event_socket);
     return -1;
   }
-  avl_init(&_rtnetlink_feedback, avl_comp_uint32, false);
+  avl_init(&_rtnetlink_feedback, key_comp_uint32, false);
   list_init_head(&_rtnetlink_listener);
 
   _is_kernel_3_11_0_or_better = os_linux_system_is_minimal_kernel(3,11,0);

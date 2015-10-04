@@ -47,8 +47,8 @@
 
 #include "common/common_types.h"
 #include "common/avl.h"
-#include "common/avl_comp.h"
 #include "common/container_of.h"
+#include "common/key_comp.h"
 #include "common/netaddr.h"
 #include "common/netaddr_acl.h"
 #include "core/oonf_cfg.h"
@@ -61,6 +61,7 @@
 #include "nhdp/nhdp.h"
 #include "nhdp/nhdp_db.h"
 #include "nhdp/nhdp_interfaces.h"
+
 #include "nhdp/nhdp_internal.h"
 #include "nhdp/nhdp_writer.h"
 
@@ -109,7 +110,7 @@ static struct oonf_rfc5444_protocol *_protocol;
  */
 void
 nhdp_interfaces_init(struct oonf_rfc5444_protocol *p) {
-  avl_init(&_interface_tree, avl_comp_strcasecmp, false);
+  avl_init(&_interface_tree, key_comp_strcasecmp, false);
   avl_init(&_ifaddr_tree, avl_comp_ifaddr, true);
   oonf_class_add(&_interface_info);
   oonf_class_add(&_addr_info);
@@ -237,26 +238,26 @@ nhdp_interface_add(const char *name) {
     avl_insert(&_interface_tree, &interf->_node);
 
     /* init address tree */
-    avl_init(&interf->_if_addresses, avl_comp_netaddr, false);
+    avl_init(&interf->_if_addresses, key_comp_netaddr, false);
 
     /* init link list */
     list_init_head(&interf->_links);
 
     /* init link address tree */
-    avl_init(&interf->_link_addresses, avl_comp_netaddr, false);
+    avl_init(&interf->_link_addresses, key_comp_netaddr, false);
 
     /*
      * init originator tree
      * (might temporarily have multiple links with the same originator)
      */
-    avl_init(&interf->_link_originators, avl_comp_netaddr, true);
+    avl_init(&interf->_link_originators, key_comp_netaddr, true);
 
     /*
      * init twohop tree
      * (this tree allows duplicates to easily find all links to a
      * twohop link address)
      */
-    avl_init(&interf->_if_twohops, avl_comp_netaddr, true);
+    avl_init(&interf->_if_twohops, key_comp_netaddr, true);
 
     /* trigger event */
     oonf_class_event(&_interface_info, interf, OONF_OBJECT_ADDED);

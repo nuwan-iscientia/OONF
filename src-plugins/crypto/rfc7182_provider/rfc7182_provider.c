@@ -45,7 +45,7 @@
 
 #include "common/common_types.h"
 #include "common/avl.h"
-#include "common/avl_comp.h"
+#include "common/key_comp.h"
 #include "core/oonf_subsystem.h"
 #include "subsystems/oonf_class.h"
 #include "subsystems/rfc5444/rfc5444_iana.h"
@@ -123,8 +123,8 @@ static uint8_t _crypt_buffer[1500];
  */
 static int
 _init(void) {
-  avl_init(&_crypt_functions, avl_comp_uint8, false);
-  avl_init(&_hash_functions, avl_comp_uint8, false);
+  avl_init(&_crypt_functions, key_comp_uint8, false);
+  avl_init(&_hash_functions, key_comp_uint8, false);
 
   oonf_class_add(&_hash_class);
   oonf_class_add(&_crypt_class);

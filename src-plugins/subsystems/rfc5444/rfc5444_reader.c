@@ -48,8 +48,8 @@
 
 #include "common/common_types.h"
 #include "common/avl.h"
-#include "common/avl_comp.h"
 #include "common/bitmap256.h"
+#include "common/key_comp.h"
 #include "rfc5444_reader.h"
 #include "rfc5444_api_config.h"
 
@@ -183,7 +183,7 @@ rfc5444_reader_handle_packet(struct rfc5444_reader *parser, uint8_t *buffer, siz
   }
 
   /* initialize avl_tree */
-  avl_init(&entries, avl_comp_uint32, true);
+  avl_init(&entries, key_comp_uint32, true);
   last_started = NULL;
 
   /* check for packet tlv */
@@ -1077,7 +1077,7 @@ _handle_message(struct rfc5444_reader *parser,
   /* initialize variables */
   result = RFC5444_OKAY;
   same_order[0] = same_order[1] = NULL;
-  avl_init(&tlv_entries, avl_comp_uint16, true);
+  avl_init(&tlv_entries, key_comp_uint16, true);
   list_init_head(&addr_head);
   tlv_context->_do_not_forward = false;
 
@@ -1149,7 +1149,7 @@ _handle_message(struct rfc5444_reader *parser,
     }
 
     /* initialize avl_tree */
-    avl_init(&addr->tlvblock, avl_comp_uint16, true);
+    avl_init(&addr->tlvblock, key_comp_uint16, true);
 
     /* parse address block... */
     if ((result = _parse_addrblock(addr, tlv_context, ptr, end)) != RFC5444_OKAY) {

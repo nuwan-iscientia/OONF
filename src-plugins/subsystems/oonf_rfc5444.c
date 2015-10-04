@@ -45,8 +45,7 @@
 
 #include "common/common_types.h"
 #include "common/avl.h"
-#include "common/avl_comp.h"
-#include "config/cfg_db.h"
+#include "common/key_comp.h"
 #include "config/cfg_schema.h"
 #include "rfc5444/rfc5444_iana.h"
 #include "rfc5444/rfc5444_print.h"
@@ -287,7 +286,7 @@ enum oonf_log_source LOG_RFC5444_R, LOG_RFC5444_W;
  */
 static int
 _init(void) {
-  avl_init(&_protocol_tree, avl_comp_strcasecmp, false);
+  avl_init(&_protocol_tree, key_comp_strcasecmp, false);
 
   oonf_class_add(&_protocol_memcookie);
   oonf_class_add(&_target_memcookie);
@@ -465,7 +464,7 @@ oonf_rfc5444_add_protocol(const char *name, bool fixed_local_port) {
     oonf_duplicate_set_add(&protocol->processed_set, OONF_DUPSET_16BIT);
 
     /* init interface subtree */
-    avl_init(&protocol->_interface_tree, avl_comp_strcasecmp, false);
+    avl_init(&protocol->_interface_tree, key_comp_strcasecmp, false);
   }
 
   OONF_INFO(LOG_RFC5444, "Add protocol %s (refcount was %d)",
@@ -579,7 +578,7 @@ oonf_rfc5444_add_interface(struct oonf_rfc5444_protocol *protocol,
     avl_insert(&protocol->_interface_tree, &interf->_node);
 
     /* initialize target subtree */
-    avl_init(&interf->_target_tree, avl_comp_netaddr, false);
+    avl_init(&interf->_target_tree, key_comp_netaddr, false);
 
     /* initialize socket config */
     memcpy (&interf->_socket.config, &_socket_config, sizeof(_socket_config));

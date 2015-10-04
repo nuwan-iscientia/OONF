@@ -47,8 +47,8 @@
 #include <string.h>
 #include <stdio.h>
 
+#include "../../src-api/common/key_comp.h"
 #include "common/avl.h"
-#include "common/avl_comp.h"
 #include "cunit/cunit.h"
 
 struct tree_element {
@@ -233,7 +233,7 @@ static void check_tree(const char *name, uint32_t line) {
 
 static void test_insert_nondup(bool do_random) {
   START_TEST();
-  avl_init(&head, avl_comp_uint32, false);
+  avl_init(&head, key_comp_uint32, false);
   add_elements(nodes, do_random);
 
   CHECK_TRUE(head.count == COUNT, "tree not completely filled");
@@ -253,7 +253,7 @@ static void test_insert_nondup(bool do_random) {
 
 static void test_insert_dup(bool do_random) {
   START_TEST();
-  avl_init(&head, avl_comp_uint32, true);
+  avl_init(&head, key_comp_uint32, true);
   add_elements(nodes, do_random);
 
   CHECK_TRUE(head.count == COUNT, "tree not completely filled");
@@ -277,7 +277,7 @@ static void test_find(bool do_random) {
   uint32_t i;
 
   START_TEST();
-  avl_init(&head, avl_comp_uint32, true);
+  avl_init(&head, key_comp_uint32, true);
   add_elements(nodes, do_random);
 
   /* search for all existing values */
@@ -306,7 +306,7 @@ static void test_find(bool do_random) {
 static void test_delete_nondup(bool do_random) {
   START_TEST();
 
-  avl_init(&head, avl_comp_uint32, false);
+  avl_init(&head, key_comp_uint32, false);
   add_elements(nodes, do_random);
 
   avl_remove(&head, &nodes[2].node);
@@ -319,7 +319,7 @@ static void test_delete_nondup(bool do_random) {
 static void test_delete_dup(bool do_random) {
   START_TEST();
 
-  avl_init(&head, avl_comp_uint32, true);
+  avl_init(&head, key_comp_uint32, true);
   add_elements(nodes, do_random);
 
   /* add duplicate */
@@ -339,7 +339,7 @@ static void test_greaterequal(bool do_random) {
   START_TEST();
 
   /* create tree with 1,2,4,5,6 */
-  avl_init(&head, avl_comp_uint32, true);
+  avl_init(&head, key_comp_uint32, true);
   add_elements(nodes, do_random);
   avl_remove(&head, &nodes[2].node);
 
@@ -396,7 +396,7 @@ static void test_lessequal(bool do_random) {
   START_TEST();
 
   /* create tree with 1,2,4,5,6 */
-  avl_init(&head, avl_comp_uint32, true);
+  avl_init(&head, key_comp_uint32, true);
   add_elements(nodes, do_random);
   avl_remove(&head, &nodes[2].node);
 
@@ -451,7 +451,7 @@ static void test_lessequal(bool do_random) {
 static void test_conditions(bool do_random) {
   START_TEST();
 
-  avl_init(&head, avl_comp_uint32, true);
+  avl_init(&head, key_comp_uint32, true);
   CHECK_TRUE(avl_is_empty(&head), "tree should be empty");
 
   add_elements(nodes, do_random);
@@ -470,7 +470,7 @@ static void test_element_functions(bool do_random) {
   struct tree_element *e;
   START_TEST();
 
-  avl_init(&head, avl_comp_uint32, true);
+  avl_init(&head, key_comp_uint32, true);
   add_elements(nodes, do_random);
 
   CHECK_TRUE(avl_first_element(&head, e, node) == &nodes[0], "Element 1 should be first");
@@ -486,7 +486,7 @@ static void test_for_each_macros(bool do_random) {
   int i;
 
   START_TEST();
-  avl_init(&head, avl_comp_uint32, true);
+  avl_init(&head, key_comp_uint32, true);
   add_elements(nodes, do_random);
 
   i = 0;
@@ -524,7 +524,7 @@ static void test_for_each_reverse_macros(bool do_random) {
   int i,j;
 
   START_TEST();
-  avl_init(&head, avl_comp_uint32, true);
+  avl_init(&head, key_comp_uint32, true);
   add_elements(nodes, do_random);
 
   i = 0;
@@ -571,7 +571,7 @@ static void test_for_each_save_macro(bool do_random) {
   int i;
 
   START_TEST();
-  avl_init(&head, avl_comp_uint32, true);
+  avl_init(&head, key_comp_uint32, true);
   add_elements(nodes, do_random);
 
   i = 0;
@@ -590,7 +590,7 @@ static void test_for_each_reverse_save_macro(bool do_random) {
   int i,j;
 
   START_TEST();
-  avl_init(&head, avl_comp_uint32, true);
+  avl_init(&head, key_comp_uint32, true);
   add_elements(nodes, do_random);
 
   i = 0;
@@ -611,7 +611,7 @@ static void test_remove_all_macro(bool do_random) {
   uint32_t i;
 
   START_TEST();
-  avl_init(&head, avl_comp_uint32, true);
+  avl_init(&head, key_comp_uint32, true);
   add_elements(nodes, do_random);
 
   i = 0;
@@ -633,7 +633,7 @@ static void test_for_each_key_macros(void) {
   uint32_t i;
 
   START_TEST();
-  avl_init(&head, avl_comp_uint32, true);
+  avl_init(&head, key_comp_uint32, true);
 
   key = 3;
   i = 0;
@@ -824,7 +824,7 @@ static void test_random_insert(void) {
 
   srand(0);
   START_TEST();
-  avl_init(&head, avl_comp_uint32, true);
+  avl_init(&head, key_comp_uint32, true);
 
   random_insert(array, 1000);
   random_delete(array, 500);

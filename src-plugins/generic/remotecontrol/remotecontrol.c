@@ -48,7 +48,7 @@
 #include "common/common_types.h"
 #include "common/autobuf.h"
 #include "common/avl.h"
-#include "common/avl_comp.h"
+#include "common/key_comp.h"
 #include "common/list.h"
 #include "common/netaddr.h"
 #include "common/string.h"

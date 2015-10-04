@@ -40,23 +40,23 @@
  */
 
 /**
- * @file ./src-api/common/avl_comp.c
+ * @file ./src-api/common/key_comp.c
  */
 
 #include <string.h>
 #include <strings.h>
 
-#include "common/avl_comp.h"
 #include "common/string.h"
+#include "key_comp.h"
 
 /**
- * AVL tree comparator for unsigned 32 bit integers
+ * avl/heap comparator for unsigned 32 bit integers
  * @param k1 pointer to key 1
  * @param k2 pointer to key 2
  * @return +1 if k1>k2, -1 if k1<k2, 0 if k1==k2
  */
 int
-avl_comp_uint32(const void *k1, const void *k2) {
+key_comp_uint32(const void *k1, const void *k2) {
   const uint32_t *u1 = k1;
   const uint32_t *u2 = k2;
 
@@ -70,13 +70,13 @@ avl_comp_uint32(const void *k1, const void *k2) {
 }
 
 /**
- * AVL tree comparator for signed 32 bit integers
+ * avl/heap comparator for signed 32 bit integers
  * @param k1 pointer to key 1
  * @param k2 pointer to key 2
  * @return +1 if k1>k2, -1 if k1<k2, 0 if k1==k2
  */
 int
-avl_comp_int32(const void *k1, const void *k2) {
+key_comp_int32(const void *k1, const void *k2) {
   const int32_t *i1 = k1;
   const int32_t *i2 = k2;
 
@@ -90,13 +90,13 @@ avl_comp_int32(const void *k1, const void *k2) {
 }
 
 /**
- * AVL tree comparator for unsigned 16 bit integers
+ * avl/heap comparator for unsigned 16 bit integers
  * @param k1 pointer to key 1
  * @param k2 pointer to key 2
  * @return +1 if k1>k2, -1 if k1<k2, 0 if k1==k2
  */
 int
-avl_comp_uint16(const void *k1, const void *k2) {
+key_comp_uint16(const void *k1, const void *k2) {
   const uint16_t *u1 = k1;
   const uint16_t *u2 = k2;
 
@@ -110,13 +110,13 @@ avl_comp_uint16(const void *k1, const void *k2) {
 }
 
 /**
- * AVL tree comparator for unsigned 8 bit integers
+ * avl/heap comparator for unsigned 8 bit integers
  * @param k1 pointer to key 1
  * @param k2 pointer to key 2
  * @return +1 if k1>k2, -1 if k1<k2, 0 if k1==k2
  */
 int
-avl_comp_uint8(const void *k1, const void *k2) {
+key_comp_uint8(const void *k1, const void *k2) {
   const uint8_t *u1 = k1;
   const uint8_t *u2 = k2;
 
@@ -130,38 +130,38 @@ avl_comp_uint8(const void *k1, const void *k2) {
 }
 
 /**
- * AVL tree comparator for netaddr objects.
+ * avl/heap comparator for netaddr objects.
  * @param k1 pointer to key 1
  * @param k2 pointer to key 2
  * @return +1 if k1>k2, -1 if k1<k2, 0 if k1==k2
  */
 int
-avl_comp_netaddr(const void *k1, const void *k2) {
+key_comp_netaddr(const void *k1, const void *k2) {
   const struct netaddr *n1 = k1;
   const struct netaddr *n2 = k2;
   return memcmp(n1, n2, sizeof(struct netaddr));
 }
 
 /**
- * AVL tree comparator for netaddr objects.
+ * avl/heap comparator for netaddr objects.
  * @param k1 pointer to key 1
  * @param k2 pointer to key 2
  * @return +1 if k1>k2, -1 if k1<k2, 0 if k1==k2
  */
 int
-avl_comp_netaddr_socket(const void *k1, const void *k2) {
+key_comp_netaddr_socket(const void *k1, const void *k2) {
   const union netaddr_socket *s1 = k1;
   const union netaddr_socket *s2 = k2;
   return memcmp(s1, s2, sizeof(union netaddr_socket));
 }
 
 /**
- * AVL tree comparator for case insensitive strings.
+ * avl/heap comparator for case insensitive strings.
  * @param txt1 pointer to string 1
  * @param txt2 pointer to string 2
  * @return +1 if k1>k2, -1 if k1<k2, 0 if k1==k2
  */
 int
-avl_comp_strcasecmp(const void *txt1, const void *txt2) {
+key_comp_strcasecmp(const void *txt1, const void *txt2) {
   return strcasecmp(txt1, txt2);
 }

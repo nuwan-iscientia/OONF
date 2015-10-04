@@ -44,8 +44,8 @@
  */
 
 #include "common/avl.h"
-#include "common/avl_comp.h"
 #include "common/common_types.h"
+#include "common/key_comp.h"
 #include "common/netaddr.h"
 #include "common/netaddr_acl.h"
 #include "core/oonf_logging.h"
@@ -91,7 +91,7 @@ olsrv2_originator_init(void) {
   oonf_timer_add(&_originator_entry_timer);
 
   /* initialize global originator tree */
-  avl_init(&_originator_set_tree, avl_comp_netaddr, false);
+  avl_init(&_originator_set_tree, key_comp_netaddr, false);
 }
 
 /**

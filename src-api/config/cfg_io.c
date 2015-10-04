@@ -53,7 +53,7 @@
 
 #include "common/autobuf.h"
 #include "common/avl.h"
-#include "common/avl_comp.h"
+#include "../common/key_comp.h"
 #include "common/common_types.h"
 #include "common/string.h"
 

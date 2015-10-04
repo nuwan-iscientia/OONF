@@ -49,12 +49,12 @@
 
 #include "common/common_types.h"
 #include "common/avl.h"
-#include "common/avl_comp.h"
 #include "common/string.h"
 
 #include "config/cfg.h"
 #include "config/cfg_schema.h"
 #include "config/cfg_db.h"
+#include "../common/key_comp.h"
 
 static struct cfg_section_type *_alloc_section(struct cfg_db *, const char *);
 static void _free_sectiontype(struct cfg_section_type *);

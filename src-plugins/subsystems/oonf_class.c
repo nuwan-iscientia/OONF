@@ -47,7 +47,7 @@
 #include <stdlib.h>
 
 #include "common/avl.h"
-#include "common/avl_comp.h"
+#include "common/key_comp.h"
 #include "core/oonf_logging.h"
 #include "core/oonf_subsystem.h"
 
@@ -89,7 +89,7 @@ DECLARE_OONF_PLUGIN(_oonf_class_subsystem);
  */
 static int
 _init(void) {
-  avl_init(&_classes_tree, avl_comp_strcasecmp, false);
+  avl_init(&_classes_tree, key_comp_strcasecmp, false);
   return 0;
 }
 

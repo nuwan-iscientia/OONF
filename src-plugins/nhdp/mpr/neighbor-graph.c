@@ -52,8 +52,8 @@
 #include "common/common_types.h"
 #include "common/autobuf.h"
 #include "common/avl.h"
-#include "common/avl_comp.h"
 #include "common/container_of.h"
+#include "common/key_comp.h"
 #include "config/cfg_schema.h"
 #include "core/oonf_cfg.h"
 #include "core/oonf_logging.h"
@@ -64,6 +64,7 @@
 #include "mpr/mpr_internal.h"
 #include "mpr/neighbor-graph-flooding.h"
 #include "mpr/neighbor-graph.h"
+
 #include "mpr/mpr.h"
 
 /* FIXME remove unneeded includes */
@@ -100,11 +101,11 @@ mpr_add_addr_node_to_set(struct avl_tree *set, const struct netaddr addr) {
  */
 void
 mpr_init_neighbor_graph(struct neighbor_graph *graph, struct neighbor_graph_interface *methods) {
-  avl_init(&graph->set_n, avl_comp_netaddr, false);
-  avl_init(&graph->set_n1, avl_comp_netaddr, true);
-  avl_init(&graph->set_n2, avl_comp_netaddr, false);
-  avl_init(&graph->set_mpr, avl_comp_netaddr, false);
-  avl_init(&graph->set_mpr_candidates, avl_comp_netaddr, false);
+  avl_init(&graph->set_n, key_comp_netaddr, false);
+  avl_init(&graph->set_n1, key_comp_netaddr, true);
+  avl_init(&graph->set_n2, key_comp_netaddr, false);
+  avl_init(&graph->set_mpr, key_comp_netaddr, false);
+  avl_init(&graph->set_mpr_candidates, key_comp_netaddr, false);
   graph->methods = methods;
 }
 
