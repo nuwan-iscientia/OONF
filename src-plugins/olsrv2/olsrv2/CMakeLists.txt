@@ -1,5 +1,6 @@
 # set library parameters
 SET (source  olsrv2.c
+             olsrv2_heap.c
              olsrv2_lan.c
              olsrv2_originator.c
              olsrv2_reader.c
@@ -7,6 +8,7 @@ SET (source  olsrv2.c
              olsrv2_tc.c
              olsrv2_writer.c)
 SET (include olsrv2.h
+             olsrv2_heap.h
              olsrv2_lan.h
              olsrv2_originator.h
              olsrv2_reader.h

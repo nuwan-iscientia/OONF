@@ -57,6 +57,8 @@
 #include "nhdp/nhdp_db.h"
 #include "nhdp/nhdp_domain.h"
 
+#include "olsrv2/olsrv2_heap.h"
+
 /*! minimum time between two dijkstra calculations in milliseconds */
 enum { OLSRv2_DIJKSTRA_RATE_LIMITATION = 1000 };
 
@@ -65,10 +67,7 @@ enum { OLSRv2_DIJKSTRA_RATE_LIMITATION = 1000 };
  */
 struct olsrv2_dijkstra_node {
   /*! hook into the working list of the dijkstra */
-  struct avl_node _node;
-
-  /*! total path cost */
-  uint32_t path_cost;
+  struct olsrv2_heap_node _node;
 
   /*! path hops to the target */
   uint8_t path_hops;

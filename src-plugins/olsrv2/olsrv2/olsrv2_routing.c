@@ -60,6 +60,7 @@
 #include "nhdp/nhdp_domain.h"
 #include "nhdp/nhdp_interfaces.h"
 
+#include "olsrv2/olsrv2_heap.h"
 #include "olsrv2/olsrv2_internal.h"
 #include "olsrv2/olsrv2_lan.h"
 #include "olsrv2/olsrv2_originator.h"
@@ -121,7 +122,7 @@ static bool _trigger_dijkstra = false;
 static struct avl_tree _routing_tree[NHDP_MAXIMUM_DOMAINS];
 static struct list_entity _routing_filter_list;
 
-static struct avl_tree _dijkstra_working_tree;
+static struct olsrv2_heap _dijkstra_working_heap;
 static struct list_entity _kernel_queue;
 
 static bool _initiate_shutdown = false;
@@ -140,7 +141,7 @@ olsrv2_routing_init(void) {
     avl_init(&_routing_tree[i], os_route_avl_cmp_route_key, false);
   }
   list_init_head(&_routing_filter_list);
-  avl_init(&_dijkstra_working_tree, avl_comp_uint32, true);
+  heap_init(&_dijkstra_working_heap);
   list_init_head(&_kernel_queue);
 
   nhdp_domain_listener_add(&_nhdp_listener);
@@ -300,8 +301,8 @@ olsrv2_routing_force_update(bool skip_wait) {
  * @param dijkstra pointer to dijkstra node
  */
 void
-olsrv2_routing_dijkstra_node_init(struct olsrv2_dijkstra_node *dijkstra) {
-  dijkstra->_node.key = &dijkstra->path_cost;
+olsrv2_routing_dijkstra_node_init(
+    struct olsrv2_dijkstra_node *dijkstra __attribute__((unused))) {
 }
 
 /**
@@ -387,7 +388,7 @@ _run_dijkstra(struct nhdp_domain *domain, int af_family,
   _add_one_hop_nodes(domain, af_family, use_non_ss, use_ss);
 
   /* run dijkstra */
-  while (!avl_is_empty(&_dijkstra_working_tree)) {
+  while (!heap_is_empty(&_dijkstra_working_heap)) {
     _handle_working_queue(domain, use_non_ss, use_ss);
   }
 }
@@ -466,6 +467,7 @@ _insert_into_working_tree(struct olsrv2_tc_target *target,
 #ifdef OONF_LOG_DEBUG_INFO
   struct netaddr_str nbuf1, nbuf2;
 #endif
+
   if (linkcost >= RFC7181_METRIC_INFINITE) {
     return;
   }
@@ -484,31 +486,34 @@ _insert_into_working_tree(struct olsrv2_tc_target *target,
   path_cost += linkcost;
   path_hops += 1;
 
-  if (avl_is_node_added(&node->_node)) {
+  if (heap_is_node_added(&_dijkstra_working_heap, &node->_node)) {
     /* node already in dijkstra working queue */
 
-    if (node->path_cost <= path_cost) {
+    if (node->_node.key <= path_cost) {
       /* current path is shorter than new one */
       return;
     }
 
-    /* we found a better path, remove node from working queue */
-    avl_remove(&_dijkstra_working_tree, &node->_node);
+    /* we found a better path, fix the node */
+    node->_node.key = path_cost;
+    heap_decrease_key(&_dijkstra_working_heap, &node->_node);
   }
-  
+  else {
+    node->_node.key = path_cost;
+    heap_insert(&_dijkstra_working_heap, &node->_node);
+  }
+
   OONF_DEBUG(LOG_OLSRV2_ROUTING, "Add dst %s [%s] with pathcost %u to dijstra tree (0x%zx)",
           netaddr_to_string(&nbuf1, &target->prefix.dst),
           netaddr_to_string(&nbuf2, &target->prefix.src), path_cost,
           (size_t)target);
 
-  node->path_cost = path_cost;
   node->path_hops = path_hops;
   node->first_hop = neigh;
   node->distance = distance;
   node->single_hop = single_hop;
   node->last_originator = last_originator;
 
-  avl_insert(&_dijkstra_working_tree, &node->_node);
   return;
 }
 
@@ -647,7 +652,7 @@ _prepare_nodes(void) {
   /* initialize private dijkstra data on nodes */
   avl_for_each_element(olsrv2_tc_get_tree(), node, _originator_node) {
     node->target._dijkstra.first_hop = NULL;
-    node->target._dijkstra.path_cost = RFC7181_METRIC_INFINITE_PATH;
+    node->target._dijkstra._node.key = RFC7181_METRIC_INFINITE_PATH;
     node->target._dijkstra.path_hops = 255;
     node->target._dijkstra.local =
         olsrv2_originator_is_local(&node->target.prefix.dst);
@@ -657,7 +662,7 @@ _prepare_nodes(void) {
   /* initialize private dijkstra data on endpoints */
   avl_for_each_element(olsrv2_tc_get_endpoint_tree(), end, _node) {
     end->target._dijkstra.first_hop = NULL;
-    end->target._dijkstra.path_cost = RFC7181_METRIC_INFINITE_PATH;
+    end->target._dijkstra._node.key = RFC7181_METRIC_INFINITE_PATH;
     node->target._dijkstra.path_hops = 255;
     end->target._dijkstra.done = false;
   }
@@ -766,19 +771,19 @@ _handle_working_queue(struct nhdp_domain *domain,
   struct olsrv2_tc_edge *tc_edge;
   struct olsrv2_tc_attachment *tc_attached;
   struct olsrv2_tc_endpoint *tc_endpoint;
-
+  struct olsrv2_heap_node *heapnode;
 #ifdef OONF_LOG_DEBUG_INFO
   struct netaddr_str nbuf1, nbuf2;
 #endif
 
   /* get tc target */
-  target = avl_first_element(&_dijkstra_working_tree, target, _dijkstra._node);
+  heapnode = heap_extract_min(&_dijkstra_working_heap);
+  target = container_of(heapnode, typeof(*target), _dijkstra._node);
 
   /* remove current node from working tree */
   OONF_DEBUG(LOG_OLSRV2_ROUTING, "Remove node %s [%s] from dijkstra tree",
       netaddr_to_string(&nbuf1, &target->prefix.dst),
       netaddr_to_string(&nbuf2, &target->prefix.src));
-  avl_remove(&_dijkstra_working_tree, &target->_dijkstra._node);
 
   /* mark current node as done */
   target->_dijkstra.done = true;
@@ -788,7 +793,7 @@ _handle_working_queue(struct nhdp_domain *domain,
     _update_routing_entry(domain, &target->prefix,
         target->_dijkstra.first_hop,
         target->_dijkstra.distance,
-        target->_dijkstra.path_cost,
+        target->_dijkstra._node.key,
         target->_dijkstra.path_hops,
         target->_dijkstra.single_hop,
         target->_dijkstra.last_originator);
@@ -811,7 +816,7 @@ _handle_working_queue(struct nhdp_domain *domain,
         /* add new tc_node to working tree */
         _insert_into_working_tree(&tc_edge->dst->target, first_hop,
             tc_edge->cost[domain->index],
-            target->_dijkstra.path_cost, target->_dijkstra.path_hops,
+            target->_dijkstra._node.key, target->_dijkstra.path_hops,
             0, false, &target->prefix.dst);
       }
     }
@@ -830,7 +835,7 @@ _handle_working_queue(struct nhdp_domain *domain,
           /* add attached network or address to working tree */
           _insert_into_working_tree(&tc_attached->dst->target, first_hop,
               tc_attached->cost[domain->index],
-              target->_dijkstra.path_cost, target->_dijkstra.path_hops,
+              target->_dijkstra._node.key, target->_dijkstra.path_hops,
               tc_attached->distance[domain->index], false,
               &target->prefix.dst);
         }
@@ -841,7 +846,7 @@ _handle_working_queue(struct nhdp_domain *domain,
           /* fill routing entry with dijkstra result */
           _update_routing_entry(domain, &tc_endpoint->target.prefix,
               first_hop, tc_attached->distance[domain->index],
-              target->_dijkstra.path_cost + tc_attached->cost[domain->index],
+              target->_dijkstra._node.key + tc_attached->cost[domain->index],
               tc_endpoint->target._dijkstra.path_hops + 1,
               false, &target->prefix.dst);
         }
