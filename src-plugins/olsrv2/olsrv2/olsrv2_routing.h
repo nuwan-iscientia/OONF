@@ -69,6 +69,9 @@ struct olsrv2_dijkstra_node {
   /*! hook into the working list of the dijkstra */
   struct olsrv2_heap_node _node;
 
+  /*! path cost to the target */
+  uint32_t path_cost;
+
   /*! path hops to the target */
   uint8_t path_hops;
 

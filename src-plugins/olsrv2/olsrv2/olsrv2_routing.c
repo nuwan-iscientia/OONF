@@ -141,7 +141,7 @@ olsrv2_routing_init(void) {
     avl_init(&_routing_tree[i], os_route_avl_cmp_route_key, false);
   }
   list_init_head(&_routing_filter_list);
-  heap_init(&_dijkstra_working_heap);
+  heap_init(&_dijkstra_working_heap, avl_comp_uint32);
   list_init_head(&_kernel_queue);
 
   nhdp_domain_listener_add(&_nhdp_listener);
@@ -302,7 +302,8 @@ olsrv2_routing_force_update(bool skip_wait) {
  */
 void
 olsrv2_routing_dijkstra_node_init(
-    struct olsrv2_dijkstra_node *dijkstra __attribute__((unused))) {
+    struct olsrv2_dijkstra_node *dijkstra) {
+  dijkstra->_node.ckey = &dijkstra->path_cost;
 }
 
 /**
@@ -489,17 +490,17 @@ _insert_into_working_tree(struct olsrv2_tc_target *target,
   if (heap_is_node_added(&_dijkstra_working_heap, &node->_node)) {
     /* node already in dijkstra working queue */
 
-    if (node->_node.key <= path_cost) {
+    if (node->path_cost <= path_cost) {
       /* current path is shorter than new one */
       return;
     }
 
     /* we found a better path, fix the node */
-    node->_node.key = path_cost;
+    node->path_cost = path_cost;
     heap_decrease_key(&_dijkstra_working_heap, &node->_node);
   }
   else {
-    node->_node.key = path_cost;
+    node->path_cost = path_cost;
     heap_insert(&_dijkstra_working_heap, &node->_node);
   }
 
@@ -652,7 +653,7 @@ _prepare_nodes(void) {
   /* initialize private dijkstra data on nodes */
   avl_for_each_element(olsrv2_tc_get_tree(), node, _originator_node) {
     node->target._dijkstra.first_hop = NULL;
-    node->target._dijkstra._node.key = RFC7181_METRIC_INFINITE_PATH;
+    node->target._dijkstra.path_cost = RFC7181_METRIC_INFINITE_PATH;
     node->target._dijkstra.path_hops = 255;
     node->target._dijkstra.local =
         olsrv2_originator_is_local(&node->target.prefix.dst);
@@ -662,7 +663,7 @@ _prepare_nodes(void) {
   /* initialize private dijkstra data on endpoints */
   avl_for_each_element(olsrv2_tc_get_endpoint_tree(), end, _node) {
     end->target._dijkstra.first_hop = NULL;
-    end->target._dijkstra._node.key = RFC7181_METRIC_INFINITE_PATH;
+    end->target._dijkstra.path_cost = RFC7181_METRIC_INFINITE_PATH;
     node->target._dijkstra.path_hops = 255;
     end->target._dijkstra.done = false;
   }
@@ -793,7 +794,7 @@ _handle_working_queue(struct nhdp_domain *domain,
     _update_routing_entry(domain, &target->prefix,
         target->_dijkstra.first_hop,
         target->_dijkstra.distance,
-        target->_dijkstra._node.key,
+        target->_dijkstra.path_cost,
         target->_dijkstra.path_hops,
         target->_dijkstra.single_hop,
         target->_dijkstra.last_originator);
@@ -816,7 +817,7 @@ _handle_working_queue(struct nhdp_domain *domain,
         /* add new tc_node to working tree */
         _insert_into_working_tree(&tc_edge->dst->target, first_hop,
             tc_edge->cost[domain->index],
-            target->_dijkstra._node.key, target->_dijkstra.path_hops,
+            target->_dijkstra.path_cost, target->_dijkstra.path_hops,
             0, false, &target->prefix.dst);
       }
     }
@@ -835,7 +836,7 @@ _handle_working_queue(struct nhdp_domain *domain,
           /* add attached network or address to working tree */
           _insert_into_working_tree(&tc_attached->dst->target, first_hop,
               tc_attached->cost[domain->index],
-              target->_dijkstra._node.key, target->_dijkstra.path_hops,
+              target->_dijkstra.path_cost, target->_dijkstra.path_hops,
               tc_attached->distance[domain->index], false,
               &target->prefix.dst);
         }
@@ -846,7 +847,7 @@ _handle_working_queue(struct nhdp_domain *domain,
           /* fill routing entry with dijkstra result */
           _update_routing_entry(domain, &tc_endpoint->target.prefix,
               first_hop, tc_attached->distance[domain->index],
-              target->_dijkstra._node.key + tc_attached->cost[domain->index],
+              target->_dijkstra.path_cost + tc_attached->cost[domain->index],
               tc_endpoint->target._dijkstra.path_hops + 1,
               false, &target->prefix.dst);
         }

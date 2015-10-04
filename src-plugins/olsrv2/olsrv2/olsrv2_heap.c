@@ -39,6 +39,8 @@
  *
  */
 
+#include <string.h>
+
 #include "common/common_types.h"
 
 #include "olsrv2/olsrv2_heap.h"
@@ -55,10 +57,10 @@ static struct olsrv2_heap_node* heap_find_last_node(struct olsrv2_heap *root);
  * @param root pointer to binary olsrv2_heap
  */
 void
-heap_init(struct olsrv2_heap *root)
+heap_init(struct olsrv2_heap *root, int (*comp) (const void *k1, const void *k2))
 {
-    root->count = 0;
-    root->root_node = root->last_node = NULL;
+  memset(root, 0, sizeof(*root));
+  root->comp = comp;
 }
 
 /**
@@ -68,13 +70,13 @@ heap_init(struct olsrv2_heap *root)
 bool
 heap_is_node_added(struct olsrv2_heap *root, struct olsrv2_heap_node *node)
 {
-    if(node){
-        if(node->parent || node->left || node->right)
-            return true;
-        if(node == heap_get_root_node(root))
-            return true;
-    }
-    return false;
+  if(node){
+    if(node->parent || node->left || node->right)
+      return true;
+    if(node == heap_get_root_node(root))
+      return true;
+  }
+  return false;
 }
 
 /**
@@ -136,11 +138,11 @@ heap_decrease_key(struct olsrv2_heap *root, struct olsrv2_heap_node *node)
     struct olsrv2_heap_node *right = node->right;
     if(!parent)
         return;
-    if(parent->key > node->key){
+    if(root->comp(parent->ckey,node->ckey) > 0){
         if(root->last_node == node)
             root->last_node = parent;
     }
-    while(parent && (parent->key > node->key)){
+    while(parent && root->comp(parent->ckey, node->ckey) > 0){
         if(parent->left == node){
             node->left = parent;
             node->right = parent->right;
@@ -299,18 +301,20 @@ heap_increase_key(struct olsrv2_heap *root, struct olsrv2_heap_node *node)
 {
     struct olsrv2_heap_node *left = node->left;
     struct olsrv2_heap_node *right = node->right;
-    if(left && (node->key > left->key)){
-        if(right && (node->key > right->key)){
-            if(left->key < right->key)
+    if(left && root->comp(node->ckey, left->ckey) > 0){
+        if(right && root->comp(node->ckey, right->ckey) > 0){
+            if(root->comp(left->ckey, right->ckey) < 0) {
                 heap_swap_left(root, node);
-            else
+            }
+            else {
                 heap_swap_right(root, node);
+            }
         }
         else
             heap_swap_left(root, node);
         heap_increase_key(root, node);
     }
-    else if(right && (node->key > right->key)){
+    else if(right && root->comp(node->ckey, right->ckey) > 0){
         heap_swap_right(root, node);
         heap_increase_key(root, node);
     }

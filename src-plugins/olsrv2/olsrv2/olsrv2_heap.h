@@ -51,7 +51,7 @@ struct olsrv2_heap_node{
     /**
      * node's key based on the link cost type.
      */
-    uint32_t key;
+    const void *ckey;
 
     /**
      * Pointer to parent node in the olsrv2_heap, NULL if root node.
@@ -73,7 +73,7 @@ struct olsrv2_heap_node{
  * Manager struct of the olsrv2_heap.
  * One of them is necessary for each olsrv2_heap.
  */
-struct olsrv2_heap{
+struct olsrv2_heap {
     /**
      * Number of nodes in the olsrv2_heap.
      */
@@ -89,13 +89,22 @@ struct olsrv2_heap{
      * NULL if olsrv2_heap is empty.
      */
     struct olsrv2_heap_node *last_node;
+
+    /**
+     * Prototype for avl comparators
+     * @param k1 first key
+     * @param k2 second key
+     * @return +1 if k1>k2, -1 if k1<k2, 0 if k1==k2
+     */
+    int (*comp)(const void *k1, const void *k2);
 };
 
-void heap_init(struct olsrv2_heap *root);
-void heap_decrease_key(struct olsrv2_heap *root, struct olsrv2_heap_node *node);
-void heap_insert(struct olsrv2_heap *root, struct olsrv2_heap_node *node);
-struct olsrv2_heap_node *heap_extract_min(struct olsrv2_heap *root);
-bool heap_is_node_added(struct olsrv2_heap *root, struct olsrv2_heap_node *node);
+EXPORT void heap_init(struct olsrv2_heap *root,
+    int (*comp) (const void *k1, const void *k2));
+EXPORT void heap_decrease_key(struct olsrv2_heap *root, struct olsrv2_heap_node *node);
+EXPORT void heap_insert(struct olsrv2_heap *root, struct olsrv2_heap_node *node);
+EXPORT struct olsrv2_heap_node *heap_extract_min(struct olsrv2_heap *root);
+EXPORT bool heap_is_node_added(struct olsrv2_heap *root, struct olsrv2_heap_node *node);
 
 /**
  * @param root pointer to binary olsrv2_heap
