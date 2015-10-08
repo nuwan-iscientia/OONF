@@ -658,7 +658,7 @@ _prepare_nodes(void) {
   avl_for_each_element(olsrv2_tc_get_endpoint_tree(), end, _node) {
     end->target._dijkstra.first_hop = NULL;
     end->target._dijkstra.path_cost = RFC7181_METRIC_INFINITE_PATH;
-    node->target._dijkstra.path_hops = 255;
+    end->target._dijkstra.path_hops = 255;
     end->target._dijkstra.done = false;
   }
 }
