@@ -102,7 +102,8 @@ static void _cb_cfg_changed(void);
 /* plugin declaration */
 static struct cfg_schema_entry _constant_entries[] = {
   _CFG_VALIDATE("link", "", "Defines the static cost to the link to a neighbor."
-      " Value consists of the originator address followed by the link cost",
+      " Value consists of the originator address (or '-' for all neighbors)"
+      " followed by the link cost",
       .cb_validate = _cb_validate_link, .list = true),
 };
 
@@ -218,8 +219,14 @@ _cb_link_added(void *ptr __attribute__((unused))) {
   oonf_timer_set(&_setup_timer, 1);
 }
 
+/**
+ * Get the linkcost object for an interface/neighbor combination
+ * @param ifname name of the interface
+ * @param originator IP of the neighbor
+ * @return linkcost object, NULL if not found
+ */
 static struct _linkcost *
-_get_linkcost(const char *ifname, struct netaddr *originator) {
+_get_linkcost(const char *ifname, const struct netaddr *originator) {
   struct _linkcost key;
   struct _linkcost *entry;
 
@@ -230,8 +237,8 @@ _get_linkcost(const char *ifname, struct netaddr *originator) {
 }
 
 /**
- * Timer callback to sample new ETT values into bucket
- * @param ptr nhdp link
+ * Timer callback for delayed setting of new metric values into db
+ * @param ptr not used
  */
 static void
 _cb_set_linkcost(void *ptr __attribute__((unused))) {
@@ -264,7 +271,12 @@ _cb_set_linkcost(void *ptr __attribute__((unused))) {
       entry = _get_linkcost(OONF_INTERFACE_WILDCARD,
           &lnk->dualstack_partner->neigh->originator);
     }
-
+    if (entry == NULL)  {
+      entry = _get_linkcost(ifname, &NETADDR_UNSPEC);
+    }
+    if (entry == NULL) {
+      entry = _get_linkcost(OONF_INTERFACE_WILDCARD, &NETADDR_UNSPEC);
+    }
     if (entry) {
       OONF_DEBUG(LOG_CONSTANT_METRIC, "Found metric value %u", entry->cost);
       nhdp_domain_set_incoming_metric(&_constant_metric_handler, lnk, entry->cost);
@@ -279,6 +291,13 @@ _cb_set_linkcost(void *ptr __attribute__((unused))) {
   nhdp_domain_neighborhood_changed();
 }
 
+/**
+ * compare two linkcosts with each other by comparing
+ * interface name and neighbor IP
+ * @param ptr1
+ * @param ptr2
+ * @return
+ */
 static int
 _avlcmp_linkcost(const void *ptr1, const void *ptr2) {
   const struct _linkcost *lk1, *lk2;
@@ -294,21 +313,30 @@ _avlcmp_linkcost(const void *ptr1, const void *ptr2) {
   return result;
 }
 
+/**
+ * Validate configuration parameter for a constant metric
+ * @param entry
+ * @param section_name
+ * @param value
+ * @param out
+ * @return
+ */
 static int
 _cb_validate_link(const struct cfg_schema_entry *entry,
       const char *section_name, const char *value, struct autobuf *out) {
   struct isonumber_str sbuf;
   struct netaddr_str nbuf;
   const char *ptr;
-  int8_t af[] = { AF_INET, AF_INET6 };
+  int8_t af[] = { AF_INET, AF_INET6, AF_UNSPEC };
 
-  /* test if first word is a human readable number */
+  /* test if first word is a network address readable number */
   ptr = str_cpynextword(nbuf.buf, value, sizeof(nbuf));
   if (cfg_validate_netaddr(out, section_name, entry->key.entry, nbuf.buf,
       false, af, ARRAYSIZE(af))) {
     return -1;
   }
 
+  /* test if second word is a human readable number */
   ptr = str_cpynextword(sbuf.buf, ptr, sizeof(sbuf));
   if (cfg_validate_int(out, section_name, entry->key.entry, sbuf.buf,
       RFC7181_METRIC_MIN, RFC7181_METRIC_MAX, 4, 0, false)) {
@@ -351,7 +379,6 @@ _cb_cfg_changed(void) {
   }
 
   strarray_for_each_element(array, ptr) {
-    OONF_DEBUG(LOG_CONSTANT_METRIC, "3: %s", ptr);
     lk = oonf_class_malloc(&_linkcost_class);
     if (lk) {
       cost_ptr = str_cpynextword(nbuf.buf, ptr, sizeof(nbuf));
@@ -359,12 +386,10 @@ _cb_cfg_changed(void) {
       strscpy(lk->if_name, _constant_section.section_name, IF_NAMESIZE);
       if (netaddr_from_string(&lk->neighbor, nbuf.buf)) {
         oonf_class_free(&_linkcost_class, lk);
-        OONF_DEBUG(LOG_CONSTANT_METRIC, "2");
         continue;
       }
       if (isonumber_to_s64(&cost, cost_ptr, 0, false)) {
         oonf_class_free(&_linkcost_class, lk);
-        OONF_DEBUG(LOG_CONSTANT_METRIC, "3");
         continue;
       }
 
@@ -373,9 +398,9 @@ _cb_cfg_changed(void) {
       lk->_node.key = lk;
       avl_insert(&_linkcost_tree, &lk->_node);
 
-      OONF_DEBUG(LOG_CONSTANT_METRIC, "Add entry (%s)", ptr);
+      OONF_DEBUG(LOG_CONSTANT_METRIC, "Add entry (%s/%s: %s)",
+          lk->if_name, nbuf.buf, cost_ptr);
     }
-    OONF_DEBUG(LOG_CONSTANT_METRIC, "4");
   }
 
   /* delay updating linkcosts */
