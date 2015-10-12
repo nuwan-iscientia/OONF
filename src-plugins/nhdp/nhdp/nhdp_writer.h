@@ -55,4 +55,6 @@ void nhdp_writer_cleanup(void);
 
 EXPORT void nhdp_writer_send_hello(struct nhdp_interface *interf);
 
+EXPORT void nhdp_writer_set_mac_TLV_state(bool active);
+
 #endif /* NHDP_WRITER_H_ */

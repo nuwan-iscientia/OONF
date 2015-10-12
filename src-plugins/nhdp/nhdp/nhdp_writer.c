@@ -100,6 +100,7 @@ static struct rfc5444_writer_tlvtype _nhdp_addrtlvs[] = {
 static struct oonf_rfc5444_protocol *_protocol;
 
 static bool _cleanedup = false;
+static bool _add_mac_tlv = true;
 static struct nhdp_interface *_nhdp_if = NULL;
 
 /**
@@ -187,6 +188,16 @@ nhdp_writer_send_hello(struct nhdp_interface *ninterf) {
     OONF_WARN(LOG_NHDP_W, "Could not send NHDP message to %s: %s (%d)",
         netaddr_to_string(&buf, &ninterf->rfc5444_if.interface->multicast6->dst), rfc5444_strerror(result), result);
   }
+}
+
+
+/**
+ * activates or deactivates the MAC_TLV in the NHDP Hello messages
+ * @param active true if MAC_TLV should be present
+ */
+void
+nhdp_writer_set_mac_TLV_state(bool active) {
+  _add_mac_tlv = active;
 }
 
 /**
@@ -301,8 +312,11 @@ _cb_addMessageTLVs(struct rfc5444_writer *writer) {
   if (ifdata == NULL) {
     return;
   }
-  rfc5444_writer_add_messagetlv(writer, NHDP_MSGTLV_MAC, 0,
-      netaddr_get_binptr(&ifdata->mac), netaddr_get_binlength(&ifdata->mac));
+
+  if (_add_mac_tlv) {
+    rfc5444_writer_add_messagetlv(writer, NHDP_MSGTLV_MAC, 0,
+        netaddr_get_binptr(&ifdata->mac), netaddr_get_binlength(&ifdata->mac));
+  }
 }
 
 /**
