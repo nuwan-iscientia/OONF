@@ -40,7 +40,7 @@
  */
 
 /**
- * @file src-plugins/generic/dlep/dlep_extension.c
+ * @file
  */
 
 #include <stdlib.h>

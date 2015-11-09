@@ -40,7 +40,7 @@
  */
 
 /**
- * @file src-plugins/subsystems/oonf_rfc5444.h
+ * @file
  */
 
 #ifndef OONF_RFC5444_H_

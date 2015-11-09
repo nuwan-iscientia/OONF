@@ -40,7 +40,7 @@
  */
 
 /**
- * @file src-plugins/generic/systeminfo/systeminfo.c
+ * @file
  */
 
 #include <stdio.h>

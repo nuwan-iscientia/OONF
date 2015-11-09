@@ -40,7 +40,7 @@
  */
 
 /**
- * @file src-plugins/olsrv2/olsrv2/olsrv2_routing.c
+ * @file
  */
 
 #include <errno.h>

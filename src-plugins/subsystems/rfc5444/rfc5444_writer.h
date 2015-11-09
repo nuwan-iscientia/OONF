@@ -40,7 +40,7 @@
  */
 
 /**
- * @file src-plugins/subsystems/rfc5444/rfc5444_writer.h
+ * @file
  */
 
 #ifndef RFC5444_WRITER_H_

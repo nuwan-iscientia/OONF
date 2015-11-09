@@ -40,7 +40,7 @@
  */
 
 /**
- * @file src-plugins/generic/dlep/dlep_reader.c
+ * @file
  */
 
 #include "common/common_types.h"

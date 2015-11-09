@@ -40,7 +40,7 @@
  */
 
 /**
- * @file src-plugins/subsystems/os_system.h
+ * @file
  */
 
 #ifndef OS_SYSTEM_H_

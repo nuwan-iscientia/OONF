@@ -40,7 +40,7 @@
  */
 
 /**
- * @file ./src-api/config/cfg.c
+ * @file
  */
 
 #include <stdio.h>

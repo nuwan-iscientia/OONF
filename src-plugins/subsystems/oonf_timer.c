@@ -40,7 +40,7 @@
  */
 
 /**
- * @file src-plugins/subsystems/oonf_timer.c
+ * @file
  */
 
 #include <assert.h>

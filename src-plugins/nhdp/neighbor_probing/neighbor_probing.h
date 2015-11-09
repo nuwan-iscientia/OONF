@@ -40,7 +40,7 @@
  */
 
 /**
- * @file src-plugins/nhdp/neighbor_probing/neighbor_probing.h
+ * @file
  */
 
 #ifndef NEIGHBOR_PROBING_H_

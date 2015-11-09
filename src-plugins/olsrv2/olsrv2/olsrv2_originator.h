@@ -40,7 +40,7 @@
  */
 
 /**
- * @file src-plugins/olsrv2/olsrv2/olsrv2_originator.h
+ * @file
  */
 
 #ifndef OLSRV2_ORIGINATOR_SET_H_

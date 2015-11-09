@@ -40,7 +40,7 @@
  */
 
 /**
- * @file ./tests/common/test_common_string.c
+ * @file
  */
 
 #include <signal.h>

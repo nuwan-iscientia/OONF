@@ -40,7 +40,7 @@
  */
 
 /**
- * @file ./tests/config/test_config_cmd.c
+ * @file
  */
 
 #include <string.h>

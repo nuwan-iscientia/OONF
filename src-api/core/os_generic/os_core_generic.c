@@ -40,7 +40,7 @@
  */
 
 /**
- * @file ./src-api/core/os_generic/os_core_generic.c
+ * @file
  */
 
 #include <sys/times.h>

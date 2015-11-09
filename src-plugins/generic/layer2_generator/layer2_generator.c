@@ -40,7 +40,7 @@
  */
 
 /**
- * @file src-plugins/generic/layer2_generator/layer2_generator.c
+ * @file
  */
 
 #include <stdio.h>

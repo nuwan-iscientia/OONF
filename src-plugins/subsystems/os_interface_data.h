@@ -40,7 +40,7 @@
  */
 
 /**
- * @file src-plugins/subsystems/os_interface_data.h
+ * @file
  */
 
 #ifndef OS_INTERFACE_DATA_H_

@@ -40,7 +40,7 @@
  */
 
 /**
- * @file ./src-api/common/netaddr_acl.h
+ * @file
  */
 
 #ifndef NETADDR_ACL_H_

@@ -40,7 +40,7 @@
  */
 
 /**
- * @file ./src-api/config/cfg.h
+ * @file
  */
 
 #ifndef CFG_H_

@@ -40,7 +40,7 @@
  */
 
 /**
- * @file src-plugins/subsystems/oonf_clock.c
+ * @file
  */
 
 #include <assert.h>

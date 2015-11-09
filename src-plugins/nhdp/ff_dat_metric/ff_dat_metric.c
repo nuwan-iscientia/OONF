@@ -40,7 +40,7 @@
  */
 
 /**
- * @file src-plugins/nhdp/ff_dat_metric/ff_dat_metric.c
+ * @file
  */
 
 #include <sys/types.h>

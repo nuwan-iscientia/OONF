@@ -40,7 +40,7 @@
  */
 
 /**
- * @file src-plugins/subsystems/rfc5444/rfc5444_tlv_writer.h
+ * @file
  */
 
 #ifndef RFC5444_TLV_WRITER_H_

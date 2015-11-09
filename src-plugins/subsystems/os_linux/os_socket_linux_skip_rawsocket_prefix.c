@@ -40,7 +40,7 @@
  */
 
 /**
- * @file src-plugins/subsystems/os_linux/os_socket_linux_skip_rawsocket_prefix.c
+ * @file
  */
 
 #include <errno.h>

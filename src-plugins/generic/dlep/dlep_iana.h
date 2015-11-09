@@ -40,7 +40,7 @@
  */
 
 /**
- * @file src-plugins/generic/dlep/dlep_iana.h
+ * @file
  */
 
 #ifndef DLEP_IANA_H_

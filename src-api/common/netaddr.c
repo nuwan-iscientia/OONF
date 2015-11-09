@@ -40,7 +40,7 @@
  */
 
 /**
- * @file ./src-api/common/netaddr.c
+ * @file
  */
 
 #include <ctype.h>

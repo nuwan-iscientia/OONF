@@ -40,7 +40,7 @@
  */
 
 /**
- * @file src-plugins/nhdp/nhdpinfo/nhdpinfo.c
+ * @file
  */
 
 #include "common/common_types.h"

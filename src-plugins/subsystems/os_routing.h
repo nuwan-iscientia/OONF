@@ -40,7 +40,7 @@
  */
 
 /**
- * @file src-plugins/subsystems/os_routing.h
+ * @file
  */
 
 #ifndef OS_ROUTING_H_

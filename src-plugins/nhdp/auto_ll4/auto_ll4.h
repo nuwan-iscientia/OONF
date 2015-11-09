@@ -40,7 +40,7 @@
  */
 
 /**
- * @file src-plugins/nhdp/auto_ll4/auto_ll4.h
+ * @file
  */
 
 #ifndef AUTO_LL4_H_

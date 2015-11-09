@@ -40,7 +40,7 @@
  */
 
 /**
- * @file src-plugins/generic/nl80211_listener/genl_get_family.c
+ * @file
  */
 
 /*

@@ -40,7 +40,7 @@
  */
 
 /**
- * @file src-plugins/subsystems/oonf_layer2.c
+ * @file
  */
 
 #include "common/avl.h"

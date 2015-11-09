@@ -40,7 +40,7 @@
  */
 
 /**
- * @file src-plugins/generic/nl80211_listener/nl80211_listener.h
+ * @file
  */
 
 #ifndef NL80211_LISTENER_H_

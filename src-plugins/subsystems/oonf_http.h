@@ -40,7 +40,7 @@
  */
 
 /**
- * @file src-plugins/subsystems/oonf_http.h
+ * @file
  */
 
 #ifndef OONF_HTTP_H_

@@ -40,7 +40,7 @@
  */
 
 /**
- * @file src-plugins/generic/eth_listener/eth_listener.c
+ * @file
  */
 
 #include <linux/sockios.h>

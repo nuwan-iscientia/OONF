@@ -40,7 +40,7 @@
  */
 
 /**
- * @file ./src-api/core/oonf_logging_cfg.c
+ * @file
  */
 
 #include <errno.h>

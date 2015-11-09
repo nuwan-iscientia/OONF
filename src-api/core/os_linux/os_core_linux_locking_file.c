@@ -40,7 +40,7 @@
  */
 
 /**
- * @file ./src-api/core/os_linux/os_core_linux_locking_file.c
+ * @file
  */
 
 #include <sys/file.h>

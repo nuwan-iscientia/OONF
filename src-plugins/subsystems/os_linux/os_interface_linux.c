@@ -40,7 +40,7 @@
  */
 
 /**
- * @file src-plugins/subsystems/os_linux/os_interface_linux.c
+ * @file
  */
 
 /*! activate GUI sources for this file */

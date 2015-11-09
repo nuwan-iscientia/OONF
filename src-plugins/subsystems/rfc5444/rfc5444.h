@@ -40,7 +40,7 @@
  */
 
 /**
- * @file src-plugins/subsystems/rfc5444/rfc5444.h
+ * @file
  */
 #ifndef RFC5444_CONVERSION_H_
 #define RFC5444_CONVERSION_H_

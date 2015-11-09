@@ -40,7 +40,7 @@
  */
 
 /**
- * @file src-plugins/olsrv2/netjsoninfo/netjsoninfo.h
+ * @file
  */
 
 #ifndef NETJSONINFO_H_

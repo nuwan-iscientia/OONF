@@ -40,7 +40,7 @@
  */
 
 /**
- * @file src-plugins/generic/link_config/link_config.h
+ * @file
  */
 
 #ifndef OONF_LINKCONFIG_H_

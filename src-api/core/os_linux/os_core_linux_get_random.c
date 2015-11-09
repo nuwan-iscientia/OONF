@@ -40,7 +40,7 @@
  */
 
 /**
- * @file ./src-api/core/os_linux/os_core_linux_get_random.c
+ * @file
  */
 
 #include <sys/types.h>

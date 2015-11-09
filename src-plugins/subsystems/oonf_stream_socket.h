@@ -40,7 +40,7 @@
  */
 
 /**
- * @file src-plugins/subsystems/oonf_stream_socket.h
+ * @file
  */
 
 #ifndef OONF_STREAM_SOCKET_H_

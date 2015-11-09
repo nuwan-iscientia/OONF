@@ -40,7 +40,7 @@
  */
 
 /**
- * @file ./src-api/core/oonf_main.c
+ * @file
  */
 
 #include <sys/types.h>

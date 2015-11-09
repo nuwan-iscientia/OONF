@@ -40,7 +40,7 @@
  */
 
 /**
- * @file src-plugins/nhdp/neighbor_probing/neighbor_probing.c
+ * @file
  */
 
 #include "common/avl.h"

@@ -40,7 +40,7 @@
  */
 
 /**
- * @file ./tests/rfc5444/test_rfc5444_writer_mandatory.c
+ * @file
  */
 #include <assert.h>
 #include <stdlib.h>

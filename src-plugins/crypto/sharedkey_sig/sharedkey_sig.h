@@ -40,7 +40,7 @@
  */
 
 /**
- * @file src-plugins/crypto/sharedkey_sig/sharedkey_sig.h
+ * @file
  */
 
 #ifndef SHAREDKEY_SIG_H

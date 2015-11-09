@@ -40,7 +40,7 @@
  */
 
 /**
- * @file src-plugins/generic/remotecontrol/remotecontrol.c
+ * @file
  */
 
 #include <stdlib.h>

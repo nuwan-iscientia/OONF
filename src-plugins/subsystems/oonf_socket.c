@@ -40,7 +40,7 @@
  */
 
 /**
- * @file src-plugins/subsystems/oonf_socket.c
+ * @file
  */
 
 #include <unistd.h>

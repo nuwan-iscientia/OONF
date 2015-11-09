@@ -40,7 +40,7 @@
  */
 
 /**
- * @file src-plugins/subsystems/os_linux/os_routing_linux.h
+ * @file
  */
 
 #ifndef OS_ROUTING_LINUX_H_

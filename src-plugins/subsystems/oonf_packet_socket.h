@@ -40,7 +40,7 @@
  */
 
 /**
- * @file src-plugins/subsystems/oonf_packet_socket.h
+ * @file
  */
 
 #ifndef OONF_PACKET_SOCKET_H_

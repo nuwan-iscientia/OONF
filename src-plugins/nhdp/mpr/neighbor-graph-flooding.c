@@ -40,7 +40,7 @@
  */
 
 /**
- * @file src-plugins/nhdp/mpr/neighbor-graph-flooding.c
+ * @file
  */
 
 #include "nhdp/nhdp.h"

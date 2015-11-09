@@ -40,7 +40,7 @@
  */
 
 /**
- * @file src-plugins/generic/dlep/router/dlep_router_interface.c
+ * @file
  */
 
 #include <errno.h>

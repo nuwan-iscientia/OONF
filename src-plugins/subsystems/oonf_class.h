@@ -40,7 +40,7 @@
  */
 
 /**
- * @file src-plugins/subsystems/oonf_class.h
+ * @file
  */
 
 #ifndef _OONF_CLASS_H

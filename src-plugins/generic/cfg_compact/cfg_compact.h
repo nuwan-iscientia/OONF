@@ -40,7 +40,7 @@
  */
 
 /**
- * @file src-plugins/generic/cfg_compact/cfg_compact.h
+ * @file
  */
 
 #ifndef CFG_COMPACT_H_

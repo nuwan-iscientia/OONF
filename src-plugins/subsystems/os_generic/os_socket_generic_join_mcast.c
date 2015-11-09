@@ -40,7 +40,7 @@
  */
 
 /**
- * @file src-plugins/subsystems/os_generic/os_socket_generic_join_mcast.c
+ * @file
  */
 
 #include <errno.h>

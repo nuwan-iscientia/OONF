@@ -40,7 +40,7 @@
  */
 
 /**
- * @file src-plugins/crypto/hash_tomcrypt/hash_tomcrypt.h
+ * @file
  */
 
 #ifndef HASH_LIBTOMCRYPT_H_

@@ -40,7 +40,7 @@
  */
 
 /**
- * @file src/main.c
+ * @file
  */
 
 #include "common/common_types.h"

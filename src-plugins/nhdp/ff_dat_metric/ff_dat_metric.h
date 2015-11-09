@@ -40,7 +40,7 @@
  */
 
 /**
- * @file src-plugins/nhdp/ff_dat_metric/ff_dat_metric.h
+ * @file
  */
 
 #ifndef FF_DAT_METRIC_H_

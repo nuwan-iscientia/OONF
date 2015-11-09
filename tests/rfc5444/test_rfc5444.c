@@ -40,7 +40,7 @@
  */
 
 /**
- * @file ./tests/rfc5444/test_rfc5444.c
+ * @file
  */
 
 #include "common/common_types.h"

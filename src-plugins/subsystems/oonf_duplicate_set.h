@@ -40,7 +40,7 @@
  */
 
 /**
- * @file src-plugins/subsystems/oonf_duplicate_set.h
+ * @file
  */
 
 #ifndef OONF_DUPLICATE_SET_H_

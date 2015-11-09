@@ -40,7 +40,7 @@
  */
 
 /**
- * @file ./src-api/core/oonf_appdata.h
+ * @file
  */
 
 #ifndef OONF_APPDATA_H_

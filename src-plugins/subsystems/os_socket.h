@@ -40,7 +40,7 @@
  */
 
 /**
- * @file src-plugins/subsystems/os_socket.h
+ * @file
  */
 
 #ifndef OS_SOCKET_H_

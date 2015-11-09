@@ -40,7 +40,7 @@
  */
 
 /**
- * @file ./src-api/common/avl_comp.h
+ * @file
  */
 
 #ifndef AVL_COMP_H_

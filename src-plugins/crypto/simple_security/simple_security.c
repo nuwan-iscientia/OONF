@@ -40,7 +40,7 @@
  */
 
 /**
- * @file src-plugins/crypto/simple_security/simple_security.c
+ * @file
  */
 
 #include <string.h>

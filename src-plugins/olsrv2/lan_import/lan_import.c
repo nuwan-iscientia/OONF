@@ -40,7 +40,7 @@
  */
 
 /**
- * @file src-plugins/olsrv2/lan_import/lan_import.c
+ * @file
  */
 
 #include "common/autobuf.h"

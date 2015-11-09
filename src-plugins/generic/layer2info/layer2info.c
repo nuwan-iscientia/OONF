@@ -40,7 +40,7 @@
  */
 
 /**
- * @file src-plugins/generic/layer2info/layer2info.c
+ * @file
  */
 
 #include <stdio.h>

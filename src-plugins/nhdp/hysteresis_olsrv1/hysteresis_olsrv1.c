@@ -40,7 +40,7 @@
  */
 
 /**
- * @file src-plugins/nhdp/hysteresis_olsrv1/hysteresis_olsrv1.c
+ * @file
  */
 
 #include <stdio.h>

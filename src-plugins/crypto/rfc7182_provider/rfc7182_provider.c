@@ -40,7 +40,7 @@
  */
 
 /**
- * @file src-plugins/crypto/rfc7182_provider/rfc7182_provider.c
+ * @file
  */
 
 #include "common/common_types.h"

@@ -40,7 +40,7 @@
  */
 
 /**
- * @file ./src-api/common/bitmap256.c
+ * @file
  */
 
 #include "common/common_types.h"

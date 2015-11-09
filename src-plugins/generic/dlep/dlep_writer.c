@@ -40,7 +40,7 @@
  */
 
 /**
- * @file src-plugins/generic/dlep/dlep_writer.c
+ * @file
  */
 
 #include <arpa/inet.h>

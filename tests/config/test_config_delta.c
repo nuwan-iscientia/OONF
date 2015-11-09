@@ -40,7 +40,7 @@
  */
 
 /**
- * @file ./tests/config/test_config_delta.c
+ * @file
  */
 
 #include "common/autobuf.h"

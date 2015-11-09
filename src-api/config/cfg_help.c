@@ -40,7 +40,7 @@
  */
 
 /**
- * @file ./src-api/config/cfg_help.c
+ * @file
  */
 
 #include "common/common_types.h"

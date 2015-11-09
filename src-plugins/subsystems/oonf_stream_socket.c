@@ -40,7 +40,7 @@
  */
 
 /**
- * @file src-plugins/subsystems/oonf_stream_socket.c
+ * @file
  */
 
 #include <string.h>

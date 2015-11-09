@@ -40,7 +40,7 @@
  */
 
 /**
- * @file src-plugins/generic/eth_listener/eth_listener.h
+ * @file
  */
 
 #ifndef ETH_LISTENER_H_

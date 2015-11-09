@@ -40,7 +40,7 @@
  */
 
 /**
- * @file src-plugins/nhdp/nhdp/nhdp_domain.c
+ * @file
  */
 
 #include <stdio.h>

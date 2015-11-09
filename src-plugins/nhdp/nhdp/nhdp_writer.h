@@ -40,7 +40,7 @@
  */
 
 /**
- * @file src-plugins/nhdp/nhdp/nhdp_writer.h
+ * @file
  */
 
 #ifndef NHDP_WRITER_H_

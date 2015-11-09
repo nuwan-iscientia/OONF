@@ -40,7 +40,7 @@
  */
 
 /**
- * @file src-plugins/subsystems/rfc5444/rfc5444.c
+ * @file
  */
 #include <assert.h>
 

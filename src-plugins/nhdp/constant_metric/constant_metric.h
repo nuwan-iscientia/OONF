@@ -40,7 +40,7 @@
  */
 
 /**
- * @file src-plugins/nhdp/constant_metric/constant_metric.h
+ * @file
  */
 
 #ifndef CONSTANT_METRIC_H_

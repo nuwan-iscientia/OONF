@@ -40,7 +40,7 @@
  */
 
 /**
- * @file src-plugins/subsystems/oonf_class.c
+ * @file
  */
 
 #include <assert.h>

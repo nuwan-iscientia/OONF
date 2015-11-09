@@ -40,7 +40,7 @@
  */
 
 /**
- * @file src-plugins/olsrv2/route_modifier/route_modifier.h
+ * @file
  */
 
 #ifndef ROUTEMODIFIER_H_

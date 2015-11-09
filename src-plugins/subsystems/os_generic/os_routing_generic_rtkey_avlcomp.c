@@ -40,7 +40,7 @@
  */
 
 /**
- * @file src-plugins/subsystems/os_generic/os_routing_generic_rtkey_avlcomp.c
+ * @file
  */
 
 #include "common/common_types.h"

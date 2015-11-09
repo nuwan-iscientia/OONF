@@ -40,7 +40,7 @@
  */
 
 /**
- * @file src-plugins/subsystems/oonf_telnet.c
+ * @file
  */
 
 #include "common/common_types.h"

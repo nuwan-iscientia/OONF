@@ -40,7 +40,7 @@
  */
 
 /**
- * @file src-plugins/crypto/rfc7182_provider/rfc7182_provider.h
+ * @file
  */
 
 #ifndef RFC7182_PROVIDER_H_

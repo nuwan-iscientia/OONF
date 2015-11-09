@@ -40,7 +40,7 @@
  */
 
 /**
- * @file ./src-api/config/cfg_cmd.c
+ * @file
  */
 
 #include <stdlib.h>

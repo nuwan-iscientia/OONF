@@ -40,7 +40,7 @@
  */
 
 /**
- * @file src-plugins/olsrv2/route_modifier/route_modifier.c
+ * @file
  */
 
 #include "common/autobuf.h"

@@ -40,7 +40,7 @@
  */
 
 /**
- * @file src-plugins/generic/dlep/dlep_reader.h
+ * @file
  */
 
 #ifndef _DLEP_READER_H_

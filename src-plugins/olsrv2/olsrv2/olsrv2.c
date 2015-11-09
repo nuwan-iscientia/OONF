@@ -40,7 +40,7 @@
  */
 
 /**
- * @file src-plugins/olsrv2/olsrv2/olsrv2.c
+ * @file
  */
 
 #include <errno.h>

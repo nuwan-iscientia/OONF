@@ -40,7 +40,7 @@
  */
 
 /**
- * @file src-plugins/generic/cfg_uciloader/cfg_uciloader.c
+ * @file
  */
 
 #include <errno.h>

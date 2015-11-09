@@ -40,7 +40,7 @@
  */
 
 /**
- * @file ./src-api/core/oonf_subsystem.c
+ * @file
  */
 
 #include <assert.h>

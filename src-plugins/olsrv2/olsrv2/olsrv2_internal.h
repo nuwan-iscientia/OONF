@@ -40,7 +40,7 @@
  */
 
 /**
- * @file src-plugins/olsrv2/olsrv2/olsrv2_internal.h
+ * @file
  */
 
 #ifndef OLSRV2_INTERNAL_H_

@@ -40,7 +40,7 @@
  */
 
 /**
- * @file ./src-api/common/netaddr_acl.c
+ * @file
  */
 
 #include "common/common_types.h"

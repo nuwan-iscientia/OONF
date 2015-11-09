@@ -40,7 +40,7 @@
  */
 
 /**
- * @file src-plugins/nhdp/nhdp/nhdp_internal.h
+ * @file
  */
 
 #ifndef NHDP_INTERNAL_H_

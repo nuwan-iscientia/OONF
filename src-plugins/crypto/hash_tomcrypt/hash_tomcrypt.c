@@ -40,7 +40,7 @@
  */
 
 /**
- * @file src-plugins/crypto/hash_tomcrypt/hash_tomcrypt.c
+ * @file
  */
 
 #include <tomcrypt.h>

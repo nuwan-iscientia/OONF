@@ -40,7 +40,7 @@
  */
 
 /**
- * @file src-plugins/subsystems/oonf_timer.h
+ * @file
  */
 
 #ifndef OONF_TIMER_H_

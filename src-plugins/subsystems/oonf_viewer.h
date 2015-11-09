@@ -40,7 +40,7 @@
  */
 
 /**
- * @file src-plugins/subsystems/oonf_viewer.h
+ * @file
  */
 
 #ifndef OONF_VIEWER_H_

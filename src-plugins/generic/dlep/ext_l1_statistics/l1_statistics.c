@@ -40,7 +40,7 @@
  */
 
 /**
- * @file src-plugins/generic/dlep/ext_l1_statistics/l1_statistics.c
+ * @file
  */
 
 #include "common/common_types.h"

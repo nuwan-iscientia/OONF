@@ -40,7 +40,7 @@
  */
 
 /**
- * @file src-plugins/generic/nl80211_listener/nl80211_get_survey.h
+ * @file
  */
 
 #ifndef NL80211_GET_SURVEY_H_

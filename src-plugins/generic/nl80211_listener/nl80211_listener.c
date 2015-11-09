@@ -40,7 +40,7 @@
  */
 
 /**
- * @file src-plugins/generic/nl80211_listener/nl80211_listener.c
+ * @file
  */
 
 #define _GNU_SOURCE

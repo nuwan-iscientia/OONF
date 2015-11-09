@@ -40,7 +40,7 @@
  */
 
 /**
- * @file ./src-api/core/os_core.h
+ * @file
  */
 
 #ifndef OS_CORE_H_

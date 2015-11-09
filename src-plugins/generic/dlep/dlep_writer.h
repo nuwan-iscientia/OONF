@@ -40,7 +40,7 @@
  */
 
 /**
- * @file src-plugins/generic/dlep/dlep_writer.h
+ * @file
  */
 
 #ifndef DLEP_WRITER_H_

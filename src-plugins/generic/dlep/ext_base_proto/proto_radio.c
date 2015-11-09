@@ -40,7 +40,7 @@
  */
 
 /**
- * @file src-plugins/generic/dlep/ext_base_proto/proto_radio.c
+ * @file
  */
 
 #include "common/common_types.h"

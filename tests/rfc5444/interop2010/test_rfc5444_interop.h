@@ -40,7 +40,7 @@
  */
 
 /**
- * @file ./tests/rfc5444/interop2010/test_rfc5444_interop.h
+ * @file
  */
 
 #ifndef TEST_RFC5444_INTEROP_H_

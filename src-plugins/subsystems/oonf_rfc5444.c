@@ -40,7 +40,7 @@
  */
 
 /**
- * @file src-plugins/subsystems/oonf_rfc5444.c
+ * @file
  */
 
 #include "common/common_types.h"

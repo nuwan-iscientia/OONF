@@ -40,7 +40,7 @@
  */
 
 /**
- * @file src-plugins/crypto/sharedkey_sig/sharedkey_sig.c
+ * @file
  */
 
 #include "common/common_types.h"

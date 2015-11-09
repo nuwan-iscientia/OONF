@@ -40,7 +40,7 @@
  */
 
 /**
- * @file ./src-api/core/oonf_libdata.h
+ * @file
  */
 
 #ifndef BUILDDATA_H_

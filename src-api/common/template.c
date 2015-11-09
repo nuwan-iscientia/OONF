@@ -40,7 +40,7 @@
  */
 
 /**
- * @file ./src-api/common/template.c
+ * @file
  */
 
 #include <stdio.h>

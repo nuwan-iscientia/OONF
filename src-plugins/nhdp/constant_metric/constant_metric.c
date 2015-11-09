@@ -40,7 +40,7 @@
  */
 
 /**
- * @file src-plugins/nhdp/constant_metric/constant_metric.c
+ * @file
  */
 
 #include <errno.h>

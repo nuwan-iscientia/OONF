@@ -40,7 +40,7 @@
  */
 
 /**
- * @file src-plugins/subsystems/oonf_packet_socket.c
+ * @file
  */
 
 #include <errno.h>

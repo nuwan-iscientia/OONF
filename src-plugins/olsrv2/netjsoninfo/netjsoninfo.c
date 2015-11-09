@@ -40,7 +40,7 @@
  */
 
 /**
- * @file src-plugins/olsrv2/netjsoninfo/netjsoninfo.c
+ * @file
  */
 
 #include "common/common_types.h"

@@ -40,7 +40,7 @@
  */
 
 /**
- * @file ./examples/rfc5444_reader_writer/main.c
+ * @file
  */
 
 #include <string.h>

@@ -40,7 +40,7 @@
  */
 
 /**
- * @file ./src-api/config/cfg_validate.c
+ * @file
  */
 
 #include <errno.h>

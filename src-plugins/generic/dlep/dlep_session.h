@@ -40,7 +40,7 @@
  */
 
 /**
- * @file src-plugins/generic/dlep/dlep_session.h
+ * @file
  */
 
 #ifndef _DLEP_SESSION_H_

@@ -40,7 +40,7 @@
  */
 
 /**
- * @file src-plugins/generic/dlep/ext_base_metric/metric.c
+ * @file
  */
 
 #include "common/common_types.h"

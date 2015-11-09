@@ -40,7 +40,7 @@
  */
 
 /**
- * @file src-plugins/generic/dlep/ext_base_metric/metric.h
+ * @file
  */
 
 #ifndef _METRIC_H_

@@ -40,7 +40,7 @@
  */
 
 /**
- * @file src-plugins/subsystems/oonf_interface.c
+ * @file
  */
 
 #include <netinet/in.h>

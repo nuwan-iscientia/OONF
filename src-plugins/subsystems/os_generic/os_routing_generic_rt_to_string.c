@@ -40,7 +40,7 @@
  */
 
 /**
- * @file src-plugins/subsystems/os_generic/os_routing_generic_rt_to_string.c
+ * @file
  */
 
 #include "common/netaddr.h"

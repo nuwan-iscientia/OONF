@@ -40,7 +40,7 @@
  */
 
 /**
- * @file ./tests/common/test_common_regex.c
+ * @file
  */
 
 #include <stdio.h>

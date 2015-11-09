@@ -40,7 +40,7 @@
  */
 
 /**
- * @file src-plugins/subsystems/os_linux/os_interface_linux.h
+ * @file
  */
 
 #ifndef OS_INTERFACE_LINUX_H_

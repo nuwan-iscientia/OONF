@@ -40,7 +40,7 @@
  */
 
 /**
- * @file src-plugins/nhdp/nhdp/nhdp_interfaces.c
+ * @file
  */
 
 #include <assert.h>

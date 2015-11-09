@@ -40,7 +40,7 @@
  */
 
 /**
- * @file src-plugins/subsystems/oonf_http.c
+ * @file
  */
 
 #include <sys/types.h>

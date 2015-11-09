@@ -40,7 +40,7 @@
  */
 
 /**
- * @file src-plugins/subsystems/os_linux/os_clock_linux.c
+ * @file
  */
 
 #include <time.h>

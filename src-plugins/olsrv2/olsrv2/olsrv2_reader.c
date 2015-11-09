@@ -40,7 +40,7 @@
  */
 
 /**
- * @file src-plugins/olsrv2/olsrv2/olsrv2_reader.c
+ * @file
  */
 
 #include "common/common_types.h"

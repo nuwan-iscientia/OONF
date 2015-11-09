@@ -40,7 +40,7 @@
  */
 
 /**
- * @file src-plugins/nhdp/auto_ll4/auto_ll4.c
+ * @file
  */
 
 #include <errno.h>

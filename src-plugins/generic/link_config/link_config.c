@@ -40,7 +40,7 @@
  */
 
 /**
- * @file src-plugins/generic/link_config/link_config.c
+ * @file
  */
 
 #include "common/avl.h"

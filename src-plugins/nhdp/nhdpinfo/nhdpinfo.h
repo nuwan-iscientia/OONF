@@ -40,7 +40,7 @@
  */
 
 /**
- * @file src-plugins/nhdp/nhdpinfo/nhdpinfo.h
+ * @file
  */
 
 #ifndef NHDPINFO_H_

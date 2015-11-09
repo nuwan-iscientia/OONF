@@ -40,7 +40,7 @@
  */
 
 /**
- * @file src-plugins/generic/dlep/router/dlep_router_session.h
+ * @file
  */
 
 #ifndef DLEP_ROUTER_SESSION_H_

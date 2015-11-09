@@ -40,7 +40,7 @@
  */
 
 /**
- * @file src-plugins/subsystems/oonf_duplicate_set.c
+ * @file
  */
 
 #include "common/avl.h"

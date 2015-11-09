@@ -40,7 +40,7 @@
  */
 
 /**
- * @file src-plugins/crypto/rfc5444_signature/rfc5444_signature.h
+ * @file
  */
 
 #ifndef RFC5444_SIGNATURE_H_

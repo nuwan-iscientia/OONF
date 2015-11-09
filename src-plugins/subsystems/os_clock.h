@@ -40,7 +40,7 @@
  */
 
 /**
- * @file src-plugins/subsystems/os_clock.h
+ * @file
  */
 
 #ifndef OS_CLOCK_H_

@@ -40,7 +40,7 @@
  */
 
 /**
- * @file src-plugins/generic/example/example.h
+ * @file
  */
 
 #ifndef EXAMPLE_H_

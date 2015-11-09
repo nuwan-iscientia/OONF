@@ -40,7 +40,7 @@
  */
 
 /**
- * @file src-plugins/subsystems/os_linux/os_system_linux.c
+ * @file
  */
 
 /* must be first because of a problem with linux/rtnetlink.h */

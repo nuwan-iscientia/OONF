@@ -40,7 +40,7 @@
  */
 
 /**
- * @file src-plugins/generic/cfg_uciloader/cfg_uciloader.h
+ * @file
  */
 
 #ifndef CFG_UCILOADER_H_

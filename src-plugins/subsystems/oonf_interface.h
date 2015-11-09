@@ -40,7 +40,7 @@
  */
 
 /**
- * @file src-plugins/subsystems/oonf_interface.h
+ * @file
  */
 
 #ifndef INTERFACE_H_

@@ -40,7 +40,7 @@
  */
 
 /**
- * @file src-plugins/generic/dlep/dlep_interface.c
+ * @file
  */
 
 #include "common/common_types.h"

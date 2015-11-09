@@ -40,7 +40,7 @@
  */
 
 /**
- * @file src-plugins/olsrv2/olsrv2/olsrv2_routing.h
+ * @file
  */
 
 #ifndef OLSRV2_ROUTING_H_

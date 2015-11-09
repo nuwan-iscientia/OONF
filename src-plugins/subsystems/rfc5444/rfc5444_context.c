@@ -40,7 +40,7 @@
  */
 
 /**
- * @file src-plugins/subsystems/rfc5444/rfc5444_context.c
+ * @file
  */
 
 #include "rfc5444_context.h"

@@ -40,7 +40,7 @@
  */
 
 /**
- * @file src-plugins/crypto/hash_polarssl/hash_polarssl.c
+ * @file
  */
 
 #include <polarssl/config.h>

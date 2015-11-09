@@ -40,7 +40,7 @@
  */
 
 /**
- * @file src-plugins/olsrv2/olsrv2/olsrv2_tc.c
+ * @file
  */
 
 #include "common/avl.h"

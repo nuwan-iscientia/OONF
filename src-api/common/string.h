@@ -40,7 +40,7 @@
  */
 
 /**
- * @file ./src-api/common/string.h
+ * @file
  */
 
 #ifndef COMMON_STRING_H_

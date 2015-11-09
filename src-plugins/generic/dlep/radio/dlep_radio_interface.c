@@ -40,7 +40,7 @@
  */
 
 /**
- * @file src-plugins/generic/dlep/radio/dlep_radio_interface.c
+ * @file
  */
 
 #include "common/avl.h"

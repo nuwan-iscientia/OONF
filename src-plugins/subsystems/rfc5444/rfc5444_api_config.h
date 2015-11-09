@@ -40,7 +40,7 @@
  */
 
 /**
- * @file src-plugins/subsystems/rfc5444/rfc5444_api_config.h
+ * @file
  */
 
 #ifndef RFC5444_API_CONFIG_H_
