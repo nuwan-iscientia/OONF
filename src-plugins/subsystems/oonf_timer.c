@@ -366,16 +366,16 @@ _calc_clock(struct oonf_timer_instance *timer, uint64_t rel_time)
     /*
      * Play some tricks to avoid overflows with integer arithmetic.
      */
-    random_jitter = timer->_random / (RAND_MAX / timer->jitter_pct);
+    random_jitter = timer->_random / (UINT32_MAX / timer->jitter_pct);
     t = (uint64_t)random_jitter * rel_time / 100;
 
-    OONF_DEBUG(LOG_TIMER, "TIMER: jitter %u%% rel_time %" PRIu64 "ms to %" PRIu64 "ms\n",
-        timer->jitter_pct, rel_time, rel_time - t);
+    OONF_DEBUG(LOG_TIMER, "TIMER: jitter %u%% (%u) rel_time %" PRIu64 "ms to %" PRIu64 "ms\n",
+        timer->jitter_pct, random_jitter, rel_time, rel_time - t);
 
     rel_time -= t;
   }
 
-  timer->_clock = oonf_clock_get_absolute(rel_time - t);
+  timer->_clock = oonf_clock_get_absolute(rel_time);
 
   /* round up to next timeslice */
   timer->_clock += OONF_TIMER_SLICE;
