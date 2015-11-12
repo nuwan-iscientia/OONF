@@ -217,15 +217,15 @@ static struct rfc5444_reader_tlvblock_consumer_entry _pkt_tlvs[] = {
   [IDX_PKTTLV_SEND] =
     { .type = RFC7182_PKTTLV_TIMESTAMP, .mandatory = true,
       .type_ext = RFC7182_TIMESTAMP_EXT_MONOTONIC, .match_type_ext = true,
-      .min_length = 4, .max_length = 4, .match_length = 4, },
+      .min_length = 4, .max_length = 4, .match_length = true, },
   [IDX_PKTTLV_QUERY] =
     { .type = RFC5444_PKTTLV_CHALLENGE,
       .type_ext = RFC5444_CHALLENGE_QUERY, .match_type_ext = true,
-      .min_length = 4, .max_length = 4, .match_length = 4, },
+      .min_length = 4, .max_length = 4, .match_length = true, },
   [IDX_PKTTLV_RESPONSE] =
     { .type = RFC5444_PKTTLV_CHALLENGE,
       .type_ext = RFC5444_CHALLENGE_RESPONSE, .match_type_ext = true,
-      .min_length = 4, .max_length = 4, .match_length = 4, },
+      .min_length = 4, .max_length = 4, .match_length = true, },
 };
 
 static struct rfc5444_writer_pkthandler _pkt_handler = {
