@@ -98,6 +98,7 @@ static void _cb_send_multicast_packet(
     struct rfc5444_writer *, struct rfc5444_writer_target *, void *, size_t);
 static void _cb_forward_message(struct rfc5444_reader_tlvblock_context *context,
     uint8_t *buffer, size_t length);
+static void _cb_forwarding_notifier(struct rfc5444_writer_target *);
 
 static bool _cb_single_target_selector(struct rfc5444_writer *, struct rfc5444_writer_target *, void *);
 static bool _cb_filtered_targets_selector(struct rfc5444_writer *writer,
@@ -460,6 +461,8 @@ oonf_rfc5444_add_protocol(const char *name, bool fixed_local_port) {
     rfc5444_reader_init(&protocol->reader);
     rfc5444_writer_init(&protocol->writer);
 
+    protocol->writer.forwarding_notifier = _cb_forwarding_notifier;
+
     /* initialize processing and forwarding set */
     oonf_duplicate_set_add(&protocol->forwarded_set, OONF_DUPSET_16BIT);
     oonf_duplicate_set_add(&protocol->processed_set, OONF_DUPSET_16BIT);
@@ -506,6 +509,8 @@ oonf_rfc5444_remove_protocol(struct oonf_rfc5444_protocol *protocol) {
   /* free reader, writer and protocol itself */
   rfc5444_reader_cleanup(&protocol->reader);
   rfc5444_writer_cleanup(&protocol->writer);
+
+  avl_remove(&_protocol_tree, &protocol->_node);
   oonf_class_free(&_protocol_memcookie, protocol);
 }
 
@@ -1130,6 +1135,17 @@ _cb_forward_message(
   if (result != RFC5444_OKAY && result != RFC5444_NO_MSGCREATOR) {
     OONF_WARN(LOG_RFC5444, "Error while forwarding message: %s (%d)",
         rfc5444_strerror(result), result);
+  }
+}
+
+static void
+_cb_forwarding_notifier(struct rfc5444_writer_target *rfc5444target) {
+  struct oonf_rfc5444_target *target;
+
+  target = container_of(rfc5444target, struct oonf_rfc5444_target, rfc5444_target);
+  if (!oonf_timer_is_active(&target->_aggregation)) {
+    /* activate aggregation timer */
+    oonf_timer_start(&target->_aggregation, _aggregation_interval);
   }
 }
 

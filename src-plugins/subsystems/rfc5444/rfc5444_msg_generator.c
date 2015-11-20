@@ -559,6 +559,10 @@ rfc5444_writer_forward_msg(struct rfc5444_writer *writer,
     if (hopcount != -1) {
       ptr[hopcount]++;
     }
+
+    if (writer->forwarding_notifier) {
+      writer->forwarding_notifier(target);
+    }
   }
   return RFC5444_OKAY;
 }

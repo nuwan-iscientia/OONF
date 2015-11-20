@@ -489,6 +489,13 @@ struct rfc5444_writer {
   size_t addrtlv_size;
 
   /**
+   * Callback to notify an instance that a message was forwarded
+   * @param target pointer to rfc5444 target where
+   *   the message has been placefd
+   */
+  void (*forwarding_notifier)(struct rfc5444_writer_target *target);
+
+  /**
    * Callback to allocate a writer_address, NULL for use calloc()
    * @return writer address, NULL if out of memory
    */
