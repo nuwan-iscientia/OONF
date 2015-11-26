@@ -16,6 +16,9 @@ set (OONF_VERSION_TRAILER "Visit http://www.olsr.org\\n")
 # set to true to stop application running without root privileges (true/false)
 set (OONF_NEED_ROOT true)
 
+# set to true to require a lock for the application to run
+set (OONF_NEED_LOCK true)
+
 # name of default configuration handler
 set (OONF_APP_DEFAULT_CFG_HANDLER Compact)
 

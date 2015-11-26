@@ -72,6 +72,9 @@ struct oonf_appdata {
 
   /*! true if application needs root access */
   const bool need_root;
+
+  /*! true if application requires a system wide lock*/
+  const bool need_lock;
 };
 
 #endif /* OONF_APPDATA_H_ */

@@ -87,7 +87,31 @@ _init(void) {
 }
 
 /**
- * Reads the current time as a monotonic timestamp
+ * Reads the current time in nanoseconds as a monotonic timestamp
+ * @param t64 pointer to timestamp
+ * @return 0 if valid timestamp was read, negative otherwise
+ */
+int
+os_clock_gettime64_ns(uint64_t *t64) {
+  int error;
+
+#if defined(CLOCK_MONOTONIC_RAW) || defined (CLOCK_MONOTONIC)
+  if (_clock_source) {
+    struct timespec ts;
+
+    if ((error = clock_gettime(_clock_source, &ts)) != 0) {
+      return error;
+    }
+
+    *t64 = 1000000000ull * ts.tv_sec + ts.tv_nsec;
+    return 0;
+  }
+#endif
+  return -1;
+}
+
+/**
+ * Reads the current time in milliseconds as a monotonic timestamp
  * @param t64 pointer to timestamp
  * @return 0 if valid timestamp was read, negative otherwise
  */
@@ -105,7 +129,7 @@ os_clock_gettime64(uint64_t *t64) {
       return error;
     }
 
-    *t64 = 1000ull * ts.tv_sec + ts.tv_nsec / 1000000;
+    *t64 = 1000ull * ts.tv_sec + ts.tv_nsec / 1000000ull;
     return 0;
   }
 #endif
@@ -123,6 +147,6 @@ os_clock_gettime64(uint64_t *t64) {
   }
   last_sec = tv.tv_sec;
 
-  *t64 = 1000ull * tv.tv_sec + tv.tv_usec/ 1000;
+  *t64 = 1000ull * tv.tv_sec + tv.tv_usec / 1000ull;
   return 0;
 }
