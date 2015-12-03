@@ -233,14 +233,14 @@ os_linux_system_is_minimal_kernel(int v1, int v2, int v3) {
   }
 
   second = strtol(next+1, &next, 10);
-  if (*next != '.') {
-    goto kernel_parse_error;
-  }
   if (second > v2) {
     return true;
   }
   if (second < v2) {
     return false;
+  }
+  if (*next != '.') {
+    goto kernel_parse_error;
   }
 
   third = strtol(next+1, NULL, 10);
