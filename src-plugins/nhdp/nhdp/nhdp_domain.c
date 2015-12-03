@@ -811,13 +811,14 @@ nhdp_domain_encode_willingness_tlvvalue(uint8_t *tlvvalue, size_t tlvsize) {
 
     value = domain->local_willingness & RFC7181_WILLINGNESS_MASK;
 
-    OONF_DEBUG(LOG_NHDP_W, "Set routing willingness for domain %u: %u"
+    if ((domain->index & 1) == 0) {
+      value <<= RFC7181_WILLINGNESS_SHIFT;
+    }
+
+    OONF_DEBUG(LOG_NHDP_W, "Set routing willingness for domain %u: %x"
         " (%"PRINTF_SIZE_T_SPECIFIER")",
         domain->ext, value, idx);
 
-    if ((idx & 1) == 0) {
-      value <<= RFC7181_WILLINGNESS_SHIFT;
-    }
     tlvvalue[idx] |= value;
   }
 
