@@ -951,6 +951,10 @@ static const char *
 _path_to_string(struct nhdp_metric_str *buf, uint32_t metric, uint8_t hopcount) {
   struct nhdp_metric_str mbuf;
 
+  if (hopcount == 0) {
+    /* prevent division by zero */
+    hopcount = 1;
+  }
   snprintf(buf->buf, sizeof(*buf), "%s (%u hops)",
       _link_to_string(&mbuf, metric / hopcount), hopcount);
   return buf->buf;
