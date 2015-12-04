@@ -191,7 +191,7 @@ static struct cfg_schema_entry _olsrv2_entries[] = {
     " ip address or prefix followed by an up to four optional parameters"
     " which define link metric cost, hopcount distance and domain of the prefix"
     " ( <"LAN_OPTION_METRIC"...> <"LAN_OPTION_DIST"...>"
-    " <"LAN_OPTION_DOMAIN"...> <"LAN_OPTION_SRC"...> ).",
+    " <"LAN_OPTION_DOMAIN"<num>/all> <"LAN_OPTION_SRC"...> ).",
     .list = true),
 
   CFG_MAP_ACL_V46(_config, originator_acl, "originator",
@@ -562,8 +562,8 @@ olsrv2_validate_lan(const struct cfg_schema_entry *entry,
         "    - '"LAN_OPTION_METRIC"<m>' the link metric of the LAN (between %u and %u)."
         " The default is 0.", RFC7181_METRIC_MIN, RFC7181_METRIC_MAX);
     cfg_append_printable_line(out,
-        "    - '"LAN_OPTION_DOMAIN"<d>' the domain of the LAN (between 0 and 255)."
-        " The default is 0.");
+        "    - '"LAN_OPTION_DOMAIN"<d>' the domain of the LAN (between 0 and 255) or 'all'."
+        " The default is all.");
     cfg_append_printable_line(out,
         "    - '"LAN_OPTION_DIST"<d>' the hopcount distance of the LAN (between 0 and 255)."
         " The default is 2.");
@@ -618,7 +618,7 @@ _parse_lan_parameters(struct os_route_key *prefix,
   unsigned ext;
 
   ptr = src;
-  dst->domain = nhdp_domain_get_by_ext(LAN_DEFAULT_DOMAIN);
+  dst->domain = NULL;
   dst->metric = LAN_DEFAULT_METRIC;
   dst->dist   = LAN_DEFAULT_DISTANCE;
 
@@ -632,13 +632,19 @@ _parse_lan_parameters(struct os_route_key *prefix,
       }
     }
     else if (strncasecmp(buffer, LAN_OPTION_DOMAIN, 7) == 0) {
-      ext = strtoul(&buffer[7], NULL, 10);
-      if ((ext == 0 && errno != 0) || ext > 255) {
-        return "an illegal domain parameter";
+      fprintf(stderr, "domain='%s'\n", &buffer[7]);
+      if (strcasecmp(&buffer[7], "all") == 0) {
+        dst->domain = NULL;
       }
-      dst->domain = nhdp_domain_get_by_ext(ext);
-      if (dst->domain == NULL) {
-        return "an unknown domain extension number";
+      else {
+        ext = strtoul(&buffer[7], NULL, 10);
+        if ((ext == 0 && errno != 0) || ext > 255) {
+          return "an illegal domain parameter";
+        }
+        dst->domain = nhdp_domain_get_by_ext(ext);
+        if (dst->domain == NULL) {
+          return "an unknown domain extension number";
+        }
       }
     }
     else if (strncasecmp(buffer, LAN_OPTION_DIST, 5) == 0) {
@@ -710,11 +716,23 @@ _parse_lan_array(struct cfg_named_section *section, bool add) {
       continue;
     }
 
-    if (add) {
-      olsrv2_lan_add(data.domain, &prefix, data.metric, data.dist);
+    if (data.domain == NULL) {
+      list_for_each_element(nhdp_domain_get_list(), data.domain, _node) {
+        if (add) {
+          olsrv2_lan_add(data.domain, &prefix, data.metric, data.dist);
+        }
+        else {
+          olsrv2_lan_remove(data.domain, &prefix);
+        }
+      }
     }
     else {
-      olsrv2_lan_remove(data.domain, &prefix);
+      if (add) {
+        olsrv2_lan_add(data.domain, &prefix, data.metric, data.dist);
+      }
+      else {
+        olsrv2_lan_remove(data.domain, &prefix);
+      }
     }
   }
 }
