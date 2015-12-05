@@ -263,7 +263,7 @@ dlep_writer_add_ipv4_conpoint_tlv(struct dlep_writer *writer,
   port = htons(port);
 
   /* copy data into value buffer */
-  value[0] = tls ? 1 : 0;
+  value[0] = tls ? DLEP_CONNECTION_TLS : DLEP_CONNECTION_PLAIN;
   netaddr_to_binary(&value[1], addr, sizeof(value));
   memcpy(&value[5], &port, sizeof(port));
 
@@ -291,7 +291,7 @@ dlep_writer_add_ipv6_conpoint_tlv(struct dlep_writer *writer,
   port = htons(port);
 
   /* copy data into value buffer */
-  value[0] = tls ? 1 : 0;
+  value[0] = tls ? DLEP_CONNECTION_TLS : DLEP_CONNECTION_PLAIN;
   netaddr_to_binary(&value[1], addr, sizeof(value));
   memcpy(&value[17], &port, sizeof(port));
 

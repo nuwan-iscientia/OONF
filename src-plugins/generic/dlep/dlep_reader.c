@@ -160,16 +160,7 @@ dlep_reader_ipv4_tlv(struct netaddr *ipv4, bool *add,
   }
 
   ptr = dlep_session_get_tlv_binary(session, value);
-  switch (ptr[0]) {
-    case DLEP_IP_ADD:
-      *add = true;
-      break;
-    case DLEP_IP_REMOVE:
-      *add = false;
-      break;
-    default:
-      return -1;
-  }
+  *add = (ptr[0] & DLEP_IP_ADD) = DLEP_IP_ADD;
   return netaddr_from_binary(ipv4, &ptr[1], 4, AF_INET);
 }
 
@@ -195,16 +186,7 @@ dlep_reader_ipv6_tlv(struct netaddr *ipv6, bool *add,
   }
 
   ptr = dlep_session_get_tlv_binary(session, value);
-  switch (ptr[0]) {
-    case DLEP_IP_ADD:
-      *add = true;
-      break;
-    case DLEP_IP_REMOVE:
-      *add = false;
-      break;
-    default:
-      return -1;
-  }
+  *add = (ptr[0] & DLEP_IP_ADD) = DLEP_IP_ADD;
   return netaddr_from_binary(ipv6, &ptr[1], 16, AF_INET6);
 }
 
@@ -239,11 +221,7 @@ dlep_reader_ipv4_conpoint_tlv(
   ptr = dlep_session_get_tlv_binary(session, value);
 
   /* handle TLS flag */
-  if (ptr[0] > 1) {
-    /* invalid TLS flag */
-    return -1;
-  }
-  *tls = ptr[0] == 1;
+  *tls = (ptr[0] & DLEP_CONNECTION_TLS) == DLEP_CONNECTION_TLS;
 
   /* handle port */
   if (value->length == 7) {
@@ -289,11 +267,7 @@ dlep_reader_ipv6_conpoint_tlv(
   ptr = dlep_session_get_tlv_binary(session, value);
 
   /* handle TLS flag */
-  if (ptr[0] > 1) {
-    /* invalid TLS flag */
-    return -1;
-  }
-  *tls = ptr[0] == 1;
+  *tls = (ptr[0] & DLEP_CONNECTION_TLS) == DLEP_CONNECTION_TLS;
 
   /* handle port */
   if (value->length == 19) {

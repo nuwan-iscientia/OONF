@@ -285,7 +285,18 @@ enum dlep_ipaddr_indicator {
   DLEP_IP_ADD    = 1,
 
   /*! Remove an IP address from a DLEP neighbor */
-  DLEP_IP_REMOVE = 2,
+  DLEP_IP_REMOVE = 0,
+};
+
+/**
+ * Flags for DLEP Connection Point
+ */
+enum dlep_connection_point_flags {
+  /*! Connection needs TLS */
+  DLEP_CONNECTION_TLS   = 1,
+
+  /*! Connection needs no TLS */
+  DLEP_CONNECTION_PLAIN = 0,
 };
 
 /**
