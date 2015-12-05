@@ -64,7 +64,7 @@ enum {
 };
 
 /*! magic word for DLEP session */
-#define DLEP_DRAFT_16_PREFIX "DLEP"
+#define DLEP_DRAFT_17_PREFIX "DLEP"
 
 /**
  * Predefined DLEP extension IDs

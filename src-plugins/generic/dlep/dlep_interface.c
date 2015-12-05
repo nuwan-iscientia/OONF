@@ -58,7 +58,7 @@ static void _cb_receive_udp(struct oonf_packet_socket *,
     union netaddr_socket *from, void *ptr, size_t length);
 static void _cb_send_multicast(struct dlep_session *session, int af_family);
 
-static const char _DLEP_PREFIX[] = DLEP_DRAFT_16_PREFIX;
+static const char _DLEP_PREFIX[] = DLEP_DRAFT_17_PREFIX;
 
 /**
  * Add a new interface to this dlep instance
