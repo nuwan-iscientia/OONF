@@ -194,7 +194,7 @@ _init(void) {
       sizeof(_unicast_query));
   _unicast_query.cb_get = _cb_query;
   _unicast_query.cb_finished = _cb_query_finished;
-  _unicast_query.type = OS_ROUTE_UNICAST;
+  _unicast_query.p.type = OS_ROUTE_UNICAST;
   return 0;
 }
 
@@ -250,74 +250,74 @@ _cb_rt_event(const struct os_route *route, bool set) {
   struct os_route_str rbuf;
 #endif
 
-  if (netaddr_is_in_subnet(&NETADDR_IPV4_MULTICAST, &route->key.dst)
-      || netaddr_is_in_subnet(&NETADDR_IPV4_LINKLOCAL, &route->key.dst)
-      || netaddr_is_in_subnet(&NETADDR_IPV4_LOOPBACK_NET, &route->key.dst)
-      || netaddr_is_in_subnet(&NETADDR_IPV6_MULTICAST, &route->key.dst)
-      || netaddr_is_in_subnet(&NETADDR_IPV6_LINKLOCAL, &route->key.dst)
-      || netaddr_is_in_subnet(&NETADDR_IPV6_LOOPBACK, &route->key.dst)) {
+  if (netaddr_is_in_subnet(&NETADDR_IPV4_MULTICAST, &route->p.key.dst)
+      || netaddr_is_in_subnet(&NETADDR_IPV4_LINKLOCAL, &route->p.key.dst)
+      || netaddr_is_in_subnet(&NETADDR_IPV4_LOOPBACK_NET, &route->p.key.dst)
+      || netaddr_is_in_subnet(&NETADDR_IPV6_MULTICAST, &route->p.key.dst)
+      || netaddr_is_in_subnet(&NETADDR_IPV6_LINKLOCAL, &route->p.key.dst)
+      || netaddr_is_in_subnet(&NETADDR_IPV6_LOOPBACK, &route->p.key.dst)) {
     /* ignore multicast, linklocal and loopback */
     return;
   }
-  if (route->type != OS_ROUTE_UNICAST) {
+  if (route->p.type != OS_ROUTE_UNICAST) {
     /* return all non-unicast type routes */
     return;
   }
 
   OONF_DEBUG(LOG_LAN_IMPORT, "Received route event (%s): %s",
-      set ? "set" : "remove", os_routing_to_string(&rbuf, route));
+      set ? "set" : "remove", os_routing_to_string(&rbuf, &route->p));
 
   avl_for_each_element(&_import_tree, import, _node) {
     OONF_DEBUG(LOG_LAN_IMPORT, "Check for import: %s", import->name);
 
     /* check prefix length */
     if (import->prefix_length != -1
-        && import->prefix_length != netaddr_get_prefix_length(&route->key.dst)) {
+        && import->prefix_length != netaddr_get_prefix_length(&route->p.key.dst)) {
       OONF_DEBUG(LOG_LAN_IMPORT, "Bad prefix length");
       continue;
     }
 
     /* check if destination matches */
-    if (!netaddr_acl_check_accept(&import->filter, &route->key.dst)) {
+    if (!netaddr_acl_check_accept(&import->filter, &route->p.key.dst)) {
       OONF_DEBUG(LOG_LAN_IMPORT, "Bad prefix");
       continue;
     }
 
     /* check routing table */
-    if (import->table != -1 && import->table != route->table) {
+    if (import->table != -1 && import->table != route->p.table) {
       OONF_DEBUG(LOG_LAN_IMPORT, "Bad routing table");
       continue;
     }
 
     /* check protocol */
-    if (import->protocol != -1 && import->protocol != route->protocol) {
+    if (import->protocol != -1 && import->protocol != route->p.protocol) {
       OONF_DEBUG(LOG_LAN_IMPORT, "Bad protocol");
       continue;
     }
 
     /* check metric */
-    if (import->distance != -1 && import->distance != route->metric) {
+    if (import->distance != -1 && import->distance != route->p.metric) {
       OONF_DEBUG(LOG_LAN_IMPORT, "Bad distance");
       continue;
     }
 
     /* check interface name */
     if (import->ifname[0]) {
-      if_indextoname(route->if_index, ifname);
+      if_indextoname(route->p.if_index, ifname);
       if (strcmp(import->ifname, ifname) != 0) {
         OONF_DEBUG(LOG_LAN_IMPORT, "Bad interface");
         continue;
       }
     }
 
-    memcpy(&ssprefix.dst, &route->key.dst, sizeof(struct netaddr));
-    memcpy(&ssprefix.src, &route->key.src, sizeof(struct netaddr));
+    memcpy(&ssprefix.dst, &route->p.key.dst, sizeof(struct netaddr));
+    memcpy(&ssprefix.src, &route->p.key.src, sizeof(struct netaddr));
 
     if (set) {
       list_for_each_element(nhdp_domain_get_list(), domain, _node) {
         rtparam = olsrv2_routing_get_parameters(domain);
-        if (rtparam->protocol == route->protocol
-            && rtparam->table == route->table) {
+        if (rtparam->protocol == route->p.protocol
+            && rtparam->table == route->p.table) {
           /* do never set a LAN for a route tagged with an olsrv2 protocol */
           OONF_DEBUG(LOG_LAN_IMPORT, "Matches olsrv2 protocol!");
           continue;
@@ -327,7 +327,7 @@ _cb_rt_event(const struct os_route *route, bool set) {
       OONF_DEBUG(LOG_LAN_IMPORT, "Add lan...");
       domain = nhdp_domain_get_by_ext(import->domain);
       if (domain) {
-        olsrv2_lan_add(domain, &ssprefix, 1, route->metric);
+        olsrv2_lan_add(domain, &ssprefix, 1, route->p.metric);
       }
     }
     else {

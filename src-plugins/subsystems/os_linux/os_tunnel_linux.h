@@ -43,48 +43,12 @@
  * @file
  */
 
-#include "common/netaddr.h"
-#include "subsystems/os_routing.h"
+#ifndef OS_TUNNEL_LINUX_H_
+#define OS_TUNNEL_LINUX_H_
 
-static const char *_route_types[] = {
-  [OS_ROUTE_UNDEFINED] = "undefined",
-  [OS_ROUTE_UNICAST] = "unicast",
-  [OS_ROUTE_LOCAL] = "local",
-  [OS_ROUTE_BROADCAST] = "broadcast",
-  [OS_ROUTE_MULTICAST] = "multicast",
-  [OS_ROUTE_THROW] = "throw",
-  [OS_ROUTE_UNREACHABLE] = "unreachable",
-  [OS_ROUTE_PROHIBIT] = "prohibit",
-  [OS_ROUTE_BLACKHOLE] = "blackhole",
-  [OS_ROUTE_NAT] = "nat",
+#include "common/common_types.h"
+
+struct os_tunnel_internal {
 };
 
-/**
- * Print OS route to string buffer
- * @param buf pointer to string buffer
- * @param route pointer to route
- * @return pointer to string buffer, NULL if an error happened
- */
-const char *
-os_routing_to_string(struct os_route_str *buf, const struct os_route_param *route_parameter) {
-  struct netaddr_str buf1, buf2, buf3, buf4;
-  char ifbuf[IF_NAMESIZE];
-  int result;
-  result = snprintf(buf->buf, sizeof(*buf),
-      "'src-ip %s gw %s dst %s %s src-prefix %s metric %d table %u protocol %u if %s (%u)'",
-      netaddr_to_string(&buf1, &route_parameter->src_ip),
-      netaddr_to_string(&buf2, &route_parameter->gw),
-      _route_types[route_parameter->type],
-      netaddr_to_string(&buf3, &route_parameter->key.dst),
-      netaddr_to_string(&buf4, &route_parameter->key.src),
-      route_parameter->metric,
-      (unsigned int)(route_parameter->table),
-      (unsigned int)(route_parameter->protocol),
-      if_indextoname(route_parameter->if_index, ifbuf),
-      route_parameter->if_index);
-
-  if (result < 0 || result > (int)sizeof(*buf)) {
-    return NULL;
-  }
-  return buf->buf;
-}
+#endif /* OS_TUNNEL_LINUX_H_ */

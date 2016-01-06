@@ -414,8 +414,8 @@ _add_entry(struct nhdp_domain *domain, struct os_route_key *prefix) {
   }
 
   /* set key */
-  memcpy(&rtentry->route.key, prefix, sizeof(struct os_route_key));
-  rtentry->_node.key = &rtentry->route.key;
+  memcpy(&rtentry->route.p.key, prefix, sizeof(struct os_route_key));
+  rtentry->_node.key = &rtentry->route.p.key;
 
   /* set domain */
   rtentry->domain = domain;
@@ -424,7 +424,7 @@ _add_entry(struct nhdp_domain *domain, struct os_route_key *prefix) {
   rtentry->path_cost = RFC7181_METRIC_INFINITE_PATH;
   rtentry->path_hops = 255;
   rtentry->route.cb_finished = _cb_route_finished;
-  rtentry->route.family = netaddr_get_address_family(&prefix->dst);
+  rtentry->route.p.family = netaddr_get_address_family(&prefix->dst);
 
   avl_insert(&_routing_tree[domain->index], &rtentry->_node);
   return rtentry;
@@ -584,15 +584,15 @@ _update_routing_entry(struct nhdp_domain *domain,
 
   neighdata = nhdp_domain_get_neighbordata(domain, first_hop);
   OONF_DEBUG(LOG_OLSRV2_ROUTING, "Initialize route entry dst %s [%s] with pathcost %u",
-      netaddr_to_string(&nbuf1, &rtentry->route.key.dst),
-      netaddr_to_string(&nbuf2, &rtentry->route.key.src),
+      netaddr_to_string(&nbuf1, &rtentry->route.p.key.dst),
+      netaddr_to_string(&nbuf2, &rtentry->route.p.key.src),
       pathcost);
 
   /* copy route parameters into data structure */
-  rtentry->route.if_index = neighdata->best_link_ifindex;
+  rtentry->route.p.if_index = neighdata->best_link_ifindex;
   rtentry->path_cost = pathcost;
   rtentry->path_hops = path_hops;
-  rtentry->route.metric = distance;
+  rtentry->route.p.metric = distance;
 
   /* remember next hop originator */
   memcpy(&rtentry->next_originator, &first_hop->originator, sizeof(struct netaddr));
@@ -606,11 +606,11 @@ _update_routing_entry(struct nhdp_domain *domain,
   /* copy gateway if necessary */
   if (single_hop
       && netaddr_cmp(&neighdata->best_link->if_addr,
-          &rtentry->route.key.dst) == 0) {
-    netaddr_invalidate(&rtentry->route.gw);
+          &rtentry->route.p.key.dst) == 0) {
+    netaddr_invalidate(&rtentry->route.p.gw);
   }
   else {
-    memcpy(&rtentry->route.gw, &neighdata->best_link->if_addr,
+    memcpy(&rtentry->route.p.gw, &neighdata->best_link->if_addr,
         sizeof(struct netaddr));
   }
 }
@@ -627,9 +627,7 @@ _prepare_routes(struct nhdp_domain *domain) {
   /* prepare all existing routing entries and put them into the working queue */
   avl_for_each_element(&_routing_tree[domain->index], rtentry, _node) {
     rtentry->set = false;
-    rtentry->_old_if_index = rtentry->route.if_index;
-    rtentry->_old_distance = rtentry->route.metric;
-    memcpy(&rtentry->_old_next_hop, &rtentry->route.gw, sizeof(struct netaddr));
+    memcpy(&rtentry->_old, &rtentry->route.p, sizeof(rtentry->_old));
   }
 }
 
@@ -923,24 +921,16 @@ _handle_nhdp_routes(struct nhdp_domain *domain) {
 static void
 _add_route_to_kernel_queue(struct olsrv2_routing_entry *rtentry) {
 #ifdef OONF_LOG_INFO
-  struct os_route_str rbuf;
-  struct netaddr_str nbuf;
+  struct os_route_str rbuf1, rbuf2;
 #endif
 
   if (rtentry->set) {
     OONF_INFO(LOG_OLSRV2_ROUTING,
-        "Set route %s (%u %u %s)",
-        os_routing_to_string(&rbuf, &rtentry->route),
-        rtentry->_old_if_index, rtentry->_old_distance,
-        netaddr_to_string(&nbuf, &rtentry->_old_next_hop));
+        "Set route %s (%s)",
+        os_routing_to_string(&rbuf1, &rtentry->route.p),
+        os_routing_to_string(&rbuf2, &rtentry->_old));
 
-    if (_domain_parameter[rtentry->domain->index].use_srcip_in_routes
-        && netaddr_get_address_family(&rtentry->route.key.dst) == AF_INET) {
-      memcpy(&rtentry->route.src_ip, olsrv2_originator_get(AF_INET),
-          sizeof(rtentry->route.src_ip));
-    }
-
-    if (netaddr_get_address_family(&rtentry->route.gw) == AF_UNSPEC) {
+    if (netaddr_get_address_family(&rtentry->route.p.gw) == AF_UNSPEC) {
       /* insert/update single-hop routes early */
       list_add_head(&_kernel_queue, &rtentry->_working_node);
     }
@@ -952,10 +942,10 @@ _add_route_to_kernel_queue(struct olsrv2_routing_entry *rtentry) {
   else {
     OONF_INFO(LOG_OLSRV2_ROUTING,
         "Dijkstra result: remove route %s",
-        os_routing_to_string(&rbuf, &rtentry->route));
+        os_routing_to_string(&rbuf1, &rtentry->route.p));
 
 
-    if (netaddr_get_address_family(&rtentry->route.gw) == AF_UNSPEC) {
+    if (netaddr_get_address_family(&rtentry->route.p.gw) == AF_UNSPEC) {
       /* remove single-hop routes late */
       list_add_tail(&_kernel_queue, &rtentry->_working_node);
     }
@@ -978,21 +968,27 @@ _process_dijkstra_result(struct nhdp_domain *domain) {
 
   avl_for_each_element(&_routing_tree[domain->index], rtentry, _node) {
     /* initialize rest of route parameters */
-    rtentry->route.table = _domain_parameter[rtentry->domain->index].table;
-    rtentry->route.protocol = _domain_parameter[rtentry->domain->index].protocol;
-    rtentry->route.metric = _domain_parameter[rtentry->domain->index].distance;
+    rtentry->route.p.table = _domain_parameter[rtentry->domain->index].table;
+    rtentry->route.p.protocol = _domain_parameter[rtentry->domain->index].protocol;
+    rtentry->route.p.metric = _domain_parameter[rtentry->domain->index].distance;
+
+    if (rtentry->set
+        && _domain_parameter[rtentry->domain->index].use_srcip_in_routes
+        && netaddr_get_address_family(&rtentry->route.p.key.dst) == AF_INET) {
+      /* copy source address to route */
+      memcpy(&rtentry->route.p.src_ip, olsrv2_originator_get(AF_INET),
+          sizeof(rtentry->route.p.src_ip));
+    }
 
     list_for_each_element(&_routing_filter_list, filter, _node) {
-      if (!filter->filter(domain, &rtentry->route)) {
+      if (!filter->filter(domain, &rtentry->route.p)) {
         /* route was dropped by filter */
         continue;
       }
     }
 
     if (rtentry->set
-        && rtentry->_old_if_index == rtentry->route.if_index
-        && rtentry->_old_distance == rtentry->route.metric
-        && netaddr_cmp(&rtentry->_old_next_hop, &rtentry->route.gw) == 0) {
+        && memcmp(&rtentry->_old, &rtentry->route.p, sizeof(rtentry->_old)) == 0) {
       /* no change, ignore this entry */
       continue;
     }
@@ -1023,14 +1019,14 @@ _process_kernel_queue(void) {
       /* add to kernel */
       if (os_routing_set(&rtentry->route, true, true)) {
         OONF_WARN(LOG_OLSRV2_ROUTING, "Could not set route %s",
-            os_routing_to_string(&rbuf, &rtentry->route));
+            os_routing_to_string(&rbuf, &rtentry->route.p));
       }
     }
     else  {
       /* remove from kernel */
       if (os_routing_set(&rtentry->route, false, false)) {
         OONF_WARN(LOG_OLSRV2_ROUTING, "Could not remove route %s",
-            os_routing_to_string(&rbuf, &rtentry->route));
+            os_routing_to_string(&rbuf, &rtentry->route.p));
       }
     }
   }
@@ -1075,7 +1071,7 @@ _cb_route_finished(struct os_route *route, int error) {
 
   if (!rtentry->set && error == ESRCH) {
     OONF_DEBUG(LOG_OLSRV2_ROUTING, "Route %s was already gone",
-        os_routing_to_string(&rbuf, &rtentry->route));
+        os_routing_to_string(&rbuf, &rtentry->route.p));
   }
   else if (error) {
     if (error == -1) {
@@ -1085,7 +1081,7 @@ _cb_route_finished(struct os_route *route, int error) {
     /* an error happened, try again later */
     OONF_WARN(LOG_OLSRV2_ROUTING, "Error in route %s %s: %s (%d)",
         rtentry->set ? "setting" : "removal",
-            os_routing_to_string(&rbuf, &rtentry->route),
+            os_routing_to_string(&rbuf, &rtentry->route.p),
             strerror(error), error);
 
     if (error == EEXIST && rtentry->set) {
@@ -1105,11 +1101,11 @@ _cb_route_finished(struct os_route *route, int error) {
   if (rtentry->set) {
     /* route was set/updated successfully */
     OONF_INFO(LOG_OLSRV2_ROUTING, "Successfully set route %s",
-        os_routing_to_string(&rbuf, &rtentry->route));
+        os_routing_to_string(&rbuf, &rtentry->route.p));
   }
   else {
     OONF_INFO(LOG_OLSRV2_ROUTING, "Successfully removed route %s",
-        os_routing_to_string(&rbuf, &rtentry->route));
+        os_routing_to_string(&rbuf, &rtentry->route.p));
     _remove_entry(rtentry);
   }
 }

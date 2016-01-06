@@ -584,21 +584,21 @@ _initialize_edge_values(struct olsrv2_tc_edge *edge) {
 static void
 _initialize_route_values(struct olsrv2_routing_entry *route) {
 
-  netaddr_to_string(&_value_route_dst, &route->route.key.dst);
-  netaddr_to_string(&_value_route_gw, &route->route.gw);
-  netaddr_to_string(&_value_route_src_ip, &route->route.src_ip);
-  netaddr_to_string(&_value_route_src_prefix, &route->route.key.src);
+  netaddr_to_string(&_value_route_dst, &route->route.p.key.dst);
+  netaddr_to_string(&_value_route_gw, &route->route.p.gw);
+  netaddr_to_string(&_value_route_src_ip, &route->route.p.src_ip);
+  netaddr_to_string(&_value_route_src_prefix, &route->route.p.key.src);
 
   snprintf(_value_route_metric, sizeof(_value_route_metric),
-      "%u", route->route.metric);
+      "%u", route->route.p.metric);
   snprintf(_value_route_table, sizeof(_value_route_table),
-      "%u", route->route.table);
+      "%u", route->route.p.table);
   snprintf(_value_route_proto, sizeof(_value_route_proto),
-      "%u", route->route.protocol);
+      "%u", route->route.p.protocol);
 
-  if_indextoname(route->route.if_index, _value_route_if);
+  if_indextoname(route->route.p.if_index, _value_route_if);
   snprintf(_value_route_ifindex, sizeof(_value_route_ifindex),
-      "%u", route->route.if_index);
+      "%u", route->route.p.if_index);
 
   netaddr_to_string(&_value_route_lasthop, &route->last_originator);
 }

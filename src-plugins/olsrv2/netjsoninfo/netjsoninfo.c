@@ -383,16 +383,16 @@ _print_routing_tree(struct json_session *session,
   json_start_array(session, JSON_NAME_ROUTES);
 
   avl_for_each_element(olsrv2_routing_get_tree(domain), rtentry, _node) {
-    if (rtentry->route.family == af_type) {
+    if (rtentry->route.p.family == af_type) {
       json_start_object(session, NULL);
-      _print_json_netaddr(session, "destination", &rtentry->route.key.dst);
-      if (netaddr_get_prefix_length(&rtentry->route.key.src) > 0) {
-        _print_json_netaddr(session, "source", &rtentry->route.key.src);
+      _print_json_netaddr(session, "destination", &rtentry->route.p.key.dst);
+      if (netaddr_get_prefix_length(&rtentry->route.p.key.src) > 0) {
+        _print_json_netaddr(session, "source", &rtentry->route.p.key.src);
       }
-      _print_json_netaddr(session, "next", &rtentry->route.gw);
+      _print_json_netaddr(session, "next", &rtentry->route.p.gw);
       _print_json_netaddr(session, "next_id", &rtentry->next_originator);
 
-      _print_json_string(session, "device", if_indextoname(rtentry->route.if_index, ibuf));
+      _print_json_string(session, "device", if_indextoname(rtentry->route.p.if_index, ibuf));
       _print_json_number(session, "cost", rtentry->path_cost);
 
       json_start_object(session, "properties");

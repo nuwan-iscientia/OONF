@@ -139,7 +139,7 @@ static struct avl_tree _rtnetlink_feedback;
 static struct list_entity _rtnetlink_listener;
 
 /* default wildcard route */
-static const struct os_route OS_ROUTE_WILDCARD = {
+static const struct os_route_param OS_ROUTE_WILDCARD = {
   .family = AF_UNSPEC,
   .src_ip = { ._type = AF_UNSPEC },
   .gw = { ._type = AF_UNSPEC },
@@ -258,26 +258,26 @@ os_routing_set(struct os_route *route, bool set, bool del_similar) {
   } else {
     msg->nlmsg_type = RTM_DELROUTE;
 
-    os_rt.protocol = 0;
-    netaddr_invalidate(&os_rt.src_ip);
+    os_rt.p.protocol = 0;
+    netaddr_invalidate(&os_rt.p.src_ip);
 
     if (del_similar) {
       /* no interface necessary */
-      os_rt.if_index = 0;
+      os_rt.p.if_index = 0;
 
       /* as wildcard for fuzzy deletion */
       scope = RT_SCOPE_NOWHERE;
     }
   }
 
-  if (netaddr_get_address_family(&os_rt.gw) == AF_UNSPEC
-      && netaddr_get_prefix_length(&os_rt.key.dst) == netaddr_get_maxprefix(&os_rt.key.dst)) {
+  if (netaddr_get_address_family(&os_rt.p.gw) == AF_UNSPEC
+      && netaddr_get_prefix_length(&os_rt.p.key.dst) == netaddr_get_maxprefix(&os_rt.p.key.dst)) {
     /* use destination as gateway, to 'force' linux kernel to do proper source address selection */
-    os_rt.gw = os_rt.key.dst;
+    os_rt.p.gw = os_rt.p.key.dst;
   }
 
   OONF_DEBUG(LOG_OS_ROUTING, "%sset route: %s", set ? "" : "re",
-      os_routing_to_string(&rbuf, &os_rt));
+      os_routing_to_string(&rbuf, &os_rt.p));
 
   if (_routing_set(msg, &os_rt, scope)) {
     return -1;
@@ -321,7 +321,7 @@ os_routing_query(struct os_route *route) {
   msg->nlmsg_len = NLMSG_LENGTH(sizeof(*rt_gen));
 
   msg->nlmsg_type = RTM_GETROUTE;
-  rt_gen->rtgen_family = route->family;
+  rt_gen->rtgen_family = route->p.family;
 
   seq = os_system_netlink_send(&_rtnetlink_socket, msg);
   if (seq < 0) {
@@ -358,7 +358,7 @@ os_routing_is_in_progress(struct os_route *route) {
 /**
  * @return wildcard route
  */
-const struct os_route *
+const struct os_route_param *
 os_routing_get_wildcard_route(void) {
   return &OS_ROUTE_WILDCARD;
 }
@@ -411,98 +411,98 @@ _routing_set(struct nlmsghdr *msg, struct os_route *route,
   size_t i;
 
   /* calculate address af_type */
-  if (netaddr_get_address_family(&route->key.dst) != AF_UNSPEC) {
-    route->family = netaddr_get_address_family(&route->key.dst);
+  if (netaddr_get_address_family(&route->p.key.dst) != AF_UNSPEC) {
+    route->p.family = netaddr_get_address_family(&route->p.key.dst);
   }
-  if (netaddr_get_address_family(&route->gw) != AF_UNSPEC) {
-    if (route->family  != AF_UNSPEC
-        && route->family  != netaddr_get_address_family(&route->gw)) {
+  if (netaddr_get_address_family(&route->p.gw) != AF_UNSPEC) {
+    if (route->p.family  != AF_UNSPEC
+        && route->p.family  != netaddr_get_address_family(&route->p.gw)) {
       return -1;
     }
-    route->family  = netaddr_get_address_family(&route->gw);
+    route->p.family  = netaddr_get_address_family(&route->p.gw);
   }
-  if (netaddr_get_address_family(&route->src_ip) != AF_UNSPEC) {
-    if (route->family  != AF_UNSPEC && route->family  != netaddr_get_address_family(&route->src_ip)) {
+  if (netaddr_get_address_family(&route->p.src_ip) != AF_UNSPEC) {
+    if (route->p.family  != AF_UNSPEC && route->p.family  != netaddr_get_address_family(&route->p.src_ip)) {
       return -1;
     }
-    route->family  = netaddr_get_address_family(&route->src_ip);
+    route->p.family  = netaddr_get_address_family(&route->p.src_ip);
   }
 
-  if (route->family  == AF_UNSPEC) {
-    route->family  = AF_INET;
+  if (route->p.family  == AF_UNSPEC) {
+    route->p.family  = AF_INET;
   }
 
   /* initialize rtmsg payload */
   rt_msg = NLMSG_DATA(msg);
 
-  rt_msg->rtm_family = route->family ;
+  rt_msg->rtm_family = route->p.family ;
   rt_msg->rtm_scope = rt_scope;
-  rt_msg->rtm_protocol = route->protocol;
-  rt_msg->rtm_table = route->table;
+  rt_msg->rtm_protocol = route->p.protocol;
+  rt_msg->rtm_table = route->p.table;
 
   /* set default route type */
   rt_msg->rtm_type = RTN_UNICAST;
 
   /* set route type */
   for (i=0; i<ARRAYSIZE(_type_translation); i++) {
-    if (_type_translation[i].oonf == route->type) {
+    if (_type_translation[i].oonf == route->p.type) {
       rt_msg->rtm_type = _type_translation[i].os_linux;
       break;
     }
   }
 
   /* add attributes */
-  if (netaddr_get_address_family(&route->src_ip) != AF_UNSPEC) {
+  if (netaddr_get_address_family(&route->p.src_ip) != AF_UNSPEC) {
     /* add src-ip */
     if (os_system_netlink_addnetaddr(&_rtnetlink_event_socket,
-        msg, RTA_PREFSRC, &route->src_ip)) {
+        msg, RTA_PREFSRC, &route->p.src_ip)) {
       return -1;
     }
   }
 
-  if (netaddr_get_address_family(&route->gw) != AF_UNSPEC) {
+  if (netaddr_get_address_family(&route->p.gw) != AF_UNSPEC) {
     rt_msg->rtm_flags |= RTNH_F_ONLINK;
 
     /* add gateway */
     if (os_system_netlink_addnetaddr(&_rtnetlink_event_socket,
-        msg, RTA_GATEWAY, &route->gw)) {
+        msg, RTA_GATEWAY, &route->p.gw)) {
       return -1;
     }
   }
 
-  if (netaddr_get_address_family(&route->key.dst) != AF_UNSPEC) {
-    rt_msg->rtm_dst_len = netaddr_get_prefix_length(&route->key.dst);
+  if (netaddr_get_address_family(&route->p.key.dst) != AF_UNSPEC) {
+    rt_msg->rtm_dst_len = netaddr_get_prefix_length(&route->p.key.dst);
 
     /* add destination */
     if (os_system_netlink_addnetaddr(&_rtnetlink_event_socket,
-        msg, RTA_DST, &route->key.dst)) {
+        msg, RTA_DST, &route->p.key.dst)) {
       return -1;
     }
   }
 
-  if (netaddr_get_address_family(&route->key.src) == AF_INET6
-      && netaddr_get_prefix_length(&route->key.src) != 0) {
-    rt_msg->rtm_src_len = netaddr_get_prefix_length(&route->key.src);
+  if (netaddr_get_address_family(&route->p.key.src) == AF_INET6
+      && netaddr_get_prefix_length(&route->p.key.src) != 0) {
+    rt_msg->rtm_src_len = netaddr_get_prefix_length(&route->p.key.src);
 
     /* add source-specific routing prefix */
     if (os_system_netlink_addnetaddr(&_rtnetlink_event_socket,
-        msg, RTA_SRC, &route->key.src)) {
+        msg, RTA_SRC, &route->p.key.src)) {
       return -1;
     }
   }
 
-  if (route->metric != -1) {
+  if (route->p.metric != -1) {
     /* add metric */
     if (os_system_netlink_addreq(&_rtnetlink_event_socket,
-        msg, RTA_PRIORITY, &route->metric, sizeof(route->metric))) {
+        msg, RTA_PRIORITY, &route->p.metric, sizeof(route->p.metric))) {
       return -1;
     }
   }
 
-  if (route->if_index) {
+  if (route->p.if_index) {
     /* add interface*/
     if (os_system_netlink_addreq(&_rtnetlink_event_socket,
-        msg, RTA_OIF, &route->if_index, sizeof(route->if_index))) {
+        msg, RTA_OIF, &route->p.if_index, sizeof(route->p.if_index))) {
       return -1;
     }
   }
@@ -534,23 +534,23 @@ _routing_parse_nlmsg(struct os_route *route, struct nlmsghdr *msg) {
 
   memcpy(route, &OS_ROUTE_WILDCARD, sizeof(*route));
 
-  route->protocol = rt_msg->rtm_protocol;
-  route->table = rt_msg->rtm_table;
-  route->family = rt_msg->rtm_family;
+  route->p.protocol = rt_msg->rtm_protocol;
+  route->p.table = rt_msg->rtm_table;
+  route->p.family = rt_msg->rtm_family;
 
-  if (route->family != AF_INET && route->family != AF_INET6) {
+  if (route->p.family != AF_INET && route->p.family != AF_INET6) {
     return -1;
   }
 
   /* get route type */
-  route->type = OS_ROUTE_UNDEFINED;
+  route->p.type = OS_ROUTE_UNDEFINED;
   for (i=0; i<ARRAYSIZE(_type_translation); i++) {
     if (rt_msg->rtm_type == _type_translation[i].os_linux) {
-      route->type = _type_translation[i].oonf;
+      route->p.type = _type_translation[i].oonf;
       break;
     }
   }
-  if (route->type == OS_ROUTE_UNDEFINED) {
+  if (route->p.type == OS_ROUTE_UNDEFINED) {
     OONF_WARN(LOG_OS_ROUTING, "Got route type: %u", rt_msg->rtm_type);
     return -1;
   }
@@ -558,35 +558,35 @@ _routing_parse_nlmsg(struct os_route *route, struct nlmsghdr *msg) {
   for(; RTA_OK(rt_attr, rt_len); rt_attr = RTA_NEXT(rt_attr,rt_len)) {
     switch(rt_attr->rta_type) {
       case RTA_PREFSRC:
-        netaddr_from_binary(&route->src_ip, RTA_DATA(rt_attr), RTA_PAYLOAD(rt_attr),
+        netaddr_from_binary(&route->p.src_ip, RTA_DATA(rt_attr), RTA_PAYLOAD(rt_attr),
             rt_msg->rtm_family);
         break;
       case RTA_GATEWAY:
-        netaddr_from_binary(&route->gw, RTA_DATA(rt_attr), RTA_PAYLOAD(rt_attr), rt_msg->rtm_family);
+        netaddr_from_binary(&route->p.gw, RTA_DATA(rt_attr), RTA_PAYLOAD(rt_attr), rt_msg->rtm_family);
         break;
       case RTA_DST:
-        netaddr_from_binary_prefix(&route->key.dst, RTA_DATA(rt_attr), RTA_PAYLOAD(rt_attr),
+        netaddr_from_binary_prefix(&route->p.key.dst, RTA_DATA(rt_attr), RTA_PAYLOAD(rt_attr),
             rt_msg->rtm_family, rt_msg->rtm_dst_len);
         break;
       case RTA_SRC:
-        netaddr_from_binary_prefix(&route->key.src, RTA_DATA(rt_attr),
+        netaddr_from_binary_prefix(&route->p.key.src, RTA_DATA(rt_attr),
             RTA_PAYLOAD(rt_attr), rt_msg->rtm_family, rt_msg->rtm_src_len);
         break;
       case RTA_PRIORITY:
-        memcpy(&route->metric, RTA_DATA(rt_attr), sizeof(route->metric));
+        memcpy(&route->p.metric, RTA_DATA(rt_attr), sizeof(route->p.metric));
         break;
       case RTA_OIF:
-        memcpy(&route->if_index, RTA_DATA(rt_attr), sizeof(route->if_index));
+        memcpy(&route->p.if_index, RTA_DATA(rt_attr), sizeof(route->p.if_index));
         break;
       default:
         break;
     }
   }
 
-  if (netaddr_get_address_family(&route->key.dst) == AF_UNSPEC) {
-    memcpy(&route->key.dst, route->family == AF_INET ? &NETADDR_IPV4_ANY : &NETADDR_IPV6_ANY,
-        sizeof(route->key.dst));
-    netaddr_set_prefix_length(&route->key.dst, rt_msg->rtm_dst_len);
+  if (netaddr_get_address_family(&route->p.key.dst) == AF_UNSPEC) {
+    memcpy(&route->p.key.dst, route->p.family == AF_INET ? &NETADDR_IPV4_ANY : &NETADDR_IPV6_ANY,
+        sizeof(route->p.key.dst));
+    netaddr_set_prefix_length(&route->p.key.dst, rt_msg->rtm_dst_len);
   }
   return 0;
 }
@@ -599,38 +599,38 @@ _routing_parse_nlmsg(struct os_route *route, struct nlmsghdr *msg) {
  */
 static bool
 _match_routes(struct os_route *filter, struct os_route *route) {
-  if (filter->family != AF_UNSPEC && filter->family != route->family) {
+  if (filter->p.family != AF_UNSPEC && filter->p.family != route->p.family) {
     return false;
   }
-  if (netaddr_get_address_family(&filter->src_ip) != AF_UNSPEC
-      && memcmp(&filter->src_ip, &route->src_ip, sizeof(filter->src_ip)) != 0) {
+  if (netaddr_get_address_family(&filter->p.src_ip) != AF_UNSPEC
+      && memcmp(&filter->p.src_ip, &route->p.src_ip, sizeof(filter->p.src_ip)) != 0) {
     return false;
   }
-  if (filter->type != OS_ROUTE_UNDEFINED && filter->type != route->type) {
+  if (filter->p.type != OS_ROUTE_UNDEFINED && filter->p.type != route->p.type) {
     return false;
   }
-  if (netaddr_get_address_family(&filter->gw) != AF_UNSPEC
-      && memcmp(&filter->gw, &route->gw, sizeof(filter->gw)) != 0) {
+  if (netaddr_get_address_family(&filter->p.gw) != AF_UNSPEC
+      && memcmp(&filter->p.gw, &route->p.gw, sizeof(filter->p.gw)) != 0) {
     return false;
   }
-  if (netaddr_get_address_family(&filter->key.dst) != AF_UNSPEC
-      && memcmp(&filter->key.dst, &route->key.dst, sizeof(filter->key.dst)) != 0) {
+  if (netaddr_get_address_family(&filter->p.key.dst) != AF_UNSPEC
+      && memcmp(&filter->p.key.dst, &route->p.key.dst, sizeof(filter->p.key.dst)) != 0) {
     return false;
   }
-  if (netaddr_get_address_family(&filter->key.src) != AF_UNSPEC
-      && memcmp(&filter->key.src, &route->key.src, sizeof(filter->key.src)) != 0) {
+  if (netaddr_get_address_family(&filter->p.key.src) != AF_UNSPEC
+      && memcmp(&filter->p.key.src, &route->p.key.src, sizeof(filter->p.key.src)) != 0) {
     return false;
   }
-  if (filter->metric != -1 && filter->metric != route->metric) {
+  if (filter->p.metric != -1 && filter->p.metric != route->p.metric) {
     return false;
   }
-  if (filter->table != RT_TABLE_UNSPEC && filter->table != route->table) {
+  if (filter->p.table != RT_TABLE_UNSPEC && filter->p.table != route->p.table) {
     return false;
   }
-  if (filter->protocol != RTPROT_UNSPEC && filter->protocol != route->protocol) {
+  if (filter->p.protocol != RTPROT_UNSPEC && filter->p.protocol != route->p.protocol) {
     return false;
   }
-  return filter->if_index == 0 || filter->if_index == route->if_index;
+  return filter->p.if_index == 0 || filter->p.if_index == route->p.if_index;
 }
 
 /**
@@ -711,7 +711,7 @@ _cb_rtnetlink_error(uint32_t seq, int err) {
   if (route) {
     OONF_DEBUG(LOG_OS_ROUTING, "Route seqno %u failed: %s (%d) %s",
         seq, strerror(err), err,
-        os_routing_to_string(&rbuf, route));
+        os_routing_to_string(&rbuf, &route->p));
 
     _routing_finished(route, err);
   }
@@ -751,7 +751,7 @@ _cb_rtnetlink_done(uint32_t seq) {
   route = avl_find_element(&_rtnetlink_feedback, &seq, route, _internal._node);
   if (route) {
     OONF_DEBUG(LOG_OS_ROUTING, "Route %s with seqno %u done",
-        os_routing_to_string(&rbuf, route), seq);
+        os_routing_to_string(&rbuf, &route->p), seq);
     _routing_finished(route, 0);
   }
 }

@@ -126,14 +126,8 @@ struct olsrv2_routing_entry {
   /*! true if this route is being processed by the kernel at the moment */
   bool in_processing;
 
-  /*! interface index before the current dijkstra run */
-  unsigned _old_if_index;
-
-  /*! next hop before the current dijkstra run */
-  struct netaddr _old_next_hop;
-
-  /*! distance before the current dijkstra run */
-  uint8_t _old_distance;
+  /*! old values of route before current dijstra run */
+  struct os_route_param _old;
 
   /*! hook into working queues */
   struct list_entity _working_node;
@@ -168,12 +162,12 @@ struct olsrv2_routing_domain {
 struct olsrv2_routing_filter {
   /**
    * callback for routing filter, return false to drop route.
-   * filter can modify rt_table, rt_protocol and rt_metric.
+   * filter can modify all parameters of the route.
    * @param domain NHDP domain
-   * @param route operation system route
+   * @param route_param operation system route parameters
    * @return true if route should still be set, false if it should be dropped
    */
-  bool (*filter)(struct nhdp_domain *domain , struct os_route *route);
+  bool (*filter)(struct nhdp_domain *domain , struct os_route_param *route_param);
 
   /*! node to hold all routing filters together */
   struct list_entity _node;
