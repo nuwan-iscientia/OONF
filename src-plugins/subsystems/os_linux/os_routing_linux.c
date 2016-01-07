@@ -139,7 +139,7 @@ static struct avl_tree _rtnetlink_feedback;
 static struct list_entity _rtnetlink_listener;
 
 /* default wildcard route */
-static const struct os_route_param OS_ROUTE_WILDCARD = {
+static const struct os_route_parameter OS_ROUTE_WILDCARD = {
   .family = AF_UNSPEC,
   .src_ip = { ._type = AF_UNSPEC },
   .gw = { ._type = AF_UNSPEC },
@@ -358,7 +358,7 @@ os_routing_is_in_progress(struct os_route *route) {
 /**
  * @return wildcard route
  */
-const struct os_route_param *
+const struct os_route_parameter *
 os_routing_get_wildcard_route(void) {
   return &OS_ROUTE_WILDCARD;
 }

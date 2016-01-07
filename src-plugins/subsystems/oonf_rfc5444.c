@@ -868,11 +868,22 @@ oonf_rfc5444_target_get_local_socket(struct oonf_rfc5444_target *target) {
   int family;
 
   family = netaddr_get_address_family(&target->dst);
-  if (family == AF_INET) {
-    return &target->interface->_socket.socket_v4.local_socket;
+  return oonf_rfc5444_interface_get_local_socket(target->interface, family);
+}
+
+/**
+ * @param interface oonf rfc5444 interface
+ * @param af_type address family type
+ * @return local socket corresponding to address family
+ */
+const union netaddr_socket *
+oonf_rfc5444_interface_get_local_socket(
+    struct oonf_rfc5444_interface *rfc5444_if, int af_type) {
+  if (af_type == AF_INET) {
+    return &rfc5444_if->_socket.socket_v4.local_socket;
   }
-  if (family == AF_INET6) {
-    return &target->interface->_socket.socket_v6.local_socket;
+  if (af_type == AF_INET6) {
+    return &rfc5444_if->_socket.socket_v6.local_socket;
   }
   return NULL;
 }

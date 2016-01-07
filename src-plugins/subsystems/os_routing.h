@@ -132,7 +132,7 @@ struct os_route_key {
   struct netaddr src;
 };
 
-struct os_route_param {
+struct os_route_parameter {
   /*! address family */
   unsigned char family;
 
@@ -166,7 +166,7 @@ struct os_route_param {
  */
 struct os_route {
   /*! parameters of route, separate to make it easy to compare routes */
-  struct os_route_param p;
+  struct os_route_parameter p;
 
   /*! used for delivering feedback about netlink commands */
   struct os_route_internal _internal;
@@ -214,9 +214,9 @@ EXPORT void os_routing_listener_add(struct os_route_listener *);
 EXPORT void os_routing_listener_remove(struct os_route_listener *);
 
 EXPORT const char *os_routing_to_string(
-    struct os_route_str *buf, const struct os_route_param *route_param);
+    struct os_route_str *buf, const struct os_route_parameter *route_param);
 
-EXPORT const struct os_route_param *os_routing_get_wildcard_route(void);
+EXPORT const struct os_route_parameter *os_routing_get_wildcard_route(void);
 
 EXPORT int os_route_avl_cmp_route_key(const void *, const void *);
 EXPORT void os_route_init_half_os_route_key(

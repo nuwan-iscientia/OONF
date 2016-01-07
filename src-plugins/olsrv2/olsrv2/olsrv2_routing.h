@@ -127,7 +127,7 @@ struct olsrv2_routing_entry {
   bool in_processing;
 
   /*! old values of route before current dijstra run */
-  struct os_route_param _old;
+  struct os_route_parameter _old;
 
   /*! hook into working queues */
   struct list_entity _working_node;
@@ -161,13 +161,13 @@ struct olsrv2_routing_domain {
  */
 struct olsrv2_routing_filter {
   /**
-   * callback for routing filter, return false to drop route.
+   * callback for routing filter, return false to drop route modification.
    * filter can modify all parameters of the route.
    * @param domain NHDP domain
    * @param route_param operation system route parameters
-   * @return true if route should still be set, false if it should be dropped
+   * @return true if route should still be set/removed, false if it should be ignored
    */
-  bool (*filter)(struct nhdp_domain *domain , struct os_route_param *route_param);
+  bool (*filter)(struct nhdp_domain *domain , struct os_route_parameter *route_param, bool set);
 
   /*! node to hold all routing filters together */
   struct list_entity _node;

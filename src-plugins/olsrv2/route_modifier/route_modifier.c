@@ -99,7 +99,8 @@ static void _cleanup(void);
 static struct _routemodifier *_get_modifier(const char *name);
 static void _destroy_modifier(struct _routemodifier *);
 
-static bool _cb_rt_filter(struct nhdp_domain *, struct os_route_param *);
+static bool _cb_rt_filter(
+    struct nhdp_domain *, struct os_route_parameter *, bool set);
 static void _cb_cfg_changed(void);
 
 /* plugin declaration */
@@ -193,10 +194,12 @@ _cleanup(void) {
  * Callback for Dijkstra code to see which route should be changed
  * @param domain pointer to domain of route
  * @param route routing data
+ * @param set true if route will be set, false otherwise
  * @return always true (we never drop a route)
  */
 static bool
-_cb_rt_filter(struct nhdp_domain *domain, struct os_route_param *route_param) {
+_cb_rt_filter(struct nhdp_domain *domain,
+    struct os_route_parameter *route_param, bool set __attribute__((unused))) {
   struct _routemodifier *modifier;
 #ifdef OONF_LOG_DEBUG_INFO
   struct netaddr_str nbuf;

@@ -66,7 +66,7 @@ enum os_tunnel_type {
   OS_TUNNEL_GRE,
 };
 
-struct os_tunnel {
+struct os_tunnel_parameter {
   /*! name of the tunnel interface */
   char tunnel_if[IF_NAMESIZE];
 
@@ -81,6 +81,14 @@ struct os_tunnel {
 
   /*! remote IP address of the tunnel */
   struct netaddr remote;
+};
+
+struct os_tunnel {
+  /*! configuration data of tunnel */
+  struct os_tunnel_parameter p;
+
+  /*! tunnel interface index */
+  unsigned if_index;
 
   /*! hook into global tree of tunnels */
   struct avl_node _node;

@@ -125,8 +125,13 @@ os_tunnel_add(struct os_tunnel *tunnel) {
 
   result = _handle_tunnel(tunnel, true);
   if (!result) {
-    tunnel->_node.key = tunnel->tunnel_if;
+    tunnel->_node.key = tunnel->p.tunnel_if;
     avl_insert(&_tunnel_tree, &tunnel->_node);
+
+    tunnel->if_index = if_nametoindex(tunnel->p.tunnel_if);
+  }
+  else {
+    tunnel->if_index = 0;
   }
   return result;
 }
@@ -170,13 +175,13 @@ _handle_ipv4_tunnel(struct os_tunnel *tunnel, bool add) {
   p.iph.ihl = 5;
   p.iph.frag_off = htons(IP_DF);
 
-  strncpy(p.name, tunnel->tunnel_if, IF_NAMESIZE);
-  if (tunnel->base_if[0]) {
-    p.link = if_nametoindex(tunnel->base_if);
+  strncpy(p.name, tunnel->p.tunnel_if, IF_NAMESIZE);
+  if (tunnel->p.base_if[0]) {
+    p.link = if_nametoindex(tunnel->p.base_if);
   }
   ifr.ifr_ifru.ifru_data = (void *)&p;
 
-  switch (tunnel->inner_type) {
+  switch (tunnel->p.inner_type) {
     case OS_TUNNEL_IPV4:
       p.iph.protocol = IPPROTO_IPIP;
       strncpy(ifr.ifr_name, "tunl0", IF_NAMESIZE);
@@ -193,14 +198,14 @@ _handle_ipv4_tunnel(struct os_tunnel *tunnel, bool add) {
       return -1;
   }
 
-  netaddr_to_binary(&p.iph.saddr, &tunnel->local, sizeof(p.iph.saddr));
-  netaddr_to_binary(&p.iph.daddr, &tunnel->remote, sizeof(p.iph.daddr));
+  netaddr_to_binary(&p.iph.saddr, &tunnel->p.local, sizeof(p.iph.saddr));
+  netaddr_to_binary(&p.iph.daddr, &tunnel->p.remote, sizeof(p.iph.daddr));
 
   err = ioctl(os_system_linux_get_ioctl_fd(AF_INET),
       add ? SIOCADDTUNNEL : SIOCDELTUNNEL, &ifr);
   if (err) {
     OONF_WARN(LOG_OS_TUNNEL, "Error while %s tunnel %s: %s (%d)",
-        add ? "add" : "remove", tunnel->tunnel_if, strerror(errno), errno);
+        add ? "adding" : "removing", tunnel->p.tunnel_if, strerror(errno), errno);
     return -1;
   }
   return 0;
@@ -223,13 +228,13 @@ _handle_ipv6_tunnel(struct os_tunnel *tunnel, bool add) {
   memset(&ifr, 0, sizeof(ifr));
 
   ifr.ifr_ifru.ifru_data = (void *)&p;
-  if (tunnel->base_if[0]) {
-    p.link = if_nametoindex(tunnel->base_if);
+  if (tunnel->p.base_if[0]) {
+    p.link = if_nametoindex(tunnel->p.base_if);
   }
 
-  strncpy(p.name, tunnel->tunnel_if, IF_NAMESIZE);
+  strncpy(p.name, tunnel->p.tunnel_if, IF_NAMESIZE);
 
-  switch (tunnel->inner_type) {
+  switch (tunnel->p.inner_type) {
     case OS_TUNNEL_IPV4:
       p.proto = IPPROTO_IPIP;
       strncpy(ifr.ifr_name, "ip6tnl0", IF_NAMESIZE);
@@ -247,17 +252,17 @@ _handle_ipv6_tunnel(struct os_tunnel *tunnel, bool add) {
 
   }
 
-  netaddr_to_binary(&p.laddr, &tunnel->local, sizeof(p.laddr));
-  netaddr_to_binary(&p.raddr, &tunnel->remote, sizeof(p.raddr));
+  netaddr_to_binary(&p.laddr, &tunnel->p.local, sizeof(p.laddr));
+  netaddr_to_binary(&p.raddr, &tunnel->p.remote, sizeof(p.raddr));
 
   err = ioctl(os_system_linux_get_ioctl_fd(AF_INET6),
       add ? SIOCADDTUNNEL : SIOCDELTUNNEL, &ifr);
   if (err) {
     OONF_WARN(LOG_OS_TUNNEL, "Error while %s tunnel %s (%d,%s,%s): %s (%d)",
-        add ? "add" : "remove", tunnel->tunnel_if,
-        tunnel->inner_type,
-        netaddr_to_string(&nbuf1, &tunnel->local),
-        netaddr_to_string(&nbuf2, &tunnel->remote),
+        add ? "add" : "remove", tunnel->p.tunnel_if,
+        tunnel->p.inner_type,
+        netaddr_to_string(&nbuf1, &tunnel->p.local),
+        netaddr_to_string(&nbuf2, &tunnel->p.remote),
         strerror(errno), errno);
     return -1;
   }
@@ -275,13 +280,13 @@ _handle_tunnel(struct os_tunnel *tunnel, bool add) {
   int af_type;
   struct netaddr_str nbuf1, nbuf2;
 
-  af_type = netaddr_get_address_family(&tunnel->local);
-  if (af_type != netaddr_get_address_family(&tunnel->remote)) {
+  af_type = netaddr_get_address_family(&tunnel->p.local);
+  if (af_type != netaddr_get_address_family(&tunnel->p.remote)) {
     OONF_WARN(LOG_OS_TUNNEL,
         "Inconsistent tunnel endpoints for tunnel %s: local=%s remote=%s",
-        tunnel->tunnel_if,
-        netaddr_to_string(&nbuf1, &tunnel->local),
-        netaddr_to_string(&nbuf2, &tunnel->remote));
+        tunnel->p.tunnel_if,
+        netaddr_to_string(&nbuf1, &tunnel->p.local),
+        netaddr_to_string(&nbuf2, &tunnel->p.remote));
     return -1;
   }
 
@@ -292,7 +297,7 @@ _handle_tunnel(struct os_tunnel *tunnel, bool add) {
       return _handle_ipv6_tunnel(tunnel, add);
     default:
       OONF_WARN(LOG_OS_TUNNEL, "Bad address family for tunnel %s: %u",
-          tunnel->tunnel_if, af_type);
+          tunnel->p.tunnel_if, af_type);
       return -1;
   }
 }

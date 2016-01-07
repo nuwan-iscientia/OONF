@@ -273,6 +273,8 @@ EXPORT struct oonf_rfc5444_target *oonf_rfc5444_add_target(
     struct oonf_rfc5444_interface *interface, struct netaddr *dst);
 EXPORT void oonf_rfc5444_remove_target(struct oonf_rfc5444_target *target);
 
+EXPORT const union netaddr_socket *oonf_rfc5444_interface_get_local_socket(
+    struct oonf_rfc5444_interface *rfc5444_if, int af_type);
 EXPORT const union netaddr_socket *oonf_rfc5444_target_get_local_socket(
     struct oonf_rfc5444_target *target);
 

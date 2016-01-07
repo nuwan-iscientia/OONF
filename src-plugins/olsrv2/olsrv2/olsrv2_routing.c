@@ -981,8 +981,8 @@ _process_dijkstra_result(struct nhdp_domain *domain) {
     }
 
     list_for_each_element(&_routing_filter_list, filter, _node) {
-      if (!filter->filter(domain, &rtentry->route.p)) {
-        /* route was dropped by filter */
+      if (!filter->filter(domain, &rtentry->route.p, rtentry->set)) {
+        /* route modification was dropped by filter */
         continue;
       }
     }
