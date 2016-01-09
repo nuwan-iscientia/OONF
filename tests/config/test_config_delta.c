@@ -454,7 +454,7 @@ handler_modify_two_sections(void) {
   n1 = handler_1.pre->name != NULL && strcmp(handler_1.pre->name, NAME_1) == 0
       && handler_1.post->name != NULL && strcmp(handler_1.post->name, NAME_1) == 0;
   n2 = handler_1.pre->name != NULL && strcmp(handler_1.pre->name, NAME_2) == 0
-      && handler_1.pre->name != NULL && strcmp(handler_1.pre->name, NAME_2) == 0;
+      && handler_1.post->name != NULL && strcmp(handler_1.post->name, NAME_2) == 0;
   CHECK_TRUE(n1 || n2, "Illegal name of changed section: %s %s", handler_1.pre->name, handler_1.post->name);
 
   if (n1) {
