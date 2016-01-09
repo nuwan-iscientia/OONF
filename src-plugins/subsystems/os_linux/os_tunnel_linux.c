@@ -175,7 +175,7 @@ _handle_ipv4_tunnel(struct os_tunnel *tunnel, bool add) {
   p.iph.ihl = 5;
   p.iph.frag_off = htons(IP_DF);
 
-  strncpy(p.name, tunnel->p.tunnel_if, IF_NAMESIZE);
+  strscpy(p.name, tunnel->p.tunnel_if, IF_NAMESIZE);
   if (tunnel->p.base_if[0]) {
     p.link = if_nametoindex(tunnel->p.base_if);
   }
@@ -232,20 +232,20 @@ _handle_ipv6_tunnel(struct os_tunnel *tunnel, bool add) {
     p.link = if_nametoindex(tunnel->p.base_if);
   }
 
-  strncpy(p.name, tunnel->p.tunnel_if, IF_NAMESIZE);
+  strscpy(p.name, tunnel->p.tunnel_if, IF_NAMESIZE);
 
   switch (tunnel->p.inner_type) {
     case OS_TUNNEL_IPV4:
       p.proto = IPPROTO_IPIP;
-      strncpy(ifr.ifr_name, "ip6tnl0", IF_NAMESIZE);
+      strscpy(ifr.ifr_name, "ip6tnl0", IF_NAMESIZE);
       break;
     case OS_TUNNEL_IPV6:
       p.proto = IPPROTO_IPV6;
-      strncpy(ifr.ifr_name, "ip6tnl0", IF_NAMESIZE);
+      strscpy(ifr.ifr_name, "ip6tnl0", IF_NAMESIZE);
       break;
     case OS_TUNNEL_GRE:
       p.proto = IPPROTO_GRE;
-      strncpy(ifr.ifr_name, "ip6gre0", IF_NAMESIZE);
+      strscpy(ifr.ifr_name, "ip6gre0", IF_NAMESIZE);
       break;
     default:
       return -1;
