@@ -51,7 +51,7 @@
 #include "common/string.h"
 
 static const char *_isonumber_u64_to_string(char *out,
-    size_t out_len, uint64_t number, const char *unit, size_t fraction,
+    size_t out_len, uint64_t number, const char *unit, int fraction,
     bool binary, bool raw);
 
 /**
@@ -266,7 +266,7 @@ isonumber_to_u64(uint64_t *dst, const char *iso, int fraction, bool binary) {
  */
 static const char *
 _isonumber_u64_to_string(char *out, size_t out_len,
-    uint64_t number, const char *unit, size_t fraction,
+    uint64_t number, const char *unit, int fraction,
     bool binary, bool raw) {
   static const char symbol_large[] = " kMGTPE";
   static const char symbol_small[] = " munpfa";
@@ -278,13 +278,14 @@ _isonumber_u64_to_string(char *out, size_t out_len,
   step = binary ? 1024 : 1000;
   multiplier = 1;
 
-  while (fraction--) {
+  while (fraction > 0) {
     multiplier *= 10;
+    fraction--;
   }
 
   if (number >= multiplier) {
     unit_modifier = symbol_large;
-    while (!raw && *unit_modifier != 0 && number >= multiplier * step) {
+    while (!raw && *unit_modifier != 0 && number / step >= multiplier) {
       multiplier *= step;
       unit_modifier++;
     }
