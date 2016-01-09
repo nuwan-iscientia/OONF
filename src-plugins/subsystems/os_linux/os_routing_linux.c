@@ -532,7 +532,7 @@ _routing_parse_nlmsg(struct os_route *route, struct nlmsghdr *msg) {
     return 1;
   }
 
-  memcpy(route, &OS_ROUTE_WILDCARD, sizeof(*route));
+  memcpy(&route->p, &OS_ROUTE_WILDCARD, sizeof(OS_ROUTE_WILDCARD));
 
   route->p.protocol = rt_msg->rtm_protocol;
   route->p.table = rt_msg->rtm_table;
