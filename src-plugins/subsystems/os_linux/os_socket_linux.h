@@ -46,16 +46,239 @@
 #ifndef OS_SOCKET_LINUX_H_
 #define OS_SOCKET_LINUX_H_
 
-#include <sys/select.h>
+#include <sys/epoll.h>
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/sendfile.h>
 #include <sys/socket.h>
 
-#include "../os_socket.h"
+#include "subsystems/os_socket.h"
+#include "subsystems/os_generic/os_socket_generic_configsocket.h"
+#include "subsystems/os_generic/os_socket_generic_getrawsocket.h"
+#include "subsystems/os_generic/os_socket_generic_getsocket.h"
+#include "subsystems/os_generic/os_socket_generic_join_mcast.h"
+#include "subsystems/os_generic/os_socket_generic_set_dscp.h"
+#include "subsystems/os_generic/os_socket_generic_set_nonblocking.h"
 
 /*! name of the loopback interface */
 #define IF_LOOPBACK_NAME "lo"
+
+enum os_socket_flags {
+  OS_SOCKET_ACTIVE = 1,
+};
+
+/*! linux specific socket definition */
+struct os_socket {
+  /*! file descriptor of socket */
+  int fd;
+
+  /*! flags for telling epoll which events we are interested in */
+  uint32_t wanted_events;
+
+  /*! flags which were triggered in last epoll */
+  uint32_t received_events;
+
+  /*! flags for socket */
+  enum os_socket_flags _flags;
+};
+
+/*! linux specific socket select definition */
+struct os_socket_select {
+  struct epoll_event _events[16];
+  int _event_count;
+
+  int _epoll_fd;
+
+  uint64_t deadline;
+};
+
+/** declare non-inline linux-specific functions */
+EXPORT int os_socket_linux_event_wait(struct os_socket_select *);
+EXPORT int os_socket_linux_event_socket_modify(struct os_socket_select *sel,
+    struct os_socket *sock);
+EXPORT uint8_t *os_socket_linux_skip_rawsocket_prefix(uint8_t *ptr, ssize_t *len, int af_type);
+
+/**
+ * Redirect to linux specific event wait call
+ * @param sel selector instance
+ * @return number of events that happened,
+ *   0 if deadline was reached, -1 if an error happened
+ */
+static INLINE int
+os_socket_event_wait(struct os_socket_select *sel) {
+  return os_socket_linux_event_wait(sel);
+}
+
+/**
+ * Redirect to generic getsocket call
+ * @param sock empty socket representation
+ * @param bindto bind socket to this address/port
+ * @param tcp true if TCP socket, false if UDP socket
+ * @param recvbuf size of receiver buffer
+ * @param ifdata bind socket to this interface,
+ *   NULL to not bind socket to interface
+ * @param log_src logging source for error messages
+ * @return -1 if an error happened, 0 otherwise
+ */
+static INLINE int
+os_socket_getsocket(struct os_socket *sock, const union netaddr_socket *bindto, bool tcp,
+    size_t recvbuf, const struct os_interface_data *ifdata, enum oonf_log_source log_src) {
+  return os_socket_generic_getsocket(sock, bindto, tcp, recvbuf, ifdata, log_src);
+}
+
+/**
+ * Redirect to generic getrawsocket call
+ * @param sock empty socket representation
+ * @param bindto bind socket to this address/port
+ * @param protocol bind socket to this protocol
+ * @param recvbuf size of receiver buffer
+ * @param ifdata bind socket to this interface,
+ *   NULL to not bind socket to interface
+ * @param log_src logging source for error messages
+ * @return -1 if an error happened, 0 otherwise
+ */
+static INLINE int
+os_socket_getrawsocket(struct os_socket *sock, const union netaddr_socket *bindto, int protocol,
+    size_t recvbuf, const struct os_interface_data *ifdata, enum oonf_log_source log_src) {
+  return os_socket_generic_getrawsocket(sock, bindto, protocol, recvbuf, ifdata, log_src);
+}
+
+/**
+ * Redirect to generic configsocket call
+ * @param sock empty socket representation
+ * @param bindto bind socket to this address/port
+ * @param recvbuf size of receiver buffer
+ * @param rawip true if this is a raw ip socket, false otherwise
+ * @param ifdata bind socket to this interface,
+ *   NULL to not bind socket to interface
+ * @param log_src logging source for error messages
+ * @return -1 if an error happened, 0 otherwise
+ */
+static INLINE int
+os_socket_configsocket(struct os_socket *sock, const union netaddr_socket *bindto,
+    size_t recvbuf, bool rawip, const struct os_interface_data *ifdata, enum oonf_log_source log_src) {
+  return os_socket_generic_configsocket(sock, bindto, recvbuf, rawip, ifdata, log_src);
+}
+
+/**
+ * Redirect to generic set_nonblocking call
+ * @param sock socket representation
+ * @return -1 if an error happened, 0 otherwise
+ */
+static INLINE int
+os_socket_set_nonblocking(struct os_socket *sock) {
+  return os_socket_generic_set_nonblocking(sock);
+}
+
+/**
+ * Redirect to generic mcast receiver join call
+ * @param sock socket representation
+ * @param multicast multicast group to join
+ * @param oif outgoing interface for multicast,
+ *   NULL if not interface specific
+ * @param log_src logging source for error messages
+ * @return -1 if an error happened, 0 otherwise
+ */
+static INLINE int
+os_socket_join_mcast_recv(struct os_socket *sock, const struct netaddr *multicast,
+    const struct os_interface_data *oif, enum oonf_log_source log_src) {
+  return os_socket_generic_join_mcast_recv(sock, multicast, oif, log_src);
+}
+
+/**
+ * Redirect to generic mcast sender join call
+ * @param sock socket representation
+ * @param multicast sending multicast group to join
+ * @param oif outgoing interface for multicast,
+ *   NULL if not interface specific
+ * @param loop true if multicast should be locally looped
+ * @param log_src logging source for error messages
+ * @return -1 if an error happened, 0 otherwise
+ */
+static INLINE int
+os_socket_join_mcast_send(struct os_socket *sock, const struct netaddr *multicast,
+    const struct os_interface_data *oif, bool loop, enum oonf_log_source log_src) {
+  return os_socket_generic_join_mcast_send(sock, multicast, oif, loop, log_src);
+}
+/**
+ * Redirect to generic set_dscp call
+ * @param sock socket representation
+ * @param dscp new dscp value
+ * @param ipv6 true if IPv6, false for IPv4 socket
+ * @return -1 if an error happened, 0 otherwise
+ */
+static INLINE int
+os_socket_set_dscp(struct os_socket *sock, int dscp, bool ipv6) {
+  return os_socket_generic_set_dscp(sock, dscp, ipv6);
+}
+
+/**
+ * Redirect to linux specific rawsocket prefix call
+ * @param ptr pointer to the beginning of the buffer
+ * @param len pointer to length of buffer
+ * @param af_type address family of data in buffer
+ * @return pointer to transport layer data
+ */
+static INLINE uint8_t *
+os_socket_skip_rawsocket_prefix(uint8_t *ptr, ssize_t *len, int af_type) {
+  return os_socket_linux_skip_rawsocket_prefix(ptr, len, af_type);
+}
+
+/**
+ * initialize a socket representation with a file descriptor
+ * @param os_fd socket representation
+ * @param fd file descriptor
+ * @return -1 if an error happened, 0 otherwise
+ */
+static INLINE int
+os_socket_init(struct os_socket *os_fd, int fd) {
+  os_fd->fd = fd;
+  os_fd->_flags = OS_SOCKET_ACTIVE;
+  return 0;
+}
+
+/**
+ * Removes all data from a socket. it is not necessary to
+ * call this function on all sockets.
+ * @param sock socket representation
+ * @return -1 if an error happened, 0 otherwise
+ */
+static INLINE int
+os_socket_invalidate(struct os_socket *sock) {
+  memset(sock, 0, sizeof(*sock));
+  return 0;
+}
+
+/**
+ * Checks if a socket is initialized
+ * @param sock socket representation
+ * @return true if socket is initialized, false otherwise
+ */
+static INLINE bool
+os_socket_is_initialized(struct os_socket *sock) {
+  return (sock->_flags & OS_SOCKET_ACTIVE) != 0;
+}
+
+/**
+ * Extract the filedescriptor from a socket
+ * @param sock socket representation
+ * @return file descriptor
+ */
+static INLINE int
+os_socket_get_fd(struct os_socket *sock) {
+  return sock->fd;
+}
+
+/**
+ * Copy a filedescriptor
+ * @param dst target filedescriptor
+ * @param from source filedescriptor
+ * @return
+ */
+static INLINE int
+os_socket_copy(struct os_socket *dst, struct os_socket *from) {
+  return os_socket_init(dst, from->fd);
+}
 
 /**
  * Close a file descriptor
@@ -63,8 +286,13 @@
  * @return -1 if an error happened, 0 otherwise
  */
 static INLINE int
-os_socket_close(int fd) {
-  return close(fd);
+os_socket_close(struct os_socket *sock) {
+  int result = 0;
+  if (sock->fd != -1) {
+    result = close(sock->fd);
+    sock->fd = -1;
+  }
+  return result;
 }
 
 /**
@@ -74,24 +302,146 @@ os_socket_close(int fd) {
  * @return -1 if an error happened, 0 otherwise
  */
 static INLINE int
-os_socket_listen(int fd, int n) {
-  return listen(fd, n);
+os_socket_listen(struct os_socket *sock, int n) {
+  return listen(sock->fd, n);
 }
 
 /**
- * polls a number of sockets for network events. If no even happens or
- * already has happened, function will return after timeout time.
- * see 'man select' for more details
- * @param num
- * @param r
- * @param w
- * @param e
- * @param timeout
- * @return
+ * Initialize a socket event handler
+ * @param sel empty socket event handler
+ * @return -1 if an error happened, 0 otherwise
  */
 static INLINE int
-os_socket_select(int num, fd_set *r,fd_set *w,fd_set *e, struct timeval *timeout) {
-  return select(num, r, w, e, timeout);
+os_socket_event_add(struct os_socket_select *sel) {
+  sel->_epoll_fd = epoll_create1(EPOLL_CLOEXEC);
+  return sel->_epoll_fd < 0 ? -1 : 0;
+}
+
+/**
+ * Get an event from a socket event handler
+ * @param sel socket event handler
+ * @param idx index of event
+ * @return socket responsible for event
+ */
+static INLINE struct os_socket *
+os_socket_event_get(struct os_socket_select *sel, int idx) {
+  return sel->_events[idx].data.ptr;
+}
+
+/**
+ * Add a socket to a socket event handler
+ * @param sel socket event handler
+ * @param sock socket
+ * @return -1 if an error happened, 0 otherwise
+ */
+static INLINE int
+os_socket_event_socket_add(struct os_socket_select *sel, struct os_socket *sock) {
+  struct epoll_event event = {0};
+
+  event.data.ptr = sock;
+  return epoll_ctl(sel->_epoll_fd, EPOLL_CTL_ADD, sock->fd, &event);
+}
+
+/**
+ * Set the read status of a socket in a socket event handler
+ * @param sel socket event handler
+ * @param sock socket representation
+ * @param want_read true if socket should trigger read events,
+ *   false otherwise
+ * @return -1 if an error happened, 0 otherwise
+ */
+static INLINE int
+os_socket_event_socket_read(struct os_socket_select *sel,
+    struct os_socket *sock, bool want_read) {
+  if (want_read) {
+    sock->wanted_events |= EPOLLIN;
+  }
+  else {
+    sock->wanted_events &= ~EPOLLIN;
+  }
+  return os_socket_linux_event_socket_modify(sel, sock);
+}
+
+/**
+ * Check if a socket triggered a read event
+ * @param sock socket representation
+ * @return true if socket triggered a read event, false otherwise
+ */
+static INLINE int
+os_socket_event_is_read(struct os_socket *sock) {
+  return (sock->received_events & EPOLLIN) != 0;
+}
+
+/**
+ * Set the write status of a socket in a socket event handler
+ * @param sel socket event handler
+ * @param sock socket representation
+ * @param want_write true if socket should trigger write events,
+ *   false otherwise
+ * @return -1 if an error happened, 0 otherwise
+ */
+static INLINE int
+os_socket_event_socket_write(struct os_socket_select *sel,
+    struct os_socket *sock, bool want_write) {
+  if (want_write) {
+    sock->wanted_events |= EPOLLOUT;
+  }
+  else {
+    sock->wanted_events &= ~EPOLLOUT;
+  }
+  return os_socket_linux_event_socket_modify(sel, sock);
+}
+
+/**
+ * Check if a socket triggered a write event
+ * @param sock socket representation
+ * @return true if socket triggered a write event, false otherwise
+ */
+static INLINE int
+os_socket_event_is_write(struct os_socket *sock) {
+  return (sock->received_events & EPOLLOUT) != 0;
+}
+
+/**
+ * Remove a socket fromo a socket event handler
+ * @param sel socket event handler
+ * @param sock socket representation
+ * @return -1 if an error happened, 0 otherwise
+ */
+static INLINE int
+os_socket_event_socket_remove(struct os_socket_select *sel, struct os_socket *sock) {
+  return epoll_ctl(sel->_epoll_fd, EPOLL_CTL_DEL, sock->fd, NULL);
+}
+
+/**
+ * Set the deadline for the coming socket event wait operations
+ * @param sel socket event handler
+ * @param deadline absolute timestamp when the wait call should return
+ * @return -1 if an error happened, 0 otherwise
+ */
+static INLINE int
+os_socket_event_set_deadline(struct os_socket_select *sel, uint64_t deadline) {
+  sel->deadline = deadline;
+  return 0;
+}
+
+/**
+ * @param sel socket event handler
+ * @return current deadline for wait call
+ */
+static INLINE uint64_t
+os_socket_event_get_deadline(struct os_socket_select *sel) {
+  return sel->deadline;
+}
+
+/**
+ * Cleans up a socket event handler
+ * @param sel socket event handler
+ * @return -1 if an error happened, 0 otherwise
+ */
+static INLINE int
+os_socket_event_remove(struct os_socket_select *sel) {
+  return close(sel->_epoll_fd);
 }
 
 /**
@@ -101,8 +451,8 @@ os_socket_select(int num, fd_set *r,fd_set *w,fd_set *e, struct timeval *timeout
  * @return -1 if an error happened, 0 otherwise
  */
 static INLINE int
-os_socket_connect(int sockfd, const union netaddr_socket *remote) {
-  return connect(sockfd, &remote->std, sizeof(*remote));
+os_socket_connect(struct os_socket *sock, const union netaddr_socket *remote) {
+  return connect(sock->fd, &remote->std, sizeof(*remote));
 }
 
 /**
@@ -112,9 +462,15 @@ os_socket_connect(int sockfd, const union netaddr_socket *remote) {
  * @return result of accept() call
  */
 static INLINE int
-os_socket_accept(int sockfd, union netaddr_socket *incoming) {
+os_socket_accept(struct os_socket *client,
+    struct os_socket *server, union netaddr_socket *incoming) {
   socklen_t len = sizeof(*incoming);
-  return accept(sockfd, &incoming->std, &len);
+  int fd;
+
+  if ((fd = accept(server->fd, &incoming->std, &len)) < 0) {
+    return -1;
+  }
+  return os_socket_init(client, fd);
 }
 
 /**
@@ -124,9 +480,9 @@ os_socket_accept(int sockfd, union netaddr_socket *incoming) {
  * @return result of getsockopt() call
  */
 static INLINE int
-os_socket_get_socket_error(int fd, int *value) {
+os_socket_get_socket_error(struct os_socket *sock, int *value) {
   socklen_t len = sizeof(*value);
-  return getsockopt(fd, SOL_SOCKET, SO_ERROR, value, &len);
+  return getsockopt(sock->fd, SOL_SOCKET, SO_ERROR, value, &len);
 }
 
 /**
@@ -139,8 +495,8 @@ os_socket_get_socket_error(int fd, int *value) {
  * @return same as sendto()
  */
 static INLINE ssize_t
-os_socket_sendto(int fd, const void *buf, size_t length, const union netaddr_socket *dst, bool dont_route) {
-  return sendto(fd, buf, length, dont_route ? MSG_DONTROUTE : 0, &dst->std, sizeof(*dst));
+os_socket_sendto(struct os_socket *sock, const void *buf, size_t length, const union netaddr_socket *dst, bool dont_route) {
+  return sendto(sock->fd, buf, length, dont_route ? MSG_DONTROUTE : 0, &dst->std, sizeof(*dst));
 }
 
 /**
@@ -154,10 +510,10 @@ os_socket_sendto(int fd, const void *buf, size_t length, const union netaddr_soc
  * @return same as recvfrom()
  */
 static INLINE ssize_t
-os_socket_recvfrom(int fd, void *buf, size_t length, union netaddr_socket *source,
+os_socket_recvfrom(struct os_socket *sock, void *buf, size_t length, union netaddr_socket *source,
     const struct os_interface_data *interf __attribute__((unused))) {
   socklen_t len = sizeof(*source);
-  return recvfrom(fd, buf, length, 0, &source->std, &len);
+  return recvfrom(sock->fd, buf, length, 0, &source->std, &len);
 }
 
 /**
@@ -167,8 +523,8 @@ os_socket_recvfrom(int fd, void *buf, size_t length, union netaddr_socket *sourc
  * @return -1 if an error happened, 0 otherwise
  */
 static INLINE int
-os_socket_bindto_interface(int sock, struct os_interface_data *data) {
-  return setsockopt(sock, SOL_SOCKET, SO_BINDTODEVICE, data->name, strlen(data->name) + 1);
+os_socket_bindto_interface(struct os_socket *sock, struct os_interface_data *data) {
+  return setsockopt(sock->fd, SOL_SOCKET, SO_BINDTODEVICE, data->name, strlen(data->name) + 1);
 }
 
 /**
@@ -190,9 +546,9 @@ os_socket_get_loopback_name(void) {
  *   were sent to outfd
  */
 static INLINE ssize_t
-os_socket_sendfile(int outfd, int infd, size_t offset, size_t count) {
+os_socket_sendfile(struct os_socket *out, struct os_socket *in, size_t offset, size_t count) {
   off_t int_offset = offset;
-  return sendfile(outfd, infd, &int_offset, count);
+  return sendfile(out->fd, in->fd, &int_offset, count);
 }
 
 #endif /* OS_SOCKET_LINUX_H_ */

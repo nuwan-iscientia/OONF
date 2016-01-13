@@ -49,7 +49,8 @@
 #include <netinet/ip.h>
 
 #include "common/common_types.h"
-#include "../os_socket.h"
+#include "subsystems/os_socket.h"
+#include "subsystems/os_generic/os_socket_generic_set_dscp.h"
 
 /**
  * Sets the DSCP value for outgoing packets on a socket
@@ -59,14 +60,14 @@
  * @return -1 if an error happened, 0 otherwise
  */
 int
-os_socket_set_dscp(int sock, int dscp, bool ipv6) {
+os_socket_generic_set_dscp(struct os_socket *sock, int dscp, bool ipv6) {
   if (ipv6) {
-    if (setsockopt(sock, IPPROTO_IPV6, IPV6_TCLASS, (char *) &dscp, sizeof(dscp)) < 0 ) {
+    if (setsockopt(sock->fd, IPPROTO_IPV6, IPV6_TCLASS, (char *) &dscp, sizeof(dscp)) < 0 ) {
       return -1;
     }
   }
   else {
-    if (setsockopt(sock, IPPROTO_IP, IP_TOS, (char *) &dscp, sizeof(dscp)) < 0 ) {
+    if (setsockopt(sock->fd, IPPROTO_IP, IP_TOS, (char *) &dscp, sizeof(dscp)) < 0 ) {
       return -1;
     }
   }

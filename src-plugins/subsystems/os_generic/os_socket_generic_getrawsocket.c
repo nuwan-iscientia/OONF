@@ -50,7 +50,9 @@
 #include "common/netaddr.h"
 #include "core/oonf_logging.h"
 
-#include "../os_socket.h"
+#include "subsystems/os_interface_data.h"
+#include "subsystems/os_socket.h"
+#include "subsystems/os_generic/os_socket_generic_getrawsocket.h"
 
 /**
  * Creates a new raw socket and configures it
@@ -63,23 +65,23 @@
  * @return socket filedescriptor, -1 if an error happened
  */
 int
-os_socket_getrawsocket(const union netaddr_socket *bind_to,
+os_socket_generic_getrawsocket(struct os_socket *sock,
+    const union netaddr_socket *bind_to,
     int protocol, size_t recvbuf, const struct os_interface_data *interf,
     enum oonf_log_source log_src __attribute__((unused))) {
 
   static const int zero = 0;
-  int sock;
   int family;
 
   family = bind_to->std.sa_family;
-  sock = socket(family, SOCK_RAW, protocol);
-  if (sock < 0) {
+  sock->fd = socket(family, SOCK_RAW, protocol);
+  if (sock->fd < 0) {
     OONF_WARN(log_src, "Cannot open socket: %s (%d)", strerror(errno), errno);
     return -1;
   }
 
   if (family == AF_INET) {
-    if (setsockopt (sock, IPPROTO_IP, IP_HDRINCL, &zero, sizeof(zero)) < 0) {
+    if (setsockopt (sock->fd, IPPROTO_IP, IP_HDRINCL, &zero, sizeof(zero)) < 0) {
       OONF_WARN(log_src, "Cannot disable IP_HDRINCL for socket: %s (%d)", strerror(errno), errno);
       os_socket_close(sock);
       return -1;
@@ -90,5 +92,5 @@ os_socket_getrawsocket(const union netaddr_socket *bind_to,
     os_socket_close(sock);
     return -1;
   }
-  return sock;
+  return 0;
 }

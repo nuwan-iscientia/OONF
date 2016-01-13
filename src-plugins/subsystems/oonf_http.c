@@ -419,7 +419,7 @@ _cb_receive_data(struct oonf_stream_session *session) {
     }
 
     if (result == HTTP_START_FILE_TRANSFER) {
-      session->copy_fd = header.transfer_fd;
+      os_socket_init(&session->copy_fd, header.transfer_fd);
       session->copy_total_size = header.transfer_length;
       session->copy_bytes_sent = 0;
 
@@ -444,9 +444,7 @@ _cb_receive_data(struct oonf_stream_session *session) {
  */
 static void
 _cb_cleanup_session(struct oonf_stream_session *session) {
-  if (session->copy_fd != -1) {
-    close(session->copy_fd);
-  }
+  os_socket_close(&session->copy_fd);
 }
 
 /**

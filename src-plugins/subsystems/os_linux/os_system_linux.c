@@ -84,8 +84,7 @@ static int _init(void);
 static void _cleanup(void);
 
 static void _cb_handle_netlink_timeout(void *);
-static void _netlink_handler(int fd, void *data,
-    bool event_read, bool event_write);
+static void _netlink_handler(struct oonf_socket_entry *entry);
 static void _enqueue_netlink_buffer(struct os_system_netlink *nl);
 static void _handle_nl_err(struct os_system_netlink *, struct nlmsghdr *);
 static void _flush_netlink_buffer(struct os_system_netlink *nl);
@@ -279,14 +278,19 @@ int
 os_system_netlink_add(struct os_system_netlink *nl, int protocol) {
   struct sockaddr_nl addr;
   int recvbuf;
+  int fd;
 
-  nl->socket.fd = socket(PF_NETLINK, SOCK_RAW, protocol);
-  if (nl->socket.fd < 0) {
+  fd = socket(PF_NETLINK, SOCK_RAW, protocol);
+  if (fd < 0) {
     OONF_WARN(nl->used_by->logging, "Cannot open netlink socket '%s': %s (%d)",
         nl->name, strerror(errno), errno);
     goto os_add_netlink_fail;
   }
 
+  if (os_socket_init(&nl->socket.fd, fd)) {
+    OONF_WARN(nl->used_by->logging, "Could not initialize socket representation");
+    goto os_add_netlink_fail;
+  }
   if (abuf_init(&nl->out)) {
     OONF_WARN(nl->used_by->logging, "Not enough memory for"
         " netlink '%s'output buffer", nl->name);
@@ -310,23 +314,22 @@ os_system_netlink_add(struct os_system_netlink *nl, int protocol) {
 
 #if defined(SO_RCVBUF)
   recvbuf = 65536*16;
-  if (setsockopt(nl->socket.fd, SOL_SOCKET, SO_RCVBUF,
+  if (setsockopt(nl->socket.fd.fd, SOL_SOCKET, SO_RCVBUF,
       &recvbuf, sizeof(recvbuf))) {
     OONF_WARN(nl->used_by->logging, "Cannot setup receive buffer size for"
         " netlink socket '%s': %s (%d)\n", nl->name, strerror(errno), errno);
   }
 #endif
 
-  if (bind(nl->socket.fd, (struct sockaddr *)&addr, sizeof(addr))<0) {
+  if (bind(nl->socket.fd.fd, (struct sockaddr *)&addr, sizeof(addr))<0) {
     OONF_WARN(nl->used_by->logging, "Could not bind netlink socket %s: %s (%d)",
         nl->name, strerror(errno), errno);
     goto os_add_netlink_fail;
   }
 
   nl->socket.process = _netlink_handler;
-  nl->socket.event_read = true;
-  nl->socket.data = nl;
   oonf_socket_add(&nl->socket);
+  oonf_socket_set_read(&nl->socket, true);
 
   nl->timeout.cb_context = nl;
   nl->timeout.class = &_netlink_timer;
@@ -335,8 +338,8 @@ os_system_netlink_add(struct os_system_netlink *nl, int protocol) {
   return 0;
 
 os_add_netlink_fail:
-  if (nl->socket.fd != -1) {
-    close(nl->socket.fd);
+  if (fd != -1) {
+    close(fd);
   }
   free (nl->in);
   abuf_free(&nl->out);
@@ -351,7 +354,7 @@ void
 os_system_netlink_remove(struct os_system_netlink *nl) {
   oonf_socket_remove(&nl->socket);
 
-  close(nl->socket.fd);
+  os_socket_close(&nl->socket.fd);
   free (nl->in);
   abuf_free(&nl->out);
 }
@@ -422,7 +425,8 @@ os_system_netlink_add_mc(struct os_system_netlink *nl,
   size_t i;
 
   for (i=0; i<groupcount; i++) {
-    if (setsockopt(nl->socket.fd, SOL_NETLINK, NETLINK_ADD_MEMBERSHIP,
+    if (setsockopt(os_socket_get_fd(&nl->socket.fd),
+        SOL_NETLINK, NETLINK_ADD_MEMBERSHIP,
              &groups[i], sizeof(groups[i]))) {
       OONF_WARN(nl->used_by->logging,
           "Could not join netlink '%s' mc group: %x", nl->name, groups[i]);
@@ -445,7 +449,8 @@ os_system_netlink_drop_mc(struct os_system_netlink *nl,
   size_t i;
 
   for (i=0; i<groupcount; i++) {
-    if (setsockopt(nl->socket.fd, SOL_NETLINK, NETLINK_DROP_MEMBERSHIP,
+    if (setsockopt(os_socket_get_fd(&nl->socket.fd),
+        SOL_NETLINK, NETLINK_DROP_MEMBERSHIP,
              &groups[i], sizeof(groups[i]))) {
       OONF_WARN(nl->used_by->logging,
           "Could not drop netlink '%s' mc group: %x", nl->name, groups[i]);
@@ -537,7 +542,8 @@ _flush_netlink_buffer(struct os_system_netlink *nl) {
   _netlink_send_iov[0].iov_base = (char *)(buffer) + sizeof(*buffer);
   _netlink_send_iov[0].iov_len = buffer->total;
 
-  if ((ret = sendmsg(nl->socket.fd, &_netlink_send_msg, MSG_DONTWAIT)) <= 0) {
+  if ((ret = sendmsg(os_socket_get_fd(&nl->socket.fd),
+        &_netlink_send_msg, MSG_DONTWAIT)) <= 0) {
     err = errno;
     if (err != EAGAIN && err != EWOULDBLOCK) {
       OONF_WARN(nl->used_by->logging,
@@ -597,7 +603,7 @@ _netlink_job_finished(struct os_system_netlink *nl) {
  * @param event_write
  */
 static void
-_netlink_handler(int fd, void *data, bool event_read, bool event_write) {
+_netlink_handler(struct oonf_socket_entry *entry) {
   struct os_system_netlink *nl;
   struct nlmsghdr *nh;
   ssize_t ret;
@@ -606,12 +612,12 @@ _netlink_handler(int fd, void *data, bool event_read, bool event_write) {
   uint32_t current_seq = 0;
   bool trigger_is_done;
 
-  nl = data;
-  if (event_write) {
+  nl = container_of(entry, typeof(*nl), socket);
+  if (oonf_socket_is_write(entry)) {
     _flush_netlink_buffer(nl);
   }
 
-  if (!event_read) {
+  if (!oonf_socket_is_read(entry)) {
     return;
   }
 
@@ -626,7 +632,7 @@ netlink_rcv_retry:
   OONF_DEBUG(nl->used_by->logging, "Read netlink '%s' message with"
       " %"PRINTF_SIZE_T_SPECIFIER" bytes buffer",
       nl->name, nl->in_len);
-  if ((ret = recvmsg(fd, &_netlink_rcv_msg, MSG_DONTWAIT | flags)) < 0) {
+  if ((ret = recvmsg(entry->fd.fd, &_netlink_rcv_msg, MSG_DONTWAIT | flags)) < 0) {
     if (errno != EAGAIN && errno != EWOULDBLOCK) {
       OONF_WARN(nl->used_by->logging,"netlink '%s' recvmsg error: %s (%d)\n",
           nl->name, strerror(errno), errno);

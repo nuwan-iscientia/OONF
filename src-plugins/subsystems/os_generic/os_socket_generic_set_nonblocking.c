@@ -45,7 +45,10 @@
 
 #include <fcntl.h>
 
-#include "../os_socket.h"
+#include "common/common_types.h"
+#include "subsystems/os_socket.h"
+
+#include "subsystems/os_generic/os_socket_generic_set_nonblocking.h"
 
 /**
  * Set a socket to non-blocking mode
@@ -53,15 +56,15 @@
  * @return -1 if an error happened, 0 otherwise
  */
 int
-os_socket_set_nonblocking(int sock) {
+os_socket_generic_set_nonblocking(struct os_socket *sock) {
   int state;
 
   /* put socket into non-blocking mode */
-  if ((state = fcntl(sock, F_GETFL)) == -1) {
+  if ((state = fcntl(sock->fd, F_GETFL)) == -1) {
     return -1;
   }
 
-  if (fcntl(sock, F_SETFL, state | O_NONBLOCK) < 0) {
+  if (fcntl(sock->fd, F_SETFL, state | O_NONBLOCK) < 0) {
     return -1;
   }
   return 0;

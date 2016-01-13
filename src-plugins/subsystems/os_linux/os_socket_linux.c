@@ -48,12 +48,12 @@
 #include <sys/ioctl.h>
 #include <errno.h>
 
-#include "../os_socket.h"
 #include "common/common_types.h"
 #include "core/oonf_logging.h"
 #include "core/oonf_subsystem.h"
-#include "subsystems/oonf_timer.h"
+#include "subsystems/oonf_clock.h"
 
+#include "subsystems/os_socket.h"
 
 /* Defintions */
 #define LOG_OS_SOCKET _oonf_os_socket_subsystem.logging
@@ -64,6 +64,7 @@ static void _cleanup(void);
 
 /* subsystem definition */
 static const char *_dependencies[] = {
+  OONF_CLOCK_SUBSYSTEM,
 };
 
 static struct oonf_subsystem _oonf_os_socket_subsystem = {
@@ -89,4 +90,73 @@ _init(void) {
  */
 static void
 _cleanup(void) {
+}
+
+/**
+ *
+ * @param sel
+ * @param event
+ * @param maxdelay
+ * @return
+ */
+int
+os_socket_linux_event_wait(struct os_socket_select *sel) {
+  struct os_socket *sock;
+  uint64_t maxdelay;
+  int i;
+
+  maxdelay = oonf_clock_get_relative(sel->deadline);
+  if (maxdelay > INT32_MAX) {
+    maxdelay = INT32_MAX;
+  }
+
+  sel->_event_count = epoll_wait(sel->_epoll_fd, sel->_events,
+      ARRAYSIZE(sel->_events), maxdelay);
+
+  OONF_DEBUG(LOG_OS_SOCKET, "epoll_wait(maxdelay = %"PRIu64"): %d",
+      maxdelay, sel->_event_count);
+
+  for (i=0; i<sel->_event_count; i++) {
+    sock = os_socket_event_get(sel, i);
+    sock->received_events = sel->_events[i].events;
+
+    OONF_DEBUG(LOG_OS_SOCKET, "event %d: %x", i, sock->received_events);
+  }
+  return sel->_event_count;
+}
+
+int
+os_socket_linux_event_socket_modify(struct os_socket_select *sel,
+    struct os_socket *sock) {
+  struct epoll_event event = {0};
+
+  event.events = sock->wanted_events;
+  event.data.ptr = sock;
+
+  OONF_DEBUG(LOG_OS_SOCKET, "Modify socket %d to events 0x%x",
+      sock->fd, sock->wanted_events);
+  return epoll_ctl(sel->_epoll_fd, EPOLL_CTL_MOD, sock->fd, &event);
+}
+/**
+ * Raw IP sockets sometimes deliver the whole IP header instead of just
+ * the content. This function skips the IP header and modifies the length
+ * of the buffer.
+ * @param ptr pointer to the beginning of the buffer
+ * @param len pointer to length of buffer
+ * @param af_type address family of data in buffer
+ * @return pointer to transport layer data
+ */
+uint8_t *
+os_socket_linux_skip_rawsocket_prefix(uint8_t *ptr, ssize_t *len, int af_type) {
+  int header_size;
+
+  if (af_type != AF_INET) {
+    return ptr;
+  }
+
+  /* skip IPv4 header */
+  header_size = (ptr[0] & 0x0f) << 2;
+
+  *len -= header_size;
+  return ptr + header_size;
 }

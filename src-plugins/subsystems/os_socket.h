@@ -60,21 +60,61 @@
 /*! subsystem identifier */
 #define OONF_OS_SOCKET_SUBSYSTEM "os_socket"
 
+/* pre-definition of structs */
+struct os_socket;
+struct os_socket_select;
+
 /* pre-declare inlines */
-static INLINE int os_socket_bindto_interface(int, struct os_interface_data *data);
-static INLINE int os_socket_close(int fd);
-static INLINE int os_socket_listen(int fd, int n);
-static INLINE int os_socket_select(
-    int num, fd_set *r,fd_set *w,fd_set *e, struct timeval *timeout);
-static INLINE int os_socket_connect(int sockfd, const union netaddr_socket *remote);
-static INLINE int os_socket_accept(int sockfd, union netaddr_socket *incoming);
-static INLINE int os_socket_get_socket_error(int sockfd, int *value);
-static INLINE ssize_t os_socket_sendto(int fd, const void *buf, size_t length,
+static INLINE int os_socket_init(struct os_socket *, int fd);
+static INLINE int os_socket_copy(struct os_socket *dst, struct os_socket *from);
+static INLINE int os_socket_get_fd(struct os_socket *);
+static INLINE int os_socket_invalidate(struct os_socket *);
+static INLINE bool os_socket_is_initialized(struct os_socket *);
+
+static INLINE int os_socket_bindto_interface(struct os_socket *, struct os_interface_data *data);
+static INLINE int os_socket_close(struct os_socket *);
+static INLINE int os_socket_listen(struct os_socket *, int n);
+
+static INLINE int os_socket_event_add(struct os_socket_select *);
+static INLINE int os_socket_event_socket_add(struct os_socket_select *, struct os_socket *);
+static INLINE int os_socket_event_socket_read(struct os_socket_select *,
+    struct os_socket *, bool want_read);
+static INLINE int os_socket_event_is_read(struct os_socket *);
+static INLINE int os_socket_event_socket_write(struct os_socket_select *,
+    struct os_socket *, bool want_write);
+static INLINE int os_socket_event_is_write(struct os_socket *);
+static INLINE int os_socket_event_socket_remove(struct os_socket_select *, struct os_socket *);
+static INLINE int os_socket_event_set_deadline(struct os_socket_select *, uint64_t deadline);
+static INLINE uint64_t os_socket_event_get_deadline(struct os_socket_select *);
+static INLINE int os_socket_event_wait(struct os_socket_select *);
+static INLINE struct os_socket *os_socket_event_get(struct os_socket_select *, int idx);
+static INLINE int os_socket_event_remove(struct os_socket_select *);
+
+static INLINE int os_socket_connect(struct os_socket *, const union netaddr_socket *remote);
+static INLINE int os_socket_accept(struct os_socket *client,
+    struct os_socket *server, union netaddr_socket *incoming);
+static INLINE int os_socket_get_socket_error(struct os_socket *, int *value);
+static INLINE ssize_t os_socket_sendto(struct os_socket *, const void *buf, size_t length,
     const union netaddr_socket *dst, bool dont_route);
-static INLINE ssize_t os_socket_recvfrom(int fd, void *buf, size_t length,
+static INLINE ssize_t os_socket_recvfrom(struct os_socket *, void *buf, size_t length,
     union netaddr_socket *source, const struct os_interface_data *interf);
 static INLINE const char *os_socket_get_loopback_name(void);
-static INLINE ssize_t os_socket_sendfile(int outfd, int infd, size_t offset, size_t count);
+static INLINE ssize_t os_socket_sendfile(struct os_socket *, struct os_socket *,
+    size_t offset, size_t count);
+
+static INLINE int os_socket_getsocket(struct os_socket *, const union netaddr_socket *bindto, bool tcp,
+    size_t recvbuf, const struct os_interface_data *, enum oonf_log_source log_src);
+static INLINE int os_socket_getrawsocket(struct os_socket *, const union netaddr_socket *bindto, int protocol,
+    size_t recvbuf, const struct os_interface_data *, enum oonf_log_source log_src);
+static INLINE int os_socket_configsocket(struct os_socket *, const union netaddr_socket *bindto,
+    size_t recvbuf, bool rawip, const struct os_interface_data *, enum oonf_log_source log_src);
+static INLINE int os_socket_set_nonblocking(struct os_socket *);
+static INLINE int os_socket_join_mcast_recv(struct os_socket *, const struct netaddr *multicast,
+    const struct os_interface_data *oif, enum oonf_log_source log_src);
+static INLINE int os_socket_join_mcast_send(struct os_socket *, const struct netaddr *multicast,
+    const struct os_interface_data *oif, bool loop, enum oonf_log_source log_src);
+static INLINE int os_socket_set_dscp(struct os_socket *, int dscp, bool ipv6);
+static INLINE uint8_t *os_socket_skip_rawsocket_prefix(uint8_t *ptr, ssize_t *len, int af_type);
 
 /* include os-specific headers */
 #if defined(__linux__)
@@ -86,20 +126,5 @@ static INLINE ssize_t os_socket_sendfile(int outfd, int infd, size_t offset, siz
 #else
 #error "Unknown operation system"
 #endif
-
-/* prototypes for all os_net functions */
-EXPORT int os_socket_getsocket(const union netaddr_socket *bindto, bool tcp,
-    size_t recvbuf, const struct os_interface_data *, enum oonf_log_source log_src);
-EXPORT int os_socket_getrawsocket(const union netaddr_socket *bindto, int protocol,
-    size_t recvbuf, const struct os_interface_data *, enum oonf_log_source log_src);
-EXPORT int os_socket_configsocket(int sock, const union netaddr_socket *bindto,
-    size_t recvbuf, bool rawip, const struct os_interface_data *, enum oonf_log_source log_src);
-EXPORT int os_socket_set_nonblocking(int sock);
-EXPORT int os_socket_join_mcast_recv(int sock, const struct netaddr *multicast,
-    const struct os_interface_data *oif, enum oonf_log_source log_src);
-EXPORT int os_socket_join_mcast_send(int sock, const struct netaddr *multicast,
-    const struct os_interface_data *oif, bool loop, enum oonf_log_source log_src);
-EXPORT int os_socket_set_dscp(int sock, int dscp, bool ipv6);
-EXPORT uint8_t *os_socket_skip_rawsocket_prefix(uint8_t *ptr, ssize_t *len, int af_type);
 
 #endif /* OS_SOCKET_H_ */

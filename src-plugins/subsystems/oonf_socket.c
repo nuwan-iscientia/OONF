@@ -67,6 +67,8 @@
 static int _init(void);
 static void _cleanup(void);
 static void _initiate_shutdown(void);
+
+static bool _shall_end_scheduler(void);
 static int _handle_scheduling(void);
 
 /* time until the scheduler should run */
@@ -74,6 +76,9 @@ static uint64_t _scheduler_time_limit;
 
 /* List of all active sockets in scheduler */
 static struct list_entity _socket_head;
+
+/* socket event scheduler */
+struct os_socket_select _socket_events;
 
 /* subsystem definition */
 static const char *_dependencies[] = {
@@ -102,6 +107,9 @@ _init(void) {
   }
 
   list_init_head(&_socket_head);
+  os_socket_event_add(&_socket_events);
+
+  _scheduler_time_limit = ~0ull;
   return 0;
 }
 
@@ -116,8 +124,10 @@ _cleanup(void)
 
   list_for_each_element_safe(&_socket_head, entry, _node, iterator) {
     list_remove(&entry->_node);
-    os_socket_close(entry->fd);
+    os_socket_close(&entry->fd);
   }
+
+  os_socket_event_remove(&_socket_events);
 }
 
 static void
@@ -136,12 +146,11 @@ _initiate_shutdown(void) {
 void
 oonf_socket_add(struct oonf_socket_entry *entry)
 {
-  assert (entry->fd >= 0);
-  assert (entry->process);
-
-  OONF_DEBUG(LOG_SOCKET, "Adding socket entry %d to scheduler\n", entry->fd);
+  OONF_DEBUG(LOG_SOCKET, "Adding socket entry %d to scheduler\n",
+      os_socket_get_fd(&entry->fd));
 
   list_add_before(&_socket_head, &entry->_node);
+  os_socket_event_socket_add(&_socket_events, &entry->fd);
 }
 
 /**
@@ -151,9 +160,28 @@ oonf_socket_add(struct oonf_socket_entry *entry)
 void
 oonf_socket_remove(struct oonf_socket_entry *entry)
 {
-  OONF_DEBUG(LOG_SOCKET, "Removing socket entry %d\n", entry->fd);
+  if (list_is_node_added(&entry->_node)) {
+    OONF_DEBUG(LOG_SOCKET, "Removing socket entry %d\n",
+        os_socket_get_fd(&entry->fd));
 
-  list_remove(&entry->_node);
+    list_remove(&entry->_node);
+    os_socket_event_socket_remove(&_socket_events, &entry->fd);
+  }
+}
+
+void
+oonf_socket_set_read(struct oonf_socket_entry *entry, bool event_read) {
+  os_socket_event_socket_read(&_socket_events, &entry->fd, event_read);
+}
+
+void
+oonf_socket_set_write(struct oonf_socket_entry *entry, bool event_write) {
+  os_socket_event_socket_write(&_socket_events, &entry->fd, event_write);
+}
+
+static bool
+_shall_end_scheduler(void) {
+  return _scheduler_time_limit == ~0ull && oonf_main_shall_stop_scheduler();
 }
 
 /**
@@ -163,91 +191,43 @@ oonf_socket_remove(struct oonf_socket_entry *entry)
 int
 _handle_scheduling(void)
 {
-  struct oonf_socket_entry *entry, *iterator;
-  uint64_t next_event, stop_time;
-  struct timeval tv, *tv_ptr;
-  int n = 0;
-  bool fd_read;
-  bool fd_write;
+  struct oonf_socket_entry *sock_entry;
+  struct os_socket *sock;
+  uint64_t next_event;
+  uint64_t start_time, end_time;
+  int i, n;
 
   while (true) {
-    fd_set ibits, obits;
-    int hfd = 0;
-
     /* Update time since this is much used by the parsing functions */
     if (oonf_clock_update()) {
       return -1;
     }
 
-    if (_scheduler_time_limit > 0) {
-      stop_time = _scheduler_time_limit;
-    }
-    else {
-      stop_time = ~0ull;
-    }
-
-    if (oonf_clock_getNow() >= stop_time) {
+    if (oonf_clock_getNow() >= _scheduler_time_limit) {
       return -1;
     }
 
     oonf_timer_walk();
 
-    if (!_scheduler_time_limit && oonf_main_shall_stop_scheduler()) {
+    if (_shall_end_scheduler()) {
       return 0;
     }
 
-    /* no event left for now, prepare for select () */
-    fd_read = false;
-    fd_write = false;
-
-    FD_ZERO(&ibits);
-    FD_ZERO(&obits);
-
-    /* Adding file-descriptors to FD set */
-    list_for_each_element_safe(&_socket_head, entry, _node, iterator) {
-      if (entry->process == NULL) {
-        continue;
-      }
-
-      if (entry->event_read) {
-        fd_read = true;
-        FD_SET((unsigned int)entry->fd, &ibits);        /* And we cast here since we get a warning on Win32 */
-      }
-      if (entry->event_write) {
-        fd_write = true;
-        FD_SET((unsigned int)entry->fd, &obits);        /* And we cast here since we get a warning on Win32 */
-      }
-      if ((entry->event_read || entry->event_write) != 0 && entry->fd >= hfd) {
-        hfd = entry->fd + 1;
-      }
-    }
-
     next_event = oonf_timer_getNextEvent();
-    if (next_event > stop_time) {
-      next_event = stop_time;
+    if (next_event > _scheduler_time_limit) {
+      next_event = _scheduler_time_limit;
     }
 
-    if (next_event == ~0ull) {
-      /* no events waiting */
-      tv_ptr = NULL;
-    }
-    else {
-      /* convert time interval until event triggers */
-      next_event = oonf_clock_get_relative(next_event);
-
-      tv_ptr = &tv;
-      tv.tv_sec = (time_t)(next_event / 1000ull);
-      tv.tv_usec = (int)(next_event % 1000) * 1000;
+    if (os_socket_event_get_deadline(&_socket_events) != next_event) {
+      os_socket_event_set_deadline(&_socket_events, next_event);
     }
 
     do {
-      if (!_scheduler_time_limit && oonf_main_shall_stop_scheduler()) {
+      if (_shall_end_scheduler()) {
         return 0;
       }
-      n = os_socket_select(hfd,
-          fd_read ? &ibits : NULL,
-          fd_write ? &obits : NULL,
-          NULL, tv_ptr);
+
+      n = os_socket_event_wait(&_socket_events);
     } while (n == -1 && errno == EINTR);
 
     if (n == 0) {               /* timeout! */
@@ -262,26 +242,32 @@ _handle_scheduling(void)
     if (oonf_clock_update()) {
       return -1;
     }
-    list_for_each_element_safe(&_socket_head, entry, _node, iterator) {
-      if (entry->process == NULL) {
-        continue;
-      }
 
-      fd_read = FD_ISSET(entry->fd, &ibits) != 0;
-      fd_write = FD_ISSET(entry->fd, &obits) != 0;
-      if (fd_read || fd_write) {
-        uint64_t start_time, end_time;
+    OONF_DEBUG(LOG_SOCKET, "Got %d events", n);
 
-        OONF_DEBUG(LOG_SOCKET, "Socket %d triggered (read=%s, write=%s)",
-            entry->fd, fd_read ? "true" : "false", fd_write ? "true" : "false");
+    for (i=0; i<n; i++) {
+      sock = os_socket_event_get(&_socket_events, i);
+
+      OONF_DEBUG(LOG_SOCKET, "Socket %d triggered (read=%s, write=%s)",
+          os_socket_get_fd(&sock_entry->fd),
+          os_socket_event_is_read(sock) ? "true" : "false",
+          os_socket_event_is_write(sock) ? "true" : "false");
+
+
+      if (os_socket_event_is_read(sock)
+          || os_socket_event_is_write(sock)) {
+        sock_entry = container_of(sock, typeof(*sock_entry), fd);
+        if (sock_entry->process == NULL) {
+          continue;
+        }
 
         os_clock_gettime64(&start_time);
-        entry->process(entry->fd, entry->data, fd_read, fd_write);
+        sock_entry->process(sock_entry);
         os_clock_gettime64(&end_time);
 
         if (end_time - start_time > OONF_TIMER_SLICE) {
           OONF_WARN(LOG_SOCKET, "Socket %d scheduling took %"PRIu64" ms",
-              entry->fd, end_time - start_time);
+              os_socket_get_fd(&sock_entry->fd), end_time - start_time);
         }
       }
     }

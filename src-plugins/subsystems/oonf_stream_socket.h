@@ -109,7 +109,7 @@ struct oonf_stream_session {
    *
    * will only be used in SEND_AND_QUIT state if out buffer is empty
    */
-  int copy_fd;
+  struct os_socket copy_fd;
 
   /*! number of bytes already copied in file upload */
   size_t copy_bytes_sent;

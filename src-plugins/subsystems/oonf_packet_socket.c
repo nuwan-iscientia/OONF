@@ -64,7 +64,7 @@
 static int _init(void);
 static void _cleanup(void);
 
-static void _packet_add(struct oonf_packet_socket *pktsocket, int sock,
+static void _packet_add(struct oonf_packet_socket *pktsocket,
     union netaddr_socket *local, struct os_interface_data *interf);
 static int _apply_managed(struct oonf_packet_managed *managed);
 static int _apply_managed_socketpair(int af_type,
@@ -75,9 +75,9 @@ static int _apply_managed_socketpair(int af_type,
 static int _apply_managed_socket(struct oonf_packet_managed *managed,
     struct oonf_packet_socket *stream, const struct netaddr *bindto,
     int port, uint8_t dscp, int protocol, struct os_interface_data *data);
-static void _cb_packet_event_unicast(int fd, void *data, bool r, bool w);
-static void _cb_packet_event_multicast(int fd, void *data, bool r, bool w);
-static void _cb_packet_event(int fd, void *data, bool r, bool w, bool mc);
+static void _cb_packet_event_unicast(struct oonf_socket_entry *);
+static void _cb_packet_event_multicast(struct oonf_socket_entry *);
+static void _cb_packet_event(struct oonf_socket_entry *, bool mc);
 static int _cb_interface_listener(struct oonf_interface_listener *l);
 
 /* subsystem definition */
@@ -135,15 +135,13 @@ _cleanup(void) {
 int
 oonf_packet_add(struct oonf_packet_socket *pktsocket,
     union netaddr_socket *local, struct os_interface_data *interf) {
-  int s = -1;
-
   /* Init socket */
-  s = os_socket_getsocket(local, false, 0, interf, LOG_PACKET);
-  if (s < 0) {
+  if (os_socket_getsocket(
+      &pktsocket->scheduler_entry.fd, local, false, 0, interf, LOG_PACKET)) {
     return -1;
   }
 
-  _packet_add(pktsocket, s, local, interf);
+  _packet_add(pktsocket, local, interf);
   return 0;
 }
 
@@ -159,31 +157,26 @@ oonf_packet_add(struct oonf_packet_socket *pktsocket,
 int
 oonf_packet_raw_add(struct oonf_packet_socket *pktsocket, int protocol,
     union netaddr_socket *local, struct os_interface_data *interf) {
-  int s = -1;
-
   /* Init socket */
-  s = os_socket_getrawsocket(local, protocol, 0, interf, LOG_PACKET);
-  if (s < 0) {
+  if (os_socket_getrawsocket(
+      &pktsocket->scheduler_entry.fd, local, false, 0, interf, LOG_PACKET)) {
     return -1;
   }
 
-  _packet_add(pktsocket, s, local, interf);
+  _packet_add(pktsocket, local, interf);
   pktsocket->protocol = protocol;
   return 0;
 }
 
 
 static void
-_packet_add(struct oonf_packet_socket *pktsocket, int sock,
+_packet_add(struct oonf_packet_socket *pktsocket,
     union netaddr_socket *local, struct os_interface_data *interf) {
   pktsocket->interface = interf;
-  pktsocket->scheduler_entry.fd = sock;
   pktsocket->scheduler_entry.process = _cb_packet_event_unicast;
-  pktsocket->scheduler_entry.event_read = true;
-  pktsocket->scheduler_entry.event_write = false;
-  pktsocket->scheduler_entry.data = pktsocket;
 
   oonf_socket_add(&pktsocket->scheduler_entry);
+  oonf_socket_set_read(&pktsocket->scheduler_entry, true);
 
   abuf_init(&pktsocket->out);
   list_add_tail(&_packet_sockets, &pktsocket->node);
@@ -207,12 +200,10 @@ oonf_packet_remove(struct oonf_packet_socket *pktsocket,
   // TODO: implement non-force behavior for UDP sockets
   if (list_is_node_added(&pktsocket->node)) {
     oonf_socket_remove(&pktsocket->scheduler_entry);
-    os_socket_close(pktsocket->scheduler_entry.fd);
+    os_socket_close(&pktsocket->scheduler_entry.fd);
     abuf_free(&pktsocket->out);
 
     list_remove(&pktsocket->node);
-
-    pktsocket->scheduler_entry.fd = -1;
   }
 }
 
@@ -233,7 +224,7 @@ oonf_packet_send(struct oonf_packet_socket *pktsocket, union netaddr_socket *rem
 
   if (abuf_getlen(&pktsocket->out) == 0) {
     /* no backlog of outgoing packets, try to send directly */
-    result = os_socket_sendto(pktsocket->scheduler_entry.fd, data, length, remote,
+    result = os_socket_sendto(&pktsocket->scheduler_entry.fd, data, length, remote,
         pktsocket->config.dont_route);
     if (result > 0) {
       /* successful */
@@ -548,7 +539,7 @@ _apply_managed_socketpair(int af_type, struct oonf_packet_managed *managed,
     *changed = true;
 
     if (real_multicast && data != NULL && data->up) {
-      os_socket_join_mcast_send(sock->scheduler_entry.fd,
+      os_socket_join_mcast_send(&sock->scheduler_entry.fd,
           mc_ip, data, managed->_managed_config.loop_multicast, LOG_PACKET);
     }
   }
@@ -571,7 +562,7 @@ _apply_managed_socketpair(int af_type, struct oonf_packet_managed *managed,
       mc_sock->scheduler_entry.process = _cb_packet_event_multicast;
 
       /* join multicast group */
-      os_socket_join_mcast_recv(mc_sock->scheduler_entry.fd,
+      os_socket_join_mcast_recv(&mc_sock->scheduler_entry.fd,
           mc_ip, data, LOG_PACKET);
     }
     else if (sockstate < 0) {
@@ -664,7 +655,7 @@ _apply_managed_socket(struct oonf_packet_managed *managed,
     }
   }
 
-  if (os_socket_set_dscp(packet->scheduler_entry.fd, dscp,
+  if (os_socket_set_dscp(&packet->scheduler_entry.fd, dscp,
       netaddr_get_address_family(bindto) == AF_INET6)) {
     OONF_WARN(LOG_PACKET, "Could not set DSCP value for socket: %s (%d)",
         strerror(errno), errno);
@@ -687,8 +678,8 @@ _apply_managed_socket(struct oonf_packet_managed *managed,
  * @param event_write
  */
 static void
-_cb_packet_event_unicast(int fd, void *data, bool event_read, bool event_write) {
-  _cb_packet_event(fd, data, event_read, event_write, false);
+_cb_packet_event_unicast(struct oonf_socket_entry *entry) {
+  _cb_packet_event(entry, false);
 }
 
 /**
@@ -699,8 +690,8 @@ _cb_packet_event_unicast(int fd, void *data, bool event_read, bool event_write) 
  * @param event_write
  */
 static void
-_cb_packet_event_multicast(int fd, void *data, bool event_read, bool event_write) {
-  _cb_packet_event(fd, data, event_read, event_write, true);
+_cb_packet_event_multicast(struct oonf_socket_entry *entry) {
+  _cb_packet_event(entry, true);
 }
 
 /**
@@ -711,10 +702,10 @@ _cb_packet_event_multicast(int fd, void *data, bool event_read, bool event_write
  * @param event_write true if write-event is incoming
  */
 static void
-_cb_packet_event(int fd, void *data, bool event_read, bool event_write,
+_cb_packet_event(struct oonf_socket_entry *entry,
     bool multicast __attribute__((unused))) {
-  struct oonf_packet_socket *pktsocket = data;
-  union netaddr_socket *skt, sock;
+  struct oonf_packet_socket *pktsocket;
+  union netaddr_socket sock;
   uint16_t length;
   char *pkt;
   ssize_t result;
@@ -722,13 +713,17 @@ _cb_packet_event(int fd, void *data, bool event_read, bool event_write,
 
 #ifdef OONF_LOG_DEBUG_INFO
   const char *interf = "";
+#endif
 
+  pktsocket = container_of(entry, typeof(*pktsocket), scheduler_entry);
+
+#ifdef OONF_LOG_DEBUG_INFO
   if (pktsocket->interface) {
     interf = pktsocket->interface->name;
   }
 #endif
 
-  if (event_read) {
+  if (oonf_socket_is_read(entry)) {
     uint8_t *buf;
 
     /* clear recvfrom memory */
@@ -737,7 +732,8 @@ _cb_packet_event(int fd, void *data, bool event_read, bool event_write,
     /* handle incoming data */
     buf = pktsocket->config.input_buffer;
 
-    result = os_socket_recvfrom(fd, buf, pktsocket->config.input_buffer_length-1, &sock,
+    result = os_socket_recvfrom(&entry->fd,
+        buf, pktsocket->config.input_buffer_length-1, &sock,
         pktsocket->interface);
     if (result > 0 && pktsocket->config.receive_data != NULL) {
       /* handle raw socket */
@@ -764,39 +760,38 @@ _cb_packet_event(int fd, void *data, bool event_read, bool event_write,
     }
   }
 
-  if (event_write && abuf_getlen(&pktsocket->out) > 0) {
+  if (oonf_socket_is_write(entry) && abuf_getlen(&pktsocket->out) > 0) {
     /* handle outgoing data */
+    pkt = abuf_getptr(&pktsocket->out);
 
-    /* pointer to remote socket */
-    skt = data;
+    /* copy remote socket */
+    memcpy(&sock, pkt, sizeof(sock));
+    pkt += sizeof(sock);
 
-    /* data area */
-    pkt = data;
-    pkt += sizeof(*skt);
-
+    /* copy length */
     memcpy(&length, pkt, 2);
     pkt += 2;
 
     /* try to send packet */
-    result = os_socket_sendto(fd, data, length, skt, pktsocket->config.dont_route);
+    result = os_socket_sendto(&entry->fd, pkt, length, &sock, pktsocket->config.dont_route);
     if (result < 0 && (errno == EINTR || errno == EAGAIN || errno == EWOULDBLOCK)) {
       /* try again later */
       OONF_DEBUG(LOG_PACKET, "Sending to %s %s could block, try again later",
-          netaddr_socket_to_string(&netbuf, skt), interf);
+          netaddr_socket_to_string(&netbuf, &sock), interf);
       return;
     }
 
     if (result < 0) {
       /* display error message */
       OONF_WARN(LOG_PACKET, "Cannot send UDP packet to %s: %s (%d)",
-          netaddr_socket_to_string(&netbuf, skt), strerror(errno), errno);
+          netaddr_socket_to_string(&netbuf, &sock), strerror(errno), errno);
     }
     else {
       OONF_DEBUG(LOG_PACKET, "Sent %"PRINTF_SSIZE_T_SPECIFIER" bytes to %s %s",
-          result, netaddr_socket_to_string(&netbuf, skt), interf);
+          result, netaddr_socket_to_string(&netbuf, &sock), interf);
     }
     /* remove data from outgoing buffer (both for success and for final error */
-    abuf_pull(&pktsocket->out, sizeof(*skt) + 2 + length);
+    abuf_pull(&pktsocket->out, sizeof(sock) + 2 + length);
   }
 
   if (abuf_getlen(&pktsocket->out) == 0) {

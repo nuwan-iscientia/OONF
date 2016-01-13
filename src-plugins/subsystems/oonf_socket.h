@@ -50,6 +50,7 @@
 #include "common/list.h"
 #include "common/avl.h"
 #include "common/netaddr_acl.h"
+#include "subsystems/os_socket.h"
 
 /*! subsystem identifier */
 #define OONF_SOCKET_SUBSYSTEM "socket"
@@ -59,27 +60,13 @@
  */
 struct oonf_socket_entry {
   /*! file descriptor of the socket */
-  int fd;
+  struct os_socket fd;
 
   /**
    * Callback when read or write event happens to socket
    * @param fd file descriptor of socket
-   * @param data custom data pointer
-   * @param event_read true if a read event happened for the socket
-   * @param event_write true if a write event happened for the socket
    */
-  void (*process) (int fd, void *data,
-      bool event_read, bool event_write);
-
-  /* TODO: process callback should be given a oonf_socket_entry instead */
-  /*! user data pointer */
-  void *data;
-
-  /*! true if socket wants to read data */
-  bool event_read;
-
-  /*! true if socket wants to write data */
-  bool event_write;
+  void (*process) (struct oonf_socket_entry *entry);
 
   /*! list of socket handlers */
   struct list_entity _node;
@@ -87,25 +74,17 @@ struct oonf_socket_entry {
 
 EXPORT void oonf_socket_add(struct oonf_socket_entry *);
 EXPORT void oonf_socket_remove(struct oonf_socket_entry *);
+EXPORT void oonf_socket_set_read(
+    struct oonf_socket_entry *entry, bool event_read);
+EXPORT void oonf_socket_set_write(
+    struct oonf_socket_entry *entry, bool event_write);
 
-/**
- * Enable one or both flags of a socket handler
- * @param sock pointer to socket entry
- */
-static INLINE void
-oonf_socket_set_read(struct oonf_socket_entry *entry, bool event_read)
-{
-  entry->event_read = event_read;
+static INLINE bool
+oonf_socket_is_read(struct oonf_socket_entry *entry) {
+  return os_socket_event_is_read(&entry->fd);
 }
-
-/**
- * Disable one or both flags of a socket handler
- * @param sock pointer to socket entry
- */
-static INLINE void
-oonf_socket_set_write(struct oonf_socket_entry *entry, bool event_write)
-{
-  entry->event_write = event_write;
+static INLINE bool
+oonf_socket_is_write(struct oonf_socket_entry *entry) {
+  return os_socket_event_is_write(&entry->fd);
 }
-
 #endif /* OONF_SOCKET_H_ */
