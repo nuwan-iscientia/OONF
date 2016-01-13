@@ -313,6 +313,7 @@ os_fd_listen(struct os_fd *sock, int n) {
  */
 static INLINE int
 os_fd_event_add(struct os_fd_select *sel) {
+  memset (sel, 0, sizeof(*sel));
   sel->_epoll_fd = epoll_create1(EPOLL_CLOEXEC);
   return sel->_epoll_fd < 0 ? -1 : 0;
 }

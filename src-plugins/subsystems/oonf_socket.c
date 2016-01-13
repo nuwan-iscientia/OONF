@@ -191,7 +191,7 @@ _shall_end_scheduler(void) {
 int
 _handle_scheduling(void)
 {
-  struct oonf_socket_entry *sock_entry;
+  struct oonf_socket_entry *sock_entry = NULL;
   struct os_fd *sock;
   uint64_t next_event;
   uint64_t start_time, end_time;
