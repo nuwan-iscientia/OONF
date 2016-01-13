@@ -1,5 +1,5 @@
 /*
- * os_socket_generic_getrawsocket.h
+ * os_fd_generic_getrawsocket.h
  *
  *  Created on: Jan 12, 2016
  *      Author: rogge
@@ -11,7 +11,7 @@
 #include "common/common_types.h"
 #include "subsystems/os_socket.h"
 
-EXPORT int os_socket_generic_getrawsocket(struct os_socket *sock,
+EXPORT int os_fd_generic_getrawsocket(struct os_fd *sock,
     const union netaddr_socket *bind_to,
     int protocol, size_t recvbuf, const struct os_interface_data *interf,
     enum oonf_log_source log_src);

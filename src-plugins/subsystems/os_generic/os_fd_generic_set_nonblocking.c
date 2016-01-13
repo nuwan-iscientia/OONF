@@ -43,45 +43,28 @@
  * @file
  */
 
-#include <errno.h>
 #include <fcntl.h>
 
 #include "common/common_types.h"
-#include "common/netaddr.h"
-#include "core/oonf_logging.h"
-
 #include "subsystems/os_socket.h"
-#include "subsystems/os_generic/os_socket_generic_getsocket.h"
+
+#include "subsystems/os_generic/os_fd_generic_set_nonblocking.h"
 
 /**
- * Creates a new socket and configures it
- * @param bind_to address to bind the socket to
- * @param tcp true for a TCP socket, false for UDP
- * @param recvbuf size of input buffer for socket
- * @param interf pointer to interface to bind socket on,
- *   NULL if socket should not be bound to an interface
- * @param log_src logging source for error messages
- * @return 0 if socket was created, -1 if an error happened
+ * Set a socket to non-blocking mode
+ * @param sock filedescriptor of socket
+ * @return -1 if an error happened, 0 otherwise
  */
 int
-os_socket_generic_getsocket(struct os_socket *sock,
-    const union netaddr_socket *bind_to,
-    bool tcp, size_t recvbuf, const struct os_interface_data *interf,
-    enum oonf_log_source log_src __attribute__((unused))) {
-  int s;
-  s = socket(bind_to->std.sa_family, tcp ? SOCK_STREAM : SOCK_DGRAM, 0);
-  if (s < 0) {
-    OONF_WARN(log_src, "Cannot open socket: %s (%d)", strerror(errno), errno);
+os_fd_generic_set_nonblocking(struct os_fd *sock) {
+  int state;
+
+  /* put socket into non-blocking mode */
+  if ((state = fcntl(sock->fd, F_GETFL)) == -1) {
     return -1;
   }
 
-  if (os_socket_init(sock, s)) {
-    OONF_WARN(log_src, "Could not initialize socket");
-    return -1;
-  }
-
-  if (os_socket_configsocket(sock, bind_to, recvbuf, false, interf, log_src)) {
-    os_socket_close(sock);
+  if (fcntl(sock->fd, F_SETFL, state | O_NONBLOCK) < 0) {
     return -1;
   }
   return 0;

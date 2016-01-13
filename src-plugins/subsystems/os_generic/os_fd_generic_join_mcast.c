@@ -63,7 +63,7 @@
  * @return -1 if an error happened, 0 otherwise
  */
 int
-os_socket_generic_join_mcast_recv(struct os_socket *sock,
+os_fd_generic_join_mcast_recv(struct os_fd *sock,
     const struct netaddr *multicast,
     const struct os_interface_data *oif,
     enum oonf_log_source log_src __attribute__((unused))) {
@@ -132,7 +132,7 @@ os_socket_generic_join_mcast_recv(struct os_socket *sock,
  * @return -1 if an error happened, 0 otherwise
  */
 int
-os_socket_generic_join_mcast_send(struct os_socket *sock,
+os_fd_generic_join_mcast_send(struct os_fd *sock,
     const struct netaddr *multicast,
     const struct os_interface_data *oif, bool loop,
     enum oonf_log_source log_src __attribute__((unused))) {

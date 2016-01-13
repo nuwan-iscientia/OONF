@@ -56,7 +56,7 @@
 #include "subsystems/os_socket.h"
 
 /* Defintions */
-#define LOG_OS_SOCKET _oonf_os_socket_subsystem.logging
+#define LOG_OS_SOCKET _oonf_os_fd_subsystem.logging
 
 /* prototypes */
 static int _init(void);
@@ -67,14 +67,14 @@ static const char *_dependencies[] = {
   OONF_CLOCK_SUBSYSTEM,
 };
 
-static struct oonf_subsystem _oonf_os_socket_subsystem = {
+static struct oonf_subsystem _oonf_os_fd_subsystem = {
   .name = OONF_OS_SOCKET_SUBSYSTEM,
   .dependencies = _dependencies,
   .dependencies_count = ARRAYSIZE(_dependencies),
   .init = _init,
   .cleanup = _cleanup,
 };
-DECLARE_OONF_PLUGIN(_oonf_os_socket_subsystem);
+DECLARE_OONF_PLUGIN(_oonf_os_fd_subsystem);
 
 /**
  * Initialize os_net subsystem
@@ -100,8 +100,8 @@ _cleanup(void) {
  * @return
  */
 int
-os_socket_linux_event_wait(struct os_socket_select *sel) {
-  struct os_socket *sock;
+os_fd_linux_event_wait(struct os_fd_select *sel) {
+  struct os_fd *sock;
   uint64_t maxdelay;
   int i;
 
@@ -117,7 +117,7 @@ os_socket_linux_event_wait(struct os_socket_select *sel) {
       maxdelay, sel->_event_count);
 
   for (i=0; i<sel->_event_count; i++) {
-    sock = os_socket_event_get(sel, i);
+    sock = os_fd_event_get(sel, i);
     sock->received_events = sel->_events[i].events;
 
     OONF_DEBUG(LOG_OS_SOCKET, "event %d: %x", i, sock->received_events);
@@ -126,8 +126,8 @@ os_socket_linux_event_wait(struct os_socket_select *sel) {
 }
 
 int
-os_socket_linux_event_socket_modify(struct os_socket_select *sel,
-    struct os_socket *sock) {
+os_fd_linux_event_socket_modify(struct os_fd_select *sel,
+    struct os_fd *sock) {
   struct epoll_event event = {0};
 
   event.events = sock->wanted_events;
@@ -147,7 +147,7 @@ os_socket_linux_event_socket_modify(struct os_socket_select *sel,
  * @return pointer to transport layer data
  */
 uint8_t *
-os_socket_linux_skip_rawsocket_prefix(uint8_t *ptr, ssize_t *len, int af_type) {
+os_fd_linux_skip_rawsocket_prefix(uint8_t *ptr, ssize_t *len, int af_type) {
   int header_size;
 
   if (af_type != AF_INET) {

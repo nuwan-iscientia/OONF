@@ -287,7 +287,7 @@ os_system_netlink_add(struct os_system_netlink *nl, int protocol) {
     goto os_add_netlink_fail;
   }
 
-  if (os_socket_init(&nl->socket.fd, fd)) {
+  if (os_fd_init(&nl->socket.fd, fd)) {
     OONF_WARN(nl->used_by->logging, "Could not initialize socket representation");
     goto os_add_netlink_fail;
   }
@@ -354,7 +354,7 @@ void
 os_system_netlink_remove(struct os_system_netlink *nl) {
   oonf_socket_remove(&nl->socket);
 
-  os_socket_close(&nl->socket.fd);
+  os_fd_close(&nl->socket.fd);
   free (nl->in);
   abuf_free(&nl->out);
 }
@@ -425,7 +425,7 @@ os_system_netlink_add_mc(struct os_system_netlink *nl,
   size_t i;
 
   for (i=0; i<groupcount; i++) {
-    if (setsockopt(os_socket_get_fd(&nl->socket.fd),
+    if (setsockopt(os_fd_get_fd(&nl->socket.fd),
         SOL_NETLINK, NETLINK_ADD_MEMBERSHIP,
              &groups[i], sizeof(groups[i]))) {
       OONF_WARN(nl->used_by->logging,
@@ -449,7 +449,7 @@ os_system_netlink_drop_mc(struct os_system_netlink *nl,
   size_t i;
 
   for (i=0; i<groupcount; i++) {
-    if (setsockopt(os_socket_get_fd(&nl->socket.fd),
+    if (setsockopt(os_fd_get_fd(&nl->socket.fd),
         SOL_NETLINK, NETLINK_DROP_MEMBERSHIP,
              &groups[i], sizeof(groups[i]))) {
       OONF_WARN(nl->used_by->logging,
@@ -542,7 +542,7 @@ _flush_netlink_buffer(struct os_system_netlink *nl) {
   _netlink_send_iov[0].iov_base = (char *)(buffer) + sizeof(*buffer);
   _netlink_send_iov[0].iov_len = buffer->total;
 
-  if ((ret = sendmsg(os_socket_get_fd(&nl->socket.fd),
+  if ((ret = sendmsg(os_fd_get_fd(&nl->socket.fd),
         &_netlink_send_msg, MSG_DONTWAIT)) <= 0) {
     err = errno;
     if (err != EAGAIN && err != EWOULDBLOCK) {

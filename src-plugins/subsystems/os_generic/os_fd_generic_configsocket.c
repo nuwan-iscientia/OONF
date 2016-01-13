@@ -53,7 +53,7 @@
 #include "subsystems/os_interface_data.h"
 
 #include "subsystems/os_socket.h"
-#include "subsystems/os_generic/os_socket_generic_configsocket.h"
+#include "subsystems/os_generic/os_fd_generic_configsocket.h"
 
 /**
  * Configure a network socket
@@ -67,7 +67,7 @@
  * @return -1 if an error happened, 0 otherwise
  */
 int
-os_socket_generic_configsocket(struct os_socket *sock,
+os_fd_generic_configsocket(struct os_fd *sock,
     const union netaddr_socket *bind_to, size_t recvbuf,
     bool rawip, const struct os_interface_data *interf, enum oonf_log_source log_src) {
   union netaddr_socket bindto;
@@ -78,7 +78,7 @@ os_socket_generic_configsocket(struct os_socket *sock,
   /* temporary copy bindto address */
   memcpy(&bindto, bind_to, sizeof(bindto));
 
-  if (os_socket_set_nonblocking(sock)) {
+  if (os_fd_set_nonblocking(sock)) {
     OONF_WARN(log_src, "Cannot make socket non-blocking %s: %s (%d)\n",
         netaddr_socket_to_string(&buf, &bindto), strerror(errno), errno);
     return -1;

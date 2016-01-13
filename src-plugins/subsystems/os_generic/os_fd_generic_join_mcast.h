@@ -1,5 +1,5 @@
 /*
- * os_socket_generic_join_mcast.h
+ * os_fd_generic_join_mcast.h
  *
  *  Created on: Jan 12, 2016
  *      Author: rogge
@@ -11,12 +11,12 @@
 #include "common/common_types.h"
 #include "subsystems/os_socket.h"
 
-EXPORT int os_socket_generic_join_mcast_recv(struct os_socket *sock,
+EXPORT int os_fd_generic_join_mcast_recv(struct os_fd *sock,
     const struct netaddr *multicast,
     const struct os_interface_data *oif,
     enum oonf_log_source log_src);
 
-EXPORT int os_socket_generic_join_mcast_send(struct os_socket *sock,
+EXPORT int os_fd_generic_join_mcast_send(struct os_fd *sock,
     const struct netaddr *multicast,
     const struct os_interface_data *oif, bool loop,
     enum oonf_log_source log_src);

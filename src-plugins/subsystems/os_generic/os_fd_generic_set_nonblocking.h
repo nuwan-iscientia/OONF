@@ -1,5 +1,5 @@
 /*
- * os_socket_generic_set_nonblocking.h
+ * os_fd_generic_set_nonblocking.h
  *
  *  Created on: Jan 12, 2016
  *      Author: rogge
@@ -11,6 +11,6 @@
 #include "common/common_types.h"
 #include "subsystems/os_socket.h"
 
-EXPORT int os_socket_generic_set_nonblocking(struct os_socket *sock);
+EXPORT int os_fd_generic_set_nonblocking(struct os_fd *sock);
 
 #endif /* _OS_SOCKET_GENERIC_SET_NONBLOCKING_H_ */

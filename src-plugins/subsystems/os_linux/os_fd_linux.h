@@ -53,22 +53,22 @@
 #include <sys/socket.h>
 
 #include "subsystems/os_socket.h"
-#include "subsystems/os_generic/os_socket_generic_configsocket.h"
-#include "subsystems/os_generic/os_socket_generic_getrawsocket.h"
-#include "subsystems/os_generic/os_socket_generic_getsocket.h"
-#include "subsystems/os_generic/os_socket_generic_join_mcast.h"
-#include "subsystems/os_generic/os_socket_generic_set_dscp.h"
-#include "subsystems/os_generic/os_socket_generic_set_nonblocking.h"
+#include "subsystems/os_generic/os_fd_generic_configsocket.h"
+#include "subsystems/os_generic/os_fd_generic_getrawsocket.h"
+#include "subsystems/os_generic/os_fd_generic_getsocket.h"
+#include "subsystems/os_generic/os_fd_generic_join_mcast.h"
+#include "subsystems/os_generic/os_fd_generic_set_dscp.h"
+#include "subsystems/os_generic/os_fd_generic_set_nonblocking.h"
 
 /*! name of the loopback interface */
 #define IF_LOOPBACK_NAME "lo"
 
-enum os_socket_flags {
+enum os_fd_flags {
   OS_SOCKET_ACTIVE = 1,
 };
 
 /*! linux specific socket definition */
-struct os_socket {
+struct os_fd {
   /*! file descriptor of socket */
   int fd;
 
@@ -79,11 +79,11 @@ struct os_socket {
   uint32_t received_events;
 
   /*! flags for socket */
-  enum os_socket_flags _flags;
+  enum os_fd_flags _flags;
 };
 
 /*! linux specific socket select definition */
-struct os_socket_select {
+struct os_fd_select {
   struct epoll_event _events[16];
   int _event_count;
 
@@ -93,10 +93,10 @@ struct os_socket_select {
 };
 
 /** declare non-inline linux-specific functions */
-EXPORT int os_socket_linux_event_wait(struct os_socket_select *);
-EXPORT int os_socket_linux_event_socket_modify(struct os_socket_select *sel,
-    struct os_socket *sock);
-EXPORT uint8_t *os_socket_linux_skip_rawsocket_prefix(uint8_t *ptr, ssize_t *len, int af_type);
+EXPORT int os_fd_linux_event_wait(struct os_fd_select *);
+EXPORT int os_fd_linux_event_socket_modify(struct os_fd_select *sel,
+    struct os_fd *sock);
+EXPORT uint8_t *os_fd_linux_skip_rawsocket_prefix(uint8_t *ptr, ssize_t *len, int af_type);
 
 /**
  * Redirect to linux specific event wait call
@@ -105,8 +105,8 @@ EXPORT uint8_t *os_socket_linux_skip_rawsocket_prefix(uint8_t *ptr, ssize_t *len
  *   0 if deadline was reached, -1 if an error happened
  */
 static INLINE int
-os_socket_event_wait(struct os_socket_select *sel) {
-  return os_socket_linux_event_wait(sel);
+os_fd_event_wait(struct os_fd_select *sel) {
+  return os_fd_linux_event_wait(sel);
 }
 
 /**
@@ -121,9 +121,9 @@ os_socket_event_wait(struct os_socket_select *sel) {
  * @return -1 if an error happened, 0 otherwise
  */
 static INLINE int
-os_socket_getsocket(struct os_socket *sock, const union netaddr_socket *bindto, bool tcp,
+os_fd_getsocket(struct os_fd *sock, const union netaddr_socket *bindto, bool tcp,
     size_t recvbuf, const struct os_interface_data *ifdata, enum oonf_log_source log_src) {
-  return os_socket_generic_getsocket(sock, bindto, tcp, recvbuf, ifdata, log_src);
+  return os_fd_generic_getsocket(sock, bindto, tcp, recvbuf, ifdata, log_src);
 }
 
 /**
@@ -138,9 +138,9 @@ os_socket_getsocket(struct os_socket *sock, const union netaddr_socket *bindto, 
  * @return -1 if an error happened, 0 otherwise
  */
 static INLINE int
-os_socket_getrawsocket(struct os_socket *sock, const union netaddr_socket *bindto, int protocol,
+os_fd_getrawsocket(struct os_fd *sock, const union netaddr_socket *bindto, int protocol,
     size_t recvbuf, const struct os_interface_data *ifdata, enum oonf_log_source log_src) {
-  return os_socket_generic_getrawsocket(sock, bindto, protocol, recvbuf, ifdata, log_src);
+  return os_fd_generic_getrawsocket(sock, bindto, protocol, recvbuf, ifdata, log_src);
 }
 
 /**
@@ -155,9 +155,9 @@ os_socket_getrawsocket(struct os_socket *sock, const union netaddr_socket *bindt
  * @return -1 if an error happened, 0 otherwise
  */
 static INLINE int
-os_socket_configsocket(struct os_socket *sock, const union netaddr_socket *bindto,
+os_fd_configsocket(struct os_fd *sock, const union netaddr_socket *bindto,
     size_t recvbuf, bool rawip, const struct os_interface_data *ifdata, enum oonf_log_source log_src) {
-  return os_socket_generic_configsocket(sock, bindto, recvbuf, rawip, ifdata, log_src);
+  return os_fd_generic_configsocket(sock, bindto, recvbuf, rawip, ifdata, log_src);
 }
 
 /**
@@ -166,8 +166,8 @@ os_socket_configsocket(struct os_socket *sock, const union netaddr_socket *bindt
  * @return -1 if an error happened, 0 otherwise
  */
 static INLINE int
-os_socket_set_nonblocking(struct os_socket *sock) {
-  return os_socket_generic_set_nonblocking(sock);
+os_fd_set_nonblocking(struct os_fd *sock) {
+  return os_fd_generic_set_nonblocking(sock);
 }
 
 /**
@@ -180,9 +180,9 @@ os_socket_set_nonblocking(struct os_socket *sock) {
  * @return -1 if an error happened, 0 otherwise
  */
 static INLINE int
-os_socket_join_mcast_recv(struct os_socket *sock, const struct netaddr *multicast,
+os_fd_join_mcast_recv(struct os_fd *sock, const struct netaddr *multicast,
     const struct os_interface_data *oif, enum oonf_log_source log_src) {
-  return os_socket_generic_join_mcast_recv(sock, multicast, oif, log_src);
+  return os_fd_generic_join_mcast_recv(sock, multicast, oif, log_src);
 }
 
 /**
@@ -196,9 +196,9 @@ os_socket_join_mcast_recv(struct os_socket *sock, const struct netaddr *multicas
  * @return -1 if an error happened, 0 otherwise
  */
 static INLINE int
-os_socket_join_mcast_send(struct os_socket *sock, const struct netaddr *multicast,
+os_fd_join_mcast_send(struct os_fd *sock, const struct netaddr *multicast,
     const struct os_interface_data *oif, bool loop, enum oonf_log_source log_src) {
-  return os_socket_generic_join_mcast_send(sock, multicast, oif, loop, log_src);
+  return os_fd_generic_join_mcast_send(sock, multicast, oif, loop, log_src);
 }
 /**
  * Redirect to generic set_dscp call
@@ -208,8 +208,8 @@ os_socket_join_mcast_send(struct os_socket *sock, const struct netaddr *multicas
  * @return -1 if an error happened, 0 otherwise
  */
 static INLINE int
-os_socket_set_dscp(struct os_socket *sock, int dscp, bool ipv6) {
-  return os_socket_generic_set_dscp(sock, dscp, ipv6);
+os_fd_set_dscp(struct os_fd *sock, int dscp, bool ipv6) {
+  return os_fd_generic_set_dscp(sock, dscp, ipv6);
 }
 
 /**
@@ -220,8 +220,8 @@ os_socket_set_dscp(struct os_socket *sock, int dscp, bool ipv6) {
  * @return pointer to transport layer data
  */
 static INLINE uint8_t *
-os_socket_skip_rawsocket_prefix(uint8_t *ptr, ssize_t *len, int af_type) {
-  return os_socket_linux_skip_rawsocket_prefix(ptr, len, af_type);
+os_fd_skip_rawsocket_prefix(uint8_t *ptr, ssize_t *len, int af_type) {
+  return os_fd_linux_skip_rawsocket_prefix(ptr, len, af_type);
 }
 
 /**
@@ -231,7 +231,7 @@ os_socket_skip_rawsocket_prefix(uint8_t *ptr, ssize_t *len, int af_type) {
  * @return -1 if an error happened, 0 otherwise
  */
 static INLINE int
-os_socket_init(struct os_socket *os_fd, int fd) {
+os_fd_init(struct os_fd *os_fd, int fd) {
   os_fd->fd = fd;
   os_fd->_flags = OS_SOCKET_ACTIVE;
   return 0;
@@ -244,7 +244,7 @@ os_socket_init(struct os_socket *os_fd, int fd) {
  * @return -1 if an error happened, 0 otherwise
  */
 static INLINE int
-os_socket_invalidate(struct os_socket *sock) {
+os_fd_invalidate(struct os_fd *sock) {
   memset(sock, 0, sizeof(*sock));
   return 0;
 }
@@ -255,7 +255,7 @@ os_socket_invalidate(struct os_socket *sock) {
  * @return true if socket is initialized, false otherwise
  */
 static INLINE bool
-os_socket_is_initialized(struct os_socket *sock) {
+os_fd_is_initialized(struct os_fd *sock) {
   return (sock->_flags & OS_SOCKET_ACTIVE) != 0;
 }
 
@@ -265,7 +265,7 @@ os_socket_is_initialized(struct os_socket *sock) {
  * @return file descriptor
  */
 static INLINE int
-os_socket_get_fd(struct os_socket *sock) {
+os_fd_get_fd(struct os_fd *sock) {
   return sock->fd;
 }
 
@@ -276,8 +276,8 @@ os_socket_get_fd(struct os_socket *sock) {
  * @return
  */
 static INLINE int
-os_socket_copy(struct os_socket *dst, struct os_socket *from) {
-  return os_socket_init(dst, from->fd);
+os_fd_copy(struct os_fd *dst, struct os_fd *from) {
+  return os_fd_init(dst, from->fd);
 }
 
 /**
@@ -286,7 +286,7 @@ os_socket_copy(struct os_socket *dst, struct os_socket *from) {
  * @return -1 if an error happened, 0 otherwise
  */
 static INLINE int
-os_socket_close(struct os_socket *sock) {
+os_fd_close(struct os_fd *sock) {
   int result = 0;
   if (sock->fd != -1) {
     result = close(sock->fd);
@@ -302,7 +302,7 @@ os_socket_close(struct os_socket *sock) {
  * @return -1 if an error happened, 0 otherwise
  */
 static INLINE int
-os_socket_listen(struct os_socket *sock, int n) {
+os_fd_listen(struct os_fd *sock, int n) {
   return listen(sock->fd, n);
 }
 
@@ -312,7 +312,7 @@ os_socket_listen(struct os_socket *sock, int n) {
  * @return -1 if an error happened, 0 otherwise
  */
 static INLINE int
-os_socket_event_add(struct os_socket_select *sel) {
+os_fd_event_add(struct os_fd_select *sel) {
   sel->_epoll_fd = epoll_create1(EPOLL_CLOEXEC);
   return sel->_epoll_fd < 0 ? -1 : 0;
 }
@@ -323,8 +323,8 @@ os_socket_event_add(struct os_socket_select *sel) {
  * @param idx index of event
  * @return socket responsible for event
  */
-static INLINE struct os_socket *
-os_socket_event_get(struct os_socket_select *sel, int idx) {
+static INLINE struct os_fd *
+os_fd_event_get(struct os_fd_select *sel, int idx) {
   return sel->_events[idx].data.ptr;
 }
 
@@ -335,7 +335,7 @@ os_socket_event_get(struct os_socket_select *sel, int idx) {
  * @return -1 if an error happened, 0 otherwise
  */
 static INLINE int
-os_socket_event_socket_add(struct os_socket_select *sel, struct os_socket *sock) {
+os_fd_event_socket_add(struct os_fd_select *sel, struct os_fd *sock) {
   struct epoll_event event = {0};
 
   event.data.ptr = sock;
@@ -351,15 +351,15 @@ os_socket_event_socket_add(struct os_socket_select *sel, struct os_socket *sock)
  * @return -1 if an error happened, 0 otherwise
  */
 static INLINE int
-os_socket_event_socket_read(struct os_socket_select *sel,
-    struct os_socket *sock, bool want_read) {
+os_fd_event_socket_read(struct os_fd_select *sel,
+    struct os_fd *sock, bool want_read) {
   if (want_read) {
     sock->wanted_events |= EPOLLIN;
   }
   else {
     sock->wanted_events &= ~EPOLLIN;
   }
-  return os_socket_linux_event_socket_modify(sel, sock);
+  return os_fd_linux_event_socket_modify(sel, sock);
 }
 
 /**
@@ -368,7 +368,7 @@ os_socket_event_socket_read(struct os_socket_select *sel,
  * @return true if socket triggered a read event, false otherwise
  */
 static INLINE int
-os_socket_event_is_read(struct os_socket *sock) {
+os_fd_event_is_read(struct os_fd *sock) {
   return (sock->received_events & EPOLLIN) != 0;
 }
 
@@ -381,15 +381,15 @@ os_socket_event_is_read(struct os_socket *sock) {
  * @return -1 if an error happened, 0 otherwise
  */
 static INLINE int
-os_socket_event_socket_write(struct os_socket_select *sel,
-    struct os_socket *sock, bool want_write) {
+os_fd_event_socket_write(struct os_fd_select *sel,
+    struct os_fd *sock, bool want_write) {
   if (want_write) {
     sock->wanted_events |= EPOLLOUT;
   }
   else {
     sock->wanted_events &= ~EPOLLOUT;
   }
-  return os_socket_linux_event_socket_modify(sel, sock);
+  return os_fd_linux_event_socket_modify(sel, sock);
 }
 
 /**
@@ -398,7 +398,7 @@ os_socket_event_socket_write(struct os_socket_select *sel,
  * @return true if socket triggered a write event, false otherwise
  */
 static INLINE int
-os_socket_event_is_write(struct os_socket *sock) {
+os_fd_event_is_write(struct os_fd *sock) {
   return (sock->received_events & EPOLLOUT) != 0;
 }
 
@@ -409,7 +409,7 @@ os_socket_event_is_write(struct os_socket *sock) {
  * @return -1 if an error happened, 0 otherwise
  */
 static INLINE int
-os_socket_event_socket_remove(struct os_socket_select *sel, struct os_socket *sock) {
+os_fd_event_socket_remove(struct os_fd_select *sel, struct os_fd *sock) {
   return epoll_ctl(sel->_epoll_fd, EPOLL_CTL_DEL, sock->fd, NULL);
 }
 
@@ -420,7 +420,7 @@ os_socket_event_socket_remove(struct os_socket_select *sel, struct os_socket *so
  * @return -1 if an error happened, 0 otherwise
  */
 static INLINE int
-os_socket_event_set_deadline(struct os_socket_select *sel, uint64_t deadline) {
+os_fd_event_set_deadline(struct os_fd_select *sel, uint64_t deadline) {
   sel->deadline = deadline;
   return 0;
 }
@@ -430,7 +430,7 @@ os_socket_event_set_deadline(struct os_socket_select *sel, uint64_t deadline) {
  * @return current deadline for wait call
  */
 static INLINE uint64_t
-os_socket_event_get_deadline(struct os_socket_select *sel) {
+os_fd_event_get_deadline(struct os_fd_select *sel) {
   return sel->deadline;
 }
 
@@ -440,7 +440,7 @@ os_socket_event_get_deadline(struct os_socket_select *sel) {
  * @return -1 if an error happened, 0 otherwise
  */
 static INLINE int
-os_socket_event_remove(struct os_socket_select *sel) {
+os_fd_event_remove(struct os_fd_select *sel) {
   return close(sel->_epoll_fd);
 }
 
@@ -451,7 +451,7 @@ os_socket_event_remove(struct os_socket_select *sel) {
  * @return -1 if an error happened, 0 otherwise
  */
 static INLINE int
-os_socket_connect(struct os_socket *sock, const union netaddr_socket *remote) {
+os_fd_connect(struct os_fd *sock, const union netaddr_socket *remote) {
   return connect(sock->fd, &remote->std, sizeof(*remote));
 }
 
@@ -462,15 +462,15 @@ os_socket_connect(struct os_socket *sock, const union netaddr_socket *remote) {
  * @return result of accept() call
  */
 static INLINE int
-os_socket_accept(struct os_socket *client,
-    struct os_socket *server, union netaddr_socket *incoming) {
+os_fd_accept(struct os_fd *client,
+    struct os_fd *server, union netaddr_socket *incoming) {
   socklen_t len = sizeof(*incoming);
   int fd;
 
   if ((fd = accept(server->fd, &incoming->std, &len)) < 0) {
     return -1;
   }
-  return os_socket_init(client, fd);
+  return os_fd_init(client, fd);
 }
 
 /**
@@ -480,7 +480,7 @@ os_socket_accept(struct os_socket *client,
  * @return result of getsockopt() call
  */
 static INLINE int
-os_socket_get_socket_error(struct os_socket *sock, int *value) {
+os_fd_get_socket_error(struct os_fd *sock, int *value) {
   socklen_t len = sizeof(*value);
   return getsockopt(sock->fd, SOL_SOCKET, SO_ERROR, value, &len);
 }
@@ -495,7 +495,7 @@ os_socket_get_socket_error(struct os_socket *sock, int *value) {
  * @return same as sendto()
  */
 static INLINE ssize_t
-os_socket_sendto(struct os_socket *sock, const void *buf, size_t length, const union netaddr_socket *dst, bool dont_route) {
+os_fd_sendto(struct os_fd *sock, const void *buf, size_t length, const union netaddr_socket *dst, bool dont_route) {
   return sendto(sock->fd, buf, length, dont_route ? MSG_DONTROUTE : 0, &dst->std, sizeof(*dst));
 }
 
@@ -510,7 +510,7 @@ os_socket_sendto(struct os_socket *sock, const void *buf, size_t length, const u
  * @return same as recvfrom()
  */
 static INLINE ssize_t
-os_socket_recvfrom(struct os_socket *sock, void *buf, size_t length, union netaddr_socket *source,
+os_fd_recvfrom(struct os_fd *sock, void *buf, size_t length, union netaddr_socket *source,
     const struct os_interface_data *interf __attribute__((unused))) {
   socklen_t len = sizeof(*source);
   return recvfrom(sock->fd, buf, length, 0, &source->std, &len);
@@ -523,7 +523,7 @@ os_socket_recvfrom(struct os_socket *sock, void *buf, size_t length, union netad
  * @return -1 if an error happened, 0 otherwise
  */
 static INLINE int
-os_socket_bindto_interface(struct os_socket *sock, struct os_interface_data *data) {
+os_fd_bindto_interface(struct os_fd *sock, struct os_interface_data *data) {
   return setsockopt(sock->fd, SOL_SOCKET, SO_BINDTODEVICE, data->name, strlen(data->name) + 1);
 }
 
@@ -531,7 +531,7 @@ os_socket_bindto_interface(struct os_socket *sock, struct os_interface_data *dat
  * @return name of loopback interface
  */
 static INLINE const char *
-os_socket_get_loopback_name(void) {
+os_fd_get_loopback_name(void) {
   return "lo";
 }
 
@@ -546,7 +546,7 @@ os_socket_get_loopback_name(void) {
  *   were sent to outfd
  */
 static INLINE ssize_t
-os_socket_sendfile(struct os_socket *out, struct os_socket *in, size_t offset, size_t count) {
+os_fd_sendfile(struct os_fd *out, struct os_fd *in, size_t offset, size_t count) {
   off_t int_offset = offset;
   return sendfile(out->fd, in->fd, &int_offset, count);
 }

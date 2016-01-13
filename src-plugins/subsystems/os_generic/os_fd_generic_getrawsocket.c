@@ -43,28 +43,53 @@
  * @file
  */
 
+#include <errno.h>
 #include <fcntl.h>
 
 #include "common/common_types.h"
-#include "subsystems/os_socket.h"
+#include "common/netaddr.h"
+#include "core/oonf_logging.h"
 
-#include "subsystems/os_generic/os_socket_generic_set_nonblocking.h"
+#include "subsystems/os_interface_data.h"
+#include "subsystems/os_socket.h"
+#include "subsystems/os_generic/os_fd_generic_getrawsocket.h"
 
 /**
- * Set a socket to non-blocking mode
- * @param sock filedescriptor of socket
- * @return -1 if an error happened, 0 otherwise
+ * Creates a new raw socket and configures it
+ * @param bind_to address to bind the socket to
+ * @param protocol IP protocol number
+ * @param recvbuf size of input buffer for socket
+ * @param interf pointer to interface to bind socket on,
+ *   NULL if socket should not be bound to an interface
+ * @param log_src logging source for error messages
+ * @return socket filedescriptor, -1 if an error happened
  */
 int
-os_socket_generic_set_nonblocking(struct os_socket *sock) {
-  int state;
+os_fd_generic_getrawsocket(struct os_fd *sock,
+    const union netaddr_socket *bind_to,
+    int protocol, size_t recvbuf, const struct os_interface_data *interf,
+    enum oonf_log_source log_src __attribute__((unused))) {
 
-  /* put socket into non-blocking mode */
-  if ((state = fcntl(sock->fd, F_GETFL)) == -1) {
+  static const int zero = 0;
+  int family;
+
+  family = bind_to->std.sa_family;
+  sock->fd = socket(family, SOCK_RAW, protocol);
+  if (sock->fd < 0) {
+    OONF_WARN(log_src, "Cannot open socket: %s (%d)", strerror(errno), errno);
     return -1;
   }
 
-  if (fcntl(sock->fd, F_SETFL, state | O_NONBLOCK) < 0) {
+  if (family == AF_INET) {
+    if (setsockopt (sock->fd, IPPROTO_IP, IP_HDRINCL, &zero, sizeof(zero)) < 0) {
+      OONF_WARN(log_src, "Cannot disable IP_HDRINCL for socket: %s (%d)", strerror(errno), errno);
+      os_fd_close(sock);
+      return -1;
+    }
+  }
+
+  if (os_fd_configsocket(sock, bind_to, recvbuf, true, interf, log_src)) {
+    os_fd_close(sock);
     return -1;
   }
   return 0;

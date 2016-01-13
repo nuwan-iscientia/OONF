@@ -44,53 +44,32 @@
  */
 
 #include <errno.h>
-#include <fcntl.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <netinet/ip.h>
 
 #include "common/common_types.h"
-#include "common/netaddr.h"
-#include "core/oonf_logging.h"
-
-#include "subsystems/os_interface_data.h"
 #include "subsystems/os_socket.h"
-#include "subsystems/os_generic/os_socket_generic_getrawsocket.h"
+#include "subsystems/os_generic/os_fd_generic_set_dscp.h"
 
 /**
- * Creates a new raw socket and configures it
- * @param bind_to address to bind the socket to
- * @param protocol IP protocol number
- * @param recvbuf size of input buffer for socket
- * @param interf pointer to interface to bind socket on,
- *   NULL if socket should not be bound to an interface
- * @param log_src logging source for error messages
- * @return socket filedescriptor, -1 if an error happened
+ * Sets the DSCP value for outgoing packets on a socket
+ * @param sock socket file descriptor
+ * @param dscp dscp value
+ * @param ipv6 true if IPv6 dscp should be set, false otherwise
+ * @return -1 if an error happened, 0 otherwise
  */
 int
-os_socket_generic_getrawsocket(struct os_socket *sock,
-    const union netaddr_socket *bind_to,
-    int protocol, size_t recvbuf, const struct os_interface_data *interf,
-    enum oonf_log_source log_src __attribute__((unused))) {
-
-  static const int zero = 0;
-  int family;
-
-  family = bind_to->std.sa_family;
-  sock->fd = socket(family, SOCK_RAW, protocol);
-  if (sock->fd < 0) {
-    OONF_WARN(log_src, "Cannot open socket: %s (%d)", strerror(errno), errno);
-    return -1;
-  }
-
-  if (family == AF_INET) {
-    if (setsockopt (sock->fd, IPPROTO_IP, IP_HDRINCL, &zero, sizeof(zero)) < 0) {
-      OONF_WARN(log_src, "Cannot disable IP_HDRINCL for socket: %s (%d)", strerror(errno), errno);
-      os_socket_close(sock);
+os_fd_generic_set_dscp(struct os_fd *sock, int dscp, bool ipv6) {
+  if (ipv6) {
+    if (setsockopt(sock->fd, IPPROTO_IPV6, IPV6_TCLASS, (char *) &dscp, sizeof(dscp)) < 0 ) {
       return -1;
     }
   }
-
-  if (os_socket_configsocket(sock, bind_to, recvbuf, true, interf, log_src)) {
-    os_socket_close(sock);
-    return -1;
+  else {
+    if (setsockopt(sock->fd, IPPROTO_IP, IP_TOS, (char *) &dscp, sizeof(dscp)) < 0 ) {
+      return -1;
+    }
   }
   return 0;
 }

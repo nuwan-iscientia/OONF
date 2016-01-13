@@ -78,7 +78,7 @@ static uint64_t _scheduler_time_limit;
 static struct list_entity _socket_head;
 
 /* socket event scheduler */
-struct os_socket_select _socket_events;
+struct os_fd_select _socket_events;
 
 /* subsystem definition */
 static const char *_dependencies[] = {
@@ -107,7 +107,7 @@ _init(void) {
   }
 
   list_init_head(&_socket_head);
-  os_socket_event_add(&_socket_events);
+  os_fd_event_add(&_socket_events);
 
   _scheduler_time_limit = ~0ull;
   return 0;
@@ -124,10 +124,10 @@ _cleanup(void)
 
   list_for_each_element_safe(&_socket_head, entry, _node, iterator) {
     list_remove(&entry->_node);
-    os_socket_close(&entry->fd);
+    os_fd_close(&entry->fd);
   }
 
-  os_socket_event_remove(&_socket_events);
+  os_fd_event_remove(&_socket_events);
 }
 
 static void
@@ -147,10 +147,10 @@ void
 oonf_socket_add(struct oonf_socket_entry *entry)
 {
   OONF_DEBUG(LOG_SOCKET, "Adding socket entry %d to scheduler\n",
-      os_socket_get_fd(&entry->fd));
+      os_fd_get_fd(&entry->fd));
 
   list_add_before(&_socket_head, &entry->_node);
-  os_socket_event_socket_add(&_socket_events, &entry->fd);
+  os_fd_event_socket_add(&_socket_events, &entry->fd);
 }
 
 /**
@@ -162,21 +162,21 @@ oonf_socket_remove(struct oonf_socket_entry *entry)
 {
   if (list_is_node_added(&entry->_node)) {
     OONF_DEBUG(LOG_SOCKET, "Removing socket entry %d\n",
-        os_socket_get_fd(&entry->fd));
+        os_fd_get_fd(&entry->fd));
 
     list_remove(&entry->_node);
-    os_socket_event_socket_remove(&_socket_events, &entry->fd);
+    os_fd_event_socket_remove(&_socket_events, &entry->fd);
   }
 }
 
 void
 oonf_socket_set_read(struct oonf_socket_entry *entry, bool event_read) {
-  os_socket_event_socket_read(&_socket_events, &entry->fd, event_read);
+  os_fd_event_socket_read(&_socket_events, &entry->fd, event_read);
 }
 
 void
 oonf_socket_set_write(struct oonf_socket_entry *entry, bool event_write) {
-  os_socket_event_socket_write(&_socket_events, &entry->fd, event_write);
+  os_fd_event_socket_write(&_socket_events, &entry->fd, event_write);
 }
 
 static bool
@@ -192,7 +192,7 @@ int
 _handle_scheduling(void)
 {
   struct oonf_socket_entry *sock_entry;
-  struct os_socket *sock;
+  struct os_fd *sock;
   uint64_t next_event;
   uint64_t start_time, end_time;
   int i, n;
@@ -218,8 +218,8 @@ _handle_scheduling(void)
       next_event = _scheduler_time_limit;
     }
 
-    if (os_socket_event_get_deadline(&_socket_events) != next_event) {
-      os_socket_event_set_deadline(&_socket_events, next_event);
+    if (os_fd_event_get_deadline(&_socket_events) != next_event) {
+      os_fd_event_set_deadline(&_socket_events, next_event);
     }
 
     do {
@@ -227,7 +227,7 @@ _handle_scheduling(void)
         return 0;
       }
 
-      n = os_socket_event_wait(&_socket_events);
+      n = os_fd_event_wait(&_socket_events);
     } while (n == -1 && errno == EINTR);
 
     if (n == 0) {               /* timeout! */
@@ -246,16 +246,16 @@ _handle_scheduling(void)
     OONF_DEBUG(LOG_SOCKET, "Got %d events", n);
 
     for (i=0; i<n; i++) {
-      sock = os_socket_event_get(&_socket_events, i);
+      sock = os_fd_event_get(&_socket_events, i);
 
       OONF_DEBUG(LOG_SOCKET, "Socket %d triggered (read=%s, write=%s)",
-          os_socket_get_fd(&sock_entry->fd),
-          os_socket_event_is_read(sock) ? "true" : "false",
-          os_socket_event_is_write(sock) ? "true" : "false");
+          os_fd_get_fd(&sock_entry->fd),
+          os_fd_event_is_read(sock) ? "true" : "false",
+          os_fd_event_is_write(sock) ? "true" : "false");
 
 
-      if (os_socket_event_is_read(sock)
-          || os_socket_event_is_write(sock)) {
+      if (os_fd_event_is_read(sock)
+          || os_fd_event_is_write(sock)) {
         sock_entry = container_of(sock, typeof(*sock_entry), fd);
         if (sock_entry->process == NULL) {
           continue;
@@ -267,7 +267,7 @@ _handle_scheduling(void)
 
         if (end_time - start_time > OONF_TIMER_SLICE) {
           OONF_WARN(LOG_SOCKET, "Socket %d scheduling took %"PRIu64" ms",
-              os_socket_get_fd(&sock_entry->fd), end_time - start_time);
+              os_fd_get_fd(&sock_entry->fd), end_time - start_time);
         }
       }
     }

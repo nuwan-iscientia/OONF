@@ -67,21 +67,21 @@ IF(LINUX)
     SET(OS_ROUTING_INCLUDE   ${OS_ROUTING_INCLUDE}
                              os_linux/os_routing_linux.h)
 
-    SET(OS_SOCKET_SOURCE     os_generic/os_socket_generic_configsocket.c
-                             os_generic/os_socket_generic_getsocket.c
-                             os_generic/os_socket_generic_getrawsocket.c
-                             os_generic/os_socket_generic_join_mcast.c
-                             os_generic/os_socket_generic_set_nonblocking.c
-                             os_generic/os_socket_generic_set_dscp.c
-                             os_linux/os_socket_linux.c)
+    SET(OS_SOCKET_SOURCE     os_generic/os_fd_generic_configsocket.c
+                             os_generic/os_fd_generic_getsocket.c
+                             os_generic/os_fd_generic_getrawsocket.c
+                             os_generic/os_fd_generic_join_mcast.c
+                             os_generic/os_fd_generic_set_nonblocking.c
+                             os_generic/os_fd_generic_set_dscp.c
+                             os_linux/os_fd_linux.c)
     SET(OS_SOCKET_INCLUDE    ${OS_SOCKET_INCLUDE}
-                             os_generic/os_socket_generic_configsocket.h
-                             os_generic/os_socket_generic_getsocket.h
-                             os_generic/os_socket_generic_getrawsocket.h
-                             os_generic/os_socket_generic_join_mcast.h
-                             os_generic/os_socket_generic_set_nonblocking.h
-                             os_generic/os_socket_generic_set_dscp.h
-                             os_linux/os_socket_linux.h)
+                             os_generic/os_fd_generic_configsocket.h
+                             os_generic/os_fd_generic_getsocket.h
+                             os_generic/os_fd_generic_getrawsocket.h
+                             os_generic/os_fd_generic_join_mcast.h
+                             os_generic/os_fd_generic_set_nonblocking.h
+                             os_generic/os_fd_generic_set_dscp.h
+                             os_linux/os_fd_linux.h)
 
     SET(OS_SYSTEM_SOURCE     os_linux/os_system_linux.c)
     SET(OS_SYSTEM_INCLUDE    ${OS_SYSTEM_INCLUDE}

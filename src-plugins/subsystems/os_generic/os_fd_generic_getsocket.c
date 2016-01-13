@@ -44,32 +44,45 @@
  */
 
 #include <errno.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <netinet/ip.h>
+#include <fcntl.h>
 
 #include "common/common_types.h"
+#include "common/netaddr.h"
+#include "core/oonf_logging.h"
+
 #include "subsystems/os_socket.h"
-#include "subsystems/os_generic/os_socket_generic_set_dscp.h"
+#include "subsystems/os_generic/os_fd_generic_getsocket.h"
 
 /**
- * Sets the DSCP value for outgoing packets on a socket
- * @param sock socket file descriptor
- * @param dscp dscp value
- * @param ipv6 true if IPv6 dscp should be set, false otherwise
- * @return -1 if an error happened, 0 otherwise
+ * Creates a new socket and configures it
+ * @param bind_to address to bind the socket to
+ * @param tcp true for a TCP socket, false for UDP
+ * @param recvbuf size of input buffer for socket
+ * @param interf pointer to interface to bind socket on,
+ *   NULL if socket should not be bound to an interface
+ * @param log_src logging source for error messages
+ * @return 0 if socket was created, -1 if an error happened
  */
 int
-os_socket_generic_set_dscp(struct os_socket *sock, int dscp, bool ipv6) {
-  if (ipv6) {
-    if (setsockopt(sock->fd, IPPROTO_IPV6, IPV6_TCLASS, (char *) &dscp, sizeof(dscp)) < 0 ) {
-      return -1;
-    }
+os_fd_generic_getsocket(struct os_fd *sock,
+    const union netaddr_socket *bind_to,
+    bool tcp, size_t recvbuf, const struct os_interface_data *interf,
+    enum oonf_log_source log_src __attribute__((unused))) {
+  int s;
+  s = socket(bind_to->std.sa_family, tcp ? SOCK_STREAM : SOCK_DGRAM, 0);
+  if (s < 0) {
+    OONF_WARN(log_src, "Cannot open socket: %s (%d)", strerror(errno), errno);
+    return -1;
   }
-  else {
-    if (setsockopt(sock->fd, IPPROTO_IP, IP_TOS, (char *) &dscp, sizeof(dscp)) < 0 ) {
-      return -1;
-    }
+
+  if (os_fd_init(sock, s)) {
+    OONF_WARN(log_src, "Could not initialize socket");
+    return -1;
+  }
+
+  if (os_fd_configsocket(sock, bind_to, recvbuf, false, interf, log_src)) {
+    os_fd_close(sock);
+    return -1;
   }
   return 0;
 }

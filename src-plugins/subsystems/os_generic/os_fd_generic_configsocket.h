@@ -1,5 +1,5 @@
 /*
- * os_socket_generic_configsocket.h
+ * os_fd_generic_configsocket.h
  *
  *  Created on: Jan 12, 2016
  *      Author: rogge
@@ -13,7 +13,7 @@
 #include "subsystems/os_interface_data.h"
 #include "subsystems/os_socket.h"
 
-EXPORT int os_socket_generic_configsocket(struct os_socket *sock,
+EXPORT int os_fd_generic_configsocket(struct os_fd *sock,
     const union netaddr_socket *bind_to, size_t recvbuf,
     bool rawip, const struct os_interface_data *interf, enum oonf_log_source log_src);
 

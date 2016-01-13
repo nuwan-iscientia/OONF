@@ -61,68 +61,68 @@
 #define OONF_OS_SOCKET_SUBSYSTEM "os_socket"
 
 /* pre-definition of structs */
-struct os_socket;
-struct os_socket_select;
+struct os_fd;
+struct os_fd_select;
 
 /* pre-declare inlines */
-static INLINE int os_socket_init(struct os_socket *, int fd);
-static INLINE int os_socket_copy(struct os_socket *dst, struct os_socket *from);
-static INLINE int os_socket_get_fd(struct os_socket *);
-static INLINE int os_socket_invalidate(struct os_socket *);
-static INLINE bool os_socket_is_initialized(struct os_socket *);
+static INLINE int os_fd_init(struct os_fd *, int fd);
+static INLINE int os_fd_copy(struct os_fd *dst, struct os_fd *from);
+static INLINE int os_fd_get_fd(struct os_fd *);
+static INLINE int os_fd_invalidate(struct os_fd *);
+static INLINE bool os_fd_is_initialized(struct os_fd *);
 
-static INLINE int os_socket_bindto_interface(struct os_socket *, struct os_interface_data *data);
-static INLINE int os_socket_close(struct os_socket *);
-static INLINE int os_socket_listen(struct os_socket *, int n);
+static INLINE int os_fd_bindto_interface(struct os_fd *, struct os_interface_data *data);
+static INLINE int os_fd_close(struct os_fd *);
+static INLINE int os_fd_listen(struct os_fd *, int n);
 
-static INLINE int os_socket_event_add(struct os_socket_select *);
-static INLINE int os_socket_event_socket_add(struct os_socket_select *, struct os_socket *);
-static INLINE int os_socket_event_socket_read(struct os_socket_select *,
-    struct os_socket *, bool want_read);
-static INLINE int os_socket_event_is_read(struct os_socket *);
-static INLINE int os_socket_event_socket_write(struct os_socket_select *,
-    struct os_socket *, bool want_write);
-static INLINE int os_socket_event_is_write(struct os_socket *);
-static INLINE int os_socket_event_socket_remove(struct os_socket_select *, struct os_socket *);
-static INLINE int os_socket_event_set_deadline(struct os_socket_select *, uint64_t deadline);
-static INLINE uint64_t os_socket_event_get_deadline(struct os_socket_select *);
-static INLINE int os_socket_event_wait(struct os_socket_select *);
-static INLINE struct os_socket *os_socket_event_get(struct os_socket_select *, int idx);
-static INLINE int os_socket_event_remove(struct os_socket_select *);
+static INLINE int os_fd_event_add(struct os_fd_select *);
+static INLINE int os_fd_event_socket_add(struct os_fd_select *, struct os_fd *);
+static INLINE int os_fd_event_socket_read(struct os_fd_select *,
+    struct os_fd *, bool want_read);
+static INLINE int os_fd_event_is_read(struct os_fd *);
+static INLINE int os_fd_event_socket_write(struct os_fd_select *,
+    struct os_fd *, bool want_write);
+static INLINE int os_fd_event_is_write(struct os_fd *);
+static INLINE int os_fd_event_socket_remove(struct os_fd_select *, struct os_fd *);
+static INLINE int os_fd_event_set_deadline(struct os_fd_select *, uint64_t deadline);
+static INLINE uint64_t os_fd_event_get_deadline(struct os_fd_select *);
+static INLINE int os_fd_event_wait(struct os_fd_select *);
+static INLINE struct os_fd *os_fd_event_get(struct os_fd_select *, int idx);
+static INLINE int os_fd_event_remove(struct os_fd_select *);
 
-static INLINE int os_socket_connect(struct os_socket *, const union netaddr_socket *remote);
-static INLINE int os_socket_accept(struct os_socket *client,
-    struct os_socket *server, union netaddr_socket *incoming);
-static INLINE int os_socket_get_socket_error(struct os_socket *, int *value);
-static INLINE ssize_t os_socket_sendto(struct os_socket *, const void *buf, size_t length,
+static INLINE int os_fd_connect(struct os_fd *, const union netaddr_socket *remote);
+static INLINE int os_fd_accept(struct os_fd *client,
+    struct os_fd *server, union netaddr_socket *incoming);
+static INLINE int os_fd_get_socket_error(struct os_fd *, int *value);
+static INLINE ssize_t os_fd_sendto(struct os_fd *, const void *buf, size_t length,
     const union netaddr_socket *dst, bool dont_route);
-static INLINE ssize_t os_socket_recvfrom(struct os_socket *, void *buf, size_t length,
+static INLINE ssize_t os_fd_recvfrom(struct os_fd *, void *buf, size_t length,
     union netaddr_socket *source, const struct os_interface_data *interf);
-static INLINE const char *os_socket_get_loopback_name(void);
-static INLINE ssize_t os_socket_sendfile(struct os_socket *, struct os_socket *,
+static INLINE const char *os_fd_get_loopback_name(void);
+static INLINE ssize_t os_fd_sendfile(struct os_fd *, struct os_fd *,
     size_t offset, size_t count);
 
-static INLINE int os_socket_getsocket(struct os_socket *, const union netaddr_socket *bindto, bool tcp,
+static INLINE int os_fd_getsocket(struct os_fd *, const union netaddr_socket *bindto, bool tcp,
     size_t recvbuf, const struct os_interface_data *, enum oonf_log_source log_src);
-static INLINE int os_socket_getrawsocket(struct os_socket *, const union netaddr_socket *bindto, int protocol,
+static INLINE int os_fd_getrawsocket(struct os_fd *, const union netaddr_socket *bindto, int protocol,
     size_t recvbuf, const struct os_interface_data *, enum oonf_log_source log_src);
-static INLINE int os_socket_configsocket(struct os_socket *, const union netaddr_socket *bindto,
+static INLINE int os_fd_configsocket(struct os_fd *, const union netaddr_socket *bindto,
     size_t recvbuf, bool rawip, const struct os_interface_data *, enum oonf_log_source log_src);
-static INLINE int os_socket_set_nonblocking(struct os_socket *);
-static INLINE int os_socket_join_mcast_recv(struct os_socket *, const struct netaddr *multicast,
+static INLINE int os_fd_set_nonblocking(struct os_fd *);
+static INLINE int os_fd_join_mcast_recv(struct os_fd *, const struct netaddr *multicast,
     const struct os_interface_data *oif, enum oonf_log_source log_src);
-static INLINE int os_socket_join_mcast_send(struct os_socket *, const struct netaddr *multicast,
+static INLINE int os_fd_join_mcast_send(struct os_fd *, const struct netaddr *multicast,
     const struct os_interface_data *oif, bool loop, enum oonf_log_source log_src);
-static INLINE int os_socket_set_dscp(struct os_socket *, int dscp, bool ipv6);
-static INLINE uint8_t *os_socket_skip_rawsocket_prefix(uint8_t *ptr, ssize_t *len, int af_type);
+static INLINE int os_fd_set_dscp(struct os_fd *, int dscp, bool ipv6);
+static INLINE uint8_t *os_fd_skip_rawsocket_prefix(uint8_t *ptr, ssize_t *len, int af_type);
 
 /* include os-specific headers */
 #if defined(__linux__)
-#include "os_linux/os_socket_linux.h"
+#include "os_linux/os_fd_linux.h"
 #elif defined (BSD)
-#include "subsystems/os_bsd/os_socket_bsd.h"
+#include "subsystems/os_bsd/os_fd_bsd.h"
 #elif defined (_WIN32)
-#include "subsystems/os_win32/os_socket_win32.h"
+#include "subsystems/os_win32/os_fd_win32.h"
 #else
 #error "Unknown operation system"
 #endif

@@ -60,7 +60,7 @@
  */
 struct oonf_socket_entry {
   /*! file descriptor of the socket */
-  struct os_socket fd;
+  struct os_fd fd;
 
   /**
    * Callback when read or write event happens to socket
@@ -81,10 +81,10 @@ EXPORT void oonf_socket_set_write(
 
 static INLINE bool
 oonf_socket_is_read(struct oonf_socket_entry *entry) {
-  return os_socket_event_is_read(&entry->fd);
+  return os_fd_event_is_read(&entry->fd);
 }
 static INLINE bool
 oonf_socket_is_write(struct oonf_socket_entry *entry) {
-  return os_socket_event_is_write(&entry->fd);
+  return os_fd_event_is_write(&entry->fd);
 }
 #endif /* OONF_SOCKET_H_ */

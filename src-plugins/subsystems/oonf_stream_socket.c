@@ -72,7 +72,7 @@ static int _apply_managed_socket(int af_type, struct oonf_stream_managed *manage
     struct oonf_stream_socket *stream, struct os_interface_data *data);
 static void _cb_parse_request(struct oonf_socket_entry *);
 static struct oonf_stream_session *_create_session(
-    struct oonf_stream_socket *stream_socket, struct os_socket *sock,
+    struct oonf_stream_socket *stream_socket, struct os_fd *sock,
     const struct netaddr *remote_addr,
     const union netaddr_socket *remote_socket);
 static void _cb_parse_connection(struct oonf_socket_entry *entry);
@@ -167,13 +167,13 @@ oonf_stream_add(struct oonf_stream_socket *stream_socket,
   /* server socket not necessary for outgoing connections */
   if (netaddr_socket_get_port(local) != 0) {
     /* Init socket */
-    if (os_socket_getsocket(&stream_socket->scheduler_entry.fd,
+    if (os_fd_getsocket(&stream_socket->scheduler_entry.fd,
         local, true, 0, NULL, LOG_STREAM)) {
       goto add_stream_error;
     }
 
     /* show that we are willing to listen */
-    if (os_socket_listen(&stream_socket->scheduler_entry.fd, 1) == -1) {
+    if (os_fd_listen(&stream_socket->scheduler_entry.fd, 1) == -1) {
       OONF_WARN(LOG_STREAM, "tcp socket listen failed for %s: %s (%d)\n",
           netaddr_socket_to_string(&buf, local), strerror(errno), errno);
       goto add_stream_error;
@@ -203,7 +203,7 @@ oonf_stream_add(struct oonf_stream_socket *stream_socket,
 
 add_stream_error:
   oonf_socket_remove(&stream_socket->scheduler_entry);
-  os_socket_close(&stream_socket->scheduler_entry.fd);
+  os_fd_close(&stream_socket->scheduler_entry.fd);
   return -1;
 }
 
@@ -228,7 +228,7 @@ oonf_stream_remove(struct oonf_stream_socket *stream_socket, bool force) {
   list_remove(&stream_socket->_node);
 
   oonf_socket_remove(&stream_socket->scheduler_entry);
-  os_socket_close(&stream_socket->scheduler_entry.fd);
+  os_fd_close(&stream_socket->scheduler_entry.fd);
 }
 
 /**
@@ -263,7 +263,7 @@ struct oonf_stream_session *
 oonf_stream_connect_to(struct oonf_stream_socket *stream_socket,
     const union netaddr_socket *remote) {
   struct oonf_stream_session *session;
-  struct os_socket sock;
+  struct os_fd sock;
   struct netaddr remote_addr;
   bool wait_for_connect = false;
   struct netaddr_str nbuf1;
@@ -275,12 +275,12 @@ oonf_stream_connect_to(struct oonf_stream_socket *stream_socket,
       netaddr_socket_to_string(&nbuf1, &stream_socket->local_socket),
       netaddr_socket_to_string(&nbuf2, remote));
 
-  if (os_socket_getsocket(&sock,
+  if (os_fd_getsocket(&sock,
       &stream_socket->local_socket, true, 0, NULL, LOG_STREAM)) {
     return NULL;
   }
 
-  if (os_socket_connect(&sock, remote)) {
+  if (os_fd_connect(&sock, remote)) {
     if (errno != EINPROGRESS) {
       OONF_WARN(LOG_STREAM, "Cannot connect outgoing tcp connection to %s: %s (%d)",
           netaddr_socket_to_string(&nbuf1, remote), strerror(errno), errno);
@@ -298,7 +298,7 @@ oonf_stream_connect_to(struct oonf_stream_socket *stream_socket,
 
   /* fall through */
 connect_to_error:
-  os_socket_close(&stream_socket->scheduler_entry.fd);
+  os_fd_close(&stream_socket->scheduler_entry.fd);
   return NULL;
 }
 
@@ -464,7 +464,7 @@ _stream_close(struct oonf_stream_session *session) {
   list_remove(&session->node);
 
   oonf_socket_remove(&session->scheduler_entry);
-  os_socket_close(&session->scheduler_entry.fd);
+  os_fd_close(&session->scheduler_entry.fd);
 
   abuf_free(&session->in);
   abuf_free(&session->out);
@@ -567,7 +567,7 @@ _cb_parse_request(struct oonf_socket_entry *entry) {
   struct oonf_stream_socket *stream;
   union netaddr_socket remote_socket;
   struct netaddr remote_addr;
-  struct os_socket sock;
+  struct os_fd sock;
 #ifdef OONF_LOG_DEBUG_INFO
   struct netaddr_str buf1, buf2;
 #endif
@@ -578,7 +578,7 @@ _cb_parse_request(struct oonf_socket_entry *entry) {
 
   stream = container_of(entry, typeof(*stream), scheduler_entry);
 
-  if (os_socket_accept(&sock, &entry->fd, &remote_socket)) {
+  if (os_fd_accept(&sock, &entry->fd, &remote_socket)) {
     OONF_WARN(LOG_STREAM, "accept() call returned error: %s (%d)", strerror(errno), errno);
     return;
   }
@@ -589,7 +589,7 @@ _cb_parse_request(struct oonf_socket_entry *entry) {
       OONF_DEBUG(LOG_STREAM, "Access from %s to socket %s blocked because of ACL",
           netaddr_to_string(&buf1, &remote_addr),
           netaddr_socket_to_string(&buf2, &stream->local_socket));
-      os_socket_close(&sock);
+      os_fd_close(&sock);
       return;
     }
   }
@@ -605,7 +605,7 @@ _cb_parse_request(struct oonf_socket_entry *entry) {
  */
 static struct oonf_stream_session *
 _create_session(struct oonf_stream_socket *stream_socket,
-    struct os_socket *sock, const struct netaddr *remote_addr,
+    struct os_fd *sock, const struct netaddr *remote_addr,
     const union netaddr_socket *remote_socket) {
   struct oonf_stream_session *session;
 #ifdef OONF_LOG_DEBUG_INFO
@@ -613,7 +613,7 @@ _create_session(struct oonf_stream_socket *stream_socket,
 #endif
 
   /* put socket into non-blocking mode */
-  if (os_socket_set_nonblocking(sock)) {
+  if (os_fd_set_nonblocking(sock)) {
     OONF_WARN(LOG_STREAM, "Cannot read comport socket status: %s (%d)",
         strerror(errno), errno);
     return NULL;
@@ -634,7 +634,7 @@ _create_session(struct oonf_stream_socket *stream_socket,
     goto parse_request_error;
   }
 
-  os_socket_copy(&session->scheduler_entry.fd, sock);
+  os_fd_copy(&session->scheduler_entry.fd, sock);
   session->scheduler_entry.process = _cb_parse_connection;
   oonf_socket_add(&session->scheduler_entry);
   oonf_socket_set_read(&session->scheduler_entry, true);
@@ -669,7 +669,7 @@ _create_session(struct oonf_stream_socket *stream_socket,
   }
 
   OONF_DEBUG(LOG_STREAM, "Got connection through socket %d with %s.\n",
-      os_socket_get_fd(sock), netaddr_to_string(&buf, remote_addr));
+      os_fd_get_fd(sock), netaddr_to_string(&buf, remote_addr));
 
   list_add_tail(&stream_socket->session, &session->node);
   return session;
@@ -711,7 +711,7 @@ _cb_parse_connection(struct oonf_socket_entry *entry) {
   s_sock = session->stream_socket;
 
   OONF_DEBUG(LOG_STREAM, "Parsing connection of socket %d\n",
-      os_socket_get_fd(&entry->fd));
+      os_fd_get_fd(&entry->fd));
 
   /* mark session and s_sock as busy */
   session->busy = true;
@@ -721,7 +721,7 @@ _cb_parse_connection(struct oonf_socket_entry *entry) {
     if (oonf_socket_is_write(entry)) {
       int value;
 
-      if(os_socket_get_socket_error(&entry->fd, &value)) {
+      if(os_fd_get_socket_error(&entry->fd, &value)) {
         OONF_WARN(LOG_STREAM, "getsockopt failed: %s (%d)",
             strerror(errno), errno);
         session->state = STREAM_SESSION_CLEANUP;
@@ -746,7 +746,7 @@ _cb_parse_connection(struct oonf_socket_entry *entry) {
 
   /* read data if necessary */
   if (session->state == STREAM_SESSION_ACTIVE && oonf_socket_is_read(entry)) {
-    len = os_socket_recvfrom(&entry->fd, buffer, sizeof(buffer), NULL, 0);
+    len = os_fd_recvfrom(&entry->fd, buffer, sizeof(buffer), NULL, 0);
     if (len > 0) {
       OONF_DEBUG(LOG_STREAM, "  recv returned %d\n", len);
       if (abuf_memcpy(&session->in, buffer, len)) {
@@ -784,7 +784,7 @@ _cb_parse_connection(struct oonf_socket_entry *entry) {
   /* send data if necessary */
   if (session->state != STREAM_SESSION_CLEANUP && abuf_getlen(&session->out) > 0) {
     if (oonf_socket_is_write(entry)) {
-      len = os_socket_sendto(&entry->fd, abuf_getptr(&session->out), abuf_getlen(&session->out), NULL, false);
+      len = os_fd_sendto(&entry->fd, abuf_getptr(&session->out), abuf_getlen(&session->out), NULL, false);
 
       if (len > 0) {
         OONF_DEBUG(LOG_STREAM, "  send returned %d\n", len);
@@ -805,14 +805,14 @@ _cb_parse_connection(struct oonf_socket_entry *entry) {
   /* send file if necessary */
   if (session->state == STREAM_SESSION_SEND_AND_QUIT
       && abuf_getlen(&session->out) == 0
-      && os_socket_is_initialized(&session->copy_fd)) {
+      && os_fd_is_initialized(&session->copy_fd)) {
     if (oonf_socket_is_write(entry)) {
-      len = os_socket_sendfile(&entry->fd, &session->copy_fd, session->copy_bytes_sent,
+      len = os_fd_sendfile(&entry->fd, &session->copy_fd, session->copy_bytes_sent,
           session->copy_total_size - session->copy_bytes_sent);
       if (len <= 0) {
         OONF_WARN(LOG_STREAM, "Error while copying file to output stream (%d/%d): %s (%d)",
-            os_socket_get_fd(&entry->fd),
-            os_socket_get_fd(&session->copy_fd), strerror(errno), errno);
+            os_fd_get_fd(&entry->fd),
+            os_fd_get_fd(&session->copy_fd), strerror(errno), errno);
         session->state = STREAM_SESSION_CLEANUP;
       }
       else {
