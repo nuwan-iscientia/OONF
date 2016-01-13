@@ -67,14 +67,14 @@ IF(LINUX)
     SET(OS_ROUTING_INCLUDE   ${OS_ROUTING_INCLUDE}
                              os_linux/os_routing_linux.h)
 
-    SET(OS_FD_SOURCE     os_generic/os_fd_generic_configsocket.c
+    SET(OS_FD_SOURCE         os_generic/os_fd_generic_configsocket.c
                              os_generic/os_fd_generic_getsocket.c
                              os_generic/os_fd_generic_getrawsocket.c
                              os_generic/os_fd_generic_join_mcast.c
                              os_generic/os_fd_generic_set_nonblocking.c
                              os_generic/os_fd_generic_set_dscp.c
                              os_linux/os_fd_linux.c)
-    SET(OS_FD_INCLUDE    ${OS_FD_INCLUDE}
+    SET(OS_FD_INCLUDE        ${OS_FD_INCLUDE}
                              os_generic/os_fd_generic_configsocket.h
                              os_generic/os_fd_generic_getsocket.h
                              os_generic/os_fd_generic_getrawsocket.h
