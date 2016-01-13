@@ -83,7 +83,7 @@ struct os_fd_select _socket_events;
 /* subsystem definition */
 static const char *_dependencies[] = {
   OONF_TIMER_SUBSYSTEM,
-  OONF_OS_SOCKET_SUBSYSTEM,
+  OONF_OS_FD_SUBSYSTEM,
 };
 
 static struct oonf_subsystem _oonf_socket_subsystem = {

@@ -68,7 +68,7 @@ static const char *_dependencies[] = {
 };
 
 static struct oonf_subsystem _oonf_os_fd_subsystem = {
-  .name = OONF_OS_SOCKET_SUBSYSTEM,
+  .name = OONF_OS_FD_SUBSYSTEM,
   .dependencies = _dependencies,
   .dependencies_count = ARRAYSIZE(_dependencies),
   .init = _init,

@@ -43,8 +43,8 @@
  * @file
  */
 
-#ifndef OS_SOCKET_H_
-#define OS_SOCKET_H_
+#ifndef OS_FD_H_
+#define OS_FD_H_
 
 #include <unistd.h>
 #include <sys/select.h>
@@ -58,7 +58,7 @@
 #include "subsystems/os_interface.h"
 
 /*! subsystem identifier */
-#define OONF_OS_SOCKET_SUBSYSTEM "os_socket"
+#define OONF_OS_FD_SUBSYSTEM "os_socket"
 
 /* pre-definition of structs */
 struct os_fd;
@@ -127,4 +127,4 @@ static INLINE uint8_t *os_fd_skip_rawsocket_prefix(uint8_t *ptr, ssize_t *len, i
 #error "Unknown operation system"
 #endif
 
-#endif /* OS_SOCKET_H_ */
+#endif /* OS_FD_H_ */

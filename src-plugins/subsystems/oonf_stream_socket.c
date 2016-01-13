@@ -101,7 +101,7 @@ static const char *_dependencies[] = {
   OONF_SOCKET_SUBSYSTEM,
   OONF_TIMER_SUBSYSTEM,
   OONF_OS_SYSTEM_SUBSYSTEM,
-  OONF_OS_SOCKET_SUBSYSTEM,
+  OONF_OS_FD_SUBSYSTEM,
 };
 
 static struct oonf_subsystem _oonf_stream_socket_subsystem = {

@@ -43,8 +43,8 @@
  * @file
  */
 
-#ifndef OS_SOCKET_LINUX_H_
-#define OS_SOCKET_LINUX_H_
+#ifndef OS_FD_LINUX_H_
+#define OS_FD_LINUX_H_
 
 #include <sys/epoll.h>
 #include <unistd.h>
@@ -64,7 +64,7 @@
 #define IF_LOOPBACK_NAME "lo"
 
 enum os_fd_flags {
-  OS_SOCKET_ACTIVE = 1,
+  OS_FD_ACTIVE = 1,
 };
 
 /*! linux specific socket definition */
@@ -233,7 +233,7 @@ os_fd_skip_rawsocket_prefix(uint8_t *ptr, ssize_t *len, int af_type) {
 static INLINE int
 os_fd_init(struct os_fd *os_fd, int fd) {
   os_fd->fd = fd;
-  os_fd->_flags = OS_SOCKET_ACTIVE;
+  os_fd->_flags = OS_FD_ACTIVE;
   return 0;
 }
 
@@ -256,7 +256,7 @@ os_fd_invalidate(struct os_fd *sock) {
  */
 static INLINE bool
 os_fd_is_initialized(struct os_fd *sock) {
-  return (sock->_flags & OS_SOCKET_ACTIVE) != 0;
+  return (sock->_flags & OS_FD_ACTIVE) != 0;
 }
 
 /**
@@ -551,4 +551,4 @@ os_fd_sendfile(struct os_fd *out, struct os_fd *in, size_t offset, size_t count)
   return sendfile(out->fd, in->fd, &int_offset, count);
 }
 
-#endif /* OS_SOCKET_LINUX_H_ */
+#endif /* OS_FD_LINUX_H_ */
