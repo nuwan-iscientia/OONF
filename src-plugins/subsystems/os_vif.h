@@ -49,6 +49,8 @@
 #include "common/common_types.h"
 #include "common/avl.h"
 
+#include "subsystems/os_socket.h"
+
 /*! subsystem identifier */
 #define OONF_OS_VIF_SUBSYSTEM "os_vif"
 
@@ -77,11 +79,11 @@ struct os_vif {
   /*! name of virtual interface */
   const char *if_name;
 
-  /*! file descriptor of interface, is being set by API */
-  int fd;
-
   /*! type of virtual interface */
   enum vif_type type;
+
+  /*! socket for virtual interface */
+  struct os_fd *fd;
 
   /*! hook into global tree of virtual interfaces */
   struct avl_node _vif_node;
@@ -90,7 +92,7 @@ struct os_vif {
   struct os_vif_internal _internal;
 };
 
-EXPORT int os_vif_open(struct os_vif *vif);
+EXPORT int os_vif_open(struct os_fd *fd, struct os_vif *vif);
 EXPORT void os_vif_close(struct os_vif *vif);
 
 EXPORT struct avl_tree *os_vif_get_tree(void);

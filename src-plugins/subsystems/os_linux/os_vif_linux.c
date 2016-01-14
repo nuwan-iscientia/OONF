@@ -106,7 +106,7 @@ _cleanup(void) {
  * @return -1 if an error happened, 0 otherwise
  */
 int
-os_vif_open(struct os_vif *vif) {
+os_vif_open(struct os_fd *sock, struct os_vif *vif) {
   struct ifreq if_req;
   int fd, flag;
 
@@ -146,10 +146,11 @@ os_vif_open(struct os_vif *vif) {
   }
 
   /* initialize vif memory */
-  vif->fd = fd;
+  os_fd_init(sock, fd);
   vif->_vif_node.key = vif->if_name;
 
   avl_insert(&_vif_tree, &vif->_vif_node);
+
   return 0;
 }
 
@@ -160,9 +161,7 @@ os_vif_open(struct os_vif *vif) {
 void
 os_vif_close(struct os_vif *vif) {
   if (avl_is_node_added(&vif->_vif_node)) {
-    close(vif->fd);
-    vif->fd = 0;
-
+    os_fd_close(vif->fd);
     avl_remove(&_vif_tree, &vif->_vif_node);
   }
 }
