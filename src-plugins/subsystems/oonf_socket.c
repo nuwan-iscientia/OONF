@@ -248,18 +248,17 @@ _handle_scheduling(void)
     for (i=0; i<n; i++) {
       sock = os_fd_event_get(&_socket_events, i);
 
-      OONF_DEBUG(LOG_SOCKET, "Socket %d triggered (read=%s, write=%s)",
-          os_fd_get_fd(&sock_entry->fd),
-          os_fd_event_is_read(sock) ? "true" : "false",
-          os_fd_event_is_write(sock) ? "true" : "false");
-
-
       if (os_fd_event_is_read(sock)
           || os_fd_event_is_write(sock)) {
         sock_entry = container_of(sock, typeof(*sock_entry), fd);
         if (sock_entry->process == NULL) {
           continue;
         }
+
+        OONF_DEBUG(LOG_SOCKET, "Socket %d triggered (read=%s, write=%s)",
+            os_fd_get_fd(&sock_entry->fd),
+            os_fd_event_is_read(sock) ? "true" : "false",
+            os_fd_event_is_write(sock) ? "true" : "false");
 
         os_clock_gettime64(&start_time);
         sock_entry->process(sock_entry);
