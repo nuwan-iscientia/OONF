@@ -40,7 +40,7 @@
  */
 
 /**
- * @file src-plugins/olsrv2/olsrv2info/olsrv2info.c
+ * @file
  */
 
 #include "common/common_types.h"
@@ -63,15 +63,7 @@
 
 #include "olsrv2info/olsrv2info.h"
 
-/* name of telnet subcommands/JSON nodes */
-#define _JSON_NAME_ORIGINATOR         "originator"
-#define _JSON_NAME_OLD_ORIGINATOR     "old_originator"
-#define _JSON_NAME_LAN                "lan"
-#define _JSON_NAME_NODE               "node"
-#define _JSON_NAME_ATTACHED_NETWORK   "attached_network"
-#define _JSON_NAME_EDGE               "edge"
-#define _JSON_NAME_ROUTE              "route"
-
+/* definitions */
 #define LOG_OLSRV2INFO olsrv2_olsrv2info_subsystem.logging
 
 /* prototypes */
@@ -86,7 +78,6 @@ static void _initialize_old_originator_values(struct olsrv2_originator_set_entry
 static void _initialize_domain_values(struct nhdp_domain *domain);
 static void _initialize_domain_link_metric_values(struct nhdp_domain *domain, uint32_t);
 static void _initialize_domain_distance(uint8_t);
-static void _initialize_domain_active(bool);
 static void _initialize_lan_values(struct olsrv2_lan_entry *);
 static void _initialize_node_values(struct olsrv2_tc_node *);
 static void _initialize_attached_network_values(struct olsrv2_tc_attachment *edge);
@@ -106,45 +97,98 @@ static int _cb_create_text_route(struct oonf_viewer_template *);
  *
  * The keys are API, so they should not be changed after published
  */
+
+/*! template key for originator IP */
 #define KEY_ORIGINATOR              "originator"
 
+/*! template key for former originator IP */
 #define KEY_OLD_ORIGINATOR          "old_originator"
+
+/*! template key for former originator validity time */
 #define KEY_OLD_ORIGINATOR_VTIME    "old_originator_vtime"
 
+/*! template key for nhdp domain */
 #define KEY_DOMAIN                  "domain"
+
+/*! template key for metric name */
 #define KEY_DOMAIN_METRIC           "domain_metric"
+
+/*! template key for incoming human readable metric */
 #define KEY_DOMAIN_METRIC_IN        "domain_metric_in"
+
+/*! template key for outgoing human readable metric */
 #define KEY_DOMAIN_METRIC_OUT       "domain_metric_out"
+
+/*! template key for incoming numeric metric */
 #define KEY_DOMAIN_METRIC_IN_RAW    "domain_metric_in_raw"
+
+/*! template key for outgoing numeric metric */
 #define KEY_DOMAIN_METRIC_OUT_RAW   "domain_metric_out_raw"
 
+/*! template key for route distance */
 #define KEY_DOMAIN_DISTANCE         "domain_distance"
-#define KEY_DOMAIN_PATH_HOPS        "domain_path_hops"
-#define KEY_DOMAIN_ACTIVE           "domain_active"
 
+/*! template key for hopcount of a routing path */
+#define KEY_DOMAIN_PATH_HOPS        "domain_path_hops"
+
+/*! template key for local attached network destination prefix */
 #define KEY_LAN_DST                 "lan"
+
+/*! template key for local attached network source prefix */
 #define KEY_LAN_SRC                 "lan_src"
 
+/*! template key for node IP */
 #define KEY_NODE                    "node"
+
+/*! template key for node validity time */
 #define KEY_NODE_VTIME              "node_vtime"
+
+/*! template key for current node answer set number */
 #define KEY_NODE_ANSN               "node_ansn"
 
+/*! template key for attached network destination prefix*/
 #define KEY_ATTACHED_NET            "attached_net"
+
+/*! template key for attached network source prefix */
 #define KEY_ATTACHED_NET_SRC        "attached_net_src"
+
+/*! template key for attached network answer set number */
 #define KEY_ATTACHED_NET_ANSN       "attached_net_ansn"
 
+/*! template key for edge destination */
 #define KEY_EDGE                    "edge"
+
+/*! template key for edge answer set number */
 #define KEY_EDGE_ANSN               "edge_ansn"
 
+/*! template key for route source ip */
 #define KEY_ROUTE_SRC_IP            "route_src_ip"
+
+/*! template key for route gateway IP */
 #define KEY_ROUTE_GW                "route_gw"
+
+/*! template key for route destination prefix */
 #define KEY_ROUTE_DST               "route_dst"
+
+/*! template key for route source prefix */
 #define KEY_ROUTE_SRC_PREFIX        "route_src_prefix"
+
+/*! template key for route metric */
 #define KEY_ROUTE_METRIC            "route_metric"
+
+/*! template key for routing table */
 #define KEY_ROUTE_TABLE             "route_table"
+
+/*! template key for routing protocol */
 #define KEY_ROUTE_PROTO             "route_proto"
+
+/*! template key for route interface name */
 #define KEY_ROUTE_IF                "route_if"
+
+/*! template key for route interface index */
 #define KEY_ROUTE_IFINDEX           "route_ifindex"
+
+/*! template key for the last hop before the route destination */
 #define KEY_ROUTE_LASTHOP           "route_lasthop"
 
 /*
@@ -162,7 +206,6 @@ static struct nhdp_metric_str     _value_domain_metric_out;
 static char                       _value_domain_metric_out_raw[12];
 static char                       _value_domain_distance[4];
 static char                       _value_domain_path_hops[4];
-static char                       _value_domain_active[TEMPLATE_JSON_BOOL_LENGTH];
 
 static struct netaddr_str         _value_lan_dst;
 static struct netaddr_str         _value_lan_src;
@@ -215,10 +258,6 @@ static struct abuf_template_data_entry _tde_domain_lan_distance[] = {
 
 static struct abuf_template_data_entry _tde_domain_path_hops[] = {
     { KEY_DOMAIN_PATH_HOPS, _value_domain_path_hops, false },
-};
-
-static struct abuf_template_data_entry _tde_domain_lan_active[] = {
-    { KEY_DOMAIN_ACTIVE, _value_domain_active, true },
 };
 
 static struct abuf_template_data_entry _tde_lan[] = {
@@ -274,7 +313,6 @@ static struct abuf_template_data _td_lan[] = {
     { _tde_domain, ARRAYSIZE(_tde_domain) },
     { _tde_domain_metric_out, ARRAYSIZE(_tde_domain_metric_out) },
     { _tde_domain_lan_distance, ARRAYSIZE(_tde_domain_lan_distance) },
-    { _tde_domain_lan_active, ARRAYSIZE(_tde_domain_lan_active) },
 };
 static struct abuf_template_data _td_node[] = {
     { _tde_node, ARRAYSIZE(_tde_node) },
@@ -304,43 +342,43 @@ static struct oonf_viewer_template _templates[] = {
     {
         .data = _td_orig,
         .data_size = ARRAYSIZE(_td_orig),
-        .json_name = _JSON_NAME_ORIGINATOR,
+        .json_name = "originator",
         .cb_function = _cb_create_text_originator,
     },
     {
         .data = _td_old_orig,
         .data_size = ARRAYSIZE(_td_old_orig),
-        .json_name = _JSON_NAME_OLD_ORIGINATOR,
+        .json_name = "old_originator",
         .cb_function = _cb_create_text_old_originator,
     },
     {
         .data = _td_lan,
         .data_size = ARRAYSIZE(_td_lan),
-        .json_name = _JSON_NAME_LAN,
+        .json_name = "lan",
         .cb_function = _cb_create_text_lan,
     },
     {
         .data = _td_node,
         .data_size = ARRAYSIZE(_td_node),
-        .json_name = _JSON_NAME_NODE,
+        .json_name = "node",
         .cb_function = _cb_create_text_node,
     },
     {
         .data = _td_attached_net,
         .data_size = ARRAYSIZE(_td_attached_net),
-        .json_name = _JSON_NAME_ATTACHED_NETWORK,
+        .json_name = "attached_network",
         .cb_function = _cb_create_text_attached_network,
     },
     {
         .data = _td_edge,
         .data_size = ARRAYSIZE(_td_edge),
-        .json_name = _JSON_NAME_EDGE,
+        .json_name = "edge",
         .cb_function = _cb_create_text_edge,
     },
     {
         .data = _td_route,
         .data_size = ARRAYSIZE(_td_route),
-        .json_name = _JSON_NAME_ROUTE,
+        .json_name = "route",
         .cb_function = _cb_create_text_route,
     }
 };
@@ -356,7 +394,7 @@ static const char *_dependencies[] = {
   OONF_NHDP_SUBSYSTEM,
   OONF_OLSRV2_SUBSYSTEM,
 };
-struct oonf_subsystem olsrv2_olsrv2info_subsystem = {
+static struct oonf_subsystem olsrv2_olsrv2info_subsystem = {
   .name = OONF_OLSRV2INFO_SUBSYSTEM,
   .dependencies = _dependencies,
   .dependencies_count = ARRAYSIZE(_dependencies),
@@ -491,16 +529,6 @@ _initialize_domain_path_hops(uint8_t path_hops) {
 }
 
 /**
- * Initialize the value buffer for the 'active' domain flag
- * @param active active domain flag
- */
-static void
-_initialize_domain_active(bool active) {
-  strscpy(_value_domain_active, json_getbool(active),
-      sizeof(_value_domain_active));
-}
-
-/**
  * Initialize the value buffer for a LAN entry
  * @param lan OLSRv2 LAN entry
  */
@@ -556,21 +584,21 @@ _initialize_edge_values(struct olsrv2_tc_edge *edge) {
 static void
 _initialize_route_values(struct olsrv2_routing_entry *route) {
 
-  netaddr_to_string(&_value_route_dst, &route->route.key.dst);
-  netaddr_to_string(&_value_route_gw, &route->route.gw);
-  netaddr_to_string(&_value_route_src_ip, &route->route.src_ip);
-  netaddr_to_string(&_value_route_src_prefix, &route->route.key.src);
+  netaddr_to_string(&_value_route_dst, &route->route.p.key.dst);
+  netaddr_to_string(&_value_route_gw, &route->route.p.gw);
+  netaddr_to_string(&_value_route_src_ip, &route->route.p.src_ip);
+  netaddr_to_string(&_value_route_src_prefix, &route->route.p.key.src);
 
   snprintf(_value_route_metric, sizeof(_value_route_metric),
-      "%u", route->route.metric);
+      "%u", route->route.p.metric);
   snprintf(_value_route_table, sizeof(_value_route_table),
-      "%u", route->route.table);
+      "%u", route->route.p.table);
   snprintf(_value_route_proto, sizeof(_value_route_proto),
-      "%u", route->route.protocol);
+      "%u", route->route.p.protocol);
 
-  if_indextoname(route->route.if_index, _value_route_if);
+  if_indextoname(route->route.p.if_index, _value_route_if);
   snprintf(_value_route_ifindex, sizeof(_value_route_ifindex),
-      "%u", route->route.if_index);
+      "%u", route->route.p.if_index);
 
   netaddr_to_string(&_value_route_lasthop, &route->last_originator);
 }
@@ -625,15 +653,15 @@ _cb_create_text_lan(struct oonf_viewer_template *template) {
     _initialize_lan_values(lan);
 
     list_for_each_element(nhdp_domain_get_list(), domain, _node) {
-      _initialize_domain_values(domain);
-      _initialize_domain_link_metric_values(domain,
-          olsrv2_lan_get_domaindata(domain, lan)->outgoing_metric);
-      _initialize_domain_distance(
-          olsrv2_lan_get_domaindata(domain, lan)->distance);
-      _initialize_domain_active(
-          olsrv2_lan_get_domaindata(domain, lan)->active);
+      if (olsrv2_lan_get_domaindata(domain, lan)->active) {
+        _initialize_domain_values(domain);
+        _initialize_domain_link_metric_values(domain,
+            olsrv2_lan_get_domaindata(domain, lan)->outgoing_metric);
+        _initialize_domain_distance(
+            olsrv2_lan_get_domaindata(domain, lan)->distance);
 
-      oonf_viewer_output_print_line(template);
+        oonf_viewer_output_print_line(template);
+      }
     }
   }
   return 0;

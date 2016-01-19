@@ -40,29 +40,64 @@
  */
 
 /**
- * @file src-plugins/subsystems/os_generic/os_socket_generic_set_nonblocking.c
+ * @file
  */
 
-#include <fcntl.h>
+#ifndef OS_TUNNEL_H_
+#define OS_TUNNEL_H_
 
-#include "../os_socket.h"
+#include "common/common_types.h"
+#include "common/avl.h"
+#include "common/netaddr.h"
 
-/**
- * Set a socket to non-blocking mode
- * @param sock filedescriptor of socket
- * @return -1 if an error happened, 0 otherwise
- */
-int
-os_socket_set_nonblocking(int sock) {
-  int state;
+/*! subsystem identifier */
+#define OONF_OS_TUNNEL_SUBSYSTEM "os_tunnel"
 
-  /* put socket into non-blocking mode */
-  if ((state = fcntl(sock, F_GETFL)) == -1) {
-    return -1;
-  }
+/* include os-specific headers */
+#if defined(__linux__)
+#include "subsystems/os_linux/os_tunnel_linux.h"
+#else
+#error "Unknown operation system"
+#endif
 
-  if (fcntl(sock, F_SETFL, state | O_NONBLOCK) < 0) {
-    return -1;
-  }
-  return 0;
-}
+enum os_tunnel_type {
+  OS_TUNNEL_IPV4,
+  OS_TUNNEL_IPV6,
+  OS_TUNNEL_GRE,
+};
+
+struct os_tunnel_parameter {
+  /*! name of the tunnel interface */
+  char tunnel_if[IF_NAMESIZE];
+
+  /*! inner type of data used by the tunnel */
+  enum os_tunnel_type inner_type;
+
+  /*! interface the tunnel is bound to, can be empty */
+  char base_if[IF_NAMESIZE];
+
+  /*! local IP address of the tunnel */
+  struct netaddr local;
+
+  /*! remote IP address of the tunnel */
+  struct netaddr remote;
+};
+
+struct os_tunnel {
+  /*! configuration data of tunnel */
+  struct os_tunnel_parameter p;
+
+  /*! tunnel interface index */
+  unsigned if_index;
+
+  /*! hook into global tree of tunnels */
+  struct avl_node _node;
+
+  /*! os specific tunnel data */
+  struct os_tunnel_internal _internal;
+};
+
+EXPORT int os_tunnel_add(struct os_tunnel *);
+EXPORT int os_tunnel_remove(struct os_tunnel *);
+
+#endif /* OS_TUNNEL_H_ */

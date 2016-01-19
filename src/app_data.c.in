@@ -52,7 +52,8 @@ static struct oonf_appdata _appdata = {
   .default_lockfile = OS_CORE_LOCKFILE_FOLDER "${OONF_APP}.lock",
   .default_cfg_handler = "${OONF_APP_DEFAULT_CFG_HANDLER}",
 
-  .need_root = ${OONF_NEED_ROOT}
+  .need_root = ${OONF_NEED_ROOT},
+  .need_lock = ${OONF_NEED_LOCK},
 };
 
 const struct oonf_appdata *

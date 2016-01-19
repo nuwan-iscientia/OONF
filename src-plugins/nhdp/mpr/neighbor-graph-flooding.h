@@ -40,7 +40,7 @@
  */
 
 /**
- * @file src-plugins/nhdp/mpr/neighbor-graph-flooding.h
+ * @file
  */
 
 #ifndef __NEIGHBOR_GRAPH_FLOODING__

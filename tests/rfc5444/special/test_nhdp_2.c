@@ -40,7 +40,7 @@
  */
 
 /**
- * @file ./tests/rfc5444/special/test_nhdp_2.c
+ * @file
  */
 #include <assert.h>
 #include <stdlib.h>

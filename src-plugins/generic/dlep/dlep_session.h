@@ -40,7 +40,7 @@
  */
 
 /**
- * @file src-plugins/generic/dlep/dlep_session.h
+ * @file
  */
 
 #ifndef _DLEP_SESSION_H_
@@ -62,15 +62,35 @@ struct dlep_writer;
 #include "dlep/dlep_extension.h"
 #include "dlep/dlep_iana.h"
 
+/**
+ * Return codes for DLEP parser
+ */
 enum dlep_parser_error {
+  /*! parsing successful */
   DLEP_NEW_PARSER_OKAY                  =  0,
+
+  /*! signal too short, incomplete TLV header */
   DLEP_NEW_PARSER_INCOMPLETE_TLV_HEADER = -1,
+
+  /*! signal too short, incomplete TLV */
   DLEP_NEW_PARSER_INCOMPLETE_TLV        = -2,
+
+  /*! TLV type is not supported by session */
   DLEP_NEW_PARSER_UNSUPPORTED_TLV       = -3,
+
+  /*! TLV length is not supported */
   DLEP_NEW_PARSER_ILLEGAL_TLV_LENGTH    = -4,
+
+  /*! mandatory TLV is missing */
   DLEP_NEW_PARSER_MISSING_MANDATORY_TLV = -5,
+
+  /*! this TLV must not be used more than once */
   DLEP_NEW_PARSER_DUPLICATE_TLV         = -6,
+
+  /*! out of memory error */
   DLEP_NEW_PARSER_OUT_OF_MEMORY         = -7,
+
+  /*! internal parser error, inconsistent data structures */
   DLEP_NEW_PARSER_INTERNAL_ERROR        = -8,
 };
 
@@ -154,11 +174,23 @@ struct dlep_writer {
   char *signal_start_ptr;
 };
 
+/**
+ * Status of a DLEP neighbor
+ */
 enum dlep_neighbor_state {
+  /*! neighbor has not yet been used in session */
   DLEP_NEIGHBOR_IDLE       = 0,
+
+  /*! a destination up has been sent */
   DLEP_NEIGHBOR_UP_SENT    = 1,
+
+  /*! a destination up has been sent and acked */
   DLEP_NEIGHBOR_UP_ACKED   = 2,
+
+  /*! a destination down has been sent */
   DLEP_NEIGHBOR_DOWN_SENT  = 3,
+
+  /*! a destination down has been sent and acked*/
   DLEP_NEIGHBOR_DOWN_ACKED = 4,
 };
 
@@ -300,8 +332,6 @@ struct dlep_local_neighbor *dlep_session_add_local_neighbor(
     struct dlep_session *session, const struct netaddr *neigh);
 void dlep_session_remove_local_neighbor(
     struct dlep_session *session, struct dlep_local_neighbor *local);
-struct dlep_local_neighbor *dlep_session_get_local_neighbor(
-    struct dlep_session *session, const struct netaddr *neigh);
 struct oonf_layer2_neigh *dlep_session_get_local_l2_neighbor(
     struct dlep_session *session, const struct netaddr *neigh);
 
@@ -370,6 +400,21 @@ static INLINE const uint8_t *
 dlep_session_get_tlv_binary(struct dlep_session *session,
     struct dlep_parser_value *value) {
   return &session->parser.tlv_ptr[value->index];
+}
+
+
+/**
+ * Get a DLEP neighbor
+ * @param session dlep session
+ * @param neigh neighbor MAC address
+ * @return DLEP neighbor, NULL if not found
+ */
+static INLINE struct dlep_local_neighbor *
+dlep_session_get_local_neighbor(struct dlep_session *session,
+    const struct netaddr *neigh) {
+  struct dlep_local_neighbor *local;
+  return avl_find_element(&session->local_neighbor_tree,
+      neigh, local, _node);
 }
 
 #endif /* _DLEP_SESSION_H_ */

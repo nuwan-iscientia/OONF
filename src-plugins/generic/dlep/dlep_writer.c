@@ -40,7 +40,7 @@
  */
 
 /**
- * @file src-plugins/generic/dlep/dlep_writer.c
+ * @file
  */
 
 #include <arpa/inet.h>
@@ -59,6 +59,11 @@
 #endif
 #include <endian.h> /* htobe64 */
 
+/**
+ * Start to write a new DLEP signal/message into a buffer
+ * @param writer dlep writer
+ * @param signal_type signal/message type
+ */
 void
 dlep_writer_start_signal(struct dlep_writer *writer, uint16_t signal_type) {
 
@@ -70,6 +75,13 @@ dlep_writer_start_signal(struct dlep_writer *writer, uint16_t signal_type) {
   abuf_append_uint16(writer->out, 0);
 }
 
+/**
+ * Add a TLV to a DLEP writer buffer
+ * @param writer dlep writer
+ * @param type TLV type
+ * @param data pointer to TLV value
+ * @param len length of value, can be 0
+ */
 void
 dlep_writer_add_tlv(struct dlep_writer *writer,
     uint16_t type, const void *data, uint16_t len) {
@@ -78,6 +90,15 @@ dlep_writer_add_tlv(struct dlep_writer *writer,
   abuf_memcpy(writer->out, data, len);
 }
 
+/**
+ * Add a TLV to a DLEP writer buffer
+ * @param writer dlep writer
+ * @param type TLV type
+ * @param data1 first part of TLV value
+ * @param len1 length of first value
+ * @param data2 second part of TLV value
+ * @param len2 length of second value
+ */
 void
 dlep_writer_add_tlv2(struct dlep_writer *writer,
     uint16_t type, const void *data1, uint16_t len1,
@@ -88,6 +109,12 @@ dlep_writer_add_tlv2(struct dlep_writer *writer,
   abuf_memcpy(writer->out, data2, len2);
 }
 
+/**
+ * Finish a DLEP signal/message
+ * @param writer dlep writer
+ * @param source logging source for error messages
+ * @return -1 if an error happened, 0 otherwise
+ */
 int
 dlep_writer_finish_signal(struct dlep_writer *writer,
     enum oonf_log_source source) {
@@ -119,6 +146,11 @@ dlep_writer_finish_signal(struct dlep_writer *writer,
   return 0;
 }
 
+/**
+ * Write a DLEP heartbeat TLV
+ * @param writer dlep writer
+ * @param interval interval length in milliseconds
+ */
 void
 dlep_writer_add_heartbeat_tlv(struct dlep_writer *writer, uint64_t interval) {
   uint16_t value;
@@ -129,6 +161,11 @@ dlep_writer_add_heartbeat_tlv(struct dlep_writer *writer, uint64_t interval) {
       &value, sizeof(value));
 }
 
+/**
+ * Write a DLEP peer type TLV
+ * @param writer dlep writer
+ * @param peer_type ZERO terminated peer type
+ */
 void
 dlep_writer_add_peer_type_tlv(struct dlep_writer *writer,
     const char *peer_type) {
@@ -136,6 +173,12 @@ dlep_writer_add_peer_type_tlv(struct dlep_writer *writer,
       peer_type, strlen(peer_type));
 }
 
+/**
+ * Write a DLEP MAC address TLV
+ * @param writer dlep writer
+ * @param mac mac address
+ * @return -1 if address was wrong type, 0 otherwise
+ */
 int
 dlep_writer_add_mac_tlv(struct dlep_writer *writer,
     const struct netaddr *mac) {
@@ -156,13 +199,19 @@ dlep_writer_add_mac_tlv(struct dlep_writer *writer,
   return 0;
 }
 
-int
+/**
+ * Write a DLEP IPv4 address TLV
+ * @param writer dlep writer
+ * @param ipv4 IPv4 address
+ * @param add true if address should be added, false to remove it
+ */
+void
 dlep_writer_add_ipv4_tlv(struct dlep_writer *writer,
     const struct netaddr *ipv4, bool add) {
   uint8_t value[5];
 
   if (netaddr_get_address_family(ipv4) != AF_INET) {
-    return -1;
+    return;
   }
 
   value[0] = add ? DLEP_IP_ADD : DLEP_IP_REMOVE;
@@ -170,16 +219,21 @@ dlep_writer_add_ipv4_tlv(struct dlep_writer *writer,
 
   dlep_writer_add_tlv(writer,
       DLEP_IPV4_ADDRESS_TLV, value, sizeof(value));
-  return 0;
 }
 
-int
+/**
+ * Write a DLEP IPv6 address TLV
+ * @param writer dlep writer
+ * @param ipv6 IPv6 address
+ * @param add true if address should be added, false to remove it
+ */
+void
 dlep_writer_add_ipv6_tlv(struct dlep_writer *writer,
     const struct netaddr *ipv6, bool add) {
   uint8_t value[17];
 
   if (netaddr_get_address_family(ipv6) != AF_INET6) {
-    return -1;
+    return;
   }
 
   value[0] = add ? DLEP_IP_ADD : DLEP_IP_REMOVE;
@@ -187,13 +241,19 @@ dlep_writer_add_ipv6_tlv(struct dlep_writer *writer,
 
   dlep_writer_add_tlv(writer,
       DLEP_IPV6_ADDRESS_TLV, value, sizeof(value));
-  return 0;
 }
 
+/**
+ * Write a DLEP IPv4 conpoint TLV
+ * @param writer dlep writer
+ * @param addr IPv4 address
+ * @param port port number
+ * @param tls TLS capability flag
+ */
 void
 dlep_writer_add_ipv4_conpoint_tlv(struct dlep_writer *writer,
-    const struct netaddr *addr, uint16_t port) {
-  uint8_t value[6];
+    const struct netaddr *addr, uint16_t port, bool tls) {
+  uint8_t value[7];
 
   if (netaddr_get_address_family(addr) != AF_INET) {
     return;
@@ -203,17 +263,25 @@ dlep_writer_add_ipv4_conpoint_tlv(struct dlep_writer *writer,
   port = htons(port);
 
   /* copy data into value buffer */
-  netaddr_to_binary(&value[0], addr, sizeof(value));
-  memcpy(&value[4], &port, sizeof(port));
+  value[0] = tls ? DLEP_CONNECTION_TLS : DLEP_CONNECTION_PLAIN;
+  netaddr_to_binary(&value[1], addr, sizeof(value));
+  memcpy(&value[5], &port, sizeof(port));
 
   dlep_writer_add_tlv(writer,
       DLEP_IPV4_CONPOINT_TLV, &value, sizeof(value));
 }
 
+/**
+ * Write a DLEP IPv6 conpoint TLV
+ * @param writer dlep writer
+ * @param addr IPv6 address
+ * @param port port number
+ * @param tls TLS capability flag
+ */
 void
 dlep_writer_add_ipv6_conpoint_tlv(struct dlep_writer *writer,
-    const struct netaddr *addr, uint16_t port) {
-  uint8_t value[18];
+    const struct netaddr *addr, uint16_t port, bool tls) {
+  uint8_t value[19];
 
   if (netaddr_get_address_family(addr) != AF_INET6) {
     return;
@@ -223,13 +291,20 @@ dlep_writer_add_ipv6_conpoint_tlv(struct dlep_writer *writer,
   port = htons(port);
 
   /* copy data into value buffer */
-  netaddr_to_binary(&value[0], addr, sizeof(value));
-  memcpy(&value[16], &port, sizeof(port));
+  value[0] = tls ? DLEP_CONNECTION_TLS : DLEP_CONNECTION_PLAIN;
+  netaddr_to_binary(&value[1], addr, sizeof(value));
+  memcpy(&value[17], &port, sizeof(port));
 
   dlep_writer_add_tlv(writer,
       DLEP_IPV6_CONPOINT_TLV, &value, sizeof(value));
 }
 
+/**
+ * Add a DLEP tlv with uint64 value
+ * @param writer dlep writer
+ * @param number value
+ * @param tlv tlv id
+ */
 void
 dlep_writer_add_uint64(struct dlep_writer *writer,
     uint64_t number, enum dlep_tlvs tlv) {
@@ -240,6 +315,12 @@ dlep_writer_add_uint64(struct dlep_writer *writer,
   dlep_writer_add_tlv(writer, tlv, &value, sizeof(value));
 }
 
+/**
+ * Add a DLEP tlv with int64 value
+ * @param writer dlep writer
+ * @param number value
+ * @param tlv tlv id
+ */
 void
 dlep_writer_add_int64(struct dlep_writer *writer,
     int64_t number, enum dlep_tlvs tlv) {
@@ -250,6 +331,13 @@ dlep_writer_add_int64(struct dlep_writer *writer,
   dlep_writer_add_tlv(writer, tlv, value, sizeof(*value));
 }
 
+/**
+ * Write a DLEP status TLV
+ * @param writer dlep writer
+ * @param status dlep status code
+ * @param text ZERO terminated DLEP status text
+ * @return -1 if status text was too long, 0 otherwise
+ */
 int
 dlep_writer_add_status(struct dlep_writer *writer,
     enum dlep_status status, const char *text) {
@@ -267,6 +355,12 @@ dlep_writer_add_status(struct dlep_writer *writer,
   return 0;
 }
 
+/**
+ * Write the supported DLEP extensions TLV
+ * @param writer dlep writer
+ * @param extensions array of supported extensions
+ * @param ext_count number of supported extensions
+ */
 void
 dlep_writer_add_supported_extensions(struct dlep_writer *writer,
     const uint16_t *extensions, uint16_t ext_count) {
@@ -274,6 +368,14 @@ dlep_writer_add_supported_extensions(struct dlep_writer *writer,
       extensions, ext_count * 2);
 }
 
+/**
+ * Write a layer2 data object into a DLEP TLV
+ * @param writer dlep writer
+ * @param data layer2 data
+ * @param tlv tlv id
+ * @param length tlv value length (1,2,4 or 8 bytes)
+ * @return -1 if an error happened, 0 otherwise
+ */
 int
 dlep_writer_map_identity(struct dlep_writer *writer,
     struct oonf_layer2_data *data, uint16_t tlv, uint16_t length) {
@@ -316,6 +418,17 @@ dlep_writer_map_identity(struct dlep_writer *writer,
   return 0;
 }
 
+/**
+ * Automatically map all predefined metric values of an
+ * extension for layer2 neighbor data from the layer2
+ * database to DLEP TLVs
+ * @param writer dlep writer
+ * @param ext dlep extension
+ * @param data layer2 neighbor data array
+ * @param def layer2 neighbor defaults data array
+ * @return 0 if everything worked fine, negative index
+ *   (minus 1) of the conversion that failed.
+ */
 int
 dlep_writer_map_l2neigh_data(struct dlep_writer *writer,
     struct dlep_extension *ext, struct oonf_layer2_data *data,
@@ -339,6 +452,16 @@ dlep_writer_map_l2neigh_data(struct dlep_writer *writer,
   return 0;
 }
 
+/**
+ * Automatically map all predefined metric values of an
+ * extension for layer2 network data from the layer2
+ * database to DLEP TLVs
+ * @param writer dlep writer
+ * @param ext dlep extension
+ * @param data layer2 network data array
+ * @return 0 if everything worked fine, negative index
+ *   (minus 1) of the conversion that failed.
+ */
 int
 dlep_writer_map_l2net_data(struct dlep_writer *writer,
     struct dlep_extension *ext, struct oonf_layer2_data *data) {

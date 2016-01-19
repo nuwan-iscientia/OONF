@@ -40,7 +40,7 @@
  */
 
 /**
- * @file ./src-api/common/container_of.h
+ * @file
  */
 
 #ifndef CONTAINER_OF_H_

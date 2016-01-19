@@ -40,7 +40,7 @@
  */
 
 /**
- * @file src-plugins/generic/dlep/ext_base_proto/proto_router.c
+ * @file
  */
 
 #include "common/common_types.h"
@@ -61,7 +61,7 @@
 static void _cb_init_router(struct dlep_session *);
 static void _cb_apply_router(struct dlep_session *);
 static void _cb_cleanup_router(struct dlep_session *);
-static void _cb_peer_create_discovery(void *);
+static void _cb_create_peer_discovery(void *);
 
 static int _router_process_peer_offer(struct dlep_extension *, struct dlep_session *);
 static int _router_process_peer_init_ack(struct dlep_extension *, struct dlep_session *);
@@ -146,11 +146,14 @@ static struct dlep_extension_implementation _router_signals[] = {
 
 static struct oonf_timer_class _peer_discovery_class = {
     .name = "dlep peer discovery",
-    .callback = _cb_peer_create_discovery,
+    .callback = _cb_create_peer_discovery,
     .periodic = true,
 };
 static struct dlep_extension *_base;
 
+/**
+ * Initialize the routers DLEP base protocol extension
+ */
 void
 dlep_base_proto_router_init(void) {
   _base = dlep_base_proto_init();
@@ -164,6 +167,10 @@ dlep_base_proto_router_init(void) {
   _base->cb_session_cleanup_router = _cb_cleanup_router;
 }
 
+/**
+ * Callback to initialize the router session
+ * @param session dlep session
+ */
 static void
 _cb_init_router(struct dlep_session *session) {
   if (session->restrict_signal == DLEP_PEER_INITIALIZATION_ACK) {
@@ -179,6 +186,10 @@ _cb_init_router(struct dlep_session *session) {
   }
 }
 
+/**
+ * Callback to apply new network settings to a router session
+ * @param session dlep session
+ */
 static void
 _cb_apply_router(struct dlep_session *session) {
   OONF_DEBUG(session->log_source, "Initialize base router session");
@@ -199,6 +210,10 @@ _cb_apply_router(struct dlep_session *session) {
   }
 }
 
+/**
+ * Callback to cleanup the router session
+ * @param session dlep session
+ */
 static void
 _cb_cleanup_router(struct dlep_session *session) {
   struct oonf_layer2_net *l2net;
@@ -211,8 +226,12 @@ _cb_cleanup_router(struct dlep_session *session) {
   dlep_base_proto_stop_timers(session);
 }
 
+/**
+ * Callback to generate regular peer discovery signals
+ * @param ptr dlep session
+ */
 static void
-_cb_peer_create_discovery(void *ptr) {
+_cb_create_peer_discovery(void *ptr) {
   struct dlep_session *session = ptr;
 
   OONF_DEBUG(session->log_source, "Generate peer discovery");
@@ -224,6 +243,12 @@ _cb_peer_create_discovery(void *ptr) {
   session->cb_send_buffer(session, AF_INET6);
 }
 
+/**
+ * Process the peer offer signal
+ * @param ext (this) dlep extension
+ * @param session dlep session
+ * @return -1 if an error happened, 0 otherwise
+ */
 static int
 _router_process_peer_offer(
     struct dlep_extension *ext __attribute__((unused)),
@@ -234,6 +259,7 @@ _router_process_peer_offer(
   const struct netaddr *result = NULL;
   struct netaddr addr;
   uint16_t port;
+  bool tls;
   struct os_interface_data *ifdata;
 
   if (session->restrict_signal != DLEP_PEER_OFFER) {
@@ -253,11 +279,15 @@ _router_process_peer_offer(
   /* IPv6 offer */
   value = dlep_session_get_tlv_value(session, DLEP_IPV6_CONPOINT_TLV);
   while (value) {
-    if (dlep_reader_ipv6_conpoint_tlv(&addr, &port, session, value)) {
+    if (dlep_reader_ipv6_conpoint_tlv(
+        &addr, &port, &tls, session, value)) {
       return -1;
     }
 
-    if (netaddr_is_in_subnet(&NETADDR_IPV6_LINKLOCAL, &addr)
+    if (tls) {
+      /* TLS not supported at the moment */
+    }
+    else if (netaddr_is_in_subnet(&NETADDR_IPV6_LINKLOCAL, &addr)
         || result == NULL) {
       result = oonf_interface_get_prefix_from_dst(&addr, ifdata);
       if (result) {
@@ -270,13 +300,18 @@ _router_process_peer_offer(
   /* IPv4 offer */
   value = dlep_session_get_tlv_value(session, DLEP_IPV4_CONPOINT_TLV);
   while (value && !result) {
-    if (dlep_reader_ipv4_conpoint_tlv(&addr, &port, session, value)) {
+    if (dlep_reader_ipv4_conpoint_tlv(&addr, &port, &tls, session, value)) {
       return -1;
     }
 
-    result = oonf_interface_get_prefix_from_dst(&addr, ifdata);
-    if (result) {
-      netaddr_socket_init(&remote, &addr, port, ifdata->index);
+    if (tls) {
+      /* TLS not supported at the moment */
+    }
+    else {
+      result = oonf_interface_get_prefix_from_dst(&addr, ifdata);
+      if (result) {
+        netaddr_socket_init(&remote, &addr, port, ifdata->index);
+      }
     }
     value = dlep_session_get_next_tlv_value(session, value);
   }
@@ -306,6 +341,12 @@ _router_process_peer_offer(
   return -1;
 }
 
+/**
+ * Process the peer initialization ack message
+ * @param ext (this) dlep extension
+ * @param session dlep session
+ * @return -1 if an error happened, 0 otherwise
+ */
 static int
 _router_process_peer_init_ack(
     struct dlep_extension *ext __attribute__((unused)),
@@ -335,6 +376,9 @@ _router_process_peer_init_ack(
       return -1;
     }
   }
+  else if (dlep_session_update_extensions(session, NULL, 0)) {
+    return -1;
+  }
 
   l2net = oonf_layer2_net_add(session->l2_listener.name);
   if (!l2net) {
@@ -361,6 +405,12 @@ _router_process_peer_init_ack(
   return 0;
 }
 
+/**
+ * Process the peer update message
+ * @param ext (this) dlep extension
+ * @param session dlep session
+ * @return -1 if an error happened, 0 otherwise
+ */
 static int
 _router_process_peer_update(
     struct dlep_extension *ext __attribute__((unused)),
@@ -384,6 +434,12 @@ _router_process_peer_update(
   return 0;
 }
 
+/**
+ * Process the peer update ack message
+ * @param ext (this) dlep extension
+ * @param session dlep session
+ * @return -1 if an error happened, 0 otherwise
+ */
 static int
 _router_process_peer_update_ack(
     struct dlep_extension *ext __attribute__((unused)),
@@ -392,6 +448,12 @@ _router_process_peer_update_ack(
   return 0;
 }
 
+/**
+ * Process the destination up message
+ * @param ext (this) dlep extension
+ * @param session dlep session
+ * @return -1 if an error happened, 0 otherwise
+ */
 static int
 _router_process_destination_up(
     struct dlep_extension *ext __attribute__((unused)),
@@ -430,6 +492,12 @@ _router_process_destination_up(
       session, DLEP_DESTINATION_UP_ACK, &mac);
 }
 
+/**
+ * Process the destination up ack message
+ * @param ext (this) dlep extension
+ * @param session dlep session
+ * @return -1 if an error happened, 0 otherwise
+ */
 static int
 _router_process_destination_up_ack(
     struct dlep_extension *ext __attribute__((unused)),
@@ -438,6 +506,12 @@ _router_process_destination_up_ack(
   return 0;
 }
 
+/**
+ * Process the destination down message
+ * @param ext (this) dlep extension
+ * @param session dlep session
+ * @return -1 if an error happened, 0 otherwise
+ */
 static int
 _router_process_destination_down(
     struct dlep_extension *ext __attribute__((unused)),
@@ -467,6 +541,12 @@ _router_process_destination_down(
       session, DLEP_DESTINATION_UP_ACK, &mac);
 }
 
+/**
+ * Process the destination down ack message
+ * @param ext (this) dlep extension
+ * @param session dlep session
+ * @return -1 if an error happened, 0 otherwise
+ */
 static int
 _router_process_destination_down_ack(
     struct dlep_extension *ext __attribute__((unused)),
@@ -475,6 +555,12 @@ _router_process_destination_down_ack(
   return 0;
 }
 
+/**
+ * Process the destination update message
+ * @param ext (this) dlep extension
+ * @param session dlep session
+ * @return -1 if an error happened, 0 otherwise
+ */
 static int
 _router_process_destination_update(
     struct dlep_extension *ext __attribute__((unused)),
@@ -509,6 +595,12 @@ _router_process_destination_update(
   return 0;
 }
 
+/**
+ * Process the link characteristic ack message
+ * @param ext (this) dlep extension
+ * @param session dlep session
+ * @return -1 if an error happened, 0 otherwise
+ */
 static int
 _router_process_link_char_ack(
     struct dlep_extension *ext __attribute__((unused)),
@@ -517,6 +609,13 @@ _router_process_link_char_ack(
   return 0;
 }
 
+/**
+ * Generate a peer discovery signal
+ * @param ext (this) dlep extension
+ * @param session dlep session
+ * @param addr mac address the message should refer to
+ * @return -1 if an error happened, 0 otherwise
+ */
 static int
 _router_write_peer_discovery(
     struct dlep_extension *ext __attribute__((unused)),
@@ -528,6 +627,13 @@ _router_write_peer_discovery(
   return 0;
 }
 
+/**
+ * Generate a peer init message
+ * @param ext (this) dlep extension
+ * @param session dlep session
+ * @param addr mac address the message should refer to
+ * @return -1 if an error happened, 0 otherwise
+ */
 static int
 _router_write_peer_init(
     struct dlep_extension *ext __attribute__((unused)),

@@ -40,7 +40,7 @@
  */
 
 /**
- * @file src-plugins/generic/dlep/router/dlep_router_session.c
+ * @file
  */
 
 #include <errno.h>
@@ -262,6 +262,11 @@ _cb_tcp_receive_data(struct oonf_stream_session *tcp_session) {
   return dlep_session_process_tcp(tcp_session, &router_session->session);
 }
 
+/**
+ * Callback triggered to send current buffer to the network
+ * @param session dlep session
+ * @param af_family address family
+ */
 static void
 _cb_send_buffer(struct dlep_session *session,
     int af_family __attribute((unused))) {
@@ -281,6 +286,10 @@ _cb_send_buffer(struct dlep_session *session,
   oonf_stream_flush(router_session->stream);
 }
 
+/**
+ * Callback triggered when session is terminated
+ * @param session
+ */
 static void
 _cb_end_session(struct dlep_session *session) {
   struct dlep_router_session *router_session;

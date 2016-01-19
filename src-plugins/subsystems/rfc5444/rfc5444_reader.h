@@ -40,7 +40,7 @@
  */
 
 /**
- * @file src-plugins/subsystems/rfc5444/rfc5444_reader.h
+ * @file
  */
 
 #ifndef RFC5444_PARSER_H_
@@ -52,7 +52,9 @@
 #include "common/netaddr.h"
 #include "rfc5444_context.h"
 
-/* type of context for a rfc5444_reader_tlvblock_context */
+/**
+ * type of context for a rfc5444_reader_tlvblock_context
+ */
 enum rfc5444_reader_tlvblock_context_type {
   RFC5444_CONTEXT_PACKET,
   RFC5444_CONTEXT_MESSAGE,
@@ -428,9 +430,6 @@ EXPORT void rfc5444_reader_remove_message_consumer(
 
 EXPORT int rfc5444_reader_handle_packet(
     struct rfc5444_reader *parser, uint8_t *buffer, size_t length);
-
-EXPORT uint8_t *rfc5444_reader_get_tlv_value(
-    struct rfc5444_reader_tlvblock_entry *tlv);
 
 /**
  * Call to set the do-not-forward flag in message context

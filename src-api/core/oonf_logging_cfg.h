@@ -40,7 +40,7 @@
  */
 
 /**
- * @file ./src-api/core/oonf_logging_cfg.h
+ * @file
  */
 
 #ifndef OONF_LOGGING_CFG_H_

@@ -40,7 +40,7 @@
  */
 
 /**
- * @file src-plugins/nhdp/mpr/selection-rfc7181.c
+ * @file
  */
 
 #include "nhdp/nhdp.h"

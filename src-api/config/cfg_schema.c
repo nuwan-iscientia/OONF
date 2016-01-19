@@ -40,7 +40,7 @@
  */
 
 /**
- * @file ./src-api/config/cfg_schema.c
+ * @file
  */
 
 #include <assert.h>

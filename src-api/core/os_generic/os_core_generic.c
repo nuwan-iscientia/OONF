@@ -40,7 +40,7 @@
  */
 
 /**
- * @file ./src-api/core/os_generic/os_core_generic.c
+ * @file
  */
 
 #include <sys/times.h>
@@ -55,6 +55,7 @@
 
 /**
  * Initialize core
+ * @param appname name of the application for syslog
  */
 void
 os_core_init(const char *appname) {

@@ -40,7 +40,7 @@
  */
 
 /**
- * @file ./tests/cunit/cunit.h
+ * @file
  */
 
 #ifndef CUNIT_H_

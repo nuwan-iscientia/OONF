@@ -40,7 +40,7 @@
  */
 
 /**
- * @file src-plugins/olsrv2/olsrv2/olsrv2_tc.h
+ * @file
  */
 
 #ifndef OLSRV2_TC_H_
@@ -58,15 +58,30 @@
 #include "olsrv2/olsrv2.h"
 #include "olsrv2/olsrv2_routing.h"
 
+/**
+ * target types of olsrv2 edges
+ */
 enum olsrv2_target_type {
+  /*! target is another olsrv2 node */
   OLSRV2_NODE_TARGET,
+
+  /*! target is just an address */
   OLSRV2_ADDRESS_TARGET,
+
+  /*! target is an attached network */
   OLSRV2_NETWORK_TARGET,
 };
 
+/*! memory class for olsrv2 nodes */
 #define OLSRV2_CLASS_TC_NODE  "olsrv2 tc node"
+
+/*! memory class for olsrv2 edges */
 #define OLSRV2_CLASS_TC_EDGE  "olsrv2 tc edge"
+
+/*! memory class for olsrv2 attached networks */
 #define OLSRV2_CLASS_ATTACHED "olsrv2 tc attached network"
+
+/*! memory class for olsrv2 endpoints */
 #define OLSRV2_CLASS_ENDPOINT "olsrv2 tc attached network endpoint"
 
 struct olsrv2_tc_edge;

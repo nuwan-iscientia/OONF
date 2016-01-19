@@ -40,7 +40,7 @@
  */
 
 /**
- * @file src-plugins/olsrv2/olsrv2/olsrv2.h
+ * @file
  */
 
 #ifndef OLSRV2_H_
@@ -53,18 +53,31 @@
 
 #include "nhdp/nhdp_domain.h"
 
+/*! subsystem identifier */
 #define OONF_OLSRV2_SUBSYSTEM "olsrv2"
 
+/*! configuration section for OLSRv2 */
 #define CFG_OLSRV2_SECTION OONF_OLSRV2_SUBSYSTEM
 
-/* default settings for routable addresses */
+/*! routable IPv4 addresses (default configuration) */
 #define OLSRV2_ROUTABLE_IPV4 "-169.254.0.0/16\0-127.0.0.0/8\0-224.0.0.0/12\0"
+
+/*! routable IPv6 addresses (default configuration) */
 #define OLSRV2_ROUTABLE_IPV6 "-fe80::/10\0-::1\0-ff00::/8\0"
 
-/* default settings for originators */
+/*! default IPv4 originator addresses */
 #define OLSRV2_ORIGINATOR_IPV4 "-127.0.0.0/8\0-224.0.0.0/12\0"
+
+/*! default IPv6 originator addresses */
 #define OLSRV2_ORIGINATOR_IPV6 "-::1\0-ff00::/8\0"
 
+/**
+ * Creates a cfg_schema_entry for a locally attached network
+ * @param p_name parameter name
+ * @param p_def parameter default value
+ * @param p_help help text for configuration entry
+ * @param args variable list of additional arguments
+ */
 #define CFG_VALIDATE_LAN(p_name, p_def, p_help, args...)         _CFG_VALIDATE(p_name, p_def, p_help, .cb_validate = olsrv2_validate_lan, .validate_param = {{.i8 = {AF_INET, AF_INET6, -1,-1, -1}}, {.b = true}}, ##args )
 
 EXPORT uint64_t olsrv2_get_tc_interval(void);
@@ -77,7 +90,6 @@ EXPORT bool olsrv2_mpr_shall_forwarding(
     struct netaddr *source_address, uint64_t vtime);
 EXPORT int olsrv2_validate_lan(const struct cfg_schema_entry *entry,
     const char *section_name, const char *value, struct autobuf *out);
-EXPORT int olsrv2_avl_cmp_sourcspec_prefix(const void *p1, const void *p2);
 
 /**
  * @return validity time of former originator IDs

@@ -40,9 +40,10 @@
  */
 
 /**
- * @file src-plugins/subsystems/os_linux/os_interface_linux.c
+ * @file
  */
 
+/*! activate GUI sources for this file */
 #define _GNU_SOURCE
 
 /* must be first because of a problem with linux/rtnetlink.h */
@@ -74,19 +75,25 @@
 /* Definitions */
 #define LOG_OS_INTERFACE _oonf_os_interface_subsystem.logging
 
-/* ip forwarding */
+/*! proc file entry for activating IPv4 forwarding */
 #define PROC_IPFORWARD_V4 "/proc/sys/net/ipv4/ip_forward"
+
+/*! proc file entry for activating IPv6 forwarding */
 #define PROC_IPFORWARD_V6 "/proc/sys/net/ipv6/conf/all/forwarding"
 
-/* Redirect proc entry */
+/*! proc file entry to deactivate interface specific redirect requests */
 #define PROC_IF_REDIRECT "/proc/sys/net/ipv4/conf/%s/send_redirects"
+
+/*! proc file entry to deactivate generic redirect requests */
 #define PROC_ALL_REDIRECT "/proc/sys/net/ipv4/conf/all/send_redirects"
 
-/* IP spoof proc entry */
+/*! proc file entry to deactivate interface specific reverse path filter */
 #define PROC_IF_SPOOF "/proc/sys/net/ipv4/conf/%s/rp_filter"
+
+/*! proc file entry to deactivate generic reverse path filter */
 #define PROC_ALL_SPOOF "/proc/sys/net/ipv4/conf/all/rp_filter"
 
-/* Interface base index */
+/*! sysfs entry to get vlan interface base index */
 #define SYSFS_BASE_IFINDEX "/sys/class/net/%s/iflink"
 
 /* prototypes */
@@ -235,16 +242,30 @@ os_interface_state_set(const char *dev, bool up) {
   return 0;
 }
 
+/**
+ * Add an interface event listener to the operation system
+ * @param listener interface listener
+ */
 void
 os_interface_listener_add(struct os_interface_if_listener *listener) {
   list_add_tail(&_ifchange_listener, &listener->_node);
 }
 
+/**
+ * Remove an interface event listener to the operation system
+ * @param listener interface listener
+ */
 void
 os_interface_listener_remove(struct os_interface_if_listener *listener) {
   list_remove(&listener->_node);
 }
 
+/**
+ * Set or remove an IP address from an interface
+ * @param addr interface address change request
+ * @return -1 if the request could not be sent to the server,
+ *   0 otherwise
+ */
 int
 os_interface_address_set(struct os_interface_address *addr) {
   uint8_t buffer[UIO_MAXIOV];
@@ -297,6 +318,10 @@ os_interface_address_set(struct os_interface_address *addr) {
   return 0;
 }
 
+/**
+ * Stop processing an interface address change
+ * @param addr interface address change request
+ */
 void
 os_interface_address_interrupt(struct os_interface_address *addr) {
   if (list_is_node_added(&addr->_internal._node)) {

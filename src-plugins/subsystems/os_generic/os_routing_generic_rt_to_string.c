@@ -40,7 +40,7 @@
  */
 
 /**
- * @file src-plugins/subsystems/os_generic/os_routing_generic_rt_to_string.c
+ * @file
  */
 
 #include "common/netaddr.h"
@@ -66,22 +66,22 @@ static const char *_route_types[] = {
  * @return pointer to string buffer, NULL if an error happened
  */
 const char *
-os_routing_to_string(struct os_route_str *buf, const struct os_route *route) {
+os_routing_to_string(struct os_route_str *buf, const struct os_route_parameter *route_parameter) {
   struct netaddr_str buf1, buf2, buf3, buf4;
   char ifbuf[IF_NAMESIZE];
   int result;
   result = snprintf(buf->buf, sizeof(*buf),
       "'src-ip %s gw %s dst %s %s src-prefix %s metric %d table %u protocol %u if %s (%u)'",
-      netaddr_to_string(&buf1, &route->src_ip),
-      netaddr_to_string(&buf2, &route->gw),
-      _route_types[route->type],
-      netaddr_to_string(&buf3, &route->key.dst),
-      netaddr_to_string(&buf4, &route->key.src),
-      route->metric,
-      (unsigned int)(route->table),
-      (unsigned int)(route->protocol),
-      if_indextoname(route->if_index, ifbuf),
-      route->if_index);
+      netaddr_to_string(&buf1, &route_parameter->src_ip),
+      netaddr_to_string(&buf2, &route_parameter->gw),
+      _route_types[route_parameter->type],
+      netaddr_to_string(&buf3, &route_parameter->key.dst),
+      netaddr_to_string(&buf4, &route_parameter->key.src),
+      route_parameter->metric,
+      (unsigned int)(route_parameter->table),
+      (unsigned int)(route_parameter->protocol),
+      if_indextoname(route_parameter->if_index, ifbuf),
+      route_parameter->if_index);
 
   if (result < 0 || result > (int)sizeof(*buf)) {
     return NULL;

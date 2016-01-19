@@ -40,7 +40,7 @@
  */
 
 /**
- * @file src-plugins/generic/dlep/ext_base_metric/metric.c
+ * @file
  */
 
 #include "common/common_types.h"
@@ -258,6 +258,10 @@ static struct dlep_extension _base_metric = {
 
 };
 
+/**
+ * Initialize the base metric DLEP extension
+ * @return this extension
+ */
 struct dlep_extension *
 dlep_base_metric_init(void) {
   dlep_extension_add(&_base_metric);

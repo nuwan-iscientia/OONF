@@ -40,7 +40,7 @@
  */
 
 /**
- * @file src-plugins/subsystems/os_linux/os_interface_linux.h
+ * @file
  */
 
 #ifndef OS_INTERFACE_LINUX_H_
@@ -49,8 +49,13 @@
 #include <linux/netlink.h>
 #include <linux/rtnetlink.h>
 
+/**
+ * define scope of address on interface
+ */
 enum os_addr_scope {
+  /* linklocal scope */
   OS_ADDR_SCOPE_LINK = RT_SCOPE_LINK,
+  /*! global scope */
   OS_ADDR_SCOPE_GLOBAL = RT_SCOPE_UNIVERSE,
 };
 

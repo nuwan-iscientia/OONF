@@ -40,7 +40,7 @@
  */
 
 /**
- * @file src-plugins/nhdp/nhdp/nhdp.h
+ * @file
  */
 
 #ifndef NHDP_H_
@@ -52,29 +52,36 @@
 #include "core/oonf_subsystem.h"
 #include "subsystems/oonf_rfc5444.h"
 
+/*! subsystem identifier */
 #define OONF_NHDP_SUBSYSTEM "nhdp"
 
+/*! configuration section for NHDP */
 #define CFG_NHDP_SECTION        "nhdp"
 
+/*! configuration section for NHDP domains */
 #define CFG_NHDP_DOMAIN_SECTION "domain"
+
+/*! default NHDP domain name */
 #define CFG_NHDP_DEFAULT_DOMAIN "0"
-#define CFG_DOMAIN_NO_METRIC    "-"
-#define CFG_DOMAIN_ANY_METRIC   "*"
-#define CFG_DOMAIN_NO_MPR       "-"
-#define CFG_DOMAIN_ANY_MPR      "*"
+
+/*! special name for 'no' metric/mpr */
+#define CFG_DOMAIN_NO_METRIC_MPR    "-"
+
+/*! special name for 'any' metric/mpr */
+#define CFG_DOMAIN_ANY_METRIC_MPR   "*"
 
 
 enum {
-  /* maximum number of metric domains */
+  /*! maximum number of metric domains */
   NHDP_MAXIMUM_DOMAINS = 4,
 
-  /* message tlv for transporting IPv4 originator in ipv6 messages */
+  /*! message tlv for transporting IPv4 originator in ipv6 messages */
   NHDP_MSGTLV_IPV4ORIGINATOR = 226,
 
-  /* message tlv for transporting mac address */
+  /*! message tlv for transporting mac address */
   NHDP_MSGTLV_MAC = 227,
 
-  /* Address TLV for custom link metric data */
+  /*! Address TLV for custom link metric data */
   NHDP_ADDRTLV_LQ_CUSTOM = 228,
 };
 

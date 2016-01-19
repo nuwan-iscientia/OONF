@@ -40,7 +40,7 @@
  */
 
 /**
- * @file src-plugins/crypto/hash_tomcrypt/hash_tomcrypt.c
+ * @file
  */
 
 #include <tomcrypt.h>
@@ -141,7 +141,7 @@ static struct tomcrypt_hash _hashes[] = {
 };
 
 /* definition of hmac crypto function */
-struct rfc7182_crypt _hmac = {
+static struct rfc7182_crypt _hmac = {
   .type = RFC7182_ICV_CRYPT_HMAC,
   .sign = _cb_hmac_sign,
   .getSignSize = _cb_get_cryptsize,

@@ -40,7 +40,7 @@
  */
 
 /**
- * @file src-plugins/generic/dlep/ext_l2_statistics/l2_statistics.c
+ * @file
  */
 
 #include "common/common_types.h"
@@ -216,6 +216,10 @@ static struct dlep_extension _l2_stats = {
   .neigh_mapping_count = ARRAYSIZE(_neigh_mappings),
 };
 
+/**
+ * Get the layer2 statistics DLEP extension
+ * @return this extension
+ */
 struct dlep_extension *
 dlep_l2_statistics_init(void) {
   dlep_extension_add(&_l2_stats);

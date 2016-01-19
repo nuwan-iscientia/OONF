@@ -40,7 +40,7 @@
  */
 
 /**
- * @file src-plugins/generic/dlep/ext_base_proto/proto.h
+ * @file
  */
 
 #ifndef _PROTO_H_

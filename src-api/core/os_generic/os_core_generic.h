@@ -40,7 +40,7 @@
  */
 
 /**
- * @file ./src-api/core/os_generic/os_core_generic.h
+ * @file
  */
 
 #ifndef OS_CORE_GENERIC_H_
@@ -51,6 +51,7 @@
 
 #include "core/os_core.h"
 
+/*! default folder for Linux lockfile */
 #define OS_CORE_LOCKFILE_FOLDER        "/var/run/"
 
 /**

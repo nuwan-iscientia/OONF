@@ -40,7 +40,7 @@
  */
 
 /**
- * @file ./src-api/common/bitmap256.h
+ * @file
  */
 
 #ifndef DLEP_SIGNAL_H_

@@ -40,7 +40,7 @@
  */
 
 /**
- * @file src-plugins/subsystems/rfc5444/rfc5444_iana.c
+ * @file
  */
 #include "common/common_types.h"
 #include "common/netaddr.h"

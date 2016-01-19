@@ -40,7 +40,7 @@
  */
 
 /**
- * @file ./src-api/core/oonf_main.c
+ * @file
  */
 
 #include <sys/types.h>
@@ -237,7 +237,8 @@ oonf_main(int argc, char **argv, const struct oonf_appdata *appdata) {
     }
   }
 
-  if (config_global.lockfile != NULL && *config_global.lockfile != 0) {
+  if (appdata->need_lock
+      && config_global.lockfile != NULL && *config_global.lockfile != 0) {
     /* create application lock */
     if (os_core_create_lockfile(config_global.lockfile)) {
       OONF_WARN(LOG_MAIN, "Could not acquire application lock '%s'",

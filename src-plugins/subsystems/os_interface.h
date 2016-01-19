@@ -40,7 +40,7 @@
  */
 
 /**
- * @file src-plugins/subsystems/os_interface.h
+ * @file
  */
 
 #ifndef OS_INTERFACE_H_
@@ -55,6 +55,7 @@
 #include "subsystems/oonf_timer.h"
 #include "subsystems/os_interface_data.h"
 
+/*! subsystem identifier */
 #define OONF_OS_INTERFACE_SUBSYSTEM "os_interface"
 
 /**

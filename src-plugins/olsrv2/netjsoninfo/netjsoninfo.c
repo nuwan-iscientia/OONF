@@ -40,7 +40,7 @@
  */
 
 /**
- * @file src-plugins/olsrv2/netjsoninfo/netjsoninfo.c
+ * @file
  */
 
 #include "common/common_types.h"
@@ -67,8 +67,11 @@
 /* definitions */
 #define LOG_NETJSONINFO olsrv2_netjsoninfo.logging
 
-#define COMMAND_GRAPH  "graph"
-#define COMMAND_ROUTES "routes"
+/*! name of graph command/json-object */
+#define JSON_NAME_GRAPH  "graph"
+
+/*! name of routes command/json-object */
+#define JSON_NAME_ROUTES "routes"
 
 /* prototypes */
 static int _init(void);
@@ -94,7 +97,7 @@ static const char *_dependencies[] = {
   OONF_OLSRV2_SUBSYSTEM,
   OONF_TELNET_SUBSYSTEM,
 };
-struct oonf_subsystem olsrv2_netjsoninfo = {
+static struct oonf_subsystem olsrv2_netjsoninfo = {
   .name = OONF_NETJSONINFO_SUBSYSTEM,
   .dependencies = _dependencies,
   .dependencies_count = ARRAYSIZE(_dependencies),
@@ -123,6 +126,11 @@ _cleanup(void) {
   oonf_telnet_remove(&_telnet_commands[0]);
 }
 
+/**
+ * Print the JSON output for a graph node
+ * @param session json session
+ * @param id node address
+ */
 static void
 _print_graph_node(struct json_session *session, const struct netaddr *id) {
   json_start_object(session, NULL);
@@ -130,6 +138,17 @@ _print_graph_node(struct json_session *session, const struct netaddr *id) {
   json_end_object(session);
 }
 
+/**
+ * Print the JSON output for a graph edge
+ * @param session json session
+ * @param domain nhdp domain
+ * @param src src address
+ * @param dst dst address
+ * @param out outgoing metric
+ * @param in incoming metric
+ * @param outgoing_tree true if part of outgoing routing tree,
+ *   false otherwise
+ */
 static void
 _print_graph_edge(struct json_session *session,
     struct nhdp_domain *domain,
@@ -162,6 +181,15 @@ _print_graph_edge(struct json_session *session,
   json_end_object(session);
 }
 
+/**
+ * Print the JSON OUTPUT of graph endpoints
+ * @param session json session
+ * @param domain NHDP domain
+ * @param src src address
+ * @param prefix attached prefix
+ * @param out outgoing metric
+ * @param hopcount hopcount cost of prefix
+ */
 static void
 _print_graph_end(struct json_session *session,
     struct nhdp_domain *domain,
@@ -191,6 +219,12 @@ _print_graph_end(struct json_session *session,
   json_end_object(session);
 }
 
+/**
+ * Print the JSON graph object
+ * @param session json session
+ * @param domain NHDP domain
+ * @param af_type address family type
+ */
 static void
 _print_graph(struct json_session *session,
     struct nhdp_domain *domain, int af_type) {
@@ -305,6 +339,10 @@ _print_graph(struct json_session *session,
   json_end_object(session);
 }
 
+/**
+ * Print all JSON graph objects
+ * @param session json session
+ */
 static void
 _create_graph_json(struct json_session *session) {
   struct nhdp_domain *domain;
@@ -314,6 +352,12 @@ _create_graph_json(struct json_session *session) {
   }
 }
 
+/**
+ * Print the JSON routing tree
+ * @param session json session
+ * @param domain NHDP domain
+ * @param af_type address family
+ */
 static void
 _print_routing_tree(struct json_session *session,
     struct nhdp_domain *domain, int af_type) {
@@ -336,19 +380,19 @@ _print_routing_tree(struct json_session *session,
   _print_json_netaddr(session, "router_id", originator);
   _print_json_string(session, "metric", domain->metric->name);
 
-  json_start_array(session, COMMAND_ROUTES);
+  json_start_array(session, JSON_NAME_ROUTES);
 
   avl_for_each_element(olsrv2_routing_get_tree(domain), rtentry, _node) {
-    if (rtentry->route.family == af_type) {
+    if (rtentry->route.p.family == af_type) {
       json_start_object(session, NULL);
-      _print_json_netaddr(session, "destination", &rtentry->route.key.dst);
-      if (netaddr_get_prefix_length(&rtentry->route.key.src) > 0) {
-        _print_json_netaddr(session, "source", &rtentry->route.key.src);
+      _print_json_netaddr(session, "destination", &rtentry->route.p.key.dst);
+      if (netaddr_get_prefix_length(&rtentry->route.p.key.src) > 0) {
+        _print_json_netaddr(session, "source", &rtentry->route.p.key.src);
       }
-      _print_json_netaddr(session, "next", &rtentry->route.gw);
+      _print_json_netaddr(session, "next", &rtentry->route.p.gw);
       _print_json_netaddr(session, "next_id", &rtentry->next_originator);
 
-      _print_json_string(session, "device", if_indextoname(rtentry->route.if_index, ibuf));
+      _print_json_string(session, "device", if_indextoname(rtentry->route.p.if_index, ibuf));
       _print_json_number(session, "cost", rtentry->path_cost);
 
       json_start_object(session, "properties");
@@ -367,6 +411,10 @@ _print_routing_tree(struct json_session *session,
   json_end_object(session);
 }
 
+/**
+ * Print all JSON routes
+ * @param session
+ */
 static void
 _create_routes_json(struct json_session *session) {
   struct nhdp_domain *domain;
@@ -376,6 +424,12 @@ _create_routes_json(struct json_session *session) {
   }
 }
 
+/**
+ * Print a JSON error
+ * @param session json session
+ * @param message error message
+ * @param parameter error parameter
+ */
 static void
 _create_error_json(struct json_session *session,
     const char *message, const char *parameter) {
@@ -387,6 +441,7 @@ _create_error_json(struct json_session *session,
 
   json_end_object(session);
 }
+
 /**
  * Callback for netjsoninfo telnet command
  * @param con telnet connection
@@ -413,10 +468,10 @@ _cb_netjsoninfo(struct oonf_telnet_data *con) {
   error = false;
   next = con->parameter;
   while (next && *next) {
-    if ((ptr = str_hasnextword(next, COMMAND_GRAPH))) {
+    if ((ptr = str_hasnextword(next, JSON_NAME_GRAPH))) {
       _create_graph_json(&session);
     }
-    else if ((ptr = str_hasnextword(next, COMMAND_ROUTES))) {
+    else if ((ptr = str_hasnextword(next, JSON_NAME_ROUTES))) {
       _create_routes_json(&session);
     }
     else {
@@ -428,7 +483,7 @@ _cb_netjsoninfo(struct oonf_telnet_data *con) {
 
   if (error) {
     _create_error_json(&session, "unknown sub-command, use "
-        COMMAND_GRAPH " or " COMMAND_ROUTES " subcommand",
+        JSON_NAME_GRAPH " or " JSON_NAME_ROUTES " subcommand",
         con->parameter);
   }
   json_end_array(&session);
@@ -440,11 +495,23 @@ _cb_netjsoninfo(struct oonf_telnet_data *con) {
   return TELNET_RESULT_ACTIVE;
 }
 
+/**
+ * Helper to print a json string
+ * @param session json session
+ * @param key json key
+ * @param value json string value
+ */
 static void
 _print_json_string(struct json_session *session, const char *key, const char *value) {
   json_print(session, key, true, value);
 }
 
+/**
+ * Helper to print a json number
+ * @param session json session
+ * @param key json key
+ * @param value number
+ */
 static void
 _print_json_number(struct json_session *session, const char *key, uint64_t value) {
   char buffer[21];
@@ -453,10 +520,15 @@ _print_json_number(struct json_session *session, const char *key, uint64_t value
   json_print(session, key, false, buffer);
 }
 
+/**
+ * Helper function to print a json netaddr object
+ * @param session json session
+ * @param key json key
+ * @param addr address
+ */
 static void
 _print_json_netaddr(struct json_session *session, const char *key, const struct netaddr *addr) {
   struct netaddr_str nbuf;
 
   json_print(session, key, true, netaddr_to_string(&nbuf, addr));
 }
-

@@ -40,7 +40,7 @@
  */
 
 /**
- * @file ./src-api/common/avl_comp.c
+ * @file
  */
 
 #include <string.h>

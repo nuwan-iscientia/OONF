@@ -40,7 +40,7 @@
  */
 
 /**
- * @file src-plugins/subsystems/os_routing.h
+ * @file
  */
 
 #ifndef OS_ROUTING_H_
@@ -56,6 +56,7 @@
 #include "core/oonf_logging.h"
 #include "subsystems/os_system.h"
 
+/*! subsystem identifier */
 #define OONF_OS_ROUTING_SUBSYSTEM "os_routing"
 
 /* include os-specific headers */
@@ -71,9 +72,11 @@
 
 /* make sure default values for routing are there */
 #ifndef RTPROT_UNSPEC
+/*! unspecified routing protocol */
 #define RTPROT_UNSPEC 0
 #endif
 #ifndef RT_TABLE_UNSPEC
+/*! unspecified routing table */
 #define RT_TABLE_UNSPEC 0
 #endif
 
@@ -102,6 +105,9 @@ struct os_route_str {
            + 2];
 };
 
+/**
+ * types of kernel routes
+ */
 enum os_route_type {
   OS_ROUTE_UNDEFINED,
   OS_ROUTE_UNICAST,
@@ -126,14 +132,7 @@ struct os_route_key {
   struct netaddr src;
 };
 
-/**
- * Handler for changing a route in the kernel
- * or querying the route status
- */
-struct os_route {
-  /*! used for delivering feedback about netlink commands */
-  struct os_route_internal _internal;
-
+struct os_route_parameter {
   /*! address family */
   unsigned char family;
 
@@ -160,6 +159,17 @@ struct os_route {
 
   /*! index of outgoing interface */
   unsigned int if_index;
+};
+/**
+ * Handler for changing a route in the kernel
+ * or querying the route status
+ */
+struct os_route {
+  /*! parameters of route, separate to make it easy to compare routes */
+  struct os_route_parameter p;
+
+  /*! used for delivering feedback about netlink commands */
+  struct os_route_internal _internal;
 
   /**
    * Callback triggered when the route has been set
@@ -204,9 +214,9 @@ EXPORT void os_routing_listener_add(struct os_route_listener *);
 EXPORT void os_routing_listener_remove(struct os_route_listener *);
 
 EXPORT const char *os_routing_to_string(
-    struct os_route_str *buf, const struct os_route *route);
+    struct os_route_str *buf, const struct os_route_parameter *route_param);
 
-EXPORT const struct os_route *os_routing_get_wildcard_route(void);
+EXPORT const struct os_route_parameter *os_routing_get_wildcard_route(void);
 
 EXPORT int os_route_avl_cmp_route_key(const void *, const void *);
 EXPORT void os_route_init_half_os_route_key(

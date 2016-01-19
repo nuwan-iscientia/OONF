@@ -40,7 +40,7 @@
  */
 
 /**
- * @file src-plugins/subsystems/oonf_rfc5444.h
+ * @file
  */
 
 #ifndef OONF_RFC5444_H_
@@ -58,9 +58,12 @@
 #include "subsystems/oonf_packet_socket.h"
 #include "subsystems/oonf_timer.h"
 
+/*! subsystem identifier */
 #define OONF_RFC5444_SUBSYSTEM "rfc5444"
 
-/* suggested priorities for RFC5444 readers */
+/**
+ * suggested priorities for RFC5444 readers
+ */
 enum {
   RFC5444_VALIDATOR_PRIORITY = -256,
   RFC5444_MAIN_PARSER_PRIORITY = 0,
@@ -68,32 +71,36 @@ enum {
   RFC5444_PLUGIN_PARSER_PRIORITY = 256,
 };
 
-/* Configuration section for global mesh settings */
+/*! Configuration section for global mesh settings */
 #define CFG_RFC5444_SECTION "mesh"
 
 enum {
-  /* Maximum packet size for this RFC5444 multiplexer */
+  /*! Maximum packet size for this RFC5444 multiplexer */
   RFC5444_MAX_PACKET_SIZE = 1500-20-8,
 
-  /*
+  /**
    * Maximum message size for this RFC5444 multiplexer
    * (minimal ipv6 mtu - ipv6/udp/rfc5444packet/vlan-header)
    */
   RFC5444_MAX_MESSAGE_SIZE = 1280-40-8-3-4,
 
-  /* Maximum buffer size for address TLVs before splitting */
+  /*! Maximum buffer size for address TLVs before splitting */
   RFC5444_ADDRTLV_BUFFER = 65536,
 };
 
-/* Protocol name for IANA allocated MANET port */
+/*! Protocol name for IANA allocated MANET port */
 #define RFC5444_PROTOCOL "rfc5444_default"
 
-/* Interface name for unicast targets */
+/*! Interface name for unicast targets */
 #define RFC5444_UNICAST_INTERFACE OONF_INTERFACE_WILDCARD
 
-/* classes for elements of RFC5444 */
+/*! memory class for rfc5444 protocol */
 #define RFC5444_CLASS_PROTOCOL  "RFC5444 protocol"
+
+/*! memory class for rfc5444 interface */
 #define RFC5444_CLASS_INTERFACE "RFC5444 interface"
+
+/*! memory class for rfc5444 target */
 #define RFC5444_CLASS_TARGET    "RFC5444 target"
 
 struct oonf_rfc5444_target;
@@ -266,6 +273,8 @@ EXPORT struct oonf_rfc5444_target *oonf_rfc5444_add_target(
     struct oonf_rfc5444_interface *interface, struct netaddr *dst);
 EXPORT void oonf_rfc5444_remove_target(struct oonf_rfc5444_target *target);
 
+EXPORT const union netaddr_socket *oonf_rfc5444_interface_get_local_socket(
+    struct oonf_rfc5444_interface *rfc5444_if, int af_type);
 EXPORT const union netaddr_socket *oonf_rfc5444_target_get_local_socket(
     struct oonf_rfc5444_target *target);
 

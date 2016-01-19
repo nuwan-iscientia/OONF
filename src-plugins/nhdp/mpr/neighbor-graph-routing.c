@@ -40,7 +40,7 @@
  */
 
 /**
- * @file src-plugins/nhdp/mpr/neighbor-graph-routing.c
+ * @file
  */
 
 #include "nhdp/nhdp.h"

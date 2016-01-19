@@ -40,7 +40,7 @@
  */
 
 /**
- * @file src-plugins/nhdp/nhdp/nhdp_reader.h
+ * @file
  */
 
 #ifndef NHDP_INCOMING_H_

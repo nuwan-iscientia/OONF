@@ -40,7 +40,7 @@
  */
 
 /**
- * @file ./src-api/common/string.c
+ * @file
  */
 
 #include <assert.h>

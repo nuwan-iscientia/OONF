@@ -40,7 +40,7 @@
  */
 
 /**
- * @file src-plugins/crypto/rfc7182_provider/rfc7182_provider.c
+ * @file
  */
 
 #include "common/common_types.h"
@@ -91,12 +91,12 @@ static struct oonf_subsystem _rfc7182_provider_subsystem = {
 DECLARE_OONF_PLUGIN(_rfc7182_provider_subsystem);
 
 /* identity hash/crypt function */
-struct rfc7182_hash _identity_hash = {
+static struct rfc7182_hash _identity_hash = {
   .type = RFC7182_ICV_HASH_IDENTITY,
   .hash = _cb_identity_hash,
 };
 
-struct rfc7182_crypt _identity_crypt = {
+static struct rfc7182_crypt _identity_crypt = {
   .type = RFC7182_ICV_CRYPT_IDENTITY,
   .encrypt = _cb_identity_crypt,
 };
@@ -107,9 +107,11 @@ static struct avl_tree _hash_functions;
 
 static struct oonf_class _hash_class = {
   .name = OONF_RFC7182_HASH_CLASS,
+  .size = sizeof(struct rfc7182_hash),
 };
 static struct oonf_class _crypt_class = {
   .name = OONF_RFC7182_CRYPTO_CLASS,
+  .size = sizeof(struct rfc7182_crypt),
 };
 
 /* static buffer for crypto calculation */
@@ -177,6 +179,10 @@ rfc7182_remove_hash(struct rfc7182_hash *hash) {
   avl_remove(&_hash_functions, &hash->_node);
 }
 
+/**
+ * Get tree of RFC7182 hashes
+ * @return tree of hashes
+ */
 struct avl_tree *
 rfc7182_get_hash_tree(void) {
   return &_hash_functions;
@@ -216,6 +222,10 @@ rfc7182_remove_crypt(struct rfc7182_crypt *crypt) {
   avl_remove(&_crypt_functions, &crypt->_node);
 }
 
+/**
+ * Get tree of RFC7182 crypto
+ * @return tree of crypto functions
+ */
 struct avl_tree *
 rfc7182_get_crypt_tree(void){
   return &_crypt_functions;

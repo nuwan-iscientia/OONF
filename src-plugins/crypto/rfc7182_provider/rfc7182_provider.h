@@ -40,7 +40,7 @@
  */
 
 /**
- * @file src-plugins/crypto/rfc7182_provider/rfc7182_provider.h
+ * @file
  */
 
 #ifndef RFC7182_PROVIDER_H_
@@ -167,8 +167,13 @@ struct rfc7182_crypt {
   struct avl_node _node;
 };
 
+/*! subsystem identifier */
 #define OONF_RFC7182_PROVIDER_SUBSYSTEM "rfc7182_provider"
+
+/*! rfc7182 hash class identifier */
 #define OONF_RFC7182_HASH_CLASS         "rfc7182_hash"
+
+/*! rfc7182 crypto class identifier */
 #define OONF_RFC7182_CRYPTO_CLASS       "rfc7182_crypto"
 
 EXPORT void rfc7182_add_hash(struct rfc7182_hash *);

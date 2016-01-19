@@ -40,7 +40,7 @@
  */
 
 /**
- * @file src-plugins/subsystems/oonf_telnet.c
+ * @file
  */
 
 #include "common/common_types.h"
@@ -733,7 +733,7 @@ _cb_telnet_repeat(struct oonf_telnet_data *data) {
 
   timer->cb_context = data;
   timer->class = &_telnet_repeat_timerinfo;
-  oonf_timer_start(timer, MSEC_PER_SEC * interval);
+  oonf_timer_start(timer, (uint64_t)MSEC_PER_SEC * interval);
 
   data->stop_handler = _cb_telnet_repeat_stophandler;
   data->stop_data[0] = timer;

@@ -40,45 +40,15 @@
  */
 
 /**
- * @file src-plugins/subsystems/os_generic/os_socket_generic_getsocket.c
+ * @file
  */
 
-#include <errno.h>
-#include <fcntl.h>
+#ifndef OS_TUNNEL_LINUX_H_
+#define OS_TUNNEL_LINUX_H_
 
 #include "common/common_types.h"
-#include "common/netaddr.h"
-#include "core/oonf_logging.h"
 
-#include "../os_socket.h"
+struct os_tunnel_internal {
+};
 
-/**
- * Creates a new socket and configures it
- * @param bind_to address to bind the socket to
- * @param tcp true for a TCP socket, false for UDP
- * @param recvbuf size of input buffer for socket
- * @param interf pointer to interface to bind socket on,
- *   NULL if socket should not be bound to an interface
- * @param log_src logging source for error messages
- * @return socket filedescriptor, -1 if an error happened
- */
-int
-os_socket_getsocket(const union netaddr_socket *bind_to,
-    bool tcp, size_t recvbuf, const struct os_interface_data *interf,
-    enum oonf_log_source log_src __attribute__((unused))) {
-
-  int sock;
-
-  sock = socket(bind_to->std.sa_family,
-      tcp ? SOCK_STREAM : SOCK_DGRAM, 0);
-  if (sock < 0) {
-    OONF_WARN(log_src, "Cannot open socket: %s (%d)", strerror(errno), errno);
-    return -1;
-  }
-
-  if (os_socket_configsocket(sock, bind_to, recvbuf, false, interf, log_src)) {
-    os_socket_close(sock);
-    return -1;
-  }
-  return sock;
-}
+#endif /* OS_TUNNEL_LINUX_H_ */

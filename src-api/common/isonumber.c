@@ -40,7 +40,7 @@
  */
 
 /**
- * @file ./src-api/common/isonumber.c
+ * @file
  */
 
 #include <errno.h>
@@ -268,7 +268,8 @@ static const char *
 _isonumber_u64_to_string(char *out, size_t out_len,
     uint64_t number, const char *unit, size_t fraction,
     bool binary, bool raw) {
-  static const char symbol[] = " kMGTPE";
+  static const char symbol_large[] = " kMGTPE";
+  static const char symbol_small[] = " munpfa";
   uint64_t step, multiplier, print, n;
   const char *unit_modifier;
   size_t idx, len;
@@ -276,16 +277,26 @@ _isonumber_u64_to_string(char *out, size_t out_len,
 
   step = binary ? 1024 : 1000;
   multiplier = 1;
-  unit_modifier = symbol;
 
   while (fraction > 0) {
     multiplier *= 10;
     fraction--;
   }
 
-  while (!raw && *unit_modifier != 0 && number >= multiplier * step) {
-    multiplier *= step;
-    unit_modifier++;
+  if (number >= multiplier) {
+    unit_modifier = symbol_large;
+    while (!raw && *unit_modifier != 0 && number / step >= multiplier) {
+      multiplier *= step;
+      unit_modifier++;
+    }
+  }
+  else {
+    unit_modifier = symbol_small;
+    while (!raw && *unit_modifier != 0 && number < multiplier
+        && multiplier >= step) {
+      multiplier /= step;
+      unit_modifier++;
+    }
   }
 
   /* print whole */

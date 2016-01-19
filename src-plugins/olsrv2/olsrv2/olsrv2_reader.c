@@ -40,7 +40,7 @@
  */
 
 /**
- * @file src-plugins/olsrv2/olsrv2/olsrv2_reader.c
+ * @file
  */
 
 #include "common/common_types.h"
@@ -114,7 +114,7 @@ static enum rfc5444_result _cb_messagetlvs_end(
 /* definition of the RFC5444 reader components */
 static struct rfc5444_reader_tlvblock_consumer _olsrv2_message_consumer = {
   .order = RFC5444_MAIN_PARSER_PRIORITY,
-  .msg_id = RFC5444_MSGTYPE_TC,
+  .msg_id = RFC7181_MSGTYPE_TC,
   .block_callback = _cb_messagetlvs,
   .end_callback = _cb_messagetlvs_end,
 };
@@ -135,7 +135,7 @@ static struct rfc5444_reader_tlvblock_consumer_entry _olsrv2_message_tlvs[] = {
 
 static struct rfc5444_reader_tlvblock_consumer _olsrv2_address_consumer = {
   .order = RFC5444_MAIN_PARSER_PRIORITY,
-  .msg_id = RFC5444_MSGTYPE_TC,
+  .msg_id = RFC7181_MSGTYPE_TC,
   .addrblock_consumer = true,
   .block_callback = _cb_addresstlvs,
 };
@@ -157,7 +157,8 @@ static struct oonf_rfc5444_protocol *_protocol = NULL;
 static struct _olsrv2_data _current;
 
 /**
- * Initialize nhdp reader
+ * Initialize olsrv2 reader
+ * @param p RFC5444 protocol instance
  */
 void
 olsrv2_reader_init(struct oonf_rfc5444_protocol *p) {

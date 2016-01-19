@@ -40,7 +40,7 @@
  */
 
 /**
- * @file src-plugins/generic/dlep/router/dlep_router_session.h
+ * @file
  */
 
 #ifndef DLEP_ROUTER_SESSION_H_
@@ -54,9 +54,17 @@
 
 #include "dlep/router/dlep_router_interface.h"
 
+/**
+ * session state of a router
+ */
 enum dlep_router_session_state {
+  /*! session is still initializing */
   DLEP_ROUTER_SESSION_INIT,
+
+  /*! session is active */
   DLEP_ROUTER_SESSION_ACTIVE,
+
+  /*! session is being terminated */
   DLEP_ROUTER_SESSION_TERMINATE,
 };
 
@@ -92,7 +100,5 @@ struct dlep_router_session *dlep_router_add_session(
     struct dlep_router_if *interf,
     union netaddr_socket *local, union netaddr_socket *remote);
 void dlep_router_remove_session(struct dlep_router_session *);
-
-int dlep_router_send_peer_initialization(struct dlep_router_session *);
 
 #endif /* DLEP_ROUTER_SESSION_H_ */

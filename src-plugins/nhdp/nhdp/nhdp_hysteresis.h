@@ -40,7 +40,7 @@
  */
 
 /**
- * @file src-plugins/nhdp/nhdp/nhdp_hysteresis.h
+ * @file
  */
 
 #ifndef NHDP_HYSTERESIS_H_

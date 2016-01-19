@@ -40,7 +40,7 @@
  */
 
 /**
- * @file src-plugins/crypto/rfc5444_signature/rfc5444_signature.c
+ * @file
  */
 
 #include "common/common_types.h"

@@ -40,7 +40,7 @@
  */
 
 /**
- * @file src-plugins/nhdp/mpr/mpr_internal.h
+ * @file
  */
 
 #ifndef MPR_INTERNAL_H_

@@ -40,7 +40,7 @@
  */
 
 /**
- * @file src-plugins/subsystems/oonf_timer.h
+ * @file
  */
 
 #ifndef OONF_TIMER_H_
@@ -52,11 +52,12 @@
 
 #include "subsystems/oonf_clock.h"
 
+/*! subsystem identifier */
 #define OONF_TIMER_SUBSYSTEM "timer"
 
 struct oonf_timer_instance;
 
-/* timeslice is 100 ms */
+/*! timeslice of the scheduler */
 #define OONF_TIMER_SLICE 100ull
 
 /**

@@ -40,7 +40,7 @@
  */
 
 /**
- * @file ./src-api/common/json.c
+ * @file
  */
 
 #include "common/common_types.h"

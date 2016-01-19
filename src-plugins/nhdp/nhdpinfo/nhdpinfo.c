@@ -40,7 +40,7 @@
  */
 
 /**
- * @file src-plugins/nhdp/nhdpinfo/nhdpinfo.c
+ * @file
  */
 
 #include "common/common_types.h"
@@ -61,16 +61,6 @@
 
 /* Definitions */
 #define LOG_NHDPINFO _olsrv2_nhdpinfo_subsystem.logging
-
-/* name of telnet subcommands/JSON nodes */
-#define _JSON_NAME_INTERFACE     "interface"
-#define _JSON_NAME_IFADDR        "if_addr"
-#define _JSON_NAME_LINK          "link"
-#define _JSON_NAME_DOMAIN        "domain"
-#define _JSON_NAME_LADDR         "link_addr"
-#define _JSON_NAME_TWOHOP        "link_twohop"
-#define _JSON_NAME_NEIGHBOR      "neighbor"
-#define _JSON_NAME_NADDR         "neighbor_addr"
 
 /* prototypes */
 static int _init(void);
@@ -106,54 +96,137 @@ static int _cb_create_text_neighbor_address(struct oonf_viewer_template *);
  *
  * The keys are API, so they should not be changed after published
  */
+
+/*! template key for interface name */
 #define KEY_IF                      "if"
+
+/*! template key for interface IPv4 socket address */
 #define KEY_IF_BINDTO_V4            "if_bindto_v4"
+
+/*! template key for interface IPv6 socket address */
 #define KEY_IF_BINDTO_V6            "if_bindto_v6"
+
+/*! template key for interface MAP address */
 #define KEY_IF_MAC                  "if_mac"
+
+/*! template key for IPv4 flooding flag */
 #define KEY_IF_FLOODING_V4          "if_flooding_v4"
+
+/*! template key for IPv6 flooding flag */
 #define KEY_IF_FLOODING_V6          "if_flooding_v6"
+
+/*! template key for dualstack mode */
 #define KEY_IF_DUALSTACK_MODE       "if_dualstack_mode"
+
+/*! template key for an interface address */
 #define KEY_IF_ADDRESS              "if_address"
+
+/*! template key for a lost interface address */
 #define KEY_IF_ADDRESS_LOST         "if_address_lost"
+
+/*! template key for validity time of a lost interface address */
 #define KEY_IF_ADDRESS_LOST_VTIME   "if_address_lost_vtime"
 
+/*! template key for the links remote socket IP address */
 #define KEY_LINK_BINDTO             "link_bindto"
+
+/*! template key for the validity time of the link */
 #define KEY_LINK_VTIME_VALUE        "link_vtime_value"
+
+/*! template key for the interval time of the link */
 #define KEY_LINK_ITIME_VALUE        "link_itime_value"
+
+/*! template key for the time the link will still be symmetric */
 #define KEY_LINK_SYMTIME            "link_symtime"
+
+/*! template key for the time the link will still be heard */
 #define KEY_LINK_HEARDTIME          "link_heardtime"
+
+/*! template key for validity time of the link */
 #define KEY_LINK_VTIME              "link_vtime"
+
+/*! template key for link status */
 #define KEY_LINK_STATUS             "link_status"
+
+/*! template key for links local dualstack IP address */
 #define KEY_LINK_DUALSTACK          "link_dualstack"
+
+/*! template key for links remote mac address */
 #define KEY_LINK_MAC                "link_mac"
 
+/*! template key for a link IP address */
 #define KEY_LINK_ADDRESS            "link_address"
 
+/*! template key for an IP address of a two-hop link */
 #define KEY_TWOHOP_ADDRESS          "twohop_address"
+
+/*! template key for the flag to signal a two-hop link on the same interface */
 #define KEY_TWOHOP_SAMEIF           "twohop_same_interface"
+
+/*! template key for the validity time of a two-hop link */
 #define KEY_TWOHOP_VTIME            "twohop_vtime"
 
+/*! template key for neighbors originator IP */
 #define KEY_NEIGHBOR_ORIGINATOR     "neighbor_originator"
+
+/*! template key for neighbors dualstack originator IP */
 #define KEY_NEIGHBOR_DUALSTACK      "neighbor_dualstack"
+
+/*! template key signaling neighbor has selected node as flooding MPR */
 #define KEY_NEIGHBOR_FLOOD_LOCAL    "neighbor_flood_local"
+
+/*! template key signaling route has selected neighbor as flooding MPR */
 #define KEY_NEIGHBOR_FLOOD_REMOTE   "neighbor_flood_remote"
+
+/*! template key for number of symmetric links of neighbor */
 #define KEY_NEIGHBOR_SYMMETRIC      "neighbor_symmetric"
+
+/*! template key for number of links of neighbor */
 #define KEY_NEIGHBOR_LINKCOUNT      "neighbor_linkcount"
+
+/*! template key for neighbor flooding willingness */
 #define KEY_NEIGHBOR_FLOOD_WILL     "neighbor_flood_willingness"
+
+/*! template key for neighbor address */
 #define KEY_NEIGHBOR_ADDRESS        "neighbor_address"
+
+/*! template key for lost neighbor address */
 #define KEY_NEIGHBOR_ADDRESS_LOST   "neighbor_address_lost"
+
+/*! template key for validity time of lost neighbor address */
 #define KEY_NEIGHBOR_ADDRESS_VTIME  "neighbor_address_lost_vtime"
 
+/*! template key for NHDP domain */
 #define KEY_DOMAIN                  "domain"
+
+/*! template key for NHDP domain metric name */
 #define KEY_DOMAIN_METRIC           "domain_metric"
+
+/*! template key for incoming human readable metric */
 #define KEY_DOMAIN_METRIC_IN        "domain_metric_in"
+
+/*! template key for outgoing human readable metric */
 #define KEY_DOMAIN_METRIC_OUT       "domain_metric_out"
+
+/*! template key for incoming numeric metric */
 #define KEY_DOMAIN_METRIC_IN_RAW    "domain_metric_in_raw"
+
+/*! template key for outgoing numeric metric */
 #define KEY_DOMAIN_METRIC_OUT_RAW   "domain_metric_out_raw"
+
+/*! template key for internal metric representation */
 #define KEY_DOMAIN_METRIC_INTERNAL  "domain_metric_internal"
+
+/*! template key for NHDP domain MPR name */
 #define KEY_DOMAIN_MPR              "domain_mpr"
+
+/*! template key signaling local node is selected as routing MPR */
 #define KEY_DOMAIN_MPR_LOCAL        "domain_mpr_local"
+
+/*! template key signaling remote node has been selected as routing MPR */
 #define KEY_DOMAIN_MPR_REMOTE       "domain_mpr_remote"
+
+/*! template key for routing willingness */
 #define KEY_DOMAIN_MPR_WILL         "domain_mpr_willingness"
 
 /*
@@ -347,43 +420,43 @@ static struct oonf_viewer_template _templates[] = {
     {
         .data = _td_if,
         .data_size = ARRAYSIZE(_td_if),
-        .json_name = _JSON_NAME_INTERFACE,
+        .json_name = "interface",
         .cb_function = _cb_create_text_interface,
     },
     {
         .data = _td_if_addr,
         .data_size = ARRAYSIZE(_td_if_addr),
-        .json_name = _JSON_NAME_IFADDR,
+        .json_name = "if_addr",
         .cb_function = _cb_create_text_if_address,
     },
     {
         .data = _td_link,
         .data_size = ARRAYSIZE(_td_link),
-        .json_name = _JSON_NAME_LINK,
+        .json_name = "link",
         .cb_function = _cb_create_text_link,
     },
     {
         .data = _td_link_addr,
         .data_size = ARRAYSIZE(_td_link_addr),
-        .json_name = _JSON_NAME_LADDR,
+        .json_name = "link_addr",
         .cb_function = _cb_create_text_link_address,
     },
     {
         .data = _td_twohop_addr,
         .data_size = ARRAYSIZE(_td_twohop_addr),
-        .json_name = _JSON_NAME_TWOHOP,
+        .json_name = "link_twohop",
         .cb_function = _cb_create_text_link_twohop,
     },
     {
         .data = _td_neigh,
         .data_size = ARRAYSIZE(_td_neigh),
-        .json_name = _JSON_NAME_NEIGHBOR,
+        .json_name = "neighbor",
         .cb_function = _cb_create_text_neighbor,
     },
     {
         .data = _td_neigh_addr,
         .data_size = ARRAYSIZE(_td_neigh_addr),
-        .json_name = _JSON_NAME_NADDR,
+        .json_name = "neighbor_addr",
         .cb_function = _cb_create_text_neighbor_address,
     }
 };

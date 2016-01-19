@@ -40,7 +40,7 @@
  */
 
 /**
- * @file ./src-api/common/netaddr.c
+ * @file
  */
 
 #include <ctype.h>
@@ -571,6 +571,7 @@ netaddr_from_string(struct netaddr *dst, const char *src) {
 
   if (strcmp(src, "-") == 0) {
     /* unspec */
+    netaddr_invalidate(dst);
     return 0;
   }
 

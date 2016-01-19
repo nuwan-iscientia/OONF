@@ -40,15 +40,19 @@
  */
 
 /**
- * @file src-plugins/subsystems/rfc5444/rfc5444_api_config.h
+ * @file
  */
 
 #ifndef RFC5444_API_CONFIG_H_
 #define RFC5444_API_CONFIG_H_
 
+/*! prevent content consumers from dropping the context */
 #define DISALLOW_CONSUMER_CONTEXT_DROP false
+
+/*! keep track of state of packet writer and prevent bad API calls */
 #define WRITER_STATE_MACHINE           true
+
+/*! clear buffers for packet generation after usage */
 #define DEBUG_CLEANUP                  false
-#define DO_ADDR_COMPRESSION            true
 
 #endif /* RFC5444_API_CONFIG_H_ */

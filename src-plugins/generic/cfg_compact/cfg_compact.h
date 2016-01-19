@@ -40,15 +40,13 @@
  */
 
 /**
- * @file src-plugins/generic/cfg_compact/cfg_compact.h
+ * @file
  */
 
 #ifndef CFG_COMPACT_H_
 #define CFG_COMPACT_H_
 
-#include "common/common_types.h"
-#include "core/oonf_subsystem.h"
-
+/*! subsystem identifier */
 #define OONF_CFG_COMPACT_SUBSYSTEM "cfg_compact"
 
 #endif /* CFG_COMPACT_H_ */

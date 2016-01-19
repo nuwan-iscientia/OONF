@@ -40,36 +40,57 @@
  */
 
 /**
- * @file src-plugins/subsystems/os_linux/os_socket_linux_skip_rawsocket_prefix.c
+ * @file
  */
 
 #include <errno.h>
 #include <fcntl.h>
 
-#include "../os_socket.h"
 #include "common/common_types.h"
+#include "common/netaddr.h"
 #include "core/oonf_logging.h"
 
-/**
- * Raw IP sockets sometimes deliver the whole IP header instead of just
- * the content. This function skips the IP header and modifies the length
- * of the buffer.
- * @param ptr pointer to the beginning of the buffer
- * @param len pointer to length of buffer
- * @param af_type address family of data in buffer
- * @return pointer to transport layer data
- */
-uint8_t *
-os_socket_skip_rawsocket_prefix(uint8_t *ptr, ssize_t *len, int af_type) {
-  int header_size;
+#include "subsystems/os_interface_data.h"
+#include "subsystems/os_socket.h"
+#include "subsystems/os_generic/os_fd_generic_getrawsocket.h"
 
-  if (af_type != AF_INET) {
-    return ptr;
+/**
+ * Creates a new raw socket and configures it
+ * @param bind_to address to bind the socket to
+ * @param protocol IP protocol number
+ * @param recvbuf size of input buffer for socket
+ * @param interf pointer to interface to bind socket on,
+ *   NULL if socket should not be bound to an interface
+ * @param log_src logging source for error messages
+ * @return socket filedescriptor, -1 if an error happened
+ */
+int
+os_fd_generic_getrawsocket(struct os_fd *sock,
+    const union netaddr_socket *bind_to,
+    int protocol, size_t recvbuf, const struct os_interface_data *interf,
+    enum oonf_log_source log_src __attribute__((unused))) {
+
+  static const int zero = 0;
+  int family;
+
+  family = bind_to->std.sa_family;
+  sock->fd = socket(family, SOCK_RAW, protocol);
+  if (sock->fd < 0) {
+    OONF_WARN(log_src, "Cannot open socket: %s (%d)", strerror(errno), errno);
+    return -1;
   }
 
-  /* skip IPv4 header */
-  header_size = (ptr[0] & 0x0f) << 2;
+  if (family == AF_INET) {
+    if (setsockopt (sock->fd, IPPROTO_IP, IP_HDRINCL, &zero, sizeof(zero)) < 0) {
+      OONF_WARN(log_src, "Cannot disable IP_HDRINCL for socket: %s (%d)", strerror(errno), errno);
+      os_fd_close(sock);
+      return -1;
+    }
+  }
 
-  *len -= header_size;
-  return ptr + header_size;
+  if (os_fd_configsocket(sock, bind_to, recvbuf, true, interf, log_src)) {
+    os_fd_close(sock);
+    return -1;
+  }
+  return 0;
 }

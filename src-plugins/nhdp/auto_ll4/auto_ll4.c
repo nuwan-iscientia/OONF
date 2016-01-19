@@ -40,7 +40,7 @@
  */
 
 /**
- * @file src-plugins/nhdp/auto_ll4/auto_ll4.c
+ * @file
  */
 
 #include <errno.h>
@@ -75,8 +75,6 @@ struct _config {
   /*! delay until plugin starts generating interface addresses */
   uint64_t startup_delay;
 };
-
-#define _MODE_DETECT "detect"
 
 /**
  * NHDP interface class extension of autoll4 plugin

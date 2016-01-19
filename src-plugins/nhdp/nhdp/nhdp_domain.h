@@ -40,7 +40,7 @@
  */
 
 /**
- * @file src-plugins/nhdp/nhdp/nhdp_domain.h
+ * @file
  */
 
 #ifndef NHDP_DOMAIN_H_
@@ -53,11 +53,17 @@
 #include "nhdp/nhdp_interfaces.h"
 #include "nhdp/nhdp_db.h"
 
+/*! memory class for nhdp domain */
 #define NHDP_CLASS_DOMAIN             "nhdp_domain"
 
-/* constants with maximum length of metric/mpr name */
+/**
+ * NHDP domain constants
+ */
 enum {
+  /*! maximum length of metric name */
   NHDP_DOMAIN_METRIC_MAXLEN = 16,
+
+  /*! maximum length of mpr name */
   NHDP_DOMAIN_MPR_MAXLEN = 16,
 };
 

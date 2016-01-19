@@ -40,7 +40,7 @@
  */
 
 /**
- * @file src-plugins/subsystems/os_system.h
+ * @file
  */
 
 #ifndef OS_SYSTEM_H_
@@ -50,9 +50,8 @@
 #include <sys/time.h>
 
 #include "common/common_types.h"
-#include "common/list.h"
-#include "core/oonf_logging.h"
 
+/*! subsystem identifier */
 #define OONF_OS_SYSTEM_SUBSYSTEM "os_system"
 
 /* include os-specific headers */

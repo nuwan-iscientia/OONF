@@ -40,7 +40,7 @@
  */
 
 /**
- * @file src-plugins/nhdp/nhdp/nhdp_interfaces.h
+ * @file
  */
 
 #ifndef NHDP_INTERFACES_H_
@@ -61,7 +61,10 @@ struct nhdp_interface_domaindata;
 
 #include "nhdp/nhdp_db.h"
 
+/*! memory class for NHDP interface */
 #define NHDP_CLASS_INTERFACE         "nhdp_interf"
+
+/*! memory class for NHDP interface address */
 #define NHDP_CLASS_INTERFACE_ADDRESS "nhdp_iaddr"
 
 /**

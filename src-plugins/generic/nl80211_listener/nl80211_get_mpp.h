@@ -40,7 +40,7 @@
  */
 
 /**
- * @file src-plugins/generic/nl80211_listener/nl80211_get_mpp.h
+ * @file
  */
 
 #ifndef NL80211_GET_MPP_H_

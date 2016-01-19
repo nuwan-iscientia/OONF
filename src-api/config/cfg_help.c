@@ -40,7 +40,7 @@
  */
 
 /**
- * @file ./src-api/config/cfg_help.c
+ * @file
  */
 
 #include "common/common_types.h"
@@ -74,7 +74,7 @@ cfg_help_strlen(struct autobuf *out, size_t len) {
  */
 void
 cfg_help_printable(struct autobuf *out, size_t len) {
-  cfg_help_printable(out, len);
+  cfg_help_strlen(out, len);
   cfg_append_printable_line(out, _PREFIX "Parameter must only contain printable characters.");
 }
 

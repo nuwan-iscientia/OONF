@@ -40,7 +40,7 @@
  */
 
 /**
- * @file src-plugins/subsystems/oonf_telnet.h
+ * @file
  */
 
 #ifndef OONF_TELNET_H_
@@ -53,15 +53,26 @@
 #include "common/netaddr_acl.h"
 #include "subsystems/oonf_stream_socket.h"
 
+/*! subsystem identifier */
 #define OONF_TELNET_SUBSYSTEM "telnet"
 
+/**
+ * telnet session status
+ */
 enum oonf_telnet_result {
+  /*! active and waiting for the next command */
   TELNET_RESULT_ACTIVE,
+
+  /*! will output continuous data until stopped */
   TELNET_RESULT_CONTINOUS,
+
+  /*! an error happened with the telnet command */
   TELNET_RESULT_INTERNAL_ERROR,
+
+  /*! telnet session should end */
   TELNET_RESULT_QUIT,
 
-  /*
+  /**
    * this one is used internally for the telnet API,
    * it should not be returned by a command handler
    */
@@ -136,6 +147,13 @@ struct oonf_telnet_session {
 };
 
 #if !defined(REMOVE_HELPTEXT)
+/**
+ * define an array entry for a telnet command
+ * @param cmd command name
+ * @param cb callback for command
+ * @param helptext help text for command
+ * @param args additional arguments
+ */
 #define TELNET_CMD(cmd, cb, helptext, args...) { .command = (cmd), .handler = (cb), .help = helptext, ##args }
 #else
 #define TELNET_CMD(cmd, cb, helptext, args...) { .command = (cmd), .handler = (cb), .help = "", ##args }

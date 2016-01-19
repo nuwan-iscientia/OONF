@@ -40,7 +40,7 @@
  */
 
 /**
- * @file src-plugins/olsrv2/olsrv2/olsrv2_originator.c
+ * @file
  */
 
 #include "common/avl.h"
@@ -158,6 +158,10 @@ olsrv2_originator_set(const struct netaddr *originator) {
   }
 }
 
+/**
+ * Get tree of old originator IPs
+ * @return originator tree
+ */
 struct avl_tree *
 olsrv2_originator_get_tree(void) {
   return &_originator_set_tree;

@@ -40,7 +40,7 @@
  */
 
 /**
- * @file ./src-api/config/cfg_io.c
+ * @file
  */
 
 #ifndef WIN32

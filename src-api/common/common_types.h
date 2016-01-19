@@ -40,7 +40,7 @@
  */
 
 /**
- * @file ./src-api/common/common_types.h
+ * @file
  */
 
 #ifndef COMMON_TYPES_H_

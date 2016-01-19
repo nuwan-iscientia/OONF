@@ -40,15 +40,13 @@
  */
 
 /**
- * @file src-plugins/nhdp/hysteresis_olsrv1/hysteresis_olsrv1.h
+ * @file
  */
 
 #ifndef HYSTERESIS_OONFV1_H_
 #define HYSTERESIS_OONFV1_H_
 
-#include "common/common_types.h"
-#include "core/oonf_subsystem.h"
-
+/*! subsystem identifier */
 #define OONF_HYSTERESIS_OLSRV1_SUBSYSTEM "hysteresis_olsrv1"
 
 #endif /* HYSTERESIS_OONFV1_H_ */

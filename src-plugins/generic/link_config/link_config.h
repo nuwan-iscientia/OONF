@@ -40,15 +40,13 @@
  */
 
 /**
- * @file src-plugins/generic/link_config/link_config.h
+ * @file
  */
 
 #ifndef OONF_LINKCONFIG_H_
 #define OONF_LINKCONFIG_H_
 
-#include "common/common_types.h"
-#include "core/oonf_subsystem.h"
-
+/*! subsystem identifier */
 #define OONF_LINK_CONFIG_SUBSYSTEM "link_config"
 
 #endif /* OONF_LINKCONFIG_H_ */

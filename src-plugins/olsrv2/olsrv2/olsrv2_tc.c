@@ -40,7 +40,7 @@
  */
 
 /**
- * @file src-plugins/olsrv2/olsrv2/olsrv2_tc.c
+ * @file
  */
 
 #include "common/avl.h"
@@ -409,16 +409,28 @@ olsrv2_tc_endpoint_remove(
   oonf_class_free(&_tc_attached_class, net);
 }
 
+/**
+ * Inform everyone that a tc node changed
+ * @param node tc node
+ */
 void
 olsrv2_tc_trigger_change(struct olsrv2_tc_node *node) {
   oonf_class_event(&_tc_node_class, node, OONF_OBJECT_CHANGED);
 }
 
+/**
+ * Get tree of olsrv2 tc nodes
+ * @return node tree
+ */
 struct avl_tree *
 olsrv2_tc_get_tree(void) {
   return &_tc_tree;
 }
 
+/**
+ * Get tree of olsrv2 tc endpoints
+ * @return endpoint tree
+ */
 struct avl_tree *
 olsrv2_tc_get_endpoint_tree(void) {
   return &_tc_endpoint_tree;

@@ -40,7 +40,7 @@
  */
 
 /**
- * @file ./tests/cunit/cunit.c
+ * @file
  */
 
 #include <stdio.h>

@@ -40,12 +40,13 @@
  */
 
 /**
- * @file src-plugins/olsrv2/netjsoninfo/netjsoninfo.h
+ * @file
  */
 
 #ifndef NETJSONINFO_H_
 #define NETJSONINFO_H_
 
+/*! subsystem identifier */
 #define OONF_NETJSONINFO_SUBSYSTEM "netjsoninfo"
 
 #endif /* NETJSONINFO_H_ */

@@ -40,7 +40,7 @@
  */
 
 /**
- * @file src-plugins/olsrv2/olsrv2/olsrv2_writer.c
+ * @file
  */
 
 #include "common/avl.h"
@@ -63,11 +63,24 @@
 #include "olsrv2/olsrv2_writer.h"
 
 /* constants */
+
+/**
+ * olsrv2 index values for address tlvs
+ */
 enum olsrv2_addrtlv_idx {
+  /*! index of neighbor address tlv */
   IDX_ADDRTLV_NBR_ADDR_TYPE,
+
+  /*! index of destination specific gateway tlv */
   IDX_ADDRTLV_GATEWAY_DSTSPEC,
+
+  /*! index of source specific gateway tlv */
   IDX_ADDRTLV_GATEWAY_SRCSPEC,
+
+  /*! index of source specific default gateway tlv */
   IDX_ADDRTLV_GATEWAY_SRCSPEC_DEF,
+
+  /*! index of source prefix tlv */
   IDX_ADDRTLV_GATEWAY_SRC_PREFIX,
 };
 
@@ -93,7 +106,7 @@ static void _cb_finishMessageTLVs(struct rfc5444_writer *,
 static struct rfc5444_writer_message *_olsrv2_message = NULL;
 
 static struct rfc5444_writer_content_provider _olsrv2_msgcontent_provider = {
-  .msg_type = RFC5444_MSGTYPE_TC,
+  .msg_type = RFC7181_MSGTYPE_TC,
   .addMessageTLVs = _cb_addMessageTLVs,
   .addAddresses = _cb_addAddresses,
   .finishMessageTLVs = _cb_finishMessageTLVs,
@@ -126,7 +139,7 @@ olsrv2_writer_init(struct oonf_rfc5444_protocol *protocol) {
   _protocol = protocol;
 
   _olsrv2_message = rfc5444_writer_register_message(
-      &_protocol->writer, RFC5444_MSGTYPE_TC, false);
+      &_protocol->writer, RFC7181_MSGTYPE_TC, false);
   if (_olsrv2_message == NULL) {
     OONF_WARN(LOG_OLSRV2, "Could not register OLSRV2 TC message");
     return -1;
@@ -205,7 +218,7 @@ _send_tc(int af_type) {
   originator = olsrv2_originator_get(af_type);
   if (netaddr_get_address_family(originator) == af_type) {
     OONF_INFO(LOG_OLSRV2_W, "Emit IPv%d TC message.", af_type == AF_INET ? 4 : 6);
-    oonf_rfc5444_send_all(_protocol, RFC5444_MSGTYPE_TC,
+    oonf_rfc5444_send_all(_protocol, RFC7181_MSGTYPE_TC,
         af_type == AF_INET ? 4 : 16, nhdp_flooding_selector);
   }
 }

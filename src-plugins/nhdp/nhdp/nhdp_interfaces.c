@@ -40,7 +40,7 @@
  */
 
 /**
- * @file src-plugins/nhdp/nhdp/nhdp_interfaces.c
+ * @file
  */
 
 #include <assert.h>
@@ -105,6 +105,7 @@ static struct oonf_rfc5444_protocol *_protocol;
 
 /**
  * Initialize NHDP interface subsystem
+ * @param p rfc5444 protocol
  */
 void
 nhdp_interfaces_init(struct oonf_rfc5444_protocol *p) {
@@ -332,11 +333,19 @@ nhdp_interface_apply_settings(struct nhdp_interface *interf) {
   interf->i_hold_time = interf->n_hold_time;
 }
 
+/**
+ * get tree of NHDP interfaces
+ * @return interface tree
+ */
 struct avl_tree *
 nhdp_interface_get_tree(void) {
   return &_interface_tree;
 }
 
+/**
+ * get tree of NHDP interface addresses
+ * @return interface address tree
+ */
 struct avl_tree *
 nhdp_interface_get_address_tree(void) {
   return &_ifaddr_tree;

@@ -40,7 +40,7 @@
  */
 
 /**
- * @file src-plugins/generic/layer2info/layer2info.c
+ * @file
  */
 
 #include <stdio.h>
@@ -63,12 +63,6 @@
 
 /* definitions */
 #define LOG_LAYER2INFO _oonf_layer2info_subsystem.logging
-
-/* name of telnet subcommands/JSON nodes */
-#define _JSON_NAME_INTERFACE   "interface"
-#define _JSON_NAME_NEIGHBOR    "neighbor"
-#define _JSON_NAME_DEFAULT     "default"
-#define _JSON_NAME_DESTINATION "destination"
 
 /* prototypes */
 static int _init(void);
@@ -94,20 +88,43 @@ static int _cb_create_text_dst(struct oonf_viewer_template *);
  *
  * The keys are API, so they should not be changed after published
  */
+
+/*! template key for interface name */
 #define KEY_IF                          "if"
+
+/*! template key for interface index */
 #define KEY_IF_INDEX                    "if_index"
+
+/*! template key for interface type */
 #define KEY_IF_TYPE                     "if_type"
+
+/*! template key for interface identifier */
 #define KEY_IF_IDENT                    "if_ident"
+
+/*! template key for interface address identifier */
 #define KEY_IF_IDENT_ADDR               "if_ident_addr"
+
+/*! template key for local interface address */
 #define KEY_IF_LOCAL_ADDR               "if_local_addr"
+
+/*! template key for last time interface was active */
 #define KEY_IF_LASTSEEN                 "if_lastseen"
+
+/*! template key for neighbor address */
+#define KEY_NEIGH_ADDR                  "neigh_addr"
+
+/*! template key for last time neighbor was active */
+#define KEY_NEIGH_LASTSEEN              "neigh_lastseen"
+
+/*! template key for destination address */
+#define KEY_DST_ADDR                    "dst_addr"
+
+
+/*! string prefix for all interface keys */
 #define KEY_IF_PREFIX                   "if_"
 
-#define KEY_NEIGH_ADDR                  "neigh_addr"
-#define KEY_NEIGH_LASTSEEN              "neigh_lastseen"
+/*! string prefix for all neighbor keys */
 #define KEY_NEIGH_PREFIX                "neigh_"
-
-#define KEY_DST_ADDR                    "dst_addr"
 
 /*
  * buffer space for values that will be assembled
@@ -188,25 +205,25 @@ static struct oonf_viewer_template _templates[] = {
     {
         .data = _td_if,
         .data_size = ARRAYSIZE(_td_if),
-        .json_name = _JSON_NAME_INTERFACE,
+        .json_name = "interface",
         .cb_function = _cb_create_text_interface,
     },
     {
         .data = _td_neigh,
         .data_size = ARRAYSIZE(_td_neigh),
-        .json_name = _JSON_NAME_NEIGHBOR,
+        .json_name = "neighbor",
         .cb_function = _cb_create_text_neighbor,
     },
     {
         .data = _td_default,
         .data_size = ARRAYSIZE(_td_default),
-        .json_name = _JSON_NAME_DEFAULT,
+        .json_name = "default",
         .cb_function = _cb_create_text_default,
     },
     {
         .data = _td_dst,
         .data_size = ARRAYSIZE(_td_dst),
-        .json_name = _JSON_NAME_DESTINATION,
+        .json_name = "destination",
         .cb_function = _cb_create_text_dst,
     },
 };
@@ -225,7 +242,7 @@ static const char *_dependencies[] = {
   OONF_VIEWER_SUBSYSTEM,
 };
 
-struct oonf_subsystem _olsrv2_layer2info_subsystem = {
+static struct oonf_subsystem _olsrv2_layer2info_subsystem = {
   .name = OONF_LAYER2INFO_SUBSYSTEM,
   .dependencies = _dependencies,
   .dependencies_count = ARRAYSIZE(_dependencies),

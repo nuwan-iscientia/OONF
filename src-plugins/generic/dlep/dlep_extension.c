@@ -40,7 +40,7 @@
  */
 
 /**
- * @file src-plugins/generic/dlep/dlep_extension.c
+ * @file
  */
 
 #include <stdlib.h>
@@ -61,11 +61,18 @@ static struct avl_tree _extension_tree;
 static uint16_t *_id_array = NULL;
 static uint16_t _id_array_length = 0;
 
+/**
+ * Initialize the dlep extension system
+ */
 void
 dlep_extension_init(void) {
   avl_init(&_extension_tree, avl_comp_int32, false);
 }
 
+/**
+ * Add a new dlep extension
+ * @param ext pointer to initialized extension handler
+ */
 void
 dlep_extension_add(struct dlep_extension *ext) {
   uint16_t *ptr;
@@ -95,11 +102,22 @@ dlep_extension_add(struct dlep_extension *ext) {
   }
 }
 
+/**
+ * Get tree of dlep extensions
+ * @return tree of extensions
+ */
 struct avl_tree *
 dlep_extension_get_tree(void) {
   return &_extension_tree;
 }
 
+/**
+ * Add processing callbacks to DLEP extension
+ * @param ext dlep extension
+ * @param radio true if radio extension, false if router
+ * @param processing array of dlep extension processing handlers
+ * @param proc_count number of processing handlers
+ */
 void
 dlep_extension_add_processing(struct dlep_extension *ext, bool radio,
     struct dlep_extension_implementation *processing, size_t proc_count) {
@@ -122,12 +140,24 @@ dlep_extension_add_processing(struct dlep_extension *ext, bool radio,
   }
 }
 
+/**
+ * Get the array of supported dlep extension ids
+ * @param length pointer to length field to store id count
+ * @return pointer to array with ids
+ */
 const uint16_t *
 dlep_extension_get_ids(uint16_t *length) {
   *length = _id_array_length;
   return _id_array;
 }
 
+/**
+ * Handle peer init ack for DLEP extension by automatically
+ * mapping oonf_layer2_data to DLEP TLVs
+ * @param ext dlep extension
+ * @param session dlep session
+ * @return -1 if an error happened, 0 otherwise
+ */
 int
 dlep_extension_router_process_peer_init_ack(
     struct dlep_extension *ext, struct dlep_session *session) {
@@ -162,6 +192,13 @@ dlep_extension_router_process_peer_init_ack(
   return 0;
 }
 
+/**
+ * Handle peer update for DLEP extension by automatically
+ * mapping oonf_layer2_data to DLEP TLVs
+ * @param ext dlep extension
+ * @param session dlep session
+ * @return -1 if an error happened, 0 otherwise
+ */
 int
 dlep_extension_router_process_peer_update(
     struct dlep_extension *ext, struct dlep_session *session) {
@@ -195,6 +232,13 @@ dlep_extension_router_process_peer_update(
   return 0;
 }
 
+/**
+ * Handle handle destination up/update for DLEP extension
+ * by automatically mapping oonf_layer2_data to DLEP TLVs
+ * @param ext dlep extension
+ * @param session dlep session
+ * @return -1 if an error happened, 0 otherwise
+ */
 int
 dlep_extension_router_process_destination(
     struct dlep_extension *ext, struct dlep_session *session) {
@@ -226,6 +270,14 @@ dlep_extension_router_process_destination(
   return 0;
 }
 
+/**
+ * Generate peer init ack for DLEP extension by automatically
+ * mapping oonf_layer2_data to DLEP TLVs
+ * @param ext dlep extension
+ * @param session dlep session
+ * @param neigh unused for this callback
+ * @return -1 if an error happened, 0 otherwise
+ */
 int
 dlep_extension_radio_write_peer_init_ack(
     struct dlep_extension *ext, struct dlep_session *session,
@@ -289,6 +341,14 @@ dlep_extension_radio_write_peer_init_ack(
   return 0;
 }
 
+/**
+ * Generate peer update for DLEP extension by automatically
+ * mapping oonf_layer2_data to DLEP TLVs
+ * @param ext dlep extension
+ * @param session dlep session
+ * @param neigh unused for this callback
+ * @return -1 if an error happened, 0 otherwise
+ */
 int
 dlep_extension_radio_write_peer_update(
     struct dlep_extension *ext, struct dlep_session *session,
@@ -312,6 +372,14 @@ dlep_extension_radio_write_peer_update(
   return 0;
 }
 
+/**
+ * Generate destination up/update for DLEP extension
+ * by automatically mapping oonf_layer2_data to DLEP TLVs
+ * @param ext dlep extension
+ * @param session dlep session
+ * @param neigh neighbor that should be updated
+ * @return -1 if an error happened, 0 otherwise
+ */
 int
 dlep_extension_radio_write_destination(struct dlep_extension *ext,
     struct dlep_session *session, const struct netaddr *neigh) {

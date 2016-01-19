@@ -40,7 +40,7 @@
  */
 
 /**
- * @file ./src-api/core/oonf_logging.c
+ * @file
  */
 
 #include <assert.h>

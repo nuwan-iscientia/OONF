@@ -40,7 +40,7 @@
  */
 
 /**
- * @file src-plugins/subsystems/os_generic/os_socket_generic_getrawsocket.c
+ * @file
  */
 
 #include <errno.h>
@@ -50,45 +50,39 @@
 #include "common/netaddr.h"
 #include "core/oonf_logging.h"
 
-#include "../os_socket.h"
+#include "subsystems/os_socket.h"
+#include "subsystems/os_generic/os_fd_generic_getsocket.h"
 
 /**
- * Creates a new raw socket and configures it
+ * Creates a new socket and configures it
  * @param bind_to address to bind the socket to
- * @param protocol IP protocol number
+ * @param tcp true for a TCP socket, false for UDP
  * @param recvbuf size of input buffer for socket
  * @param interf pointer to interface to bind socket on,
  *   NULL if socket should not be bound to an interface
  * @param log_src logging source for error messages
- * @return socket filedescriptor, -1 if an error happened
+ * @return 0 if socket was created, -1 if an error happened
  */
 int
-os_socket_getrawsocket(const union netaddr_socket *bind_to,
-    int protocol, size_t recvbuf, const struct os_interface_data *interf,
+os_fd_generic_getsocket(struct os_fd *sock,
+    const union netaddr_socket *bind_to,
+    bool tcp, size_t recvbuf, const struct os_interface_data *interf,
     enum oonf_log_source log_src __attribute__((unused))) {
-
-  static const int zero = 0;
-  int sock;
-  int family;
-
-  family = bind_to->std.sa_family;
-  sock = socket(family, SOCK_RAW, protocol);
-  if (sock < 0) {
+  int s;
+  s = socket(bind_to->std.sa_family, tcp ? SOCK_STREAM : SOCK_DGRAM, 0);
+  if (s < 0) {
     OONF_WARN(log_src, "Cannot open socket: %s (%d)", strerror(errno), errno);
     return -1;
   }
 
-  if (family == AF_INET) {
-    if (setsockopt (sock, IPPROTO_IP, IP_HDRINCL, &zero, sizeof(zero)) < 0) {
-      OONF_WARN(log_src, "Cannot disable IP_HDRINCL for socket: %s (%d)", strerror(errno), errno);
-      os_socket_close(sock);
-      return -1;
-    }
-  }
-
-  if (os_socket_configsocket(sock, bind_to, recvbuf, true, interf, log_src)) {
-    os_socket_close(sock);
+  if (os_fd_init(sock, s)) {
+    OONF_WARN(log_src, "Could not initialize socket");
     return -1;
   }
-  return sock;
+
+  if (os_fd_configsocket(sock, bind_to, recvbuf, false, interf, log_src)) {
+    os_fd_close(sock);
+    return -1;
+  }
+  return 0;
 }

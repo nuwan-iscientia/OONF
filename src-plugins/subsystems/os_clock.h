@@ -40,7 +40,7 @@
  */
 
 /**
- * @file src-plugins/subsystems/os_clock.h
+ * @file
  */
 
 #ifndef OS_CLOCK_H_
@@ -52,6 +52,7 @@
 #include "common/common_types.h"
 #include "core/oonf_subsystem.h"
 
+/*! subsystem identifier */
 #define OONF_OS_CLOCK_SUBSYSTEM "os_clock"
 
 #if defined(__linux__)
@@ -65,6 +66,7 @@
 #endif
 
 /* prototypes for all os_system functions */
+EXPORT int os_clock_gettime64_ns(uint64_t *t64);
 EXPORT int os_clock_gettime64(uint64_t *t64);
 
 #endif /* OS_CLOCK_H_ */

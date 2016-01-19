@@ -40,7 +40,7 @@
  */
 
 /**
- * @file src-plugins/subsystems/oonf_class.h
+ * @file
  */
 
 #ifndef _OONF_CLASS_H
@@ -50,11 +50,20 @@
 #include "common/list.h"
 #include "common/avl.h"
 
+/*! subsystem identifier */
 #define OONF_CLASS_SUBSYSTEM "class"
 
+/**
+ * Events triggered for memory class members
+ */
 enum oonf_class_event {
+  /*! an object has changed */
   OONF_OBJECT_CHANGED,
+
+  /*! a new object has been added */
   OONF_OBJECT_ADDED,
+
+  /*! an object will be removed */
   OONF_OBJECT_REMOVED,
 };
 
@@ -158,9 +167,6 @@ struct oonf_class_extension {
   /*! node for hooking the consumer into the provider */
   struct list_entity _node;
 };
-
-/* percentage of blocks kept in the free list compared to allocated blocks */
-#define OONF_CLASS_FREE_THRESHOLD 10   /* Blocks / Percent  */
 
 /* Externals. */
 EXPORT void oonf_class_add(struct oonf_class *);

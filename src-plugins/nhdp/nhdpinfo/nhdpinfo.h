@@ -40,15 +40,13 @@
  */
 
 /**
- * @file src-plugins/nhdp/nhdpinfo/nhdpinfo.h
+ * @file
  */
 
 #ifndef NHDPINFO_H_
 #define NHDPINFO_H_
 
-#include "common/common_types.h"
-#include "core/oonf_subsystem.h"
-
+/*! subsystem identifier */
 #define OONF_NHDPINFO_SUBSYSTEM "nhdpinfo"
 
 #endif /* NHDPINFO_H_ */

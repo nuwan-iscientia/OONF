@@ -40,7 +40,7 @@
  */
 
 /**
- * @file src-plugins/subsystems/rfc5444/rfc5444_context.h
+ * @file
  */
 #ifndef RFC5444_CONTEXT_H_
 #define RFC5444_CONTEXT_H_
@@ -48,78 +48,84 @@
 #include "common/common_types.h"
 #include "rfc5444_api_config.h"
 
-/*
+/**
  * Return values for reader callbacks and API calls (and internal functions)
  * The RFC5444_DROP_... constants are ordered, higher values mean
  * dropping more of the context.
  * All return values less than zero represent an error.
- *
- * RFC5444_DROP_TLV means to drop the current tlv
- * RFC5444_DROP_ADDRESS means to drop the current address
- * RFC5444_DROP_MESSAGE means to drop the current message
- * RFC5444_DROP_MESSAGE_BUT_FORWARD means to drop the current message
- *   but forward allow to forward it
- * RFC5444_DROP_PACKET means to drop the whole packet
- *
- * RFC5444_OKAY means everything is okay
- *
- * RFC5444_UNSUPPORTED_VERSION
- *   version field of rfc5444 is not 0
- * RFC5444_END_OF_BUFFER
- *   end of rfc5444 data stream before end of message/tlv
- * RFC5444_BAD_TLV_IDXFLAGS
- *   illegal combination of thassingleindex and thasmultiindex flags
- * RFC5444_BAD_TLV_VALUEFLAGS
- *   illegal combination of thasvalue and thasextlen flag
- * RFC5444_BAD_TLV_LENGTH
- *   length of tlv is no multiple of number of values
- * RFC5444_OUT_OF_MEMORY
- *   dynamic memory allocation failed
- * RFC5444_EMPTY_ADDRBLOCK
- *   address block with 0 addresses found
- * RFC5444_BAD_MSG_TAILFLAGS
- *   illegal combination of ahasfulltail and ahaszerotail flag
- * RFC5444_BAD_MSG_PREFIXFLAGS
- *   illegal combination of ahassingleprelen and ahasmultiprelen flag
- * RFC5444_DUPLICATE_TLV
- *   address tlv already exists
- * RFC5444_OUT_OF_ADDRTLV_MEM
- *   internal buffer for address tlv values too small
- * RFC5444_MTU_TOO_SMALL
- *   non-fragmentable part of message does not fit into max sizes packet
- * RFC5444_NO_MSGCREATOR
- *   cannot create a message without a message creator
- * RFC5444_FW_MESSAGE_TOO_LONG
- *   bad format of forwarded message, does not fit into max sized packet
- * RFC5444_FW_BAD_SIZE
- *   bad format of forwarded message, size field wrong
  */
 enum rfc5444_result {
 #if DISALLOW_CONSUMER_CONTEXT_DROP == false
+  /*! maximum value of result */
   RFC5444_RESULT_MAX           =  5,
+
+  /*! drop whole packet */
   RFC5444_DROP_PACKET          =  5,
+
+  /*! drop message */
   RFC5444_DROP_MESSAGE         =  4,
+
+  /*! drop message but still forward it if possible */
   RFC5444_DROP_MSG_BUT_FORWARD =  3,
+
+  /*! drop address and attached TLVs */
   RFC5444_DROP_ADDRESS         =  2,
+
+  /*! drop TLV */
   RFC5444_DROP_TLV             =  1,
 #endif
+  /*! everything worked fine */
   RFC5444_OKAY                 =  0,
+
+  /*! version field of rfc5444 is not 0 */
   RFC5444_UNSUPPORTED_VERSION  = -1,
+
+  /*! end of rfc5444 data stream before end of message/tlv */
   RFC5444_END_OF_BUFFER        = -2,
+
+  /*! illegal combination of thassingleindex and thasmultiindex flags */
   RFC5444_BAD_TLV_IDXFLAGS     = -3,
+
+  /*! illegal combination of thasvalue and thasextlen flag */
   RFC5444_BAD_TLV_VALUEFLAGS   = -4,
+
+  /*! length of tlv is no multiple of number of values */
   RFC5444_BAD_TLV_LENGTH       = -5,
+
+  /*! dynamic memory allocation failed */
   RFC5444_OUT_OF_MEMORY        = -6,
+
+  /*! address block with 0 addresses found */
   RFC5444_EMPTY_ADDRBLOCK      = -7,
+
+  /*! illegal combination of ahasfulltail and ahaszerotail flag */
   RFC5444_BAD_MSG_TAILFLAGS    = -8,
+
+  /*! illegal combination of ahassingleprelen and ahasmultiprelen flag */
   RFC5444_BAD_MSG_PREFIXFLAGS  = -9,
+
+  /*! address tlv already exists */
   RFC5444_DUPLICATE_TLV        = -10,
+
+  /*! internal buffer for address tlv values too small */
   RFC5444_OUT_OF_ADDRTLV_MEM   = -11,
+
+  /*! non-fragmentable part of message does not fit into max sizes packet */
   RFC5444_MTU_TOO_SMALL        = -12,
+
+  /*! cannot create a message without a message creator */
   RFC5444_NO_MSGCREATOR        = -13,
+
+  /*! bad format of forwarded message, does not fit into max sized packet */
   RFC5444_FW_MESSAGE_TOO_LONG  = -14,
+
+  /*! bad format of forwarded message, size field wrong */
   RFC5444_FW_BAD_SIZE          = -15,
+
+  /*! buffer for reader is larger than 64k */
   RFC5444_TOO_LARGE            = -16,
+
+  /*! minimal value of result */
   RFC5444_RESULT_MIN           = -16,
 };
 

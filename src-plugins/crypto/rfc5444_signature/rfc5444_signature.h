@@ -40,7 +40,7 @@
  */
 
 /**
- * @file src-plugins/crypto/rfc5444_signature/rfc5444_signature.h
+ * @file
  */
 
 #ifndef RFC5444_SIGNATURE_H_
@@ -68,9 +68,17 @@ struct rfc5444_signature_key {
   uint8_t  crypt_function;
 };
 
+/**
+ * results for signature id check
+ */
 enum rfc5444_sigid_check {
+  /*! signature id is okay */
   RFC5444_SIGID_OKAY,
+
+  /*! ignore signature id */
   RFC5444_SIGID_IGNORE,
+
+  /*! drop signature */
   RFC5444_SIGID_DROP,
 };
 
@@ -143,6 +151,7 @@ struct rfc5444_signature {
   struct avl_node _node;
 };
 
+/*! subsystem identifier */
 #define OONF_RFC5444_SIG_SUBSYSTEM "rfc5444_sig"
 
 EXPORT void rfc5444_sig_add(struct rfc5444_signature *sig);

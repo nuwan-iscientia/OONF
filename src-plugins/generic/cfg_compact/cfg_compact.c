@@ -40,7 +40,7 @@
  */
 
 /**
- * @file src-plugins/generic/cfg_compact/cfg_compact.c
+ * @file
  */
 
 #include <errno.h>

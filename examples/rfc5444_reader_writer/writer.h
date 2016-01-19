@@ -40,7 +40,7 @@
  */
 
 /**
- * @file ./examples/rfc5444_reader_writer/writer.h
+ * @file
  */
 
 #ifndef WRITER_H_

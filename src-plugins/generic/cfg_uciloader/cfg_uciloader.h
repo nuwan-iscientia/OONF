@@ -40,13 +40,16 @@
  */
 
 /**
- * @file src-plugins/generic/cfg_uciloader/cfg_uciloader.h
+ * @file
  */
 
 #ifndef CFG_UCILOADER_H_
 #define CFG_UCILOADER_H_
 
+/*! subsystem identifier */
 #define OONF_CFG_UCILOADER_SUBSYSTEM "cfg_uciloader"
+
+/*! UCI key to handle section names */
 #define UCI_OPTION_FOR_SECTION_NAME "name"
 
 #endif /* CFG_UCILOADER_H_ */

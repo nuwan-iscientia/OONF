@@ -40,7 +40,7 @@
  */
 
 /**
- * @file src-plugins/generic/dlep/router/dlep_router_interface.c
+ * @file
  */
 
 #include <errno.h>
@@ -82,7 +82,7 @@ static struct oonf_class _router_if_class = {
 };
 
 static bool _shutting_down;
-uint32_t _l2_origin;
+static uint32_t _l2_origin;
 
 /**
  * Initialize dlep router interface framework. This will also

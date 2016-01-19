@@ -40,7 +40,7 @@
  */
 
 /**
- * @file ./src-api/common/netaddr.h
+ * @file
  */
 
 #ifndef NETADDR_H_

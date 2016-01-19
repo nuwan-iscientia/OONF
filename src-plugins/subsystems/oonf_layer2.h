@@ -40,7 +40,7 @@
  */
 
 /**
- * @file src-plugins/subsystems/oonf_layer2.h
+ * @file
  */
 
 #ifndef OONF_LAYER2_H_
@@ -51,42 +51,17 @@
 #include "core/oonf_subsystem.h"
 #include "subsystems/oonf_interface.h"
 
+/*! subsystem identifier */
 #define OONF_LAYER2_SUBSYSTEM "layer2"
 
+/*! memory class for layer2 neighbor */
 #define LAYER2_CLASS_NEIGHBOR    "layer2_neighbor"
+
+/*! memory class for layer2 network */
 #define LAYER2_CLASS_NETWORK     "layer2_network"
+
+/*! memory class for layer2 destination */
 #define LAYER2_CLASS_DESTINATION "layer2_destination"
-
-#define OONF_LAYER2_NET_LAST_SEEN_KEY        "last_seen"
-#define OONF_LAYER2_NET_FREQUENCY_1_KEY      "frequency1"
-#define OONF_LAYER2_NET_FREQUENCY_2_KEY      "frequency2"
-#define OONF_LAYER2_NET_BANDWIDTH_1_KEY      "bandwidth1"
-#define OONF_LAYER2_NET_BANDWIDTH_2_KEY      "bandwidth2"
-#define OONF_LAYER2_NET_NOISE_KEY            "noise"
-#define OONF_LAYER2_NET_CHANNEL_ACTIVE_KEY   "ch_active"
-#define OONF_LAYER2_NET_CHANNEL_BUSY_KEY     "ch_busy"
-#define OONF_LAYER2_NET_CHANNEL_RX_KEY       "ch_rx"
-#define OONF_LAYER2_NET_CHANNEL_TX_KEY       "ch_tx"
-
-#define OONF_LAYER2_NEIGH_LAST_SEEN_KEY      "last_seen"
-#define OONF_LAYER2_NEIGH_RX_SIGNAL_KEY      "rx_signal"
-#define OONF_LAYER2_NEIGH_TX_SIGNAL_KEY      "tx_signal"
-#define OONF_LAYER2_NEIGH_TX_BITRATE_KEY     "tx_bitrate"
-#define OONF_LAYER2_NEIGH_RX_BITRATE_KEY     "rx_bitrate"
-#define OONF_LAYER2_NEIGH_TX_MAX_BITRATE_KEY "tx_max_bitrate"
-#define OONF_LAYER2_NEIGH_RX_MAX_BITRATE_KEY "rx_max_bitrate"
-#define OONF_LAYER2_NEIGH_TX_BYTES_KEY       "tx_bytes"
-#define OONF_LAYER2_NEIGH_RX_BYTES_KEY       "rx_bytes"
-#define OONF_LAYER2_NEIGH_TX_FRAMES_KEY      "tx_frames"
-#define OONF_LAYER2_NEIGH_RX_FRAMES_KEY      "rx_frames"
-#define OONF_LAYER2_NEIGH_TX_THROUGHPUT_KEY  "tx_throughput"
-#define OONF_LAYER2_NEIGH_TX_RETRIES_KEY     "tx_retries"
-#define OONF_LAYER2_NEIGH_TX_FAILED_KEY      "tx_failed"
-#define OONF_LAYER2_NEIGH_LATENCY_KEY        "latency"
-#define OONF_LAYER2_NEIGH_TX_RESOURCES_KEY   "tx_resources"
-#define OONF_LAYER2_NEIGH_RX_RESOURCES_KEY   "rx_resources"
-#define OONF_LAYER2_NEIGH_TX_RLQ_KEY         "tx_rlq"
-#define OONF_LAYER2_NEIGH_RX_RLQ_KEY         "rx_rlq"
 
 /**
  * Single data entry of layer2 network or neighbor
@@ -102,21 +77,44 @@ struct oonf_layer2_data {
   uint32_t _origin;
 };
 
+/**
+ * list of layer2 network metrics
+ */
 enum oonf_layer2_network_index {
+  /*! primary center frequency */
   OONF_LAYER2_NET_FREQUENCY_1,
+
+  /*! optional secondary center frequency */
   OONF_LAYER2_NET_FREQUENCY_2,
+
+  /*! primary bandwidth */
   OONF_LAYER2_NET_BANDWIDTH_1,
+
+  /*! optional secondary bandwidth */
   OONF_LAYER2_NET_BANDWIDTH_2,
+
+  /*! noise level in dBm */
   OONF_LAYER2_NET_NOISE,
+
+  /*! total time in ns the channel was active */
   OONF_LAYER2_NET_CHANNEL_ACTIVE,
+
+  /*! total time in ns the channel was busy */
   OONF_LAYER2_NET_CHANNEL_BUSY,
+
+  /*! total time in ns the channel was receiving */
   OONF_LAYER2_NET_CHANNEL_RX,
+
+  /*! total time in ns the channel was transmitting */
   OONF_LAYER2_NET_CHANNEL_TX,
 
-  /* last entry */
+  /*! number of layer2 network metrics */
   OONF_LAYER2_NET_COUNT,
 };
 
+/**
+ * list with types of layer2 networks
+ */
 enum oonf_layer2_network_type {
   OONF_LAYER2_TYPE_UNDEFINED,
   OONF_LAYER2_TYPE_WIRELESS,
@@ -127,27 +125,65 @@ enum oonf_layer2_network_type {
   OONF_LAYER2_TYPE_COUNT,
 };
 
+/**
+ * list of layer2 neighbor metrics
+ */
 enum oonf_layer2_neighbor_index {
+  /*! outgoing signal in milli dBm */
   OONF_LAYER2_NEIGH_TX_SIGNAL,
+
+  /*! incoming signal in milli dBm */
   OONF_LAYER2_NEIGH_RX_SIGNAL,
+
+  /*! outgoing bitrate in bit/s */
   OONF_LAYER2_NEIGH_TX_BITRATE,
+
+  /*! incoming bitrate in bit/s */
   OONF_LAYER2_NEIGH_RX_BITRATE,
+
+  /*! maximum possible outgoing bitrate in bit/s */
   OONF_LAYER2_NEIGH_TX_MAX_BITRATE,
+
+  /*! maximum possible incoming bitrate in bit/s */
   OONF_LAYER2_NEIGH_RX_MAX_BITRATE,
+
+  /*! total number of transmitted bytes */
   OONF_LAYER2_NEIGH_TX_BYTES,
+
+  /*! total number of received bytes */
   OONF_LAYER2_NEIGH_RX_BYTES,
+
+  /*! total number of transmitted frames */
   OONF_LAYER2_NEIGH_TX_FRAMES,
+
+  /*! total number of received frames */
   OONF_LAYER2_NEIGH_RX_FRAMES,
+
+  /*! average outgoing throughput in bit/s */
   OONF_LAYER2_NEIGH_TX_THROUGHPUT,
+
+  /*! total number of frame retransmission */
   OONF_LAYER2_NEIGH_TX_RETRIES,
+
+  /*! total number of failed frame transmissions */
   OONF_LAYER2_NEIGH_TX_FAILED,
+
+  /*! latency to neighbor in microseconds */
   OONF_LAYER2_NEIGH_LATENCY,
+
+  /*! available transmission resources (0-100) */
   OONF_LAYER2_NEIGH_TX_RESOURCES,
+
+  /*! available receiver resources (0-100) */
   OONF_LAYER2_NEIGH_RX_RESOURCES,
+
+  /*! relative transmission link quality (0-100) */
   OONF_LAYER2_NEIGH_TX_RLQ,
+
+  /*! relative receiver link quality (0-100) */
   OONF_LAYER2_NEIGH_RX_RLQ,
 
-  /* last entry */
+  /*! number of neighbor metrics */
   OONF_LAYER2_NEIGH_COUNT,
 };
 

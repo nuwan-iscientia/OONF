@@ -40,7 +40,7 @@
  */
 
 /**
- * @file src-plugins/generic/dlep/dlep_reader.c
+ * @file
  */
 
 #include "common/common_types.h"
@@ -50,6 +50,14 @@
 #include "dlep/dlep_session.h"
 #include "dlep/dlep_reader.h"
 
+/**
+ * Parse a heartbeat TLV
+ * @param interval pointer to storage for heartbeat interval
+ * @param session dlep session
+ * @param value dlep value to parse, NULL for using the first
+ *   DLEP_HEARTBEAT_INTERVAL_TLV value
+ * @return -1 if an error happened, 0 otherwise
+ */
 int
 dlep_reader_heartbeat_tlv(uint64_t *interval,
     struct dlep_session *session, struct dlep_parser_value *value) {
@@ -69,6 +77,15 @@ dlep_reader_heartbeat_tlv(uint64_t *interval,
   return 0;
 }
 
+/**
+ * Parse a DLEP peer type TLV
+ * @param text pointer to buffer for peer type
+ * @param text_length length of buffer for peer type
+ * @param session dlep session
+ * @param value dlep value to parse, NULL for using the first
+ *   DLEP_PEER_TYPE_TLV value
+ * @return -1 if an error happened, 0 otherwise
+ */
 int
 dlep_reader_peer_type(char *text, size_t text_length,
     struct dlep_session *session, struct dlep_parser_value *value) {
@@ -97,6 +114,14 @@ dlep_reader_peer_type(char *text, size_t text_length,
   return 0;
 }
 
+/**
+ * Parse a DLEP mac address TLV
+ * @param mac pointer to mac address storage
+ * @param session dlep session
+ * @param value dlep value to parse, NULL for using the first
+ *   DLEP_MAC_ADDRESS_TLV value
+ * @return -1 if an error happened, 0 otherwise
+ */
 int
 dlep_reader_mac_tlv(struct netaddr *mac,
     struct dlep_session *session, struct dlep_parser_value *value) {
@@ -113,6 +138,15 @@ dlep_reader_mac_tlv(struct netaddr *mac,
   return netaddr_from_binary(mac, ptr, value->length, 0);
 }
 
+/**
+ * Parse DLEP IPv4 address TLV
+ * @param ipv4 pointer to address storage
+ * @param add pointer to boolean for flag storage
+ * @param session dlep session
+ * @param value dlep value to parse, NULL for using the first
+ *   DLEP_IPV4_ADDRESS_TLV value
+ * @return -1 if an error happened, 0 otherwise
+ */
 int
 dlep_reader_ipv4_tlv(struct netaddr *ipv4, bool *add,
     struct dlep_session *session, struct dlep_parser_value *value) {
@@ -126,19 +160,19 @@ dlep_reader_ipv4_tlv(struct netaddr *ipv4, bool *add,
   }
 
   ptr = dlep_session_get_tlv_binary(session, value);
-  switch (ptr[0]) {
-    case DLEP_IP_ADD:
-      *add = true;
-      break;
-    case DLEP_IP_REMOVE:
-      *add = false;
-      break;
-    default:
-      return -1;
-  }
+  *add = (ptr[0] & DLEP_IP_ADD) == DLEP_IP_ADD;
   return netaddr_from_binary(ipv4, &ptr[1], 4, AF_INET);
 }
 
+/**
+ * Parse DLEP IPv6 address TLV
+ * @param ipv6 pointer to address storage
+ * @param add pointer to boolean for flag storage
+ * @param session dlep session
+ * @param value dlep value to parse, NULL for using the first
+ *   DLEP_IPV6_ADDRESS_TLV value
+ * @return -1 if an error happened, 0 otherwise
+ */
 int
 dlep_reader_ipv6_tlv(struct netaddr *ipv6, bool *add,
     struct dlep_session *session, struct dlep_parser_value *value) {
@@ -152,21 +186,23 @@ dlep_reader_ipv6_tlv(struct netaddr *ipv6, bool *add,
   }
 
   ptr = dlep_session_get_tlv_binary(session, value);
-  switch (ptr[0]) {
-    case DLEP_IP_ADD:
-      *add = true;
-      break;
-    case DLEP_IP_REMOVE:
-      *add = false;
-      break;
-    default:
-      return -1;
-  }
+  *add = (ptr[0] & DLEP_IP_ADD) == DLEP_IP_ADD;
   return netaddr_from_binary(ipv6, &ptr[1], 16, AF_INET6);
 }
 
+/**
+ * Parse a DLEP IPv4 conpoint TLV
+ * @param addr pointer to address storage
+ * @param port pointer to port storage
+ * @param tls pointer to storage for TLV flag
+ * @param session dlep session
+ * @param value dlep value to parse, NULL for using the first
+ *   DLEP_IPv4_CONPOINT_TLV value
+ * @return -1 if an error happened, 0 otherwise
+ */
 int
-dlep_reader_ipv4_conpoint_tlv(struct netaddr *addr, uint16_t *port,
+dlep_reader_ipv4_conpoint_tlv(
+    struct netaddr *addr, uint16_t *port, bool *tls,
     struct dlep_session *session, struct dlep_parser_value *value) {
   uint16_t tmp;
   const uint8_t *ptr;
@@ -178,20 +214,41 @@ dlep_reader_ipv4_conpoint_tlv(struct netaddr *addr, uint16_t *port,
     }
   }
 
+  if (value->length != 5 && value->length != 7) {
+    return -1;
+  }
+
   ptr = dlep_session_get_tlv_binary(session, value);
-  if (value->length == 6) {
-    memcpy(&tmp, &ptr[4], sizeof(tmp));
+
+  /* handle TLS flag */
+  *tls = (ptr[0] & DLEP_CONNECTION_TLS) == DLEP_CONNECTION_TLS;
+
+  /* handle port */
+  if (value->length == 7) {
+    memcpy(&tmp, &ptr[5], sizeof(tmp));
     *port = ntohs(tmp);
   }
   else {
     *port = DLEP_PORT;
   }
 
-  return netaddr_from_binary(addr, ptr, 4, AF_INET);
+  /* handle IP */
+  return netaddr_from_binary(addr, &ptr[1], 4, AF_INET);
 }
 
+/**
+ * Parse a DLEP IPv6 conpoint TLV
+ * @param addr pointer to address storage
+ * @param port pointer to port storage
+ * @param tls pointer to storage for TLV flag
+ * @param session dlep session
+ * @param value dlep value to parse, NULL for using the first
+ *   DLEP_IPv6_CONPOINT_TLV value
+ * @return -1 if an error happened, 0 otherwise
+ */
 int
-dlep_reader_ipv6_conpoint_tlv(struct netaddr *addr, uint16_t *port,
+dlep_reader_ipv6_conpoint_tlv(
+    struct netaddr *addr, uint16_t *port, bool *tls,
     struct dlep_session *session, struct dlep_parser_value *value) {
   uint16_t tmp;
   const uint8_t *ptr;
@@ -203,18 +260,37 @@ dlep_reader_ipv6_conpoint_tlv(struct netaddr *addr, uint16_t *port,
     }
   }
 
+  if (value->length != 17 && value->length != 19) {
+    return -1;
+  }
+
   ptr = dlep_session_get_tlv_binary(session, value);
-  if (value->length == 18) {
-    memcpy(&tmp, &ptr[16], sizeof(tmp));
+
+  /* handle TLS flag */
+  *tls = (ptr[0] & DLEP_CONNECTION_TLS) == DLEP_CONNECTION_TLS;
+
+  /* handle port */
+  if (value->length == 19) {
+    memcpy(&tmp, &ptr[17], sizeof(tmp));
     *port = ntohs(tmp);
   }
   else {
     *port = DLEP_PORT;
   }
 
-  return netaddr_from_binary(addr, ptr, 16, AF_INET6);
+  /* handle IP */
+  return netaddr_from_binary(addr, &ptr[1], 16, AF_INET6);
 }
 
+/**
+ * Parse a generic uint64 value TLV
+ * @param number storage for uint64 value
+ * @param tlv_id tlv_id to parse
+ * @param session dlep session
+ * @param value dlep value to parse, NULL for using the first
+ *   tlv_id TLV value
+ * @return -1 if an error happened, 0 otherwise
+ */
 int
 dlep_reader_uint64(uint64_t *number, uint16_t tlv_id,
     struct dlep_session *session, struct dlep_parser_value *value) {
@@ -234,6 +310,15 @@ dlep_reader_uint64(uint64_t *number, uint16_t tlv_id,
   return 0;
 }
 
+/**
+ * Parse a generic int64 value TLV
+ * @param number storage for int64 value
+ * @param tlv_id tlv_id to parse
+ * @param session dlep session
+ * @param value dlep value to parse, NULL for using the first
+ *   tlv_id TLV value
+ * @return -1 if an error happened, 0 otherwise
+ */
 int
 dlep_reader_int64(int64_t *number, uint16_t tlv_id,
     struct dlep_session *session, struct dlep_parser_value *value) {
@@ -253,6 +338,16 @@ dlep_reader_int64(int64_t *number, uint16_t tlv_id,
   return 0;
 }
 
+/**
+ * Parse a DLEP status TLV
+ * @param status pointer to store status
+ * @param text pointer to store text status
+ * @param text_length length of text status buffer
+ * @param session dlep session
+ * @param value dlep value to parse, NULL for using the first
+ *   DLEP_STATUS_TLV value
+ * @return -1 if an error happened, 0 otherwise
+ */
 int
 dlep_reader_status(enum dlep_status *status,
     char *text, size_t text_length,
@@ -283,6 +378,13 @@ dlep_reader_status(enum dlep_status *status,
   return 0;
 }
 
+/**
+ * Parse a metric TLV and copy it into a layer2 data object
+ * @param data pointer to layer2 data object
+ * @param session dlep session
+ * @param dlep_tlv DLEP TLV id
+ * @return -1 if an error happened, 0 otherwise
+ */
 int
 dlep_reader_map_identity(struct oonf_layer2_data *data,
     struct dlep_session *session, uint16_t dlep_tlv) {
@@ -324,6 +426,16 @@ dlep_reader_map_identity(struct oonf_layer2_data *data,
   return 0;
 }
 
+/**
+ * Automatically map all predefined metric values of an
+ * extension for layer2 neighbor data from DLEP TLVs to
+ * the layer2 database
+ * @param data layer2 neighbor data array
+ * @param session dlep session
+ * @param ext dlep extension
+ * @return 0 if everything worked fine, negative index
+ *   (minus 1) of the conversion that failed.
+ */
 int
 dlep_reader_map_l2neigh_data(struct oonf_layer2_data *data,
     struct dlep_session *session, struct dlep_extension *ext) {
@@ -340,7 +452,16 @@ dlep_reader_map_l2neigh_data(struct oonf_layer2_data *data,
   return 0;
 }
 
-
+/**
+ * Automatically map all predefined metric values of an
+ * extension for layer2 network data from DLEP TLVs to
+ * the layer2 database
+ * @param data layer2 network data array
+ * @param session dlep session
+ * @param ext dlep extension
+ * @return 0 if everything worked fine, negative index
+ *   (minus 1) of the conversion that failed.
+ */
 int
 dlep_reader_map_l2net_data(struct oonf_layer2_data *data,
     struct dlep_session *session, struct dlep_extension *ext) {

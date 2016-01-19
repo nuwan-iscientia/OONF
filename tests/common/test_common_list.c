@@ -40,7 +40,7 @@
  */
 
 /**
- * @file ./tests/common/test_common_list.c
+ * @file
  */
 
 #include <stdlib.h>

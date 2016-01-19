@@ -40,35 +40,32 @@
  */
 
 /**
- * @file src-plugins/subsystems/os_generic/os_socket_generic_set_dscp.c
+ * @file
  */
 
-#include <errno.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <netinet/ip.h>
+#include <fcntl.h>
 
 #include "common/common_types.h"
-#include "../os_socket.h"
+#include "subsystems/os_socket.h"
+
+#include "subsystems/os_generic/os_fd_generic_set_nonblocking.h"
 
 /**
- * Sets the DSCP value for outgoing packets on a socket
- * @param sock socket file descriptor
- * @param dscp dscp value
- * @param ipv6 true if IPv6 dscp should be set, false otherwise
+ * Set a socket to non-blocking mode
+ * @param sock filedescriptor of socket
  * @return -1 if an error happened, 0 otherwise
  */
 int
-os_socket_set_dscp(int sock, int dscp, bool ipv6) {
-  if (ipv6) {
-    if (setsockopt(sock, IPPROTO_IPV6, IPV6_TCLASS, (char *) &dscp, sizeof(dscp)) < 0 ) {
-      return -1;
-    }
+os_fd_generic_set_nonblocking(struct os_fd *sock) {
+  int state;
+
+  /* put socket into non-blocking mode */
+  if ((state = fcntl(sock->fd, F_GETFL)) == -1) {
+    return -1;
   }
-  else {
-    if (setsockopt(sock, IPPROTO_IP, IP_TOS, (char *) &dscp, sizeof(dscp)) < 0 ) {
-      return -1;
-    }
+
+  if (fcntl(sock->fd, F_SETFL, state | O_NONBLOCK) < 0) {
+    return -1;
   }
   return 0;
 }

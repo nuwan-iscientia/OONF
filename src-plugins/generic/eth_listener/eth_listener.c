@@ -40,7 +40,7 @@
  */
 
 /**
- * @file src-plugins/generic/eth_listener/eth_listener.c
+ * @file
  */
 
 #include <linux/sockios.h>
@@ -128,9 +128,16 @@ static struct oonf_timer_instance _transmission_timer = {
 };
 
 static uint32_t _l2_origin;
+static int _ioctl_sock;
 
 static int
 _init(void) {
+  _ioctl_sock = socket(AF_INET,SOCK_DGRAM,0);
+  if (_ioctl_sock == -1) {
+    OONF_WARN(LOG_ETH, "Could not open ioctl socket");
+    return -1;
+  }
+
   oonf_timer_add(&_transmission_timer_info);
   _l2_origin = oonf_layer2_register_origin();
 
@@ -143,6 +150,8 @@ _cleanup(void) {
 
   oonf_timer_stop(&_transmission_timer);
   oonf_timer_remove(&_transmission_timer_info);
+
+  close(_ioctl_sock);
 }
 
 static void
@@ -180,7 +189,7 @@ _cb_transmission_event(void *ptr __attribute((unused))) {
     }
 
     /* request ethernet information from kernel */
-    err = ioctl(os_socket_linux_get_ioctl_fd(AF_INET), SIOCETHTOOL, &req);
+    err = ioctl(_ioctl_sock, SIOCETHTOOL, &req);
     if (err != 0) {
       continue;
     }

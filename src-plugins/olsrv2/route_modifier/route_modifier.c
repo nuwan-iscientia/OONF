@@ -40,7 +40,7 @@
  */
 
 /**
- * @file src-plugins/olsrv2/route_modifier/route_modifier.c
+ * @file
  */
 
 #include "common/autobuf.h"
@@ -99,7 +99,8 @@ static void _cleanup(void);
 static struct _routemodifier *_get_modifier(const char *name);
 static void _destroy_modifier(struct _routemodifier *);
 
-static bool _cb_rt_filter(struct nhdp_domain *, struct os_route *);
+static bool _cb_rt_filter(
+    struct nhdp_domain *, struct os_route_parameter *, bool set);
 static void _cb_cfg_changed(void);
 
 /* plugin declaration */
@@ -193,10 +194,12 @@ _cleanup(void) {
  * Callback for Dijkstra code to see which route should be changed
  * @param domain pointer to domain of route
  * @param route routing data
+ * @param set true if route will be set, false otherwise
  * @return always true (we never drop a route)
  */
 static bool
-_cb_rt_filter(struct nhdp_domain *domain, struct os_route *route) {
+_cb_rt_filter(struct nhdp_domain *domain,
+    struct os_route_parameter *route_param, bool set __attribute__((unused))) {
   struct _routemodifier *modifier;
 #ifdef OONF_LOG_DEBUG_INFO
   struct netaddr_str nbuf;
@@ -210,30 +213,30 @@ _cb_rt_filter(struct nhdp_domain *domain, struct os_route *route) {
 
     /* check prefix length */
     if (modifier->prefix_length != -1
-        && modifier->prefix_length != netaddr_get_prefix_length(&route->key.dst)) {
+        && modifier->prefix_length != netaddr_get_prefix_length(&route_param->key.dst)) {
       continue;
     }
 
     /* check if destination matches */
-    if (!netaddr_acl_check_accept(&modifier->filter, &route->key.dst)) {
+    if (!netaddr_acl_check_accept(&modifier->filter, &route_param->key.dst)) {
       continue;
     }
 
     /* apply modifiers */
     if (modifier->table) {
       OONF_DEBUG(LOG_ROUTE_MODIFIER, "Modify routing table for route to %s: %d",
-          netaddr_to_string(&nbuf, &route->key.dst), modifier->table);
-      route->table = modifier->table;
+          netaddr_to_string(&nbuf, &route_param->key.dst), modifier->table);
+      route_param->table = modifier->table;
     }
     if (modifier->protocol) {
       OONF_DEBUG(LOG_ROUTE_MODIFIER, "Modify routing protocol for route to %s: %d",
-          netaddr_to_string(&nbuf, &route->key.dst), modifier->protocol);
-      route->protocol = modifier->protocol;
+          netaddr_to_string(&nbuf, &route_param->key.dst), modifier->protocol);
+      route_param->protocol = modifier->protocol;
     }
     if (modifier->distance) {
       OONF_DEBUG(LOG_ROUTE_MODIFIER, "Modify routing distance for route to %s: %d",
-          netaddr_to_string(&nbuf, &route->key.dst), modifier->distance);
-      route->metric = modifier->distance;
+          netaddr_to_string(&nbuf, &route_param->key.dst), modifier->distance);
+      route_param->metric = modifier->distance;
     }
     break;
   }

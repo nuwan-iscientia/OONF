@@ -40,7 +40,7 @@
  */
 
 /**
- * @file src-plugins/subsystems/oonf_http.c
+ * @file
  */
 
 #include <sys/types.h>
@@ -173,10 +173,10 @@ static struct oonf_stream_managed _http_managed_socket = {
   },
 };
 
-struct _http_config _config;
+static struct _http_config _config;
 
 /* integrated telnet/file handler */
-struct oonf_http_handler _telnet_handler = {
+static struct oonf_http_handler _telnet_handler = {
   .site = HTTP_TO_TELNET,
   .content_handler = _cb_telnet_handler,
   .acl = {
@@ -184,7 +184,7 @@ struct oonf_http_handler _telnet_handler = {
   },
 };
 
-struct oonf_http_handler _file_handler = {
+static struct oonf_http_handler _file_handler = {
   .site = HTTP_FILES,
   .content_handler = _cb_file_handler,
   .acl = {
@@ -198,7 +198,7 @@ static const char *_dependencies[] = {
   OONF_TELNET_SUBSYSTEM,
 };
 
-struct oonf_subsystem _oonf_http_subsystem = {
+static struct oonf_subsystem _oonf_http_subsystem = {
   .name = OONF_HTTP_SUBSYSTEM,
   .dependencies = _dependencies,
   .dependencies_count = ARRAYSIZE(_dependencies),
@@ -419,7 +419,7 @@ _cb_receive_data(struct oonf_stream_session *session) {
     }
 
     if (result == HTTP_START_FILE_TRANSFER) {
-      session->copy_fd = header.transfer_fd;
+      os_fd_init(&session->copy_fd, header.transfer_fd);
       session->copy_total_size = header.transfer_length;
       session->copy_bytes_sent = 0;
 
@@ -444,9 +444,7 @@ _cb_receive_data(struct oonf_stream_session *session) {
  */
 static void
 _cb_cleanup_session(struct oonf_stream_session *session) {
-  if (session->copy_fd != -1) {
-    close(session->copy_fd);
-  }
+  os_fd_close(&session->copy_fd);
 }
 
 /**

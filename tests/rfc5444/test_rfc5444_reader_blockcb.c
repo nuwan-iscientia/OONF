@@ -40,7 +40,7 @@
  */
 
 /**
- * @file ./tests/rfc5444/test_rfc5444_reader_blockcb.c
+ * @file
  */
 #include <assert.h>
 #include <string.h>

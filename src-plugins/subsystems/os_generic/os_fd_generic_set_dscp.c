@@ -40,53 +40,36 @@
  */
 
 /**
- * @file src-plugins/subsystems/os_linux/os_socket_linux.c
+ * @file
  */
 
-#include <net/if.h>
-#include <netinet/in.h>
-#include <sys/ioctl.h>
 #include <errno.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <netinet/ip.h>
 
-#include "../os_socket.h"
 #include "common/common_types.h"
-#include "core/oonf_logging.h"
-#include "core/oonf_subsystem.h"
-#include "subsystems/oonf_timer.h"
-
-
-/* Defintions */
-#define LOG_OS_SOCKET _oonf_os_socket_subsystem.logging
-
-/* prototypes */
-static int _init(void);
-static void _cleanup(void);
-
-/* subsystem definition */
-static const char *_dependencies[] = {
-};
-
-static struct oonf_subsystem _oonf_os_socket_subsystem = {
-  .name = OONF_OS_SOCKET_SUBSYSTEM,
-  .dependencies = _dependencies,
-  .dependencies_count = ARRAYSIZE(_dependencies),
-  .init = _init,
-  .cleanup = _cleanup,
-};
-DECLARE_OONF_PLUGIN(_oonf_os_socket_subsystem);
+#include "subsystems/os_socket.h"
+#include "subsystems/os_generic/os_fd_generic_set_dscp.h"
 
 /**
- * Initialize os_net subsystem
+ * Sets the DSCP value for outgoing packets on a socket
+ * @param sock socket file descriptor
+ * @param dscp dscp value
+ * @param ipv6 true if IPv6 dscp should be set, false otherwise
  * @return -1 if an error happened, 0 otherwise
  */
-static int
-_init(void) {
+int
+os_fd_generic_set_dscp(struct os_fd *sock, int dscp, bool ipv6) {
+  if (ipv6) {
+    if (setsockopt(sock->fd, IPPROTO_IPV6, IPV6_TCLASS, (char *) &dscp, sizeof(dscp)) < 0 ) {
+      return -1;
+    }
+  }
+  else {
+    if (setsockopt(sock->fd, IPPROTO_IP, IP_TOS, (char *) &dscp, sizeof(dscp)) < 0 ) {
+      return -1;
+    }
+  }
   return 0;
-}
-
-/**
- * Cleanup os_net subsystem
- */
-static void
-_cleanup(void) {
 }

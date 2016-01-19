@@ -40,12 +40,13 @@
  */
 
 /**
- * @file src-plugins/olsrv2/olsrv2info/olsrv2info.h
+ * @file
  */
 
 #ifndef OLSRV2INFO_H_
 #define OLSRV2INFO_H_
 
+/*! subsystem identifier */
 #define OONF_OLSRV2INFO_SUBSYSTEM "olsrv2info"
 
 #endif /* OLSRV2INFO_H_ */

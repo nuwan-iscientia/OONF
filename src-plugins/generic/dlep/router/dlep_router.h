@@ -40,12 +40,13 @@
  */
 
 /**
- * @file src-plugins/generic/dlep/router/dlep_router.h
+ * @file
  */
 
 #ifndef DLEP_ROUTER_H_
 #define DLEP_ROUTER_H_
 
+/*! subsystem identifier */
 #define OONF_DLEP_ROUTER_SUBSYSTEM "dlep_router"
 
 #endif /* DLEP_ROUTER_H_ */

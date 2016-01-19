@@ -40,7 +40,7 @@
  */
 
 /**
- * @file src-plugins/subsystems/os_generic/os_socket_generic_join_mcast.c
+ * @file
  */
 
 #include <errno.h>
@@ -52,7 +52,7 @@
 #include "core/oonf_logging.h"
 #include "subsystems/os_interface.h"
 
-#include "../os_socket.h"
+#include "subsystems/os_socket.h"
 
 /**
  * Join a socket into a multicast group
@@ -63,7 +63,8 @@
  * @return -1 if an error happened, 0 otherwise
  */
 int
-os_socket_join_mcast_recv(int sock, const struct netaddr *multicast,
+os_fd_generic_join_mcast_recv(struct os_fd *sock,
+    const struct netaddr *multicast,
     const struct os_interface_data *oif,
     enum oonf_log_source log_src __attribute__((unused))) {
   struct netaddr_str buf1, buf2;
@@ -88,7 +89,7 @@ os_socket_join_mcast_recv(int sock, const struct netaddr *multicast,
     netaddr_to_binary(&v4_mreq.imr_multiaddr, multicast, 4);
     netaddr_to_binary(&v4_mreq.imr_interface, src, 4);
 
-    if (setsockopt(sock, IPPROTO_IP, IP_ADD_MEMBERSHIP,
+    if (setsockopt(sock->fd, IPPROTO_IP, IP_ADD_MEMBERSHIP,
         &v4_mreq, sizeof(v4_mreq)) < 0) {
       OONF_WARN(log_src, "Cannot join multicast group %s (src %s) on interface %s: %s (%d)\n",
           netaddr_to_string(&buf1, multicast),
@@ -109,7 +110,7 @@ os_socket_join_mcast_recv(int sock, const struct netaddr *multicast,
     netaddr_to_binary(&v6_mreq.ipv6mr_multiaddr, multicast, 16);
     v6_mreq.ipv6mr_interface = if_index;
 
-    if (setsockopt(sock, IPPROTO_IPV6, IPV6_JOIN_GROUP,
+    if (setsockopt(sock->fd, IPPROTO_IPV6, IPV6_JOIN_GROUP,
         &v6_mreq, sizeof(v6_mreq)) < 0) {
       OONF_WARN(log_src, "Cannot join multicast group %s on interface %s: %s (%d)\n",
           netaddr_to_string(&buf1, multicast),
@@ -131,7 +132,7 @@ os_socket_join_mcast_recv(int sock, const struct netaddr *multicast,
  * @return -1 if an error happened, 0 otherwise
  */
 int
-os_socket_join_mcast_send(int sock,
+os_fd_generic_join_mcast_send(struct os_fd *sock,
     const struct netaddr *multicast,
     const struct os_interface_data *oif, bool loop,
     enum oonf_log_source log_src __attribute__((unused))) {
@@ -145,7 +146,7 @@ os_socket_join_mcast_send(int sock,
         netaddr_to_string(&buf2, multicast),
         netaddr_to_string(&buf1, oif->if_v4));
 
-    if (setsockopt(sock, IPPROTO_IP, IP_MULTICAST_IF, netaddr_get_binptr(oif->if_v4), 4) < 0) {
+    if (setsockopt(sock->fd, IPPROTO_IP, IP_MULTICAST_IF, netaddr_get_binptr(oif->if_v4), 4) < 0) {
       OONF_WARN(log_src, "Cannot set multicast %s on interface %s (src %s): %s (%d)\n",
           netaddr_to_string(&buf2, multicast),
           oif->name,
@@ -155,7 +156,7 @@ os_socket_join_mcast_send(int sock,
     }
 
     i = loop ? 1 : 0;
-    if(setsockopt(sock, IPPROTO_IP, IP_MULTICAST_LOOP, (char *)&i, sizeof(i)) < 0) {
+    if(setsockopt(sock->fd, IPPROTO_IP, IP_MULTICAST_LOOP, (char *)&i, sizeof(i)) < 0) {
       OONF_WARN(log_src, "Cannot %sactivate local loop of multicast interface: %s (%d)\n",
           loop ? "" : "de", strerror(errno), errno);
       return -1;
@@ -168,7 +169,7 @@ os_socket_join_mcast_send(int sock,
         netaddr_to_string(&buf2, multicast),
         netaddr_to_string(&buf1, oif->linklocal_v6_ptr));
 
-    if (setsockopt(sock, IPPROTO_IPV6, IPV6_MULTICAST_IF,
+    if (setsockopt(sock->fd, IPPROTO_IPV6, IPV6_MULTICAST_IF,
         &oif->index, sizeof(oif->index)) < 0) {
       OONF_WARN(log_src, "Cannot set multicast %s on interface %s (src %s): %s (%d)\n",
           netaddr_to_string(&buf2, multicast),
@@ -179,7 +180,7 @@ os_socket_join_mcast_send(int sock,
     }
 
     i = loop ? 1 : 0;
-    if(setsockopt(sock, IPPROTO_IPV6, IPV6_MULTICAST_LOOP, &i, sizeof(i)) < 0) {
+    if(setsockopt(sock->fd, IPPROTO_IPV6, IPV6_MULTICAST_LOOP, &i, sizeof(i)) < 0) {
       OONF_WARN(log_src, "Cannot deactivate local loop of multicast interface: %s (%d)\n",
           strerror(errno), errno);
       return -1;

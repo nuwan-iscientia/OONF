@@ -40,7 +40,7 @@
  */
 
 /**
- * @file src-plugins/subsystems/oonf_http.h
+ * @file
  */
 
 #ifndef OONF_HTTP_H_
@@ -53,18 +53,32 @@
 #include "common/string.h"
 #include "subsystems/oonf_stream_socket.h"
 
+/*! subsystem identifier */
 #define OONF_HTTP_SUBSYSTEM "http"
 
+/*! HTTP HTML content type */
 #define HTTP_CONTENTTYPE_HTML "text/html"
+
+/*! HTTP text content type */
 #define HTTP_CONTENTTYPE_TEXT "text/plain"
 
-/* built in parameters for header parser */
+/**
+ * Constants for HTTP subsystem
+ */
 enum {
+  /*! maximum number of HTTP headers */
   OONF_HTTP_MAX_HEADERS = 16,
+
+  /*! maximum number of GET/POST parameters */
   OONF_HTTP_MAX_PARAMS  = 8,
+
+  /*! maximum URI length */
   OONF_HTTP_MAX_URI_LENGTH = 256
 };
 
+/**
+ * supported HTTP result codes
+ */
 enum oonf_http_result {
   HTTP_200_OK = 200,
   HTTP_400_BAD_REQ = 400,
@@ -76,7 +90,7 @@ enum oonf_http_result {
   HTTP_501_NOT_IMPLEMENTED = 501,
   HTTP_503_SERVICE_UNAVAILABLE = STREAM_SERVICE_UNAVAILABLE,
 
-  /* special result to signal start of file transfer */
+  /*! special result to signal start of file transfer */
   HTTP_START_FILE_TRANSFER = 99999,
 };
 

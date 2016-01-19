@@ -40,12 +40,13 @@
  */
 
 /**
- * @file src-plugins/generic/example/example.h
+ * @file
  */
 
 #ifndef EXAMPLE_H_
 #define EXAMPLE_H_
 
+/*! subsystem identifier */
 #define OONF_EXAMPLE_SUBSYSTEM "example"
 
 #endif /* EXAMPLE_H_ */

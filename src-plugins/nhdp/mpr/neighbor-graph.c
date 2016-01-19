@@ -40,7 +40,7 @@
  */
 
 /**
- * @file src-plugins/nhdp/mpr/neighbor-graph.c
+ * @file
  */
 
 #include <stdio.h>

@@ -40,7 +40,7 @@
  */
 
 /**
- * @file src-plugins/subsystems/rfc5444/rfc5444.c
+ * @file
  */
 #include <assert.h>
 
@@ -230,6 +230,12 @@ rfc7181_metric_decode(struct rfc7181_metric_field *encoded) {
   return ((257 + encoded->b[1]) << exponent) - 256;
 }
 
+/**
+ * Calculate the difference between two sequence numbers
+ * @param seqno1 first sequence number
+ * @param seqno2 second sequence number
+ * @return difference between both
+ */
 int
 rfc5444_seqno_difference(uint16_t seqno1, uint16_t seqno2) {
   int diff = (int)seqno1 - (int)(seqno2);

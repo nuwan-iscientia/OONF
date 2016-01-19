@@ -40,7 +40,7 @@
  */
 
 /**
- * @file src-plugins/generic/nl80211_listener/genl_get_family.c
+ * @file
  */
 
 /*
@@ -88,6 +88,8 @@
 
 /**
  * Send a netlink message to get the nl80211 id and multicast group
+ * @param nl_msg netlink message
+ * @param hdr generic netlink message header
  */
 void
 genl_send_get_family(struct nlmsghdr *nl_msg, struct genlmsghdr *hdr) {

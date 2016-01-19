@@ -40,7 +40,7 @@
  */
 
 /**
- * @file ./src-api/common/template.h
+ * @file
  */
 
 #ifndef TEMPLATE_H_

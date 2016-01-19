@@ -40,15 +40,13 @@
  */
 
 /**
- * @file src-plugins/generic/layer2info/layer2info.h
+ * @file
  */
 
 #ifndef LAYER2INFO_H_
 #define LAYER2INFO_H_
 
-#include "common/common_types.h"
-#include "core/oonf_subsystem.h"
-
+/*! subsystem identifier */
 #define OONF_LAYER2INFO_SUBSYSTEM "layer2info"
 
 #endif /* LAYER2INFO_H_ */

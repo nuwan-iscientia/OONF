@@ -40,7 +40,7 @@
  */
 
 /**
- * @file src-plugins/generic/dlep/radio/dlep_radio_interface.h
+ * @file
  */
 
 #ifndef DLEP_RADIO_INTERFACE_H_

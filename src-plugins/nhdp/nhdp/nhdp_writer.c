@@ -40,7 +40,7 @@
  */
 
 /**
- * @file src-plugins/nhdp/nhdp/nhdp_writer.c
+ * @file
  */
 
 #include "common/common_types.h"
@@ -85,7 +85,7 @@ static void _write_metric_tlv(struct rfc5444_writer *writer,
 static struct rfc5444_writer_message *_nhdp_message = NULL;
 
 static struct rfc5444_writer_content_provider _nhdp_msgcontent_provider = {
-  .msg_type = RFC5444_MSGTYPE_HELLO,
+  .msg_type = RFC6130_MSGTYPE_HELLO,
   .addMessageTLVs = _cb_addMessageTLVs,
   .addAddresses = _cb_addAddresses,
 };
@@ -100,17 +100,20 @@ static struct rfc5444_writer_tlvtype _nhdp_addrtlvs[] = {
 static struct oonf_rfc5444_protocol *_protocol;
 
 static bool _cleanedup = false;
+static bool _add_mac_tlv = true;
 static struct nhdp_interface *_nhdp_if = NULL;
 
 /**
  * Initialize nhdp writer
+ * @param p rfc5444 protocol
+ * @return -1 if an error happened, 0 otherwise
  */
 int
 nhdp_writer_init(struct oonf_rfc5444_protocol *p) {
   _protocol = p;
 
   _nhdp_message = rfc5444_writer_register_message(
-      &_protocol->writer, RFC5444_MSGTYPE_HELLO, true);
+      &_protocol->writer, RFC6130_MSGTYPE_HELLO, true);
   if (_nhdp_message == NULL) {
     OONF_WARN(LOG_NHDP_W, "Could not register NHDP Hello message");
     return -1;
@@ -173,18 +176,28 @@ nhdp_writer_send_hello(struct nhdp_interface *ninterf) {
   _nhdp_if = ninterf;
 
   /* send IPv4 (if socket is active) */
-  result = oonf_rfc5444_send_if(ninterf->rfc5444_if.interface->multicast4, RFC5444_MSGTYPE_HELLO);
+  result = oonf_rfc5444_send_if(ninterf->rfc5444_if.interface->multicast4, RFC6130_MSGTYPE_HELLO);
   if (result < 0) {
     OONF_WARN(LOG_NHDP_W, "Could not send NHDP message to %s: %s (%d)",
         netaddr_to_string(&buf, &ninterf->rfc5444_if.interface->multicast4->dst), rfc5444_strerror(result), result);
   }
 
   /* send IPV6 (if socket is active) */
-  result = oonf_rfc5444_send_if(ninterf->rfc5444_if.interface->multicast6, RFC5444_MSGTYPE_HELLO);
+  result = oonf_rfc5444_send_if(ninterf->rfc5444_if.interface->multicast6, RFC6130_MSGTYPE_HELLO);
   if (result < 0) {
     OONF_WARN(LOG_NHDP_W, "Could not send NHDP message to %s: %s (%d)",
         netaddr_to_string(&buf, &ninterf->rfc5444_if.interface->multicast6->dst), rfc5444_strerror(result), result);
   }
+}
+
+
+/**
+ * activates or deactivates the MAC_TLV in the NHDP Hello messages
+ * @param active true if MAC_TLV should be present
+ */
+void
+nhdp_writer_set_mac_TLV_state(bool active) {
+  _add_mac_tlv = active;
 }
 
 /**
@@ -299,8 +312,11 @@ _cb_addMessageTLVs(struct rfc5444_writer *writer) {
   if (ifdata == NULL) {
     return;
   }
-  rfc5444_writer_add_messagetlv(writer, NHDP_MSGTLV_MAC, 0,
-      netaddr_get_binptr(&ifdata->mac), netaddr_get_binlength(&ifdata->mac));
+
+  if (_add_mac_tlv) {
+    rfc5444_writer_add_messagetlv(writer, NHDP_MSGTLV_MAC, 0,
+        netaddr_get_binptr(&ifdata->mac), netaddr_get_binlength(&ifdata->mac));
+  }
 }
 
 /**

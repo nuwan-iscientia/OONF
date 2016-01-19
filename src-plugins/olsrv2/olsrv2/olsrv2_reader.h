@@ -40,7 +40,7 @@
  */
 
 /**
- * @file src-plugins/olsrv2/olsrv2/olsrv2_reader.h
+ * @file
  */
 
 #ifndef OLSRV2_READER_H_

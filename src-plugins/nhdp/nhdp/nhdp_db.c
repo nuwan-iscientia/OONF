@@ -40,7 +40,7 @@
  */
 
 /**
- * @file src-plugins/nhdp/nhdp/nhdp_db.c
+ * @file
  */
 
 #include "common/common_types.h"
@@ -278,6 +278,10 @@ nhdp_db_neighbor_remove(struct nhdp_neighbor *neigh) {
   }
 }
 
+/**
+ * Set a NHDP neighbor to unsymmetric
+ * @param neigh nhdp neighbor
+ */
 void
 nhdp_db_neighbor_set_unsymmetric(struct nhdp_neighbor *neigh) {
   struct nhdp_link *lnk;
@@ -578,6 +582,10 @@ nhdp_db_link_set_unsymmetric(struct nhdp_link *lnk) {
   oonf_class_event(&_link_info, lnk, OONF_OBJECT_CHANGED);
 }
 
+/**
+ * Remove a link from the nhdp database
+ * @param lnk nhdp link
+ */
 void
 nhdp_db_link_remove(struct nhdp_link *lnk) {
   struct nhdp_laddr *laddr, *la_it;
@@ -845,21 +853,37 @@ nhdp_db_link_status_to_string(struct nhdp_link *lnk) {
   }
 }
 
+/**
+ * get global list of nhdp neighbors
+ * @return neighbor list
+ */
 struct list_entity *
 nhdp_db_get_neigh_list(void) {
   return &_neigh_list;
 }
 
+/**
+ * get global list of nhdp links
+ * @return link list
+ */
 struct list_entity *
 nhdp_db_get_link_list(void) {
   return &_link_list;
 }
 
+/**
+ * get global tree of nhdp neighbor addresses
+ * @return neighbor address tree
+ */
 struct avl_tree *
 nhdp_db_get_naddr_tree(void) {
   return &_naddr_tree;
 }
 
+/**
+ * get global tree of nhdp originators
+ * @return originator tree
+ */
 struct avl_tree *
 nhdp_db_get_neigh_originator_tree(void) {
   return &_neigh_originator_tree;

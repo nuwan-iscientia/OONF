@@ -40,7 +40,7 @@
  */
 
 /**
- * @file src-plugins/generic/dlep/radio/dlep_radio_session.c
+ * @file
  */
 
 #include "common/avl.h"
@@ -107,9 +107,7 @@ dlep_radio_session_initialize_tcp_callbacks(
  */
 void
 dlep_radio_remove_session(struct dlep_radio_session *radio_session) {
-  if (&radio_session->stream) {
-    oonf_stream_close(&radio_session->stream);
-  }
+  oonf_stream_close(&radio_session->stream);
 }
 
 /**

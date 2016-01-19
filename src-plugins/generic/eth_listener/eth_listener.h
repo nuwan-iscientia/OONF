@@ -40,15 +40,13 @@
  */
 
 /**
- * @file src-plugins/generic/eth_listener/eth_listener.h
+ * @file
  */
 
 #ifndef ETH_LISTENER_H_
 #define ETH_LISTENER_H_
 
-#include "common/common_types.h"
-#include "core/oonf_subsystem.h"
-
+/*! subsystem identifier */
 #define OONF_ETH_LISTENER_SUBSYSTEM "eth_listener"
 
 #endif /* ETH_LISTENER_H_ */

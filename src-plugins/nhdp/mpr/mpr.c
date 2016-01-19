@@ -40,7 +40,7 @@
  */
 
 /**
- * @file src-plugins/nhdp/mpr/mpr.c
+ * @file
  */
 
 #include <errno.h>

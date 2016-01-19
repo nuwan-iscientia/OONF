@@ -40,7 +40,7 @@
  */
 
 /**
- * @file src-plugins/generic/dlep/ext_base_proto/proto_radio.h
+ * @file
  */
 
 #ifndef _PROTO_RADIO_H_

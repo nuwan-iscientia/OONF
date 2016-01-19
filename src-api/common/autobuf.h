@@ -40,7 +40,7 @@
  */
 
 /**
- * @file ./src-api/common/autobuf.h
+ * @file
  */
 
 #ifndef _COMMON_AUTOBUF_H

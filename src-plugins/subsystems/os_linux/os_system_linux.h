@@ -40,7 +40,7 @@
  */
 
 /**
- * @file src-plugins/subsystems/os_linux/os_system_linux.h
+ * @file
  */
 
 #ifndef OS_SYSTEM_LINUX_H_
@@ -54,6 +54,7 @@
 #include "subsystems/oonf_socket.h"
 #include "subsystems/oonf_timer.h"
 
+/*! default timeout for netlink messages */
 #define OS_SYSTEM_NETLINK_TIMEOUT 1000
 
 /**

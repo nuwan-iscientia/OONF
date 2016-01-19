@@ -40,7 +40,7 @@
  */
 
 /**
- * @file src-plugins/olsrv2/olsrv2/olsrv2_lan.h
+ * @file
  */
 
 #ifndef OLSRV2_LAN_H_
@@ -94,14 +94,11 @@ EXPORT struct olsrv2_lan_entry *olsrv2_lan_add(
 EXPORT void olsrv2_lan_remove(struct nhdp_domain *,
 		const struct os_route_key *prefix);
 
-EXPORT int olsrv2_lan_validate(const struct cfg_schema_entry *entry,
-    const char *section_name, const char *value, struct autobuf *out);
-
 EXPORT struct avl_tree *olsrv2_lan_get_tree(void);
 
 
 /**
- * @param addr prefix source specific prefix
+ * @param prefix source specific prefix
  * @return pointer to LAN set entry, NULL if not found
  */
 static INLINE struct olsrv2_lan_entry *

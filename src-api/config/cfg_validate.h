@@ -40,7 +40,7 @@
  */
 
 /**
- * @file ./src-api/config/cfg_validate.h
+ * @file
  */
 
 #ifndef CFG_VALIDATE_H_

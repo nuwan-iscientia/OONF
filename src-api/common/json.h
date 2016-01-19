@@ -40,7 +40,7 @@
  */
 
 /**
- * @file ./src-api/common/json.h
+ * @file
  */
 
 #ifndef JSON_H_

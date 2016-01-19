@@ -40,7 +40,7 @@
  */
 
 /**
- * @file ./src-api/common/list.h
+ * @file
  */
 
 #ifndef LIST_H_

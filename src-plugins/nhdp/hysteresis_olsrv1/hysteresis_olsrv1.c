@@ -40,7 +40,7 @@
  */
 
 /**
- * @file src-plugins/nhdp/hysteresis_olsrv1/hysteresis_olsrv1.c
+ * @file
  */
 
 #include <stdio.h>
@@ -160,7 +160,7 @@ static struct oonf_subsystem _olsrv2_hysteresis_olsrv1_subsystem = {
 DECLARE_OONF_PLUGIN(_olsrv2_hysteresis_olsrv1_subsystem);
 
 /* storage extension for nhdp_link */
-struct oonf_class_extension _link_extenstion = {
+static struct oonf_class_extension _link_extenstion = {
   .ext_name = OONF_HYSTERESIS_OLSRV1_SUBSYSTEM,
   .class_name = NHDP_CLASS_LINK,
   .size = sizeof(struct link_hysteresis_data),
@@ -169,13 +169,13 @@ struct oonf_class_extension _link_extenstion = {
 };
 
 /* timer class to measure itime between Hellos */
-struct oonf_timer_class _hello_timer_info = {
+static struct oonf_timer_class _hello_timer_info = {
   .name = "Hello itime timeout for hysteresis",
   .callback = _cb_timer_hello_lost,
 };
 
 /* hysteresis handler */
-struct nhdp_hysteresis_handler _hysteresis_handler = {
+static struct nhdp_hysteresis_handler _hysteresis_handler = {
   .name = "hysteresis_olsrv1",
   .update_hysteresis = _cb_update_hysteresis,
   .is_pending = _cb_is_pending,

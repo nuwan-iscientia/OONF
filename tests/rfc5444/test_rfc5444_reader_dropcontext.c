@@ -40,7 +40,7 @@
  */
 
 /**
- * @file ./tests/rfc5444/test_rfc5444_reader_dropcontext.c
+ * @file
  */
 #include <arpa/inet.h>
 #include <assert.h>

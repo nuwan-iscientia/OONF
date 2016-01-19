@@ -40,12 +40,13 @@
  */
 
 /**
- * @file src-plugins/crypto/sharedkey_sig/sharedkey_sig.h
+ * @file
  */
 
 #ifndef SHAREDKEY_SIG_H
 #define SHAREDKEY_SIG_H
 
+/*! subsystem identifier */
 #define OONF_SHAREDKEY_SIG_SUBSYSTEM "sharedkey_sig"
 
 #endif /* SHAREDKEY_SIG_H */

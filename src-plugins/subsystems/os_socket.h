@@ -40,11 +40,11 @@
  */
 
 /**
- * @file src-plugins/subsystems/os_socket.h
+ * @file
  */
 
-#ifndef OS_SOCKET_H_
-#define OS_SOCKET_H_
+#ifndef OS_FD_H_
+#define OS_FD_H_
 
 #include <unistd.h>
 #include <sys/select.h>
@@ -57,48 +57,74 @@
 #include "subsystems/oonf_timer.h"
 #include "subsystems/os_interface.h"
 
-#define OONF_OS_SOCKET_SUBSYSTEM "os_socket"
+/*! subsystem identifier */
+#define OONF_OS_FD_SUBSYSTEM "os_socket"
+
+/* pre-definition of structs */
+struct os_fd;
+struct os_fd_select;
 
 /* pre-declare inlines */
-static INLINE int os_socket_bindto_interface(int, struct os_interface_data *data);
-static INLINE int os_socket_close(int fd);
-static INLINE int os_socket_listen(int fd, int n);
-static INLINE int os_socket_select(
-    int num, fd_set *r,fd_set *w,fd_set *e, struct timeval *timeout);
-static INLINE int os_socket_connect(int sockfd, const union netaddr_socket *remote);
-static INLINE int os_socket_accept(int sockfd, union netaddr_socket *incoming);
-static INLINE int os_socket_get_socket_error(int sockfd, int *value);
-static INLINE ssize_t os_socket_sendto(int fd, const void *buf, size_t length,
+static INLINE int os_fd_init(struct os_fd *, int fd);
+static INLINE int os_fd_copy(struct os_fd *dst, struct os_fd *from);
+static INLINE int os_fd_get_fd(struct os_fd *);
+static INLINE int os_fd_invalidate(struct os_fd *);
+static INLINE bool os_fd_is_initialized(struct os_fd *);
+
+static INLINE int os_fd_bindto_interface(struct os_fd *, struct os_interface_data *data);
+static INLINE int os_fd_close(struct os_fd *);
+static INLINE int os_fd_listen(struct os_fd *, int n);
+
+static INLINE int os_fd_event_add(struct os_fd_select *);
+static INLINE int os_fd_event_socket_add(struct os_fd_select *, struct os_fd *);
+static INLINE int os_fd_event_socket_read(struct os_fd_select *,
+    struct os_fd *, bool want_read);
+static INLINE int os_fd_event_is_read(struct os_fd *);
+static INLINE int os_fd_event_socket_write(struct os_fd_select *,
+    struct os_fd *, bool want_write);
+static INLINE int os_fd_event_is_write(struct os_fd *);
+static INLINE int os_fd_event_socket_remove(struct os_fd_select *, struct os_fd *);
+static INLINE int os_fd_event_set_deadline(struct os_fd_select *, uint64_t deadline);
+static INLINE uint64_t os_fd_event_get_deadline(struct os_fd_select *);
+static INLINE int os_fd_event_wait(struct os_fd_select *);
+static INLINE struct os_fd *os_fd_event_get(struct os_fd_select *, int idx);
+static INLINE int os_fd_event_remove(struct os_fd_select *);
+
+static INLINE int os_fd_connect(struct os_fd *, const union netaddr_socket *remote);
+static INLINE int os_fd_accept(struct os_fd *client,
+    struct os_fd *server, union netaddr_socket *incoming);
+static INLINE int os_fd_get_socket_error(struct os_fd *, int *value);
+static INLINE ssize_t os_fd_sendto(struct os_fd *, const void *buf, size_t length,
     const union netaddr_socket *dst, bool dont_route);
-static INLINE ssize_t os_socket_recvfrom(int fd, void *buf, size_t length,
+static INLINE ssize_t os_fd_recvfrom(struct os_fd *, void *buf, size_t length,
     union netaddr_socket *source, const struct os_interface_data *interf);
-static INLINE const char *os_socket_get_loopback_name(void);
-static INLINE ssize_t os_socket_sendfile(int outfd, int infd, size_t offset, size_t count);
+static INLINE const char *os_fd_get_loopback_name(void);
+static INLINE ssize_t os_fd_sendfile(struct os_fd *, struct os_fd *,
+    size_t offset, size_t count);
+
+static INLINE int os_fd_getsocket(struct os_fd *, const union netaddr_socket *bindto, bool tcp,
+    size_t recvbuf, const struct os_interface_data *, enum oonf_log_source log_src);
+static INLINE int os_fd_getrawsocket(struct os_fd *, const union netaddr_socket *bindto, int protocol,
+    size_t recvbuf, const struct os_interface_data *, enum oonf_log_source log_src);
+static INLINE int os_fd_configsocket(struct os_fd *, const union netaddr_socket *bindto,
+    size_t recvbuf, bool rawip, const struct os_interface_data *, enum oonf_log_source log_src);
+static INLINE int os_fd_set_nonblocking(struct os_fd *);
+static INLINE int os_fd_join_mcast_recv(struct os_fd *, const struct netaddr *multicast,
+    const struct os_interface_data *oif, enum oonf_log_source log_src);
+static INLINE int os_fd_join_mcast_send(struct os_fd *, const struct netaddr *multicast,
+    const struct os_interface_data *oif, bool loop, enum oonf_log_source log_src);
+static INLINE int os_fd_set_dscp(struct os_fd *, int dscp, bool ipv6);
+static INLINE uint8_t *os_fd_skip_rawsocket_prefix(uint8_t *ptr, ssize_t *len, int af_type);
 
 /* include os-specific headers */
 #if defined(__linux__)
-#include "os_linux/os_socket_linux.h"
+#include "os_linux/os_fd_linux.h"
 #elif defined (BSD)
-#include "subsystems/os_bsd/os_socket_bsd.h"
+#include "subsystems/os_bsd/os_fd_bsd.h"
 #elif defined (_WIN32)
-#include "subsystems/os_win32/os_socket_win32.h"
+#include "subsystems/os_win32/os_fd_win32.h"
 #else
 #error "Unknown operation system"
 #endif
 
-/* prototypes for all os_net functions */
-EXPORT int os_socket_getsocket(const union netaddr_socket *bindto, bool tcp,
-    size_t recvbuf, const struct os_interface_data *, enum oonf_log_source log_src);
-EXPORT int os_socket_getrawsocket(const union netaddr_socket *bindto, int protocol,
-    size_t recvbuf, const struct os_interface_data *, enum oonf_log_source log_src);
-EXPORT int os_socket_configsocket(int sock, const union netaddr_socket *bindto,
-    size_t recvbuf, bool rawip, const struct os_interface_data *, enum oonf_log_source log_src);
-EXPORT int os_socket_set_nonblocking(int sock);
-EXPORT int os_socket_join_mcast_recv(int sock, const struct netaddr *multicast,
-    const struct os_interface_data *oif, enum oonf_log_source log_src);
-EXPORT int os_socket_join_mcast_send(int sock, const struct netaddr *multicast,
-    const struct os_interface_data *oif, bool loop, enum oonf_log_source log_src);
-EXPORT int os_socket_set_dscp(int sock, int dscp, bool ipv6);
-EXPORT uint8_t *os_socket_skip_rawsocket_prefix(uint8_t *ptr, ssize_t *len, int af_type);
-
-#endif /* OS_SOCKET_H_ */
+#endif /* OS_FD_H_ */

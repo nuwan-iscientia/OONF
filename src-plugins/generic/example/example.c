@@ -40,7 +40,7 @@
  */
 
 /**
- * @file src-plugins/generic/example/example.c
+ * @file
  */
 
 #include "common/common_types.h"

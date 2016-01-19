@@ -40,7 +40,7 @@
  */
 
 /**
- * @file src-plugins/subsystems/rfc5444/rfc5444_tlv_writer.c
+ * @file
  */
 
 #include <string.h>
