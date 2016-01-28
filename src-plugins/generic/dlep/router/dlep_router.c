@@ -97,6 +97,11 @@ static struct cfg_schema_entry _router_entries[] = {
   CFG_MAP_STRING_ARRAY(dlep_router_if, interf.udp_config.interface, "datapath_if", "",
       "Overwrite datapath interface for incoming dlep traffic, used for"
       " receiving DLEP data through out-of-band channel.", IF_NAMESIZE),
+
+  CFG_MAP_NETADDR_V46(dlep_router_if, connect_to_addr, "connect_to", "-",
+      "IP to directly connect to a known DLEP radio TCP socket", false, true),
+  CFG_MAP_INT32_MINMAX(dlep_router_if, connect_to_port, "connect_to_port", "1",
+      "TCP port to directly connect to a known DLEP radio TCP socket", 0, false, 1, 65535),
 };
 
 static struct cfg_schema_section _router_section = {

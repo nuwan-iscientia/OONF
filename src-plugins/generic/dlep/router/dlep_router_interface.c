@@ -182,7 +182,6 @@ dlep_router_add_interface(const char *ifname) {
   avl_insert(&_interface_tree, &interface->interf._node);
 
   OONF_DEBUG(LOG_DLEP_ROUTER, "Add session %s", ifname);
-
   return interface;
 }
 
@@ -211,9 +210,32 @@ dlep_router_remove_interface(struct dlep_router_if *interface) {
 void
 dlep_router_apply_interface_settings(struct dlep_router_if *interf) {
   struct dlep_extension *ext;
+  struct os_interface_data *ifdata;
+  const struct netaddr *result;
+  union netaddr_socket local, remote;
+  struct netaddr_str nbuf;
+
   oonf_packet_apply_managed(&interf->interf.udp, &interf->interf.udp_config);
 
   _cleanup_interface(interf);
+
+  OONF_DEBUG(LOG_DLEP_ROUTER, "Connect directly to [%s]:%d",
+      netaddr_to_string(&nbuf, &interf->connect_to_addr),
+      interf->connect_to_port);
+
+  if (!netaddr_is_unspec(&interf->connect_to_addr)) {
+    ifdata = &interf->interf.session.l2_listener.interface->data;
+
+    result = oonf_interface_get_prefix_from_dst(&interf->connect_to_addr, ifdata);
+    if (result) {
+      /* initialize local and remote socket */
+      netaddr_socket_init(&local, result, 0, ifdata->index);
+      netaddr_socket_init(&remote,
+          &interf->connect_to_addr, interf->connect_to_port, ifdata->index);
+
+      dlep_router_add_session(interf, &local, &remote);
+    }
+  }
 
   avl_for_each_element(dlep_extension_get_tree(), ext, _node) {
     if (ext->cb_session_apply_router) {
