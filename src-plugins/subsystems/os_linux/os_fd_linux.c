@@ -128,7 +128,7 @@ os_fd_linux_event_wait(struct os_fd_select *sel) {
 int
 os_fd_linux_event_socket_modify(struct os_fd_select *sel,
     struct os_fd *sock) {
-  struct epoll_event event = {0};
+  struct epoll_event event;
 
   event.events = sock->wanted_events;
   event.data.ptr = sock;
