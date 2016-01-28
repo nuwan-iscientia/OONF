@@ -213,18 +213,20 @@ dlep_router_apply_interface_settings(struct dlep_router_if *interf) {
   struct os_interface_data *ifdata;
   const struct netaddr *result;
   union netaddr_socket local, remote;
+#ifdef OONF_LOG_DEBUG_INFO
   struct netaddr_str nbuf;
+#endif
 
   oonf_packet_apply_managed(&interf->interf.udp, &interf->interf.udp_config);
 
   _cleanup_interface(interf);
 
-  OONF_DEBUG(LOG_DLEP_ROUTER, "Connect directly to [%s]:%d",
-      netaddr_to_string(&nbuf, &interf->connect_to_addr),
-      interf->connect_to_port);
-
   if (!netaddr_is_unspec(&interf->connect_to_addr)) {
     ifdata = &interf->interf.session.l2_listener.interface->data;
+
+    OONF_DEBUG(LOG_DLEP_ROUTER, "Connect directly to [%s]:%d",
+        netaddr_to_string(&nbuf, &interf->connect_to_addr),
+        interf->connect_to_port);
 
     result = oonf_interface_get_prefix_from_dst(&interf->connect_to_addr, ifdata);
     if (result) {
