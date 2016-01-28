@@ -342,6 +342,7 @@ os_fd_event_socket_add(struct os_fd_select *sel, struct os_fd *sock) {
 
   memset(&event,0,sizeof(event));
 
+  event.events = 0;
   event.data.ptr = sock;
   return epoll_ctl(sel->_epoll_fd, EPOLL_CTL_ADD, sock->fd, &event);
 }
