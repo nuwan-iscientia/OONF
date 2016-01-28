@@ -19,8 +19,10 @@ function (oonf_create_install_target name)
     ENDFOREACH(lib)     
 endfunction (oonf_create_install_target)
     
-function (oonf_create_app executable static_plugins)
-    message (STATUS "Static plugins for ${executable} app:")
+function (oonf_create_app executable static_plugins optional_static_plugins)
+    IF(VERBOSE)
+        message (STATUS "Static plugins for ${executable} app:")
+    ENDIF(VERBOSE)
 
     # standard static linked targets
     SET(OBJECT_TARGETS )
@@ -30,10 +32,20 @@ function (oonf_create_app executable static_plugins)
     # generate configuration file
     configure_file(${CMAKE_SOURCE_DIR}/src/app_data.c.in ${PROJECT_BINARY_DIR}/${executable}_app_data.c)
 
+    FOREACH(plugin ${optional_static_plugins})
+        IF(TARGET oonf_static_${plugin})
+            list (APPEND static_plugins ${plugin})
+        ELSE(TARGET oonf_static_${plugin})
+            message (STATUS "    Optional plugin ${plugin} is not available for executable ${executable}")
+        ENDIF(TARGET oonf_static_${plugin})
+    ENDFOREACH(plugin)
+
     # run through list of static plugins
     FOREACH(plugin ${static_plugins})
         IF(TARGET oonf_static_${plugin})
-            message (STATUS "    Found target: oonf_static_${plugin}")
+            IF(VERBOSE)
+                message (STATUS "    Found target: oonf_static_${plugin}")
+            ENDIF(VERBOSE)
 
             # Remember object targets for static plugin
             SET(OBJECT_TARGETS ${OBJECT_TARGETS} $<TARGET_OBJECTS:oonf_static_${plugin}>)
@@ -42,7 +54,9 @@ function (oonf_create_app executable static_plugins)
             get_property(value TARGET oonf_${plugin} PROPERTY LINK_LIBRARIES)
             FOREACH(lib ${value})
                 IF(NOT "${lib}" MATCHES "^oonf_")
-                    message (STATUS "        Library: ${lib}")
+                    IF(VERBOSE)
+                        message (STATUS "        Library: ${lib}")
+                    ENDIF(VERBOSE)
                     SET(EXTERNAL_LIBRARIES ${EXTERNAL_LIBRARIES} ${lib})
                 ENDIF()
             ENDFOREACH(lib)

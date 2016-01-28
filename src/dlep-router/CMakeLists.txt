@@ -53,4 +53,4 @@ ENDIF (NOT OONF_STATIC_PLUGINS)
 ##################################
 
 include(../../cmake/link_app.cmake)
-oonf_create_app("${OONF_EXE}" "${OONF_STATIC_PLUGINS}")
+oonf_create_app("${OONF_EXE}" "${OONF_STATIC_PLUGINS}" "${OONF_OPTIONAL_STATIC_PLUGINS}")
