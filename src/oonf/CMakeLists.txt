@@ -30,9 +30,13 @@ IF (NOT OONF_STATIC_PLUGINS)
     set (OONF_STATIC_PLUGINS cfg_compact)
 ENDIF (NOT OONF_STATIC_PLUGINS)
 
+IF (NOT OONF_OPTIONAL_STATIC_PLUGINS)
+    set (OONF_OPTIONAL_STATIC_PLUGINS "")
+ENDIF (NOT OONF_OPTIONAL_STATIC_PLUGINS)
+
 ##################################
 #### link framework libraries ####
 ##################################
 
 include(../../cmake/link_app.cmake)
-oonf_create_app("${OONF_EXE}" "${OONF_STATIC_PLUGINS}")
+oonf_create_app("${OONF_EXE}" "${OONF_STATIC_PLUGINS}" "${OONF_OPTIONAL_STATIC_PLUGINS}")

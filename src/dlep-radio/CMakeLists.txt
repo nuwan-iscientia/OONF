@@ -43,15 +43,18 @@ IF (NOT OONF_STATIC_PLUGINS)
                              os_system
                              cfg_compact
                              layer2info
-                             nl80211_listener
                              systeminfo
                              dlep_radio
                              )
 ENDIF (NOT OONF_STATIC_PLUGINS)
+
+IF (NOT OONF_OPTIONAL_STATIC_PLUGINS)
+    set (OONF_OPTIONAL_STATIC_PLUGINS nl80211_listener)
+ENDIF (NOT OONF_OPTIONAL_STATIC_PLUGINS)
 
 ##################################
 #### link framework libraries ####
 ##################################
 
 include(../../cmake/link_app.cmake)
-oonf_create_app("${OONF_EXE}" "${OONF_STATIC_PLUGINS}")
+oonf_create_app("${OONF_EXE}" "${OONF_STATIC_PLUGINS}" "${OONF_OPTIONAL_STATIC_PLUGINS}")
