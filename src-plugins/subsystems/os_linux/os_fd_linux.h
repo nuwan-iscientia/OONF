@@ -339,7 +339,8 @@ static INLINE int
 os_fd_event_socket_add(struct os_fd_select *sel, struct os_fd *sock) {
   struct epoll_event event;
 
-  event.events = 0;
+  memset(&event,0,sizeof(event));
+
   event.data.ptr = sock;
   return epoll_ctl(sel->_epoll_fd, EPOLL_CTL_ADD, sock->fd, &event);
 }

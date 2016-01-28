@@ -130,6 +130,8 @@ os_fd_linux_event_socket_modify(struct os_fd_select *sel,
     struct os_fd *sock) {
   struct epoll_event event;
 
+  memset(&event,0,sizeof(event));
+
   event.events = sock->wanted_events;
   event.data.ptr = sock;
 

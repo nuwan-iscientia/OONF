@@ -70,7 +70,7 @@ struct _domain_parameters {
   char mpr_name[NHDP_DOMAIN_MPR_MAXLEN];
 
   /*! routing willingness */
-  uint8_t mpr_willingness;
+  int32_t mpr_willingness;
 };
 
 /**
@@ -81,7 +81,7 @@ struct _generic_parameters {
   char flooding_mpr_name[NHDP_DOMAIN_MPR_MAXLEN];
 
   /*! routing willingness */
-  uint8_t mpr_willingness;
+  int32_t mpr_willingness;
 };
 
 /* prototypes */
