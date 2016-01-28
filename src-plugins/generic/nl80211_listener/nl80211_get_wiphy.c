@@ -251,14 +251,18 @@ nl80211_process_get_wiphy_result(struct nl80211_if *interf,
  */
 void
 nl80211_finalize_get_wiphy(struct nl80211_if *interf) {
-  OONF_DEBUG(LOG_NL80211, "Maximum rx rate for %s: %"PRId64,
-      interf->name, interf->max_rx);
-  OONF_DEBUG(LOG_NL80211, "Maximum tx rate for %s: %"PRId64,
-      interf->name, interf->max_tx);
-  interf->ifdata_changed |= nl80211_change_l2net_neighbor_default(
-      interf->l2net, OONF_LAYER2_NEIGH_RX_MAX_BITRATE, interf->max_rx);
-  interf->ifdata_changed |= nl80211_change_l2net_neighbor_default(
-      interf->l2net, OONF_LAYER2_NEIGH_TX_MAX_BITRATE, interf->max_tx);
+  if (interf->max_rx) {
+    OONF_DEBUG(LOG_NL80211, "Maximum rx rate for %s: %"PRId64,
+        interf->name, interf->max_rx);
+    interf->ifdata_changed |= nl80211_change_l2net_neighbor_default(
+        interf->l2net, OONF_LAYER2_NEIGH_RX_MAX_BITRATE, interf->max_rx);
+  }
+  if (interf->max_tx) {
+    OONF_DEBUG(LOG_NL80211, "Maximum tx rate for %s: %"PRId64,
+        interf->name, interf->max_tx);
+    interf->ifdata_changed |= nl80211_change_l2net_neighbor_default(
+        interf->l2net, OONF_LAYER2_NEIGH_TX_MAX_BITRATE, interf->max_tx);
+  }
 }
 
 /**
