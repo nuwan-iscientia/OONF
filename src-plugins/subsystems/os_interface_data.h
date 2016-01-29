@@ -56,10 +56,10 @@ struct os_interface_data {
   /*! IPv4 Interface addresses with mesh-wide scope (at least) */
   const struct netaddr *if_v4;
 
-  /*! IPv5 Interface addresses with mesh-wide scope (at least) */
+  /*! IPv6 Interface addresses with mesh-wide scope (at least) */
   const struct netaddr *if_v6;
 
-  /*! IPv6 Interface address with global scope */
+  /*! IPv6 Interface address with linklocal scope */
   const struct netaddr *linklocal_v6_ptr;
 
   /*! mac address of interface */
