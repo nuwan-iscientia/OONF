@@ -170,8 +170,8 @@ struct dlep_writer {
   /*! type of signal */
   uint16_t signal_type;
 
-  /*! pointer to first byte of signal */
-  char *signal_start_ptr;
+  /*! index of first byte of signal */
+  size_t signal_start;
 };
 
 /**
