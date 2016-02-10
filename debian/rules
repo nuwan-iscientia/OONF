@@ -1,0 +1,15 @@
+#!/usr/bin/make -f
+%:
+	dh $@
+
+override_dh_auto_configure:
+	cmake 	-D CMAKE_INSTALL_PREFIX=/usr \
+		-D CMAKE_VERBOSE_MAKEFILE=ON \
+		-D CMAKE_BUILD_TYPE=DEBUG \
+		-D OONF_LOGGING_LEVEL=debug \
+		-D OONF_NO_WERROR:Bool=true \
+		SOURCETOOLCHAIN \
+		SOURCEDIR
+
+override_dh_auto_install:
+	make -j1 install_TARGETNAME_static DESTDIR=INSTALLDESTDIR AM_UPDATE_INFO_DIR=no
