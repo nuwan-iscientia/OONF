@@ -30,6 +30,7 @@ fi
 # calculate version and tarball names
 VERSION=`git describe --abbrev=0| sed -e "s/^v//"`
 FULLVERSION=`git describe`
+VERSIONCOUNT=`git rev-list v${VERSION}..HEAD --count`
 
 TARPREFIX=${TARGET}_${VERSION}
 TARBALL=${BUILDDIR}/${TARPREFIX}.orig.tar.gz
@@ -84,7 +85,7 @@ cp -r ${SOURCE}/src/${TARGET}/debian ./
 cp ${SOURCE}/files/default_licence.txt ./debian/copyright
 
 # adapt changelog template
-sed -i -e "s@SHORTVERSION@${VERSION}@" \
+sed -i -e "s@SHORTVERSION@${VERSION}-${VERSIONCOUNT}@" \
        -e "s@FULLVERSION@${FULLVERSION}@" \
        -e "s@DATETIME@`date -R`@" \
        ./debian/changelog
