@@ -41,9 +41,15 @@ then
     exit 1
 fi
 
-if [ ! -f ${SOURCE}/src/${TARGET}/debian_changelog ]
+if [ ! -f ${SOURCE}/src/${TARGET}/debian/changelog ]
 then
     echo "Could not find target '${TARGET}' debian changelog"
+    exit 1
+fi
+
+if [ ! -f ${SOURCE}/src/${TARGET}/debian/control ]
+then
+    echo "Could not find target '${TARGET}' debian control file"
     exit 1
 fi
 
@@ -74,8 +80,7 @@ tar xf ${TARBALL}
 # build debian directory from template
 cd ${TARPREFIX}
 
-cp ${SOURCE}/src/${TARGET}/debian_changelog ./debian/changelog
-cp ${SOURCE}/src/${TARGET}/debian_control ./debian/control
+cp -r ${SOURCE}/src/${TARGET}/debian ./
 cp ${SOURCE}/files/default_licence.txt ./debian/copyright
 
 # adapt changelog template

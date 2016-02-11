@@ -1,6 +1,6 @@
 #!/usr/bin/make -f
 %:
-	dh $@
+	dh $@ --with=systemd
 
 override_dh_auto_configure:
 	cmake 	-D CMAKE_INSTALL_PREFIX=/usr \
@@ -13,3 +13,4 @@ override_dh_auto_configure:
 
 override_dh_auto_install:
 	make -j1 install_TARGETNAME_static DESTDIR=INSTALLDESTDIR AM_UPDATE_INFO_DIR=no
+	install -p -m0644 $(CURDIR)/debian/olsrd2.conf $(CURDIR)/debian/olsrd2/etc/olsrd2/olsrd2.conf

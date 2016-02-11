@@ -24,6 +24,12 @@ function (oonf_create_app executable static_plugins optional_static_plugins)
         message (STATUS "Static plugins for ${executable} app:")
     ENDIF(VERBOSE)
 
+    IF(OONF_NEED_ROOT)
+        SET(DESTINATION sbin)
+    ELSE(OONF_NEED_ROOT)
+        SET(DESTINATION bin)
+    ENDIF(OONF_NEED_ROOT)
+
     # standard static linked targets
     SET(OBJECT_TARGETS )
     SET(EXTERNAL_LIBRARIES )
@@ -97,10 +103,10 @@ function (oonf_create_app executable static_plugins optional_static_plugins)
     
     # create install targets
     INSTALL (TARGETS ${executable}_dynamic RUNTIME 
-                                           DESTINATION bin 
+                                           DESTINATION ${DESTINATION}
                                            COMPONENT component_${executable}_dynamic)
     INSTALL (TARGETS ${executable}_static  RUNTIME
-                                           DESTINATION bin 
+                                           DESTINATION ${DESTINATION}
                                            COMPONENT component_${executable}_static)
 
     # add custom install targets
