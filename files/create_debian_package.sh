@@ -84,17 +84,13 @@ cp -r ${SOURCE}/src/${TARGET}/debian ./
 cp ${SOURCE}/files/default_licence.txt ./debian/copyright
 
 # adapt changelog template
-sed -i  -e "s@SHORTVERSION@${VERSION}@" \
-        -e "s@FULLVERSION@${FULLVERSION}@" \
-        -e "s@DATETIME@`date -R`@" \
-        ./debian/changelog
+sed -i -e "s@SHORTVERSION@${VERSION}@" \
+       -e "s@FULLVERSION@${FULLVERSION}@" \
+       -e "s@DATETIME@`date -R`@" \
+       ./debian/changelog
 
 # adapt rules template
-sed -i  -e "s@SOURCEDIR@${BUILDDIR}/${TARPREFIX}@" \
-        -e "s@SOURCETOOLCHAIN@${TOOLCHAIN}@" \
-        -e "s@TARGETNAME@${TARGET}@" \
-        -e "s@INSTALLDESTDIR@${BUILDDIR}/${TARPREFIX}/debian/${TARGET}@" \
-        ./debian/rules
+sed -i -e "s@SOURCETOOLCHAIN@${TOOLCHAIN}@" ./debian/rules
 
 # create debian package
 debuild -us -uc ${ARCH}
