@@ -362,7 +362,7 @@ _cb_addresstlvs(struct rfc5444_reader_tlvblock_context *context __attribute__((u
   OONF_DEBUG(LOG_OLSRV2_R, "Found address in tc: %s",
       netaddr_to_string(&buf, &context->addr));
 
-  os_route_init_sourcespec_prefix(&ssprefix, &context->addr);
+  os_routing_init_sourcespec_prefix(&ssprefix, &context->addr);
 
   for (tlv = _olsrv2_address_tlvs[IDX_ADDRTLV_LINK_METRIC].tlv;
       tlv; tlv = tlv->next_entry) {
@@ -447,7 +447,7 @@ _handle_gateways(struct rfc5444_reader_tlvblock_entry *tlv,
       netaddr_truncate(&ssprefix->dst, &ssprefix->dst);
       break;
     case RFC7181_SRCSPEC_DEF_GATEWAY:
-      os_route_init_sourcespec_src_prefix(ssprefix, addr);
+      os_routing_init_sourcespec_src_prefix(ssprefix, addr);
 
       /* truncate address */
       netaddr_truncate(&ssprefix->src, &ssprefix->src);

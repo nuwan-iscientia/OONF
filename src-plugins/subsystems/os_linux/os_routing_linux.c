@@ -206,7 +206,7 @@ _cleanup(void) {
  *   address family
  */
 bool
-os_routing_supports_source_specific(int af_family) {
+os_routing_linux_supports_source_specific(int af_family) {
   if (af_family == AF_INET) {
     return false;
   }
@@ -226,7 +226,7 @@ os_routing_supports_source_specific(int af_family) {
  * @return -1 if an error happened, 0 otherwise
  */
 int
-os_routing_set(struct os_route *route, bool set, bool del_similar) {
+os_routing_linux_set(struct os_route *route, bool set, bool del_similar) {
   uint8_t buffer[UIO_MAXIOV];
   struct nlmsghdr *msg;
   unsigned char scope;
@@ -302,7 +302,7 @@ os_routing_set(struct os_route *route, bool set, bool del_similar) {
  * @return -1 if an error happened, 0 otherwise
  */
 int
-os_routing_query(struct os_route *route) {
+os_routing_linux_query(struct os_route *route) {
   uint8_t buffer[UIO_MAXIOV];
   struct nlmsghdr *msg;
   struct rtgenmsg *rt_gen;
@@ -339,8 +339,8 @@ os_routing_query(struct os_route *route) {
  * @param route pointer to os_route
  */
 void
-os_routing_interrupt(struct os_route *route) {
-  if (os_routing_is_in_progress(route)) {
+os_routing_linux_interrupt(struct os_route *route) {
+  if (os_routing_linux_is_in_progress(route)) {
     _routing_finished(route, -1);
   }
 }
@@ -351,7 +351,7 @@ os_routing_interrupt(struct os_route *route) {
  *   false otherwise
  */
 bool
-os_routing_is_in_progress(struct os_route *route) {
+os_routing_linux_is_in_progress(struct os_route *route) {
   return avl_is_node_added(&route->_internal._node);
 }
 
@@ -359,7 +359,7 @@ os_routing_is_in_progress(struct os_route *route) {
  * @return wildcard route
  */
 const struct os_route_parameter *
-os_routing_get_wildcard_route(void) {
+os_routing_linux_get_wildcard_route(void) {
   return &OS_ROUTE_WILDCARD;
 }
 
@@ -368,7 +368,7 @@ os_routing_get_wildcard_route(void) {
  * @param listener routing change listener
  */
 void
-os_routing_listener_add(struct os_route_listener *listener) {
+os_routing_linux_listener_add(struct os_route_listener *listener) {
   list_add_tail(&_rtnetlink_listener, &listener->_internal._node);
 }
 
@@ -377,7 +377,7 @@ os_routing_listener_add(struct os_route_listener *listener) {
  * @param listener routing change listener
  */
 void
-os_routing_listener_remove(struct os_route_listener *listener) {
+os_routing_linux_listener_remove(struct os_route_listener *listener) {
   list_remove(&listener->_internal._node);
 }
 

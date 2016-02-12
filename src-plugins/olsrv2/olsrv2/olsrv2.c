@@ -707,7 +707,7 @@ _parse_lan_array(struct cfg_named_section *section, bool add) {
       continue;
     }
 
-    os_route_init_sourcespec_prefix(&prefix, &addr);
+    os_routing_init_sourcespec_prefix(&prefix, &addr);
 
     /* truncate address */
     netaddr_truncate(&prefix.dst, &prefix.dst);

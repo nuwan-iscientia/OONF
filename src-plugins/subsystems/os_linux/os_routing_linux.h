@@ -50,6 +50,9 @@
 #include "common/avl.h"
 #include "common/list.h"
 
+#include "subsystems/os_generic/os_routing_generic_rt_to_string.h"
+#include "subsystems/os_generic/os_routing_generic_init_half_route_key.h"
+
 /**
  * linux specifc data for changing a kernel route
  */
@@ -68,4 +71,72 @@ struct os_route_listener_internal {
   /*! hook into list of kernel route listeners */
   struct list_entity _node;
 };
+
+EXPORT bool os_routing_linux_supports_source_specific(int af_family);
+EXPORT int os_routing_linux_set(struct os_route *, bool set, bool del_similar);
+EXPORT int os_routing_linux_query(struct os_route *);
+EXPORT void os_routing_linux_interrupt(struct os_route *);
+EXPORT bool os_routing_linux_is_in_progress(struct os_route *);
+
+EXPORT void os_routing_linux_listener_add(struct os_route_listener *);
+EXPORT void os_routing_linux_listener_remove(struct os_route_listener *);
+
+EXPORT const char *os_routing_linux_to_string(
+    struct os_route_str *buf, const struct os_route_parameter *route_param);
+
+EXPORT const struct os_route_parameter *os_routing_linux_get_wildcard_route(void);
+
+static INLINE bool
+os_routing_supports_source_specific(int af_family) {
+  return os_routing_linux_supports_source_specific(af_family);
+}
+
+static INLINE int
+os_routing_set(struct os_route *route, bool set, bool del_similar) {
+  return os_routing_linux_set(route, set, del_similar);
+}
+
+static INLINE int
+os_routing_query(struct os_route *route) {
+  return os_routing_linux_query(route);
+}
+
+static INLINE void
+os_routing_interrupt(struct os_route *route) {
+  os_routing_linux_interrupt(route);
+}
+
+static INLINE bool
+os_routing_is_in_progress(struct os_route *route) {
+  return os_routing_linux_is_in_progress(route);
+}
+
+static INLINE void
+os_routing_listener_add(struct os_route_listener *l) {
+  os_routing_linux_listener_add(l);
+}
+
+static INLINE void
+os_routing_listener_remove(struct os_route_listener *l) {
+  os_routing_linux_listener_remove(l);
+}
+
+static INLINE const struct os_route_parameter *
+os_routing_get_wildcard_route(void) {
+  return os_routing_linux_get_wildcard_route();
+}
+
+static INLINE const char *
+os_routing_to_string(
+    struct os_route_str *buf, const struct os_route_parameter *route_param) {
+  return os_routing_generic_rt_to_string(buf, route_param);
+}
+
+static INLINE void
+os_routing_init_half_os_route_key(
+    struct netaddr *any, struct netaddr *specific,
+    const struct netaddr *source) {
+  return os_routing_generic_init_half_os_route_key(any, specific, source);
+}
+
 #endif /* OS_ROUTING_LINUX_H_ */

@@ -59,6 +59,11 @@
 /*! subsystem identifier */
 #define OONF_OS_ROUTING_SUBSYSTEM "os_routing"
 
+struct os_route;
+struct os_route_listener;
+struct os_route_str;
+struct os_route_parameter;
+
 /* include os-specific headers */
 #if defined(__linux__)
 #include "subsystems/os_linux/os_routing_linux.h"
@@ -204,24 +209,26 @@ struct os_route_listener {
 };
 
 /* prototypes for all os_routing functions */
-EXPORT bool os_routing_supports_source_specific(int af_family);
-EXPORT int os_routing_set(struct os_route *, bool set, bool del_similar);
-EXPORT int os_routing_query(struct os_route *);
-EXPORT void os_routing_interrupt(struct os_route *);
-EXPORT bool os_routing_is_in_progress(struct os_route *);
+static INLINE bool os_routing_supports_source_specific(int af_family);
+static INLINE int os_routing_set(struct os_route *, bool set, bool del_similar);
+static INLINE int os_routing_query(struct os_route *);
+static INLINE void os_routing_interrupt(struct os_route *);
+static INLINE bool os_routing_is_in_progress(struct os_route *);
 
-EXPORT void os_routing_listener_add(struct os_route_listener *);
-EXPORT void os_routing_listener_remove(struct os_route_listener *);
+static INLINE void os_routing_listener_add(struct os_route_listener *);
+static INLINE void os_routing_listener_remove(struct os_route_listener *);
 
-EXPORT const char *os_routing_to_string(
+static INLINE const char *os_routing_to_string(
     struct os_route_str *buf, const struct os_route_parameter *route_param);
 
-EXPORT const struct os_route_parameter *os_routing_get_wildcard_route(void);
+static INLINE const struct os_route_parameter *os_routing_get_wildcard_route(void);
 
-EXPORT int os_route_avl_cmp_route_key(const void *, const void *);
-EXPORT void os_route_init_half_os_route_key(
+static INLINE void os_routing_init_half_os_route_key(
     struct netaddr *any, struct netaddr *specific,
     const struct netaddr *source);
+
+/* AVL comparators are a special case so we don't do the INLINE trick here */
+EXPORT int os_routing_avl_cmp_route_key(const void *, const void *);
 
 /**
  * Initialize a source specific route key with a destination.
@@ -231,9 +238,9 @@ EXPORT void os_route_init_half_os_route_key(
  * @param destination destination prefix
  */
 static INLINE void
-os_route_init_sourcespec_prefix(struct os_route_key *prefix,
+os_routing_init_sourcespec_prefix(struct os_route_key *prefix,
     const struct netaddr *destination) {
-  os_route_init_half_os_route_key(&prefix->src, &prefix->dst, destination);
+  os_routing_init_half_os_route_key(&prefix->src, &prefix->dst, destination);
 }
 
 /**
@@ -244,9 +251,9 @@ os_route_init_sourcespec_prefix(struct os_route_key *prefix,
  * @param source source prefix
  */
 static INLINE void
-os_route_init_sourcespec_src_prefix(struct os_route_key *prefix,
+os_routing_init_sourcespec_src_prefix(struct os_route_key *prefix,
     const struct netaddr *source) {
-  os_route_init_half_os_route_key(&prefix->dst, &prefix->src, source);
+  os_routing_init_half_os_route_key(&prefix->dst, &prefix->src, source);
 }
 
 #endif /* OS_ROUTING_H_ */

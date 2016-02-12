@@ -66,7 +66,8 @@ static const char *_route_types[] = {
  * @return pointer to string buffer, NULL if an error happened
  */
 const char *
-os_routing_to_string(struct os_route_str *buf, const struct os_route_parameter *route_parameter) {
+os_routing_generic_rt_to_string(
+    struct os_route_str *buf, const struct os_route_parameter *route_parameter) {
   struct netaddr_str buf1, buf2, buf3, buf4;
   char ifbuf[IF_NAMESIZE];
   int result;

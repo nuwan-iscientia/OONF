@@ -137,7 +137,7 @@ olsrv2_routing_init(void) {
   oonf_timer_add(&_dijkstra_timer_info);
 
   for (i=0; i<NHDP_MAXIMUM_DOMAINS; i++) {
-    avl_init(&_routing_tree[i], os_route_avl_cmp_route_key, false);
+    avl_init(&_routing_tree[i], os_routing_avl_cmp_route_key, false);
   }
   list_init_head(&_routing_filter_list);
   avl_init(&_dijkstra_working_tree, avl_comp_uint32, true);
@@ -882,7 +882,7 @@ _handle_nhdp_routes(struct nhdp_domain *domain) {
         continue;
       }
 
-      os_route_init_sourcespec_prefix(&ssprefix, &naddr->neigh_addr);
+      os_routing_init_sourcespec_prefix(&ssprefix, &naddr->neigh_addr);
 
       /* update routing entry */
       _update_routing_entry(domain, &ssprefix,
@@ -904,7 +904,7 @@ _handle_nhdp_routes(struct nhdp_domain *domain) {
 
         l2hop_pathcost += neighcost;
 
-        os_route_init_sourcespec_prefix(&ssprefix, &l2hop->twohop_addr);
+        os_routing_init_sourcespec_prefix(&ssprefix, &l2hop->twohop_addr);
 
         /* the 2-hop route is better than the dijkstra calculation */
         _update_routing_entry(domain, &ssprefix,

@@ -103,7 +103,7 @@ olsrv2_tc_init(void) {
   oonf_class_add(&_tc_endpoint_class);
 
   avl_init(&_tc_tree, avl_comp_netaddr, false);
-  avl_init(&_tc_endpoint_tree, os_route_avl_cmp_route_key, true);
+  avl_init(&_tc_endpoint_tree, os_routing_avl_cmp_route_key, true);
 }
 
 /**
@@ -157,12 +157,12 @@ olsrv2_tc_node_add(struct netaddr *originator,
     }
 
     /* copy key and attach it to node */
-    os_route_init_sourcespec_prefix(&node->target.prefix, originator);
+    os_routing_init_sourcespec_prefix(&node->target.prefix, originator);
     node->_originator_node.key = &node->target.prefix.dst;
 
     /* initialize node */
     avl_init(&node->_edges, avl_comp_netaddr, false);
-    avl_init(&node->_attached_networks, os_route_avl_cmp_route_key, false);
+    avl_init(&node->_attached_networks, os_routing_avl_cmp_route_key, false);
 
     node->_validity_time.class = &_validity_info;
     node->_validity_time.cb_context = node;
@@ -350,7 +350,7 @@ olsrv2_tc_endpoint_add(struct olsrv2_tc_node *node,
 
     /* initialize endpoint */
     end->target.type = mesh ? OLSRV2_ADDRESS_TARGET : OLSRV2_NETWORK_TARGET;
-    avl_init(&end->_attached_networks, os_route_avl_cmp_route_key, false);
+    avl_init(&end->_attached_networks, os_routing_avl_cmp_route_key, false);
 
     /* attach to global tree */
     memcpy(&end->target.prefix, prefix, sizeof(*prefix));
