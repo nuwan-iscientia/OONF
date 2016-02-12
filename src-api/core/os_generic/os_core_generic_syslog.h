@@ -43,25 +43,15 @@
  * @file
  */
 
-#ifndef OS_CORE_GENERIC_H_
-#define OS_CORE_GENERIC_H_
+#ifndef OS_CORE_GENERIC_SYSLOG_H_
+#define OS_CORE_GENERIC_SYSLOG_H_
 
-#include <sys/time.h>
-#include <stdlib.h>
+#include "common/common_types.h"
 
-#include "core/os_core.h"
+void os_core_generic_syslog_init(const char *appname);
+void os_core_generic_syslog_cleanup(void);
 
-/*! default folder for Linux lockfile */
-#define OS_CORE_LOCKFILE_FOLDER        "/var/run/"
+EXPORT void os_core_generic_syslog(
+    enum oonf_log_severity severity, const char *msg);
 
-/**
- * Inline wrapper around gettimeofday
- * @param tv pointer to target timeval object
- * @return -1 if an error happened, 0 otherwise
- */
-static INLINE int
-os_core_gettimeofday(struct timeval *tv) {
-  return gettimeofday(tv, NULL);
-}
-
-#endif /* OS_CORE_GENERIC_H_ */
+#endif /* OS_CORE_GENERIC_SYSLOG_H_ */

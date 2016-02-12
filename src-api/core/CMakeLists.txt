@@ -23,12 +23,12 @@ SET(OONF_CORE_INCLUDES oonf_appdata.h
 # TODO: add BSD and WIN32
 IF(LINUX)
     SET(OONF_CORE_SRCS ${OONF_CORE_SRCS}
-                       os_generic/os_core_generic.c
-                       os_linux/os_core_linux_locking_file.c
-                       os_linux/os_core_linux_get_random.c
+                       os_generic/os_core_generic_syslog.c
+                       os_linux/os_core_linux.c
                        )
     SET(OONF_CORE_INCLUDES ${OONF_CORE_INCLUDES}
-                       os_generic/os_core_generic.h
+                       os_generic/os_core_generic_syslog.h
+                       os_linux/os_core_linux.h
                        )
 ENDIF(LINUX)
 

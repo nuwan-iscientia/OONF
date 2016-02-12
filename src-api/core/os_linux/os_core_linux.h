@@ -43,59 +43,74 @@
  * @file
  */
 
-#include <sys/times.h>
-#include <fcntl.h>
-#include <unistd.h>
-#include <stdlib.h>
-#include <syslog.h>
+#ifndef OS_CORE_LINUX_H_
+#define OS_CORE_LINUX_H_
 
-#include "core/oonf_libdata.h"
-#include "core/oonf_logging.h"
+#include <sys/time.h>
+#include <stdlib.h>
+
+#include "core/os_generic/os_core_generic_syslog.h"
 #include "core/os_core.h"
+
+/*! default folder for Linux lockfile */
+#define OS_CORE_LOCKFILE_FOLDER        "/var/run/"
+
+EXPORT int os_core_linux_get_random(void *dst, size_t length);
+EXPORT int os_core_linux_create_lockfile(const char *path);
 
 /**
  * Initialize core
- * @param appname name of the application for syslog
+ * @param appname name of the application
  */
-void
+static INLINE int
 os_core_init(const char *appname) {
-  /* seed random number generator */
-  srandom(times(NULL) + getpid());
-
-  /* open logfile */
-  openlog(appname, LOG_PID | LOG_ODELAY, LOG_DAEMON);
-  setlogmask(LOG_UPTO(LOG_DEBUG));
+  os_core_generic_syslog_init(appname);
+  return 0;
 }
 
 /**
  * Cleanup core
  */
-void
+static INLINE void
 os_core_cleanup(void) {
-  closelog();
+  os_core_generic_syslog_cleanup();
+}
+
+static INLINE int
+os_core_syslog(enum oonf_log_severity sev, const char *msg) {
+  os_core_generic_syslog(sev, msg);
+  return 0;
 }
 
 /**
- * Print a line to the syslog
- * @param severity severity of entry
- * @param msg line to print
+ * Create a lock file of a certain name
+ * @param path name of lockfile including path
+ * @return 0 if the lock was created successfully, false otherwise
  */
-void
-os_core_syslog(enum oonf_log_severity severity, const char *msg) {
-  int log_sev;
-
-  switch (severity) {
-    case LOG_SEVERITY_DEBUG:
-      log_sev = LOG_DEBUG;
-      break;
-    case LOG_SEVERITY_INFO:
-      log_sev = LOG_NOTICE;
-      break;
-    default:
-    case LOG_SEVERITY_WARN:
-      log_sev = LOG_WARNING;
-      break;
-  }
-
-  syslog(log_sev, "%s", msg);
+static INLINE int
+os_core_create_lockfile(const char *path) {
+  return os_core_linux_create_lockfile(path);
 }
+
+/**
+ * Get some random data
+ * @param dst pointer to destination buffer
+ * @param length number of random bytes requested
+ * @return 0 if the random data was generated, -1 if an error happened
+ */
+static INLINE int
+os_core_get_random(void *dst, size_t length) {
+  return os_core_linux_get_random(dst, length);
+}
+
+/**
+ * Inline wrapper around gettimeofday
+ * @param tv pointer to target timeval object
+ * @return -1 if an error happened, 0 otherwise
+ */
+static INLINE int
+os_core_gettimeofday(struct timeval *tv) {
+  return gettimeofday(tv, NULL);
+}
+
+#endif /* OS_CORE_GENERIC_H_ */

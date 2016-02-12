@@ -43,6 +43,7 @@
  * @file
  */
 
+#include <sys/file.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -57,7 +58,7 @@
  * @return 0 if the random data was generated, -1 if an error happened
  */
 int
-os_core_get_random(void *dst, size_t length) {
+os_core_linux_get_random(void *dst, size_t length) {
   int random_fd;
   ssize_t result;
   uint8_t *u8ptr;
@@ -81,5 +82,29 @@ os_core_get_random(void *dst, size_t length) {
     length -= result;
   }
   close(random_fd);
+  return 0;
+}
+
+/**
+ * Create a lock file of a certain name
+ * @param path name of lockfile including path
+ * @return 0 if the lock was created successfully, false otherwise
+ */
+int
+os_core_linux_create_lockfile(const char *path) {
+  int lock_fd;
+
+  /* create file for lock */
+  lock_fd = open(path, O_RDWR | O_CREAT, S_IRWXU);
+  if (lock_fd == -1) {
+    return -1;
+  }
+
+  if (flock(lock_fd, LOCK_EX | LOCK_NB)) {
+    close(lock_fd);
+    return -1;
+  }
+
+  /* lock will be released when process ends */
   return 0;
 }
