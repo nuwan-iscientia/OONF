@@ -39,11 +39,15 @@ function (oonf_create_app executable static_plugins optional_static_plugins)
     configure_file(${CMAKE_SOURCE_DIR}/src/app_data.c.in ${PROJECT_BINARY_DIR}/${executable}_app_data.c)
 
     FOREACH(plugin ${optional_static_plugins})
-        IF(TARGET oonf_static_${plugin})
-            list (APPEND static_plugins ${plugin})
-        ELSE(TARGET oonf_static_${plugin})
-            message (STATUS "    Optional plugin ${plugin} is not available for executable ${executable}")
-        ENDIF(TARGET oonf_static_${plugin})
+        list(FIND static_plugins ${plugin} insanity)
+
+        IF(NOT ${insanity})
+            IF(TARGET oonf_static_${plugin})
+                list (APPEND static_plugins ${plugin})
+            ELSE(TARGET oonf_static_${plugin})
+                message (STATUS "    Optional plugin ${plugin} is not available for executable ${executable}")
+            ENDIF(TARGET oonf_static_${plugin})
+        ENDIF(NOT ${insanity})
     ENDFOREACH(plugin)
 
     # run through list of static plugins
