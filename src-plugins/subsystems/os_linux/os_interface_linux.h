@@ -49,6 +49,9 @@
 #include <linux/netlink.h>
 #include <linux/rtnetlink.h>
 
+#include "common/common_types.h"
+#include "subsystems/os_interface.h"
+
 /**
  * define scope of address on interface
  */
@@ -69,5 +72,72 @@ struct os_interface_address_internal {
   /*! netlink sequence number of command sent to the kernel */
   uint32_t nl_seq;
 };
+
+EXPORT void os_interface_linux_listener_add(struct os_interface_if_listener *);
+EXPORT void os_interface_linux_listener_remove(struct os_interface_if_listener *);
+EXPORT int os_interface_linux_state_set(const char *dev, bool up);
+EXPORT int os_interface_linux_address_set(struct os_interface_address *addr);
+EXPORT void os_interface_linux_address_interrupt(struct os_interface_address *addr);
+EXPORT int os_interface_linux_mac_set_by_name(const char *, struct netaddr *mac);
+
+EXPORT int os_interface_linux_update(struct os_interface_data *, const char *);
+EXPORT int os_interface_linux_init_mesh(struct os_interface *);
+EXPORT void os_interface_linux_cleanup_mesh(struct os_interface *);
+
+static INLINE void
+os_interface_listener_add(struct os_interface_if_listener *l) {
+  os_interface_linux_listener_add(l);
+}
+
+static INLINE void
+os_interface_listener_remove(struct os_interface_if_listener *l) {
+  os_interface_linux_listener_remove(l);
+}
+
+static INLINE int
+os_interface_state_set(const char *dev, bool up) {
+  return os_interface_linux_state_set(dev, up);
+}
+
+static INLINE int
+os_interface_address_set(struct os_interface_address *addr) {
+  return os_interface_linux_address_set(addr);
+}
+
+static INLINE void
+os_interface_address_interrupt(struct os_interface_address *addr) {
+  os_interface_linux_address_interrupt(addr);
+}
+
+static INLINE int
+os_interface_mac_set_by_name(const char *ifname, struct netaddr *mac) {
+  return os_interface_linux_mac_set_by_name(ifname, mac);
+}
+
+static INLINE int
+os_interface_update(struct os_interface_data *ifdata, const char *name) {
+  return os_interface_linux_update(ifdata, name);
+}
+
+static INLINE int
+os_interface_init_mesh(struct os_interface *interf) {
+  return os_interface_linux_init_mesh(interf);
+}
+
+static INLINE void
+os_interface_cleanup_mesh(struct os_interface *interf) {
+  os_interface_linux_cleanup_mesh(interf);
+}
+
+/**
+ * Set mac address of interface
+ * @param ifdata interface data object
+ * @param mac new mac address
+ * @return -1 if an error happened, 0 otherwise
+ */
+static INLINE int
+os_interface_mac_set(struct os_interface_data *ifdata, struct netaddr *mac) {
+  return os_interface_linux_mac_set_by_name(ifdata->name, mac);
+}
 
 #endif /* OS_INTERFACE_LINUX_H_ */

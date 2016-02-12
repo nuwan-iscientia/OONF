@@ -73,6 +73,9 @@ struct os_interface_if_listener {
   struct list_entity _node;
 };
 
+struct os_interface;
+struct os_interface_address;
+
 /* include os-specific headers */
 #if defined(__linux__)
 #include "subsystems/os_linux/os_interface_linux.h"
@@ -152,26 +155,17 @@ struct os_interface {
 };
 
 /* prototypes for all os_system functions */
-EXPORT void os_interface_listener_add(struct os_interface_if_listener *);
-EXPORT void os_interface_listener_remove(struct os_interface_if_listener *);
-EXPORT int os_interface_state_set(const char *dev, bool up);
-EXPORT int os_interface_address_set(struct os_interface_address *addr);
-EXPORT void os_interface_address_interrupt(struct os_interface_address *addr);
-EXPORT int os_interface_mac_set_by_name(const char *, struct netaddr *mac);
+static INLINE void os_interface_listener_add(struct os_interface_if_listener *);
+static INLINE void os_interface_listener_remove(struct os_interface_if_listener *);
+static INLINE int os_interface_state_set(const char *dev, bool up);
+static INLINE int os_interface_address_set(struct os_interface_address *addr);
+static INLINE void os_interface_address_interrupt(struct os_interface_address *addr);
+static INLINE int os_interface_mac_set_by_name(const char *, struct netaddr *mac);
 
-EXPORT int os_interface_update(struct os_interface_data *, const char *);
-EXPORT int os_interface_init_mesh(struct os_interface *);
-EXPORT void os_interface_cleanup_mesh(struct os_interface *);
+static INLINE int os_interface_update(struct os_interface_data *, const char *);
+static INLINE int os_interface_init_mesh(struct os_interface *);
+static INLINE void os_interface_cleanup_mesh(struct os_interface *);
 
-/**
- * Set mac address of interface
- * @param ifdata interface data object
- * @param mac new mac address
- * @return -1 if an error happened, 0 otherwise
- */
-static INLINE int
-os_interface_mac_set(struct os_interface_data *ifdata, struct netaddr *mac) {
-  return os_interface_mac_set_by_name(ifdata->name, mac);
-}
+static INLINE int os_interface_mac_set(struct os_interface_data *ifdata, struct netaddr *mac);
 
 #endif /* OS_INTERFACE_H_ */

@@ -206,7 +206,7 @@ _cleanup(void) {
  * @return -1 if an error happened, 0 otherwise
  */
 int
-os_interface_state_set(const char *dev, bool up) {
+os_interface_linux_state_set(const char *dev, bool up) {
   int oldflags;
   struct ifreq ifr;
 
@@ -247,7 +247,7 @@ os_interface_state_set(const char *dev, bool up) {
  * @param listener interface listener
  */
 void
-os_interface_listener_add(struct os_interface_if_listener *listener) {
+os_interface_linux_listener_add(struct os_interface_if_listener *listener) {
   list_add_tail(&_ifchange_listener, &listener->_node);
 }
 
@@ -256,7 +256,7 @@ os_interface_listener_add(struct os_interface_if_listener *listener) {
  * @param listener interface listener
  */
 void
-os_interface_listener_remove(struct os_interface_if_listener *listener) {
+os_interface_linux_listener_remove(struct os_interface_if_listener *listener) {
   list_remove(&listener->_node);
 }
 
@@ -267,7 +267,7 @@ os_interface_listener_remove(struct os_interface_if_listener *listener) {
  *   0 otherwise
  */
 int
-os_interface_address_set(struct os_interface_address *addr) {
+os_interface_linux_address_set(struct os_interface_address *addr) {
   uint8_t buffer[UIO_MAXIOV];
   struct nlmsghdr *msg;
   struct ifaddrmsg *ifaddrreq;
@@ -323,7 +323,7 @@ os_interface_address_set(struct os_interface_address *addr) {
  * @param addr interface address change request
  */
 void
-os_interface_address_interrupt(struct os_interface_address *addr) {
+os_interface_linux_address_interrupt(struct os_interface_address *addr) {
   if (list_is_node_added(&addr->_internal._node)) {
     /* remove first to prevent any kind of recursive cleanup */
     list_remove(&addr->_internal._node);
@@ -342,7 +342,7 @@ os_interface_address_interrupt(struct os_interface_address *addr) {
  * @return -1 if an error happened, 0 otherwise
  */
 int
-os_interface_update(struct os_interface_data *ifdata,
+os_interface_linux_update(struct os_interface_data *ifdata,
     const char *name) {
   struct ifreq ifr;
   struct ifaddrs *ifaddrs;
@@ -486,7 +486,7 @@ os_interface_update(struct os_interface_data *ifdata,
  * @return -1 if an error happened, 0 otherwise
  */
 int
-os_interface_init_mesh(struct os_interface *interf) {
+os_interface_linux_init_mesh(struct os_interface *interf) {
   char procfile[FILENAME_MAX];
   char old_redirect = 0, old_spoof = 0;
 
@@ -526,7 +526,7 @@ os_interface_init_mesh(struct os_interface *interf) {
  * @param interf pointer to interface object
  */
 void
-os_interface_cleanup_mesh(struct os_interface *interf) {
+os_interface_linux_cleanup_mesh(struct os_interface *interf) {
   char restore_redirect, restore_spoof;
   char procfile[FILENAME_MAX];
 
@@ -571,7 +571,7 @@ os_interface_cleanup_mesh(struct os_interface *interf) {
  * @return -1 if an error happened, 0 otherwise
  */
 int
-os_interface_mac_set_by_name(const char *name, struct netaddr *mac) {
+os_interface_linux_mac_set_by_name(const char *name, struct netaddr *mac) {
   struct ifreq if_req;
   struct netaddr_str nbuf;
 
