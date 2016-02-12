@@ -50,7 +50,7 @@
 #include "common/list.h"
 #include "common/avl.h"
 #include "common/netaddr_acl.h"
-#include "subsystems/os_socket.h"
+#include "subsystems/os_fd.h"
 
 /*! subsystem identifier */
 #define OONF_SOCKET_SUBSYSTEM "socket"

@@ -11,7 +11,7 @@
 #include "common/common_types.h"
 #include "core/oonf_logging.h"
 #include "subsystems/os_interface_data.h"
-#include "subsystems/os_socket.h"
+#include "subsystems/os_fd.h"
 
 EXPORT int os_fd_generic_configsocket(struct os_fd *sock,
     const union netaddr_socket *bind_to, size_t recvbuf,

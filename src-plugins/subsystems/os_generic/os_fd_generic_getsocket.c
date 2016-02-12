@@ -50,7 +50,7 @@
 #include "common/netaddr.h"
 #include "core/oonf_logging.h"
 
-#include "subsystems/os_socket.h"
+#include "subsystems/os_fd.h"
 #include "subsystems/os_generic/os_fd_generic_getsocket.h"
 
 /**

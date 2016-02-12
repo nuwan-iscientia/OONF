@@ -51,7 +51,7 @@
 #include "common/list.h"
 #include "common/netaddr.h"
 #include "common/netaddr_acl.h"
-#include "os_socket.h"
+#include "os_fd.h"
 
 #include "subsystems/oonf_timer.h"
 

@@ -52,7 +52,7 @@
 #include <sys/sendfile.h>
 #include <sys/socket.h>
 
-#include "subsystems/os_socket.h"
+#include "subsystems/os_fd.h"
 #include "subsystems/os_generic/os_fd_generic_configsocket.h"
 #include "subsystems/os_generic/os_fd_generic_getrawsocket.h"
 #include "subsystems/os_generic/os_fd_generic_getsocket.h"

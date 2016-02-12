@@ -58,7 +58,7 @@
 #include "subsystems/os_interface.h"
 
 /*! subsystem identifier */
-#define OONF_OS_FD_SUBSYSTEM "os_socket"
+#define OONF_OS_FD_SUBSYSTEM "os_fd"
 
 /* pre-definition of structs */
 struct os_fd;

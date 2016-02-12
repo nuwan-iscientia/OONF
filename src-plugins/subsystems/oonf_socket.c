@@ -56,7 +56,7 @@
 #include "core/oonf_main.h"
 #include "core/oonf_subsystem.h"
 #include "subsystems/oonf_timer.h"
-#include "subsystems/os_socket.h"
+#include "subsystems/os_fd.h"
 #include "subsystems/os_clock.h"
 #include "subsystems/oonf_socket.h"
 

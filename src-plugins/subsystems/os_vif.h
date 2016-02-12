@@ -49,7 +49,7 @@
 #include "common/common_types.h"
 #include "common/avl.h"
 
-#include "subsystems/os_socket.h"
+#include "subsystems/os_fd.h"
 
 /*! subsystem identifier */
 #define OONF_OS_VIF_SUBSYSTEM "os_vif"

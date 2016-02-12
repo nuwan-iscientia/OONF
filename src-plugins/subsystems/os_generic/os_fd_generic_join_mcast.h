@@ -9,7 +9,7 @@
 #define _OS_FD_GENERIC_JOIN_MCAST_H_
 
 #include "common/common_types.h"
-#include "subsystems/os_socket.h"
+#include "subsystems/os_fd.h"
 
 EXPORT int os_fd_generic_join_mcast_recv(struct os_fd *sock,
     const struct netaddr *multicast,

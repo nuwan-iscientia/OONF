@@ -52,7 +52,7 @@
 #include "core/oonf_logging.h"
 #include "subsystems/os_interface.h"
 
-#include "subsystems/os_socket.h"
+#include "subsystems/os_fd.h"
 
 /**
  * Join a socket into a multicast group

@@ -9,7 +9,7 @@
 #define _OS_FD_GENERIC_GETRAWSOCKET_H_
 
 #include "common/common_types.h"
-#include "subsystems/os_socket.h"
+#include "subsystems/os_fd.h"
 
 EXPORT int os_fd_generic_getrawsocket(struct os_fd *sock,
     const union netaddr_socket *bind_to,

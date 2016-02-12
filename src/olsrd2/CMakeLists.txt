@@ -40,7 +40,7 @@ IF (NOT OONF_STATIC_PLUGINS)
                              timer
                              viewer
                              os_clock
-                             os_socket
+                             os_fd
                              os_interface
                              os_routing
                              os_system

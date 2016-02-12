@@ -53,7 +53,7 @@
 #include "core/oonf_subsystem.h"
 #include "subsystems/oonf_clock.h"
 
-#include "subsystems/os_socket.h"
+#include "subsystems/os_fd.h"
 
 /* Defintions */
 #define LOG_OS_SOCKET _oonf_os_fd_subsystem.logging

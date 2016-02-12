@@ -57,7 +57,7 @@
 #include "subsystems/oonf_timer.h"
 #include "subsystems/oonf_stream_socket.h"
 #include "subsystems/os_system.h"
-#include "subsystems/os_socket.h"
+#include "subsystems/os_fd.h"
 
 /* Definitions */
 #define LOG_STREAM _oonf_stream_socket_subsystem.logging

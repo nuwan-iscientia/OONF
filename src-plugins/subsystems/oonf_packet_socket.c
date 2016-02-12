@@ -54,7 +54,7 @@
 #include "core/oonf_subsystem.h"
 #include "subsystems/oonf_interface.h"
 #include "subsystems/oonf_socket.h"
-#include "subsystems/os_socket.h"
+#include "subsystems/os_fd.h"
 #include "subsystems/oonf_packet_socket.h"
 
 /* Defintions */

@@ -46,7 +46,7 @@
 #include <fcntl.h>
 
 #include "common/common_types.h"
-#include "subsystems/os_socket.h"
+#include "subsystems/os_fd.h"
 
 #include "subsystems/os_generic/os_fd_generic_set_nonblocking.h"
 
