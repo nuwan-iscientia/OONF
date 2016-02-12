@@ -139,7 +139,7 @@ dlep_writer_finish_signal(struct dlep_writer *writer,
 
   /* put it into the signal */
   dst = abuf_getptr(writer->out);
-  memcpy(&dst[writer->signal_start], &tmp16, sizeof(tmp16));
+  memcpy(&dst[writer->signal_start + 2], &tmp16, sizeof(tmp16));
 
   OONF_DEBUG_HEX(source, &dst[writer->signal_start], length,
       "Finished signal %u:", writer->signal_type);
