@@ -116,7 +116,7 @@ _cleanup(void) {
  * @return -1 if an error happened, 0 otherwise
  */
 int
-os_tunnel_add(struct os_tunnel *tunnel) {
+os_tunnel_linux_add(struct os_tunnel *tunnel) {
   int result;
 
   if (avl_is_node_added(&tunnel->_node)) {
@@ -142,7 +142,7 @@ os_tunnel_add(struct os_tunnel *tunnel) {
  * @return -1 if an error happened, 0 otherwise
  */
 int
-os_tunnel_remove(struct os_tunnel *tunnel) {
+os_tunnel_linux_remove(struct os_tunnel *tunnel) {
   int result;
 
   if (!avl_is_node_added(&tunnel->_node)) {

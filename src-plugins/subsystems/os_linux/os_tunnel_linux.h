@@ -47,8 +47,32 @@
 #define OS_TUNNEL_LINUX_H_
 
 #include "common/common_types.h"
+#include "subsystems/os_tunnel.h"
 
 struct os_tunnel_internal {
 };
+
+EXPORT int os_tunnel_linux_add(struct os_tunnel *tunnel);
+EXPORT int os_tunnel_linux_remove(struct os_tunnel *tunnel);
+
+/**
+ * Creates a new tunnel on the operation system
+ * @param tunnel initialized tunnel data
+ * @return -1 if an error happened, 0 otherwise
+ */
+static INLINE int
+os_tunnel_add(struct os_tunnel *tunnel) {
+  return os_tunnel_linux_add(tunnel);
+}
+
+/**
+ * Removes a tunnel from the operation system
+ * @param tunnel tunnel instance
+ * @return -1 if an error happened, 0 otherwise
+ */
+static INLINE int
+os_tunnel_remove(struct os_tunnel *tunnel) {
+  return os_tunnel_linux_remove(tunnel);
+}
 
 #endif /* OS_TUNNEL_LINUX_H_ */
