@@ -106,7 +106,7 @@ _cleanup(void) {
  * @return -1 if an error happened, 0 otherwise
  */
 int
-os_vif_open(struct os_fd *sock, struct os_vif *vif) {
+os_vif_linux_open(struct os_fd *sock, struct os_vif *vif) {
   struct ifreq if_req;
   int fd, flag;
 
@@ -159,7 +159,7 @@ os_vif_open(struct os_fd *sock, struct os_vif *vif) {
  * @param vif pointer to virtual interface object
  */
 void
-os_vif_close(struct os_vif *vif) {
+os_vif_linux_close(struct os_vif *vif) {
   if (avl_is_node_added(&vif->_vif_node)) {
     os_fd_close(vif->fd);
     avl_remove(&_vif_tree, &vif->_vif_node);
@@ -171,6 +171,6 @@ os_vif_close(struct os_vif *vif) {
  * @return vif tree
  */
 struct avl_tree *
-os_vif_get_tree(void) {
+os_vif_linux_get_tree(void) {
   return &_vif_tree;
 }

@@ -46,11 +46,47 @@
 #ifndef OS_VIF_LINUX_H_
 #define OS_VIF_LINUX_H_
 
+#include "common/common_types.h"
+#include "subsystems/os_vif.h"
+
 /**
  * Linux internal data for handling virtual interfaces (tun/tap)
  */
 struct os_vif_internal {
   /* no internal data necessary */
 };
+
+EXPORT int os_vif_linux_open(struct os_fd *fd, struct os_vif *vif);
+EXPORT void os_vif_linux_close(struct os_vif *vif);
+
+EXPORT struct avl_tree *os_vif_linux_get_tree(void);
+
+/**
+ * Open a new virtual interface
+ * @param vif pointer to virtual interface object
+ * @return -1 if an error happened, 0 otherwise
+ */
+static INLINE int
+os_vif_open(struct os_fd *fd, struct os_vif *vif) {
+  return os_vif_linux_open(fd, vif);
+}
+
+/**
+ * Close a virtual interface
+ * @param vif pointer to virtual interface object
+ */
+static INLINE void
+os_vif_close(struct os_vif *vif) {
+  os_vif_linux_close(vif);
+}
+
+/**
+ * get virtual interface tree
+ * @return vif tree
+ */
+static INLINE struct avl_tree *
+os_vif_get_tree(void) {
+  return os_vif_linux_get_tree();
+}
 
 #endif /* OS_VIF_LINUX_H_ */
