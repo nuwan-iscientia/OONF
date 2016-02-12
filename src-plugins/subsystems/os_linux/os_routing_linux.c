@@ -356,14 +356,6 @@ os_routing_linux_is_in_progress(struct os_route *route) {
 }
 
 /**
- * @return wildcard route
- */
-const struct os_route_parameter *
-os_routing_linux_get_wildcard_route(void) {
-  return &OS_ROUTE_WILDCARD;
-}
-
-/**
  * Add routing change listener
  * @param listener routing change listener
  */
@@ -379,6 +371,14 @@ os_routing_linux_listener_add(struct os_route_listener *listener) {
 void
 os_routing_linux_listener_remove(struct os_route_listener *listener) {
   list_remove(&listener->_internal._node);
+}
+
+/**
+ * @return wildcard route
+ */
+const struct os_route_parameter *
+os_routing_linux_get_wildcard_route(void) {
+  return &OS_ROUTE_WILDCARD;
 }
 
 /**

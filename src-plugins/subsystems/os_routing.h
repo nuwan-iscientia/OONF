@@ -62,18 +62,6 @@
 struct os_route;
 struct os_route_listener;
 struct os_route_str;
-struct os_route_parameter;
-
-/* include os-specific headers */
-#if defined(__linux__)
-#include "subsystems/os_linux/os_routing_linux.h"
-#elif defined (BSD)
-#include "subsystems/os_bsd/os_routing_bsd.h"
-#elif defined (_WIN32)
-#include "subsystems/os_win32/os_routing_win32.h"
-#else
-#error "Unknown operation system"
-#endif
 
 /* make sure default values for routing are there */
 #ifndef RTPROT_UNSPEC
@@ -165,6 +153,14 @@ struct os_route_parameter {
   /*! index of outgoing interface */
   unsigned int if_index;
 };
+
+/* include os-specific headers */
+#if defined(__linux__)
+#include "subsystems/os_linux/os_routing_linux.h"
+#else
+#error "Unknown operation system"
+#endif
+
 /**
  * Handler for changing a route in the kernel
  * or querying the route status
@@ -227,33 +223,12 @@ static INLINE void os_routing_init_half_os_route_key(
     struct netaddr *any, struct netaddr *specific,
     const struct netaddr *source);
 
+static INLINE void os_routing_init_sourcespec_prefix(
+    struct os_route_key *prefix, const struct netaddr *destination);
+static INLINE void os_routing_init_sourcespec_src_prefix(
+    struct os_route_key *prefix, const struct netaddr *source);
+
 /* AVL comparators are a special case so we don't do the INLINE trick here */
 EXPORT int os_routing_avl_cmp_route_key(const void *, const void *);
-
-/**
- * Initialize a source specific route key with a destination.
- * Overwrites the source prefix with the IP_ANY of the
- * corresponding address family
- * @param prefix target source specific route key
- * @param destination destination prefix
- */
-static INLINE void
-os_routing_init_sourcespec_prefix(struct os_route_key *prefix,
-    const struct netaddr *destination) {
-  os_routing_init_half_os_route_key(&prefix->src, &prefix->dst, destination);
-}
-
-/**
- * Initialize a source specific route key with a source.
- * Overwrites the destination prefix with the IP_ANY of the
- * corresponding address family
- * @param prefix target source specific route key
- * @param source source prefix
- */
-static INLINE void
-os_routing_init_sourcespec_src_prefix(struct os_route_key *prefix,
-    const struct netaddr *source) {
-  os_routing_init_half_os_route_key(&prefix->dst, &prefix->src, source);
-}
 
 #endif /* OS_ROUTING_H_ */
