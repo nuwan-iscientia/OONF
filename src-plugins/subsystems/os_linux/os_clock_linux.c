@@ -92,7 +92,7 @@ _init(void) {
  * @return 0 if valid timestamp was read, negative otherwise
  */
 int
-os_clock_gettime64_ns(uint64_t *t64) {
+os_clock_linux_gettime64_ns(uint64_t *t64) {
   int error;
 
 #if defined(CLOCK_MONOTONIC_RAW) || defined (CLOCK_MONOTONIC)
@@ -116,7 +116,7 @@ os_clock_gettime64_ns(uint64_t *t64) {
  * @return 0 if valid timestamp was read, negative otherwise
  */
 int
-os_clock_gettime64(uint64_t *t64) {
+os_clock_linux_gettime64(uint64_t *t64) {
   static time_t offset = 0, last_sec = 0;
   struct timeval tv;
   int error;

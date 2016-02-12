@@ -66,7 +66,7 @@
 #endif
 
 /* prototypes for all os_system functions */
-EXPORT int os_clock_gettime64_ns(uint64_t *t64);
-EXPORT int os_clock_gettime64(uint64_t *t64);
+static INLINE int os_clock_gettime64_ns(uint64_t *t64);
+static INLINE int os_clock_gettime64(uint64_t *t64);
 
 #endif /* OS_CLOCK_H_ */
