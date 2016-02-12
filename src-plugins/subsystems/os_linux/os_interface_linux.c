@@ -200,6 +200,24 @@ _cleanup(void) {
 }
 
 /**
+ * Add an interface event listener to the operation system
+ * @param listener interface listener
+ */
+void
+os_interface_linux_listener_add(struct os_interface_if_listener *listener) {
+  list_add_tail(&_ifchange_listener, &listener->_node);
+}
+
+/**
+ * Remove an interface event listener to the operation system
+ * @param listener interface listener
+ */
+void
+os_interface_linux_listener_remove(struct os_interface_if_listener *listener) {
+  list_remove(&listener->_node);
+}
+
+/**
  * Set interface up or down
  * @param dev pointer to name of interface
  * @param up true if interface should be up, false if down
@@ -240,24 +258,6 @@ os_interface_linux_state_set(const char *dev, bool up) {
     return -1;
   }
   return 0;
-}
-
-/**
- * Add an interface event listener to the operation system
- * @param listener interface listener
- */
-void
-os_interface_linux_listener_add(struct os_interface_if_listener *listener) {
-  list_add_tail(&_ifchange_listener, &listener->_node);
-}
-
-/**
- * Remove an interface event listener to the operation system
- * @param listener interface listener
- */
-void
-os_interface_linux_listener_remove(struct os_interface_if_listener *listener) {
-  list_remove(&listener->_node);
 }
 
 /**
@@ -332,6 +332,37 @@ os_interface_linux_address_interrupt(struct os_interface_address *addr) {
       addr->cb_finished(addr, -1);
     }
   }
+}
+
+/**
+ * Set the mac address of an interface
+ * @param name name of interface
+ * @param mac mac address
+ * @return -1 if an error happened, 0 otherwise
+ */
+int
+os_interface_linux_mac_set_by_name(const char *name, struct netaddr *mac) {
+  struct ifreq if_req;
+  struct netaddr_str nbuf;
+
+  if (netaddr_get_address_family(mac) != AF_MAC48) {
+    OONF_WARN(LOG_OS_INTERFACE, "Interface MAC must mac48, not %s",
+        netaddr_to_string(&nbuf, mac));
+    return -1;
+  }
+
+  memset(&if_req, 0, sizeof(if_req));
+  strscpy(if_req.ifr_name, name, IF_NAMESIZE);
+
+  if_req.ifr_addr.sa_family = ARPHRD_ETHER;
+  netaddr_to_binary(&if_req.ifr_addr.sa_data, mac, 6);
+
+  if (ioctl(os_system_linux_linux_get_ioctl_fd(AF_INET), SIOCSIFHWADDR, &if_req) < 0) {
+    OONF_WARN(LOG_OS_INTERFACE, "Could not set mac address of '%s': %s (%d)",
+        name, strerror(errno), errno);
+    return -1;
+  }
+  return 0;
 }
 
 /**
@@ -565,36 +596,10 @@ os_interface_linux_cleanup_mesh(struct os_interface *interf) {
 }
 
 /**
- * Set the mac address of an interface
- * @param name name of interface
- * @param mac mac address
- * @return -1 if an error happened, 0 otherwise
+ * Get the base interface index of a VLAN interface
+ * @param interf name of VLAN interface
+ * @return interface index of base interface
  */
-int
-os_interface_linux_mac_set_by_name(const char *name, struct netaddr *mac) {
-  struct ifreq if_req;
-  struct netaddr_str nbuf;
-
-  if (netaddr_get_address_family(mac) != AF_MAC48) {
-    OONF_WARN(LOG_OS_INTERFACE, "Interface MAC must mac48, not %s",
-        netaddr_to_string(&nbuf, mac));
-    return -1;
-  }
-
-  memset(&if_req, 0, sizeof(if_req));
-  strscpy(if_req.ifr_name, name, IF_NAMESIZE);
-
-  if_req.ifr_addr.sa_family = ARPHRD_ETHER;
-  netaddr_to_binary(&if_req.ifr_addr.sa_data, mac, 6);
-
-  if (ioctl(os_system_linux_linux_get_ioctl_fd(AF_INET), SIOCSIFHWADDR, &if_req) < 0) {
-    OONF_WARN(LOG_OS_INTERFACE, "Could not set mac address of '%s': %s (%d)",
-        name, strerror(errno), errno);
-    return -1;
-  }
-  return 0;
-}
-
 static unsigned
 _os_linux_get_base_ifindex(const char *interf) {
   char sysfile[FILENAME_MAX];

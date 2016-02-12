@@ -84,46 +84,92 @@ EXPORT int os_interface_linux_update(struct os_interface_data *, const char *);
 EXPORT int os_interface_linux_init_mesh(struct os_interface *);
 EXPORT void os_interface_linux_cleanup_mesh(struct os_interface *);
 
+/**
+ * Add an interface event listener to the operation system
+ * @param listener interface listener
+ */
 static INLINE void
 os_interface_listener_add(struct os_interface_if_listener *l) {
   os_interface_linux_listener_add(l);
 }
 
+/**
+ * Remove an interface event listener to the operation system
+ * @param listener interface listener
+ */
 static INLINE void
 os_interface_listener_remove(struct os_interface_if_listener *l) {
   os_interface_linux_listener_remove(l);
 }
 
+/**
+ * Set interface up or down
+ * @param dev pointer to name of interface
+ * @param up true if interface should be up, false if down
+ * @return -1 if an error happened, 0 otherwise
+ */
 static INLINE int
 os_interface_state_set(const char *dev, bool up) {
   return os_interface_linux_state_set(dev, up);
 }
 
+/**
+ * Set or remove an IP address from an interface
+ * @param addr interface address change request
+ * @return -1 if the request could not be sent to the server,
+ *   0 otherwise
+ */
 static INLINE int
 os_interface_address_set(struct os_interface_address *addr) {
   return os_interface_linux_address_set(addr);
 }
 
+/**
+ * Stop processing an interface address change
+ * @param addr interface address change request
+ */
 static INLINE void
 os_interface_address_interrupt(struct os_interface_address *addr) {
   os_interface_linux_address_interrupt(addr);
 }
 
+/**
+ * Set the mac address of an interface
+ * @param name name of interface
+ * @param mac mac address
+ * @return -1 if an error happened, 0 otherwise
+ */
 static INLINE int
 os_interface_mac_set_by_name(const char *ifname, struct netaddr *mac) {
   return os_interface_linux_mac_set_by_name(ifname, mac);
 }
 
+/**
+ * Updates the data of an interface.
+ * The interface data object will be completely overwritten
+ * @param ifdata pointer to an interface data object
+ * @param name name of interface
+ * @return -1 if an error happened, 0 otherwise
+ */
 static INLINE int
 os_interface_update(struct os_interface_data *ifdata, const char *name) {
   return os_interface_linux_update(ifdata, name);
 }
 
+/**
+ * Initialize interface for mesh usage
+ * @param interf pointer to interface object
+ * @return -1 if an error happened, 0 otherwise
+ */
 static INLINE int
 os_interface_init_mesh(struct os_interface *interf) {
   return os_interface_linux_init_mesh(interf);
 }
 
+/**
+ * Cleanup interface after mesh usage
+ * @param interf pointer to interface object
+ */
 static INLINE void
 os_interface_cleanup_mesh(struct os_interface *interf) {
   os_interface_linux_cleanup_mesh(interf);
