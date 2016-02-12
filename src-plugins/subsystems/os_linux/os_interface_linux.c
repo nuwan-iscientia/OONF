@@ -172,13 +172,13 @@ _init(void) {
     return -1;
   }
 
-  if (os_system_netlink_add(&_rtnetlink_receiver, NETLINK_ROUTE)) {
+  if (os_system_linux_netlink_add(&_rtnetlink_receiver, NETLINK_ROUTE)) {
     close(_ioctl_fd);
     return -1;
   }
 
-  if (os_system_netlink_add_mc(&_rtnetlink_receiver, _rtnetlink_mcast, ARRAYSIZE(_rtnetlink_mcast))) {
-    os_system_netlink_remove(&_rtnetlink_receiver);
+  if (os_system_linux_netlink_add_mc(&_rtnetlink_receiver, _rtnetlink_mcast, ARRAYSIZE(_rtnetlink_mcast))) {
+    os_system_linux_netlink_remove(&_rtnetlink_receiver);
     close(_ioctl_fd);
     return -1;
   }
@@ -186,7 +186,7 @@ _init(void) {
   list_init_head(&_ifchange_listener);
   list_init_head(&_rtnetlink_feedback);
 
-  _is_kernel_2_6_31_or_better = os_linux_system_is_minimal_kernel(2,6,31);
+  _is_kernel_2_6_31_or_better = os_system_linux_is_minimal_kernel(2,6,31);
   return 0;
 }
 
@@ -195,7 +195,7 @@ _init(void) {
  */
 static void
 _cleanup(void) {
-  os_system_netlink_remove(&_rtnetlink_receiver);
+  os_system_linux_netlink_remove(&_rtnetlink_receiver);
   close(_ioctl_fd);
 }
 
@@ -303,13 +303,13 @@ os_interface_address_set(struct os_interface_address *addr) {
   ifaddrreq->ifa_index= addr->if_index;
   ifaddrreq->ifa_scope = addr->scope;
 
-  if (os_system_netlink_addnetaddr(&_rtnetlink_receiver,
+  if (os_system_linux_netlink_addnetaddr(&_rtnetlink_receiver,
       msg, IFA_LOCAL, &addr->address)) {
     return -1;
   }
 
   /* cannot fail */
-  seq = os_system_netlink_send(&_rtnetlink_receiver, msg);
+  seq = os_system_linux_netlink_send(&_rtnetlink_receiver, msg);
 
   if (addr->cb_finished) {
     list_add_tail(&_rtnetlink_feedback, &addr->_internal._node);
@@ -377,7 +377,7 @@ os_interface_update(struct os_interface_data *ifdata,
   memset(&ifr, 0, sizeof(ifr));
   strscpy(ifr.ifr_name, ifdata->name, IF_NAMESIZE);
 
-  if (ioctl(os_system_linux_get_ioctl_fd(AF_INET), SIOCGIFFLAGS, &ifr) < 0) {
+  if (ioctl(os_system_linux_linux_get_ioctl_fd(AF_INET), SIOCGIFFLAGS, &ifr) < 0) {
     OONF_WARN(LOG_OS_INTERFACE,
         "ioctl SIOCGIFFLAGS (get flags) error on device %s: %s (%d)\n",
         ifdata->name, strerror(errno), errno);
@@ -390,7 +390,7 @@ os_interface_update(struct os_interface_data *ifdata,
   memset(&ifr, 0, sizeof(ifr));
   strscpy(ifr.ifr_name, ifdata->name, IF_NAMESIZE);
 
-  if (ioctl(os_system_linux_get_ioctl_fd(AF_INET), SIOCGIFHWADDR, &ifr) < 0) {
+  if (ioctl(os_system_linux_linux_get_ioctl_fd(AF_INET), SIOCGIFHWADDR, &ifr) < 0) {
     OONF_WARN(LOG_OS_INTERFACE,
         "ioctl SIOCGIFHWADDR (get flags) error on device %s: %s (%d)\n",
         ifdata->name, strerror(errno), errno);
@@ -587,7 +587,7 @@ os_interface_mac_set_by_name(const char *name, struct netaddr *mac) {
   if_req.ifr_addr.sa_family = ARPHRD_ETHER;
   netaddr_to_binary(&if_req.ifr_addr.sa_data, mac, 6);
 
-  if (ioctl(os_system_linux_get_ioctl_fd(AF_INET), SIOCSIFHWADDR, &if_req) < 0) {
+  if (ioctl(os_system_linux_linux_get_ioctl_fd(AF_INET), SIOCSIFHWADDR, &if_req) < 0) {
     OONF_WARN(LOG_OS_INTERFACE, "Could not set mac address of '%s': %s (%d)",
         name, strerror(errno), errno);
     return -1;

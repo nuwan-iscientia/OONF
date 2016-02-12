@@ -175,11 +175,11 @@ nl80211_send_get_wiphy(struct os_system_netlink *nl,
   nl_msg->nlmsg_flags |= NLM_F_DUMP;
 
   /* add "split wiphy dump" flag */
-  os_system_netlink_addreq(nl, nl_msg, NL80211_ATTR_SPLIT_WIPHY_DUMP,
+  os_system_linux_netlink_addreq(nl, nl_msg, NL80211_ATTR_SPLIT_WIPHY_DUMP,
       NULL, 0);
 
   /* add interface index to the request */
-  os_system_netlink_addreq(nl, nl_msg, NL80211_ATTR_WIPHY,
+  os_system_linux_netlink_addreq(nl, nl_msg, NL80211_ATTR_WIPHY,
       &interf->phy_if, sizeof(interf->phy_if));
 
   OONF_DEBUG(LOG_NL80211, "Send GET_WIPHY to phydev %d", interf->phy_if);

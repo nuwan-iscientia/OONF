@@ -101,7 +101,7 @@ nl80211_send_get_survey(struct os_system_netlink *nl, struct nlmsghdr *nl_msg,
   nl_msg->nlmsg_flags |= NLM_F_DUMP;
 
   /* add interface index to the request */
-  os_system_netlink_addreq(nl, nl_msg, NL80211_ATTR_IFINDEX,
+  os_system_linux_netlink_addreq(nl, nl_msg, NL80211_ATTR_IFINDEX,
       &if_index, sizeof(if_index));
 }
 

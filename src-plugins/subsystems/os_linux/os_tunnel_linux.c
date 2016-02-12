@@ -201,7 +201,7 @@ _handle_ipv4_tunnel(struct os_tunnel *tunnel, bool add) {
   netaddr_to_binary(&p.iph.saddr, &tunnel->p.local, sizeof(p.iph.saddr));
   netaddr_to_binary(&p.iph.daddr, &tunnel->p.remote, sizeof(p.iph.daddr));
 
-  err = ioctl(os_system_linux_get_ioctl_fd(AF_INET),
+  err = ioctl(os_system_linux_linux_get_ioctl_fd(AF_INET),
       add ? SIOCADDTUNNEL : SIOCDELTUNNEL, &ifr);
   if (err) {
     OONF_WARN(LOG_OS_TUNNEL, "Error while %s tunnel %s: %s (%d)",
@@ -255,7 +255,7 @@ _handle_ipv6_tunnel(struct os_tunnel *tunnel, bool add) {
   netaddr_to_binary(&p.laddr, &tunnel->p.local, sizeof(p.laddr));
   netaddr_to_binary(&p.raddr, &tunnel->p.remote, sizeof(p.raddr));
 
-  err = ioctl(os_system_linux_get_ioctl_fd(AF_INET6),
+  err = ioctl(os_system_linux_linux_get_ioctl_fd(AF_INET6),
       add ? SIOCADDTUNNEL : SIOCDELTUNNEL, &ifr);
   if (err) {
     OONF_WARN(LOG_OS_TUNNEL, "Error while %s tunnel %s (%d,%s,%s): %s (%d)",

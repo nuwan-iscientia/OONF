@@ -194,7 +194,7 @@ _cleanup(void) {
  * @return true if IPv6 is supported, false otherwise
  */
 bool
-os_system_is_ipv6_supported(void) {
+os_system_linux_is_ipv6_supported(void) {
   return _ioctl_v6 != -1;
 }
 
@@ -205,7 +205,7 @@ os_system_is_ipv6_supported(void) {
  * @return true if linux kernel is at least a specific version
  */
 bool
-os_linux_system_is_minimal_kernel(int v1, int v2, int v3) {
+os_system_linux_is_minimal_kernel(int v1, int v2, int v3) {
   struct utsname uts;
   char *next;
   int first = 0, second = 0, third = 0;
@@ -257,7 +257,7 @@ kernel_parse_error:
  * @return socket file descriptor, -1 if not surrported
  */
 int
-os_system_linux_get_ioctl_fd(int af_type) {
+os_system_linux_linux_get_ioctl_fd(int af_type) {
   switch (af_type) {
     case AF_INET:
       return _ioctl_v4;
@@ -275,7 +275,7 @@ os_system_linux_get_ioctl_fd(int af_type) {
  * @return -1 if an error happened, 0 otherwise
  */
 int
-os_system_netlink_add(struct os_system_netlink *nl, int protocol) {
+os_system_linux_netlink_add(struct os_system_netlink *nl, int protocol) {
   struct sockaddr_nl addr;
   int recvbuf;
   int fd;
@@ -351,7 +351,7 @@ os_add_netlink_fail:
  * @param nl pointer to handler
  */
 void
-os_system_netlink_remove(struct os_system_netlink *nl) {
+os_system_linux_netlink_remove(struct os_system_netlink *nl) {
   oonf_socket_remove(&nl->socket);
 
   os_fd_close(&nl->socket.fd);
@@ -388,7 +388,7 @@ _enqueue_netlink_buffer(struct os_system_netlink *nl) {
  * @return sequence number used for message
  */
 int
-os_system_netlink_send(struct os_system_netlink *nl,
+os_system_linux_netlink_send(struct os_system_netlink *nl,
     struct nlmsghdr *nl_hdr) {
   _seq_used = (_seq_used + 1) & INT32_MAX;
   OONF_INFO(nl->used_by->logging, "Prepare to send netlink '%s' message %u (%u bytes)",
@@ -420,7 +420,7 @@ os_system_netlink_send(struct os_system_netlink *nl,
  * @return -1 if an error happened, 0 otherwise
  */
 int
-os_system_netlink_add_mc(struct os_system_netlink *nl,
+os_system_linux_netlink_add_mc(struct os_system_netlink *nl,
     const uint32_t *groups, size_t groupcount) {
   size_t i;
 
@@ -444,7 +444,7 @@ os_system_netlink_add_mc(struct os_system_netlink *nl,
  * @return -1 if an error happened, 0 otherwise
  */
 int
-os_system_netlink_drop_mc(struct os_system_netlink *nl,
+os_system_linux_netlink_drop_mc(struct os_system_netlink *nl,
     const int *groups, size_t groupcount) {
   size_t i;
 
@@ -470,7 +470,7 @@ os_system_netlink_drop_mc(struct os_system_netlink *nl,
  * @return -1 if netlink message got too large, 0 otherwise
  */
 int
-os_system_netlink_addreq(struct os_system_netlink *nl,
+os_system_linux_netlink_addreq(struct os_system_netlink *nl,
     struct nlmsghdr *nlmsg, int type, const void *data, int len) {
   struct nlattr *nl_attr;
   size_t aligned_msg_len, aligned_attr_len;

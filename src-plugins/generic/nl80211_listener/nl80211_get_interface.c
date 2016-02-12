@@ -102,7 +102,7 @@ nl80211_send_get_interface(struct os_system_netlink *nl,
   hdr->cmd = NL80211_CMD_GET_INTERFACE;
 
   /* add interface index to the request */
-  os_system_netlink_addreq(nl, nl_msg, NL80211_ATTR_IFINDEX,
+  os_system_linux_netlink_addreq(nl, nl_msg, NL80211_ATTR_IFINDEX,
       &if_index, sizeof(if_index));
 }
 

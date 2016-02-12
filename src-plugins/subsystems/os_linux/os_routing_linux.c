@@ -163,24 +163,24 @@ static bool _is_kernel_3_11_0_or_better;
  */
 static int
 _init(void) {
-  if (os_system_netlink_add(&_rtnetlink_socket, NETLINK_ROUTE)) {
+  if (os_system_linux_netlink_add(&_rtnetlink_socket, NETLINK_ROUTE)) {
     return -1;
   }
 
-  if (os_system_netlink_add(&_rtnetlink_event_socket, NETLINK_ROUTE)) {
-    os_system_netlink_remove(&_rtnetlink_socket);
+  if (os_system_linux_netlink_add(&_rtnetlink_event_socket, NETLINK_ROUTE)) {
+    os_system_linux_netlink_remove(&_rtnetlink_socket);
     return -1;
   }
 
-  if (os_system_netlink_add_mc(&_rtnetlink_event_socket, _rtnetlink_mcast, ARRAYSIZE(_rtnetlink_mcast))) {
-    os_system_netlink_remove(&_rtnetlink_socket);
-    os_system_netlink_remove(&_rtnetlink_event_socket);
+  if (os_system_linux_netlink_add_mc(&_rtnetlink_event_socket, _rtnetlink_mcast, ARRAYSIZE(_rtnetlink_mcast))) {
+    os_system_linux_netlink_remove(&_rtnetlink_socket);
+    os_system_linux_netlink_remove(&_rtnetlink_event_socket);
     return -1;
   }
   avl_init(&_rtnetlink_feedback, avl_comp_uint32, false);
   list_init_head(&_rtnetlink_listener);
 
-  _is_kernel_3_11_0_or_better = os_linux_system_is_minimal_kernel(3,11,0);
+  _is_kernel_3_11_0_or_better = os_system_linux_is_minimal_kernel(3,11,0);
   return 0;
 }
 
@@ -195,8 +195,8 @@ _cleanup(void) {
     _routing_finished(rt, 1);
   }
 
-  os_system_netlink_remove(&_rtnetlink_socket);
-  os_system_netlink_remove(&_rtnetlink_event_socket);
+  os_system_linux_netlink_remove(&_rtnetlink_socket);
+  os_system_linux_netlink_remove(&_rtnetlink_event_socket);
 }
 
 /**
@@ -284,7 +284,7 @@ os_routing_set(struct os_route *route, bool set, bool del_similar) {
   }
 
   /* cannot fail */
-  seq = os_system_netlink_send(&_rtnetlink_socket, msg);
+  seq = os_system_linux_netlink_send(&_rtnetlink_socket, msg);
 
   if (route->cb_finished) {
     route->_internal.nl_seq = seq;
@@ -323,7 +323,7 @@ os_routing_query(struct os_route *route) {
   msg->nlmsg_type = RTM_GETROUTE;
   rt_gen->rtgen_family = route->p.family;
 
-  seq = os_system_netlink_send(&_rtnetlink_socket, msg);
+  seq = os_system_linux_netlink_send(&_rtnetlink_socket, msg);
   if (seq < 0) {
     return -1;
   }
@@ -454,7 +454,7 @@ _routing_set(struct nlmsghdr *msg, struct os_route *route,
   /* add attributes */
   if (netaddr_get_address_family(&route->p.src_ip) != AF_UNSPEC) {
     /* add src-ip */
-    if (os_system_netlink_addnetaddr(&_rtnetlink_event_socket,
+    if (os_system_linux_netlink_addnetaddr(&_rtnetlink_event_socket,
         msg, RTA_PREFSRC, &route->p.src_ip)) {
       return -1;
     }
@@ -464,7 +464,7 @@ _routing_set(struct nlmsghdr *msg, struct os_route *route,
     rt_msg->rtm_flags |= RTNH_F_ONLINK;
 
     /* add gateway */
-    if (os_system_netlink_addnetaddr(&_rtnetlink_event_socket,
+    if (os_system_linux_netlink_addnetaddr(&_rtnetlink_event_socket,
         msg, RTA_GATEWAY, &route->p.gw)) {
       return -1;
     }
@@ -474,7 +474,7 @@ _routing_set(struct nlmsghdr *msg, struct os_route *route,
     rt_msg->rtm_dst_len = netaddr_get_prefix_length(&route->p.key.dst);
 
     /* add destination */
-    if (os_system_netlink_addnetaddr(&_rtnetlink_event_socket,
+    if (os_system_linux_netlink_addnetaddr(&_rtnetlink_event_socket,
         msg, RTA_DST, &route->p.key.dst)) {
       return -1;
     }
@@ -485,7 +485,7 @@ _routing_set(struct nlmsghdr *msg, struct os_route *route,
     rt_msg->rtm_src_len = netaddr_get_prefix_length(&route->p.key.src);
 
     /* add source-specific routing prefix */
-    if (os_system_netlink_addnetaddr(&_rtnetlink_event_socket,
+    if (os_system_linux_netlink_addnetaddr(&_rtnetlink_event_socket,
         msg, RTA_SRC, &route->p.key.src)) {
       return -1;
     }
@@ -493,7 +493,7 @@ _routing_set(struct nlmsghdr *msg, struct os_route *route,
 
   if (route->p.metric != -1) {
     /* add metric */
-    if (os_system_netlink_addreq(&_rtnetlink_event_socket,
+    if (os_system_linux_netlink_addreq(&_rtnetlink_event_socket,
         msg, RTA_PRIORITY, &route->p.metric, sizeof(route->p.metric))) {
       return -1;
     }
@@ -501,7 +501,7 @@ _routing_set(struct nlmsghdr *msg, struct os_route *route,
 
   if (route->p.if_index) {
     /* add interface*/
-    if (os_system_netlink_addreq(&_rtnetlink_event_socket,
+    if (os_system_linux_netlink_addreq(&_rtnetlink_event_socket,
         msg, RTA_OIF, &route->p.if_index, sizeof(route->p.if_index))) {
       return -1;
     }

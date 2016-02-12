@@ -303,7 +303,7 @@ _early_cfg_init(void) {
  */
 static int
 _init(void) {
-  if (os_system_netlink_add(&_netlink_handler, NETLINK_GENERIC)) {
+  if (os_system_linux_netlink_add(&_netlink_handler, NETLINK_GENERIC)) {
     return -1;
   }
 
@@ -332,7 +332,7 @@ _cleanup(void) {
 
   oonf_timer_stop(&_transmission_timer);
   oonf_timer_remove(&_transmission_timer_info);
-  os_system_netlink_remove(&_netlink_handler);
+  os_system_linux_netlink_remove(&_netlink_handler);
 }
 
 /**
@@ -547,7 +547,7 @@ _send_netlink_message(struct nl80211_if *interf, enum _if_query query) {
     _if_query_ops[query].send(&_netlink_handler, _nl_msg, hdr, interf);
   }
 
-  os_system_netlink_send(&_netlink_handler, _nl_msg);
+  os_system_linux_netlink_send(&_netlink_handler, _nl_msg);
 }
 
 /**

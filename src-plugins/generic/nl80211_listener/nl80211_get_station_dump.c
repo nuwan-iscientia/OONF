@@ -107,7 +107,7 @@ nl80211_send_get_station_dump(struct os_system_netlink *nl,
   nl_msg->nlmsg_flags |= NLM_F_DUMP;
 
   /* add interface index to the request */
-  os_system_netlink_addreq(nl, nl_msg, NL80211_ATTR_IFINDEX,
+  os_system_linux_netlink_addreq(nl, nl_msg, NL80211_ATTR_IFINDEX,
       &if_index, sizeof(if_index));
 }
 
