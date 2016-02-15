@@ -72,7 +72,6 @@ static const uint16_t _peer_initack_mandatory[] = {
     DLEP_MDRT_TLV,
     DLEP_CDRR_TLV,
     DLEP_CDRT_TLV,
-    DLEP_LATENCY_TLV,
 };
 
 /* peer update */
