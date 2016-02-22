@@ -443,7 +443,7 @@ os_interface_linux_update(struct os_interface_data *ifdata,
   }
 
   for (ifa = ifaddrs; ifa != NULL; ifa = ifa->ifa_next) {
-    if (strcmp(ifdata->name, ifa->ifa_name) == 0 &&
+    if (strcmp(ifdata->name, ifa->ifa_name) == 0 && ifa->ifa_addr != NULL &&
         (ifa->ifa_addr->sa_family == AF_INET || ifa->ifa_addr->sa_family == AF_INET6)) {
       addrcount++;
     }
@@ -465,7 +465,7 @@ os_interface_linux_update(struct os_interface_data *ifdata,
   ifdata->linklocal_v6_ptr = &NETADDR_UNSPEC;
 
   for (ifa = ifaddrs; ifa != NULL; ifa = ifa->ifa_next) {
-    if (strcmp(ifdata->name, ifa->ifa_name) == 0 &&
+    if (strcmp(ifdata->name, ifa->ifa_name) == 0 && ifa->ifa_addr != NULL &&
         (ifa->ifa_addr->sa_family == AF_INET || ifa->ifa_addr->sa_family == AF_INET6)) {
       sock = (union netaddr_socket *)ifa->ifa_addr;
       addr = &ifdata->addresses[ifdata->addrcount];
