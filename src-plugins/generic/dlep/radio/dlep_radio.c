@@ -89,7 +89,7 @@ static struct cfg_schema_entry _radio_entries[] = {
 
   CFG_MAP_INT32_MINMAX(dlep_radio_if, tcp_config.port, "session_port",
     "12345", "Server port for DLEP tcp sessions", 0, false, 1, 65535),
-  CFG_MAP_ACL_V46(dlep_radio_if, tcp_config.bindto, "session_bindto", "fe80::/10",
+  CFG_MAP_ACL_V46(dlep_radio_if, tcp_config.bindto, "session_bindto", "224.0.0.1\0fe80::/10",
       "Filter to determine the binding of the TCP server socket"),
   CFG_MAP_CLOCK_MINMAX(dlep_radio_if, interf.session.cfg.heartbeat_interval,
       "heartbeat_interval", "1.000",
