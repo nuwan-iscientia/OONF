@@ -193,10 +193,10 @@ _cb_l2gen_event(void *ptr __attribute((unused))) {
   
   event_counter++;
   
-  OONF_DEBUG(LOG_L2GEN, "L2Gen-Event triggered (%s/%s/%"PRIu64")",
+  OONF_DEBUG(LOG_L2GEN, "L2Gen-Event triggered (%s/%s/%"PRIu64"/%d)",
       _l2gen_config.interface,
       netaddr_to_string(&buf1, &_l2gen_config.neighbor),
-      event_counter);
+      event_counter, _origin);
 
   net = oonf_layer2_net_add(_l2gen_config.interface);
   if (net == NULL) {
@@ -217,6 +217,7 @@ _cb_l2gen_event(void *ptr __attribute((unused))) {
 
   if (oonf_layer2_net_commit(net)) {
     /* something bad has happened, l2net was removed */
+    OONF_WARN(LOG_L2GEN, "Could not commit interface %s", net->name);
     return;
   }
 
@@ -247,7 +248,8 @@ _cb_config_changed(void) {
     return;
   }
 
-  OONF_DEBUG(LOG_L2GEN, "Generator is now %s\n", _l2gen_config.active ? "active" : "inactive");
+  OONF_DEBUG(LOG_L2GEN, "Generator is now %s for interface %s\n",
+      _l2gen_config.active ? "active" : "inactive", _l2gen_config.interface);
   
   if (_origin == 0 && _l2gen_config.active) {
     _origin = oonf_layer2_register_origin();
