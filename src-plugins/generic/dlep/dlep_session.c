@@ -414,9 +414,9 @@ dlep_session_process_signal(struct dlep_session *session,
     return 0;
   }
 
-  OONF_DEBUG(session->log_source, "Process signal %u (length %u)"
-      " from %s (%" PRINTF_SIZE_T_SPECIFIER" bytes)",
-      signal_type, signal_length,
+  OONF_DEBUG_HEX(session->log_source, buffer, signal_length + 4,
+      "Process signal %u from %s (%" PRINTF_SIZE_T_SPECIFIER" bytes)",
+      signal_type,
       netaddr_socket_to_string(&nbuf, &session->remote_socket),
       length);
 
@@ -784,9 +784,6 @@ _process_tlvs(struct dlep_session *session,
     uint16_t signal_type, uint16_t signal_length, const uint8_t *tlvs) {
   enum dlep_parser_error result;
   struct dlep_extension *ext;
-
-  OONF_DEBUG(session->log_source, "Parse signal %u with length %u",
-      signal_type, signal_length);
 
   /* start at the beginning of the tlvs */
   if ((result = _parse_tlvstream(session, tlvs, signal_length))) {
