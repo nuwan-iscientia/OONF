@@ -77,13 +77,32 @@
 static int _init(void);
 static void _cleanup(void);
 
-static enum oonf_telnet_result _cb_netjsoninfo(struct oonf_telnet_data *con);
+static void _print_graph_node(
+    struct json_session *session, const struct netaddr *id);
+static void _print_graph_edge(struct json_session *session,
+    struct nhdp_domain *domain,
+    const struct netaddr *src, const struct netaddr *dst,
+    uint32_t out, uint32_t in, bool outgoing_tree);
+static void _print_graph_end(struct json_session *session,
+    struct nhdp_domain *domain,
+    const struct netaddr *src, const struct os_route_key *prefix,
+    uint32_t out, uint8_t hopcount);
+static void _print_graph(struct json_session *session,
+    struct nhdp_domain *domain, int af_type);
+static void _create_graph_json(struct json_session *session);
+static void _print_routing_tree(struct json_session *session,
+    struct nhdp_domain *domain, int af_type);
+static void _create_routes_json(struct json_session *session);
+static void _create_error_json(struct json_session *session,
+    const char *message, const char *parameter);
+static enum oonf_telnet_result _cb_netjsoninfo(
+    struct oonf_telnet_data *con);
 static void _print_json_string(
     struct json_session *session, const char *key, const char *value);
 static void _print_json_number(
     struct json_session *session, const char *key, uint64_t value);
-static void _print_json_netaddr(
-    struct json_session *session, const char *key, const struct netaddr *addr);
+static void _print_json_netaddr(struct json_session *session,
+    const char *key, const struct netaddr *addr);
 
 /* telnet command of this plugin */
 static struct oonf_telnet_command _telnet_commands[] = {
