@@ -206,13 +206,13 @@ _print_graph_edge(struct json_session *session,
   _print_json_netaddr(session, "target", dst);
 
   _print_json_number(session, "cost", out);
-  _print_json_string(session, "cost_txt",
+  _print_json_string(session, "cost_text",
       nhdp_domain_get_link_metric_value(&mbuf, domain, out));
   if (in) {
     json_start_object(session, "properties");
     if (in < RFC7181_METRIC_INFINITE) {
       _print_json_number(session, "in", in);
-      _print_json_string(session, "in_txt",
+      _print_json_string(session, "in_text",
           nhdp_domain_get_link_metric_value(&mbuf, domain, in));
     }
     _print_json_string(session, "outgoing_tree",
@@ -245,11 +245,11 @@ _print_graph_end(struct json_session *session,
   json_start_object(session, NULL);
   _print_json_netaddr(session, "source", src);
   _print_json_netaddr(session, "target", &prefix->dst);
-  _print_json_number(session, "weight", out);
+  _print_json_number(session, "cost", out);
+  _print_json_string(session, "cost_text",
+      nhdp_domain_get_link_metric_value(&mbuf, domain, out));
 
   json_start_object(session, "properties");
-  _print_json_string(session, "weight_txt",
-      nhdp_domain_get_link_metric_value(&mbuf, domain, out));
   if (netaddr_get_prefix_length(&prefix->src)) {
 	  _print_json_netaddr(session, "source", &prefix->src);
   }
