@@ -451,13 +451,13 @@ _print_routing_tree(struct json_session *session,
 
       _print_json_string(session, "device", if_indextoname(rtentry->route.p.if_index, ibuf));
       _print_json_number(session, "cost", rtentry->path_cost);
+      _print_json_string(session, "cost_text",
+          nhdp_domain_get_path_metric_value(
+              &mbuf, domain, rtentry->path_cost, rtentry->path_hops));
 
       json_start_object(session, "properties");
       _print_json_number(session, "hops", rtentry->path_hops);
       _print_json_netaddr(session, "last_id", &rtentry->last_originator);
-      _print_json_string(session, "cost_txt",
-          nhdp_domain_get_path_metric_value(
-              &mbuf, domain, rtentry->path_cost, rtentry->path_hops));
       json_end_object(session);
 
       json_end_object(session);
