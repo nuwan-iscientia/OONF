@@ -251,8 +251,7 @@ avl_insert(struct avl_tree *tree, struct avl_node *new)
     new->follower = true;
 
     /* add new node outside the tree, because key is already present */
-    last = _avl_find_last(tree, node);
-    _avl_insert_after(tree, last, new);
+    _avl_insert_after(tree, node, new);
     return 0;
   }
 
