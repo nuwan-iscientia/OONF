@@ -242,8 +242,6 @@ avl_insert(struct avl_tree *tree, struct avl_node *new)
 
   node = _avl_find_rec(tree->root, new->key, tree->comp, &diff);
 
-  last = _avl_find_last(tree, node);
-
   diff = (*tree->comp) (new->key, node->key);
 
   if (diff == 0) {
@@ -253,6 +251,7 @@ avl_insert(struct avl_tree *tree, struct avl_node *new)
     new->follower = true;
 
     /* add new node outside the tree, because key is already present */
+    last = _avl_find_last(tree, node);
     _avl_insert_after(tree, last, new);
     return 0;
   }
@@ -267,6 +266,7 @@ avl_insert(struct avl_tree *tree, struct avl_node *new)
   }
 
   if (node->balance == -1) {
+    last = _avl_find_last(tree, node);
     _avl_insert_after(tree, last, new);
 
     node->balance = 0;
@@ -282,6 +282,7 @@ avl_insert(struct avl_tree *tree, struct avl_node *new)
     _post_insert(tree, node);
   }
   else { /* diff > 0 */
+    last = _avl_find_last(tree, node);
     _avl_insert_after(tree, last, new);
 
     node->balance = 1;
