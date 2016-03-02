@@ -430,8 +430,11 @@ _router_process_peer_update(
     return -1;
   }
 
-  // we don't support IP address exchange at the moment
-  return 0;
+  /* we don't support IP address exchange at the moment */
+
+  /* generate ACK */
+  return dlep_session_generate_signal(
+      session, DLEP_PEER_UPDATE_ACK, NULL);
 }
 
 /**
@@ -488,6 +491,7 @@ _router_process_destination_up(
     return result;
   }
 
+  /* generate ACK */
   return dlep_session_generate_signal(
       session, DLEP_DESTINATION_UP_ACK, &mac);
 }
@@ -537,8 +541,9 @@ _router_process_destination_down(
   /* remove layer2 neighbor */
   oonf_layer2_neigh_remove(l2neigh, session->l2_origin);
 
+  /* generate ACK */
   return dlep_session_generate_signal(
-      session, DLEP_DESTINATION_UP_ACK, &mac);
+      session, DLEP_DESTINATION_DOWN_ACK, &mac);
 }
 
 /**
