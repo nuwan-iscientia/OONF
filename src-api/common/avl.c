@@ -64,6 +64,8 @@ static void _avl_rotate_right(struct avl_tree *tree, struct avl_node *node);
 static void _avl_rotate_left(struct avl_tree *tree, struct avl_node *node);
 static void _avl_post_remove(struct avl_tree *tree, struct avl_node *node);
 static struct avl_node *_avl_local_min(struct avl_node *node);
+static struct avl_node *_avl_find_last(struct avl_tree *tree, struct avl_node *
+node);
 
 /**
  * Initialize a new avl_tree struct
@@ -190,6 +192,27 @@ avl_find_greaterequal(const struct avl_tree *tree, const void *key) {
 }
 
 /**
+ * Finds the end of linked list from the avl node
+ * @param tree pointer to tree
+ * @param node pointer
+ * @return pointer to last node of the list
+ */
+struct avl_node*
+_avl_find_last(struct avl_tree *tree, struct avl_node* last)
+{
+  struct avl_node *next;
+  while (!list_is_last(&tree->list_head, &last->list)) {
+    next = list_next_element(last, list);
+    if (!next->follower) {
+      break;
+    }
+    last = next;
+  }
+  return last;
+}
+
+
+/**
  * Inserts an avl_node into a tree
  * @param tree pointer to tree
  * @param new pointer to node
@@ -199,7 +222,7 @@ avl_find_greaterequal(const struct avl_tree *tree, const void *key) {
 int
 avl_insert(struct avl_tree *tree, struct avl_node *new)
 {
-  struct avl_node *node, *next, *last;
+  struct avl_node *node, *last;
   int diff;
 
   new->parent = NULL;
@@ -219,15 +242,7 @@ avl_insert(struct avl_tree *tree, struct avl_node *new)
 
   node = _avl_find_rec(tree->root, new->key, tree->comp, &diff);
 
-  last = node;
-
-  while (!list_is_last(&tree->list_head, &last->list)) {
-    next = list_next_element(last, list);
-    if (!next->follower) {
-      break;
-    }
-    last = next;
-  }
+  last = _avl_find_last(tree, node);
 
   diff = (*tree->comp) (new->key, node->key);
 
