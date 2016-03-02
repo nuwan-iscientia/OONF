@@ -54,12 +54,14 @@
 #include <linux/netlink.h>
 #include <linux/rtnetlink.h>
 #include <linux/socket.h>
+#include <sys/ioctl.h>
+#include <sys/stat.h>
 #include <sys/uio.h>
+#include <sys/types.h>
 #include <fcntl.h>
 #include <ifaddrs.h>
 #include <net/if.h>
 #include <netinet/in.h>
-#include <sys/ioctl.h>
 #include <errno.h>
 #include <unistd.h>
 #include <sys/time.h>
@@ -229,7 +231,7 @@ os_interface_linux_state_set(const char *dev, bool up) {
   struct ifreq ifr;
 
   memset(&ifr, 0, sizeof(ifr));
-  strscpy(ifr.ifr_name, dev, IFNAMSIZ);
+  strscpy(ifr.ifr_name, dev, IF_NAMESIZE);
 
   if (ioctl(_ioctl_fd, SIOCGIFFLAGS, &ifr) < 0) {
     OONF_WARN(LOG_OS_INTERFACE,
