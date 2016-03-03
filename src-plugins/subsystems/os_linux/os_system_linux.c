@@ -83,7 +83,7 @@
 static int _init(void);
 static void _cleanup(void);
 
-static void _cb_handle_netlink_timeout(void *);
+static void _cb_handle_netlink_timeout(struct oonf_timer_instance *);
 static void _netlink_handler(struct oonf_socket_entry *entry);
 static void _enqueue_netlink_buffer(struct os_system_netlink *nl);
 static void _handle_nl_err(struct os_system_netlink *, struct nlmsghdr *);
@@ -331,7 +331,6 @@ os_system_linux_netlink_add(struct os_system_netlink *nl, int protocol) {
   oonf_socket_add(&nl->socket);
   oonf_socket_set_read(&nl->socket, true);
 
-  nl->timeout.cb_context = nl;
   nl->timeout.class = &_netlink_timer;
 
   list_init_head(&nl->buffered);
@@ -502,8 +501,10 @@ os_system_linux_netlink_addreq(struct os_system_netlink *nl,
  * @param ptr pointer to netlink handler
  */
 static void
-_cb_handle_netlink_timeout(void *ptr) {
-  struct os_system_netlink *nl = ptr;
+_cb_handle_netlink_timeout(struct oonf_timer_instance *ptr) {
+  struct os_system_netlink *nl;
+
+  nl = container_of(ptr, struct os_system_netlink, timeout);
 
   if (nl->cb_timeout) {
     nl->cb_timeout();

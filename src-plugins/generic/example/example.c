@@ -71,7 +71,7 @@ struct _example_config {
 static int _init(void);
 static void _cleanup(void);
 
-static void _cb_counter_event(void *);
+static void _cb_counter_event(struct oonf_timer_instance *);
 static void _cb_config_changed(void);
 
 /* configuration */
@@ -133,7 +133,7 @@ _cleanup(void) {
 }
 
 static void
-_cb_counter_event(void *ptr __attribute((unused))) {
+_cb_counter_event(struct oonf_timer_instance *ptr __attribute((unused))) {
   _config.counter++;
 
   OONF_INFO(LOG_EXAMPLE, "Updated counter to: %"PRIu64, _config.counter);

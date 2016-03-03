@@ -85,7 +85,8 @@ static const struct netaddr *_get_matching_bindaddress(
 static struct os_interface *_interface_add(const char *, bool mesh);
 static void _interface_remove(struct os_interface *interf, bool mesh);
 static int _handle_unused_parameter(const char *);
-static void _cb_change_handler(void *);
+static void _cb_change_event(struct oonf_timer_instance *);
+static void _change_handler(struct os_interface *interf);
 static void _trigger_ifgeneric_change_timer(void);
 static void _trigger_ifspecific_change_timer(struct os_interface *);
 
@@ -113,7 +114,7 @@ DECLARE_OONF_PLUGIN(_oonf_interface_subsystem);
 static struct list_entity _interface_listener;
 static struct oonf_timer_class _change_timer_info = {
   .name = "Interface change",
-  .callback = _cb_change_handler,
+  .callback = _cb_change_event,
 };
 static struct oonf_timer_instance _other_if_change_timer = {
   .class = &_change_timer_info,
@@ -591,7 +592,6 @@ _interface_add(const char *name, bool mesh) {
     interf->data.index = if_nametoindex(name);
 
     interf->_change_timer.class = &_change_timer_info;
-    interf->_change_timer.cb_context = interf;
 
     /* initialize data of interface */
     os_interface_update(&interf->data, name);
@@ -611,7 +611,7 @@ _interface_add(const char *name, bool mesh) {
   /* trigger update */
   if (interf->usage_counter == 1) {
     /* new interface */
-    _cb_change_handler(interf);
+    _change_handler(interf);
   }
   else {
     /* existing one, delay update */
@@ -693,17 +693,26 @@ _trigger_listener(struct oonf_interface_listener *l, struct os_interface_data *o
 }
 
 /**
+ * Callback when an interface changed
+ * @param ptr timer instance that fired
+ */
+static void
+_cb_change_event(struct oonf_timer_instance *ptr) {
+  struct os_interface *interf;
+
+  interf = container_of(ptr, struct os_interface, _change_timer);
+  _change_handler(interf);
+}
+
+/**
  * Timer callback to handle potential change of data of an interface
  * @param ptr pointer to interface object
  */
 static void
-_cb_change_handler(void *ptr) {
+_change_handler(struct os_interface *interf) {
   struct os_interface_data old_data, new_data;
   struct oonf_interface_listener *listener, *l_it;
-  struct os_interface *interf;
   bool trouble = false;
-
-  interf = ptr;
 
   OONF_DEBUG(LOG_INTERFACE, "Change of interface %s in progress",
       interf == NULL ? "any" : interf->data.name);

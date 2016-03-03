@@ -77,7 +77,7 @@ static struct oonf_stream_session *_create_session(
     const union netaddr_socket *remote_socket);
 static void _cb_parse_connection(struct oonf_socket_entry *entry);
 
-static void _cb_timeout_handler(void *);
+static void _cb_timeout_handler(struct oonf_timer_instance *);
 static int _cb_interface_listener(struct oonf_interface_listener *l);
 
 /* list of olsr stream sockets */
@@ -656,7 +656,6 @@ _create_session(struct oonf_stream_socket *stream_socket,
     session->state = STREAM_SESSION_SEND_AND_QUIT;
   }
 
-  session->timeout.cb_context = session;
   session->timeout.class = &_connection_timeout;
   if (stream_socket->config.session_timeout) {
     oonf_timer_start(&session->timeout, stream_socket->config.session_timeout);
@@ -684,11 +683,13 @@ parse_request_error:
 
 /**
  * Handle TCP session timeout
- * @param data custom data
+ * @param ptr timer instance that fired
  */
 static void
-_cb_timeout_handler(void *data) {
-  struct oonf_stream_session *session = data;
+_cb_timeout_handler(struct oonf_timer_instance *ptr) {
+  struct oonf_stream_session *session;
+
+  session = container_of(ptr, struct oonf_stream_session, timeout);
   oonf_stream_close(session);
 }
 

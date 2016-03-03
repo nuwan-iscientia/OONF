@@ -77,7 +77,7 @@ struct _eth_config {
 static int _init(void);
 static void _cleanup(void);
 
-static void _cb_transmission_event(void *);
+static void _cb_transmission_event(struct oonf_timer_instance *);
 static void _cb_config_changed(void);
 
 /* configuration */
@@ -155,7 +155,7 @@ _cleanup(void) {
 }
 
 static void
-_cb_transmission_event(void *ptr __attribute((unused))) {
+_cb_transmission_event(struct oonf_timer_instance *ptr __attribute((unused))) {
   struct oonf_layer2_net *l2net;
   struct os_interface *interf;
   struct ethtool_cmd cmd;

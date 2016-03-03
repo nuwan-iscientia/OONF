@@ -91,7 +91,7 @@ static int _init(void);
 static void _cleanup(void);
 
 static void _cb_link_added(void *);
-static void _cb_set_linkcost(void *);
+static void _cb_set_linkcost(struct oonf_timer_instance *);
 
 static int _avlcmp_linkcost(const void *, const void *);
 
@@ -241,7 +241,7 @@ _get_linkcost(const char *ifname, const struct netaddr *originator) {
  * @param ptr not used
  */
 static void
-_cb_set_linkcost(void *ptr __attribute__((unused))) {
+_cb_set_linkcost(struct oonf_timer_instance *ptr __attribute__((unused))) {
   struct nhdp_link *lnk;
   struct _linkcost *entry;
 #ifdef OONF_LOG_DEBUG_INFO

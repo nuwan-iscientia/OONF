@@ -61,7 +61,7 @@
 static void _cb_init_router(struct dlep_session *);
 static void _cb_apply_router(struct dlep_session *);
 static void _cb_cleanup_router(struct dlep_session *);
-static void _cb_create_peer_discovery(void *);
+static void _cb_create_peer_discovery(struct oonf_timer_instance *);
 
 static int _router_process_peer_offer(struct dlep_extension *, struct dlep_session *);
 static int _router_process_peer_init_ack(struct dlep_extension *, struct dlep_session *);
@@ -199,7 +199,6 @@ _cb_apply_router(struct dlep_session *session) {
      * so we need to send Peer Discovery messages
      */
     session->local_event_timer.class = &_peer_discovery_class;
-    session->local_event_timer.cb_context = session;
 
     OONF_DEBUG(session->log_source, "Activate discovery with interval %"
         PRIu64, session->cfg.discovery_interval);
@@ -231,8 +230,10 @@ _cb_cleanup_router(struct dlep_session *session) {
  * @param ptr dlep session
  */
 static void
-_cb_create_peer_discovery(void *ptr) {
-  struct dlep_session *session = ptr;
+_cb_create_peer_discovery(struct oonf_timer_instance *ptr) {
+  struct dlep_session *session;
+
+  session = container_of(ptr, struct dlep_session, local_event_timer);
 
   OONF_DEBUG(session->log_source, "Generate peer discovery");
 

@@ -62,7 +62,8 @@
 static struct olsrv2_originator_set_entry *_remember_removed_originator(
     struct netaddr *originator, uint64_t vtime);
 static void _set_originator(int af_type, struct netaddr *setting, const struct netaddr *new_originator);
-static void _cb_originator_entry_vtime(void *);
+static void _cb_originator_entry_vtime(struct oonf_timer_instance *);
+static void _remove_originator_entry(struct olsrv2_originator_set_entry *entry);
 
 /* originator set class and timer */
 static struct oonf_class _originator_entry_class = {
@@ -103,7 +104,7 @@ olsrv2_originator_cleanup(void) {
 
   /* remove all originator entries */
   avl_for_each_element_safe(&_originator_set_tree, entry, _node, e_it) {
-    _cb_originator_entry_vtime(entry);
+    _remove_originator_entry(entry);
   }
 
   /* remove timer and class */
@@ -192,7 +193,6 @@ _remember_removed_originator(struct netaddr *originator, uint64_t vtime) {
 
     /* initialize timer */
     entry->_vtime.class = &_originator_entry_timer;
-    entry->_vtime.cb_context = entry;
   }
 
   /* reset validity time */
@@ -225,7 +225,7 @@ _set_originator(int af_type, struct netaddr *setting, const struct netaddr *new_
   /* remove new_originator originator from set */
   entry = olsrv2_originator_get_entry(new_originator);
   if (entry) {
-    _cb_originator_entry_vtime(entry);
+    _remove_originator_entry(entry);
   }
 
   /* update NHDP originator */
@@ -242,9 +242,15 @@ _set_originator(int af_type, struct netaddr *setting, const struct netaddr *new_
  * @param ptr pointer to originator set
  */
 static void
-_cb_originator_entry_vtime(void *ptr) {
-  struct olsrv2_originator_set_entry *entry = ptr;
+_cb_originator_entry_vtime(struct oonf_timer_instance *ptr) {
+  struct olsrv2_originator_set_entry *entry;
 
+  entry = container_of(ptr, struct olsrv2_originator_set_entry, _vtime);
+  _remove_originator_entry(entry);
+}
+
+static void
+_remove_originator_entry(struct olsrv2_originator_set_entry *entry) {
   oonf_timer_stop(&entry->_vtime);
   avl_remove(&_originator_set_tree, &entry->_node);
 

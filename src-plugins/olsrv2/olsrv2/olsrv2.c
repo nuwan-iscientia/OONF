@@ -142,7 +142,7 @@ static void _cleanup(void);
 static const char *_parse_lan_parameters(struct os_route_key *prefix,
 		struct _lan_data *dst, const char *src);
 static void _parse_lan_array(struct cfg_named_section *section, bool add);
-static void _cb_generate_tc(void *);
+static void _cb_generate_tc(struct oonf_timer_instance *);
 
 static void _update_originator(int af_family);
 static int _cb_if_event(struct oonf_interface_listener *);
@@ -742,7 +742,7 @@ _parse_lan_array(struct cfg_named_section *section, bool add) {
  * @param ptr
  */
 static void
-_cb_generate_tc(void *ptr __attribute__((unused))) {
+_cb_generate_tc(struct oonf_timer_instance *ptr __attribute__((unused))) {
   if (nhdp_domain_node_is_mpr() || !avl_is_empty(olsrv2_lan_get_tree())) {
     olsrv2_writer_send_tc();
   }

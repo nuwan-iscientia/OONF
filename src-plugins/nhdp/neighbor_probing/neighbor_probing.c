@@ -101,7 +101,7 @@ struct _probing_link_data {
 static int _init(void);
 static void _cleanup(void);
 static void _cb_link_removed(void *);
-static void _cb_probe_link(void *);
+static void _cb_probe_link(struct oonf_timer_instance *);
 static int _cb_addMessageHeader(struct rfc5444_writer *writer,
     struct rfc5444_writer_message *msg);
 static void _cb_addMessageTLVs(struct rfc5444_writer *);
@@ -256,7 +256,7 @@ _check_if_type(struct oonf_layer2_net *net) {
 }
 
 static void
-_cb_probe_link(void *ptr __attribute__((unused))) {
+_cb_probe_link(struct oonf_timer_instance *ptr __attribute__((unused))) {
   struct nhdp_link *lnk, *best_lnk;
   struct _probing_link_data *ldata, *best_ldata;
   struct nhdp_interface *ninterf;

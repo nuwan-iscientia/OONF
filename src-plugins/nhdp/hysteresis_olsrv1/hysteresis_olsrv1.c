@@ -80,6 +80,12 @@ struct _config {
  * extension of nhdp_link class for hysteresis calculation
  */
 struct link_hysteresis_data {
+  /*! timer until the next NHDP Hello should arrive */
+  struct oonf_timer_instance interval_timer;
+
+  /*! back pointer to NHDP link */
+  struct nhdp_link *nhdp_link;
+
   /*! itime time delivered by neighbors Hello */
   uint64_t itime;
 
@@ -91,9 +97,6 @@ struct link_hysteresis_data {
 
   /*! true if the link is considered lost */
   bool lost;
-
-  /*! timer until the next NHDP Hello should arrive */
-  struct oonf_timer_instance interval_timer;
 };
 
 /* prototypes */
@@ -113,7 +116,7 @@ static bool _cb_is_lost(struct nhdp_link *);
 static const char *_cb_to_string(
     struct nhdp_hysteresis_str *, struct nhdp_link *);
 
-static void _cb_timer_hello_lost(void *);
+static void _cb_timer_hello_lost(struct oonf_timer_instance *);
 static void _cb_cfg_changed(void);
 static int _cb_cfg_validate(const char *section_name,
     struct cfg_named_section *, struct autobuf *);
@@ -263,9 +266,9 @@ _cb_link_added(void *ptr) {
 
   memset(data, 0, sizeof(*data));
   data->pending = true;
+  data->nhdp_link = ptr;
 
   data->interval_timer.class = &_hello_timer_info;
-  data->interval_timer.cb_context = ptr;
 }
 
 /**
@@ -359,13 +362,13 @@ _cb_to_string(struct nhdp_hysteresis_str *buf, struct nhdp_link *lnk) {
  * @param ptr nhdp link
  */
 static void
-_cb_timer_hello_lost(void *ptr) {
+_cb_timer_hello_lost(struct oonf_timer_instance *ptr) {
   struct link_hysteresis_data *data;
 
-  data = oonf_class_get_extension(&_link_extenstion, ptr);
+  data = container_of(ptr, struct link_hysteresis_data, interval_timer);
 
   /* update hysteresis because of lost Hello */
-  _update_hysteresis(ptr, data, true);
+  _update_hysteresis(data->nhdp_link, data, true);
 
   /* reactivate timer */
   oonf_timer_set(&data->interval_timer, data->itime);

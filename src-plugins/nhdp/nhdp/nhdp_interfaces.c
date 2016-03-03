@@ -67,11 +67,12 @@
 /* Prototypes of local functions */
 static void _addr_add(struct nhdp_interface *, struct netaddr *addr);
 static void _addr_remove(struct nhdp_interface_addr *addr, uint64_t vtime);
-static void _cb_remove_addr(void *ptr);
+static void _remove_addr(struct nhdp_interface_addr *ptr);
+static void _cb_addr_timeout(struct oonf_timer_instance *ptr);
 
 static int avl_comp_ifaddr(const void *k1, const void *k2);
 
-static void _cb_generate_hello(void *ptr);
+static void _cb_generate_hello(struct oonf_timer_instance *ptr);
 static void _cb_interface_event(struct oonf_rfc5444_interface_listener *, bool);
 
 /* global tree of nhdp interfaces, filters and addresses */
@@ -97,7 +98,7 @@ static struct oonf_class _addr_info = {
 
 static struct oonf_timer_class _removed_address_hold_timer = {
   .name = "NHDP interface removed address hold timer",
-  .callback = _cb_remove_addr,
+  .callback = _cb_addr_timeout,
 };
 
 /* other global variables */
@@ -230,7 +231,6 @@ nhdp_interface_add(const char *name) {
 
     /* initialize timers */
     interf->_hello_timer.class = &_interface_hello_timer;
-    interf->_hello_timer.cb_context = interf;
 
     /* hook into global interface tree */
     interf->_node.key = interf->rfc5444_if.interface->name;
@@ -299,7 +299,7 @@ nhdp_interface_remove(struct nhdp_interface *interf) {
   oonf_timer_stop(&interf->_hello_timer);
 
   avl_for_each_element_safe(&interf->_if_addresses, addr, _if_node, a_it) {
-    _cb_remove_addr(addr);
+    _remove_addr(addr);
   }
 
   list_for_each_element_safe(&interf->_links, lnk, _if_node, l_it) {
@@ -387,7 +387,6 @@ _addr_add(struct nhdp_interface *interf, struct netaddr *addr) {
 
     /* initialize validity timer for removed addresses */
     if_addr->_vtime.class = &_removed_address_hold_timer;
-    if_addr->_vtime.cb_context = if_addr;
 
     /* trigger event */
     oonf_class_event(&_addr_info, if_addr, OONF_OBJECT_ADDED);
@@ -419,16 +418,11 @@ _addr_remove(struct nhdp_interface_addr *addr, uint64_t vtime) {
 }
 
 /**
- * Callback triggered when an address from a nhdp interface
- *  should be removed from the db
+ * remove address from NHDP interface
  * @param ptr pointer to nhdp interface address
  */
 static void
-_cb_remove_addr(void *ptr) {
-  struct nhdp_interface_addr *addr;
-
-  addr = ptr;
-
+_remove_addr(struct nhdp_interface_addr *addr) {
   /* trigger event */
   oonf_class_event(&_addr_info, addr, OONF_OBJECT_REMOVED);
 
@@ -436,6 +430,18 @@ _cb_remove_addr(void *ptr) {
   avl_remove(&_ifaddr_tree, &addr->_global_node);
   avl_remove(&addr->interf->_if_addresses, &addr->_if_node);
   oonf_class_free(&_addr_info, addr);
+}
+
+/**
+ * Callback when an interface address times out
+ * @param ptr timer instance that fired
+ */
+static void
+_cb_addr_timeout(struct oonf_timer_instance *ptr) {
+  struct nhdp_interface_addr *addr;
+
+  addr = container_of(ptr, struct nhdp_interface_addr, _vtime);
+  _remove_addr(addr);
 }
 
 /**
@@ -462,11 +468,14 @@ avl_comp_ifaddr(const void *k1, const void *k2) {
 
 /**
  * Callback triggered to generate a Hello on an interface
- * @param ptr pointer to nhdp interface
+ * @param ptr pointer pointer to timer that has fired
  */
 static void
-_cb_generate_hello(void *ptr) {
-  nhdp_writer_send_hello(ptr);
+_cb_generate_hello(struct oonf_timer_instance *ptr) {
+  struct nhdp_interface *nhdp_if;
+
+  nhdp_if = container_of(ptr, struct nhdp_interface, _hello_timer);
+  nhdp_writer_send_hello(nhdp_if);
 }
 
 /**

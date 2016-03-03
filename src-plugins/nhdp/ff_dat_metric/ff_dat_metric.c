@@ -122,6 +122,12 @@ struct link_datff_bucket {
  * Additional data for a nhdp_link class for metric calculation
  */
 struct link_datff_data {
+  /*! timer for measuring lost hellos when no further packets are received */
+  struct oonf_timer_instance hello_lost_timer;
+
+  /*! back pointer to NHDP link */
+  struct nhdp_link *nhdp_link;
+
   /*! current position in history ringbuffer */
   int activePtr;
 
@@ -133,9 +139,6 @@ struct link_datff_data {
 
   /*! remember the last transmitted packet loss for hysteresis */
   uint32_t last_packet_success_rate;
-
-  /*! timer for measuring lost hellos when no further packets are received */
-  struct oonf_timer_instance hello_lost_timer;
 
   /*! last known hello interval */
   uint64_t hello_interval;
@@ -158,7 +161,7 @@ static void _cb_link_added(void *);
 static void _cb_link_changed(void *);
 static void _cb_link_removed(void *);
 
-static void _cb_dat_sampling(void *);
+static void _cb_dat_sampling(struct oonf_timer_instance *);
 static void _calculate_link_neighborhood(struct nhdp_link *lnk,
     struct link_datff_data *ldata);
 static int _calculate_dynamic_loss_exponent(int link_neigborhood);
@@ -166,7 +169,7 @@ static uint32_t _apply_packet_loss(struct nhdp_link *lnk,
     struct link_datff_data *ldata,
     uint32_t metric, uint32_t received, uint32_t total);
 
-static void _cb_hello_lost(void *);
+static void _cb_hello_lost(struct oonf_timer_instance *);
 
 static enum rfc5444_result _cb_process_packet(
       struct rfc5444_reader_tlvblock_context *context);
@@ -428,7 +431,6 @@ _cb_link_added(void *ptr) {
 
   /* start 'hello lost' timer for link */
   data->hello_lost_timer.class = &_hello_lost_info;
-  data->hello_lost_timer.cb_context = ptr;
 }
 
 /**
@@ -553,7 +555,7 @@ _reset_missed_hello_timer(struct link_datff_data *);
  * @param ptr nhdp link
  */
 static void
-_cb_dat_sampling(void *ptr __attribute__((unused))) {
+_cb_dat_sampling(struct oonf_timer_instance *ptr __attribute__((unused))) {
   struct rfc7181_metric_field encoded_metric;
   struct link_datff_data *ldata;
   struct nhdp_link *lnk;
@@ -796,12 +798,10 @@ _apply_packet_loss(struct nhdp_link *lnk,
  * @param ptr nhdp link
  */
 static void
-_cb_hello_lost(void *ptr) {
+_cb_hello_lost(struct oonf_timer_instance *ptr) {
   struct link_datff_data *ldata;
-  struct nhdp_link *lnk;
 
-  lnk = ptr;
-  ldata = oonf_class_get_extension(&_link_extenstion, lnk);
+  ldata = container_of(ptr, struct link_datff_data, hello_lost_timer);
 
   if (ldata->activePtr != -1) {
     ldata->missed_hellos++;

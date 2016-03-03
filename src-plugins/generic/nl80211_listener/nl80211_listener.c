@@ -185,7 +185,7 @@ static void _nl80211_if_remove(struct nl80211_if *);
 static void _cb_config_changed(void);
 static void _cb_if_config_changed(void);
 
-static void _cb_transmission_event(void *);
+static void _cb_transmission_event(struct oonf_timer_instance *);
 static void _trigger_next_netlink_query(void);
 
 static void _cb_nl_message(struct nlmsghdr *hdr);
@@ -504,7 +504,7 @@ _cb_if_config_changed(void) {
  * @param ptr unused
  */
 static void
-_cb_transmission_event(void *ptr __attribute__((unused))) {
+_cb_transmission_event(struct oonf_timer_instance *ptr __attribute__((unused))) {
   if (!_current_query_in_progress) {
     _trigger_next_netlink_query();
   }

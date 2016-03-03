@@ -114,7 +114,7 @@ static void _free_address_entry(struct rfc5444_writer_address *);
 static void _free_addrtlv_entry(struct rfc5444_writer_addrtlv *);
 
 static void _cb_add_seqno(struct rfc5444_writer *, struct rfc5444_writer_target *);
-static void _cb_aggregation_event (void *);
+static void _cb_aggregation_event (struct oonf_timer_instance *);
 
 static void _cb_cfg_rfc5444_changed(void);
 static void _cb_cfg_interface_changed(void);
@@ -942,7 +942,6 @@ _create_target(struct oonf_rfc5444_interface *interf,
 
   /* aggregation timer */
   target->_aggregation.class = &_aggregation_timer;
-  target->_aggregation.cb_context = target;
 
   target->_refcount = 1;
 
@@ -1316,10 +1315,10 @@ _cb_add_seqno(struct rfc5444_writer *writer, struct rfc5444_writer_target *rfc54
  * @param ptr pointer to rfc5444 target
  */
 static void
-_cb_aggregation_event (void *ptr) {
+_cb_aggregation_event (struct oonf_timer_instance *ptr) {
   struct oonf_rfc5444_target *target;
 
-  target = ptr;
+  target = container_of(ptr, struct oonf_rfc5444_target, _aggregation);
 
   rfc5444_writer_flush(
       &target->interface->protocol->writer, &target->rfc5444_target, false);

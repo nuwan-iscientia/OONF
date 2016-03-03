@@ -297,7 +297,7 @@ oonf_timer_walk(void)
 
     /* This timer is expired, call into the provided callback function */
     os_clock_gettime64(&start_time);
-    timer->class->callback(timer->cb_context);
+    timer->class->callback(timer);
     os_clock_gettime64(&end_time);
 
     if (end_time - start_time > OONF_TIMER_SLICE) {

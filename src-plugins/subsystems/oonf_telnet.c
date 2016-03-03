@@ -81,7 +81,7 @@ static enum oonf_telnet_result _telnet_handle_command(
 static struct oonf_telnet_command *_check_telnet_command_acl(
     struct oonf_telnet_data *data, struct oonf_telnet_command *cmd);
 
-static void _cb_telnet_repeat_timer(void *data);
+static void _cb_telnet_repeat_timer(struct oonf_timer_instance *data);
 static enum oonf_telnet_result _cb_telnet_quit(struct oonf_telnet_data *data);
 static enum oonf_telnet_result _cb_telnet_help(struct oonf_telnet_data *data);
 static enum oonf_telnet_result _cb_telnet_echo(struct oonf_telnet_data *data);
@@ -677,12 +677,14 @@ _cb_telnet_repeat_stophandler(struct oonf_telnet_data *data) {
 
 /**
  * Timer event handler for repeating telnet commands
- * @param ptr pointer to custom data
+ * @param ptr timer instance that fired
  */
 static void
-_cb_telnet_repeat_timer(void *ptr) {
-  struct oonf_telnet_data *telnet_data = ptr;
+_cb_telnet_repeat_timer(struct oonf_timer_instance *ptr) {
+  struct oonf_telnet_data *telnet_data;
   struct oonf_telnet_session *session;
+
+  telnet_data = container_of(ptr, struct oonf_telnet_data, stop_timer);
 
   /* set command/parameter with repeat settings */
   telnet_data->command = telnet_data->stop_data[1];
@@ -704,7 +706,6 @@ _cb_telnet_repeat_timer(void *ptr) {
  */
 static enum oonf_telnet_result
 _cb_telnet_repeat(struct oonf_telnet_data *data) {
-  struct oonf_timer_instance *timer;
   int interval = 0;
   char *ptr = NULL;
 
@@ -726,17 +727,10 @@ _cb_telnet_repeat(struct oonf_telnet_data *data) {
     return TELNET_RESULT_ACTIVE;
   }
 
-  timer = calloc(1, sizeof(*timer));
-  if (timer == NULL) {
-    return TELNET_RESULT_INTERNAL_ERROR;
-  }
-
-  timer->cb_context = data;
-  timer->class = &_telnet_repeat_timerinfo;
-  oonf_timer_start(timer, (uint64_t)MSEC_PER_SEC * interval);
+  data->stop_timer.class= &_telnet_repeat_timerinfo;
+  oonf_timer_start(&data->stop_timer, (uint64_t)MSEC_PER_SEC * interval);
 
   data->stop_handler = _cb_telnet_repeat_stophandler;
-  data->stop_data[0] = timer;
   data->stop_data[1] = strdup(ptr);
   data->stop_data[2] = NULL;
 

@@ -67,7 +67,7 @@
 static int _init(void);
 static void _cleanup(void);
 
-static void _cb_l2gen_event(void *ptr);
+static void _cb_l2gen_event(struct oonf_timer_instance *);
 
 static void _cb_config_changed(void);
 
@@ -177,7 +177,7 @@ _cleanup(void) {
 
 
 static void
-_cb_l2gen_event(void *ptr __attribute((unused))) {
+_cb_l2gen_event(struct oonf_timer_instance *ptr __attribute((unused))) {
   static uint64_t event_counter = 100;
   enum oonf_layer2_network_index net_idx;
   enum oonf_layer2_neighbor_index neigh_idx;

@@ -79,7 +79,7 @@ static enum dlep_parser_error _handle_extension(struct dlep_session *session,
 static enum dlep_parser_error _process_tlvs(struct dlep_session *,
     uint16_t signal_type, uint16_t signal_length, const uint8_t *tlvs);
 static void _send_terminate(struct dlep_session *session);
-static void _cb_destination_timeout(void *);
+static void _cb_destination_timeout(struct oonf_timer_instance *);
 
 static struct oonf_class _tlv_class = {
     .name = "dlep reader tlv",
@@ -469,7 +469,6 @@ dlep_session_add_local_neighbor(struct dlep_session *session,
 
   /* initialize timer */
   local->_ack_timeout.class = &_destination_ack_class;
-  local->_ack_timeout.cb_context = local;
 
   /* initialize backpointer */
   local->session = session;
@@ -820,10 +819,10 @@ _send_terminate(struct dlep_session *session) {
  * @param ptr local dlep neighbor
  */
 static void
-_cb_destination_timeout(void *ptr) {
+_cb_destination_timeout(struct oonf_timer_instance *ptr) {
   struct dlep_local_neighbor *local;
 
-  local = ptr;
+  local = container_of(ptr, struct dlep_local_neighbor, _ack_timeout);
   if (local->session->cb_destination_timeout) {
     local->session->cb_destination_timeout(local->session, local);
   }

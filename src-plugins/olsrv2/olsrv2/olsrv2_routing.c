@@ -87,7 +87,7 @@ static void _handle_nhdp_routes(struct nhdp_domain *);
 static void _add_route_to_kernel_queue(struct olsrv2_routing_entry *rtentry);
 static void _process_dijkstra_result(struct nhdp_domain *);
 static void _process_kernel_queue(void);
-static void _cb_trigger_dijkstra(void *);
+static void _cb_trigger_dijkstra(struct oonf_timer_instance *);
 static void _cb_nhdp_update(struct nhdp_neighbor *);
 static void _cb_route_finished(struct os_route *route, int error);
 
@@ -1038,7 +1038,7 @@ _process_kernel_queue(void) {
  * @param unused
  */
 static void
-_cb_trigger_dijkstra(void *unused __attribute__((unused))) {
+_cb_trigger_dijkstra(struct oonf_timer_instance *unused __attribute__((unused))) {
   if (_trigger_dijkstra) {
     _trigger_dijkstra = false;
     olsrv2_routing_force_update(false);
