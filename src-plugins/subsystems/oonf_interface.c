@@ -698,9 +698,11 @@ _trigger_listener(struct oonf_interface_listener *l, struct os_interface_data *o
  */
 static void
 _cb_change_event(struct oonf_timer_instance *ptr) {
-  struct os_interface *interf;
+  struct os_interface *interf = NULL;
 
-  interf = container_of(ptr, struct os_interface, _change_timer);
+  if (ptr != &_other_if_change_timer) {
+    interf = container_of(ptr, struct os_interface, _change_timer);
+  }
   _change_handler(interf);
 }
 
