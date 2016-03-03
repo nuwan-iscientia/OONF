@@ -739,7 +739,7 @@ _parse_lan_array(struct cfg_named_section *section, bool add) {
 
 /**
  * Callback to trigger normal tc generation with timer
- * @param ptr
+ * @param ptr timer instance that fired
  */
 static void
 _cb_generate_tc(struct oonf_timer_instance *ptr __attribute__((unused))) {

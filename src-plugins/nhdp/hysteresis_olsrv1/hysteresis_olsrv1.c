@@ -359,7 +359,7 @@ _cb_to_string(struct nhdp_hysteresis_str *buf, struct nhdp_link *lnk) {
 
 /**
  * Timer callback triggered when Hello was lost
- * @param ptr nhdp link
+ * @param ptr timer instance that fired
  */
 static void
 _cb_timer_hello_lost(struct oonf_timer_instance *ptr) {

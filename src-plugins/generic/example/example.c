@@ -132,6 +132,10 @@ _cleanup(void) {
   oonf_timer_remove(&_counter_info);
 }
 
+/**
+ * callback of example timer
+ * @param ptr timer instance that fired
+ */
 static void
 _cb_counter_event(struct oonf_timer_instance *ptr __attribute((unused))) {
   _config.counter++;

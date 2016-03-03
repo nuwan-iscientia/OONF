@@ -468,7 +468,7 @@ avl_comp_ifaddr(const void *k1, const void *k2) {
 
 /**
  * Callback triggered to generate a Hello on an interface
- * @param ptr pointer pointer to timer that has fired
+ * @param ptr timer instance that fired
  */
 static void
 _cb_generate_hello(struct oonf_timer_instance *ptr) {

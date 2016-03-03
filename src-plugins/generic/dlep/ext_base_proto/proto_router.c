@@ -227,7 +227,7 @@ _cb_cleanup_router(struct dlep_session *session) {
 
 /**
  * Callback to generate regular peer discovery signals
- * @param ptr dlep session
+ * @param ptr timer instance that fired
  */
 static void
 _cb_create_peer_discovery(struct oonf_timer_instance *ptr) {

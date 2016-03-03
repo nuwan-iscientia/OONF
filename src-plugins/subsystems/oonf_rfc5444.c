@@ -1312,7 +1312,7 @@ _cb_add_seqno(struct rfc5444_writer *writer, struct rfc5444_writer_target *rfc54
 
 /**
  * Timer callback for message aggregation
- * @param ptr pointer to rfc5444 target
+ * @param ptr timer instance that fired
  */
 static void
 _cb_aggregation_event (struct oonf_timer_instance *ptr) {

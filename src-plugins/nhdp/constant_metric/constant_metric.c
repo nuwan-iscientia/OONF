@@ -238,7 +238,7 @@ _get_linkcost(const char *ifname, const struct netaddr *originator) {
 
 /**
  * Timer callback for delayed setting of new metric values into db
- * @param ptr not used
+ * @param ptr timer instance that fired
  */
 static void
 _cb_set_linkcost(struct oonf_timer_instance *ptr __attribute__((unused))) {

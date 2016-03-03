@@ -438,7 +438,7 @@ olsrv2_tc_get_endpoint_tree(void) {
 
 /**
  * Callback triggered when a tc node times out
- * @param ptr pointer to tc node
+ * @param ptr timer instance that fired
  */
 static void
 _cb_tc_node_timeout(struct oonf_timer_instance *ptr) {

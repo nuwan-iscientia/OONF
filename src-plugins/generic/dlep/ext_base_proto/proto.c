@@ -567,7 +567,7 @@ dlep_base_proto_write_mac_only(
 
 /**
  * Callback triggered when to generate a new heartbeat
- * @param ptr dlep session
+ * @param ptr timer instance that fired
  */
 static void
 _cb_local_heartbeat(struct oonf_timer_instance *ptr) {
@@ -581,7 +581,7 @@ _cb_local_heartbeat(struct oonf_timer_instance *ptr) {
 
 /**
  * Callback triggered when the remote heartbeat times out
- * @param ptr dlep session
+ * @param ptr timer instance that fired
  */
 static void
 _cb_remote_heartbeat(struct oonf_timer_instance *ptr) {

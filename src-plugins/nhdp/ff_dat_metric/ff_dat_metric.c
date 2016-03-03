@@ -795,7 +795,7 @@ _apply_packet_loss(struct nhdp_link *lnk,
 
 /**
  * Callback triggered when the next hellos should have been received
- * @param ptr nhdp link
+ * @param ptr timer instance that fired
  */
 static void
 _cb_hello_lost(struct oonf_timer_instance *ptr) {

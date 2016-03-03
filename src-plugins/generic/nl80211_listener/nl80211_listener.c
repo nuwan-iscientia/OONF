@@ -501,7 +501,7 @@ _cb_if_config_changed(void) {
 
 /**
  * Transmit the next netlink command to nl80211
- * @param ptr unused
+ * @param ptr timer instance that fired
  */
 static void
 _cb_transmission_event(struct oonf_timer_instance *ptr __attribute__((unused))) {

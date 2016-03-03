@@ -816,7 +816,7 @@ _send_terminate(struct dlep_session *session) {
 
 /**
  * Callback when a destination up/down signal times out
- * @param ptr local dlep neighbor
+ * @param ptr timer instance that fired
  */
 static void
 _cb_destination_timeout(struct oonf_timer_instance *ptr) {

@@ -923,7 +923,7 @@ _link_status_not_symmetric_anymore(struct nhdp_link *lnk) {
 
 /**
  * Callback triggered when link validity timer fires
- * @param ptr nhdp link
+ * @param ptr timer instance that fired
  */
 static void
 _cb_link_vtime(struct oonf_timer_instance *ptr) {
@@ -954,7 +954,7 @@ _cb_link_vtime(struct oonf_timer_instance *ptr) {
 
 /**
  * Callback triggered when link heard timer fires
- * @param ptr nhdp link
+ * @param ptr timer instance that fired
  */
 static void
 _cb_link_heard(struct oonf_timer_instance *ptr) {
@@ -967,7 +967,7 @@ _cb_link_heard(struct oonf_timer_instance *ptr) {
 
 /**
  * Callback triggered when link symmetric timer fires
- * @param ptr nhdp link
+ * @param ptr timer instance that fired
  */
 static void
 _cb_link_symtime(struct oonf_timer_instance *ptr) {
@@ -981,7 +981,7 @@ _cb_link_symtime(struct oonf_timer_instance *ptr) {
 
 /**
  * Callback triggered when nhdp address validity timer fires
- * @param ptr nhdp address
+ * @param ptr timer instance that fired
  */
 static void
 _cb_naddr_vtime(struct oonf_timer_instance *ptr) {
@@ -995,7 +995,7 @@ _cb_naddr_vtime(struct oonf_timer_instance *ptr) {
 
 /**
  * Callback triggered when 2hop valitidy timer fires
- * @param ptr nhdp 2hop address
+ * @param ptr timer instance that fired
  */
 static void
 _cb_l2hop_vtime(struct oonf_timer_instance *ptr) {

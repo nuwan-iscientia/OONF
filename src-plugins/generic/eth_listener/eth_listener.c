@@ -154,6 +154,10 @@ _cleanup(void) {
   close(_ioctl_sock);
 }
 
+/**
+ * Callback for querying ethernet status
+ * @param ptr timer instance that fired
+ */
 static void
 _cb_transmission_event(struct oonf_timer_instance *ptr __attribute((unused))) {
   struct oonf_layer2_net *l2net;

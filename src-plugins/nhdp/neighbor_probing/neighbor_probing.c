@@ -255,6 +255,10 @@ _check_if_type(struct oonf_layer2_net *net) {
   return false;
 }
 
+/**
+ * Callback for triggering a new neighbor probe
+ * @param ptr timer instance that fired
+ */
 static void
 _cb_probe_link(struct oonf_timer_instance *ptr __attribute__((unused))) {
   struct nhdp_link *lnk, *best_lnk;

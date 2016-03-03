@@ -498,7 +498,7 @@ os_system_linux_netlink_addreq(struct os_system_netlink *nl,
 
 /**
  * Handle timeout of netlink acks
- * @param ptr pointer to netlink handler
+ * @param ptr timer instance that fired
  */
 static void
 _cb_handle_netlink_timeout(struct oonf_timer_instance *ptr) {

@@ -389,7 +389,7 @@ _avl_cmp_dupkey(const void *p1, const void *p2) {
 
 /**
  * Callback fired when duplicate entry times out
- * @param ptr pointer to duplicate entry
+ * @param ptr timer instance that fired
  */
 static void
 _cb_vtime(struct oonf_timer_instance *ptr) {

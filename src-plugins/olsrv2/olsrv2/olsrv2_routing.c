@@ -1035,10 +1035,10 @@ _process_kernel_queue(void) {
 /**
  * Callback for checking if dijkstra was triggered during
  * rate limitation time
- * @param unused
+ * @param ptr timer instance that fired
  */
 static void
-_cb_trigger_dijkstra(struct oonf_timer_instance *unused __attribute__((unused))) {
+_cb_trigger_dijkstra(struct oonf_timer_instance *ptr __attribute__((unused))) {
   if (_trigger_dijkstra) {
     _trigger_dijkstra = false;
     olsrv2_routing_force_update(false);

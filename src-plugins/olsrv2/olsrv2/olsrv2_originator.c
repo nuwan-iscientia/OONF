@@ -239,7 +239,7 @@ _set_originator(int af_type, struct netaddr *setting, const struct netaddr *new_
 
 /**
  * Callback fired when originator set entry must be removed
- * @param ptr pointer to originator set
+ * @param ptr timer instance that fired
  */
 static void
 _cb_originator_entry_vtime(struct oonf_timer_instance *ptr) {

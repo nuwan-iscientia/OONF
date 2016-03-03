@@ -176,6 +176,10 @@ _cleanup(void) {
 }
 
 
+/**
+ * Callback for generating new layer2 test data
+ * @param ptr timer instance that fired
+ */
 static void
 _cb_l2gen_event(struct oonf_timer_instance *ptr __attribute((unused))) {
   static uint64_t event_counter = 100;
