@@ -51,7 +51,7 @@
 #include "common/autobuf.h"
 #include "common/netaddr.h"
 #include "common/netaddr_acl.h"
-#include "subsystems/oonf_interface.h"
+#include "subsystems/os_interface.h"
 #include "subsystems/oonf_socket.h"
 
 #ifndef _WIN32
@@ -195,7 +195,7 @@ struct oonf_packet_managed {
   struct oonf_packet_managed_config _managed_config;
 
   /*! interface listener to detect changes */
-  struct oonf_interface_listener _if_listener;
+  struct os_interface _if_listener;
 };
 
 EXPORT int oonf_packet_add(struct oonf_packet_socket *,

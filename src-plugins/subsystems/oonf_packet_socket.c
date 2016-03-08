@@ -52,7 +52,7 @@
 #include "common/netaddr_acl.h"
 #include "core/oonf_logging.h"
 #include "core/oonf_subsystem.h"
-#include "subsystems/oonf_interface.h"
+#include "subsystems/os_interface.h"
 #include "subsystems/oonf_socket.h"
 #include "subsystems/os_fd.h"
 #include "subsystems/oonf_packet_socket.h"
@@ -78,11 +78,11 @@ static int _apply_managed_socket(struct oonf_packet_managed *managed,
 static void _cb_packet_event_unicast(struct oonf_socket_entry *);
 static void _cb_packet_event_multicast(struct oonf_socket_entry *);
 static void _cb_packet_event(struct oonf_socket_entry *, bool mc);
-static int _cb_interface_listener(struct oonf_interface_listener *l);
+static int _cb_interface_listener(struct os_interface *l);
 
 /* subsystem definition */
 static const char *_dependencies[] = {
-  OONF_INTERFACE_SUBSYSTEM,
+  OONF_OS_INTERFACE_SUBSYSTEM,
   OONF_SOCKET_SUBSYSTEM,
   OONF_OS_FD_SUBSYSTEM,
 };
@@ -266,7 +266,7 @@ oonf_packet_add_managed(struct oonf_packet_managed *managed) {
     managed->config.input_buffer_length = sizeof(_input_buffer);
   }
 
-  managed->_if_listener.process = _cb_interface_listener;
+  managed->_if_listener.if_changed = _cb_interface_listener;
   managed->_if_listener.name = managed->_managed_config.interface;
   managed->_if_listener.mesh = managed->_managed_config.mesh;
 }
@@ -283,7 +283,7 @@ oonf_packet_remove_managed(struct oonf_packet_managed *managed, bool forced) {
   oonf_packet_remove(&managed->multicast_v4, forced);
   oonf_packet_remove(&managed->multicast_v6, forced);
 
-  oonf_interface_remove_listener(&managed->_if_listener);
+  os_interface_remove(&managed->_if_listener);
   oonf_packet_free_managed_config(&managed->_managed_config);
 }
 
@@ -308,11 +308,11 @@ oonf_packet_apply_managed(struct oonf_packet_managed *managed,
   /* handle change in interface listener */
   if (if_changed) {
     /* interface changed, remove old listener if necessary */
-    oonf_interface_remove_listener(&managed->_if_listener);
+    os_interface_remove(&managed->_if_listener);
 
     /* create new interface listener */
     managed->_if_listener.mesh = managed->_managed_config.mesh;
-    oonf_interface_add_listener(&managed->_if_listener);
+    os_interface_add(&managed->_if_listener);
   }
 
   OONF_DEBUG(LOG_PACKET, "Apply changes for managed socket (if %s) with port %d/%d",
@@ -322,7 +322,7 @@ oonf_packet_apply_managed(struct oonf_packet_managed *managed,
   result = _apply_managed(managed);
   if (result) {
     /* did not work, trigger interface handler to try later again */
-    oonf_interface_trigger_handler(&managed->_if_listener);
+    os_interface_trigger_handler(&managed->_if_listener);
   }
   return result;
 }
@@ -448,8 +448,8 @@ _apply_managed(struct oonf_packet_managed *managed) {
   int result = 0;
 
   /* get interface */
-  if (managed->_if_listener.interface) {
-    data = &managed->_if_listener.interface->data;
+  if (managed->_if_listener.name) {
+    data = managed->_if_listener.data;
   }
 
   if (_apply_managed_socketpair(AF_INET, managed, data, &changed,
@@ -503,13 +503,18 @@ _apply_managed_socketpair(int af_type, struct oonf_packet_managed *managed,
   if (data != NULL && !data->up) {
     bind_ip = NULL;
   }
-  else if (data != NULL && netaddr_get_address_family(data->linklocal_v6_ptr) == af_type &&
-      netaddr_acl_check_accept(bind_ip_acl, data->linklocal_v6_ptr)) {
+  else if (data != NULL && netaddr_get_address_family(data->if_linklocal_v6) == af_type &&
+      netaddr_acl_check_accept(bind_ip_acl, data->if_linklocal_v6)) {
 
-    bind_ip = data->linklocal_v6_ptr;
+    bind_ip = data->if_linklocal_v6;
+  }
+  else if (data != NULL && netaddr_get_address_family(data->if_linklocal_v4) == af_type &&
+      netaddr_acl_check_accept(bind_ip_acl, data->if_linklocal_v4)) {
+
+    bind_ip = data->if_linklocal_v4;
   }
   else {
-    bind_ip = oonf_interface_get_bindaddress(af_type, bind_ip_acl, data);
+    bind_ip = os_interface_get_bindaddress(af_type, bind_ip_acl, data);
   }
   if (!bind_ip) {
     oonf_packet_remove(sock, false);
@@ -806,7 +811,7 @@ _cb_packet_event(struct oonf_socket_entry *entry,
  * @return -1 if an error happened, 0 otherwise
  */
 static int
-_cb_interface_listener(struct oonf_interface_listener *l) {
+_cb_interface_listener(struct os_interface *l) {
   struct oonf_packet_managed *managed;
   int result;
 

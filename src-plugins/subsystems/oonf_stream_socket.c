@@ -53,9 +53,9 @@
 #include "core/oonf_logging.h"
 #include "core/oonf_subsystem.h"
 #include "subsystems/oonf_class.h"
-#include "subsystems/oonf_interface.h"
 #include "subsystems/oonf_timer.h"
 #include "subsystems/oonf_stream_socket.h"
+#include "subsystems/os_interface.h"
 #include "subsystems/os_system.h"
 #include "subsystems/os_fd.h"
 
@@ -78,7 +78,7 @@ static struct oonf_stream_session *_create_session(
 static void _cb_parse_connection(struct oonf_socket_entry *entry);
 
 static void _cb_timeout_handler(struct oonf_timer_instance *);
-static int _cb_interface_listener(struct oonf_interface_listener *l);
+static int _cb_interface_listener(struct os_interface *interf);
 
 /* list of olsr stream sockets */
 static struct list_entity _stream_head;
@@ -97,11 +97,11 @@ static struct oonf_timer_class _connection_timeout = {
 /* subsystem definition */
 static const char *_dependencies[] = {
   OONF_CLASS_SUBSYSTEM,
-  OONF_INTERFACE_SUBSYSTEM,
   OONF_SOCKET_SUBSYSTEM,
   OONF_TIMER_SUBSYSTEM,
-  OONF_OS_SYSTEM_SUBSYSTEM,
   OONF_OS_FD_SUBSYSTEM,
+  OONF_OS_INTERFACE_SUBSYSTEM,
+  OONF_OS_SYSTEM_SUBSYSTEM,
 };
 
 static struct oonf_subsystem _oonf_stream_socket_subsystem = {
@@ -342,7 +342,7 @@ oonf_stream_add_managed(struct oonf_stream_managed *managed) {
     managed->config.session_timeout = 120000;
   }
 
-  managed->_if_listener.process = _cb_interface_listener;
+  managed->_if_listener.if_changed = _cb_interface_listener;
   managed->_if_listener.name = managed->_managed_config.interface;
 }
 
@@ -371,10 +371,10 @@ oonf_stream_apply_managed(struct oonf_stream_managed *managed,
   /* handle change in interface listener */
   if (if_changed) {
     /* interface changed, remove old listener if necessary */
-    oonf_interface_remove_listener(&managed->_if_listener);
+    os_interface_remove(&managed->_if_listener);
 
     /* create new interface listener */
-    oonf_interface_add_listener(&managed->_if_listener);
+    os_interface_add(&managed->_if_listener);
   }
 
   OONF_DEBUG(LOG_STREAM, "Apply changes for managed socket (if %s) with port %d",
@@ -384,7 +384,7 @@ oonf_stream_apply_managed(struct oonf_stream_managed *managed,
   result = _apply_managed(managed);
   if (result) {
     /* did not work, trigger interface handler to try later again */
-    oonf_interface_trigger_handler(&managed->_if_listener);
+    os_interface_trigger_handler(&managed->_if_listener);
   }
   return result;
 }
@@ -397,11 +397,11 @@ oonf_stream_apply_managed(struct oonf_stream_managed *managed,
  */
 void
 oonf_stream_remove_managed(struct oonf_stream_managed *managed, bool force) {
-  oonf_interface_remove_listener(&managed->_if_listener);
+  os_interface_remove(&managed->_if_listener);
 
   oonf_stream_remove(&managed->socket_v4, force);
   oonf_stream_remove(&managed->socket_v6, force);
-  oonf_interface_remove_listener(&managed->_if_listener);
+  os_interface_remove(&managed->_if_listener);
   oonf_stream_free_managed_config(&managed->_managed_config);
 }
 
@@ -482,8 +482,8 @@ _apply_managed(struct oonf_stream_managed *managed) {
   struct os_interface_data *data = NULL;
 
   /* get interface */
-  if (managed->_if_listener.interface) {
-    data = &managed->_if_listener.interface->data;
+  if (managed->_if_listener.data) {
+    data = managed->_if_listener.data;
   }
 
   if (_apply_managed_socket(AF_INET, managed, &managed->socket_v4, data)) {
@@ -519,13 +519,14 @@ _apply_managed_socket(int af_type, struct oonf_stream_managed *managed,
   if (data != NULL && !data->up) {
     bind_ip = NULL;
   }
-  else if (data != NULL && netaddr_get_address_family(data->linklocal_v6_ptr) == af_type &&
-      netaddr_acl_check_accept(bind_ip_acl, data->linklocal_v6_ptr)) {
+  else if (data != NULL
+      && netaddr_get_address_family(data->if_linklocal_v6) == af_type
+      && netaddr_acl_check_accept(bind_ip_acl, data->if_linklocal_v6)) {
 
-    bind_ip = data->linklocal_v6_ptr;
+    bind_ip = data->if_linklocal_v6;
   }
   else {
-    bind_ip = oonf_interface_get_bindaddress(af_type, bind_ip_acl, data);
+    bind_ip = os_interface_get_bindaddress(af_type, bind_ip_acl, data);
   }
   if (!bind_ip) {
     oonf_stream_remove(stream, true);
@@ -865,12 +866,12 @@ _cb_parse_connection(struct oonf_socket_entry *entry) {
  * @return -1 if an error happened, 0 otherwise
  */
 static int
-_cb_interface_listener(struct oonf_interface_listener *l) {
+_cb_interface_listener(struct os_interface *interf) {
   struct oonf_stream_managed *managed;
   int result;
 
   /* calculate managed socket for this event */
-  managed = container_of(l, struct oonf_stream_managed, _if_listener);
+  managed = container_of(interf, struct oonf_stream_managed, _if_listener);
 
   result = _apply_managed(managed);
 

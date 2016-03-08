@@ -164,7 +164,7 @@ nhdp_writer_send_hello(struct nhdp_interface *ninterf) {
   }
 
   interf = nhdp_interface_get_coreif(ninterf);
-  if (interf->data.loopback) {
+  if (interf->data->loopback) {
     /* no NHDP on loopback interface */
     return;
   }
@@ -308,10 +308,7 @@ _cb_addMessageTLVs(struct rfc5444_writer *writer) {
   }
 
   /* add mac address of local interface */
-  ifdata = oonf_interface_get_data(target->interface->name, NULL);
-  if (ifdata == NULL) {
-    return;
-  }
+  ifdata = nhdp_interface_get_coreif(_nhdp_if)->data;
 
   if (_add_mac_tlv) {
     rfc5444_writer_add_messagetlv(writer, NHDP_MSGTLV_MAC, 0,

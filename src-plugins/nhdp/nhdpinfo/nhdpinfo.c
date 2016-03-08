@@ -548,7 +548,7 @@ _initialize_interface_values(struct nhdp_interface *nhdp_if) {
       &nhdp_if->rfc5444_if.interface->_socket.socket_v6.local_socket);
   netaddr_to_string(&_value_if_bindto_v6, &temp_addr);
 
-  netaddr_to_string(&_value_if_mac, &core_if->data.mac);
+  netaddr_to_string(&_value_if_mac, &core_if->data->mac);
 
   strscpy(_value_if_flooding_v4,
       json_getbool(nhdp_if->use_ipv4_for_flooding), TEMPLATE_JSON_BOOL_LENGTH);

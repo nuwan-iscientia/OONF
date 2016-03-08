@@ -51,10 +51,10 @@
 #include "core/oonf_subsystem.h"
 #include "subsystems/oonf_class.h"
 #include "subsystems/oonf_clock.h"
-#include "subsystems/oonf_interface.h"
 #include "subsystems/oonf_layer2.h"
 #include "subsystems/oonf_rfc5444.h"
 #include "subsystems/oonf_timer.h"
+#include "subsystems/os_interface.h"
 
 #include "nhdp/nhdp_db.h"
 #include "nhdp/nhdp_interfaces.h"
@@ -128,10 +128,10 @@ static struct cfg_schema_section _probing_section = {
 static const char *_dependencies[] = {
   OONF_CLASS_SUBSYSTEM,
   OONF_CLOCK_SUBSYSTEM,
-  OONF_INTERFACE_SUBSYSTEM,
   OONF_LAYER2_SUBSYSTEM,
   OONF_RFC5444_SUBSYSTEM,
   OONF_TIMER_SUBSYSTEM,
+  OONF_OS_INTERFACE_SUBSYSTEM,
   OONF_NHDP_SUBSYSTEM,
 };
 static struct oonf_subsystem _olsrv2_neighbor_probing_subsystem = {
@@ -286,19 +286,19 @@ _cb_probe_link(struct oonf_timer_instance *ptr __attribute__((unused))) {
   avl_for_each_element(nhdp_interface_get_tree(), ninterf, _node) {
     interf = nhdp_interface_get_coreif(ninterf);
 
-    l2net = oonf_layer2_net_get(interf->data.name);
+    l2net = oonf_layer2_net_get(interf->data->name);
     if (!l2net) {
       continue;
     }
 
     if(!_check_if_type(l2net)) {
       OONF_DEBUG(LOG_PROBING, "Drop interface %s (not wireless)",
-          interf->data.name);
+          interf->data->name);
       continue;
     }
 
     OONF_DEBUG(LOG_PROBING, "Start looking for probe candidate in interface '%s'",
-        interf->data.name);
+        interf->data->name);
 
     list_for_each_element(&ninterf->_links, lnk, _if_node) {
       if (lnk->status != NHDP_LINK_SYMMETRIC) {

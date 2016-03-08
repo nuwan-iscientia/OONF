@@ -57,6 +57,7 @@
 #include "subsystems/oonf_rfc5444.h"
 #include "subsystems/oonf_telnet.h"
 #include "subsystems/oonf_timer.h"
+#include "subsystems/os_interface.h"
 
 #include "nhdp/nhdp_interfaces.h"
 
@@ -145,7 +146,7 @@ static void _parse_lan_array(struct cfg_named_section *section, bool add);
 static void _cb_generate_tc(struct oonf_timer_instance *);
 
 static void _update_originator(int af_family);
-static int _cb_if_event(struct oonf_interface_listener *);
+static int _cb_if_event(struct os_interface *);
 
 static void _cb_cfg_olsrv2_changed(void);
 static void _cb_cfg_domain_changed(void);
@@ -211,9 +212,9 @@ static struct cfg_schema_section _olsrv2_section = {
 
 static const char *_dependencies[] = {
   OONF_CLASS_SUBSYSTEM,
-  OONF_INTERFACE_SUBSYSTEM,
   OONF_RFC5444_SUBSYSTEM,
   OONF_TIMER_SUBSYSTEM,
+  OONF_OS_INTERFACE_SUBSYSTEM,
   OONF_NHDP_SUBSYSTEM,
 };
 static struct oonf_subsystem _olsrv2_subsystem = {
@@ -242,8 +243,8 @@ static struct oonf_timer_instance _tc_timer = {
 };
 
 /* global interface listener */
-static struct oonf_interface_listener _if_listener = {
-  .process = _cb_if_event,
+static struct os_interface _if_listener = {
+  .if_changed = _cb_if_event,
 };
 
 /* global variables */
@@ -289,7 +290,7 @@ _init(void) {
   }
 
   /* activate interface listener */
-  oonf_interface_add_listener(&_if_listener);
+  os_interface_add(&_if_listener);
 
   /* activate the rest of the olsrv2 protocol */
   olsrv2_lan_init();
@@ -320,7 +321,7 @@ _initiate_shutdown(void) {
 static void
 _cleanup(void) {
   /* remove interface listener */
-  oonf_interface_remove_listener(&_if_listener);
+  os_interface_remove(&_if_listener);
 
   /* cleanup configuration */
   netaddr_acl_remove(&_olsrv2_config.routable);
@@ -807,10 +808,10 @@ _update_originator(int af_family) {
   struct nhdp_interface *n_interf;
   struct os_interface *interf;
   struct netaddr new_originator;
+  struct os_interface_ip *ip;
   int new_priority;
   int old_priority;
   int priority;
-  size_t i;
 #ifdef OONF_LOG_DEBUG_INFO
   struct netaddr_str buf;
 #endif
@@ -829,22 +830,20 @@ _update_originator(int af_family) {
     interf = nhdp_interface_get_coreif(n_interf);
 
     /* check if originator is still valid */
-    for (i=0; i<interf->data.addrcount; i++) {
-      struct netaddr *addr = &interf->data.addresses[i];
-
-      if (netaddr_get_address_family(addr) == af_family) {
-        priority = _get_addr_priority(addr);
+    avl_for_each_element(&interf->data->addresses, ip, _node) {
+      if (netaddr_get_address_family(&ip->address) == af_family) {
+        priority = _get_addr_priority(&ip->address);
         if (priority == 0) {
           /* not useful */
           continue;
         }
 
-        if (netaddr_cmp(originator, addr) == 0) {
+        if (netaddr_cmp(originator, &ip->address) == 0) {
           old_priority = priority + 1;
         }
 
         if (priority > old_priority && priority > new_priority) {
-          memcpy(&new_originator, addr, sizeof(new_originator));
+          memcpy(&new_originator, &ip->address, sizeof(new_originator));
           new_priority = priority;
         }
       }
@@ -864,7 +863,7 @@ _update_originator(int af_family) {
  * @return always 0
  */
 static int
-_cb_if_event(struct oonf_interface_listener *listener __attribute__((unused))) {
+_cb_if_event(struct os_interface *interf __attribute__((unused))) {
   _update_originator(AF_INET);
   _update_originator(AF_INET6);
   return 0;

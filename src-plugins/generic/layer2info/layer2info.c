@@ -330,7 +330,7 @@ static void
 _initialize_interface_values(struct oonf_layer2_net *net) {
   struct os_interface_data *data;
 
-  data = &net->if_listener.interface->data;
+  data = net->if_listener.data;
 
   strscpy(_value_if, net->name, sizeof(_value_if));
   snprintf(_value_if_index, sizeof(_value_if_index), "%u", data->index);

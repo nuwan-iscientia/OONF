@@ -47,36 +47,17 @@
 #define OS_INTERFACE_DATA_H_
 
 #include "common/common_types.h"
+#include "common/avl.h"
 #include "common/netaddr.h"
+
+#include "subsystems/oonf_timer.h"
+
+#if 0
 
 /**
  * Representation of interface knowledge of the operation system
  */
-struct os_interface_data {
-  /*! IPv4 Interface addresses with mesh-wide scope (at least) */
-  const struct netaddr *if_v4;
-
-  /*! IPv6 Interface addresses with mesh-wide scope (at least) */
-  const struct netaddr *if_v6;
-
-  /*! IPv6 Interface address with linklocal scope */
-  const struct netaddr *linklocal_v6_ptr;
-
-  /*! mac address of interface */
-  struct netaddr mac;
-
-  /*! list of all addresses of the interface */
-  struct netaddr *addresses;
-
-  /*! number of addresses of the interface */
-  size_t addrcount;
-
-  /*! list of all prefixes of the interface */
-  struct netaddr *prefixes;
-
-  /*! number of prefixes of the interface */
-  size_t prefixcount;
-
+struct os_interface {
   /*! interface name */
   char name[IF_NAMESIZE];
 
@@ -89,11 +70,43 @@ struct os_interface_data {
    */
   unsigned base_index;
 
+  /*! mac address of interface */
+  struct netaddr mac;
+
   /*! true if the interface exists and is up */
   bool up;
 
   /*! true if this is a loopback interface */
   bool loopback;
+
+  /*! tree of all addresses/prefixes of this interface */
+  struct avl_tree addresses;
+
+  /*!
+   * tree to store all new entries before they are
+   * committed to the address tree
+   */
+  struct avl_tree _new_entries;
+
+  /*! listeners to be informed when an interface changes */
+  struct list_entity _listeners;
+
+  /*! timer to delay commits of interface address changes */
+  struct oonf_timer_instance _commit_timer;
 };
+
+/**
+ * Representation of an IP address/prefix of a network interface of
+ * the operation system
+ */
+struct os_interface_ip {
+  struct avl_node _node;
+
+  struct netaddr address;
+  struct netaddr prefix;
+
+  struct os_interface *interf;
+};
+#endif
 
 #endif /* OS_INTERFACE_DATA_H_ */

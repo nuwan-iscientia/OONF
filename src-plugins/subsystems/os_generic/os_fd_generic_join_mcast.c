@@ -167,14 +167,14 @@ os_fd_generic_join_mcast_send(struct os_fd *sock,
         "Socket on interface %s (%d) joining sending multicast %s (src %s)\n",
         oif->name, oif->index,
         netaddr_to_string(&buf2, multicast),
-        netaddr_to_string(&buf1, oif->linklocal_v6_ptr));
+        netaddr_to_string(&buf1, oif->if_linklocal_v6));
 
     if (setsockopt(sock->fd, IPPROTO_IPV6, IPV6_MULTICAST_IF,
         &oif->index, sizeof(oif->index)) < 0) {
       OONF_WARN(log_src, "Cannot set multicast %s on interface %s (src %s): %s (%d)\n",
           netaddr_to_string(&buf2, multicast),
           oif->name,
-          netaddr_to_string(&buf1, oif->linklocal_v6_ptr),
+          netaddr_to_string(&buf1, oif->if_linklocal_v6),
           strerror(errno), errno);
       return -1;
     }

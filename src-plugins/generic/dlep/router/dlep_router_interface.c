@@ -222,13 +222,13 @@ dlep_router_apply_interface_settings(struct dlep_router_if *interf) {
   _cleanup_interface(interf);
 
   if (!netaddr_is_unspec(&interf->connect_to_addr)) {
-    ifdata = &interf->interf.session.l2_listener.interface->data;
+    ifdata = interf->interf.session.l2_listener.data;
 
     OONF_DEBUG(LOG_DLEP_ROUTER, "Connect directly to [%s]:%d",
         netaddr_to_string(&nbuf, &interf->connect_to_addr),
         interf->connect_to_port);
 
-    result = oonf_interface_get_prefix_from_dst(&interf->connect_to_addr, ifdata);
+    result = os_interface_get_prefix_from_dst(&interf->connect_to_addr, ifdata);
     if (result) {
       /* initialize local and remote socket */
       netaddr_socket_init(&local, result, 0, ifdata->index);

@@ -525,10 +525,7 @@ _get_scaled_rx_linkspeed(struct nhdp_link *lnk) {
   }
 
   /* get local interface data  */
-  ifdata = oonf_interface_get_data(nhdp_interface_get_name(lnk->local_if), NULL);
-  if (!ifdata) {
-    return 1;
-  }
+  ifdata = nhdp_interface_get_coreif(lnk->local_if)->data;
 
   l2data = oonf_layer2_neigh_query(
       ifdata->name, &lnk->remote_mac, OONF_LAYER2_NEIGH_RX_BITRATE);
