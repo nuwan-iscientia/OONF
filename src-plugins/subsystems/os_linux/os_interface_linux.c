@@ -835,6 +835,7 @@ _interface_parse_nlmsg(const char *ifname, struct nlmsghdr *msg) {
   struct netaddr addr;
   struct netaddr_str nbuf;
   struct os_interface_data *ifdata;
+  int iflink;
 
   ifi_msg = NLMSG_DATA(msg);
   ifi_attr = (struct rtattr *) IFLA_RTA(ifi_msg);
@@ -860,6 +861,12 @@ _interface_parse_nlmsg(const char *ifname, struct nlmsghdr *msg) {
         if (msg->nlmsg_type == RTM_NEWLINK) {
           memcpy(&ifdata->mac, &addr, sizeof(addr));
         }
+        break;
+      case IFLA_LINK:
+        memcpy(&iflink, RTA_DATA(ifi_attr), RTA_PAYLOAD(ifi_attr));
+
+        OONF_DEBUG(LOG_OS_INTERFACE, "Base interface: %u", iflink);
+        ifdata->base_index = iflink;
         break;
       default:
         //OONF_DEBUG(LOG_OS_INTERFACE, "ifi_attr_type: %u", ifi_attr->rta_type);
@@ -995,7 +1002,7 @@ _address_parse_nlmsg(const char *ifname, struct nlmsghdr *msg) {
         update = true;
         break;
       default:
-        OONF_DEBUG(LOG_OS_INTERFACE, "ifa_attr_type: %u", ifa_attr->rta_type);
+        // OONF_DEBUG(LOG_OS_INTERFACE, "ifa_attr_type: %u", ifa_attr->rta_type);
         break;
     }
   }
