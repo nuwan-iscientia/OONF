@@ -208,10 +208,7 @@ static struct oonf_timer_class _interface_change_timer = {
 };
 
 static struct avl_tree _interface_data_tree;
-static struct os_interface_data *_any_interface_data;
-static struct os_interface _any_interface = {
-  .name = OS_INTERFACE_ANY,
-};
+static const char _ANY_INTERFACE[] = OS_INTERFACE_ANY;
 
 /**
  * Initialize os-specific subsystem
@@ -241,11 +238,6 @@ _init(void) {
   oonf_class_add(&_interface_class);
   oonf_timer_add(&_interface_change_timer);
 
-  _any_interface_data = os_interface_add(&_any_interface);
-  if (!_any_interface_data) {
-    _cleanup();
-    return -1;
-  }
   _is_kernel_2_6_31_or_better = os_system_linux_is_minimal_kernel(2,6,31);
   return 0;
 }
@@ -287,12 +279,18 @@ os_interface_linux_add(struct os_interface *interf) {
     return interf->data;
   }
 
+  if (!interf->name || !interf->name[0]) {
+    interf->name = _ANY_INTERFACE;
+  }
+
   data = avl_find_element(&_interface_data_tree, interf->name, data, _node);
   if (!data) {
     data = oonf_class_malloc(&_interface_data_class);
     if (!data) {
       return NULL;
     }
+
+    OONF_DEBUG(LOG_OS_INTERFACE, "Add interface to tracking: %s", interf->name);
 
     /* hook into interface data tree */
     strscpy(data->name, interf->name, IF_NAMESIZE);
@@ -317,7 +315,7 @@ os_interface_linux_add(struct os_interface *interf) {
   interf->data = data;
   list_add_tail(&data->_listeners, &interf->_node);
 
-  if (interf->mesh) {
+  if (interf->mesh && interf->name != _ANY_INTERFACE) {
     if (!data->_internal.mesh_counter) {
       _init_mesh(data);
     }
@@ -339,8 +337,13 @@ os_interface_linux_remove(struct os_interface *interf) {
     return;
   }
 
+  OONF_DEBUG(LOG_OS_INTERFACE, "Remove interface from tracking: %s", interf->name);
+
   if (interf->mesh) {
-    _cleanup_mesh(interf->data);
+    interf->data->_internal.mesh_counter--;
+    if (!interf->data->_internal.mesh_counter) {
+      _cleanup_mesh(interf->data);
+    }
   }
 
   /* unhook from interface data */
@@ -489,6 +492,7 @@ _query_interface_links(void) {
 
   OONF_DEBUG(LOG_OS_INTERFACE, "Request all interfaces");
 
+  _trigger_link_query = false;
 
   /* get pointers for netlink message */
   msg = (void *)&buffer[0];
@@ -505,7 +509,7 @@ _query_interface_links(void) {
   ifi->ifi_family = AF_NETLINK;
 
   /* we don't care for the sequence number */
-  os_system_linux_netlink_send(&_rtnetlink_receiver, msg);
+  os_system_linux_netlink_send(&_rtnetlink_if_query, msg);
 }
 
 /**
@@ -522,6 +526,8 @@ _query_interface_addresses(void) {
   if (_link_query_in_progress || _address_query_in_progress) {
     return;
   }
+
+  _trigger_address_query = false;
 
   OONF_DEBUG(LOG_OS_INTERFACE, "Request all interfaces");
 
@@ -540,7 +546,7 @@ _query_interface_addresses(void) {
   ifa->ifa_family = AF_UNSPEC;
 
   /* we don't care for the sequence number */
-  os_system_linux_netlink_send(&_rtnetlink_receiver, msg);
+  os_system_linux_netlink_send(&_rtnetlink_if_query, msg);
 }
 
 /**
@@ -796,6 +802,32 @@ _os_linux_writeToFile(const char *file, char *old, char value) {
 }
 
 static void
+_trigger_if_change(struct os_interface_data *ifdata) {
+  struct os_interface *interf;
+
+  if (!oonf_timer_is_active(&ifdata->_change_timer)) {
+    /* inform listeners the interface changed */
+    oonf_timer_start(&ifdata->_change_timer, 200);
+
+    list_for_each_element(&ifdata->_listeners, interf, _node) {
+      /* each interface should be informed */
+      interf->_dirty = true;
+    }
+  }
+}
+
+static void
+_trigger_if_change_including_any(struct os_interface_data *ifdata) {
+  _trigger_if_change(ifdata);
+
+  ifdata = avl_find_element(
+      &_interface_data_tree, OS_INTERFACE_ANY, ifdata, _node);
+  if (ifdata) {
+    _trigger_if_change(ifdata);
+  }
+}
+
+static void
 _interface_parse_nlmsg(const char *ifname, struct nlmsghdr *msg) {
   struct ifinfomsg *ifi_msg;
   struct rtattr *ifi_attr;
@@ -803,7 +835,6 @@ _interface_parse_nlmsg(const char *ifname, struct nlmsghdr *msg) {
   struct netaddr addr;
   struct netaddr_str nbuf;
   struct os_interface_data *ifdata;
-  struct os_interface *interf;
 
   ifi_msg = NLMSG_DATA(msg);
   ifi_attr = (struct rtattr *) IFLA_RTA(ifi_msg);
@@ -818,6 +849,7 @@ _interface_parse_nlmsg(const char *ifname, struct nlmsghdr *msg) {
       ifname, ifi_msg->ifi_index);
   ifdata->up = (ifi_msg->ifi_flags & IFF_UP) != 0;
   ifdata->loopback = (ifi_msg->ifi_flags & IFF_LOOPBACK) != 0;
+  ifdata->index = ifi_msg->ifi_index;
 
   for(; RTA_OK(ifi_attr, ifi_len); ifi_attr = RTA_NEXT(ifi_attr,ifi_len)) {
     switch(ifi_attr->rta_type) {
@@ -835,15 +867,7 @@ _interface_parse_nlmsg(const char *ifname, struct nlmsghdr *msg) {
     }
   }
 
-  if (!oonf_timer_is_active(&ifdata->_change_timer)) {
-    /* inform listeners the interface changed */
-    oonf_timer_start(&ifdata->_change_timer, 200);
-
-    list_for_each_element(&ifdata->_listeners, interf, _node) {
-      /* each interface should be informed */
-      interf->_dirty = true;
-    }
-  }
+  _trigger_if_change_including_any(ifdata);
 }
 
 static void
@@ -887,6 +911,9 @@ _update_address_shortcuts(struct os_interface_data *ifdata) {
 static void
 _add_address(struct os_interface_data *ifdata, struct netaddr *prefixed_addr) {
   struct os_interface_ip *ip;
+#if defined(OONF_LOG_DEBUG_INFO)
+  struct netaddr_str nbuf;
+#endif
 
   ip = avl_find_element(&ifdata->addresses, prefixed_addr, ip, _node);
   if (!ip) {
@@ -904,6 +931,9 @@ _add_address(struct os_interface_data *ifdata, struct netaddr *prefixed_addr) {
     ip->interf = ifdata;
   }
 
+  OONF_DEBUG(LOG_OS_INTERFACE, "Add address to %s: %s",
+      ifdata->name, netaddr_to_string(&nbuf, prefixed_addr));
+
   /* copy sanitized addresses */
   memcpy(&ip->address, prefixed_addr, sizeof(*prefixed_addr));
   netaddr_set_prefix_length(&ip->address, netaddr_get_maxprefix(&ip->address));
@@ -913,11 +943,17 @@ _add_address(struct os_interface_data *ifdata, struct netaddr *prefixed_addr) {
 static void
 _remove_address(struct os_interface_data *ifdata, struct netaddr *prefixed_addr) {
   struct os_interface_ip *ip;
+#if defined(OONF_LOG_DEBUG_INFO)
+  struct netaddr_str nbuf;
+#endif
 
   ip = avl_find_element(&ifdata->addresses, prefixed_addr, ip, _node);
   if (!ip) {
     return;
   }
+
+  OONF_DEBUG(LOG_OS_INTERFACE, "Remove address from %s: %s",
+      ifdata->name, netaddr_to_string(&nbuf, prefixed_addr));
 
   avl_remove(&ifdata->addresses, &ip->_node);
   oonf_class_free(&_interface_ip_class, ip);
@@ -929,7 +965,6 @@ _address_parse_nlmsg(const char *ifname, struct nlmsghdr *msg) {
   struct rtattr *ifa_attr;
   int ifa_len;
   struct os_interface_data *ifdata;
-  struct os_interface *interf;
   struct netaddr addr;
   bool update;
 
@@ -969,15 +1004,7 @@ _address_parse_nlmsg(const char *ifname, struct nlmsghdr *msg) {
     _update_address_shortcuts(ifdata);
   }
 
-  if (!oonf_timer_is_active(&ifdata->_change_timer)) {
-    /* inform listeners the interface changed */
-    oonf_timer_start(&ifdata->_change_timer, 200);
-
-    list_for_each_element(&ifdata->_listeners, interf, _node) {
-      /* each interface should be informed */
-      interf->_dirty = true;
-    }
-  }
+  _trigger_if_change_including_any(ifdata);
 }
 
 /**
@@ -1094,7 +1121,7 @@ _process_end_of_query(void) {
     if (_trigger_address_query) {
       _query_interface_addresses();
     }
-    else {
+    else if (_trigger_link_query) {
       _query_interface_links();
     }
   }
@@ -1104,7 +1131,7 @@ _process_end_of_query(void) {
     if (_trigger_link_query) {
       _query_interface_links();
     }
-    else {
+    else if (_trigger_address_query) {
       _query_interface_addresses();
     }
   }
@@ -1154,7 +1181,7 @@ _cb_interface_changed(struct oonf_timer_instance *timer) {
       continue;
     }
 
-    if (interf->if_changed(interf)) {
+    if (interf->if_changed && interf->if_changed(interf)) {
       /* interface change handler had a problem and wants to re-trigger */
       error = true;
     }

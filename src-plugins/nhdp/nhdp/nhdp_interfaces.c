@@ -510,7 +510,7 @@ _cb_interface_event(struct oonf_rfc5444_interface_listener *ifl,
   has_active_addr = false;
 
   oonf_interf = oonf_rfc5444_get_core_interface(ifl->interface);
-  if (oonf_interf != NULL && oonf_interf->data->up) {
+  if (oonf_interf != NULL && oonf_interf->data && oonf_interf->data->up) {
     ipv4 = oonf_rfc5444_is_target_active(interf->rfc5444_if.interface->multicast4);
     ipv6 = oonf_rfc5444_is_target_active(interf->rfc5444_if.interface->multicast6);
 
