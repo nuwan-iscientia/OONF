@@ -10,7 +10,7 @@
 
 #include "common/common_types.h"
 #include "core/oonf_logging.h"
-#include "subsystems/os_interface_data.h"
+#include "subsystems/os_interface.h"
 #include "subsystems/os_fd.h"
 
 EXPORT int os_fd_generic_configsocket(struct os_fd *sock,
