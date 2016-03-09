@@ -828,7 +828,7 @@ _trigger_if_change_including_any(struct os_interface_data *ifdata) {
 }
 
 static void
-_interface_parse_nlmsg(const char *ifname, struct nlmsghdr *msg) {
+_link_parse_nlmsg(const char *ifname, struct nlmsghdr *msg) {
   struct ifinfomsg *ifi_msg;
   struct rtattr *ifi_attr;
   int ifi_len;
@@ -865,7 +865,8 @@ _interface_parse_nlmsg(const char *ifname, struct nlmsghdr *msg) {
       case IFLA_LINK:
         memcpy(&iflink, RTA_DATA(ifi_attr), RTA_PAYLOAD(ifi_attr));
 
-        OONF_DEBUG(LOG_OS_INTERFACE, "Base interface: %u", iflink);
+        OONF_INFO(LOG_OS_INTERFACE, "Base interface index for %s (%u): %u",
+            ifdata->name, ifdata->index, iflink);
         ifdata->base_index = iflink;
         break;
       default:
@@ -938,7 +939,7 @@ _add_address(struct os_interface_data *ifdata, struct netaddr *prefixed_addr) {
     ip->interf = ifdata;
   }
 
-  OONF_DEBUG(LOG_OS_INTERFACE, "Add address to %s: %s",
+  OONF_INFO(LOG_OS_INTERFACE, "Add address to %s: %s",
       ifdata->name, netaddr_to_string(&nbuf, prefixed_addr));
 
   /* copy sanitized addresses */
@@ -959,7 +960,7 @@ _remove_address(struct os_interface_data *ifdata, struct netaddr *prefixed_addr)
     return;
   }
 
-  OONF_DEBUG(LOG_OS_INTERFACE, "Remove address from %s: %s",
+  OONF_INFO(LOG_OS_INTERFACE, "Remove address from %s: %s",
       ifdata->name, netaddr_to_string(&nbuf, prefixed_addr));
 
   avl_remove(&ifdata->addresses, &ip->_node);
@@ -1002,7 +1003,7 @@ _address_parse_nlmsg(const char *ifname, struct nlmsghdr *msg) {
         update = true;
         break;
       default:
-        // OONF_DEBUG(LOG_OS_INTERFACE, "ifa_attr_type: %u", ifa_attr->rta_type);
+        OONF_DEBUG(LOG_OS_INTERFACE, "ifa_attr_type: %u", ifa_attr->rta_type);
         break;
     }
   }
@@ -1032,7 +1033,7 @@ _cb_rtnetlink_message(struct nlmsghdr *hdr) {
 
     OONF_DEBUG(LOG_OS_INTERFACE, "Linkstatus of interface (%s) %d changed",
         ifname, ifi->ifi_index);
-    _interface_parse_nlmsg(ifname, hdr);
+    _link_parse_nlmsg(ifname, hdr);
   }
 
   else if (hdr->nlmsg_type == RTM_NEWADDR || hdr->nlmsg_type == RTM_DELADDR) {
