@@ -421,16 +421,17 @@ _cb_telnet_receive_data(struct oonf_stream_session *session) {
 
     /* search for end of line */
     eol = memchr(abuf_getptr(&session->in), '\n', abuf_getlen(&session->in));
-
-    if (eol == NULL) {
+    if (eol) {
+      /* terminate line with a 0 */
+      if (eol != abuf_getptr(&session->in) && eol[-1] == '\r') {
+        eol[-1] = 0;
+      }
+      *eol++ = 0;
+    }
+    else if (session->state == STREAM_SESSION_ACTIVE) {
+      /* more data might be coming */
       break;
     }
-
-    /* terminate line with a 0 */
-    if (eol != abuf_getptr(&session->in) && eol[-1] == '\r') {
-      eol[-1] = 0;
-    }
-    *eol++ = 0;
 
     /* handle line */
     OONF_DEBUG(LOG_TELNET, "Interactive console: %s\n", abuf_getptr(&session->in));
@@ -507,9 +508,11 @@ _cb_telnet_receive_data(struct oonf_stream_session *session) {
     }
 
     /* remove line from input buffer */
-    abuf_pull(&session->in, eol - abuf_getptr(&session->in));
+    if (eol) {
+      abuf_pull(&session->in, eol - abuf_getptr(&session->in));
+    }
 
-    if (abuf_getptr(&session->in)[0] == '/') {
+    if (chainCommands) {
       /* end of multiple command line */
       return STREAM_SESSION_SEND_AND_QUIT;
     }
