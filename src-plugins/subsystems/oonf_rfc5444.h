@@ -321,8 +321,8 @@ oonf_rfc5444_get_target_from_rfc5444_target(struct rfc5444_writer_target *target
  * @param interf pointer to rfc5444 interface
  * @return pointer to olsr interface
  */
-static INLINE struct os_interface *
-oonf_rfc5444_get_core_interface(struct oonf_rfc5444_interface *interf) {
+static INLINE struct os_interface_listener *
+oonf_rfc5444_get_core_if_listener(struct oonf_rfc5444_interface *interf) {
   return &interf->_socket._if_listener;
 }
 

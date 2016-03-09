@@ -146,7 +146,7 @@ static void _parse_lan_array(struct cfg_named_section *section, bool add);
 static void _cb_generate_tc(struct oonf_timer_instance *);
 
 static void _update_originator(int af_family);
-static int _cb_if_event(struct os_interface *);
+static int _cb_if_event(struct os_interface_listener *);
 
 static void _cb_cfg_olsrv2_changed(void);
 static void _cb_cfg_domain_changed(void);
@@ -243,7 +243,7 @@ static struct oonf_timer_instance _tc_timer = {
 };
 
 /* global interface listener */
-static struct os_interface _if_listener = {
+static struct os_interface_listener _if_listener = {
   .if_changed = _cb_if_event,
 };
 
@@ -805,8 +805,8 @@ _get_addr_priority(const struct netaddr *addr) {
 static void
 _update_originator(int af_family) {
   const struct netaddr *originator;
-  struct nhdp_interface *n_interf;
-  struct os_interface *interf;
+  struct nhdp_interface *nhdp_if;
+  struct os_interface_listener *if_listener;
   struct netaddr new_originator;
   struct os_interface_ip *ip;
   int new_priority;
@@ -826,11 +826,11 @@ _update_originator(int af_family) {
 
   netaddr_invalidate(&new_originator);
 
-  avl_for_each_element(nhdp_interface_get_tree(), n_interf, _node) {
-    interf = nhdp_interface_get_coreif(n_interf);
+  avl_for_each_element(nhdp_interface_get_tree(), nhdp_if, _node) {
+    if_listener = nhdp_interface_get_if_listener(nhdp_if);
 
     /* check if originator is still valid */
-    avl_for_each_element(&interf->data->addresses, ip, _node) {
+    avl_for_each_element(&if_listener->data->addresses, ip, _node) {
       if (netaddr_get_address_family(&ip->address) == af_family) {
         priority = _get_addr_priority(&ip->address);
         if (priority == 0) {
@@ -863,7 +863,7 @@ _update_originator(int af_family) {
  * @return always 0
  */
 static int
-_cb_if_event(struct os_interface *interf __attribute__((unused))) {
+_cb_if_event(struct os_interface_listener *if_listener __attribute__((unused))) {
   _update_originator(AF_INET);
   _update_originator(AF_INET6);
   return 0;

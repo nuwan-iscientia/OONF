@@ -65,20 +65,20 @@ static int _init(void);
 static void _cleanup(void);
 
 static void _packet_add(struct oonf_packet_socket *pktsocket,
-    union netaddr_socket *local, struct os_interface_data *interf);
+    union netaddr_socket *local, struct os_interface *os_if);
 static int _apply_managed(struct oonf_packet_managed *managed);
 static int _apply_managed_socketpair(int af_type,
     struct oonf_packet_managed *managed,
-    struct os_interface_data *data, bool *changed,
+    struct os_interface *os_if, bool *changed,
     struct oonf_packet_socket *sock,
     struct oonf_packet_socket *mc_sock, struct netaddr *mc_ip);
 static int _apply_managed_socket(struct oonf_packet_managed *managed,
     struct oonf_packet_socket *stream, const struct netaddr *bindto,
-    int port, uint8_t dscp, int protocol, struct os_interface_data *data);
+    int port, uint8_t dscp, int protocol, struct os_interface *os_if);
 static void _cb_packet_event_unicast(struct oonf_socket_entry *);
 static void _cb_packet_event_multicast(struct oonf_socket_entry *);
 static void _cb_packet_event(struct oonf_socket_entry *, bool mc);
-static int _cb_interface_listener(struct os_interface *l);
+static int _cb_interface_listener(struct os_interface_listener *l);
 
 /* subsystem definition */
 static const char *_dependencies[] = {
@@ -128,20 +128,20 @@ _cleanup(void) {
  * Add a new packet socket handler
  * @param pktsocket pointer to an initialized packet socket struct
  * @param local pointer local IP address of packet socket
- * @param interf pointer to interface to bind socket on, NULL
+ * @param os_if pointer to interface to bind socket on, NULL
  *   if socket should not be bound to interface
  * @return -1 if an error happened, 0 otherwise
  */
 int
 oonf_packet_add(struct oonf_packet_socket *pktsocket,
-    union netaddr_socket *local, struct os_interface_data *interf) {
+    union netaddr_socket *local, struct os_interface *os_if) {
   /* Init socket */
   if (os_fd_getsocket(
-      &pktsocket->scheduler_entry.fd, local, false, 0, interf, LOG_PACKET)) {
+      &pktsocket->scheduler_entry.fd, local, false, 0, os_if, LOG_PACKET)) {
     return -1;
   }
 
-  _packet_add(pktsocket, local, interf);
+  _packet_add(pktsocket, local, os_if);
   return 0;
 }
 
@@ -156,7 +156,7 @@ oonf_packet_add(struct oonf_packet_socket *pktsocket,
  */
 int
 oonf_packet_raw_add(struct oonf_packet_socket *pktsocket, int protocol,
-    union netaddr_socket *local, struct os_interface_data *interf) {
+    union netaddr_socket *local, struct os_interface *interf) {
   /* Init socket */
   if (os_fd_getrawsocket(
       &pktsocket->scheduler_entry.fd, local, false, 0, interf, LOG_PACKET)) {
@@ -171,8 +171,8 @@ oonf_packet_raw_add(struct oonf_packet_socket *pktsocket, int protocol,
 
 static void
 _packet_add(struct oonf_packet_socket *pktsocket,
-    union netaddr_socket *local, struct os_interface_data *interf) {
-  pktsocket->interface = interf;
+    union netaddr_socket *local, struct os_interface *interf) {
+  pktsocket->os_if = interf;
   pktsocket->scheduler_entry.process = _cb_packet_event_unicast;
 
   oonf_socket_add(&pktsocket->scheduler_entry);
@@ -230,7 +230,7 @@ oonf_packet_send(struct oonf_packet_socket *pktsocket, union netaddr_socket *rem
       /* successful */
       OONF_DEBUG(LOG_PACKET, "Sent %d bytes to %s %s",
           result, netaddr_socket_to_string(&buf, remote),
-          pktsocket->interface != NULL ? pktsocket->interface->name : "");
+          pktsocket->os_if != NULL ? pktsocket->os_if->name : "");
       return 0;
     }
 
@@ -316,7 +316,7 @@ oonf_packet_apply_managed(struct oonf_packet_managed *managed,
   }
 
   OONF_DEBUG(LOG_PACKET, "Apply changes for managed socket (if %s) with port %d/%d",
-      config->interface == NULL || config->interface[0] == 0 ? "any" : config->interface,
+      config->interface[0] == 0 ? "any" : config->interface,
       config->port, config->multicast_port);
 
   result = _apply_managed(managed);
@@ -443,22 +443,22 @@ oonf_packet_free_managed_config(struct oonf_packet_managed_config *config) {
  */
 static int
 _apply_managed(struct oonf_packet_managed *managed) {
-  struct os_interface_data *data = NULL;
+  struct os_interface *os_if = NULL;
   bool changed = false;
   int result = 0;
 
   /* get interface */
   if (managed->_if_listener.name) {
-    data = managed->_if_listener.data;
+    os_if = managed->_if_listener.data;
   }
 
-  if (_apply_managed_socketpair(AF_INET, managed, data, &changed,
+  if (_apply_managed_socketpair(AF_INET, managed, os_if, &changed,
       &managed->socket_v4, &managed->multicast_v4,
       &managed->_managed_config.multicast_v4)) {
     result = -1;
   }
 
-  if (_apply_managed_socketpair(AF_INET6, managed, data, &changed,
+  if (_apply_managed_socketpair(AF_INET6, managed, os_if, &changed,
       &managed->socket_v6, &managed->multicast_v6,
       &managed->_managed_config.multicast_v6)) {
     result = -1;
@@ -482,7 +482,7 @@ _apply_managed(struct oonf_packet_managed *managed) {
  */
 static int
 _apply_managed_socketpair(int af_type, struct oonf_packet_managed *managed,
-    struct os_interface_data *data, bool *changed,
+    struct os_interface *os_if, bool *changed,
     struct oonf_packet_socket *sock,
     struct oonf_packet_socket *mc_sock, struct netaddr *mc_ip) {
   struct netaddr_acl *bind_ip_acl;
@@ -500,21 +500,21 @@ _apply_managed_socketpair(int af_type, struct oonf_packet_managed *managed,
   }
 
   /* Get address the unicast socket should bind on */
-  if (data != NULL && !data->up) {
+  if (os_if != NULL && !os_if->up) {
     bind_ip = NULL;
   }
-  else if (data != NULL && netaddr_get_address_family(data->if_linklocal_v6) == af_type &&
-      netaddr_acl_check_accept(bind_ip_acl, data->if_linklocal_v6)) {
+  else if (os_if != NULL && netaddr_get_address_family(os_if->if_linklocal_v6) == af_type &&
+      netaddr_acl_check_accept(bind_ip_acl, os_if->if_linklocal_v6)) {
 
-    bind_ip = data->if_linklocal_v6;
+    bind_ip = os_if->if_linklocal_v6;
   }
-  else if (data != NULL && netaddr_get_address_family(data->if_linklocal_v4) == af_type &&
-      netaddr_acl_check_accept(bind_ip_acl, data->if_linklocal_v4)) {
+  else if (os_if != NULL && netaddr_get_address_family(os_if->if_linklocal_v4) == af_type &&
+      netaddr_acl_check_accept(bind_ip_acl, os_if->if_linklocal_v4)) {
 
-    bind_ip = data->if_linklocal_v4;
+    bind_ip = os_if->if_linklocal_v4;
   }
   else {
-    bind_ip = os_interface_get_bindaddress(af_type, bind_ip_acl, data);
+    bind_ip = os_interface_get_bindaddress(af_type, bind_ip_acl, os_if);
   }
   if (!bind_ip) {
     oonf_packet_remove(sock, false);
@@ -523,7 +523,7 @@ _apply_managed_socketpair(int af_type, struct oonf_packet_managed *managed,
   }
 
   /* handle loopback interface */
-  if (data != NULL && data->loopback
+  if (os_if != NULL && os_if->loopback
       && netaddr_get_address_family(mc_ip) != AF_UNSPEC) {
     memcpy(mc_ip, bind_ip, sizeof(*mc_ip));
   }
@@ -538,14 +538,14 @@ _apply_managed_socketpair(int af_type, struct oonf_packet_managed *managed,
       managed, sock, bind_ip, managed->_managed_config.port,
       managed->_managed_config.dscp,
       managed->_managed_config.rawip ? managed->_managed_config.protocol : 0,
-      data);
+      os_if);
   if (sockstate == 0) {
     /* settings really changed */
     *changed = true;
 
-    if (real_multicast && data != NULL && data->up) {
+    if (real_multicast && os_if != NULL && os_if->up) {
       os_fd_join_mcast_send(&sock->scheduler_entry.fd,
-          mc_ip, data, managed->_managed_config.loop_multicast, LOG_PACKET);
+          mc_ip, os_if, managed->_managed_config.loop_multicast, LOG_PACKET);
     }
   }
   else if (sockstate < 0) {
@@ -559,7 +559,7 @@ _apply_managed_socketpair(int af_type, struct oonf_packet_managed *managed,
     sockstate = _apply_managed_socket(
         managed, mc_sock, mc_ip, mc_port, managed->_managed_config.dscp,
         managed->_managed_config.rawip ? managed->_managed_config.protocol : 0,
-        data);
+        os_if);
     if (sockstate == 0) {
       /* settings really changed */
       *changed = true;
@@ -568,7 +568,7 @@ _apply_managed_socketpair(int af_type, struct oonf_packet_managed *managed,
 
       /* join multicast group */
       os_fd_join_mcast_recv(&mc_sock->scheduler_entry.fd,
-          mc_ip, data, LOG_PACKET);
+          mc_ip, os_if, LOG_PACKET);
     }
     else if (sockstate < 0) {
       /* error */
@@ -584,7 +584,7 @@ _apply_managed_socketpair(int af_type, struct oonf_packet_managed *managed,
      * oonf_packet_send_managed_multicast()
      */
     netaddr_socket_init(&mc_sock->local_socket, mc_ip, mc_port,
-        data == NULL ? 0 : data->index);
+        os_if == NULL ? 0 : os_if->index);
   }
   return result;
 }
@@ -606,7 +606,7 @@ static int
 _apply_managed_socket(struct oonf_packet_managed *managed,
     struct oonf_packet_socket *packet,
     const struct netaddr *bindto, int port, uint8_t dscp,
-    int protocol, struct os_interface_data *data) {
+    int protocol, struct os_interface *data) {
   union netaddr_socket sock;
   struct netaddr_str buf;
 
@@ -619,7 +619,7 @@ _apply_managed_socket(struct oonf_packet_managed *managed,
   }
 
   if (list_is_node_added(&packet->node)) {
-    if (data == packet->interface
+    if (data == packet->os_if
         && memcmp(&sock, &packet->local_socket, sizeof(sock)) == 0
         && protocol == packet->protocol) {
       /* nothing changed */
@@ -667,7 +667,7 @@ _apply_managed_socket(struct oonf_packet_managed *managed,
     oonf_packet_remove(packet, true);
     return -1;
   }
-  packet->interface = data;
+  packet->os_if = data;
 
   OONF_DEBUG(LOG_PACKET, "Opened new socket and bound it to %s (if %s)",
       netaddr_to_string(&buf, bindto),
@@ -723,8 +723,8 @@ _cb_packet_event(struct oonf_socket_entry *entry,
   pktsocket = container_of(entry, typeof(*pktsocket), scheduler_entry);
 
 #ifdef OONF_LOG_DEBUG_INFO
-  if (pktsocket->interface) {
-    interf = pktsocket->interface->name;
+  if (pktsocket->os_if) {
+    interf = pktsocket->os_if->name;
   }
 #endif
 
@@ -739,7 +739,7 @@ _cb_packet_event(struct oonf_socket_entry *entry,
 
     result = os_fd_recvfrom(&entry->fd,
         buf, pktsocket->config.input_buffer_length-1, &sock,
-        pktsocket->interface);
+        pktsocket->os_if);
     if (result > 0 && pktsocket->config.receive_data != NULL) {
       /* handle raw socket */
       if (pktsocket->protocol) {
@@ -811,7 +811,7 @@ _cb_packet_event(struct oonf_socket_entry *entry,
  * @return -1 if an error happened, 0 otherwise
  */
 static int
-_cb_interface_listener(struct os_interface *l) {
+_cb_interface_listener(struct os_interface_listener *l) {
   struct oonf_packet_managed *managed;
   int result;
 

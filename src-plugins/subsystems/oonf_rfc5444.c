@@ -1073,14 +1073,14 @@ static void
 _cb_send_multicast_packet(struct rfc5444_writer *writer __attribute__((unused)),
     struct rfc5444_writer_target *target, void *ptr, size_t len) {
   struct oonf_rfc5444_target *t;
-  struct os_interface *interf;
+  struct os_interface_listener *if_listener;
   union netaddr_socket sock;
 
   t = container_of(target, struct oonf_rfc5444_target, rfc5444_target);
 
-  interf = oonf_rfc5444_get_core_interface(t->interface);
+  if_listener = oonf_rfc5444_get_core_if_listener(t->interface);
   netaddr_socket_init(&sock, &t->dst, t->interface->protocol->port,
-      interf->data->index);
+      if_listener->data->index);
 
   _print_packet_to_buffer(LOG_RFC5444_W, &sock, t->interface, ptr, len,
       "Outgoing RFC5444 packet to",
@@ -1106,11 +1106,11 @@ _cb_send_unicast_packet(struct rfc5444_writer *writer __attribute__((unused)),
     struct rfc5444_writer_target *target, void *ptr, size_t len) {
   struct oonf_rfc5444_target *t;
   union netaddr_socket sock;
-  struct os_interface *interf;
+  struct os_interface_listener *interf;
 
   t = container_of(target, struct oonf_rfc5444_target, rfc5444_target);
 
-  interf = oonf_rfc5444_get_core_interface(t->interface);
+  interf = oonf_rfc5444_get_core_if_listener(t->interface);
   netaddr_socket_init(&sock, &t->dst, t->interface->protocol->port,
       interf->data->index);
 

@@ -263,9 +263,9 @@ static void
 _cb_probe_link(struct oonf_timer_instance *ptr __attribute__((unused))) {
   struct nhdp_link *lnk, *best_lnk;
   struct _probing_link_data *ldata, *best_ldata;
-  struct nhdp_interface *ninterf;
+  struct nhdp_interface *nhdp_if;
 
-  struct os_interface *interf;
+  struct os_interface_listener *if_listener;
   struct oonf_layer2_net *l2net;
   struct oonf_layer2_neigh *l2neigh;
 
@@ -283,24 +283,24 @@ _cb_probe_link(struct oonf_timer_instance *ptr __attribute__((unused))) {
 
   l2neigh = NULL;
 
-  avl_for_each_element(nhdp_interface_get_tree(), ninterf, _node) {
-    interf = nhdp_interface_get_coreif(ninterf);
+  avl_for_each_element(nhdp_interface_get_tree(), nhdp_if, _node) {
+    if_listener = nhdp_interface_get_if_listener(nhdp_if);
 
-    l2net = oonf_layer2_net_get(interf->data->name);
+    l2net = oonf_layer2_net_get(if_listener->data->name);
     if (!l2net) {
       continue;
     }
 
     if(!_check_if_type(l2net)) {
       OONF_DEBUG(LOG_PROBING, "Drop interface %s (not wireless)",
-          interf->data->name);
+          if_listener->data->name);
       continue;
     }
 
     OONF_DEBUG(LOG_PROBING, "Start looking for probe candidate in interface '%s'",
-        interf->data->name);
+        if_listener->data->name);
 
-    list_for_each_element(&ninterf->_links, lnk, _if_node) {
+    list_for_each_element(&nhdp_if->_links, lnk, _if_node) {
       if (lnk->status != NHDP_LINK_SYMMETRIC) {
         /* only probe symmetric neighbors */
         continue;

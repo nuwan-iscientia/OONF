@@ -74,7 +74,7 @@
 /**
  * Handler for changing an interface address
  */
-struct os_interface_address_change {
+struct os_interface_ip_change {
   /*! operation system specific data */
   struct os_interface_address_change_internal _internal;
 
@@ -95,13 +95,13 @@ struct os_interface_address_change {
    * @param addr this interface address object
    * @param error error code, 0 if everything is fine
    */
-  void (*cb_finished)(struct os_interface_address_change *addr, int error);
+  void (*cb_finished)(struct os_interface_ip_change *addr, int error);
 };
 
 /**
  * Representation of an operation system interface
  */
-struct os_interface_data {
+struct os_interface {
   /*! operation system specific data */
   struct os_interface_internal _internal;
 
@@ -181,13 +181,13 @@ struct os_interface_ip {
   struct netaddr address;
   struct netaddr prefix;
 
-  struct os_interface_data *interf;
+  struct os_interface *interf;
 };
 
 /**
  * operation system listener for interface events
  */
-struct os_interface {
+struct os_interface_listener {
   /*! name of the interface this listener is interested in */
   const char *name;
 
@@ -200,10 +200,10 @@ struct os_interface {
    * @return -1 if an error happened, and the listener should be
    *   triggered again later, 0 if everything was fine
    */
-  int (*if_changed)(struct os_interface *);
+  int (*if_changed)(struct os_interface_listener *);
 
   /*! pointer to interface data */
-  struct os_interface_data *data;
+  struct os_interface *data;
 
   /*! true if this listener still needs to process a change */
   bool _dirty;
@@ -220,25 +220,25 @@ struct os_interface {
 #endif
 
 /* prototypes for all os_system functions */
-static INLINE struct os_interface_data *os_interface_add(struct os_interface *);
-static INLINE void os_interface_remove(struct os_interface *);
+static INLINE struct os_interface *os_interface_add(struct os_interface_listener *);
+static INLINE void os_interface_remove(struct os_interface_listener *);
 static INLINE struct avl_tree *os_interface_get_tree(void);
 
-static INLINE void os_interface_trigger_handler(struct os_interface *);
+static INLINE void os_interface_trigger_handler(struct os_interface_listener *);
 
 static INLINE int os_interface_state_set(struct os_interface *, bool up);
 static INLINE int os_interface_mac_set(struct os_interface *interf, struct netaddr *mac);
 
-static INLINE int os_interface_address_set(struct os_interface_address_change *addr);
-static INLINE void os_interface_address_interrupt(struct os_interface_address_change *addr);
+static INLINE int os_interface_address_set(struct os_interface_ip_change *addr);
+static INLINE void os_interface_address_interrupt(struct os_interface_ip_change *addr);
 
-static INLINE struct os_interface_data *os_interface_get_data_by_ifindex(
+static INLINE struct os_interface *os_interface_get_data_by_ifindex(
     unsigned ifindex);
-static INLINE  struct os_interface_data *os_interface_get_data_by_ifbaseindex(
+static INLINE  struct os_interface *os_interface_get_data_by_ifbaseindex(
     unsigned ifindex);
 static INLINE  const struct netaddr *os_interface_get_bindaddress(int af_type,
-    struct netaddr_acl *filter, struct os_interface_data *ifdata);
+    struct netaddr_acl *filter, struct os_interface *ifdata);
 static INLINE  const struct netaddr *os_interface_get_prefix_from_dst(
-    struct netaddr *destination, struct os_interface_data *ifdata);
+    struct netaddr *destination, struct os_interface *ifdata);
 
 #endif /* OS_INTERFACE_H_ */

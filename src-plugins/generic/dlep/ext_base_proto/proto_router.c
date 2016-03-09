@@ -261,7 +261,7 @@ _router_process_peer_offer(
   struct netaddr addr;
   uint16_t port;
   bool tls;
-  struct os_interface_data *ifdata;
+  struct os_interface *ifdata;
 
   if (session->restrict_signal != DLEP_PEER_OFFER) {
     /* ignore unless we are in discovery mode */

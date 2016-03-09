@@ -13,33 +13,33 @@ static const struct netaddr *_get_fixed_prefix(
     int af_type, struct netaddr_acl *filter);
 static const struct netaddr *_get_exact_match_bindaddress(
     int af_type, struct netaddr_acl *filter,
-    struct os_interface_data *ifdata);
+    struct os_interface *os_if);
 static const struct netaddr *_get_matching_bindaddress(
     int af_type, struct netaddr_acl *filter,
-    struct os_interface_data *ifdata);
+    struct os_interface *os_if);
 
 /**
  * Calculate the IP address a socket should bind to
  * @param af_type address family for result
  * @param filter filter for IP address to bind on
- * @param ifdata interface to bind to socket on, NULL if not
+ * @param os_if interface to bind to socket on, NULL if not
  *   bound to an interface.
  * @return pointer to address, NULL if no valid address was found
  */
 const struct netaddr *
 os_interface_generic_get_bindaddress(int af_type,
-    struct netaddr_acl *filter, struct os_interface_data *ifdata) {
+    struct netaddr_acl *filter, struct os_interface *os_if) {
   const struct netaddr *result;
 
   result = NULL;
-  if (ifdata == NULL) {
+  if (os_if == NULL) {
     result = _get_fixed_prefix(af_type, filter);
   }
   if (!result) {
-    result = _get_exact_match_bindaddress(af_type, filter, ifdata);
+    result = _get_exact_match_bindaddress(af_type, filter, os_if);
   }
   if (!result) {
-    result = _get_matching_bindaddress(af_type, filter, ifdata);
+    result = _get_matching_bindaddress(af_type, filter, os_if);
   }
   return result;
 }
@@ -49,13 +49,13 @@ os_interface_generic_get_bindaddress(int af_type,
  * @param ifindex index of the interface
  * @return first fitting interface data, NULL if not found
  */
-struct os_interface_data *
+struct os_interface *
 os_interface_generic_get_data_by_ifbaseindex(unsigned ifindex) {
-  struct os_interface_data *ifdata;
+  struct os_interface *os_if;
 
-  avl_for_each_element(os_interface_get_tree(), ifdata, _node) {
-    if (ifdata->base_index == ifindex) {
-      return ifdata;
+  avl_for_each_element(os_interface_get_tree(), os_if, _node) {
+    if (os_if->base_index == ifindex) {
+      return os_if;
     }
   }
   return NULL;
@@ -66,13 +66,13 @@ os_interface_generic_get_data_by_ifbaseindex(unsigned ifindex) {
  * @param ifindex index of the interface
  * @return interface data, NULL if not found
  */
-struct os_interface_data *
+struct os_interface *
 os_interface_generic_get_data_by_ifindex(unsigned ifindex) {
-  struct os_interface_data *data;
+  struct os_interface *os_if;
 
-  avl_for_each_element(os_interface_get_tree(), data, _node) {
-    if (data->index == ifindex) {
-      return data;
+  avl_for_each_element(os_interface_get_tree(), os_if, _node) {
+    if (os_if->index == ifindex) {
+      return os_if;
     }
   }
   return NULL;
@@ -86,13 +86,13 @@ os_interface_generic_get_data_by_ifindex(unsigned ifindex) {
  */
 const struct netaddr *
 os_interface_generic_get_prefix_from_dst(
-    struct netaddr *destination, struct os_interface_data *ifdata) {
+    struct netaddr *destination, struct os_interface *os_if) {
   struct os_interface_ip *ip;
   const struct netaddr *result;
 
-  if (ifdata == NULL) {
-    avl_for_each_element(os_interface_get_tree(), ifdata, _node) {
-      result = os_interface_get_prefix_from_dst(destination, ifdata);
+  if (os_if == NULL) {
+    avl_for_each_element(os_interface_get_tree(), os_if, _node) {
+      result = os_interface_get_prefix_from_dst(destination, os_if);
       if (result) {
         return result;
       }
@@ -100,7 +100,7 @@ os_interface_generic_get_prefix_from_dst(
     return NULL;
   }
 
-  avl_for_each_element(&ifdata->addresses, ip, _node) {
+  avl_for_each_element(&os_if->addresses, ip, _node) {
     if (netaddr_is_in_subnet(&ip->prefix, destination)) {
       return &ip->prefix;
     }
@@ -161,20 +161,20 @@ _get_fixed_prefix(int af_type, struct netaddr_acl *filter) {
  *
  * @param af_type address family type to look for
  * @param filter filter that must be matched
- * @param ifdata interface to look through, NULL for all interfaces
+ * @param os_if interface to look through, NULL for all interfaces
  * @return pointer to address to bind socket to, NULL if no match
  */
 static const struct netaddr *
 _get_exact_match_bindaddress(int af_type, struct netaddr_acl *filter,
-    struct os_interface_data *ifdata) {
+    struct os_interface *os_if) {
   struct os_interface_ip *ip;
   const struct netaddr *result;
   size_t i;
 
   /* handle the 'all interfaces' case */
-  if (ifdata == NULL) {
-    avl_for_each_element(os_interface_get_tree(), ifdata, _node) {
-      if ((result = _get_exact_match_bindaddress(af_type, filter, ifdata)) != NULL) {
+  if (os_if == NULL) {
+    avl_for_each_element(os_interface_get_tree(), os_if, _node) {
+      if ((result = _get_exact_match_bindaddress(af_type, filter, os_if)) != NULL) {
         return result;
       }
     }
@@ -189,7 +189,7 @@ _get_exact_match_bindaddress(int af_type, struct netaddr_acl *filter,
     }
 
     /* run through all interface addresses and look for match */
-    avl_for_each_element(&ifdata->addresses, ip, _node) {
+    avl_for_each_element(&os_if->addresses, ip, _node) {
       if (netaddr_cmp(&ip->address, &filter->accept[i]) == 0) {
         return &filter->accept[i];
       }
@@ -205,19 +205,19 @@ _get_exact_match_bindaddress(int af_type, struct netaddr_acl *filter,
  *
  * @param af_type address family type to look for
  * @param filter filter that must be matched
- * @param ifdata interface to look through, NULL for all interfaces
+ * @param os_if interface to look through, NULL for all interfaces
  * @return pointer to address to bind socket to, NULL if no match
  */
 static const struct netaddr *
 _get_matching_bindaddress(int af_type, struct netaddr_acl *filter,
-    struct os_interface_data *ifdata) {
+    struct os_interface *os_if) {
   struct os_interface_ip *ip;
   const struct netaddr *result;
 
   /* handle the 'all interfaces' case */
-  if (ifdata == NULL) {
-    avl_for_each_element(os_interface_get_tree(), ifdata, _node) {
-      if ((result = _get_matching_bindaddress(af_type, filter, ifdata)) != NULL) {
+  if (os_if == NULL) {
+    avl_for_each_element(os_interface_get_tree(), os_if, _node) {
+      if ((result = _get_matching_bindaddress(af_type, filter, os_if)) != NULL) {
         return result;
       }
     }
@@ -225,7 +225,7 @@ _get_matching_bindaddress(int af_type, struct netaddr_acl *filter,
   }
 
   /* run through interface address list looking for filter match */
-  avl_for_each_element(&ifdata->addresses, ip, _node) {
+  avl_for_each_element(&os_if->addresses, ip, _node) {
     if (netaddr_get_address_family(&ip->address) != af_type) {
       continue;
     }

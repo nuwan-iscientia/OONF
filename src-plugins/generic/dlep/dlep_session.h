@@ -284,7 +284,7 @@ struct dlep_session {
   enum oonf_log_source log_source;
 
   /*! local layer2 data interface */
-  struct os_interface l2_listener;
+  struct os_interface_listener l2_listener;
 
   /*! timer to generate discovery/heartbeats */
   struct oonf_timer_instance local_event_timer;

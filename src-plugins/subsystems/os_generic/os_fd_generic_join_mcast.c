@@ -65,7 +65,7 @@
 int
 os_fd_generic_join_mcast_recv(struct os_fd *sock,
     const struct netaddr *multicast,
-    const struct os_interface_data *oif,
+    const struct os_interface *oif,
     enum oonf_log_source log_src __attribute__((unused))) {
   struct netaddr_str buf1, buf2;
   struct ip_mreq   v4_mreq;
@@ -134,7 +134,7 @@ os_fd_generic_join_mcast_recv(struct os_fd *sock,
 int
 os_fd_generic_join_mcast_send(struct os_fd *sock,
     const struct netaddr *multicast,
-    const struct os_interface_data *oif, bool loop,
+    const struct os_interface *oif, bool loop,
     enum oonf_log_source log_src __attribute__((unused))) {
   struct netaddr_str buf1, buf2;
   unsigned i;

@@ -69,7 +69,7 @@ static void _cleanup(void);
 static void _stream_close(struct oonf_stream_session *session);
 int _apply_managed(struct oonf_stream_managed *managed);
 static int _apply_managed_socket(int af_type, struct oonf_stream_managed *managed,
-    struct oonf_stream_socket *stream, struct os_interface_data *data);
+    struct oonf_stream_socket *stream, struct os_interface *os_if);
 static void _cb_parse_request(struct oonf_socket_entry *);
 static struct oonf_stream_session *_create_session(
     struct oonf_stream_socket *stream_socket, struct os_fd *sock,
@@ -78,7 +78,7 @@ static struct oonf_stream_session *_create_session(
 static void _cb_parse_connection(struct oonf_socket_entry *entry);
 
 static void _cb_timeout_handler(struct oonf_timer_instance *);
-static int _cb_interface_listener(struct os_interface *interf);
+static int _cb_interface_listener(struct os_interface_listener *listener);
 
 /* list of olsr stream sockets */
 static struct list_entity _stream_head;
@@ -479,19 +479,19 @@ _stream_close(struct oonf_stream_session *session) {
  */
 int
 _apply_managed(struct oonf_stream_managed *managed) {
-  struct os_interface_data *data = NULL;
+  struct os_interface *ps_if = NULL;
 
   /* get interface */
   if (managed->_if_listener.data) {
-    data = managed->_if_listener.data;
+    ps_if = managed->_if_listener.data;
   }
 
-  if (_apply_managed_socket(AF_INET, managed, &managed->socket_v4, data)) {
+  if (_apply_managed_socket(AF_INET, managed, &managed->socket_v4, ps_if)) {
     return -1;
   }
 
   if (os_system_is_ipv6_supported()) {
-    if (_apply_managed_socket(AF_INET6, managed, &managed->socket_v6, data)) {
+    if (_apply_managed_socket(AF_INET6, managed, &managed->socket_v6, ps_if)) {
       return -1;
     }
   }
@@ -507,7 +507,7 @@ _apply_managed(struct oonf_stream_managed *managed) {
  */
 static int
 _apply_managed_socket(int af_type, struct oonf_stream_managed *managed,
-    struct oonf_stream_socket *stream, struct os_interface_data *data) {
+    struct oonf_stream_socket *stream, struct os_interface *data) {
   struct netaddr_acl *bind_ip_acl;
   const struct netaddr *bind_ip;
   union netaddr_socket sock;
@@ -866,7 +866,7 @@ _cb_parse_connection(struct oonf_socket_entry *entry) {
  * @return -1 if an error happened, 0 otherwise
  */
 static int
-_cb_interface_listener(struct os_interface *interf) {
+_cb_interface_listener(struct os_interface_listener *interf) {
   struct oonf_stream_managed *managed;
   int result;
 

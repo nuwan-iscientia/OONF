@@ -201,7 +201,7 @@ struct oonf_layer2_net {
   enum oonf_layer2_network_type if_type;
 
   /*! interface listener to keep track of events and local mac address */
-  struct os_interface if_listener;
+  struct os_interface_listener if_listener;
 
   /*! tree of remote neighbors */
   struct avl_tree neighbors;

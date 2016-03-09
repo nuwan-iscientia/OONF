@@ -161,7 +161,7 @@ _cleanup(void) {
 static void
 _cb_transmission_event(struct oonf_timer_instance *ptr __attribute((unused))) {
   struct oonf_layer2_net *l2net;
-  struct os_interface_data *ifdata;
+  struct os_interface *os_if;
   struct ethtool_cmd cmd;
   struct ifreq req;
   int64_t ethspeed;
@@ -170,7 +170,7 @@ _cb_transmission_event(struct oonf_timer_instance *ptr __attribute((unused))) {
   struct isonumber_str ibuf;
 #endif
 
-  avl_for_each_element(os_interface_get_tree(), ifdata, _node) {
+  avl_for_each_element(os_interface_get_tree(), os_if, _node) {
     /* initialize ethtool command */
     memset(&cmd, 0, sizeof(cmd));
     cmd.cmd = ETHTOOL_GSET;
@@ -179,17 +179,17 @@ _cb_transmission_event(struct oonf_timer_instance *ptr __attribute((unused))) {
     memset(&req, 0, sizeof(req));
     req.ifr_data = (void *)&cmd;
 
-    if (ifdata->base_index != ifdata->index) {
+    if (os_if->base_index != os_if->index) {
       /* get name of base interface */
-      if (if_indextoname(ifdata->base_index, req.ifr_name) == NULL) {
+      if (if_indextoname(os_if->base_index, req.ifr_name) == NULL) {
         OONF_WARN(LOG_ETH, "Could not get interface name of index %u: %s (%d)",
-            ifdata->base_index, strerror(errno), errno);
+            os_if->base_index, strerror(errno), errno);
         continue;
       }
     }
     else {
       /* copy interface name directly */
-      strscpy(req.ifr_name, ifdata->name, IF_NAMESIZE);
+      strscpy(req.ifr_name, os_if->name, IF_NAMESIZE);
     }
 
     /* request ethernet information from kernel */
@@ -199,7 +199,7 @@ _cb_transmission_event(struct oonf_timer_instance *ptr __attribute((unused))) {
     }
 
     /* layer-2 object for this interface */
-    l2net = oonf_layer2_net_add(ifdata->name);
+    l2net = oonf_layer2_net_add(os_if->name);
     if (l2net == NULL) {
       continue;
     }
@@ -213,7 +213,7 @@ _cb_transmission_event(struct oonf_timer_instance *ptr __attribute((unused))) {
 
     /* set corresponding database entries */
     OONF_DEBUG(LOG_ETH, "Set default link speed of interface %s to %s",
-        ifdata->name,
+        os_if->name,
         isonumber_from_s64(&ibuf, ethspeed, "bit/s", 0, false, false));
 
     oonf_layer2_set_value(&l2net->neighdata[OONF_LAYER2_NEIGH_RX_BITRATE],

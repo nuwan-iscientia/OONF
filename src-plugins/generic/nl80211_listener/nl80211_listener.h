@@ -62,7 +62,7 @@ struct nl80211_if {
   char name[IF_NAMESIZE];
 
   /*! interface listener */
-  struct os_interface if_listener;
+  struct os_interface_listener if_listener;
 
   /*! layer2 network object of interface */
   struct oonf_layer2_net *l2net;

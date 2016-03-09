@@ -59,7 +59,7 @@
  * @param bind_to address to bind the socket to
  * @param protocol IP protocol number
  * @param recvbuf size of input buffer for socket
- * @param interf pointer to interface to bind socket on,
+ * @param os_if pointer to interface to bind socket on,
  *   NULL if socket should not be bound to an interface
  * @param log_src logging source for error messages
  * @return socket filedescriptor, -1 if an error happened
@@ -67,7 +67,7 @@
 int
 os_fd_generic_getrawsocket(struct os_fd *sock,
     const union netaddr_socket *bind_to,
-    int protocol, size_t recvbuf, const struct os_interface_data *interf,
+    int protocol, size_t recvbuf, const struct os_interface *os_if,
     enum oonf_log_source log_src __attribute__((unused))) {
 
   static const int zero = 0;
@@ -88,7 +88,7 @@ os_fd_generic_getrawsocket(struct os_fd *sock,
     }
   }
 
-  if (os_fd_configsocket(sock, bind_to, recvbuf, true, interf, log_src)) {
+  if (os_fd_configsocket(sock, bind_to, recvbuf, true, os_if, log_src)) {
     os_fd_close(sock);
     return -1;
   }

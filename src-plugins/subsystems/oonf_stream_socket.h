@@ -293,7 +293,7 @@ struct oonf_stream_managed {
   struct oonf_stream_managed_config _managed_config;
 
   /*! listener to interface the socket is bound to */
-  struct os_interface _if_listener;
+  struct os_interface_listener _if_listener;
 };
 
 EXPORT int oonf_stream_add(struct oonf_stream_socket *,
