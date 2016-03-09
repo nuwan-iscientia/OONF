@@ -56,13 +56,14 @@
 
 /**
  * Creates a new raw socket and configures it
+ * @param sock empty socket instance
  * @param bind_to address to bind the socket to
  * @param protocol IP protocol number
  * @param recvbuf size of input buffer for socket
  * @param os_if pointer to interface to bind socket on,
  *   NULL if socket should not be bound to an interface
  * @param log_src logging source for error messages
- * @return socket filedescriptor, -1 if an error happened
+ * @return -1 if an error happened, 0 otherwise
  */
 int
 os_fd_generic_getrawsocket(struct os_fd *sock,

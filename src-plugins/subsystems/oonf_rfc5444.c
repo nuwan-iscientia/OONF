@@ -872,7 +872,7 @@ oonf_rfc5444_target_get_local_socket(struct oonf_rfc5444_target *target) {
 }
 
 /**
- * @param interface oonf rfc5444 interface
+ * @param rfc5444_if oonf rfc5444 interface
  * @param af_type address family type
  * @return local socket corresponding to address family
  */

@@ -81,7 +81,7 @@ os_interface_generic_get_data_by_ifindex(unsigned ifindex) {
 /**
  * Get the prefix of an interface fitting to a destination address
  * @param destination destination address
- * @param ifdata interface data, NULL to search over all interfaces
+ * @param os_if interface data, NULL to search over all interfaces
  * @return network prefix (including full host), NULL if not found
  */
 const struct netaddr *

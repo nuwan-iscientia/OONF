@@ -268,7 +268,6 @@ _cleanup(void) {
 /**
  * Add an interface event listener to the operation system
  * @param if_listener network interface listener
- * @param interface data object, NULL if an error happened
  */
 struct os_interface *
 os_interface_linux_add(struct os_interface_listener *if_listener) {
@@ -326,7 +325,7 @@ os_interface_linux_add(struct os_interface_listener *if_listener) {
 
 /**
  * Remove an interface event listener to the operation system
- * @param interf network interface
+ * @param if_listener network interface listener
  */
 void
 os_interface_linux_remove(struct os_interface_listener *if_listener) {
@@ -358,11 +357,18 @@ os_interface_linux_remove(struct os_interface_listener *if_listener) {
   }
 }
 
+/**
+ * @return tree of os interfaces
+ */
 struct avl_tree *
 os_interface_linux_get_tree(void) {
   return &_interface_data_tree;
 }
 
+/**
+ * Trigger the event handler of an interface listener
+ * @param if_listener network interface listener
+ */
 void
 os_interface_linux_trigger_handler(struct os_interface_listener *if_listener) {
   if_listener->_dirty = true;
@@ -373,7 +379,7 @@ os_interface_linux_trigger_handler(struct os_interface_listener *if_listener) {
 }
 /**
  * Set interface up or down
- * @param o_if network interface
+ * @param os_if network interface
  * @param up true if interface should be up, false if down
  * @return -1 if an error happened, 0 otherwise
  */
@@ -476,6 +482,94 @@ os_interface_linux_address_set(
 }
 
 /**
+ * Stop processing an interface address change
+ * @param addr interface address change request
+ */
+void
+os_interface_linux_address_interrupt(struct os_interface_ip_change *addr) {
+  if (list_is_node_added(&addr->_internal._node)) {
+    /* remove first to prevent any kind of recursive cleanup */
+    list_remove(&addr->_internal._node);
+
+    if (addr->cb_finished) {
+      addr->cb_finished(addr, -1);
+    }
+  }
+}
+
+/**
+ * Set the mac address of an interface
+ * @param os_if network interface
+ * @param mac mac address
+ * @return -1 if an error happened, 0 otherwise
+ */
+int
+os_interface_linux_mac_set(struct os_interface *os_if, struct netaddr *mac) {
+  struct ifreq if_req;
+  struct netaddr_str nbuf;
+
+  if (netaddr_get_address_family(mac) != AF_MAC48) {
+    OONF_WARN(LOG_OS_INTERFACE, "Interface MAC must mac48, not %s",
+        netaddr_to_string(&nbuf, mac));
+    return -1;
+  }
+
+  memset(&if_req, 0, sizeof(if_req));
+  strscpy(if_req.ifr_name, os_if->name, IF_NAMESIZE);
+
+  if_req.ifr_addr.sa_family = ARPHRD_ETHER;
+  netaddr_to_binary(&if_req.ifr_addr.sa_data, mac, 6);
+
+  if (ioctl(os_system_linux_linux_get_ioctl_fd(AF_INET), SIOCSIFHWADDR, &if_req) < 0) {
+    OONF_WARN(LOG_OS_INTERFACE, "Could not set mac address of '%s': %s (%d)",
+        os_if->name, strerror(errno), errno);
+    return -1;
+  }
+  return 0;
+}
+
+/**
+ * Initialize interface for mesh usage
+ * @param os_if network interface data
+ * @return -1 if an error happened, 0 otherwise
+ */
+static int
+_init_mesh(struct os_interface *os_if) {
+  char procfile[FILENAME_MAX];
+  char old_redirect = 0, old_spoof = 0;
+
+  if (os_if->loopback) {
+    /* ignore loopback */
+    return 0;
+  }
+
+  /* handle global ip_forward setting */
+  _mesh_count++;
+  if (_mesh_count == 1) {
+    _activate_if_routing();
+  }
+
+  /* Generate the procfile name */
+  snprintf(procfile, sizeof(procfile), PROC_IF_REDIRECT, os_if->name);
+
+  if (_os_linux_writeToFile(procfile, &old_redirect, '0')) {
+    OONF_WARN(LOG_OS_INTERFACE, "WARNING! Could not disable ICMP redirects! "
+        "You should manually ensure that ICMP redirects are disabled!");
+  }
+
+  /* Generate the procfile name */
+  snprintf(procfile, sizeof(procfile), PROC_IF_SPOOF, os_if->name);
+
+  if (_os_linux_writeToFile(procfile, &old_spoof, '0')) {
+    OONF_WARN(LOG_OS_INTERFACE, "WARNING! Could not disable the IP spoof filter! "
+        "You should mannually ensure that IP spoof filtering is disabled!");
+  }
+
+  os_if->_internal._original_state = (old_redirect << 8) | (old_spoof);
+  return 0;
+}
+
+/**
  * Query a dump of all interface link data
  */
 static void
@@ -547,94 +641,6 @@ _query_interface_addresses(void) {
 
   /* we don't care for the sequence number */
   os_system_linux_netlink_send(&_rtnetlink_if_query, msg);
-}
-
-/**
- * Stop processing an interface address change
- * @param addr interface address change request
- */
-void
-os_interface_linux_address_interrupt(struct os_interface_ip_change *addr) {
-  if (list_is_node_added(&addr->_internal._node)) {
-    /* remove first to prevent any kind of recursive cleanup */
-    list_remove(&addr->_internal._node);
-
-    if (addr->cb_finished) {
-      addr->cb_finished(addr, -1);
-    }
-  }
-}
-
-/**
- * Set the mac address of an interface
- * @param os_if network interface
- * @param mac mac address
- * @return -1 if an error happened, 0 otherwise
- */
-int
-os_interface_linux_mac_set(struct os_interface *os_if, struct netaddr *mac) {
-  struct ifreq if_req;
-  struct netaddr_str nbuf;
-
-  if (netaddr_get_address_family(mac) != AF_MAC48) {
-    OONF_WARN(LOG_OS_INTERFACE, "Interface MAC must mac48, not %s",
-        netaddr_to_string(&nbuf, mac));
-    return -1;
-  }
-
-  memset(&if_req, 0, sizeof(if_req));
-  strscpy(if_req.ifr_name, os_if->name, IF_NAMESIZE);
-
-  if_req.ifr_addr.sa_family = ARPHRD_ETHER;
-  netaddr_to_binary(&if_req.ifr_addr.sa_data, mac, 6);
-
-  if (ioctl(os_system_linux_linux_get_ioctl_fd(AF_INET), SIOCSIFHWADDR, &if_req) < 0) {
-    OONF_WARN(LOG_OS_INTERFACE, "Could not set mac address of '%s': %s (%d)",
-        os_if->name, strerror(errno), errno);
-    return -1;
-  }
-  return 0;
-}
-
-/**
- * Initialize interface for mesh usage
- * @param data network interface data
- * @return -1 if an error happened, 0 otherwise
- */
-static int
-_init_mesh(struct os_interface *data) {
-  char procfile[FILENAME_MAX];
-  char old_redirect = 0, old_spoof = 0;
-
-  if (data->loopback) {
-    /* ignore loopback */
-    return 0;
-  }
-
-  /* handle global ip_forward setting */
-  _mesh_count++;
-  if (_mesh_count == 1) {
-    _activate_if_routing();
-  }
-
-  /* Generate the procfile name */
-  snprintf(procfile, sizeof(procfile), PROC_IF_REDIRECT, data->name);
-
-  if (_os_linux_writeToFile(procfile, &old_redirect, '0')) {
-    OONF_WARN(LOG_OS_INTERFACE, "WARNING! Could not disable ICMP redirects! "
-        "You should manually ensure that ICMP redirects are disabled!");
-  }
-
-  /* Generate the procfile name */
-  snprintf(procfile, sizeof(procfile), PROC_IF_SPOOF, data->name);
-
-  if (_os_linux_writeToFile(procfile, &old_spoof, '0')) {
-    OONF_WARN(LOG_OS_INTERFACE, "WARNING! Could not disable the IP spoof filter! "
-        "You should mannually ensure that IP spoof filtering is disabled!");
-  }
-
-  data->_internal._original_state = (old_redirect << 8) | (old_spoof);
-  return 0;
 }
 
 /**
@@ -801,32 +807,46 @@ _os_linux_writeToFile(const char *file, char *old, char value) {
   return 0;
 }
 
+/**
+ * Trigger all change listeners of a network interface
+ * @param os_if network interface
+ */
 static void
-_trigger_if_change(struct os_interface *ifdata) {
-  struct os_interface_listener *interf;
+_trigger_if_change(struct os_interface *os_if) {
+  struct os_interface_listener *if_listener;
 
-  if (!oonf_timer_is_active(&ifdata->_change_timer)) {
+  if (!oonf_timer_is_active(&os_if->_change_timer)) {
     /* inform listeners the interface changed */
-    oonf_timer_start(&ifdata->_change_timer, 200);
+    oonf_timer_start(&os_if->_change_timer, 200);
 
-    list_for_each_element(&ifdata->_listeners, interf, _node) {
+    list_for_each_element(&os_if->_listeners, if_listener, _node) {
       /* each interface should be informed */
-      interf->_dirty = true;
+      if_listener->_dirty = true;
     }
   }
 }
 
+/**
+ * Trigger all change listeners of a network interface.
+ * Trigger also all change listeners of the wildcard interface "any"
+ * @param os_if network interface
+ */
 static void
-_trigger_if_change_including_any(struct os_interface *ifdata) {
-  _trigger_if_change(ifdata);
+_trigger_if_change_including_any(struct os_interface *os_if) {
+  _trigger_if_change(os_if);
 
-  ifdata = avl_find_element(
-      &_interface_data_tree, OS_INTERFACE_ANY, ifdata, _node);
-  if (ifdata) {
-    _trigger_if_change(ifdata);
+  os_if = avl_find_element(
+      &_interface_data_tree, OS_INTERFACE_ANY, os_if, _node);
+  if (os_if) {
+    _trigger_if_change(os_if);
   }
 }
 
+/**
+ * Parse an incoming LINK information from netlink
+ * @param ifname interface name
+ * @param msg netlink message
+ */
 static void
 _link_parse_nlmsg(const char *ifname, struct nlmsghdr *msg) {
   struct ifinfomsg *ifi_msg;
@@ -878,18 +898,22 @@ _link_parse_nlmsg(const char *ifname, struct nlmsghdr *msg) {
   _trigger_if_change_including_any(ifdata);
 }
 
+/**
+ * Update the links for routable/ll addresses of a network interface
+ * @param os_if network interface
+ */
 static void
-_update_address_shortcuts(struct os_interface *ifdata) {
+_update_address_shortcuts(struct os_interface *os_if) {
   struct os_interface_ip *ip;
   bool ipv4_ll, ipv6_ll, ipv4_routable, ipv6_routable;
 
   /* update address shortcuts */
-  ifdata->if_v4 = &NETADDR_UNSPEC;
-  ifdata->if_v6 = &NETADDR_UNSPEC;
-  ifdata->if_linklocal_v4 = &NETADDR_UNSPEC;
-  ifdata->if_linklocal_v6 = &NETADDR_UNSPEC;
+  os_if->if_v4 = &NETADDR_UNSPEC;
+  os_if->if_v6 = &NETADDR_UNSPEC;
+  os_if->if_linklocal_v4 = &NETADDR_UNSPEC;
+  os_if->if_linklocal_v6 = &NETADDR_UNSPEC;
 
-  avl_for_each_element(&ifdata->addresses, ip, _node) {
+  avl_for_each_element(&os_if->addresses, ip, _node) {
     ipv4_ll = netaddr_is_in_subnet(&ip->address, &NETADDR_IPV4_LINKLOCAL);
     ipv6_ll = netaddr_is_in_subnet(&ip->address, &NETADDR_IPV6_LINKLOCAL);
 
@@ -901,29 +925,34 @@ _update_address_shortcuts(struct os_interface *ifdata) {
         && (netaddr_is_in_subnet(&ip->address, &NETADDR_IPV6_ULA)
             || netaddr_is_in_subnet(&ip->address, &NETADDR_IPV6_GLOBAL));
 
-    if (netaddr_is_unspec(ifdata->if_v4) && ipv4_routable) {
-      ifdata->if_v4 = &ip->address;
+    if (netaddr_is_unspec(os_if->if_v4) && ipv4_routable) {
+      os_if->if_v4 = &ip->address;
     }
-    if (netaddr_is_unspec(ifdata->if_v6) && ipv6_routable) {
-      ifdata->if_v6 = &ip->address;
+    if (netaddr_is_unspec(os_if->if_v6) && ipv6_routable) {
+      os_if->if_v6 = &ip->address;
     }
-    if (netaddr_is_unspec(ifdata->if_linklocal_v4) && ipv4_ll) {
-      ifdata->if_linklocal_v4 = &ip->address;
+    if (netaddr_is_unspec(os_if->if_linklocal_v4) && ipv4_ll) {
+      os_if->if_linklocal_v4 = &ip->address;
     }
-    if (netaddr_is_unspec(ifdata->if_linklocal_v6) && ipv6_ll) {
-      ifdata->if_linklocal_v6 = &ip->address;
+    if (netaddr_is_unspec(os_if->if_linklocal_v6) && ipv6_ll) {
+      os_if->if_linklocal_v6 = &ip->address;
     }
   }
 }
 
+/**
+ * Add an IP address/prefix to a network interface
+ * @param os_if network interface
+ * @param prefixed_addr full IP address with prefix length
+ */
 static void
-_add_address(struct os_interface *ifdata, struct netaddr *prefixed_addr) {
+_add_address(struct os_interface *os_if, struct netaddr *prefixed_addr) {
   struct os_interface_ip *ip;
 #if defined(OONF_LOG_DEBUG_INFO)
   struct netaddr_str nbuf;
 #endif
 
-  ip = avl_find_element(&ifdata->addresses, prefixed_addr, ip, _node);
+  ip = avl_find_element(&os_if->addresses, prefixed_addr, ip, _node);
   if (!ip) {
     ip = oonf_class_malloc(&_interface_ip_class);
     if (!ip) {
@@ -933,14 +962,14 @@ _add_address(struct os_interface *ifdata, struct netaddr *prefixed_addr) {
     /* establish key and add to tree */
     memcpy(&ip->prefixed_addr, prefixed_addr, sizeof(*prefixed_addr));
     ip->_node.key = &ip->prefixed_addr;
-    avl_insert(&ifdata->addresses, &ip->_node);
+    avl_insert(&os_if->addresses, &ip->_node);
 
     /* add back pointer */
-    ip->interf = ifdata;
+    ip->interf = os_if;
   }
 
   OONF_INFO(LOG_OS_INTERFACE, "Add address to %s: %s",
-      ifdata->name, netaddr_to_string(&nbuf, prefixed_addr));
+      os_if->name, netaddr_to_string(&nbuf, prefixed_addr));
 
   /* copy sanitized addresses */
   memcpy(&ip->address, prefixed_addr, sizeof(*prefixed_addr));
@@ -948,25 +977,35 @@ _add_address(struct os_interface *ifdata, struct netaddr *prefixed_addr) {
   netaddr_truncate(&ip->prefix, prefixed_addr);
 }
 
+/**
+ * Remove an IP address/prefix from a network interface
+ * @param os_if network interface
+ * @param prefixed_addr full IP address with prefix length
+ */
 static void
-_remove_address(struct os_interface *ifdata, struct netaddr *prefixed_addr) {
+_remove_address(struct os_interface *os_if, struct netaddr *prefixed_addr) {
   struct os_interface_ip *ip;
 #if defined(OONF_LOG_DEBUG_INFO)
   struct netaddr_str nbuf;
 #endif
 
-  ip = avl_find_element(&ifdata->addresses, prefixed_addr, ip, _node);
+  ip = avl_find_element(&os_if->addresses, prefixed_addr, ip, _node);
   if (!ip) {
     return;
   }
 
   OONF_INFO(LOG_OS_INTERFACE, "Remove address from %s: %s",
-      ifdata->name, netaddr_to_string(&nbuf, prefixed_addr));
+      os_if->name, netaddr_to_string(&nbuf, prefixed_addr));
 
-  avl_remove(&ifdata->addresses, &ip->_node);
+  avl_remove(&os_if->addresses, &ip->_node);
   oonf_class_free(&_interface_ip_class, ip);
 }
 
+/**
+ * Parse an incoming IP address information from netlink
+ * @param ifname name of interface
+ * @param msg netlink message
+ */
 static void
 _address_parse_nlmsg(const char *ifname, struct nlmsghdr *msg) {
   struct ifaddrmsg *ifa_msg;
@@ -1053,8 +1092,8 @@ _cb_rtnetlink_message(struct nlmsghdr *hdr) {
 
 /**
  * Handle feedback from netlink socket
- * @param seq
- * @param error
+ * @param seq sequence number of netlink message
+ * @param error error code
  */
 static void
 _cb_rtnetlink_error(uint32_t seq, int error) {
@@ -1087,7 +1126,7 @@ _cb_rtnetlink_timeout(void) {
 
 /**
  * Handle done from multipart netlink messages
- * @param seq
+ * @param seq sequence number of netlink message
  */
 static void
 _cb_rtnetlink_done(uint32_t seq) {
@@ -1121,6 +1160,9 @@ _address_finished(struct os_interface_ip_change *addr, int error) {
   }
 }
 
+/**
+ * Handle switching between netlink query for links and addresses
+ */
 static void
 _process_end_of_query(void) {
   if (_link_query_in_progress) {
@@ -1145,6 +1187,9 @@ _process_end_of_query(void) {
   }
 }
 
+/**
+ * Handle a netlink query that did not work out
+ */
 static void
 _process_bad_end_of_query(void) {
   /* reactivate query that has failed */
@@ -1157,21 +1202,38 @@ _process_bad_end_of_query(void) {
   _process_end_of_query();
 }
 
+/**
+ * Handle an incoming netlink query error
+ * @param seq sequence number of netlink message
+ * @param error error code
+ */
 static void
 _cb_query_error(uint32_t seq __attribute((unused)),
     int error __attribute((unused))) {
   _process_bad_end_of_query();
 }
 
+/**
+ * Handle a successful netlink query
+ * @param seq sequence number of netlink message
+ */
 static void
 _cb_query_done(uint32_t seq __attribute((unused))) {
   _process_end_of_query();
 }
+
+/**
+ * Handle a timeout of a netlink query
+ */
 static void
 _cb_query_timeout(void) {
   _process_bad_end_of_query();
 }
 
+/**
+ * Handle timer that announces interface state/address changes
+ * @param timer timer instance
+ */
 static void
 _cb_interface_changed(struct oonf_timer_instance *timer) {
   struct os_interface *data;
