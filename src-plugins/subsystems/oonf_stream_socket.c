@@ -774,6 +774,9 @@ _cb_parse_connection(struct oonf_socket_entry *entry) {
     } else if (len == 0) {
       /* external s_sock closed */
       session->state = STREAM_SESSION_SEND_AND_QUIT;
+
+      /* still call callback once more */
+      session->state = s_sock->config.receive_data(session);
     }
   }
 
