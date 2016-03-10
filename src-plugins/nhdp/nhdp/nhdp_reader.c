@@ -406,6 +406,10 @@ _cb_messagetlvs(struct rfc5444_reader_tlvblock_context *context) {
 
   /* remember local NHDP interface */
   _current.localif = nhdp_interface_get(_protocol->input_interface->name);
+  if (!_current.localif) {
+    /* incoming message through an interface unspecific socket, ignore it */
+    return RFC5444_DROP_MESSAGE;
+  }
 
   /* extract originator address */
   if (context->has_origaddr) {
