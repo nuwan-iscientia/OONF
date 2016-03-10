@@ -98,9 +98,9 @@ static struct cfg_schema_entry _radio_entries[] = {
   CFG_MAP_BOOL(dlep_radio_if, interf.single_session, "single_session", "true",
       "Connect only to a single router"),
 
-  CFG_MAP_BOOL(dlep_radio_if, interf.session.cfg.send_proxied, "proxied", "false",
+  CFG_MAP_BOOL(dlep_radio_if, interf.session.cfg.send_proxied, "proxied", "true",
       "Report 802.11s proxied mac address for neighbors"),
-  CFG_MAP_BOOL(dlep_radio_if, interf.session.cfg.send_neighbors, "not_proxied", "true",
+  CFG_MAP_BOOL(dlep_radio_if, interf.session.cfg.send_neighbors, "not_proxied", "false",
       "Report direct neighbors"),
 };
 
