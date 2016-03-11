@@ -71,6 +71,8 @@
 #include "common/avl.h"
 #include "common/avl_comp.h"
 #include "common/string.h"
+#include "core/oonf_cfg.h"
+#include "core/oonf_main.h"
 #include "core/oonf_subsystem.h"
 #include "subsystems/oonf_class.h"
 #include "subsystems/oonf_timer.h"
@@ -105,6 +107,7 @@
 /* prototypes */
 static int _init(void);
 static void _cleanup(void);
+static void _early_cfg_init(void);
 
 static int _init_mesh(struct os_interface *os_if);
 static void _cleanup_mesh(struct os_interface *os_if);
@@ -127,6 +130,7 @@ static void _deactivate_if_routing(void);
 static int _os_linux_writeToFile(const char *file, char *old, char value);
 
 static void _cb_interface_changed(struct oonf_timer_instance *);
+static int _handle_unused_parameter(const char *arg);
 
 /* subsystem definition */
 static const char *_dependencies[] = {
@@ -141,6 +145,7 @@ static struct oonf_subsystem _oonf_os_interface_subsystem = {
   .dependencies_count = ARRAYSIZE(_dependencies),
   .init = _init,
   .cleanup = _cleanup,
+  .early_cfg_init = _early_cfg_init,
 };
 DECLARE_OONF_PLUGIN(_oonf_os_interface_subsystem);
 
@@ -239,6 +244,7 @@ _init(void) {
   oonf_timer_add(&_interface_change_timer);
 
   _is_kernel_2_6_31_or_better = os_system_linux_is_minimal_kernel(2,6,31);
+
   return 0;
 }
 
@@ -263,6 +269,11 @@ _cleanup(void) {
 
   os_system_linux_netlink_remove(&_rtnetlink_if_query);
   os_system_linux_netlink_remove(&_rtnetlink_receiver);
+}
+
+static
+void _early_cfg_init(void) {
+  oonf_main_set_parameter_handler(_handle_unused_parameter);
 }
 
 /**
@@ -1270,4 +1281,15 @@ _cb_interface_changed(struct oonf_timer_instance *timer) {
     /* re-trigger */
     oonf_timer_start(timer, 200);
   }
+}
+
+/**
+ * Transform remaining parameters into interface sections
+ * @param arg command line parameter
+ * @return always 0 (ok)
+ */
+static int
+_handle_unused_parameter(const char *arg) {
+  cfg_db_add_namedsection(oonf_cfg_get_rawdb(), CFG_INTERFACE_SECTION, arg);
+  return 0;
 }
