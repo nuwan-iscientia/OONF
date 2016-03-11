@@ -289,7 +289,7 @@ os_interface_linux_add(struct os_interface_listener *if_listener) {
       return NULL;
     }
 
-    OONF_DEBUG(LOG_OS_INTERFACE, "Add interface to tracking: %s", if_listener->name);
+    OONF_INFO(LOG_OS_INTERFACE, "Add interface to tracking: %s", if_listener->name);
 
     /* hook into interface data tree */
     strscpy(data->name, if_listener->name, IF_NAMESIZE);
@@ -320,6 +320,11 @@ os_interface_linux_add(struct os_interface_listener *if_listener) {
     }
     data->_internal.mesh_counter++;
   }
+
+  /* trigger interface change listener if necessary */
+  if_listener->_dirty = true;
+  oonf_timer_start(&data->_change_timer, 200);
+
   return data;
 }
 
@@ -336,7 +341,7 @@ os_interface_linux_remove(struct os_interface_listener *if_listener) {
     return;
   }
 
-  OONF_DEBUG(LOG_OS_INTERFACE, "Remove interface from tracking: %s", if_listener->name);
+  OONF_INFO(LOG_OS_INTERFACE, "Remove interface from tracking: %s", if_listener->name);
 
   if (if_listener->mesh) {
     if_listener->data->_internal.mesh_counter--;
@@ -1242,7 +1247,7 @@ _cb_interface_changed(struct oonf_timer_instance *timer) {
 
   data = container_of(timer, struct os_interface, _change_timer);
 
-  OONF_DEBUG(LOG_OS_INTERFACE, "Interface %s (%u) changed",
+  OONF_INFO(LOG_OS_INTERFACE, "Interface %s (%u) changed",
       data->name, data->index);
 
   error = false;
