@@ -479,19 +479,19 @@ _stream_close(struct oonf_stream_session *session) {
  */
 int
 _apply_managed(struct oonf_stream_managed *managed) {
-  struct os_interface *ps_if = NULL;
+  struct os_interface *bind_socket_to_if = NULL;
 
   /* get interface */
-  if (managed->_if_listener.data) {
-    ps_if = managed->_if_listener.data;
+  if (managed->_if_listener.data->if_type != OS_IFTYPE_ANY) {
+    bind_socket_to_if = managed->_if_listener.data;
   }
 
-  if (_apply_managed_socket(AF_INET, managed, &managed->socket_v4, ps_if)) {
+  if (_apply_managed_socket(AF_INET, managed, &managed->socket_v4, bind_socket_to_if)) {
     return -1;
   }
 
   if (os_system_is_ipv6_supported()) {
-    if (_apply_managed_socket(AF_INET6, managed, &managed->socket_v6, ps_if)) {
+    if (_apply_managed_socket(AF_INET6, managed, &managed->socket_v6, bind_socket_to_if)) {
       return -1;
     }
   }
@@ -879,7 +879,8 @@ _cb_interface_listener(struct os_interface_listener *interf) {
   result = _apply_managed(managed);
 
   OONF_DEBUG(LOG_STREAM,
-      "Result from interface triggered socket reconfiguration: %d", result);
+      "Result from interface %s triggered socket reconfiguration: %d",
+      interf->name, result);
 
   return result;
 }

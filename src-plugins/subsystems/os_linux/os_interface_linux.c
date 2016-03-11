@@ -314,6 +314,11 @@ os_interface_linux_add(struct os_interface_listener *if_listener) {
     /* initialize change timer */
     data->_change_timer.class = &_interface_change_timer;
 
+    /* check if this is the unspecified interface "any" */
+    if (strcmp(data->name, _ANY_INTERFACE) == 0) {
+      data->if_type = OS_IFTYPE_ANY;
+    }
+
     /* trigger new queries */
     _trigger_link_query = true;
     _trigger_address_query = true;
@@ -554,9 +559,13 @@ _init_mesh(struct os_interface *os_if) {
   char procfile[FILENAME_MAX];
   char old_redirect = 0, old_spoof = 0;
 
-  if (os_if->loopback) {
-    /* ignore loopback */
-    return 0;
+  switch (os_if->if_type) {
+    case OS_IFTYPE_ANY:
+    case OS_IFTYPE_LOOPBACK:
+      /* ignore loopback and unspecific interface*/
+      return 0;
+    default:
+      break;
   }
 
   /* handle global ip_forward setting */
@@ -664,20 +673,24 @@ _query_interface_addresses(void) {
  * @param data network interface data
  */
 static void
-_cleanup_mesh(struct os_interface *data) {
+_cleanup_mesh(struct os_interface *os_if) {
   char restore_redirect, restore_spoof;
   char procfile[FILENAME_MAX];
 
-  if (data->loopback) {
-    /* ignore loopback */
-    return;
+  switch (os_if->if_type) {
+    case OS_IFTYPE_ANY:
+    case OS_IFTYPE_LOOPBACK:
+      /* ignore loopback and unspecific interface*/
+      return;
+    default:
+      break;
   }
 
-  restore_redirect = (data->_internal._original_state >> 8) & 255;
-  restore_spoof = (data->_internal._original_state & 255);
+  restore_redirect = (os_if->_internal._original_state >> 8) & 255;
+  restore_spoof = (os_if->_internal._original_state & 255);
 
   /* Generate the procfile name */
-  snprintf(procfile, sizeof(procfile), PROC_IF_REDIRECT, data->name);
+  snprintf(procfile, sizeof(procfile), PROC_IF_REDIRECT, os_if->name);
 
   if (_os_linux_writeToFile(procfile, NULL, restore_redirect) != 0) {
     OONF_WARN(LOG_OS_INTERFACE, "Could not restore ICMP redirect flag %s to %c",
@@ -685,7 +698,7 @@ _cleanup_mesh(struct os_interface *data) {
   }
 
   /* Generate the procfile name */
-  snprintf(procfile, sizeof(procfile), PROC_IF_SPOOF, data->name);
+  snprintf(procfile, sizeof(procfile), PROC_IF_SPOOF, os_if->name);
 
   if (_os_linux_writeToFile(procfile, NULL, restore_spoof) != 0) {
     OONF_WARN(LOG_OS_INTERFACE, "Could not restore IP spoof flag %s to %c",
@@ -698,7 +711,7 @@ _cleanup_mesh(struct os_interface *data) {
     _deactivate_if_routing();
   }
 
-  data->_internal._original_state = 0;
+  os_if->_internal._original_state = 0;
   return;
 }
 
@@ -882,10 +895,14 @@ _link_parse_nlmsg(const char *ifname, struct nlmsghdr *msg) {
     return;
   }
 
-  OONF_DEBUG(LOG_OS_INTERFACE, "Parse IFI_LINK %s (%u)",
-      ifname, ifi_msg->ifi_index);
   ifdata->up = (ifi_msg->ifi_flags & IFF_UP) != 0;
-  ifdata->loopback = (ifi_msg->ifi_flags & IFF_LOOPBACK) != 0;
+  if ((ifi_msg->ifi_flags & IFF_LOOPBACK) != 0) {
+    ifdata->if_type = OS_IFTYPE_LOOPBACK;
+  }
+
+  OONF_DEBUG(LOG_OS_INTERFACE, "Parse IFI_LINK %s (%u) is %s",
+      ifname, ifi_msg->ifi_index, ifdata->up ? "up" : "down");
+
   ifdata->index = ifi_msg->ifi_index;
 
   for(; RTA_OK(ifi_attr, ifi_len); ifi_attr = RTA_NEXT(ifi_attr,ifi_len)) {

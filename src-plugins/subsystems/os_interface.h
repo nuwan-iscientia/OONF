@@ -98,6 +98,12 @@ struct os_interface_ip_change {
   void (*cb_finished)(struct os_interface_ip_change *addr, int error);
 };
 
+enum os_interface_type {
+  OS_IFTYPE_NORMAL,
+  OS_IFTYPE_LOOPBACK,
+  OS_IFTYPE_ANY,
+};
+
 /**
  * Representation of an operation system interface
  */
@@ -147,8 +153,8 @@ struct os_interface {
   /*! true if the interface exists and is up */
   bool up;
 
-  /*! true if this is a loopback interface */
-  bool loopback;
+  /*! type of interface */
+  enum os_interface_type if_type;
 
   /*! tree of all addresses/prefixes of this interface */
   struct avl_tree addresses;

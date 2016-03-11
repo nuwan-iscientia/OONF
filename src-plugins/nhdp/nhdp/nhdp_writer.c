@@ -164,7 +164,7 @@ nhdp_writer_send_hello(struct nhdp_interface *ninterf) {
   }
 
   interf = nhdp_interface_get_if_listener(ninterf);
-  if (interf->data->loopback) {
+  if (interf->data->if_type == OS_IFTYPE_LOOPBACK) {
     /* no NHDP on loopback interface */
     return;
   }

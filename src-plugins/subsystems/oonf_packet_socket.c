@@ -523,7 +523,7 @@ _apply_managed_socketpair(int af_type, struct oonf_packet_managed *managed,
   }
 
   /* handle loopback interface */
-  if (os_if != NULL && os_if->loopback
+  if (os_if != NULL && os_if->if_type == OS_IFTYPE_LOOPBACK
       && netaddr_get_address_family(mc_ip) != AF_UNSPEC) {
     memcpy(mc_ip, bind_ip, sizeof(*mc_ip));
   }
