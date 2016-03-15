@@ -241,6 +241,9 @@ nhdp_db_neighbor_remove(struct nhdp_neighbor *neigh) {
   /* trigger event */
   oonf_class_event(&_neigh_info, neigh, OONF_OBJECT_REMOVED);
 
+  /* disconnect from other IP version */
+  nhdp_db_neigbor_disconnect_dualstack(neigh);
+
   /* remove all links */
   list_for_each_element_safe(&neigh->_links, lnk, _neigh_node, l_it) {
     nhdp_db_link_remove(lnk);
