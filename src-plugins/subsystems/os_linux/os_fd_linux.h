@@ -499,7 +499,9 @@ os_fd_get_socket_error(struct os_fd *sock, int *value) {
  */
 static INLINE ssize_t
 os_fd_sendto(struct os_fd *sock, const void *buf, size_t length, const union netaddr_socket *dst, bool dont_route) {
-  return sendto(sock->fd, buf, length, dont_route ? MSG_DONTROUTE : 0, &dst->std, sizeof(*dst));
+  return sendto(sock->fd, buf, length,
+      dont_route ? MSG_DONTROUTE : 0,
+      dst ? &dst->std : NULL, sizeof(*dst));
 }
 
 /**
