@@ -220,7 +220,7 @@ dlep_radio_apply_interface_settings(struct dlep_radio_if *interface) {
   oonf_stream_apply_managed(&interface->tcp, &interface->tcp_config);
 
   avl_for_each_element(dlep_extension_get_tree(), ext, _node) {
-    if (ext->cb_session_apply_router) {
+    if (ext->cb_session_apply_radio) {
       ext->cb_session_apply_radio(&interface->interf.session);
     }
   }

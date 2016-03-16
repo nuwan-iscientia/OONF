@@ -668,8 +668,7 @@ _cb_telnet_timeout(struct oonf_telnet_data *data) {
  */
 static void
 _cb_telnet_repeat_stophandler(struct oonf_telnet_data *data) {
-  oonf_timer_stop((struct oonf_timer_instance *)data->stop_data[0]);
-  free(data->stop_data[0]);
+  oonf_timer_stop(&data->stop_timer);
   free(data->stop_data[1]);
 
   data->stop_handler = NULL;
