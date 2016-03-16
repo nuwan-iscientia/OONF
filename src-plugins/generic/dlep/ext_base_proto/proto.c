@@ -593,6 +593,5 @@ _cb_remote_heartbeat(struct oonf_timer_instance *ptr) {
   oonf_timer_stop(&session->local_event_timer);
 
   /* terminate session */
-  dlep_session_generate_signal(session, DLEP_PEER_TERMINATION, NULL);
-  session->restrict_signal = DLEP_PEER_TERMINATION_ACK;
+  dlep_session_terminate(session);
 }
