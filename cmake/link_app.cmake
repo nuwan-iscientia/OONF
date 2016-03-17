@@ -41,13 +41,13 @@ function (oonf_create_app executable static_plugins optional_static_plugins)
     FOREACH(plugin ${optional_static_plugins})
         list(FIND static_plugins ${plugin} insanity)
 
-        IF(NOT ${insanity})
+        IF(${insanity} EQUAL -1)
             IF(TARGET oonf_static_${plugin})
                 list (APPEND static_plugins ${plugin})
             ELSE(TARGET oonf_static_${plugin})
                 message (STATUS "    Optional plugin ${plugin} is not available for executable ${executable}")
             ENDIF(TARGET oonf_static_${plugin})
-        ENDIF(NOT ${insanity})
+        ENDIF(${insanity} EQUAL -1)
     ENDFOREACH(plugin)
 
     # run through list of static plugins
