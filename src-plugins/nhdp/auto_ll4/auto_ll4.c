@@ -453,7 +453,7 @@ _cb_update_timer(struct oonf_timer_instance *ptr) {
   os_if = nhdp_interface_get_if_listener(nhdp_if)->data;
 
   /* ignore loopback */
-  if (os_if->if_type == OS_IFTYPE_LOOPBACK || !os_if->up) {
+  if (os_if->flags.loopback || !os_if->flags.up) {
     OONF_DEBUG(LOG_AUTO_LL4, "Ignore interface %s: its loopback or down",
         os_if->name);
     return;

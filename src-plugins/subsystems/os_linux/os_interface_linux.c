@@ -316,7 +316,7 @@ os_interface_linux_add(struct os_interface_listener *if_listener) {
 
     /* check if this is the unspecified interface "any" */
     if (strcmp(data->name, _ANY_INTERFACE) == 0) {
-      data->if_type = OS_IFTYPE_ANY;
+      data->flags.any = true;
     }
 
     /* trigger new queries */
@@ -559,13 +559,9 @@ _init_mesh(struct os_interface *os_if) {
   char procfile[FILENAME_MAX];
   char old_redirect = 0, old_spoof = 0;
 
-  switch (os_if->if_type) {
-    case OS_IFTYPE_ANY:
-    case OS_IFTYPE_LOOPBACK:
-      /* ignore loopback and unspecific interface*/
-      return 0;
-    default:
-      break;
+  if (os_if->flags.loopback || os_if->flags.any) {
+    /* ignore loopback and unspecific interface*/
+    return 0;
   }
 
   /* handle global ip_forward setting */
@@ -677,13 +673,9 @@ _cleanup_mesh(struct os_interface *os_if) {
   char restore_redirect, restore_spoof;
   char procfile[FILENAME_MAX];
 
-  switch (os_if->if_type) {
-    case OS_IFTYPE_ANY:
-    case OS_IFTYPE_LOOPBACK:
-      /* ignore loopback and unspecific interface*/
-      return;
-    default:
-      break;
+  if (os_if->flags.loopback || os_if->flags.any) {
+    /* ignore loopback and unspecific interface*/
+    return;
   }
 
   restore_redirect = (os_if->_internal._original_state >> 8) & 255;
@@ -895,13 +887,17 @@ _link_parse_nlmsg(const char *ifname, struct nlmsghdr *msg) {
     return;
   }
 
-  ifdata->up = (ifi_msg->ifi_flags & IFF_UP) != 0;
-  if ((ifi_msg->ifi_flags & IFF_LOOPBACK) != 0) {
-    ifdata->if_type = OS_IFTYPE_LOOPBACK;
-  }
+  ifdata->flags.up = (ifi_msg->ifi_flags & IFF_UP) != 0;
+  ifdata->flags.promisc = (ifi_msg->ifi_flags & IFF_PROMISC) != 0;
+  ifdata->flags.pointtopoint = (ifi_msg->ifi_flags & IFF_POINTOPOINT) != 0;
+  ifdata->flags.loopback = (ifi_msg->ifi_flags & IFF_LOOPBACK) != 0;
 
-  OONF_DEBUG(LOG_OS_INTERFACE, "Parse IFI_LINK %s (%u) is %s",
-      ifname, ifi_msg->ifi_index, ifdata->up ? "up" : "down");
+  OONF_DEBUG(LOG_OS_INTERFACE, "Parse IFI_LINK %s (%u): %c%c%c%c",
+      ifname, ifi_msg->ifi_index,
+      ifdata->flags.up ? 'u' : '-',
+      ifdata->flags.promisc ? 'p' : '-',
+      ifdata->flags.pointtopoint ? 'P' : '-',
+      ifdata->flags.loopback ? 'l' : '-');
 
   ifdata->index = ifi_msg->ifi_index;
 

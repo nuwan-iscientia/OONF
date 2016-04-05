@@ -500,7 +500,7 @@ _apply_managed_socketpair(int af_type, struct oonf_packet_managed *managed,
   }
 
   /* Get address the unicast socket should bind on */
-  if (os_if != NULL && !os_if->up) {
+  if (os_if != NULL && !os_if->flags.up) {
     bind_ip = NULL;
   }
   else if (os_if != NULL && netaddr_get_address_family(os_if->if_linklocal_v6) == af_type &&
@@ -523,7 +523,7 @@ _apply_managed_socketpair(int af_type, struct oonf_packet_managed *managed,
   }
 
   /* handle loopback interface */
-  if (os_if != NULL && os_if->if_type == OS_IFTYPE_LOOPBACK
+  if (os_if != NULL && os_if->flags.loopback
       && netaddr_get_address_family(mc_ip) != AF_UNSPEC) {
     memcpy(mc_ip, bind_ip, sizeof(*mc_ip));
   }
@@ -543,7 +543,7 @@ _apply_managed_socketpair(int af_type, struct oonf_packet_managed *managed,
     /* settings really changed */
     *changed = true;
 
-    if (real_multicast && os_if != NULL && os_if->up) {
+    if (real_multicast && os_if != NULL && os_if->flags.up) {
       os_fd_join_mcast_send(&sock->scheduler_entry.fd,
           mc_ip, os_if, managed->_managed_config.loop_multicast, LOG_PACKET);
     }
@@ -627,7 +627,7 @@ _apply_managed_socket(struct oonf_packet_managed *managed,
     }
   }
   else {
-    if (data != NULL && !data->up) {
+    if (data != NULL && !data->flags.up) {
       /* nothing changed */
       return 1;
     }
@@ -636,7 +636,7 @@ _apply_managed_socket(struct oonf_packet_managed *managed,
   /* remove old socket */
   oonf_packet_remove(packet, true);
 
-  if (data != NULL && !data->up) {
+  if (data != NULL && !data->flags.up) {
     OONF_DEBUG(LOG_PACKET, "Interface %s of socket is down",
         data->name);
     return 0;

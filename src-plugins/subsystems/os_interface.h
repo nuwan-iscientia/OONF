@@ -98,10 +98,21 @@ struct os_interface_ip_change {
   void (*cb_finished)(struct os_interface_ip_change *addr, int error);
 };
 
-enum os_interface_type {
-  OS_IFTYPE_NORMAL,
-  OS_IFTYPE_LOOPBACK,
-  OS_IFTYPE_ANY,
+struct os_interface_flags {
+  /*! true if the interface exists and is up */
+  bool up;
+
+  /*! true if the interface is in promiscious mode */
+  bool promisc;
+
+  /*! true if the interface is point to point */
+  bool pointtopoint;
+
+  /*! true if the interface is a loopback one */
+  bool loopback;
+
+  /*! true if interface is the wildcard interface */
+  bool any;
 };
 
 /**
@@ -122,6 +133,9 @@ struct os_interface {
    * same for normal interface
    */
   unsigned base_index;
+
+  /*! boolean flags of interface */
+  struct os_interface_flags flags;
 
   /*! mac address of interface */
   struct netaddr mac;
@@ -149,12 +163,6 @@ struct os_interface {
    * (or to NETADDR_UNSPEC if none available)
    */
   const struct netaddr *if_linklocal_v6;
-
-  /*! true if the interface exists and is up */
-  bool up;
-
-  /*! type of interface */
-  enum os_interface_type if_type;
 
   /*! tree of all addresses/prefixes of this interface */
   struct avl_tree addresses;

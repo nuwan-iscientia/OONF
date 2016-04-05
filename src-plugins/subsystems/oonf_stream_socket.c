@@ -482,7 +482,7 @@ _apply_managed(struct oonf_stream_managed *managed) {
   struct os_interface *bind_socket_to_if = NULL;
 
   /* get interface */
-  if (managed->_if_listener.data->if_type != OS_IFTYPE_ANY) {
+  if (!managed->_if_listener.data->flags.any) {
     bind_socket_to_if = managed->_if_listener.data;
   }
 
@@ -516,7 +516,7 @@ _apply_managed_socket(int af_type, struct oonf_stream_managed *managed,
   bind_ip_acl = &managed->_managed_config.bindto;
 
   /* Get address the unicast socket should bind on */
-  if (data != NULL && !data->up) {
+  if (data != NULL && !data->flags.up) {
     bind_ip = NULL;
   }
   else if (data != NULL
