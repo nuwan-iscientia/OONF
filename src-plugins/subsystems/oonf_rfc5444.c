@@ -299,7 +299,7 @@ _init(void) {
 
   oonf_timer_add(&_aggregation_timer);
 
-  _rfc5444_protocol = oonf_rfc5444_add_protocol(RFC5444_PROTOCOL, true);
+  _rfc5444_protocol = oonf_rfc5444_add_protocol("rfc5444_iana", true);
   if (_rfc5444_protocol == NULL) {
     _cleanup();
     return -1;
@@ -548,6 +548,14 @@ oonf_rfc5444_reconfigure_protocol(
 }
 
 /**
+ * @return default IANA RFC5444 protocol instance
+ */
+struct oonf_rfc5444_protocol *
+oonf_rfc5444_get_default_protocol(void) {
+  return _rfc5444_protocol;
+}
+
+/**
  * Add a new interface to a rfc5444 protocol.
  * @param protocol pointer to protocol instance
  * @param listener pointer to interface listener, NULL if none
@@ -560,8 +568,7 @@ oonf_rfc5444_add_interface(struct oonf_rfc5444_protocol *protocol,
   struct oonf_rfc5444_interface *interf;
   uint16_t rnd;
 
-  interf = avl_find_element(&protocol->_interface_tree,
-      name, interf, _node);
+  interf = oonf_rfc5444_get_interface(protocol, name);
   if (interf == NULL) {
     if (os_core_get_random(&rnd, sizeof(rnd))) {
       OONF_WARN(LOG_RFC5444, "Could not get random data");
