@@ -1374,7 +1374,7 @@ _cb_cfg_interface_changed(void) {
     if (interf) {
       oonf_rfc5444_remove_interface(interf, NULL);
     }
-    return;
+    goto interface_changed_cleanup;
   }
 
   memset(&config, 0, sizeof(config));
@@ -1384,7 +1384,7 @@ _cb_cfg_interface_changed(void) {
     OONF_WARN(LOG_RFC5444,
         "Could not convert "CFG_INTERFACE_SECTION" '%s' to binary (%d)",
         _interface_section.section_name, -(result+1));
-    goto interface_changed_error;
+    goto interface_changed_cleanup;
   }
 
   if (_interface_section.pre == NULL) {
@@ -1394,14 +1394,14 @@ _cb_cfg_interface_changed(void) {
       OONF_WARN(LOG_RFC5444,
           "Could not generate interface '%s' for protocol '%s'",
           _interface_section.section_name, _rfc5444_protocol->name);
-      goto interface_changed_error;
+      goto interface_changed_cleanup;
     }
   }
 
   oonf_rfc5444_reconfigure_interface(interf, &config);
 
   /* fall through */
-interface_changed_error:
+interface_changed_cleanup:
   oonf_packet_free_managed_config(&config);
 }
 

@@ -212,11 +212,10 @@ _early_cfg_init(void) {
  */
 static int
 _init(void) {
+  _protocol = oonf_rfc5444_get_default_protocol();
   if (nhdp_writer_init(_protocol)) {
     return -1;
   }
-
-  _protocol = oonf_rfc5444_get_default_protocol();
 
   nhdp_db_init();
   nhdp_reader_init(_protocol);
