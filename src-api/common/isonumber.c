@@ -182,6 +182,9 @@ isonumber_to_u64(uint64_t *dst, const char *iso, int fraction, bool binary) {
   }
 
   if (*next == 0) {
+    for (frac = 0; frac < fraction; frac++) {
+      num *= 10;
+    }
     *dst = num;
     return 0;
   }
