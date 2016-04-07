@@ -540,7 +540,8 @@ _apply_managed_socket(int af_type, struct oonf_stream_managed *managed,
 
   if (list_is_node_added(&stream->scheduler_entry._node)) {
     if (memcmp(&sock, &stream->local_socket, sizeof(sock)) == 0) {
-      /* nothing changed */
+      /* nothing changed, just copy configuration */
+      memcpy(&stream->config, &managed->config, sizeof(stream->config));
       return 0;
     }
 
