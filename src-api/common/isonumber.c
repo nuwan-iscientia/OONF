@@ -313,9 +313,8 @@ _isonumber_u64_to_string(char *out, size_t out_len,
   out[len++] = '.';
   n = number;
 
-  if (*unit_modifier != ' ') {
-    fraction = 3;
-  }
+  /* show three fractional digits */
+  fraction = 3;
 
   while (true) {
     n = n % multiplier;
@@ -337,8 +336,7 @@ _isonumber_u64_to_string(char *out, size_t out_len,
     }
   }
 
-  if (!raw) {
-    out[idx++] = ' ';
+  if (!raw && *unit_modifier != ' ') {
     out[idx++] = *unit_modifier;
   }
   out[idx++] = 0;
