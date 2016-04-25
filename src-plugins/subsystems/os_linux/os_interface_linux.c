@@ -635,8 +635,6 @@ _query_interface_addresses(void) {
   uint8_t buffer[UIO_MAXIOV];
   struct nlmsghdr *msg;
   struct ifaddrmsg *ifa;
-#if defined(OONF_LOG_DEBUG_INFO)
-#endif
 
   if (_link_query_in_progress || _address_query_in_progress) {
     return;
@@ -874,9 +872,11 @@ _link_parse_nlmsg(const char *ifname, struct nlmsghdr *msg) {
   struct rtattr *ifi_attr;
   int ifi_len;
   struct netaddr addr;
-  struct netaddr_str nbuf;
   struct os_interface *ifdata;
   int iflink;
+#if defined(OONF_LOG_DEBUG_INFO)
+  struct netaddr_str nbuf;
+#endif
 
   ifi_msg = NLMSG_DATA(msg);
   ifi_attr = (struct rtattr *) IFLA_RTA(ifi_msg);
@@ -977,7 +977,7 @@ _update_address_shortcuts(struct os_interface *os_if) {
 static void
 _add_address(struct os_interface *os_if, struct netaddr *prefixed_addr) {
   struct os_interface_ip *ip;
-#if defined(OONF_LOG_DEBUG_INFO)
+#if defined(OONF_LOG_INFO)
   struct netaddr_str nbuf;
 #endif
 
@@ -1014,7 +1014,7 @@ _add_address(struct os_interface *os_if, struct netaddr *prefixed_addr) {
 static void
 _remove_address(struct os_interface *os_if, struct netaddr *prefixed_addr) {
   struct os_interface_ip *ip;
-#if defined(OONF_LOG_DEBUG_INFO)
+#if defined(OONF_LOG_INFO)
   struct netaddr_str nbuf;
 #endif
 
