@@ -296,7 +296,7 @@ oonf_packet_remove_managed(struct oonf_packet_managed *managed, bool forced) {
  */
 int
 oonf_packet_apply_managed(struct oonf_packet_managed *managed,
-    struct oonf_packet_managed_config *config) {
+    const struct oonf_packet_managed_config *config) {
   bool if_changed;
   int result;
 
@@ -413,7 +413,7 @@ oonf_packet_managed_is_active(
  */
 void
 oonf_packet_copy_managed_config(struct oonf_packet_managed_config *dst,
-    struct oonf_packet_managed_config *src) {
+    const struct oonf_packet_managed_config *src) {
   oonf_packet_free_managed_config(dst);
 
   /* careful, we are doing a shallow copy, so both ACLs are BAD after this */

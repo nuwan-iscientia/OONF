@@ -213,13 +213,13 @@ EXPORT int oonf_packet_send_managed_multicast(
     const void *data, size_t length, int af_type);
 EXPORT void oonf_packet_add_managed(struct oonf_packet_managed *);
 EXPORT int oonf_packet_apply_managed(struct oonf_packet_managed *,
-    struct oonf_packet_managed_config *);
+    const struct oonf_packet_managed_config *);
 EXPORT void oonf_packet_remove_managed(struct oonf_packet_managed *, bool force);
 EXPORT bool oonf_packet_managed_is_active(
     struct oonf_packet_managed *managed, int af_type);
 EXPORT void oonf_packet_copy_managed_config(
     struct oonf_packet_managed_config *dst,
-    struct oonf_packet_managed_config *src);
+    const struct oonf_packet_managed_config *src);
 EXPORT void oonf_packet_free_managed_config(
     struct oonf_packet_managed_config *config);
 
