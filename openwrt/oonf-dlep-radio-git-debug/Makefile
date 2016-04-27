@@ -1,6 +1,6 @@
 include $(TOPDIR)/rules.mk
 
-PKG_NAME:=oonf-dlep-radio-git
+PKG_NAME:=oonf-dlep-radio-git-debug
 PKG_VERSION:=2016-04-27
 
 CMAKE_INSTALL:=1
@@ -18,7 +18,8 @@ CMAKE_OPTIONS=-D OONF_NO_WERROR:Bool=true \
               -D INSTALL_LIB_DIR:Path=lib/oonf \
               -D INSTALL_INCLUDE_DIR:Path=include/oonf \
               -D INSTALL_CMAKE_DIR:Path=lib/oonf \
-              -D CMAKE_PREFIX_PATH=$(STAGING_DIR)/usr
+              -D CMAKE_PREFIX_PATH=$(STAGING_DIR)/usr \
+              -D CMAKE_BUILD_TYPE:String=Debug
 
 define Package/oonf-git/template
 	SECTION:=net
@@ -28,9 +29,9 @@ define Package/oonf-git/template
 	URL:=http://www.olsr.org/
 endef
 
-define Package/oonf-dlep-radio-git
+define Package/oonf-dlep-radio-git-debug
 	$(call Package/oonf-git/template) 
-	TITLE:= Build DLEP Radio Agent
+	TITLE:= Build DLEP Radio Agent (Debug)
 	DEPENDS:=+librt +libnl-tiny +libuci +oonf-init-scripts
 	VERSION:=$(PKG_VERSION)
 endef
@@ -44,15 +45,15 @@ endef
 
 TARGET_CFLAGS += -I$(STAGING_DIR)/usr/include -I${STAGING_DIR}/usr/include/libnl-tiny
 
-define Package/oonf-dlep-radio-git/install
+define Package/oonf-dlep-radio-git-debug/install
 	$(INSTALL_BIN)  -D $(PKG_BUILD_DIR)/dlep_radio_static $(1)/usr/sbin/dlep_radio
 	$(INSTALL_BIN)  -D ./files/dlep_radio.init            $(1)/etc/init.d/dlep_radio
 	$(INSTALL_BIN)  -D ./files/dlep_radio.hotplug         $(1)/etc/hotplug.d/iface/50-dlep_radio
 	$(INSTALL_DATA) -D ./files/dlep_radio.uci             $(1)/etc/config/dlep_radio
 endef
 
-define Package/oonf-dlep-radio-git/conffiles
+define Package/oonf-dlep-radio-git-debug/conffiles
 /etc/config/dlep_radio
 endef
 
-$(eval $(call BuildPackage,oonf-dlep-radio-git))
+$(eval $(call BuildPackage,oonf-dlep-radio-git-debug))

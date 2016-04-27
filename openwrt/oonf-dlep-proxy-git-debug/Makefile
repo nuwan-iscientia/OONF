@@ -1,6 +1,6 @@
 include $(TOPDIR)/rules.mk
 
-PKG_NAME:=oonf-dlep-proxy-git
+PKG_NAME:=oonf-dlep-proxy-git-debug
 PKG_VERSION:=2016-04-27
 
 CMAKE_INSTALL:=1
@@ -18,7 +18,8 @@ CMAKE_OPTIONS=-D OONF_NO_WERROR:Bool=true \
               -D INSTALL_LIB_DIR:Path=lib/oonf \
               -D INSTALL_INCLUDE_DIR:Path=include/oonf \
               -D INSTALL_CMAKE_DIR:Path=lib/oonf \
-              -D CMAKE_PREFIX_PATH=$(STAGING_DIR)/usr
+              -D CMAKE_PREFIX_PATH=$(STAGING_DIR)/usr \
+              -D CMAKE_BUILD_TYPE:String=Debug
 
 define Package/oonf-git/template
 	SECTION:=net
@@ -28,7 +29,7 @@ define Package/oonf-git/template
 	URL:=http://www.olsr.org/
 endef
 
-define Package/oonf-dlep-proxy-git
+define Package/oonf-dlep-proxy-git-debug
 	$(call Package/oonf-git/template) 
 	TITLE:= Build DLEP Radio+Router Agent
 	DEPENDS:=+librt +libnl-tiny +libuci +oonf-init-scripts
@@ -44,15 +45,15 @@ endef
 
 TARGET_CFLAGS += -I$(STAGING_DIR)/usr/include -I${STAGING_DIR}/usr/include/libnl-tiny
 
-define Package/oonf-dlep-proxy-git/install
+define Package/oonf-dlep-proxy-git-debug/install
 	$(INSTALL_BIN)  -D $(PKG_BUILD_DIR)/dlep_radio_static $(1)/usr/sbin/dlep_proxy
 	$(INSTALL_BIN)  -D ./files/dlep_proxy.init            $(1)/etc/init.d/dlep_proxy
 	$(INSTALL_BIN)  -D ./files/dlep_proxy.hotplug         $(1)/etc/hotplug.d/iface/50-dlep_proxy
 	$(INSTALL_DATA) -D ./files/dlep_proxy.uci             $(1)/etc/config/dlep_proxy
 endef
 
-define Package/oonf-dlep-proxy-git/conffiles
+define Package/oonf-dlep-proxy-git-debug/conffiles
 /etc/config/dlep_proxy
 endef
 
-$(eval $(call BuildPackage,oonf-dlep-proxy-git))
+$(eval $(call BuildPackage,oonf-dlep-proxy-git-debug))
