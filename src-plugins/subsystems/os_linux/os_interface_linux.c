@@ -350,6 +350,7 @@ os_interface_linux_add(struct os_interface_listener *if_listener) {
  */
 void
 os_interface_linux_remove(struct os_interface_listener *if_listener) {
+  struct os_interface_ip *ip, *ip_iter;
   struct os_interface *data;
 
   if (!if_listener->data) {
@@ -372,7 +373,16 @@ os_interface_linux_remove(struct os_interface_listener *if_listener) {
   list_remove(&if_listener->_node);
 
   if (list_is_empty(&data->_listeners)) {
+    /* remove all addresses */
+    avl_for_each_element_safe(&data->addresses, ip, _node, ip_iter) {
+      avl_remove(&data->addresses, &ip->_node);
+      oonf_class_free(&_interface_ip_class, ip);
+    }
+
+    /* stop change timer */
     oonf_timer_stop(&data->_change_timer);
+
+    /* remove interface */
     avl_remove(&_interface_data_tree, &data->_node);
     oonf_class_free(&_interface_data_class, data);
   }
@@ -1266,7 +1276,7 @@ _cb_query_timeout(void) {
 static void
 _cb_interface_changed(struct oonf_timer_instance *timer) {
   struct os_interface *data;
-  struct os_interface_listener *interf;
+  struct os_interface_listener *interf, *interf_it;
   bool error;
 
   data = container_of(timer, struct os_interface, _change_timer);
@@ -1275,7 +1285,7 @@ _cb_interface_changed(struct oonf_timer_instance *timer) {
       data->name, data->index);
 
   error = false;
-  list_for_each_element(&data->_listeners, interf, _node) {
+  list_for_each_element_safe(&data->_listeners, interf, _node, interf_it) {
     if (!interf->_dirty) {
       continue;
     }

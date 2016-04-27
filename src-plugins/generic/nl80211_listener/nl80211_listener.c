@@ -449,7 +449,7 @@ _nl80211_if_add(const char *name) {
 
   /* initialize interface listener */
   interf->if_listener.name = interf->name;
-  if (os_interface_add(&interf->if_listener)) {
+  if (!os_interface_add(&interf->if_listener)) {
     oonf_layer2_net_remove(interf->l2net, _layer2_origin);
     oonf_class_free(&_nl80211_if_class, interf);
     return NULL;

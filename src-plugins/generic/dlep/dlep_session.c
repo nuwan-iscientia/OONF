@@ -139,7 +139,7 @@ dlep_session_add(struct dlep_session *session, const char *l2_ifname,
   session->l2_listener.name = l2_ifname;
 
   /* get interface listener to lock interface */
-  if ((os_interface_add(&session->l2_listener))) {
+  if (!os_interface_add(&session->l2_listener)) {
     OONF_WARN(session->log_source,
         "Cannot activate interface listener for %s", l2_ifname);
     dlep_session_remove(session);

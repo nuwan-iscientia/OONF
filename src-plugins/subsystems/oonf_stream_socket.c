@@ -779,6 +779,9 @@ _cb_parse_connection(struct oonf_socket_entry *entry) {
 
       /* still call callback once more */
       session->state = s_sock->config.receive_data(session);
+
+      /* switch off read events */
+      oonf_socket_set_read(entry, false);
     }
   }
 
