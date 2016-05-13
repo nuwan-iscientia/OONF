@@ -375,11 +375,14 @@ os_routing_linux_listener_remove(struct os_route_listener *listener) {
 }
 
 /**
- * @return wildcard route
+ * Initializes a route with default values. Will zero all
+ * other fields in the struct.
+ * @param route route to be initialized
  */
-const struct os_route_parameter *
-os_routing_linux_get_wildcard_route(void) {
-  return &OS_ROUTE_WILDCARD;
+void
+os_routing_linux_init_wildcard_route(struct os_route *route) {
+  memset(route, 0, sizeof(*route));
+  memcpy(&route->p, &OS_ROUTE_WILDCARD, sizeof(route->p));
 }
 
 /**

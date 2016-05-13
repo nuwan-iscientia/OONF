@@ -190,8 +190,7 @@ _init(void) {
   os_routing_listener_add(&_routing_listener);
 
   /* send wildcard query */
-  memcpy(&_unicast_query, os_routing_get_wildcard_route(),
-      sizeof(_unicast_query));
+  os_routing_init_wildcard_route(&_unicast_query);
   _unicast_query.cb_get = _cb_query;
   _unicast_query.cb_finished = _cb_query_finished;
   _unicast_query.p.type = OS_ROUTE_UNICAST;
