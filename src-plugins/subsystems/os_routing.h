@@ -217,7 +217,7 @@ static INLINE void os_routing_listener_remove(struct os_route_listener *);
 static INLINE const char *os_routing_to_string(
     struct os_route_str *buf, const struct os_route_parameter *route_param);
 
-static INLINE const struct os_route_parameter *os_routing_get_wildcard_route(void);
+static INLINE void os_routing_init_wildcard_route(struct os_route *);
 
 static INLINE void os_routing_init_half_os_route_key(
     struct netaddr *any, struct netaddr *specific,

@@ -84,7 +84,7 @@ EXPORT void os_routing_linux_listener_remove(struct os_route_listener *);
 EXPORT const char *os_routing_linux_to_string(
     struct os_route_str *buf, const struct os_route_parameter *route_param);
 
-EXPORT const struct os_route_parameter *os_routing_linux_get_wildcard_route(void);
+EXPORT void os_routing_linux_init_wildcard_route(struct os_route *);
 
 /**
  * Check if kernel supports source-specific routing
@@ -160,11 +160,13 @@ os_routing_listener_remove(struct os_route_listener *l) {
 }
 
 /**
- * @return wildcard route
+ * Initializes a route with default values. Will zero all
+ * other fields in the struct.
+ * @param route route to be initialized
  */
-static INLINE const struct os_route_parameter *
-os_routing_get_wildcard_route(void) {
-  return os_routing_linux_get_wildcard_route();
+static INLINE void
+os_routing_init_wildcard_route(struct os_route *route) {
+  return os_routing_linux_init_wildcard_route(route);
 }
 
 /**
