@@ -312,8 +312,6 @@ static struct nhdp_domain_metric _datff_handler = {
   .metric_minimum = DATFF_LINKCOST_MINIMUM,
   .metric_maximum = DATFF_LINKCOST_MAXIMUM,
 
-  .incoming_link_start = DATFF_LINKCOST_START,
-
   .link_to_string = _link_to_string,
   .path_to_string = _path_to_string,
   .internal_link_to_string = _int_link_to_string,

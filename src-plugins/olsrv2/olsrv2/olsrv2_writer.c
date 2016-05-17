@@ -502,7 +502,7 @@ _cb_addAddresses(struct rfc5444_writer *writer) {
     list_for_each_element(nhdp_domain_get_list(), domain, _node) {
       lan_data = olsrv2_lan_get_domaindata(domain, lan);
       metric_out = lan_data->outgoing_metric;
-      if (metric_out >= RFC7181_METRIC_INFINITE) {
+      if (metric_out > RFC7181_METRIC_MAX) {
         continue;
       }
 

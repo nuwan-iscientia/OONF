@@ -463,6 +463,9 @@ _write_metric_tlv(struct rfc5444_writer *writer, struct rfc5444_writer_address *
       RFC7181_LINKMETRIC_INCOMING_NEIGH,
       RFC7181_LINKMETRIC_OUTGOING_NEIGH,
   };
+  static const char *lq_name[4] = {
+    "l_in", "l_out", "n_in", "n_out",
+  };
   struct nhdp_link_domaindata *linkdata;
   struct nhdp_neighbor_domaindata *neighdata;
   struct rfc7181_metric_field metric_encoded[4], tlv_value;
@@ -520,16 +523,19 @@ _write_metric_tlv(struct rfc5444_writer *writer, struct rfc5444_writer_address *
     rfc7181_metric_set_flag(&tlv_value, flags[i]);
 
     /* mark all metric pair that have the same linkmetric */
+    OONF_DEBUG(LOG_NHDP_W, "Add Metric %s (ext %u): 0x%02x%02x (%u)",
+        lq_name[i], domain->ext, tlv_value.b[0], tlv_value.b[1], metrics[i]);
+
     for (j=3; j>i; j--) {
       if (metrics[j] > 0 &&
           memcmp(&metric_encoded[i], &metric_encoded[j], sizeof(metric_encoded[0])) == 0) {
         rfc7181_metric_set_flag(&tlv_value, flags[j]);
         metrics[j] = 0;
+
+        OONF_DEBUG(LOG_NHDP_W, "Same metrics for %s (ext %u)",
+            lq_name[j], domain->ext);
       }
     }
-
-    OONF_DEBUG(LOG_NHDP_W, "Add Metric (ext %u): 0x%02x%02x (%u)",
-        domain->ext, tlv_value.b[0], tlv_value.b[1], metrics[i]);
 
     /* add to rfc5444 address */
     rfc5444_writer_add_addrtlv(writer, addr,

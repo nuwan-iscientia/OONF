@@ -412,7 +412,7 @@ _cb_addresstlvs(struct rfc5444_reader_tlvblock_context *context __attribute__((u
         OONF_DEBUG(LOG_OLSRV2_R, "Address is routable, but not originator");
         end->ansn = _current.node->ansn;
         for (i=0; i<NHDP_MAXIMUM_DOMAINS; i++) {
-          if (cost_out[i] < RFC7181_METRIC_INFINITE) {
+          if (cost_out[i] < RFC7181_METRIC_MAX) {
             end->cost[i] = cost_out[i];
           }
         }
@@ -489,8 +489,8 @@ _handle_gateways(struct rfc5444_reader_tlvblock_entry *tlv,
       end->distance[domain->index] = tlv->single_value[i];
     }
 
-    OONF_DEBUG(LOG_OLSRV2_R, "Address is Attached Network: dist=%u",
-        end->distance[domain->index]);
+    OONF_DEBUG(LOG_OLSRV2_R, "Address is Attached Network (domain %u): dist=%u",
+        domain->ext, end->distance[domain->index]);
   }
 }
 

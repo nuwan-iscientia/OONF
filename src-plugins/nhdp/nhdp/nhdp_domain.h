@@ -88,16 +88,16 @@ struct nhdp_domain_metric {
   /*! maximum metric value */
   uint32_t metric_maximum;
 
-  /*! default incoming link metric */
+  /*! default incoming link metric for "no default handling" metrics */
   uint32_t incoming_link_start;
 
-  /*! default outgoing link metric */
+  /*! default outgoing link metric for "no default handling" metrics */
   uint32_t outgoing_link_start;
 
-  /*! default incoming 2-hop link metric */
+  /*! default incoming 2-hop link metric for "no default handling" metrics */
   uint32_t incoming_2hop_start;
 
-  /*! default outgoing 2-hop link metric */
+  /*! default outgoing 2-hop link metric for "no default handling" metrics */
   uint32_t outgoing_2hop_start;
 
   /*! true if metrics should not be handled by nhdp reader/writer */
@@ -169,12 +169,6 @@ struct nhdp_domain_mpr {
    * callback to disable mpr
    */
   void (*disable)(void);
-
-  /*! default value for neighbor MPR setting */
-  bool mpr_start;
-
-  /*! default value for local MPR (selector) setting */
-  bool mprs_start;
 
   /*! reference count */
   int _refcount;

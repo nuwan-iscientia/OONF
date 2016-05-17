@@ -110,8 +110,8 @@ static void _cb_cfg_changed(void);
 
 /* plugin declaration */
 static struct cfg_schema_entry _import_entries[] = {
-  CFG_MAP_INT32_MINMAX(_import_entry, domain, "domain", "0",
-      "Routing domain extension for filter", 0, false, 0, 255),
+  CFG_MAP_INT32_MINMAX(_import_entry, domain, "domain", "-1",
+      "Routing domain extension for filter, -1 for all domains", 0, false, -1, 255),
   CFG_MAP_ACL(_import_entry, filter, "matches",  ACL_DEFAULT_ACCEPT,
       "Ip addresses the filter should be applied to"
       " (the plugin will never import loopback, linklocal or multicast IPs)"),
@@ -244,6 +244,7 @@ _cb_rt_event(const struct os_route *route, bool set) {
   char ifname[IF_NAMESIZE];
   struct os_route_key ssprefix;
   const struct olsrv2_routing_domain *rtparam;
+  int metric;
 
 #ifdef OONF_LOG_DEBUG_INFO
   struct os_route_str rbuf;
@@ -313,6 +314,14 @@ _cb_rt_event(const struct os_route *route, bool set) {
     memcpy(&ssprefix.src, &route->p.key.src, sizeof(struct netaddr));
 
     if (set) {
+      metric = route->p.metric;
+      if (metric < 1) {
+        metric = 1;
+      }
+      if (metric > 255) {
+        metric = 255;
+      }
+
       list_for_each_element(nhdp_domain_get_list(), domain, _node) {
         rtparam = olsrv2_routing_get_parameters(domain);
         if (rtparam->protocol == route->p.protocol
@@ -324,16 +333,30 @@ _cb_rt_event(const struct os_route *route, bool set) {
       }
 
       OONF_DEBUG(LOG_LAN_IMPORT, "Add lan...");
-      domain = nhdp_domain_get_by_ext(import->domain);
-      if (domain) {
-        olsrv2_lan_add(domain, &ssprefix, 1, route->p.metric);
+      if (import->domain != -1) {
+        domain = nhdp_domain_get_by_ext(import->domain);
+        if (domain) {
+          olsrv2_lan_add(domain, &ssprefix, 1, (uint8_t)metric);
+        }
+      }
+      else {
+        list_for_each_element(nhdp_domain_get_list(), domain, _node) {
+          olsrv2_lan_add(domain, &ssprefix, 1, (uint8_t)metric);
+        }
       }
     }
     else {
       OONF_DEBUG(LOG_LAN_IMPORT, "Remove lan...");
-      domain = nhdp_domain_get_by_ext(import->domain);
-      if (domain) {
-        olsrv2_lan_remove(domain, &ssprefix);
+      if (import->domain != -1) {
+        domain = nhdp_domain_get_by_ext(import->domain);
+        if (domain) {
+          olsrv2_lan_remove(domain, &ssprefix);
+        }
+      }
+      else {
+        list_for_each_element(nhdp_domain_get_list(), domain, _node) {
+          olsrv2_lan_remove(domain, &ssprefix);
+        }
       }
     }
   }

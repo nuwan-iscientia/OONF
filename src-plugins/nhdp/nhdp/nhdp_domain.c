@@ -101,9 +101,6 @@ static struct nhdp_domain_metric _no_metric = {
 static struct nhdp_domain_mpr _everyone_mprs = {
   .name = "Everyone MPR",
 
-  .mpr_start = true,
-  .mprs_start = true,
-
   .update_mpr = _cb_update_everyone_mpr,
 };
 
@@ -336,14 +333,16 @@ nhdp_domain_init_link(struct nhdp_link *lnk) {
 
   /* initialize metrics */
   for (i=0; i<NHDP_MAXIMUM_DOMAINS; i++) {
-    lnk->_domaindata[i].metric.in = RFC7181_METRIC_MAX;
-    lnk->_domaindata[i].metric.out = RFC7181_METRIC_MAX;
+    lnk->_domaindata[i].metric.in = RFC7181_METRIC_INFINITE;
+    lnk->_domaindata[i].metric.out = RFC7181_METRIC_INFINITE;
   }
   list_for_each_element(&_domain_list, domain, _node) {
     data = nhdp_domain_get_linkdata(domain, lnk);
 
-    data->metric.in = domain->metric->incoming_link_start;
-    data->metric.out = domain->metric->outgoing_link_start;
+    if (domain->metric->no_default_handling) {
+      data->metric.in = domain->metric->incoming_link_start;
+      data->metric.out = domain->metric->outgoing_link_start;
+    }
   }
 }
 
@@ -359,15 +358,17 @@ nhdp_domain_init_l2hop(struct nhdp_l2hop *l2hop) {
 
   /* initialize metrics */
   for (i=0; i<NHDP_MAXIMUM_DOMAINS; i++) {
-    l2hop->_domaindata[i].metric.in = RFC7181_METRIC_MAX;
-    l2hop->_domaindata[i].metric.out = RFC7181_METRIC_MAX;
+    l2hop->_domaindata[i].metric.in = RFC7181_METRIC_INFINITE;
+    l2hop->_domaindata[i].metric.out = RFC7181_METRIC_INFINITE;
   }
 
   list_for_each_element(&_domain_list, domain, _node) {
     data = nhdp_domain_get_l2hopdata(domain, l2hop);
 
-    data->metric.in = domain->metric->incoming_2hop_start;
-    data->metric.out = domain->metric->outgoing_2hop_start;
+    if (domain->metric->no_default_handling) {
+      data->metric.in = domain->metric->incoming_2hop_start;
+      data->metric.out = domain->metric->outgoing_2hop_start;
+    }
   }
 }
 
@@ -383,26 +384,29 @@ nhdp_domain_init_neighbor(struct nhdp_neighbor *neigh) {
 
   /* initialize flooding MPR settings */
   neigh->flooding_willingness = RFC7181_WILLINGNESS_NEVER;
-  neigh->local_is_flooding_mpr = _flooding_domain.mpr->mprs_start;
-  neigh->neigh_is_flooding_mpr = _flooding_domain.mpr->mpr_start;
+  neigh->local_is_flooding_mpr = false;
+  neigh->neigh_is_flooding_mpr = false;
 
   for (i=0; i<NHDP_MAXIMUM_DOMAINS; i++) {
-    neigh->_domaindata[i].metric.in = RFC7181_METRIC_MAX;
-    neigh->_domaindata[i].metric.out = RFC7181_METRIC_MAX;
+    neigh->_domaindata[i].metric.in = RFC7181_METRIC_INFINITE;
+    neigh->_domaindata[i].metric.out = RFC7181_METRIC_INFINITE;
+
+    neigh->_domaindata[i].best_link = NULL;
+    neigh->_domaindata[i].willingness = RFC7181_WILLINGNESS_NEVER;
+
+
+    neigh->_domaindata[i].local_is_mpr = false;
+    neigh->_domaindata[i].neigh_is_mpr = false;
   }
 
   /* initialize metrics and mprs */
   list_for_each_element(&_domain_list, domain, _node) {
     data = nhdp_domain_get_neighbordata(domain, neigh);
 
-    data->metric.in = domain->metric->incoming_link_start;
-    data->metric.out = domain->metric->outgoing_link_start;
-
-    data->best_link = NULL;
-
-    data->willingness = RFC7181_WILLINGNESS_NEVER;
-    data->local_is_mpr = domain->mpr->mprs_start;
-    data->neigh_is_mpr = domain->mpr->mpr_start;
+    if (domain->metric->no_default_handling) {
+      data->metric.in = domain->metric->incoming_link_start;
+      data->metric.out = domain->metric->outgoing_link_start;
+    }
   }
 }
 
@@ -901,6 +905,7 @@ _recalculate_neighbor_metric(
   struct nhdp_link_domaindata *linkdata;
   struct nhdp_neighbor_domaindata *neighdata;
   struct nhdp_metric oldmetric;
+  struct netaddr_str nbuf;
 
   neighdata = nhdp_domain_get_neighbordata(domain, neigh);
 
@@ -913,21 +918,33 @@ _recalculate_neighbor_metric(
 
   /* reset best link */
   neighdata->best_link = NULL;
+  neighdata->best_link_ifindex = 0;
+
+  OONF_DEBUG(LOG_NHDP, "Recalculate neighbor %s metrics (ext %u):",
+      netaddr_to_string(&nbuf, &neigh->originator), domain->ext);
 
   /* get best metric */
   list_for_each_element(&neigh->_links, lnk, _neigh_node) {
     linkdata = nhdp_domain_get_linkdata(domain, lnk);
-
     if (linkdata->metric.out < neighdata->metric.out) {
+      OONF_DEBUG(LOG_NHDP, "Link on if %s has better outgoing metric: %u",
+              lnk->local_if->os_if_listener.data->name,
+              linkdata->metric.out);
+
       neighdata->metric.out = linkdata->metric.out;
       neighdata->best_link = lnk;
     }
     if (linkdata->metric.in < neighdata->metric.in) {
+      OONF_DEBUG(LOG_NHDP, "Link on if %s has better incoming metric: %u",
+              lnk->local_if->os_if_listener.data->name,
+              linkdata->metric.in);
       neighdata->metric.in = linkdata->metric.in;
     }
   }
 
   if (neighdata->best_link != NULL) {
+    OONF_DEBUG(LOG_NHDP, "Best link if: %s",
+        nhdp_interface_get_if_listener(neighdata->best_link->local_if)->data->name);
     neighdata->best_link_ifindex =
         nhdp_interface_get_if_listener(neighdata->best_link->local_if)->data->index;
   }

@@ -538,7 +538,7 @@ _update_routing_entry(struct nhdp_domain *domain,
   struct olsrv2_lan_entry *lan;
   struct olsrv2_lan_domaindata *landata;
 #ifdef OONF_LOG_DEBUG_INFO
-  struct netaddr_str nbuf1, nbuf2;
+  struct netaddr_str nbuf1, nbuf2, nbuf3;
 #endif
 
   /* test if destination is already part of the local node */
@@ -585,16 +585,17 @@ _update_routing_entry(struct nhdp_domain *domain,
   }
 
   neighdata = nhdp_domain_get_neighbordata(domain, first_hop);
-  OONF_DEBUG(LOG_OLSRV2_ROUTING, "Initialize route entry dst %s [%s] with pathcost %u",
-      netaddr_to_string(&nbuf1, &rtentry->route.p.key.dst),
-      netaddr_to_string(&nbuf2, &rtentry->route.p.key.src),
-      pathcost);
-
   /* copy route parameters into data structure */
   rtentry->route.p.if_index = neighdata->best_link_ifindex;
   rtentry->path_cost = pathcost;
   rtentry->path_hops = path_hops;
   rtentry->route.p.metric = distance;
+
+  OONF_DEBUG(LOG_OLSRV2_ROUTING, "Initialize route entry dst %s [%s] (firsthop %s, domain %u) with pathcost %u, if %s",
+      netaddr_to_string(&nbuf1, &rtentry->route.p.key.dst),
+      netaddr_to_string(&nbuf2, &rtentry->route.p.key.src),
+      netaddr_to_string(&nbuf3, &first_hop->originator),
+      domain->ext, pathcost, neighdata->best_link->local_if->os_if_listener.data->name);
 
   /* remember next hop originator */
   memcpy(&rtentry->next_originator, &first_hop->originator, sizeof(struct netaddr));
@@ -973,6 +974,7 @@ static void
 _process_dijkstra_result(struct nhdp_domain *domain) {
   struct olsrv2_routing_entry *rtentry;
   struct olsrv2_routing_filter *filter;
+  struct os_route_str rbuf1, rbuf2;
 
   avl_for_each_element(&_routing_tree[domain->index], rtentry, _node) {
     /* initialize rest of route parameters */
@@ -998,6 +1000,10 @@ _process_dijkstra_result(struct nhdp_domain *domain) {
     if (rtentry->set
         && memcmp(&rtentry->_old, &rtentry->route.p, sizeof(rtentry->_old)) == 0) {
       /* no change, ignore this entry */
+      OONF_INFO(LOG_OLSRV2_ROUTING,
+          "Ignore route change: %s -> %s",
+          os_routing_to_string(&rbuf1, &rtentry->_old),
+          os_routing_to_string(&rbuf2, &rtentry->route.p));
       continue;
     }
     _add_route_to_kernel_queue(rtentry);
