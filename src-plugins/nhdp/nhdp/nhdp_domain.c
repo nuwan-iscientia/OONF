@@ -905,7 +905,9 @@ _recalculate_neighbor_metric(
   struct nhdp_link_domaindata *linkdata;
   struct nhdp_neighbor_domaindata *neighdata;
   struct nhdp_metric oldmetric;
+#ifdef OONF_LOG_DEBUG_INFO
   struct netaddr_str nbuf;
+#endif
 
   neighdata = nhdp_domain_get_neighbordata(domain, neigh);
 

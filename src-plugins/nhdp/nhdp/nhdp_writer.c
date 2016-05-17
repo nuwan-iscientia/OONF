@@ -463,9 +463,11 @@ _write_metric_tlv(struct rfc5444_writer *writer, struct rfc5444_writer_address *
       RFC7181_LINKMETRIC_INCOMING_NEIGH,
       RFC7181_LINKMETRIC_OUTGOING_NEIGH,
   };
+#ifdef OONF_LOG_DEBUG_INFO
   static const char *lq_name[4] = {
     "l_in", "l_out", "n_in", "n_out",
   };
+#endif
   struct nhdp_link_domaindata *linkdata;
   struct nhdp_neighbor_domaindata *neighdata;
   struct rfc7181_metric_field metric_encoded[4], tlv_value;

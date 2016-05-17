@@ -974,7 +974,9 @@ static void
 _process_dijkstra_result(struct nhdp_domain *domain) {
   struct olsrv2_routing_entry *rtentry;
   struct olsrv2_routing_filter *filter;
+#ifdef OONF_LOG_INFO
   struct os_route_str rbuf1, rbuf2;
+#endif
 
   avl_for_each_element(&_routing_tree[domain->index], rtentry, _node) {
     /* initialize rest of route parameters */
