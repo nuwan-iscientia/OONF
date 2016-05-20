@@ -396,10 +396,10 @@ _cb_addresstlvs(struct rfc5444_reader_tlvblock_context *context __attribute__((u
         edge->ansn = _current.node->ansn;
 
         for (i=0; i<NHDP_MAXIMUM_DOMAINS; i++) {
-          if (cost_out[i] < RFC7181_METRIC_INFINITE) {
+          if (cost_out[i] <= RFC7181_METRIC_MAX) {
             edge->cost[i] = cost_out[i];
           }
-          if (edge->inverse->virtual && cost_in[i] < RFC7181_METRIC_INFINITE) {
+          if (edge->inverse->virtual && cost_in[i] <= RFC7181_METRIC_MAX) {
             edge->inverse->cost[i] = cost_in[i];
           }
         }
@@ -411,8 +411,8 @@ _cb_addresstlvs(struct rfc5444_reader_tlvblock_context *context __attribute__((u
       if (end) {
         OONF_DEBUG(LOG_OLSRV2_R, "Address is routable, but not originator");
         end->ansn = _current.node->ansn;
-        for (i=0; i<NHDP_MAXIMUM_DOMAINS; i++) {
-          if (cost_out[i] < RFC7181_METRIC_MAX) {
+        for (i=0; i< NHDP_MAXIMUM_DOMAINS; i++) {
+          if (cost_out[i] <= RFC7181_METRIC_MAX) {
             end->cost[i] = cost_out[i];
           }
         }
@@ -539,7 +539,7 @@ _cb_messagetlvs_end(struct rfc5444_reader_tlvblock_context *context __attribute_
           netaddr_to_string(&nbuf2, &end->dst->target.prefix.src),
           end->cost[domain->index], netaddr_get_prefix_length(&end->dst->target.prefix.src));
 
-      if (end->cost[domain->index] < RFC7181_METRIC_INFINITE
+      if (end->cost[domain->index] <= RFC7181_METRIC_MAX
           && netaddr_get_prefix_length(&end->dst->target.prefix.src) > 0) {
         _current.node->ss_attached_networks[domain->index] = true;
         break;

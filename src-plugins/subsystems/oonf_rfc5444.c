@@ -188,7 +188,7 @@ static struct cfg_schema_entry _interface_entries[] = {
   CFG_MAP_ACL_V46(oonf_packet_managed_config, acl, "acl", ACL_DEFAULT_ACCEPT,
     "Access control list for RFC5444 interface"),
   CFG_MAP_ACL_V46(oonf_packet_managed_config, bindto, "bindto",
-      "-127.0.0.0/8\0" "-::1\0" "-2000::/3\0" ACL_DEFAULT_ACCEPT,
+      "-127.0.0.0/8\0" "fe80::/10\0" "-::/0\0" ACL_FIRST_ACCEPT "\0" ACL_DEFAULT_ACCEPT,
     "Bind RFC5444 socket to an address matching this filter (both IPv4 and IPv6)"),
   CFG_MAP_NETADDR_V4(oonf_packet_managed_config, multicast_v4, "multicast_v4", RFC5444_MANET_MULTICAST_V4_TXT,
     "ipv4 multicast address of this socket", false, true),

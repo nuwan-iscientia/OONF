@@ -110,8 +110,11 @@ struct _config {
   /*! olsrv2 p_hold_time */
   uint64_t p_hold_time;
 
+  /*! decides NHDP routable status */
+  bool nhdp_routable;
+
   /*! IP filter for routable addresses */
-  struct netaddr_acl routable;
+  struct netaddr_acl routable_acl;
 
   /*! IP filter for valid originator */
   struct netaddr_acl originator_acl;
@@ -183,7 +186,11 @@ static struct cfg_schema_entry _olsrv2_entries[] = {
     "Holdtime for forwarding set information", 100),
   CFG_MAP_CLOCK_MIN(_config, p_hold_time, "processing_hold_time", "300.0",
     "Holdtime for processing set information", 100),
-  CFG_MAP_ACL_V46(_config, routable, "routable",
+  CFG_MAP_BOOL(_config, nhdp_routable, "nhdp_routable", "no",
+    "Decides if NHDP interface addresses"
+    " are routed to other nodes. 'true' means the 'routable_acl' parameter"
+    " will be matched to the addresses to decide."),
+  CFG_MAP_ACL_V46(_config, routable_acl, "routable_acl",
       OLSRV2_ROUTABLE_IPV4 OLSRV2_ROUTABLE_IPV6 ACL_DEFAULT_ACCEPT,
     "Filter to decide which addresses are considered routable"),
 
@@ -199,7 +206,7 @@ static struct cfg_schema_entry _olsrv2_entries[] = {
     OLSRV2_ORIGINATOR_IPV4 OLSRV2_ORIGINATOR_IPV6 ACL_DEFAULT_ACCEPT,
     "Filter for router originator addresses (ipv4 and ipv6)"
     " from the interface addresses. Olsrv2 will prefer routable addresses"
-    " over linklocal addresses."),
+    " over linklocal addresses and addresses from loopback over other interfaces."),
 };
 
 static struct cfg_schema_section _olsrv2_section = {
@@ -319,7 +326,7 @@ _cleanup(void) {
   os_interface_remove(&_if_listener);
 
   /* cleanup configuration */
-  netaddr_acl_remove(&_olsrv2_config.routable);
+  netaddr_acl_remove(&_olsrv2_config.routable_acl);
   netaddr_acl_remove(&_olsrv2_config.originator_acl);
 
   /* cleanup all parts of olsrv2 */
@@ -349,13 +356,25 @@ olsrv2_get_tc_validity(void) {
 }
 
 /**
- * @return acl for checking if an address is routable
+ * @param addr NHDP address to be checked
+ * @return true if address should be routed, false otherwise
  */
-const struct netaddr_acl *
-olsrv2_get_routable(void) {
-    return &_olsrv2_config.routable;
+bool
+olsrv2_is_nhdp_routable(struct netaddr *addr) {
+  if (!_olsrv2_config.nhdp_routable) {
+    return false;
+  }
+  return olsrv2_is_routable(addr);
 }
 
+/**
+ * @param addr address to be checked
+ * @return true if address should be routed, false otherwise
+ */
+bool
+olsrv2_is_routable(struct netaddr *addr) {
+  return netaddr_acl_check_accept(&_olsrv2_config.routable_acl, addr);
+}
 
 /**
  * default implementation for rfc5444 processing handling according
@@ -761,29 +780,29 @@ _get_addr_priority(const struct netaddr *addr) {
   if (netaddr_get_address_family(addr) == AF_INET) {
     if (netaddr_is_in_subnet(&NETADDR_IPV4_LINKLOCAL, addr)) {
       /* linklocal */
-      OONF_DEBUG(LOG_OLSRV2, "check priority for %s: 2 (linklocal)",
+      OONF_DEBUG(LOG_OLSRV2, "check priority for %s: 1 (linklocal)",
           netaddr_to_string(&nbuf, addr));
-      return 2;
+      return 1;
     }
 
     /* routable */
-    OONF_DEBUG(LOG_OLSRV2, "check priority for %s: 4 (routable)",
+    OONF_DEBUG(LOG_OLSRV2, "check priority for %s: 2 (routable)",
         netaddr_to_string(&nbuf, addr));
-    return 4;
+    return 2;
   }
 
   if (netaddr_get_address_family(addr) == AF_INET6) {
     if (netaddr_is_in_subnet(&NETADDR_IPV6_LINKLOCAL, addr)) {
       /* linklocal */
-      OONF_DEBUG(LOG_OLSRV2, "check priority for %s: 2 (linklocal)",
+      OONF_DEBUG(LOG_OLSRV2, "check priority for %s: 1 (linklocal)",
           netaddr_to_string(&nbuf, addr));
-      return 2;
+      return 1;
     }
 
     /* routable */
-    OONF_DEBUG(LOG_OLSRV2, "check priority for %s: 4 (routable)",
+    OONF_DEBUG(LOG_OLSRV2, "check priority for %s: 2 (routable)",
         netaddr_to_string(&nbuf, addr));
-    return 4;
+    return 2;
   }
 
   /* unknown */
@@ -827,12 +846,15 @@ _update_originator(int af_family) {
     /* check if originator is still valid */
     avl_for_each_element(&if_listener->data->addresses, ip, _node) {
       if (netaddr_get_address_family(&ip->address) == af_family) {
-        priority = _get_addr_priority(&ip->address);
+        priority = _get_addr_priority(&ip->address) * 4;
         if (priority == 0) {
           /* not useful */
           continue;
         }
 
+        if (if_listener->data->flags.loopback) {
+          priority += 2;
+        }
         if (netaddr_cmp(originator, &ip->address) == 0) {
           old_priority = priority + 1;
         }

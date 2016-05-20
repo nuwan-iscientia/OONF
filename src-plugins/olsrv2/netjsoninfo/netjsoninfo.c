@@ -218,7 +218,7 @@ _print_graph_edge(struct json_session *session,
       nhdp_domain_get_link_metric_value(&mbuf, domain, out));
   if (in) {
     json_start_object(session, "properties");
-    if (in < RFC7181_METRIC_INFINITE) {
+    if (in <= RFC7181_METRIC_MAX) {
       _print_json_number(session, "in", in);
       _print_json_string(session, "in_text",
           nhdp_domain_get_link_metric_value(&mbuf, domain, in));

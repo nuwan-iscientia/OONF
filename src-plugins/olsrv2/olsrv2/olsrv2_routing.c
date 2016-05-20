@@ -563,7 +563,7 @@ _update_routing_entry(struct nhdp_domain *domain,
     }
   }
 
-  if (!netaddr_acl_check_accept(olsrv2_get_routable(), &prefix->dst)) {
+  if (!olsrv2_is_routable(&prefix->dst)) {
     /* don't set routes to non-routable destinations */
     return;
   }
@@ -880,7 +880,7 @@ _handle_nhdp_routes(struct nhdp_domain *domain) {
 
     /* make sure all addresses of the neighbor are better than our direct link */
     avl_for_each_element(&neigh->_neigh_addresses, naddr, _neigh_node) {
-      if (!netaddr_acl_check_accept(olsrv2_get_routable(), &naddr->neigh_addr)) {
+      if (!olsrv2_is_nhdp_routable(&naddr->neigh_addr)) {
         /* not a routable address, check the next one */
         continue;
       }

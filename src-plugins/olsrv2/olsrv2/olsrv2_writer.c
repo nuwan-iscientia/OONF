@@ -330,7 +330,7 @@ _generate_neighbor_metric_tlvs(struct rfc5444_writer *writer,
 
     metric_in = neigh_domain->metric.in;
     if (metric_in > RFC7181_METRIC_MAX) {
-      /*  */
+      /* Metric value does not make sense */
       continue;
     }
     if (rfc7181_metric_encode(&metric_in_encoded, metric_in)) {
@@ -376,7 +376,6 @@ _generate_neighbor_metric_tlvs(struct rfc5444_writer *writer,
  */
 static void
 _cb_addAddresses(struct rfc5444_writer *writer) {
-  const struct netaddr_acl *routable_acl;
   struct rfc5444_writer_address *addr;
   struct nhdp_neighbor *neigh;
   struct nhdp_naddr *naddr;
@@ -395,7 +394,6 @@ _cb_addAddresses(struct rfc5444_writer *writer) {
   struct netaddr_str nbuf1, nbuf2;
 #endif
 
-  routable_acl = olsrv2_get_routable();
   af_type = writer->msg_addr_len == 4 ? AF_INET : AF_INET6;
 
   /* iterate over neighbors */
@@ -428,9 +426,15 @@ _cb_addAddresses(struct rfc5444_writer *writer) {
         continue;
       }
 
+      if (!olsrv2_is_nhdp_routable(&naddr->neigh_addr)
+          && netaddr_cmp(&neigh->originator, &naddr->neigh_addr) != 0) {
+        /* do not propagate unroutable addresses in TCs */
+        continue;
+      }
+
       nbr_addrtype_value = 0;
 
-      if (netaddr_acl_check_accept(routable_acl, &naddr->neigh_addr)) {
+      if (olsrv2_is_routable(&naddr->neigh_addr)) {
         nbr_addrtype_value |= RFC7181_NBR_ADDR_TYPE_ROUTABLE;
       }
       if (netaddr_cmp(&neigh->originator, &naddr->neigh_addr) == 0) {
@@ -503,6 +507,7 @@ _cb_addAddresses(struct rfc5444_writer *writer) {
       lan_data = olsrv2_lan_get_domaindata(domain, lan);
       metric_out = lan_data->outgoing_metric;
       if (metric_out > RFC7181_METRIC_MAX) {
+        /* metric value does not make sense */
         continue;
       }
 
