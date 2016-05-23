@@ -763,7 +763,7 @@ _cb_generate_tc(struct oonf_timer_instance *ptr __attribute__((unused))) {
   }
 }
 
-static int
+static uint32_t
 _get_addr_priority(const struct netaddr *addr) {
 #ifdef OONF_LOG_DEBUG_INFO
   struct netaddr_str nbuf;
@@ -823,9 +823,9 @@ _update_originator(int af_family) {
   struct os_interface_listener *if_listener;
   struct netaddr new_originator;
   struct os_interface_ip *ip;
-  int new_priority;
-  int old_priority;
-  int priority;
+  uint32_t new_priority;
+  uint32_t old_priority;
+  uint32_t priority;
 #ifdef OONF_LOG_DEBUG_INFO
   struct netaddr_str buf;
 #endif
