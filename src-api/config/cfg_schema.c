@@ -681,6 +681,10 @@ cfg_schema_tobin_strptr(const struct cfg_schema_entry *s_entry __attribute__((un
     const struct const_strarray *value, void *reference) {
   char **ptr;
 
+  if (s_entry->bin_size != sizeof(*ptr)) {
+    return -1;
+  }
+
   ptr = (char **)reference;
   if (*ptr) {
     free(*ptr);
@@ -703,6 +707,10 @@ cfg_schema_tobin_strarray(const struct cfg_schema_entry *s_entry,
     const struct const_strarray *value, void *reference) {
   char *ptr;
 
+  if (s_entry->bin_size < s_entry->validate_param[0].s) {
+    return -1;
+  }
+
   ptr = (char *)reference;
 
   strscpy(ptr, strarray_get_first_c(value), s_entry->validate_param[0].s);
@@ -722,6 +730,10 @@ int
 cfg_schema_tobin_choice(const struct cfg_schema_entry *s_entry,
     const struct const_strarray *value, void *reference) {
   int *ptr;
+
+  if (s_entry->bin_size != sizeof(int)) {
+    return -1;
+  }
 
   ptr = (int *)reference;
 
@@ -744,10 +756,14 @@ cfg_schema_tobin_int(const struct cfg_schema_entry *s_entry,
   int64_t i;
   int result;
 
+  if (s_entry->bin_size != s_entry->validate_param[2].u16[0]) {
+    return -1;
+  }
+
   result = isonumber_to_s64(&i, strarray_get_first_c(value),
-      s_entry->validate_param[2].i16[1], s_entry->validate_param[2].i16[2] == 2);
+      s_entry->validate_param[2].u16[1], s_entry->validate_param[2].u16[2] == 2);
   if (result == 0) {
-    switch (s_entry->validate_param[2].i16[0]) {
+    switch (s_entry->validate_param[2].u16[0]) {
       case 4:
         *((int32_t *)reference) = i;
         break;
@@ -773,6 +789,10 @@ cfg_schema_tobin_netaddr(const struct cfg_schema_entry *s_entry __attribute__((u
     const struct const_strarray *value, void *reference) {
   struct netaddr *ptr;
 
+  if (s_entry->bin_size != sizeof(*ptr)) {
+    return -1;
+  }
+
   ptr = (struct netaddr *)reference;
 
   return netaddr_from_string(ptr, strarray_get_first_c(value));
@@ -790,6 +810,10 @@ int
 cfg_schema_tobin_acl(const struct cfg_schema_entry *s_entry __attribute__((unused)),
      const struct const_strarray *value, void *reference) {
   struct netaddr_acl *ptr;
+
+  if (s_entry->bin_size != sizeof(*ptr)) {
+    return -1;
+  }
 
   ptr = (struct netaddr_acl *)reference;
   netaddr_acl_remove(ptr);
@@ -811,6 +835,10 @@ cfg_schema_tobin_bitmap256(const struct cfg_schema_entry *s_entry __attribute__(
   struct bitmap256 *bitmap;
   const char *ptr;
   int idx;
+
+  if (s_entry->bin_size != sizeof(*bitmap)) {
+    return -1;
+  }
 
   bitmap = (struct bitmap256 *)reference;
   memset(bitmap, 0, sizeof(*bitmap));
@@ -852,6 +880,10 @@ cfg_schema_tobin_bool(const struct cfg_schema_entry *s_entry __attribute__((unus
     const struct const_strarray *value, void *reference) {
   bool *ptr;
 
+  if (s_entry->bin_size != sizeof(*ptr)) {
+    return -1;
+  }
+
   ptr = (bool *)reference;
 
   *ptr = cfg_get_bool(strarray_get_first_c(value));
@@ -870,6 +902,10 @@ int
 cfg_schema_tobin_stringlist(const struct cfg_schema_entry *s_entry __attribute__((unused)),
     const struct const_strarray *value, void *reference) {
   struct strarray *array;
+
+  if (s_entry->bin_size != sizeof(*array)) {
+    return -1;
+  }
 
   array = (struct strarray *)reference;
 

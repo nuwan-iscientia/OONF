@@ -161,6 +161,7 @@ static const char *help_text =
 int
 oonf_main(int argc, char **argv, const struct oonf_appdata *appdata) {
   int return_code;
+  int result;
 
   /* early initialization */
   return_code = 1;
@@ -207,8 +208,8 @@ oonf_main(int argc, char **argv, const struct oonf_appdata *appdata) {
   return_code = 1;
 
   /* read global section early */
-  if (oonf_cfg_update_globalcfg(true)) {
-    OONF_WARN(LOG_MAIN, "Cannot read global configuration section");
+  if ((result = oonf_cfg_update_globalcfg(true))) {
+    OONF_WARN(LOG_MAIN, "Cannot read global configuration section (%d)", result);
     goto oonf_cleanup;
   }
 

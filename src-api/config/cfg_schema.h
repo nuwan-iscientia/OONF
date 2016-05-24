@@ -113,7 +113,7 @@ struct cfg_schema_entry;
  * @param max maximum allowed parameter value
  * @param args variable list of additional arguments
  */
-#define _CFG_VALIDATE_INT(p_name, p_def, p_help, size, fraction, base2, min, max, args...)   _CFG_VALIDATE(p_name, p_def, p_help, .cb_validate = cfg_schema_validate_int, .cb_valhelp = cfg_schema_help_int, .validate_param = {{.i64 = (min)}, {.i64 = (max)}, {.i16 = {size, fraction, !!(base2) ? 2 : 10}}}, ##args )
+#define _CFG_VALIDATE_INT(p_name, p_def, p_help, size, fraction, base2, min, max, args...)   _CFG_VALIDATE(p_name, p_def, p_help, .cb_validate = cfg_schema_validate_int, .cb_valhelp = cfg_schema_help_int, .validate_param = {{.i64 = (min)}, {.i64 = (max)}, {.u16 = {size, fraction, !!(base2) ? 2 : 10}}}, ##args )
 
 /**
  * Creates a cfg_schema_entry for a parameter that does not need to be validated
@@ -412,6 +412,13 @@ struct cfg_schema_entry;
  */
 
 /**
+ * Helper macro that calculates the size in bytes of a struct field
+ * @param p_reference reference to instance of struct
+ * @param p_field name of field in the struct for the parameter,
+ */
+#define calculate_size(p_reference, p_field)   sizeof(((struct p_reference *)0)->p_field)
+
+/**
  * Helper macro to create a cfg_schema_entry for an integer parameter
  * that can be mapped into a binary struct.
  * @param p_reference reference to instance of struct
@@ -427,7 +434,7 @@ struct cfg_schema_entry;
  * @param max maximum allowed parameter value
  * @param args variable list of additional arguments
  */
-#define _CFG_MAP_INT(p_reference, p_field, p_name, p_def, p_help, size, fraction, base2, min, max, args...)   _CFG_VALIDATE_INT(p_name, p_def, p_help, size, fraction, base2, min, max, .cb_to_binary = cfg_schema_tobin_int, .bin_offset = offsetof(struct p_reference, p_field), ##args )
+#define _CFG_MAP_INT(p_reference, p_field, p_name, p_def, p_help, size, fraction, base2, min, max, args...)   _CFG_VALIDATE_INT(p_name, p_def, p_help, size, fraction, base2, min, max, .cb_to_binary = cfg_schema_tobin_int, .bin_size = calculate_size(p_reference, p_field), .bin_offset = offsetof(struct p_reference, p_field), ##args )
 
 /**
  * Creates a cfg_schema_entry for a parameter that does not need to be validated
@@ -440,7 +447,7 @@ struct cfg_schema_entry;
  * @param p_help help text for configuration entry
  * @param args variable list of additional arguments
  */
-#define CFG_MAP_STRING(p_reference, p_field, p_name, p_def, p_help, args...)                                  _CFG_VALIDATE(p_name, p_def, p_help, .cb_to_binary = cfg_schema_tobin_strptr, .bin_offset = offsetof(struct p_reference, p_field), ##args )
+#define CFG_MAP_STRING(p_reference, p_field, p_name, p_def, p_help, args...)                                  _CFG_VALIDATE(p_name, p_def, p_help, .cb_to_binary = cfg_schema_tobin_strptr, .bin_size = calculate_size(p_reference, p_field), .bin_offset = offsetof(struct p_reference, p_field), ##args )
 
 /**
  * Creates a cfg_schema_entry for a string parameter with a maximum length
@@ -454,7 +461,7 @@ struct cfg_schema_entry;
  * @param maxlen maximum number of characters in string
  * @param args variable list of additional arguments
  */
-#define CFG_MAP_STRING_LEN(p_reference, p_field, p_name, p_def, p_help, maxlen, args...)                      CFG_VALIDATE_STRING_LEN(p_name, p_def, p_help, maxlen, .cb_to_binary = cfg_schema_tobin_strptr, .bin_offset = offsetof(struct p_reference, p_field), ##args)
+#define CFG_MAP_STRING_LEN(p_reference, p_field, p_name, p_def, p_help, maxlen, args...)                      CFG_VALIDATE_STRING_LEN(p_name, p_def, p_help, maxlen, .cb_to_binary = cfg_schema_tobin_strptr, .bin_size = calculate_size(p_reference, p_field), .bin_offset = offsetof(struct p_reference, p_field), ##args)
 
 /**
  * Creates a cfg_schema_entry for a string parameter with a maximum length
@@ -468,7 +475,7 @@ struct cfg_schema_entry;
  * @param maxlen maximum number of characters in string
  * @param args variable list of additional arguments
  */
-#define CFG_MAP_STRING_ARRAY(p_reference, p_field, p_name, p_def, p_help, maxlen, args...)                    CFG_VALIDATE_STRING_LEN(p_name, p_def, p_help, maxlen, .cb_to_binary = cfg_schema_tobin_strarray, .bin_offset = offsetof(struct p_reference, p_field), ##args )
+#define CFG_MAP_STRING_ARRAY(p_reference, p_field, p_name, p_def, p_help, maxlen, args...)                    CFG_VALIDATE_STRING_LEN(p_name, p_def, p_help, maxlen, .cb_to_binary = cfg_schema_tobin_strarray, .bin_size = calculate_size(p_reference, p_field), .bin_offset = offsetof(struct p_reference, p_field), ##args )
 
 /**
  * Creates a cfg_schema_entry for a string parameter with
@@ -481,7 +488,7 @@ struct cfg_schema_entry;
  * @param p_help help text for configuration entry
  * @param args variable list of additional arguments
  */
-#define CFG_MAP_PRINTABLE(p_reference, p_field, p_name, p_def, p_help, args...)                               CFG_VALIDATE_PRINTABLE(p_name, p_def, p_help, .cb_to_binary = cfg_schema_tobin_strptr, .bin_offset = offsetof(struct p_reference, p_field), ##args)
+#define CFG_MAP_PRINTABLE(p_reference, p_field, p_name, p_def, p_help, args...)                               CFG_VALIDATE_PRINTABLE(p_name, p_def, p_help, .cb_to_binary = cfg_schema_tobin_strptr, .bin_size = calculate_size(p_reference, p_field), .bin_offset = offsetof(struct p_reference, p_field), ##args)
 
 /**
  * Creates a cfg_schema_entry for a string parameter with a maximum length,
@@ -495,7 +502,7 @@ struct cfg_schema_entry;
  * @param maxlen maximum number of characters in string
  * @param args variable list of additional arguments
  */
-#define CFG_MAP_PRINTABLE_LEN(p_reference, p_field, p_name, p_def, p_help, maxlen, args...)                   CFG_VALIDATE_PRINTABLE_LEN(p_name, p_def, p_help, maxlen, .cb_to_binary = cfg_schema_tobin_strptr, .bin_offset = offsetof(struct p_reference, p_field), ##args)
+#define CFG_MAP_PRINTABLE_LEN(p_reference, p_field, p_name, p_def, p_help, maxlen, args...)                   CFG_VALIDATE_PRINTABLE_LEN(p_name, p_def, p_help, maxlen, .cb_to_binary = cfg_schema_tobin_strptr, .bin_size = calculate_size(p_reference, p_field), .bin_offset = offsetof(struct p_reference, p_field), ##args)
 
 /**
  * Creates a cfg_schema_entry for a string parameter with a maximum length,
@@ -509,7 +516,7 @@ struct cfg_schema_entry;
  * @param maxlen maximum number of characters in string
  * @param args variable list of additional arguments
  */
-#define CFG_MAP_PRINTABLE_ARRAY(p_reference, p_field, p_name, p_def, p_help, maxlen, args...)                 CFG_VALIDATE_PRINTABLE_LEN(p_name, p_def, p_help, maxlen, .cb_to_binary = cfg_schema_tobin_strarray, .bin_offset = offsetof(struct p_reference, p_field), ##args)
+#define CFG_MAP_PRINTABLE_ARRAY(p_reference, p_field, p_name, p_def, p_help, maxlen, args...)                 CFG_VALIDATE_PRINTABLE_LEN(p_name, p_def, p_help, maxlen, .cb_to_binary = cfg_schema_tobin_strarray, .bin_size = calculate_size(p_reference, p_field), .bin_offset = offsetof(struct p_reference, p_field), ##args)
 
 /**
  * Creates a cfg_schema_entry for a parameter that can be choosen
@@ -524,7 +531,7 @@ struct cfg_schema_entry;
  *   (not a pointer to the array, ARRAYSIZE() would not work)
  * @param args variable list of additional arguments
  */
-#define CFG_MAP_CHOICE(p_reference, p_field, p_name, p_def, p_help, p_list, args...)                          CFG_VALIDATE_CHOICE(p_name, p_def, p_help, p_list, .cb_to_binary = cfg_schema_tobin_choice, .bin_offset = offsetof(struct p_reference, p_field), ##args)
+#define CFG_MAP_CHOICE(p_reference, p_field, p_name, p_def, p_help, p_list, args...)                          CFG_VALIDATE_CHOICE(p_name, p_def, p_help, p_list, .cb_to_binary = cfg_schema_tobin_choice, .bin_size = calculate_size(p_reference, p_field), .bin_offset = offsetof(struct p_reference, p_field), ##args)
 
 /**
  * Creates a cfg_schema_entry for a 32 bit signed integer parameter
@@ -603,7 +610,7 @@ struct cfg_schema_entry;
  * @param unspec true if the parameter also allows an unspecified address
  * @param args variable list of additional arguments
  */
-#define CFG_MAP_NETADDR(p_reference, p_field, p_name, p_def, p_help, prefix, unspec, args...)                 CFG_VALIDATE_NETADDR(p_name, p_def, p_help, prefix, unspec, .cb_to_binary = cfg_schema_tobin_netaddr, .bin_offset = offsetof(struct p_reference, p_field), ##args)
+#define CFG_MAP_NETADDR(p_reference, p_field, p_name, p_def, p_help, prefix, unspec, args...)                 CFG_VALIDATE_NETADDR(p_name, p_def, p_help, prefix, unspec, .cb_to_binary = cfg_schema_tobin_netaddr, .bin_size = calculate_size(p_reference, p_field), .bin_offset = offsetof(struct p_reference, p_field), ##args)
 
 /**
  * Creates a cfg_schema_entry for a layer-2 network address,
@@ -618,7 +625,7 @@ struct cfg_schema_entry;
  * @param unspec true if the parameter also allows an unspecified address
  * @param args variable list of additional arguments
  */
-#define CFG_MAP_NETADDR_HWADDR(p_reference, p_field, p_name, p_def, p_help, prefix, unspec, args...)          CFG_VALIDATE_NETADDR_HWADDR(p_name, p_def, p_help, prefix, unspec, .cb_to_binary = cfg_schema_tobin_netaddr, .bin_offset = offsetof(struct p_reference, p_field), ##args)
+#define CFG_MAP_NETADDR_HWADDR(p_reference, p_field, p_name, p_def, p_help, prefix, unspec, args...)          CFG_VALIDATE_NETADDR_HWADDR(p_name, p_def, p_help, prefix, unspec, .cb_to_binary = cfg_schema_tobin_netaddr, .bin_size = calculate_size(p_reference, p_field), .bin_offset = offsetof(struct p_reference, p_field), ##args)
 
 /**
  * Creates a cfg_schema_entry for a MAC (ethernet) network address
@@ -633,7 +640,7 @@ struct cfg_schema_entry;
  * @param unspec true if the parameter also allows an unspecified address
  * @param args variable list of additional arguments
  */
-#define CFG_MAP_NETADDR_MAC48(p_reference, p_field, p_name, p_def, p_help, prefix, unspec, args...)           CFG_VALIDATE_NETADDR_MAC48(p_name, p_def, p_help, prefix, unspec, .cb_to_binary = cfg_schema_tobin_netaddr, .bin_offset = offsetof(struct p_reference, p_field), ##args)
+#define CFG_MAP_NETADDR_MAC48(p_reference, p_field, p_name, p_def, p_help, prefix, unspec, args...)           CFG_VALIDATE_NETADDR_MAC48(p_name, p_def, p_help, prefix, unspec, .cb_to_binary = cfg_schema_tobin_netaddr, .bin_size = calculate_size(p_reference, p_field), .bin_offset = offsetof(struct p_reference, p_field), ##args)
 
 /**
  * Creates a cfg_schema_entry for an EUI-64 network address
@@ -648,7 +655,7 @@ struct cfg_schema_entry;
  * @param unspec true if the parameter also allows an unspecified address
  * @param args variable list of additional arguments
  */
-#define CFG_MAP_NETADDR_EUI64(p_reference, p_field, p_name, p_def, p_help, prefix, unspec, args...)           CFG_VALIDATE_NETADDR_EUI64(p_name, p_def, p_help, prefix, unspec, .cb_to_binary = cfg_schema_tobin_netaddr, .bin_offset = offsetof(struct p_reference, p_field), ##args)
+#define CFG_MAP_NETADDR_EUI64(p_reference, p_field, p_name, p_def, p_help, prefix, unspec, args...)           CFG_VALIDATE_NETADDR_EUI64(p_name, p_def, p_help, prefix, unspec, .cb_to_binary = cfg_schema_tobin_netaddr, .bin_size = calculate_size(p_reference, p_field), .bin_offset = offsetof(struct p_reference, p_field), ##args)
 
 /**
  * Creates a cfg_schema_entry for an IPv4 network address
@@ -663,7 +670,7 @@ struct cfg_schema_entry;
  * @param unspec true if the parameter also allows an unspecified address
  * @param args variable list of additional arguments
  */
-#define CFG_MAP_NETADDR_V4(p_reference, p_field, p_name, p_def, p_help, prefix, unspec, args...)              CFG_VALIDATE_NETADDR_V4(p_name, p_def, p_help, prefix, unspec, .cb_to_binary = cfg_schema_tobin_netaddr, .bin_offset = offsetof(struct p_reference, p_field), ##args)
+#define CFG_MAP_NETADDR_V4(p_reference, p_field, p_name, p_def, p_help, prefix, unspec, args...)              CFG_VALIDATE_NETADDR_V4(p_name, p_def, p_help, prefix, unspec, .cb_to_binary = cfg_schema_tobin_netaddr, .bin_size = calculate_size(p_reference, p_field), .bin_offset = offsetof(struct p_reference, p_field), ##args)
 
 /**
  * Creates a cfg_schema_entry for an IPv6 network address
@@ -678,7 +685,7 @@ struct cfg_schema_entry;
  * @param unspec true if the parameter also allows an unspecified address
  * @param args variable list of additional arguments
  */
-#define CFG_MAP_NETADDR_V6(p_reference, p_field, p_name, p_def, p_help, prefix, unspec, args...)              CFG_VALIDATE_NETADDR_V6(p_name, p_def, p_help, prefix, unspec, .cb_to_binary = cfg_schema_tobin_netaddr, .bin_offset = offsetof(struct p_reference, p_field), ##args)
+#define CFG_MAP_NETADDR_V6(p_reference, p_field, p_name, p_def, p_help, prefix, unspec, args...)              CFG_VALIDATE_NETADDR_V6(p_name, p_def, p_help, prefix, unspec, .cb_to_binary = cfg_schema_tobin_netaddr, .bin_size = calculate_size(p_reference, p_field), .bin_offset = offsetof(struct p_reference, p_field), ##args)
 
 /**
  * Creates a cfg_schema_entry for an IP network address
@@ -693,7 +700,7 @@ struct cfg_schema_entry;
  * @param unspec true if the parameter also allows an unspecified address
  * @param args variable list of additional arguments
  */
-#define CFG_MAP_NETADDR_V46(p_reference, p_field, p_name, p_def, p_help, prefix, unspec, args...)             CFG_VALIDATE_NETADDR_V46(p_name, p_def, p_help, prefix, unspec, .cb_to_binary = cfg_schema_tobin_netaddr, .bin_offset = offsetof(struct p_reference, p_field), ##args)
+#define CFG_MAP_NETADDR_V46(p_reference, p_field, p_name, p_def, p_help, prefix, unspec, args...)             CFG_VALIDATE_NETADDR_V46(p_name, p_def, p_help, prefix, unspec, .cb_to_binary = cfg_schema_tobin_netaddr, .bin_size = calculate_size(p_reference, p_field), .bin_offset = offsetof(struct p_reference, p_field), ##args)
 
 /**
  * Creates a cfg_schema_entry for a network address based
@@ -706,7 +713,7 @@ struct cfg_schema_entry;
  * @param p_help help text for configuration entry
  * @param args variable list of additional arguments
  */
-#define CFG_MAP_ACL(p_reference, p_field, p_name, p_def, p_help, args...)                                     CFG_VALIDATE_ACL(p_name, p_def, p_help, .cb_to_binary = cfg_schema_tobin_acl, .bin_offset = offsetof(struct p_reference, p_field), ##args)
+#define CFG_MAP_ACL(p_reference, p_field, p_name, p_def, p_help, args...)                                     CFG_VALIDATE_ACL(p_name, p_def, p_help, .cb_to_binary = cfg_schema_tobin_acl, .bin_size = calculate_size(p_reference, p_field), .bin_offset = offsetof(struct p_reference, p_field), ##args)
 
 /**
  * Creates a cfg_schema_entry for a network address based
@@ -720,7 +727,7 @@ struct cfg_schema_entry;
  * @param p_help help text for configuration entry
  * @param args variable list of additional arguments
  */
-#define CFG_MAP_ACL_HWADDR(p_reference, p_field, p_name, p_def, p_help, args...)                              CFG_VALIDATE_ACL_HWADDR(p_name, p_def, p_help, .cb_to_binary = cfg_schema_tobin_acl, .bin_offset = offsetof(struct p_reference, p_field), ##args)
+#define CFG_MAP_ACL_HWADDR(p_reference, p_field, p_name, p_def, p_help, args...)                              CFG_VALIDATE_ACL_HWADDR(p_name, p_def, p_help, .cb_to_binary = cfg_schema_tobin_acl, .bin_size = calculate_size(p_reference, p_field), .bin_offset = offsetof(struct p_reference, p_field), ##args)
 
 /**
  * Creates a cfg_schema_entry for a network address based
@@ -734,7 +741,7 @@ struct cfg_schema_entry;
  * @param p_help help text for configuration entry
  * @param args variable list of additional arguments
  */
-#define CFG_MAP_ACL_MAC48(p_reference, p_field, p_name, p_def, p_help, args...)                               CFG_VALIDATE_ACL_MAC48(p_name, p_def, p_help, .cb_to_binary = cfg_schema_tobin_acl, .bin_offset = offsetof(struct p_reference, p_field), ##args)
+#define CFG_MAP_ACL_MAC48(p_reference, p_field, p_name, p_def, p_help, args...)                               CFG_VALIDATE_ACL_MAC48(p_name, p_def, p_help, .cb_to_binary = cfg_schema_tobin_acl, .bin_size = calculate_size(p_reference, p_field), .bin_offset = offsetof(struct p_reference, p_field), ##args)
 
 /**
  * Creates a cfg_schema_entry for a network address based
@@ -748,7 +755,7 @@ struct cfg_schema_entry;
  * @param p_help help text for configuration entry
  * @param args variable list of additional arguments
  */
-#define CFG_MAP_ACL_EUI64(p_reference, p_field, p_name, p_def, p_help, args...)                               CFG_VALIDATE_ACL_EUI64(p_name, p_def, p_help, .cb_to_binary = cfg_schema_tobin_acl, .bin_offset = offsetof(struct p_reference, p_field), ##args)
+#define CFG_MAP_ACL_EUI64(p_reference, p_field, p_name, p_def, p_help, args...)                               CFG_VALIDATE_ACL_EUI64(p_name, p_def, p_help, .cb_to_binary = cfg_schema_tobin_acl, .bin_size = calculate_size(p_reference, p_field), .bin_offset = offsetof(struct p_reference, p_field), ##args)
 
 /**
  * Creates a cfg_schema_entry for a network address based
@@ -762,7 +769,7 @@ struct cfg_schema_entry;
  * @param p_help help text for configuration entry
  * @param args variable list of additional arguments
  */
-#define CFG_MAP_ACL_V4(p_reference, p_field, p_name, p_def, p_help, args...)                                  CFG_VALIDATE_ACL_V4(p_name, p_def, p_help, .cb_to_binary = cfg_schema_tobin_acl, .bin_offset = offsetof(struct p_reference, p_field), ##args)
+#define CFG_MAP_ACL_V4(p_reference, p_field, p_name, p_def, p_help, args...)                                  CFG_VALIDATE_ACL_V4(p_name, p_def, p_help, .cb_to_binary = cfg_schema_tobin_acl, .bin_size = calculate_size(p_reference, p_field), .bin_offset = offsetof(struct p_reference, p_field), ##args)
 
 /**
  * Creates a cfg_schema_entry for a network address based
@@ -776,7 +783,7 @@ struct cfg_schema_entry;
  * @param p_help help text for configuration entry
  * @param args variable list of additional arguments
  */
-#define CFG_MAP_ACL_V6(p_reference, p_field, p_name, p_def, p_help, args...)                                  CFG_VALIDATE_ACL_V6(p_name, p_def, p_help, .cb_to_binary = cfg_schema_tobin_acl, .bin_offset = offsetof(struct p_reference, p_field), ##args)
+#define CFG_MAP_ACL_V6(p_reference, p_field, p_name, p_def, p_help, args...)                                  CFG_VALIDATE_ACL_V6(p_name, p_def, p_help, .cb_to_binary = cfg_schema_tobin_acl, .bin_size = calculate_size(p_reference, p_field), .bin_offset = offsetof(struct p_reference, p_field), ##args)
 
 /**
  * Creates a cfg_schema_entry for a network address based
@@ -790,7 +797,7 @@ struct cfg_schema_entry;
  * @param p_help help text for configuration entry
  * @param args variable list of additional arguments
  */
-#define CFG_MAP_ACL_V46(p_reference, p_field, p_name, p_def, p_help, args...)                                 CFG_VALIDATE_ACL_V46(p_name, p_def, p_help, .cb_to_binary = cfg_schema_tobin_acl, .bin_offset = offsetof(struct p_reference, p_field), ##args)
+#define CFG_MAP_ACL_V46(p_reference, p_field, p_name, p_def, p_help, args...)                                 CFG_VALIDATE_ACL_V46(p_name, p_def, p_help, .cb_to_binary = cfg_schema_tobin_acl, .bin_size = calculate_size(p_reference, p_field), .bin_offset = offsetof(struct p_reference, p_field), ##args)
 
 /**
  * Creates a cfg_schema_entry for 256 bit bitmap that can be
@@ -803,7 +810,7 @@ struct cfg_schema_entry;
  * @param p_help help text for configuration entry
  * @param args variable list of additional arguments
  */
-#define CFG_MAP_BITMAP256(p_reference, p_field, p_name, p_def, p_help, args...)                               CFG_VALIDATE_BITMAP256(p_name, p_def, p_help, .cb_to_binary = cfg_schema_tobin_bitmap256, .bin_offset = offsetof(struct p_reference, p_field), ##args)
+#define CFG_MAP_BITMAP256(p_reference, p_field, p_name, p_def, p_help, args...)                               CFG_VALIDATE_BITMAP256(p_name, p_def, p_help, .cb_to_binary = cfg_schema_tobin_bitmap256, .bin_size = calculate_size(p_reference, p_field), .bin_offset = offsetof(struct p_reference, p_field), ##args)
 
 /**
  * Creates a cfg_schema_entry for a boolean parameter
@@ -816,7 +823,7 @@ struct cfg_schema_entry;
  * @param p_help help text for configuration entry
  * @param args variable list of additional arguments
  */
-#define CFG_MAP_BOOL(p_reference, p_field, p_name, p_def, p_help, args...)                                    CFG_VALIDATE_BOOL(p_name, p_def, p_help, .cb_to_binary = cfg_schema_tobin_bool, .bin_offset = offsetof(struct p_reference, p_field), ##args)
+#define CFG_MAP_BOOL(p_reference, p_field, p_name, p_def, p_help, args...)                                    CFG_VALIDATE_BOOL(p_name, p_def, p_help, .cb_to_binary = cfg_schema_tobin_bool, .bin_size = calculate_size(p_reference, p_field), .bin_offset = offsetof(struct p_reference, p_field), ##args)
 
 /**
  * Creates a cfg_schema_entry for list of strings that can
@@ -829,7 +836,7 @@ struct cfg_schema_entry;
  * @param p_help help text for configuration entry
  * @param args variable list of additional arguments
  */
-#define CFG_MAP_STRINGLIST(p_reference, p_field, p_name, p_def, p_help, args...)                              _CFG_VALIDATE(p_name, p_def, p_help, .cb_to_binary = cfg_schema_tobin_stringlist, .bin_offset = offsetof(struct p_reference, p_field), .list = true, ##args )
+#define CFG_MAP_STRINGLIST(p_reference, p_field, p_name, p_def, p_help, args...)                              _CFG_VALIDATE(p_name, p_def, p_help, .cb_to_binary = cfg_schema_tobin_stringlist, .bin_size = calculate_size(p_reference, p_field), .bin_offset = offsetof(struct p_reference, p_field), .list = true, ##args )
 
 
 /*! convenience definition for configuration that only allows access from loopback */
@@ -1026,6 +1033,9 @@ struct cfg_schema_entry {
 
   /*! offset of current binary data compared to reference pointer */
   size_t bin_offset;
+
+  /*! size in bytes of the target buffer to allow sanity checks */
+  size_t bin_size;
 
   /*! pointer to value before change (for delta calculation) */
   const struct const_strarray *pre;
