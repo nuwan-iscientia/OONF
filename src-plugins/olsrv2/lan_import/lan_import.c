@@ -406,13 +406,9 @@ _destroy_import(struct _import_entry *import) {
 static void
 _cb_cfg_changed(void) {
   struct _import_entry *import;
-  const char *ifname;
-  char ifbuf[IF_NAMESIZE];
-
-  ifname = cfg_get_phy_if(ifbuf, _import_section.section_name);
 
   /* get existing modifier */
-  import = _get_import(ifname);
+  import = _get_import(_import_section.section_name);
   if (!import) {
     /* out of memory */
     return;
@@ -428,13 +424,15 @@ _cb_cfg_changed(void) {
       _import_entries, ARRAYSIZE(_import_entries))) {
     OONF_WARN(LOG_LAN_IMPORT,
         "Could not convert configuration data of section '%s'",
-        ifname);
+        _import_section.section_name);
 
     if (_import_section.pre == NULL) {
       _destroy_import(import);
     }
     return;
   }
+
+  cfg_get_phy_if(import->ifname, import->ifname);
 
   /* trigger wildcard query */
   if (!os_routing_is_in_progress(&_unicast_query)) {
