@@ -1313,6 +1313,11 @@ _cb_interface_changed(struct oonf_timer_instance *timer) {
  */
 static int
 _handle_unused_parameter(const char *arg) {
-  cfg_db_add_namedsection(oonf_cfg_get_rawdb(), CFG_INTERFACE_SECTION, arg);
+  const char *ifname;
+  char ifbuf[IF_NAMESIZE];
+
+  ifname = cfg_get_phy_if(ifbuf, arg);
+
+  cfg_db_add_namedsection(oonf_cfg_get_rawdb(), CFG_INTERFACE_SECTION, ifname);
   return 0;
 }

@@ -180,10 +180,14 @@ _cleanup(void) {
 static void
 _cb_config_changed(void) {
   struct dlep_radio_if *interface;
+  const char *ifname;
+  char ifbuf[IF_NAMESIZE];
+
+  ifname = cfg_get_phy_if(ifbuf, _radio_section.section_name);
 
   if (!_radio_section.post) {
     /* remove old interface object */
-    interface = dlep_radio_get_by_layer2_if(_radio_section.section_name);
+    interface = dlep_radio_get_by_layer2_if(ifname);
     if (interface) {
       dlep_radio_remove_interface(interface);
     }
@@ -191,7 +195,7 @@ _cb_config_changed(void) {
   }
 
   /* get interface object or create one */
-  interface = dlep_radio_add_interface(_radio_section.section_name);
+  interface = dlep_radio_add_interface(ifname);
   if (!interface) {
     return;
   }
@@ -205,15 +209,15 @@ _cb_config_changed(void) {
   }
 
   if (!interface->interf.udp_config.interface[0]) {
-    strscpy(interface->interf.udp_config.interface,
-        _radio_section.section_name,
-        sizeof(interface->interf.udp_config.interface));
+    strscpy(interface->interf.udp_config.interface, ifname, IF_NAMESIZE);
   }
-
+  else {
+    cfg_get_phy_if(interface->interf.udp_config.interface,
+        interface->interf.udp_config.interface);
+  }
   /* apply interface name also to TCP socket */
   strscpy(interface->tcp_config.interface,
-      interface->interf.udp_config.interface,
-      sizeof(interface->tcp_config.interface));
+      interface->interf.udp_config.interface, IF_NAMESIZE);
 
   /* apply settings */
   dlep_radio_apply_interface_settings(interface);

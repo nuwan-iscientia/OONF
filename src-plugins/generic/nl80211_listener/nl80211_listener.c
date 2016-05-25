@@ -480,16 +480,19 @@ _nl80211_if_remove(struct nl80211_if *interf) {
 static void
 _cb_if_config_changed(void) {
   struct nl80211_if *interf;
+  const char *ifname;
+  char ifbuf[IF_NAMESIZE];
 
+  ifname = cfg_get_phy_if(ifbuf, _if_section.section_name);
   if (_if_section.pre == NULL) {
-    interf = _nl80211_if_add(_if_section.section_name);
+    interf = _nl80211_if_add(ifname);
     if (interf) {
       interf->_if_section = true;
     }
   }
 
   if (_if_section.post == NULL) {
-    interf = _nl80211_if_get(_if_section.section_name);
+    interf = _nl80211_if_get(ifname);
     if (interf) {
       interf->_if_section = false;
       if (!interf->_nl80211_section) {

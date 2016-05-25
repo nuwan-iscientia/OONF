@@ -92,6 +92,7 @@ static void
 _early_cfg_init(void)
 {
   cfg_io_add(oonf_cfg_get_instance(), &_cfg_io_uci);
+  cfg_set_ifname_handler(_get_phy_ifname);
 }
 
 /**
@@ -101,13 +102,14 @@ static void
 _cleanup(void)
 {
   cfg_io_remove(oonf_cfg_get_instance(), &_cfg_io_uci);
+  cfg_set_ifname_handler(NULL);
 }
 
 /*
  * Definition of the uci-io handler.
  *
- * This handler can read and write files and use a parser to
- * translate them into a configuration database (and the other way around)
+ * This handler can read files and use a parser to
+ * translate them into a configuration database
  *
  * The parameter of this parser has to be a filename
  */
@@ -177,6 +179,8 @@ _cb_uci_load(const char *param, struct autobuf *log) {
       }
     }
   }
+
+  uci_free_context(ctx);
   return db;
 
 uci_error:
@@ -242,4 +246,48 @@ _load_section(struct uci_section *sec, struct cfg_db *db, const char *type, cons
     }
   }
   return 0;
+}
+
+static int
+_get_phy_ifname(char *phy_ifname, const char *ifname) {
+  struct uci_context *ctx = NULL;
+  struct uci_package *p = NULL;
+  struct uci_section *sec;
+  struct uci_option *opt;
+
+  int result = 0;
+
+  ctx = uci_alloc_context();
+  if (!ctx) {
+    return -1;
+  }
+
+  if (uci_load(ctx, "/etc/config/network", &p)) {
+    result = -2;
+    goto uci_error;
+  }
+
+  sec = uci_lookup_section(ctx, p, ifname);
+  if (!sec) {
+    /* interface section does not exist */
+    result = -3;
+    goto uci_error;
+  }
+
+  if (!sec->type || strcmp(sec->type, "interface") != 0) {
+    result = -4;
+    goto uci_error;
+  }
+
+  opt = uci_lookup_option(ctx, sec, "ifname");
+  if (!opt) {
+    result = -5;
+    goto uci_error;
+  }
+
+  strscpy(phy_ifname, opt->v.string, IF_NAMESIZE);
+
+uci_error:
+  uci_free_context(ctx);
+  return result;
 }

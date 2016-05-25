@@ -287,6 +287,8 @@ _cb_config_changed(void) {
   struct oonf_layer2_neigh *l2neigh, *l2neigh_it;
   struct oonf_layer2_net *l2net;
   struct cfg_entry *entry;
+  char ifbuf[IF_NAMESIZE];
+  const char *ifname;
   size_t idx;
   bool commit;
 
@@ -302,7 +304,8 @@ _cb_config_changed(void) {
     }
   }
 
-  l2net = oonf_layer2_net_get(_link_config_section.section_name);
+  ifname = cfg_get_phy_if(ifbuf, _link_config_section.section_name);
+  l2net = oonf_layer2_net_get(ifname);
   if (l2net) {
     /* remove old entries and trigger remove events */
     oonf_layer2_net_cleanup(l2net, _l2_origin_old);

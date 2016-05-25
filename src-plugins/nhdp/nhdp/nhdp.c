@@ -406,12 +406,16 @@ _cb_cfg_domain_changed(void) {
 static void
 _cb_cfg_interface_changed(void) {
   struct nhdp_interface *interf;
+  const char *ifname;
+  char ifbuf[IF_NAMESIZE];
+
+  ifname = cfg_get_phy_if(ifbuf, _interface_section.section_name);
 
   OONF_DEBUG(LOG_NHDP, "Configuration of NHDP interface %s changed",
       _interface_section.section_name);
 
   /* get interface */
-  interf = nhdp_interface_get(_interface_section.section_name);
+  interf = nhdp_interface_get(ifname);
 
   if (_interface_section.post == NULL) {
     /* section was removed */
@@ -422,7 +426,7 @@ _cb_cfg_interface_changed(void) {
   }
 
   if (interf == NULL) {
-    interf = nhdp_interface_add(_interface_section.section_name);
+    interf = nhdp_interface_add(ifname);
   }
 
   if (cfg_schema_tobin(interf, _interface_section.post,

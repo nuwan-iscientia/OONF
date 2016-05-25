@@ -252,6 +252,8 @@ _cb_config_changed(void) {
     return;
   }
 
+  cfg_get_phy_if(_l2gen_config.interface, _l2gen_config.interface);
+
   OONF_DEBUG(LOG_L2GEN, "Generator is now %s for interface %s\n",
       _l2gen_config.active ? "active" : "inactive", _l2gen_config.interface);
   

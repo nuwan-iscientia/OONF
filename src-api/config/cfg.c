@@ -54,6 +54,10 @@
 #include "config/cfg.h"
 
 static int avl_comp_cfgio(const void *txt1, const void *txt2);
+
+/* phy interface conversion function pointer */
+static int (*_get_phy_if)(char *phy_ifname, const char *ifname) = NULL;
+
 /**
  * Initialize a configuration instance
  * @param instance pointer to cfg_instance
@@ -173,6 +177,36 @@ cfg_get_choice_index(const char *key, const char **array, size_t array_size) {
     }
   }
   return -1;
+}
+
+/**
+ * Set a handler to transform a logical interface name into a physical one
+ * @param get_phy_if function pointer to transformer function, NULL to reset
+ */
+void
+cfg_set_ifname_handler(int (*get_phy_if)(char *phy_ifname, const char *ifname)) {
+  _get_phy_if = get_phy_if;
+}
+
+/**
+ * Get a physical interface name from a logical one. If no handler
+ * is available it will fall back to the identity function
+ * (phyiscal = logical name)
+ * @param phy_if target buffer for physical interface name,
+ *    must be IF_NAMESIZE sized
+ * @param ifname logical interface name
+ * @return physical interface name (will never be NULL)
+ */
+const char *
+cfg_get_phy_if(char *phy_if, const char *ifname) {
+  if (_get_phy_if && !_get_phy_if(phy_if, ifname)) {
+    return phy_if;
+  }
+
+  if (phy_if != ifname) {
+    strscpy(phy_if, ifname, IF_NAMESIZE);
+  }
+  return phy_if;
 }
 
 /**

@@ -1365,13 +1365,15 @@ _cb_cfg_rfc5444_changed(void) {
 static void
 _cb_cfg_interface_changed(void) {
   struct oonf_packet_managed_config config;
-
   struct oonf_rfc5444_interface *interf;
+  const char *ifname;
+  char ifbuf[IF_NAMESIZE];
   int result;
 
+  ifname = cfg_get_phy_if(ifbuf, _interface_section.section_name);
+
   interf = avl_find_element(
-      &_rfc5444_protocol->_interface_tree,
-      _interface_section.section_name, interf, _node);
+      &_rfc5444_protocol->_interface_tree, ifname, interf, _node);
 
   if (_interface_section.post == NULL) {
     /* this section has been removed */
@@ -1387,17 +1389,16 @@ _cb_cfg_interface_changed(void) {
   if (result) {
     OONF_WARN(LOG_RFC5444,
         "Could not convert "CFG_INTERFACE_SECTION" '%s' to binary (%d)",
-        _interface_section.section_name, -(result+1));
+        ifname, -(result+1));
     goto interface_changed_cleanup;
   }
 
   if (_interface_section.pre == NULL) {
-    interf = oonf_rfc5444_add_interface(_rfc5444_protocol,
-        NULL, _interface_section.post->name);
+    interf = oonf_rfc5444_add_interface(_rfc5444_protocol, NULL, ifname);
     if (interf == NULL) {
       OONF_WARN(LOG_RFC5444,
           "Could not generate interface '%s' for protocol '%s'",
-          _interface_section.section_name, _rfc5444_protocol->name);
+          ifname, _rfc5444_protocol->name);
       goto interface_changed_cleanup;
     }
   }

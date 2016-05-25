@@ -179,10 +179,14 @@ _cleanup(void) {
 static void
 _cb_config_changed(void) {
   struct dlep_router_if *interface;
+  const char *ifname;
+  char ifbuf[IF_NAMESIZE];
+
+  ifname = cfg_get_phy_if(ifbuf, _router_section.section_name);
 
   if (!_router_section.post) {
     /* remove old session object */
-    interface = dlep_router_get_by_layer2_if(_router_section.section_name);
+    interface = dlep_router_get_by_layer2_if(ifname);
     if (interface) {
       dlep_router_remove_interface(interface);
     }
@@ -190,7 +194,7 @@ _cb_config_changed(void) {
   }
 
   /* get session object or create one */
-  interface = dlep_router_add_interface(_router_section.section_name);
+  interface = dlep_router_add_interface(ifname);
   if (!interface) {
     return;
   }
@@ -208,6 +212,10 @@ _cb_config_changed(void) {
     strscpy(interface->interf.udp_config.interface,
         _router_section.section_name,
         sizeof(interface->interf.udp_config.interface));
+  }
+  else {
+    cfg_get_phy_if(interface->interf.udp_config.interface,
+        interface->interf.udp_config.interface);
   }
 
   /* apply settings */

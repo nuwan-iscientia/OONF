@@ -746,14 +746,18 @@ static void
 _cb_if_cfg_changed(void) {
   struct _nhdp_if_autoll4 *auto_ll4;
   struct nhdp_interface *nhdp_if;
+  const char *ifname;
+  char ifbuf[IF_NAMESIZE];
+
+  ifname = cfg_get_phy_if(ifbuf, _interface_section.section_name);
 
   if (_interface_section.pre == NULL) {
     /* increase nhdp_interface refcount */
-    nhdp_if = nhdp_interface_add(_interface_section.section_name);
+    nhdp_if = nhdp_interface_add(ifname);
   }
   else {
     /* get interface */
-    nhdp_if = nhdp_interface_get(_interface_section.section_name);
+    nhdp_if = nhdp_interface_get(ifname);
   }
 
   if (_interface_section.post == NULL) {
