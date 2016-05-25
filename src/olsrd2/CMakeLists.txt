@@ -61,7 +61,9 @@ ENDIF (NOT OONF_STATIC_PLUGINS)
 
 
 IF (NOT OONF_OPTIONAL_STATIC_PLUGINS)
-    set (OONF_OPTIONAL_STATIC_PLUGINS nl80211_listener)
+    set (OONF_OPTIONAL_STATIC_PLUGINS nl80211_listener
+                                      cfg_uciloader
+                                      )
 ENDIF (NOT OONF_OPTIONAL_STATIC_PLUGINS)
 
 ##################################
