@@ -67,6 +67,8 @@ static void _cleanup(void);
 static struct cfg_db *_cb_uci_load(const char *param, struct autobuf *log);
 static int _load_section(struct uci_section *sec, struct cfg_db *db, const char *type, const char *name, struct autobuf *log);
 
+static int _get_phy_ifname(char *phy_ifname, const char *ifname);
+
 static struct oonf_subsystem _oonf_cfg_uciloader_subsystem = {
   .name = OONF_CFG_UCILOADER_SUBSYSTEM,
   .descr = "OONF uci handler for configuration system",
@@ -248,6 +250,12 @@ _load_section(struct uci_section *sec, struct cfg_db *db, const char *type, cons
   return 0;
 }
 
+/**
+ * Convert a logical interface name into a physical one
+ * @param phy_ifname buffer for physical interface name
+ * @param ifname logical interface name
+ * @return 0 if conversion was possible, negative if an error happened
+ */
 static int
 _get_phy_ifname(char *phy_ifname, const char *ifname) {
   struct uci_context *ctx = NULL;
