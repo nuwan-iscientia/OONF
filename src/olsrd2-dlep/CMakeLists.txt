@@ -55,6 +55,7 @@ IF (NOT OONF_STATIC_PLUGINS)
                              olsrv2info
                              netjsoninfo
                              lan_import
+                             auto_ll4
                              http
                              dlep_router
                              )

@@ -1,7 +1,7 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=oonf-dlep-proxy-git-debug
-PKG_VERSION:=2016-04-27
+PKG_VERSION:=2016-05-31
 
 CMAKE_INSTALL:=1
 
