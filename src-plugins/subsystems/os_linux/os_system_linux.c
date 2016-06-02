@@ -546,7 +546,11 @@ _flush_netlink_buffer(struct os_system_netlink *nl) {
   if ((ret = sendmsg(os_fd_get_fd(&nl->socket.fd),
         &_netlink_send_msg, MSG_DONTWAIT)) <= 0) {
     err = errno;
+#if EAGAIN == EWOULDBLOCK
+    if (err != EAGAIN) {
+#else
     if (err != EAGAIN && err != EWOULDBLOCK) {
+#endif
       OONF_WARN(nl->used_by->logging,
           "Cannot send data (%"PRINTF_SIZE_T_SPECIFIER" bytes)"
           " to netlink socket %s: %s (%d)",
@@ -634,7 +638,11 @@ netlink_rcv_retry:
       " %"PRINTF_SIZE_T_SPECIFIER" bytes buffer",
       nl->name, nl->in_len);
   if ((ret = recvmsg(entry->fd.fd, &_netlink_rcv_msg, MSG_DONTWAIT | flags)) < 0) {
+#if EAGAIN == EWOULDBLOCK
+    if (errno != EAGAIN) {
+#else
     if (errno != EAGAIN && errno != EWOULDBLOCK) {
+#endif
       OONF_WARN(nl->used_by->logging,"netlink '%s' recvmsg error: %s (%d)\n",
           nl->name, strerror(errno), errno);
     }
