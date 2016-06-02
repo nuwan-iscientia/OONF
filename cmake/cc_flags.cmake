@@ -148,6 +148,7 @@ add_compiler_flag(-Wsync-nand)
 add_compiler_flag(-Wundef)
 add_compiler_flag(-Wunused-parameter)
 add_compiler_flag(-Wjump-misses-init)
+add_compiler_flag(-Wlogical-op)
 
 # check for link time optimization
 # check_c_compiler_flag("-flto" test_lto)
