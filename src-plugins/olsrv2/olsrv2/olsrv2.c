@@ -197,8 +197,8 @@ static struct cfg_schema_entry _olsrv2_entries[] = {
   CFG_VALIDATE_LAN(_LOCAL_ATTACHED_NETWORK_KEY, "",
     "locally attached network, a combination of an"
     " ip address or prefix followed by an up to four optional parameters"
-    " which define link metric cost, hopcount distance and domain of the prefix"
-    " ( <"LAN_OPTION_METRIC"...> <"LAN_OPTION_DIST"...>"
+    " which define link metric cost, hopcount distance, domain of the prefix"
+    " and the source-prefix ( <"LAN_OPTION_METRIC"...> <"LAN_OPTION_DIST"...>"
     " <"LAN_OPTION_DOMAIN"<num>/all> <"LAN_OPTION_SRC"...> ).",
     .list = true),
 
