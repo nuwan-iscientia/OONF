@@ -79,7 +79,17 @@ os_fd_generic_join_mcast_recv(struct os_fd *sock,
   if (netaddr_get_address_family(multicast) == AF_INET) {
     const struct netaddr *src;
 
-    src = os_if == NULL ? &NETADDR_IPV4_ANY : os_if->if_v4;
+    if (os_if) {
+      if (netaddr_is_unspec(os_if->if_linklocal_v4)) {
+        src = os_if->if_v4;
+      }
+      else {
+        src = os_if->if_linklocal_v4;
+      }
+    }
+    else {
+      src = &NETADDR_IPV4_ANY;
+    }
 
     OONF_DEBUG(log_src,
         "Socket on interface %s joining receiving multicast %s (src %s)\n",
