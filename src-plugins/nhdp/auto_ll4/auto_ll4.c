@@ -261,7 +261,6 @@ _cb_add_nhdp_interface(void *ptr) {
 
   /* initialize static part of routing data */
   auto_ll4->os_addr.cb_finished = _cb_address_finished;
-  auto_ll4->os_addr.if_index = nhdp_interface_get_if_listener(nhdp_if)->data->index;
   auto_ll4->os_addr.scope = OS_ADDR_SCOPE_LINK;
 
 
@@ -442,6 +441,7 @@ _cb_update_timer(struct oonf_timer_instance *ptr) {
 
   /* get pointer to interface data */
   os_if = nhdp_interface_get_if_listener(nhdp_if)->data;
+  auto_ll4->os_addr.if_index = os_if->index;
 
   /* ignore loopback */
   if (os_if->flags.loopback || !os_if->flags.up) {
@@ -581,7 +581,7 @@ _get_current_if_ipv4_addresscount(struct os_interface *os_if,
   bool match;
   int count;
 #ifdef OONF_LOG_DEBUG_INFO
-  struct netaddr_str nbuf;
+  struct netaddr_str nbuf1, nbuf2;
 #endif
 
   /* reset counter */
@@ -590,8 +590,11 @@ _get_current_if_ipv4_addresscount(struct os_interface *os_if,
   match = false;
 
   avl_for_each_element(&os_if->addresses, ip, _node) {
-    OONF_DEBUG(LOG_AUTO_LL4, "Interface %s has address %s",
-        os_if->name, netaddr_to_string(&nbuf, &ip->address));
+    OONF_DEBUG(LOG_AUTO_LL4, "Interface %s (%u) has address %s %s",
+        os_if->name, os_if->index,
+        netaddr_to_string(&nbuf1, &ip->address),
+        netaddr_to_string(&nbuf2, os_if->if_linklocal_v6)
+        );
 
     if (netaddr_get_address_family(&ip->address) == AF_INET) {
       /* count IPv4 addresses */
@@ -627,10 +630,10 @@ _commit_address(struct _nhdp_if_autoll4 *auto_ll4, struct netaddr *addr, bool se
   memcpy(&auto_ll4->os_addr.address, addr, sizeof(*addr));
   auto_ll4->os_addr.set = set;
 
-  OONF_INFO(LOG_AUTO_LL4, "%s address %s on interface %s",
+  OONF_INFO(LOG_AUTO_LL4, "%s address %s on interface %s (%u)",
       auto_ll4->os_addr.set ? "Set" : "Remove",
       netaddr_to_string(&nbuf, &auto_ll4->os_addr.address),
-      if_indextoname(auto_ll4->os_addr.if_index, ibuf));
+      if_indextoname(auto_ll4->os_addr.if_index, ibuf), auto_ll4->os_addr.if_index);
 
   /* remember if the plugin set/reset the address */
   auto_ll4->plugin_generated = set;

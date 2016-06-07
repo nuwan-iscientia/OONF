@@ -182,6 +182,12 @@ struct os_interface {
 
   /*! timer for lazy interface change handling */
   struct oonf_timer_instance _change_timer;
+
+  /*! remember if we already initialized the link data */
+  bool _link_initialized;
+
+  /*! remember if we already initialized the address data */
+  bool _addr_initialized;
 };
 
 /**

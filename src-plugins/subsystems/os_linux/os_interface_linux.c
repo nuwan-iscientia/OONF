@@ -934,6 +934,7 @@ _link_parse_nlmsg(const char *ifname, struct nlmsghdr *msg) {
     }
   }
 
+  ifdata->_link_initialized = true;
   _trigger_if_change_including_any(ifdata);
 }
 
@@ -945,6 +946,11 @@ static void
 _update_address_shortcuts(struct os_interface *os_if) {
   struct os_interface_ip *ip;
   bool ipv4_ll, ipv6_ll, ipv4_routable, ipv6_routable;
+#if defined(OONF_LOG_DEBUG_INFO)
+  struct netaddr_str nbuf;
+#endif
+
+  OONF_DEBUG(LOG_OS_INTERFACE, "Update address shortcuts for interface %s", os_if->name);
 
   /* update address shortcuts */
   os_if->if_v4 = &NETADDR_UNSPEC;
@@ -953,27 +959,38 @@ _update_address_shortcuts(struct os_interface *os_if) {
   os_if->if_linklocal_v6 = &NETADDR_UNSPEC;
 
   avl_for_each_element(&os_if->addresses, ip, _node) {
-    ipv4_ll = netaddr_is_in_subnet(&ip->address, &NETADDR_IPV4_LINKLOCAL);
-    ipv6_ll = netaddr_is_in_subnet(&ip->address, &NETADDR_IPV6_LINKLOCAL);
+    OONF_DEBUG(LOG_OS_INTERFACE, "Interface has %s",
+        netaddr_to_string(&nbuf, &ip->address));
+    ipv4_ll = netaddr_is_in_subnet(&NETADDR_IPV4_LINKLOCAL, &ip->address);
+    ipv6_ll = netaddr_is_in_subnet(&NETADDR_IPV6_LINKLOCAL, &ip->address);
 
     ipv4_routable = !ipv4_ll
         && netaddr_get_address_family(&ip->address) == AF_INET
-        && !netaddr_is_in_subnet(&ip->address, &NETADDR_IPV4_LOOPBACK_NET)
-        && !netaddr_is_in_subnet(&ip->address, &NETADDR_IPV4_MULTICAST);
-    ipv6_routable = !ipv4_ll
-        && (netaddr_is_in_subnet(&ip->address, &NETADDR_IPV6_ULA)
-            || netaddr_is_in_subnet(&ip->address, &NETADDR_IPV6_GLOBAL));
+        && !netaddr_is_in_subnet(&NETADDR_IPV4_LOOPBACK_NET, &ip->address)
+        && !netaddr_is_in_subnet(&NETADDR_IPV4_MULTICAST, &ip->address);
+    ipv6_routable = !ipv6_ll
+        && netaddr_get_address_family(&ip->address) == AF_INET6
+        && (netaddr_is_in_subnet(&NETADDR_IPV6_ULA, &ip->address)
+            || netaddr_is_in_subnet(&NETADDR_IPV6_GLOBAL, &ip->address));
 
     if (netaddr_is_unspec(os_if->if_v4) && ipv4_routable) {
+      OONF_DEBUG(LOG_OS_INTERFACE, "IPv4 is %s",
+          netaddr_to_string(&nbuf, &ip->address));
       os_if->if_v4 = &ip->address;
     }
     if (netaddr_is_unspec(os_if->if_v6) && ipv6_routable) {
+      OONF_DEBUG(LOG_OS_INTERFACE, "IPv6 is %s",
+          netaddr_to_string(&nbuf, &ip->address));
       os_if->if_v6 = &ip->address;
     }
     if (netaddr_is_unspec(os_if->if_linklocal_v4) && ipv4_ll) {
+      OONF_DEBUG(LOG_OS_INTERFACE, "Linklocal IPv4 is %s",
+          netaddr_to_string(&nbuf, &ip->address));
       os_if->if_linklocal_v4 = &ip->address;
     }
     if (netaddr_is_unspec(os_if->if_linklocal_v6) && ipv6_ll) {
+      OONF_DEBUG(LOG_OS_INTERFACE, "Linklocal IPv6 is %s",
+          netaddr_to_string(&nbuf, &ip->address));
       os_if->if_linklocal_v6 = &ip->address;
     }
   }
@@ -1088,6 +1105,7 @@ _address_parse_nlmsg(const char *ifname, struct nlmsghdr *msg) {
 
   if (update) {
     _update_address_shortcuts(ifdata);
+    ifdata->_addr_initialized = true;
   }
 
   _trigger_if_change_including_any(ifdata);
@@ -1283,6 +1301,11 @@ _cb_interface_changed(struct oonf_timer_instance *timer) {
 
   OONF_INFO(LOG_OS_INTERFACE, "Interface %s (%u) changed",
       data->name, data->index);
+
+  if (!data->_link_initialized || !data->_addr_initialized) {
+    /* wait until we have all the data */
+    return;
+  }
 
   error = false;
   list_for_each_element_safe(&data->_listeners, interf, _node, interf_it) {
