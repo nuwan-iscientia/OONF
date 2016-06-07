@@ -226,13 +226,8 @@ static void
 _initiate_shutdown(void) {
   struct nhdp_interface *nhdp_if, *nhdp_if_it;
 
-  /* decrease refcount */
-  avl_for_each_element_safe(nhdp_interface_get_tree(), nhdp_if, _node, nhdp_if_it) {
-    nhdp_interface_remove(nhdp_if);
-  }
-
   /* cleanup plugin specific data for interfaces that still exist */
-  avl_for_each_element(nhdp_interface_get_tree(), nhdp_if, _node) {
+  avl_for_each_element_safe(nhdp_interface_get_tree(), nhdp_if, _node, nhdp_if_it) {
     OONF_DEBUG(LOG_AUTO_LL4, "initiate cleanup if: %s",
         nhdp_interface_get_if_listener(nhdp_if)->data->name);
     _cb_remove_nhdp_interface(nhdp_if);
@@ -296,6 +291,9 @@ _cb_remove_nhdp_interface(void *ptr) {
 
   /* stop update timer */
   oonf_timer_stop(&auto_ll4->update_timer);
+
+  /* cleanup pointer to nhdp interface */
+  auto_ll4->nhdp_if = NULL;
 }
 
 /**
@@ -348,6 +346,11 @@ _cb_ifaddr_change(void *ptr) {
 
   /* get auto linklayer extension */
   auto_ll4 = oonf_class_get_extension(&_nhdp_if_extenstion, nhdp_if);
+
+  if (!auto_ll4->nhdp_if) {
+    /* Interface already cleaned up */
+    return;
+  }
 
   if (!oonf_timer_is_active(&auto_ll4->update_timer)) {
     /* request delayed address check */
@@ -432,6 +435,10 @@ _cb_update_timer(struct oonf_timer_instance *ptr) {
 
   auto_ll4 = container_of(ptr, struct _nhdp_if_autoll4, update_timer);
   nhdp_if = auto_ll4->nhdp_if;
+
+  if (!nhdp_if) {
+    return;
+  }
 
   /* get pointer to interface data */
   os_if = nhdp_interface_get_if_listener(nhdp_if)->data;
