@@ -934,7 +934,11 @@ _link_parse_nlmsg(const char *ifname, struct nlmsghdr *msg) {
     }
   }
 
-  ifdata->_link_initialized = true;
+  if (!ifdata->_link_initialized) {
+    ifdata->_link_initialized = true;
+    OONF_INFO(LOG_OS_INTERFACE, "Interface %s link data initialized",
+        ifdata->name);
+  }
   _trigger_if_change_including_any(ifdata);
 }
 
@@ -1105,7 +1109,11 @@ _address_parse_nlmsg(const char *ifname, struct nlmsghdr *msg) {
 
   if (update) {
     _update_address_shortcuts(ifdata);
-    ifdata->_addr_initialized = true;
+    if (!ifdata->_addr_initialized) {
+      ifdata->_addr_initialized = true;
+      OONF_INFO(LOG_OS_INTERFACE, "Interface %s address data initialized",
+          ifdata->name);
+    }
   }
 
   _trigger_if_change_including_any(ifdata);
@@ -1299,13 +1307,14 @@ _cb_interface_changed(struct oonf_timer_instance *timer) {
 
   data = container_of(timer, struct os_interface, _change_timer);
 
-  OONF_INFO(LOG_OS_INTERFACE, "Interface %s (%u) changed",
-      data->name, data->index);
-
-  if (!data->_link_initialized || !data->_addr_initialized) {
+  if (!data->flags.any
+      && (!data->_link_initialized || !data->_addr_initialized)) {
     /* wait until we have all the data */
     return;
   }
+
+  OONF_INFO(LOG_OS_INTERFACE, "Interface %s (%u) changed",
+      data->name, data->index);
 
   error = false;
   list_for_each_element_safe(&data->_listeners, interf, _node, interf_it) {

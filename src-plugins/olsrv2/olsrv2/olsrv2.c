@@ -251,6 +251,7 @@ static struct oonf_timer_instance _tc_timer = {
 
 /* global interface listener */
 static struct os_interface_listener _if_listener = {
+  .name = OS_INTERFACE_ANY,
   .if_changed = _cb_if_event,
 };
 
