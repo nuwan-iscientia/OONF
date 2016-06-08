@@ -319,11 +319,10 @@ _cb_config_changed(void) {
           commit = true;
         }
       }
-    }
-
-    if (commit) {
-      /* trigger change event */
-     oonf_layer2_neigh_commit(l2neigh);
+      if (commit) {
+        /* trigger change event */
+       oonf_layer2_neigh_commit(l2neigh);
+      }
     }
 
     commit = false;
