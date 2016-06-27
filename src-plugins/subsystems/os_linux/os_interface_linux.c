@@ -101,13 +101,13 @@
 /*! proc file entry to deactivate generic reverse path filter */
 #define PROC_ALL_SPOOF "/proc/sys/net/ipv4/conf/all/rp_filter"
 
-/*! sysfs entry to get vlan interface base index */
-#define SYSFS_BASE_IFINDEX "/sys/class/net/%s/iflink"
-
 /* prototypes */
 static int _init(void);
 static void _cleanup(void);
 static void _early_cfg_init(void);
+
+static struct os_interface *_add_interface(const char *name);
+static void _remove_interface(struct os_interface *data);
 
 static int _init_mesh(struct os_interface *os_if);
 static void _cleanup_mesh(struct os_interface *os_if);
@@ -129,8 +129,23 @@ static void _activate_if_routing(void);
 static void _deactivate_if_routing(void);
 static int _os_linux_writeToFile(const char *file, char *old, char value);
 
-static void _cb_interface_changed(struct oonf_timer_instance *);
+static void _cb_delayed_interface_changed(struct oonf_timer_instance *);
 static int _handle_unused_parameter(const char *arg);
+static void _cb_cfg_changed(void);
+
+/* subsystem configuration */
+static struct cfg_schema_entry _interface_entries[] = {
+  CFG_MAP_BOOL(os_interface, _internal.ignore_mesh, "ignore_mesh", "false",
+    "Suppress os mesh interface configuration"),
+};
+
+static struct cfg_schema_section _interface_section = {
+  .type = CFG_INTERFACE_SECTION,
+  .mode = CFG_INTERFACE_SECTION_MODE,
+  .cb_delta_handler = _cb_cfg_changed,
+  .entries = _interface_entries,
+  .entry_count = ARRAYSIZE(_interface_entries),
+};
 
 /* subsystem definition */
 static const char *_dependencies[] = {
@@ -146,6 +161,7 @@ static struct oonf_subsystem _oonf_os_interface_subsystem = {
   .init = _init,
   .cleanup = _cleanup,
   .early_cfg_init = _early_cfg_init,
+  .cfg_section = &_interface_section,
 };
 DECLARE_OONF_PLUGIN(_oonf_os_interface_subsystem);
 
@@ -209,7 +225,7 @@ static struct oonf_class _interface_ip_class = {
 
 static struct oonf_timer_class _interface_change_timer = {
   .name = "interface change",
-  .callback = _cb_interface_changed,
+  .callback = _cb_delayed_interface_changed,
 };
 
 static struct avl_tree _interface_data_tree;
@@ -260,6 +276,11 @@ _cleanup(void) {
     list_for_each_element_safe(&os_if->_listeners, if_listener, _node, if_listener_it) {
       os_interface_linux_remove(if_listener);
     }
+
+    if (os_if->_internal.configured) {
+      os_if->_internal.configured = false;
+      _remove_interface(os_if);
+    }
   }
 
   oonf_timer_remove(&_interface_change_timer);
@@ -271,6 +292,9 @@ _cleanup(void) {
   os_system_linux_netlink_remove(&_rtnetlink_receiver);
 }
 
+/**
+ * Handle pre-configuration work
+ */
 static
 void _early_cfg_init(void) {
   oonf_main_set_parameter_handler(_handle_unused_parameter);
@@ -293,37 +317,9 @@ os_interface_linux_add(struct os_interface_listener *if_listener) {
     if_listener->name = _ANY_INTERFACE;
   }
 
-  data = avl_find_element(&_interface_data_tree, if_listener->name, data, _node);
+  data = _add_interface(if_listener->name);
   if (!data) {
-    data = oonf_class_malloc(&_interface_data_class);
-    if (!data) {
-      return NULL;
-    }
-
-    OONF_INFO(LOG_OS_INTERFACE, "Add interface to tracking: %s", if_listener->name);
-
-    /* hook into interface data tree */
-    strscpy(data->name, if_listener->name, IF_NAMESIZE);
-    data->_node.key = data->name;
-    avl_insert(&_interface_data_tree, &data->_node);
-
-    /* initialize list/tree */
-    avl_init(&data->addresses, avl_comp_netaddr, false);
-    list_init_head(&data->_listeners);
-
-    /* initialize change timer */
-    data->_change_timer.class = &_interface_change_timer;
-
-    /* check if this is the unspecified interface "any" */
-    if (strcmp(data->name, _ANY_INTERFACE) == 0) {
-      data->flags.any = true;
-    }
-
-    /* trigger new queries */
-    _trigger_link_query = true;
-    _trigger_address_query = true;
-
-    _query_interface_links();
+    return NULL;
   }
 
   /* hook into interface data */
@@ -331,7 +327,8 @@ os_interface_linux_add(struct os_interface_listener *if_listener) {
   list_add_tail(&data->_listeners, &if_listener->_node);
 
   if (if_listener->mesh && if_listener->name != _ANY_INTERFACE) {
-    if (!data->_internal.mesh_counter) {
+    if (!data->_internal.mesh_counter
+        && !data->_internal.ignore_mesh) {
       _init_mesh(data);
     }
     data->_internal.mesh_counter++;
@@ -350,7 +347,6 @@ os_interface_linux_add(struct os_interface_listener *if_listener) {
  */
 void
 os_interface_linux_remove(struct os_interface_listener *if_listener) {
-  struct os_interface_ip *ip, *ip_iter;
   struct os_interface *data;
 
   if (!if_listener->data) {
@@ -372,20 +368,8 @@ os_interface_linux_remove(struct os_interface_listener *if_listener) {
   if_listener->data = NULL;
   list_remove(&if_listener->_node);
 
-  if (list_is_empty(&data->_listeners)) {
-    /* remove all addresses */
-    avl_for_each_element_safe(&data->addresses, ip, _node, ip_iter) {
-      avl_remove(&data->addresses, &ip->_node);
-      oonf_class_free(&_interface_ip_class, ip);
-    }
-
-    /* stop change timer */
-    oonf_timer_stop(&data->_change_timer);
-
-    /* remove interface */
-    avl_remove(&_interface_data_tree, &data->_node);
-    oonf_class_free(&_interface_data_class, data);
-  }
+  /* remove interface if not used anymore */
+  _remove_interface(data);
 }
 
 /**
@@ -560,6 +544,80 @@ os_interface_linux_mac_set(struct os_interface *os_if, struct netaddr *mac) {
 }
 
 /**
+ * Add an interface to the database if not already there
+ * @param name interface name
+ * @return interface representation, NULL if out of memory
+ */
+static struct os_interface *
+_add_interface(const char *name) {
+  struct os_interface *data;
+  data = avl_find_element(&_interface_data_tree, name, data, _node);
+  if (!data) {
+    data = oonf_class_malloc(&_interface_data_class);
+    if (!data) {
+      return NULL;
+    }
+
+    OONF_INFO(LOG_OS_INTERFACE, "Add interface to tracking: %s", name);
+
+    /* hook into interface data tree */
+    strscpy(data->name, name, IF_NAMESIZE);
+    data->_node.key = data->name;
+    avl_insert(&_interface_data_tree, &data->_node);
+
+    /* initialize list/tree */
+    avl_init(&data->addresses, avl_comp_netaddr, false);
+    list_init_head(&data->_listeners);
+
+    /* initialize change timer */
+    data->_change_timer.class = &_interface_change_timer;
+
+    /* check if this is the unspecified interface "any" */
+    if (strcmp(data->name, _ANY_INTERFACE) == 0) {
+      data->flags.any = true;
+    }
+
+    /* trigger new queries */
+    _trigger_link_query = true;
+    _trigger_address_query = true;
+
+    _query_interface_links();
+  }
+
+  return data;
+}
+
+/**
+ * Remove an interface from the database if not used anymore
+ * @param data interface representation
+ */
+static void
+_remove_interface(struct os_interface *data) {
+  struct os_interface_ip *ip, *ip_iter;
+
+  if (!list_is_empty(&data->_listeners) || data->_internal.configured) {
+    return;
+  }
+
+  if (data->_internal.mesh_settings_active) {
+    _cleanup_mesh(data);
+  }
+
+  /* remove all addresses */
+  avl_for_each_element_safe(&data->addresses, ip, _node, ip_iter) {
+    avl_remove(&data->addresses, &ip->_node);
+    oonf_class_free(&_interface_ip_class, ip);
+  }
+
+  /* stop change timer */
+  oonf_timer_stop(&data->_change_timer);
+
+  /* remove interface */
+  avl_remove(&_interface_data_tree, &data->_node);
+  oonf_class_free(&_interface_data_class, data);
+}
+
+/**
  * Initialize interface for mesh usage
  * @param os_if network interface data
  * @return -1 if an error happened, 0 otherwise
@@ -573,6 +631,12 @@ _init_mesh(struct os_interface *os_if) {
     /* ignore loopback and unspecific interface*/
     return 0;
   }
+
+  if (os_if->_internal.mesh_settings_active) {
+    /* mesh settings already active or not used for this interface */
+    return 0;
+  }
+  os_if->_internal.mesh_settings_active = true;
 
   /* handle global ip_forward setting */
   _mesh_count++;
@@ -686,6 +750,10 @@ _cleanup_mesh(struct os_interface *os_if) {
     return;
   }
 
+  if (!os_if->_internal.mesh_settings_active) {
+    /* mesh settings not active */
+    return;
+  }
   restore_redirect = (os_if->_internal._original_state >> 8) & 255;
   restore_spoof = (os_if->_internal._original_state & 255);
 
@@ -1300,7 +1368,7 @@ _cb_query_timeout(void) {
  * @param timer timer instance
  */
 static void
-_cb_interface_changed(struct oonf_timer_instance *timer) {
+_cb_delayed_interface_changed(struct oonf_timer_instance *timer) {
   struct os_interface *data;
   struct os_interface_listener *interf, *interf_it;
   bool error;
@@ -1352,4 +1420,66 @@ _handle_unused_parameter(const char *arg) {
 
   cfg_db_add_namedsection(oonf_cfg_get_rawdb(), CFG_INTERFACE_SECTION, ifname);
   return 0;
+}
+
+/**
+ * configuration of interface section changed
+ */
+static void
+_cb_cfg_changed(void) {
+  struct os_interface *data;
+  int result;
+
+  /* get pointer to interface if available */
+  data = avl_find_element(&_interface_data_tree,
+      _interface_section.section_name, data, _node);
+
+  if (_interface_section.post && !data) {
+    /* make sure interface data is available */
+    data = _add_interface(_interface_section.section_name);
+    if (!data) {
+      return;
+    }
+  }
+
+  /* overwrite settings */
+  if (data) {
+    result = cfg_schema_tobin(data, _interface_section.post,
+        _interface_entries, ARRAYSIZE(_interface_entries));
+    if (result) {
+      OONF_WARN(LOG_OS_INTERFACE,
+          "Could not convert "CFG_INTERFACE_SECTION" '%s' to binary (%d)",
+          data->name, -(result+1));
+      return;
+    }
+  }
+
+  if (!_interface_section.post) {
+    /* try to remove old interface */
+    if (data) {
+      data->_internal.configured = false;
+
+      if (!data->_internal.ignore_mesh
+         && data->_internal.mesh_counter > 0) {
+        /* reactivate mesh settings */
+        _init_mesh(data);
+      }
+
+      /* remove allocated instance (if no listener is left) */
+      _remove_interface(data);
+    }
+    return;
+  }
+
+  /* mark interface as configured */
+  data->_internal.configured = true;
+
+  if (data->_internal.ignore_mesh || data->_internal.mesh_counter == 0) {
+    /* restore original os mesh configuration if necessary */
+    _cleanup_mesh(data);
+  }
+  else {
+    /* set os mesh configuration if necessary */
+    _init_mesh(data);
+  }
 }
