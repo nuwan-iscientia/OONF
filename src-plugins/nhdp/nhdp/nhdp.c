@@ -427,6 +427,9 @@ _cb_cfg_interface_changed(void) {
 
   if (interf == NULL) {
     interf = nhdp_interface_add(ifname);
+    if (!interf) {
+      return;
+    }
   }
 
   if (cfg_schema_tobin(interf, _interface_section.post,
