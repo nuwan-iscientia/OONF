@@ -599,11 +599,6 @@ _cb_dat_sampling(struct oonf_timer_instance *ptr __attribute__((unused))) {
       }
     }
 
-    if (total == 0 || received == 0) {
-      nhdp_domain_set_incoming_metric(&_datff_handler, lnk, RFC7181_METRIC_MAX);
-      continue;
-    }
-
     /* update link speed */
     ldata->buckets[ldata->activePtr].scaled_speed = _get_scaled_rx_linkspeed(lnk);
 #ifdef COLLECT_RAW_DATA
@@ -633,7 +628,8 @@ _cb_dat_sampling(struct oonf_timer_instance *ptr __attribute__((unused))) {
     }
 
     /* calculate frame loss, use discrete values */
-    if (received * DATFF_FRAME_SUCCESS_RANGE <= total) {
+    if (total == 0 || received == 0
+        || received * DATFF_FRAME_SUCCESS_RANGE <= total) {
       metric *= DATFF_FRAME_SUCCESS_RANGE;
     }
     else {
