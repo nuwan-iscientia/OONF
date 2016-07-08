@@ -219,6 +219,10 @@ _cb_cleanup_router(struct dlep_session *session) {
 
   l2net = oonf_layer2_net_get(session->l2_listener.name);
   if (l2net) {
+    /* remove DLEP mark from interface */
+    l2net->if_type = OONF_LAYER2_TYPE_UNDEFINED;
+
+    /* and remove all DLEP data */
     oonf_layer2_net_remove(l2net, session->l2_origin);
   }
 
@@ -390,6 +394,10 @@ _router_process_peer_init_ack(
     return -1;
   }
 
+  /* mark interface as DLEP */
+  l2net->if_type = OONF_LAYER2_TYPE_DLEP;
+
+  /* map user data into interface */
   result = dlep_reader_map_l2neigh_data(l2net->neighdata, session, _base);
   if (result) {
     OONF_INFO(session->log_source, "tlv mapping failed for extension %u: %u",
