@@ -119,7 +119,7 @@ dlep_session_init(void) {
  */
 int
 dlep_session_add(struct dlep_session *session, const char *l2_ifname,
-    uint32_t l2_origin, struct autobuf *out, bool radio,
+    const struct oonf_layer2_origin *l2_origin, struct autobuf *out, bool radio,
     enum oonf_log_source log_source) {
   struct dlep_session_parser *parser;
   struct dlep_extension *ext;

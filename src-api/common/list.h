@@ -164,7 +164,7 @@ list_remove(struct list_entity *entity) {
  * @return true if list is empty, false otherwise
  */
 static INLINE bool
-list_is_empty(struct list_entity *head) {
+list_is_empty(const struct list_entity *head) {
   return head->next == head && head->prev == head;
 }
 
@@ -175,7 +175,7 @@ list_is_empty(struct list_entity *head) {
  *   false otherwise
  */
 static INLINE bool
-list_is_node_added(struct list_entity *node) {
+list_is_node_added(const struct list_entity *node) {
   return node->next != NULL && node->prev != NULL;
 }
 

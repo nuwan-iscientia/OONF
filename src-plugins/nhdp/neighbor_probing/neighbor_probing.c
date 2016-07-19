@@ -241,14 +241,11 @@ _cb_link_removed(void *ptr) {
 
 static bool
 _check_if_type(struct oonf_layer2_net *net) {
-  if (net->if_type == OONF_LAYER2_TYPE_WIRELESS) {
-    return true;
+  if (net->if_dlep) {
+    return _probe_config.probe_dlep;
   }
 
-  if (_probe_config.probe_dlep && net->if_type == OONF_LAYER2_TYPE_DLEP) {
-    return true;
-  }
-  return false;
+  return net->if_type == OONF_LAYER2_TYPE_WIRELESS;
 }
 
 /**

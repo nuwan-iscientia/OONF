@@ -52,6 +52,7 @@
 #include "core/oonf_subsystem.h"
 #include "subsystems/oonf_class.h"
 #include "subsystems/oonf_layer2.h"
+#include "subsystems/oonf_timer.h"
 #include "subsystems/os_interface.h"
 
 #include "link_config/link_config.h"
@@ -63,6 +64,10 @@
 static void _early_cfg_init(void);
 static int _init(void);
 static void _cleanup(void);
+
+static void _cb_update_link_config(void *);
+static void _cb_delayed_config(struct oonf_timer_instance *);
+
 static int _cb_validate_linkdata(const struct cfg_schema_entry *entry,
     const char *section_name, const char *value, struct autobuf *out);
 static void _parse_strarray(struct strarray *array, const char *ifname,
@@ -118,7 +123,39 @@ static struct oonf_subsystem _oonf_link_config_subsystem = {
 };
 DECLARE_OONF_PLUGIN(_oonf_link_config_subsystem);
 
-static uint32_t _l2_origin_current, _l2_origin_old;
+/* originator for smooth set/remove of configured layer2 values */
+static struct oonf_layer2_origin _l2_origin_current = {
+  .name = "link config updated",
+  .priority = OONF_LAYER2_ORIGIN_CONFIGURED,
+};
+static struct oonf_layer2_origin _l2_origin_old = {
+  .name = "link config",
+  .priority = OONF_LAYER2_ORIGIN_CONFIGURED,
+};
+
+/* listener for removal of layer2 data */
+static struct oonf_class_extension _l2net_listener = {
+  .ext_name = "link config listener",
+  .class_name = LAYER2_CLASS_NETWORK,
+
+  .cb_remove = _cb_update_link_config,
+};
+static struct oonf_class_extension _l2neigh_listener = {
+  .ext_name = "link config listener",
+  .class_name = LAYER2_CLASS_NEIGHBOR,
+
+  .cb_remove = _cb_update_link_config,
+};
+
+/* timer for lazy updates */
+static struct oonf_timer_class _lazy_update_class = {
+  .name = "lazy link config",
+  .callback = _cb_delayed_config,
+};
+
+static struct oonf_timer_instance _lazy_update_instance = {
+  .class = &_lazy_update_class,
+};
 
 static void
 _early_cfg_init(void) {
@@ -139,8 +176,14 @@ _early_cfg_init(void) {
  */
 static int
 _init(void) {
-  _l2_origin_current = oonf_layer2_register_origin();
-  _l2_origin_old = oonf_layer2_register_origin();
+  oonf_layer2_add_origin(&_l2_origin_current);
+  oonf_layer2_add_origin(&_l2_origin_old);
+
+  oonf_class_extension_add(&_l2net_listener);
+  oonf_class_extension_add(&_l2neigh_listener);
+
+  oonf_timer_add(&_lazy_update_class);
+
   return 0;
 }
 
@@ -149,8 +192,37 @@ _init(void) {
  */
 static void
 _cleanup(void) {
-  oonf_layer2_cleanup_origin(_l2_origin_current);
-  oonf_layer2_cleanup_origin(_l2_origin_old);
+  oonf_timer_stop(&_lazy_update_instance);
+  oonf_timer_remove(&_lazy_update_class);
+
+  oonf_class_extension_remove(&_l2net_listener);
+  oonf_class_extension_remove(&_l2neigh_listener);
+
+  oonf_layer2_remove_origin(&_l2_origin_current);
+  oonf_layer2_remove_origin(&_l2_origin_old);
+}
+
+/**
+ * Listener for removal of layer2 database entries. Will trigger
+ * a delayed reset of this plugins configured data
+ * @param ptr unused
+ */
+static void
+_cb_update_link_config(void *ptr __attribute__((unused))) {
+  if (!oonf_timer_is_active(&_lazy_update_instance)) {
+    oonf_timer_set(&_lazy_update_instance,
+        OONF_LINK_CONFIG_REWRITE_DELAY);
+  }
+}
+
+/**
+ * Callback for delayed update.
+ * @param timer unused
+ */
+static void
+_cb_delayed_config(struct oonf_timer_instance *timer __attribute__((unused))) {
+  /* re-read the configuration */
+  _cb_config_changed();
 }
 
 /**
@@ -195,29 +267,6 @@ _cb_validate_linkdata(const struct cfg_schema_entry *entry,
 }
 
 /**
- * Overwrite a layer-2 value that is either not set or was
- * set by this plugin.
- * @param data pointer to layer2 data
- * @param value new value
- * @return -1 if value was not overwritten, 0 otherwise
- */
-static int
-_set_l2value(struct oonf_layer2_data *data, int64_t value) {
-  uint32_t origin;
-
-  if (oonf_layer2_has_value(data)) {
-    origin = oonf_layer2_get_origin(data);
-
-    if (origin != 0 && origin != _l2_origin_current && origin != _l2_origin_old) {
-      return -1;
-    }
-  }
-
-  oonf_layer2_set_value(data, _l2_origin_current, value);
-  return 0;
-}
-
-/**
  * Parse user input and add the corresponding database entries
  * @param array pointer to string array
  * @param ifname interface name
@@ -250,7 +299,7 @@ _parse_strarray(struct strarray *array, const char *ifname,
 
     if (ptr == NULL) {
       /* add network wide data entry */
-      if (!_set_l2value(&l2net->neighdata[idx], value)) {
+      if (!oonf_layer2_set_value(&l2net->neighdata[idx], &_l2_origin_current, value)) {
         OONF_INFO(LOG_LINK_CONFIG, "if-wide %s for %s: %s",
             oonf_layer2_get_neigh_metadata(idx)->key, ifname, hbuf.buf);
       }
@@ -269,7 +318,7 @@ _parse_strarray(struct strarray *array, const char *ifname,
         continue;
       }
 
-      if (!_set_l2value(&l2neigh->data[idx], value)) {
+      if (!oonf_layer2_set_value(&l2neigh->data[idx], &_l2_origin_current, value)) {
         OONF_INFO(LOG_LINK_CONFIG, "%s to neighbor %s on %s: %s",
             oonf_layer2_get_neigh_metadata(idx)->key, nbuf.buf, ifname, hbuf.buf);
       }
@@ -308,14 +357,14 @@ _cb_config_changed(void) {
   l2net = oonf_layer2_net_get(ifname);
   if (l2net) {
     /* remove old entries and trigger remove events */
-    oonf_layer2_net_cleanup(l2net, _l2_origin_old);
+    oonf_layer2_net_cleanup(l2net, &_l2_origin_old);
 
     commit = false;
     /* detect changes and relabel the origin */
     avl_for_each_element_safe(&l2net->neighbors, l2neigh, _node, l2neigh_it) {
       for (idx = 0; idx < OONF_LAYER2_NEIGH_COUNT; idx++) {
-        if (oonf_layer2_get_origin(&l2neigh->data[idx]) == _l2_origin_current) {
-          oonf_layer2_set_origin(&l2neigh->data[idx], _l2_origin_old);
+        if (oonf_layer2_get_origin(&l2neigh->data[idx]) == &_l2_origin_current) {
+          oonf_layer2_set_origin(&l2neigh->data[idx], &_l2_origin_old);
           commit = true;
         }
       }
@@ -328,8 +377,8 @@ _cb_config_changed(void) {
     commit = false;
     /* detect changes and relabel the origin */
     for (idx = 0; idx < OONF_LAYER2_NET_COUNT; idx++) {
-      if (oonf_layer2_get_origin(&l2net->neighdata[idx]) == _l2_origin_current) {
-        oonf_layer2_set_origin(&l2net->neighdata[idx], _l2_origin_old);
+      if (oonf_layer2_get_origin(&l2net->neighdata[idx]) == &_l2_origin_current) {
+        oonf_layer2_set_origin(&l2net->neighdata[idx], &_l2_origin_old);
         commit = true;
       }
     }

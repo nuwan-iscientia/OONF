@@ -127,7 +127,12 @@ static struct oonf_timer_instance _transmission_timer = {
   .class = &_transmission_timer_info
 };
 
-static uint32_t _l2_origin;
+static struct oonf_layer2_origin _l2_origin = {
+  .name = "ethernet listener",
+  .priority = OONF_LAYER2_ORIGIN_UNRELIABLE,
+  .proactive = true,
+};
+
 static int _ioctl_sock;
 
 static int
@@ -139,14 +144,14 @@ _init(void) {
   }
 
   oonf_timer_add(&_transmission_timer_info);
-  _l2_origin = oonf_layer2_register_origin();
+  oonf_layer2_add_origin(&_l2_origin);
 
   return 0;
 }
 
 static void
 _cleanup(void) {
-  oonf_layer2_cleanup_origin(_l2_origin);
+  oonf_layer2_remove_origin(&_l2_origin);
 
   oonf_timer_stop(&_transmission_timer);
   oonf_timer_remove(&_transmission_timer_info);
@@ -217,9 +222,9 @@ _cb_transmission_event(struct oonf_timer_instance *ptr __attribute((unused))) {
         isonumber_from_s64(&ibuf, ethspeed, "bit/s", 0, false, false));
 
     oonf_layer2_set_value(&l2net->neighdata[OONF_LAYER2_NEIGH_RX_BITRATE],
-        _l2_origin, ethspeed);
+        &_l2_origin, ethspeed);
     oonf_layer2_set_value(&l2net->neighdata[OONF_LAYER2_NEIGH_TX_BITRATE],
-        _l2_origin, ethspeed);
+        &_l2_origin, ethspeed);
   }
 }
 

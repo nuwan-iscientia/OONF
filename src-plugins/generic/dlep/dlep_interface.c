@@ -71,7 +71,8 @@ static const char _DLEP_PREFIX[] = DLEP_DRAFT_17_PREFIX;
  */
 int
 dlep_if_add(struct dlep_if *interf, const char *ifname,
-    uint32_t l2_origin, enum oonf_log_source log_src, bool radio) {
+    const struct oonf_layer2_origin *l2_origin,
+    enum oonf_log_source log_src, bool radio) {
   struct dlep_extension *ext;
 
   /* initialize key */

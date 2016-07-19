@@ -268,7 +268,7 @@ struct dlep_session {
   struct avl_tree local_neighbor_tree;
 
   /*! oonf layer2 origin for dlep session */
-  uint32_t l2_origin;
+  const struct oonf_layer2_origin *l2_origin;
 
   /*! send content of output buffer */
   void (*cb_send_buffer)(struct dlep_session *, int af_family);
@@ -305,7 +305,7 @@ struct dlep_session {
 void dlep_session_init(void);
 
 int dlep_session_add(struct dlep_session *session,
-    const char *l2_ifname, uint32_t l2_origin,
+    const char *l2_ifname, const struct oonf_layer2_origin *l2_origin,
     struct autobuf *out, bool radio, enum oonf_log_source);
 void dlep_session_remove(struct dlep_session *session);
 void dlep_session_terminate(struct dlep_session *session);

@@ -82,7 +82,11 @@ static struct oonf_class _router_if_class = {
 };
 
 static bool _shutting_down;
-static uint32_t _l2_origin;
+static struct oonf_layer2_origin _l2_origin = {
+  .name = "dlep router interface",
+  .proactive = true,
+  .priority = OONF_LAYER2_ORIGIN_RELIABLE,
+};
 
 /**
  * Initialize dlep router interface framework. This will also
@@ -103,7 +107,7 @@ dlep_router_interface_init(void) {
 
   _shutting_down = false;
 
-  _l2_origin = oonf_layer2_register_origin();
+  oonf_layer2_add_origin(&_l2_origin);
 }
 
 /**
@@ -121,6 +125,7 @@ dlep_router_interface_cleanup(void) {
   oonf_class_remove(&_router_if_class);
 
   dlep_router_session_cleanup();
+  oonf_layer2_remove_origin(&_l2_origin);
 }
 
 /**
@@ -173,7 +178,7 @@ dlep_router_add_interface(const char *ifname) {
   }
 
   if (dlep_if_add(&interface->interf, ifname,
-      _l2_origin, LOG_DLEP_ROUTER, false)) {
+      &_l2_origin, LOG_DLEP_ROUTER, false)) {
     oonf_class_free(&_router_if_class, interface);
     return NULL;
   }

@@ -221,6 +221,7 @@ _cb_cleanup_router(struct dlep_session *session) {
   if (l2net) {
     /* remove DLEP mark from interface */
     l2net->if_type = OONF_LAYER2_TYPE_UNDEFINED;
+    l2net->if_dlep = false;
 
     /* and remove all DLEP data */
     oonf_layer2_net_remove(l2net, session->l2_origin);
@@ -395,7 +396,8 @@ _router_process_peer_init_ack(
   }
 
   /* mark interface as DLEP */
-  l2net->if_type = OONF_LAYER2_TYPE_DLEP;
+  l2net->if_type = OONF_LAYER2_TYPE_WIRELESS;
+  l2net->if_dlep = true;
 
   /* map user data into interface */
   result = dlep_reader_map_l2neigh_data(l2net->neighdata, session, _base);
