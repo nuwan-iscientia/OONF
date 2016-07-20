@@ -978,6 +978,7 @@ _link_parse_nlmsg(const char *ifname, struct nlmsghdr *msg) {
       ifdata->flags.loopback ? 'l' : '-');
 
   ifdata->index = ifi_msg->ifi_index;
+  ifdata->base_index = ifdata->index;
 
   for(; RTA_OK(ifi_attr, ifi_len); ifi_attr = RTA_NEXT(ifi_attr,ifi_len)) {
     switch(ifi_attr->rta_type) {

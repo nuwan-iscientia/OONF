@@ -589,9 +589,23 @@ _cb_remote_heartbeat(struct oonf_timer_instance *ptr) {
 
   session = container_of(ptr, struct dlep_session, remote_heartbeat_timeout);
 
-  /* stop local heartbeats */
-  oonf_timer_stop(&session->local_event_timer);
+  if (session->restrict_signal == DLEP_PEER_TERMINATION_ACK) {
+    /* peer termination ACK is missing! */
 
-  /* terminate session */
-  dlep_session_terminate(session);
+    /* stop local heartbeats */
+    oonf_timer_stop(&session->local_event_timer);
+
+    /* hard-terminate session */
+    if (session->cb_end_session) {
+      session->cb_end_session(session);
+    }
+  }
+  else {
+    /* soft-terminate session (send PEER_TERM) */
+    dlep_session_terminate(session);
+
+    /* set timeout for hard-termination */
+    oonf_timer_set(&session->remote_heartbeat_timeout,
+          session->remote_heartbeat_interval * 2);
+  }
 }

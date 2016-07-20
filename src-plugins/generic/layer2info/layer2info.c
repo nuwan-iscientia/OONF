@@ -136,7 +136,7 @@ static int _cb_create_text_dst(struct oonf_viewer_template *);
 #define KEY_NEIGH_PREFIX                "neigh_"
 
 /*! string suffix for all data originators */
-#define KEY_ORIGIN_SUFFIX               "_suffix"
+#define KEY_ORIGIN_SUFFIX               "_origin"
 
 /*
  * buffer space for values that will be assembled
@@ -151,11 +151,11 @@ static struct netaddr_str               _value_if_ident_addr;
 static struct netaddr_str               _value_if_local_addr;
 static struct isonumber_str             _value_if_lastseen;
 static struct isonumber_str             _value_if_data[OONF_LAYER2_NET_COUNT];
-static char                             _value_if_origin[IF_NAMESIZE][OONF_LAYER2_NET_COUNT];
+static char                             _value_if_origin[OONF_LAYER2_NET_COUNT][IF_NAMESIZE];
 static struct netaddr_str               _value_neigh_addr;
 static struct isonumber_str             _value_neigh_lastseen;
 static struct isonumber_str             _value_neigh_data[OONF_LAYER2_NEIGH_COUNT];
-static char                             _value_neigh_origin[IF_NAMESIZE][OONF_LAYER2_NEIGH_COUNT];
+static char                             _value_neigh_origin[OONF_LAYER2_NEIGH_COUNT][IF_NAMESIZE];
 
 static struct netaddr_str               _value_dst_addr;
 static char                             _value_dst_origin[TEMPLATE_JSON_BOOL_LENGTH];
@@ -300,7 +300,7 @@ _init(void) {
 
     _tde_if_origin[i].key =
         abuf_getptr(&_key_storage) + abuf_getlen(&_key_storage);
-    _tde_if_origin[i].value = _value_if_data[i].buf;
+    _tde_if_origin[i].value = _value_if_origin[i];
     _tde_if_origin[i].string = true;
 
     abuf_puts(&_key_storage, KEY_IF_PREFIX);
@@ -321,7 +321,7 @@ _init(void) {
 
     _tde_neigh_origin[i].key =
         abuf_getptr(&_key_storage) + abuf_getlen(&_key_storage);
-    _tde_neigh_origin[i].value = _value_neigh_data[i].buf;
+    _tde_neigh_origin[i].value = _value_neigh_origin[i];
     _tde_neigh_origin[i].string = true;
 
     abuf_puts(&_key_storage, KEY_NEIGH_PREFIX);
@@ -429,7 +429,7 @@ _initialize_if_origin_values(struct oonf_layer2_data *data) {
 
   for (i=0; i<OONF_LAYER2_NET_COUNT; i++) {
     if (oonf_layer2_has_value(&data[i])) {
-      strscpy(_value_if_origin[i], oonf_layer2_get_origin(data)->name, IF_NAMESIZE);
+      strscpy(_value_if_origin[i], oonf_layer2_get_origin(&data[i])->name, IF_NAMESIZE);
     }
   }
 }
@@ -490,7 +490,7 @@ _initialize_neigh_origin_values(struct oonf_layer2_data *data) {
 
   for (i=0; i<OONF_LAYER2_NEIGH_COUNT; i++) {
     if (oonf_layer2_has_value(&data[i])) {
-      strscpy(_value_if_origin[i], oonf_layer2_get_origin(data)->name, IF_NAMESIZE);
+      strscpy(_value_neigh_origin[i], oonf_layer2_get_origin(&data[i])->name, IF_NAMESIZE);
     }
   }
 }

@@ -601,7 +601,7 @@ _get_next_query(void) {
     if (_current_query_number == QUERY_END) {
       /* commit interface data */
       if (_current_query_if->ifdata_changed) {
-        oonf_layer2_net_remove(_current_query_if->l2net, _l2_old_origin);
+        oonf_layer2_net_cleanup(_current_query_if->l2net, _l2_old_origin);
         oonf_layer2_net_commit(_current_query_if->l2net);
         _current_query_if->ifdata_changed = false;
       }

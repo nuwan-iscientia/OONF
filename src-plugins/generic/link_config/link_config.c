@@ -139,12 +139,14 @@ static struct oonf_class_extension _l2net_listener = {
   .class_name = LAYER2_CLASS_NETWORK,
 
   .cb_remove = _cb_update_link_config,
+  .cb_change = _cb_update_link_config,
 };
 static struct oonf_class_extension _l2neigh_listener = {
   .ext_name = "link config listener",
   .class_name = LAYER2_CLASS_NEIGHBOR,
 
   .cb_remove = _cb_update_link_config,
+  .cb_change = _cb_update_link_config,
 };
 
 /* timer for lazy updates */
@@ -210,6 +212,7 @@ _cleanup(void) {
 static void
 _cb_update_link_config(void *ptr __attribute__((unused))) {
   if (!oonf_timer_is_active(&_lazy_update_instance)) {
+    OONF_DEBUG(LOG_LINK_CONFIG, "Trigger lazy update");
     oonf_timer_set(&_lazy_update_instance,
         OONF_LINK_CONFIG_REWRITE_DELAY);
   }
@@ -222,6 +225,7 @@ _cb_update_link_config(void *ptr __attribute__((unused))) {
 static void
 _cb_delayed_config(struct oonf_timer_instance *timer __attribute__((unused))) {
   /* re-read the configuration */
+  OONF_DEBUG(LOG_LINK_CONFIG, "Update configuration settings");
   _cb_config_changed();
 }
 
