@@ -30,7 +30,6 @@ IF (NOT OONF_STATIC_PLUGINS)
     set (OONF_STATIC_PLUGINS class
                              clock
                              duplicate_set
-                             interface
                              layer2
                              packet_socket
                              rfc5444
@@ -40,7 +39,7 @@ IF (NOT OONF_STATIC_PLUGINS)
                              timer
                              viewer
                              os_clock
-                             os_socket
+                             os_fd
                              os_interface
                              os_routing
                              os_system
@@ -49,20 +48,23 @@ IF (NOT OONF_STATIC_PLUGINS)
                              systeminfo
                              nhdp
                              ff_dat_metric
-                             link_config
+                             layer2_config
                              neighbor_probing
                              nhdpinfo
                              olsrv2
                              olsrv2info
                              netjsoninfo
                              lan_import
+                             auto_ll4
                              http
                              )
 ENDIF (NOT OONF_STATIC_PLUGINS)
 
 
 IF (NOT OONF_OPTIONAL_STATIC_PLUGINS)
-    set (OONF_OPTIONAL_STATIC_PLUGINS nl80211_listener)
+    set (OONF_OPTIONAL_STATIC_PLUGINS nl80211_listener
+                                      cfg_uciloader
+                                      )
 ENDIF (NOT OONF_OPTIONAL_STATIC_PLUGINS)
 
 ##################################

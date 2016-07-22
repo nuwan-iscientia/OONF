@@ -386,11 +386,6 @@ _cb_messagetlvs(struct rfc5444_reader_tlvblock_context *context) {
       context->msg_type, netaddr_socket_to_string(&buf, _protocol->input_socket),
       _protocol->input_interface->name, context->addr_len);
 
-  if (!_protocol->input_is_multicast) {
-    /* NHDP doesn't care about unicast messages */
-    return RFC5444_DROP_MESSAGE;
-  }
-
   switch (context->addr_len) {
     case 4:
       af_type = AF_INET;
@@ -411,6 +406,10 @@ _cb_messagetlvs(struct rfc5444_reader_tlvblock_context *context) {
 
   /* remember local NHDP interface */
   _current.localif = nhdp_interface_get(_protocol->input_interface->name);
+  if (!_current.localif) {
+    /* incoming message through an interface unspecific socket, ignore it */
+    return RFC5444_DROP_MESSAGE;
+  }
 
   /* extract originator address */
   if (context->has_origaddr) {

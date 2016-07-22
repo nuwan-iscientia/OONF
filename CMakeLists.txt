@@ -1,6 +1,18 @@
 project (OONF C)
 cmake_minimum_required(VERSION 2.8.12 FATAL_ERROR)
 
+########################################################
+#### Set a default build type if none was specified ####
+########################################################
+
+if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
+  message(STATUS "Setting build type to 'Debug' as none was specified.")
+  set(CMAKE_BUILD_TYPE Debug CACHE STRING "Choose the type of build." FORCE)
+  # Set the possible values of build type for cmake-gui
+  set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "Debug" "Release"
+    "MinSizeRel" "RelWithDebInfo")
+endif()
+
 ###########################
 #### API configuration ####
 ###########################
@@ -44,6 +56,8 @@ ADD_CUSTOM_TARGET(targz  COMMAND ${CMAKE_COMMAND}
                                  -D BINARY:STRING=${PROJECT_BINARY_DIR}
                                  -D VERSION:STRING=${VERSION}
                                  -D FORMAT:STRING=tar.gz
+                                 -D TARBALL:STRING=${TARBALL}
+                                 -D TARPREFIX:STRING=${TARPREFIX}
                                  -P ${CMAKE_SOURCE_DIR}/cmake/generate_archive.cmake)
                                 
 ADD_CUSTOM_TARGET(tarbz2 COMMAND ${CMAKE_COMMAND}
@@ -51,12 +65,16 @@ ADD_CUSTOM_TARGET(tarbz2 COMMAND ${CMAKE_COMMAND}
                                  -D BINARY:STRING=${PROJECT_BINARY_DIR}
                                  -D VERSION:STRING=${VERSION}
                                  -D FORMAT:STRING=tar.bz2
+                                 -D TARBALL:STRING=${TARBALL}
+                                 -D TARPREFIX:STRING=${TARPREFIX}
                                  -P ${CMAKE_SOURCE_DIR}/cmake/generate_archive.cmake)
 ADD_CUSTOM_TARGET(zip    COMMAND ${CMAKE_COMMAND}
                                  -D SOURCE:STRING=${CMAKE_SOURCE_DIR}
                                  -D BINARY:STRING=${PROJECT_BINARY_DIR}
                                  -D VERSION:STRING=${VERSION}
                                  -D FORMAT:STRING=zip
+                                 -D TARBALL:STRING=${TARBALL}
+                                 -D TARPREFIX:STRING=${TARPREFIX}
                                  -P ${CMAKE_SOURCE_DIR}/cmake/generate_archive.cmake)
 
 #########################

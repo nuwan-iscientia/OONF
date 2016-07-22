@@ -148,7 +148,7 @@ EXPORT void avl_remove(struct avl_tree *, struct avl_node *);
  * @return true if node is the first one of the tree, false otherwise
  */
 static INLINE bool
-avl_is_first(struct avl_tree *tree, struct avl_node *node) {
+avl_is_first(const struct avl_tree *tree, const struct avl_node *node) {
   return tree->list_head.next == &node->list;
 }
 
@@ -158,7 +158,7 @@ avl_is_first(struct avl_tree *tree, struct avl_node *node) {
  * @return true if node is the last one of the tree, false otherwise
  */
 static INLINE bool
-avl_is_last(struct avl_tree *tree, struct avl_node *node) {
+avl_is_last(const struct avl_tree *tree, const struct avl_node *node) {
   return tree->list_head.prev == &node->list;
 }
 
@@ -167,7 +167,7 @@ avl_is_last(struct avl_tree *tree, struct avl_node *node) {
  * @return true if the tree is empty, false otherwise
  */
 static INLINE bool
-avl_is_empty(struct avl_tree *tree) {
+avl_is_empty(const struct avl_tree *tree) {
   return tree->count == 0;
 }
 
@@ -176,7 +176,7 @@ avl_is_empty(struct avl_tree *tree) {
  * @return true if node is currently in a tree, false otherwise
  */
 static INLINE bool
-avl_is_node_added(struct avl_node *node) {
+avl_is_node_added(const struct avl_node *node) {
   return list_is_node_added(&node->list);
 }
 

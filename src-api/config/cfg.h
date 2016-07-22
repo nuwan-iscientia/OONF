@@ -82,6 +82,9 @@ EXPORT int cfg_get_choice_index(const char *value, const char **array, size_t ar
 
 EXPORT int cfg_avlcmp_keys(const void *p1, const void *p2);
 
+EXPORT void cfg_set_ifname_handler(int (*get_phy_if)(char *phy_ifname, const char *ifname));
+EXPORT const char *cfg_get_phy_if(char *phy_if, const char *ifname);
+
 /**
  * Compares to keys/names of two section types/names or entry names.
  * A NULL pointer is considered larger than any valid string.

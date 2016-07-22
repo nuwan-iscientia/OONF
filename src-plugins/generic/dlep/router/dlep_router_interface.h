@@ -47,6 +47,7 @@
 #define DLEP_ROUTER_INTERFACE_H_
 
 #include "common/common_types.h"
+#include "common/netaddr.h"
 
 #include "dlep/dlep_session.h"
 #include "dlep/dlep_interface.h"
@@ -57,6 +58,12 @@
 struct dlep_router_if {
   /*! generic DLEP interface */
   struct dlep_if interf;
+
+  /*! IP address to directly connect router to */
+  struct netaddr connect_to_addr;
+
+  /*! TCP port to directly connect router to */
+  int32_t connect_to_port;
 };
 
 void dlep_router_interface_init(void);

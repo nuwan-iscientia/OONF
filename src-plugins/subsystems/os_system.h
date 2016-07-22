@@ -65,6 +65,6 @@
 #error "Unknown operation system"
 #endif
 
-EXPORT bool os_system_is_ipv6_supported(void);
+static INLINE bool os_system_is_ipv6_supported(void);
 
 #endif /* OS_SYSTEM_H_ */

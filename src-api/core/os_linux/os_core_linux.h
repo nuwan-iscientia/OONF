@@ -43,57 +43,74 @@
  * @file
  */
 
-#ifndef OS_INTERFACE_DATA_H_
-#define OS_INTERFACE_DATA_H_
+#ifndef OS_CORE_LINUX_H_
+#define OS_CORE_LINUX_H_
 
-#include "common/common_types.h"
-#include "common/netaddr.h"
+#include <sys/time.h>
+#include <stdlib.h>
+
+#include "core/os_generic/os_core_generic_syslog.h"
+#include "core/os_core.h"
+
+/*! default folder for Linux lockfile */
+#define OS_CORE_LOCKFILE_FOLDER        "/var/run/"
+
+EXPORT int os_core_linux_get_random(void *dst, size_t length);
+EXPORT int os_core_linux_create_lockfile(const char *path);
 
 /**
- * Representation of interface knowledge of the operation system
+ * Initialize core
+ * @param appname name of the application
  */
-struct os_interface_data {
-  /*! IPv4 Interface addresses with mesh-wide scope (at least) */
-  const struct netaddr *if_v4;
+static INLINE int
+os_core_init(const char *appname) {
+  os_core_generic_syslog_init(appname);
+  return 0;
+}
 
-  /*! IPv5 Interface addresses with mesh-wide scope (at least) */
-  const struct netaddr *if_v6;
+/**
+ * Cleanup core
+ */
+static INLINE void
+os_core_cleanup(void) {
+  os_core_generic_syslog_cleanup();
+}
 
-  /*! IPv6 Interface address with global scope */
-  const struct netaddr *linklocal_v6_ptr;
+static INLINE int
+os_core_syslog(enum oonf_log_severity sev, const char *msg) {
+  os_core_generic_syslog(sev, msg);
+  return 0;
+}
 
-  /*! mac address of interface */
-  struct netaddr mac;
+/**
+ * Create a lock file of a certain name
+ * @param path name of lockfile including path
+ * @return 0 if the lock was created successfully, false otherwise
+ */
+static INLINE int
+os_core_create_lockfile(const char *path) {
+  return os_core_linux_create_lockfile(path);
+}
 
-  /*! list of all addresses of the interface */
-  struct netaddr *addresses;
+/**
+ * Get some random data
+ * @param dst pointer to destination buffer
+ * @param length number of random bytes requested
+ * @return 0 if the random data was generated, -1 if an error happened
+ */
+static INLINE int
+os_core_get_random(void *dst, size_t length) {
+  return os_core_linux_get_random(dst, length);
+}
 
-  /*! number of addresses of the interface */
-  size_t addrcount;
+/**
+ * Inline wrapper around gettimeofday
+ * @param tv pointer to target timeval object
+ * @return -1 if an error happened, 0 otherwise
+ */
+static INLINE int
+os_core_gettimeofday(struct timeval *tv) {
+  return gettimeofday(tv, NULL);
+}
 
-  /*! list of all prefixes of the interface */
-  struct netaddr *prefixes;
-
-  /*! number of prefixes of the interface */
-  size_t prefixcount;
-
-  /*! interface name */
-  char name[IF_NAMESIZE];
-
-  /*! interface index */
-  unsigned index;
-
-  /**
-   * interface index of base interface (for vlan),
-   * same for normal interface
-   */
-  unsigned base_index;
-
-  /*! true if the interface exists and is up */
-  bool up;
-
-  /*! true if this is a loopback interface */
-  bool loopback;
-};
-
-#endif /* OS_INTERFACE_DATA_H_ */
+#endif /* OS_CORE_GENERIC_H_ */

@@ -89,7 +89,7 @@ static struct cfg_schema_entry _radio_entries[] = {
 
   CFG_MAP_INT32_MINMAX(dlep_radio_if, tcp_config.port, "session_port",
     "12345", "Server port for DLEP tcp sessions", 0, false, 1, 65535),
-  CFG_MAP_ACL_V46(dlep_radio_if, tcp_config.bindto, "session_bindto", "fe80::/10",
+  CFG_MAP_ACL_V46(dlep_radio_if, tcp_config.bindto, "session_bindto", "224.0.0.1\0fe80::/10",
       "Filter to determine the binding of the TCP server socket"),
   CFG_MAP_CLOCK_MINMAX(dlep_radio_if, interf.session.cfg.heartbeat_interval,
       "heartbeat_interval", "1.000",
@@ -98,9 +98,9 @@ static struct cfg_schema_entry _radio_entries[] = {
   CFG_MAP_BOOL(dlep_radio_if, interf.single_session, "single_session", "true",
       "Connect only to a single router"),
 
-  CFG_MAP_BOOL(dlep_radio_if, interf.session.cfg.send_proxied, "proxied", "false",
+  CFG_MAP_BOOL(dlep_radio_if, interf.session.cfg.send_proxied, "proxied", "true",
       "Report 802.11s proxied mac address for neighbors"),
-  CFG_MAP_BOOL(dlep_radio_if, interf.session.cfg.send_neighbors, "not_proxied", "true",
+  CFG_MAP_BOOL(dlep_radio_if, interf.session.cfg.send_neighbors, "not_proxied", "false",
       "Report direct neighbors"),
 };
 
@@ -180,10 +180,14 @@ _cleanup(void) {
 static void
 _cb_config_changed(void) {
   struct dlep_radio_if *interface;
+  const char *ifname;
+  char ifbuf[IF_NAMESIZE];
+
+  ifname = cfg_get_phy_if(ifbuf, _radio_section.section_name);
 
   if (!_radio_section.post) {
     /* remove old interface object */
-    interface = dlep_radio_get_by_layer2_if(_radio_section.section_name);
+    interface = dlep_radio_get_by_layer2_if(ifname);
     if (interface) {
       dlep_radio_remove_interface(interface);
     }
@@ -191,7 +195,7 @@ _cb_config_changed(void) {
   }
 
   /* get interface object or create one */
-  interface = dlep_radio_add_interface(_radio_section.section_name);
+  interface = dlep_radio_add_interface(ifname);
   if (!interface) {
     return;
   }
@@ -205,15 +209,15 @@ _cb_config_changed(void) {
   }
 
   if (!interface->interf.udp_config.interface[0]) {
-    strscpy(interface->interf.udp_config.interface,
-        _radio_section.section_name,
-        sizeof(interface->interf.udp_config.interface));
+    strscpy(interface->interf.udp_config.interface, ifname, IF_NAMESIZE);
   }
-
+  else {
+    cfg_get_phy_if(interface->interf.udp_config.interface,
+        interface->interf.udp_config.interface);
+  }
   /* apply interface name also to TCP socket */
   strscpy(interface->tcp_config.interface,
-      interface->interf.udp_config.interface,
-      sizeof(interface->tcp_config.interface));
+      interface->interf.udp_config.interface, IF_NAMESIZE);
 
   /* apply settings */
   dlep_radio_apply_interface_settings(interface);

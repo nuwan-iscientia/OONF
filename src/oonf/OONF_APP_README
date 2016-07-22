@@ -8,5 +8,5 @@ Because of this you should run it with the following minimal configuration:
     plugin   socket
     plugin   timer
     plugin   os_clock
-    plugin   os_socket
+    plugin   os_fd
     plugin   os_system

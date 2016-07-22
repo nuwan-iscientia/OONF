@@ -749,7 +749,7 @@ _cb_create_text_edge(struct oonf_viewer_template *template) {
 
       list_for_each_element(nhdp_domain_get_list(), domain, _node) {
         metric = olsrv2_tc_edge_get_metric(domain, edge);
-        if (metric < RFC7181_METRIC_INFINITE) {
+        if (metric <= RFC7181_METRIC_MAX) {
           _initialize_domain_values(domain);
           _initialize_domain_link_metric_values(domain, metric);
 

@@ -66,6 +66,11 @@
 
 #include "subsystems/oonf_http.h"
 
+#ifndef O_DIRECTORY
+/* uClibc does not define it */
+#define O_DIRECTORY     00200000        /* must be a directory */
+#endif
+
 /* Definitions */
 #define LOG_HTTP _oonf_http_subsystem.logging
 
@@ -233,9 +238,11 @@ _cleanup(void) {
   if (_config.www_dir_fd != -1) {
     close(_config.www_dir_fd);
   }
+
   oonf_http_remove(&_telnet_handler);
   oonf_http_remove(&_file_handler);
   oonf_stream_remove_managed(&_http_managed_socket, true);
+  oonf_stream_free_managed_config(&_config.smc);
 }
 
 /**

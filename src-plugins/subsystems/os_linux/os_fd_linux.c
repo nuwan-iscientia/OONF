@@ -53,7 +53,7 @@
 #include "core/oonf_subsystem.h"
 #include "subsystems/oonf_clock.h"
 
-#include "subsystems/os_socket.h"
+#include "subsystems/os_fd.h"
 
 /* Defintions */
 #define LOG_OS_SOCKET _oonf_os_fd_subsystem.logging
@@ -93,11 +93,9 @@ _cleanup(void) {
 }
 
 /**
- *
- * @param sel
- * @param event
- * @param maxdelay
- * @return
+ * wait for a network event on multiple sockets
+ * @param sel socket selector set
+ * @return number of events that happened, 0 if a timeout happened
  */
 int
 os_fd_linux_event_wait(struct os_fd_select *sel) {
@@ -125,10 +123,18 @@ os_fd_linux_event_wait(struct os_fd_select *sel) {
   return sel->_event_count;
 }
 
+/**
+ * Move the wanted events of a socket into a selector set
+ * @param sel socket selector set
+ * @param sock os socket
+ * @return -1 if an error happened, 0 otherwise
+ */
 int
 os_fd_linux_event_socket_modify(struct os_fd_select *sel,
     struct os_fd *sock) {
   struct epoll_event event;
+
+  memset(&event,0,sizeof(event));
 
   event.events = sock->wanted_events;
   event.data.ptr = sock;
@@ -137,6 +143,7 @@ os_fd_linux_event_socket_modify(struct os_fd_select *sel,
       sock->fd, sock->wanted_events);
   return epoll_ctl(sel->_epoll_fd, EPOLL_CTL_MOD, sock->fd, &event);
 }
+
 /**
  * Raw IP sockets sometimes deliver the whole IP header instead of just
  * the content. This function skips the IP header and modifies the length

@@ -82,7 +82,11 @@ static struct oonf_class _router_if_class = {
 };
 
 static bool _shutting_down;
-static uint32_t _l2_origin;
+static struct oonf_layer2_origin _l2_origin = {
+  .name = "dlep router interface",
+  .proactive = true,
+  .priority = OONF_LAYER2_ORIGIN_RELIABLE,
+};
 
 /**
  * Initialize dlep router interface framework. This will also
@@ -103,7 +107,7 @@ dlep_router_interface_init(void) {
 
   _shutting_down = false;
 
-  _l2_origin = oonf_layer2_register_origin();
+  oonf_layer2_add_origin(&_l2_origin);
 }
 
 /**
@@ -121,6 +125,7 @@ dlep_router_interface_cleanup(void) {
   oonf_class_remove(&_router_if_class);
 
   dlep_router_session_cleanup();
+  oonf_layer2_remove_origin(&_l2_origin);
 }
 
 /**
@@ -173,7 +178,7 @@ dlep_router_add_interface(const char *ifname) {
   }
 
   if (dlep_if_add(&interface->interf, ifname,
-      _l2_origin, LOG_DLEP_ROUTER, false)) {
+      &_l2_origin, LOG_DLEP_ROUTER, false)) {
     oonf_class_free(&_router_if_class, interface);
     return NULL;
   }
@@ -182,7 +187,6 @@ dlep_router_add_interface(const char *ifname) {
   avl_insert(&_interface_tree, &interface->interf._node);
 
   OONF_DEBUG(LOG_DLEP_ROUTER, "Add session %s", ifname);
-
   return interface;
 }
 
@@ -211,9 +215,34 @@ dlep_router_remove_interface(struct dlep_router_if *interface) {
 void
 dlep_router_apply_interface_settings(struct dlep_router_if *interf) {
   struct dlep_extension *ext;
+  struct os_interface *os_if;
+  const struct os_interface_ip *result;
+  union netaddr_socket local, remote;
+#ifdef OONF_LOG_DEBUG_INFO
+  struct netaddr_str nbuf;
+#endif
+
   oonf_packet_apply_managed(&interf->interf.udp, &interf->interf.udp_config);
 
   _cleanup_interface(interf);
+
+  if (!netaddr_is_unspec(&interf->connect_to_addr)) {
+    os_if = interf->interf.session.l2_listener.data;
+
+    OONF_DEBUG(LOG_DLEP_ROUTER, "Connect directly to [%s]:%d",
+        netaddr_to_string(&nbuf, &interf->connect_to_addr),
+        interf->connect_to_port);
+
+    result = os_interface_get_prefix_from_dst(&interf->connect_to_addr, os_if);
+    if (result) {
+      /* initialize local and remote socket */
+      netaddr_socket_init(&local, &result->address, 0, os_if->index);
+      netaddr_socket_init(&remote,
+          &interf->connect_to_addr, interf->connect_to_port, os_if->index);
+
+      dlep_router_add_session(interf, &local, &remote);
+    }
+  }
 
   avl_for_each_element(dlep_extension_get_tree(), ext, _node) {
     if (ext->cb_session_apply_router) {

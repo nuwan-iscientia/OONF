@@ -98,8 +98,6 @@ DECLARE_OONF_PLUGIN(_nhdp_mpr_subsystem);
 static struct nhdp_domain_mpr _mpr_handler = {
   .name = OONF_MPR_SUBSYSTEM,
   .update_mpr = _cb_update_mpr,
-  .mpr_start = false,
-  .mprs_start = false,
 };
 
 enum oonf_log_source LOG_MPR;

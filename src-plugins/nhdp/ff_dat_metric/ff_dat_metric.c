@@ -122,6 +122,12 @@ struct link_datff_bucket {
  * Additional data for a nhdp_link class for metric calculation
  */
 struct link_datff_data {
+  /*! timer for measuring lost hellos when no further packets are received */
+  struct oonf_timer_instance hello_lost_timer;
+
+  /*! back pointer to NHDP link */
+  struct nhdp_link *nhdp_link;
+
   /*! current position in history ringbuffer */
   int activePtr;
 
@@ -133,9 +139,6 @@ struct link_datff_data {
 
   /*! remember the last transmitted packet loss for hysteresis */
   uint32_t last_packet_success_rate;
-
-  /*! timer for measuring lost hellos when no further packets are received */
-  struct oonf_timer_instance hello_lost_timer;
 
   /*! last known hello interval */
   uint64_t hello_interval;
@@ -158,7 +161,7 @@ static void _cb_link_added(void *);
 static void _cb_link_changed(void *);
 static void _cb_link_removed(void *);
 
-static void _cb_dat_sampling(void *);
+static void _cb_dat_sampling(struct oonf_timer_instance *);
 static void _calculate_link_neighborhood(struct nhdp_link *lnk,
     struct link_datff_data *ldata);
 static int _calculate_dynamic_loss_exponent(int link_neigborhood);
@@ -166,7 +169,7 @@ static uint32_t _apply_packet_loss(struct nhdp_link *lnk,
     struct link_datff_data *ldata,
     uint32_t metric, uint32_t received, uint32_t total);
 
-static void _cb_hello_lost(void *);
+static void _cb_hello_lost(struct oonf_timer_instance *);
 
 static enum rfc5444_result _cb_process_packet(
       struct rfc5444_reader_tlvblock_context *context);
@@ -309,8 +312,6 @@ static struct nhdp_domain_metric _datff_handler = {
   .metric_minimum = DATFF_LINKCOST_MINIMUM,
   .metric_maximum = DATFF_LINKCOST_MAXIMUM,
 
-  .incoming_link_start = DATFF_LINKCOST_START,
-
   .link_to_string = _link_to_string,
   .path_to_string = _path_to_string,
   .internal_link_to_string = _int_link_to_string,
@@ -343,7 +344,7 @@ _init(void) {
   oonf_timer_add(&_sampling_timer_info);
   oonf_timer_add(&_hello_lost_info);
 
-  _protocol = oonf_rfc5444_add_protocol(RFC5444_PROTOCOL, true);
+  _protocol = oonf_rfc5444_get_default_protocol();
 
   oonf_rfc5444_add_protocol_pktseqno(_protocol);
 #ifdef COLLECT_RAW_DATA
@@ -372,7 +373,7 @@ _cleanup(void) {
   nhdp_domain_metric_remove(&_datff_handler);
 
   oonf_rfc5444_remove_protocol_pktseqno(_protocol);
-  oonf_rfc5444_remove_protocol(_protocol);
+  _protocol = NULL;
 
   oonf_class_extension_remove(&_link_extenstion);
 
@@ -428,7 +429,6 @@ _cb_link_added(void *ptr) {
 
   /* start 'hello lost' timer for link */
   data->hello_lost_timer.class = &_hello_lost_info;
-  data->hello_lost_timer.cb_context = ptr;
 }
 
 /**
@@ -512,8 +512,7 @@ _get_median_rx_linkspeed(struct link_datff_data *ldata) {
  */
 static int
 _get_scaled_rx_linkspeed(struct nhdp_link *lnk) {
-  // const struct oonf_linkconfig_data *linkdata;
-  struct os_interface_data *ifdata;
+  struct os_interface *os_if;
   const struct oonf_layer2_data *l2data;
   int rate;
 
@@ -523,13 +522,10 @@ _get_scaled_rx_linkspeed(struct nhdp_link *lnk) {
   }
 
   /* get local interface data  */
-  ifdata = oonf_interface_get_data(nhdp_interface_get_name(lnk->local_if), NULL);
-  if (!ifdata) {
-    return 1;
-  }
+  os_if = nhdp_interface_get_if_listener(lnk->local_if)->data;
 
   l2data = oonf_layer2_neigh_query(
-      ifdata->name, &lnk->remote_mac, OONF_LAYER2_NEIGH_RX_BITRATE);
+      os_if->name, &lnk->remote_mac, OONF_LAYER2_NEIGH_RX_BITRATE);
   if (!l2data) {
     return 1;
   }
@@ -553,7 +549,7 @@ _reset_missed_hello_timer(struct link_datff_data *);
  * @param ptr nhdp link
  */
 static void
-_cb_dat_sampling(void *ptr __attribute__((unused))) {
+_cb_dat_sampling(struct oonf_timer_instance *ptr __attribute__((unused))) {
   struct rfc7181_metric_field encoded_metric;
   struct link_datff_data *ldata;
   struct nhdp_link *lnk;
@@ -600,11 +596,6 @@ _cb_dat_sampling(void *ptr __attribute__((unused))) {
       }
     }
 
-    if (total == 0 || received == 0) {
-      nhdp_domain_set_incoming_metric(&_datff_handler, lnk, RFC7181_METRIC_MAX);
-      continue;
-    }
-
     /* update link speed */
     ldata->buckets[ldata->activePtr].scaled_speed = _get_scaled_rx_linkspeed(lnk);
 #ifdef COLLECT_RAW_DATA
@@ -634,7 +625,8 @@ _cb_dat_sampling(void *ptr __attribute__((unused))) {
     }
 
     /* calculate frame loss, use discrete values */
-    if (received * DATFF_FRAME_SUCCESS_RANGE <= total) {
+    if (total == 0 || received == 0
+        || received * DATFF_FRAME_SUCCESS_RANGE <= total) {
       metric *= DATFF_FRAME_SUCCESS_RANGE;
     }
     else {
@@ -785,15 +777,13 @@ _apply_packet_loss(struct nhdp_link *lnk,
 
 /**
  * Callback triggered when the next hellos should have been received
- * @param ptr nhdp link
+ * @param ptr timer instance that fired
  */
 static void
-_cb_hello_lost(void *ptr) {
+_cb_hello_lost(struct oonf_timer_instance *ptr) {
   struct link_datff_data *ldata;
-  struct nhdp_link *lnk;
 
-  lnk = ptr;
-  ldata = oonf_class_get_extension(&_link_extenstion, lnk);
+  ldata = container_of(ptr, struct link_datff_data, hello_lost_timer);
 
   if (ldata->activePtr != -1) {
     ldata->missed_hellos++;

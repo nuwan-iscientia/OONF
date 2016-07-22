@@ -56,6 +56,9 @@
 #include "dlep/dlep_writer.h"
 #include "dlep/dlep_extension.h"
 
+static int _process_interface_specific_update(
+    struct dlep_extension *ext, struct dlep_session *session);
+
 static struct avl_tree _extension_tree;
 
 static uint16_t *_id_array = NULL;
@@ -161,35 +164,11 @@ dlep_extension_get_ids(uint16_t *length) {
 int
 dlep_extension_router_process_peer_init_ack(
     struct dlep_extension *ext, struct dlep_session *session) {
-  struct oonf_layer2_net *l2net;
-  int result;
-
   if (session->restrict_signal != DLEP_PEER_INITIALIZATION_ACK) {
     /* ignore unless we are in initialization mode */
     return 0;
   }
-
-  l2net = oonf_layer2_net_add(session->l2_listener.name);
-  if (!l2net) {
-    OONF_INFO(session->log_source,
-        "Could not find l2net for interface");
-    return -1;
-  }
-
-  result = dlep_reader_map_l2neigh_data(l2net->neighdata, session, ext);
-  if (result) {
-    OONF_INFO(session->log_source, "tlv mapping for extension %d failed: %d",
-        ext->id, result);
-    return result;
-  }
-
-  result = dlep_reader_map_l2net_data(l2net->data, session, ext);
-  if (result) {
-    OONF_INFO(session->log_source, "tlv mapping for extension %d failed: %d",
-        ext->id, result);
-    return result;
-  }
-  return 0;
+  return _process_interface_specific_update(ext, session);
 }
 
 /**
@@ -202,34 +181,12 @@ dlep_extension_router_process_peer_init_ack(
 int
 dlep_extension_router_process_peer_update(
     struct dlep_extension *ext, struct dlep_session *session) {
-  struct oonf_layer2_net *l2net;
-  int result;
-
-  if (session->restrict_signal != DLEP_PEER_INITIALIZATION_ACK) {
-    /* ignore unless we are in initialization mode */
+  if (session->restrict_signal != DLEP_ALL_SIGNALS) {
+    /* ignore unless we have an established session */
     return 0;
   }
 
-  l2net = oonf_layer2_net_add(session->l2_listener.name);
-  if (!l2net) {
-    OONF_INFO(session->log_source, "Could not add l2net for new interface");
-    return -1;
-  }
-
-  result = dlep_reader_map_l2neigh_data(l2net->neighdata, session, ext);
-  if (result) {
-    OONF_INFO(session->log_source, "tlv mapping for extension %d failed: %d",
-        ext->id, result);
-    return result;
-  }
-
-  result = dlep_reader_map_l2net_data(l2net->data, session, ext);
-  if (result) {
-    OONF_INFO(session->log_source, "tlv mapping for extension %d failed: %d",
-        ext->id, result);
-    return result;
-  }
-  return 0;
+  return _process_interface_specific_update(ext, session);
 }
 
 /**
@@ -246,6 +203,11 @@ dlep_extension_router_process_destination(
   struct oonf_layer2_neigh *l2neigh;
   struct netaddr mac;
   int result;
+
+  if (session->restrict_signal != DLEP_ALL_SIGNALS) {
+    /* ignore unless we have an established session */
+    return 0;
+  }
 
   if (dlep_reader_mac_tlv(&mac, session, NULL)) {
     OONF_INFO(session->log_source, "mac tlv missing");
@@ -400,6 +362,41 @@ dlep_extension_radio_write_destination(struct dlep_extension *ext,
     OONF_WARN(session->log_source, "tlv mapping for extension %d"
         " and neighbor %s failed: %d",
         ext->id, netaddr_to_string(&nbuf, neigh), result);
+    return result;
+  }
+  return 0;
+}
+
+/**
+ * Handle peer update and session init ACK for DLEP extension
+ * by automatically mapping oonf_layer2_data to DLEP TLVs
+ * @param ext dlep extension
+ * @param session dlep session
+ * @return -1 if an error happened, 0 otherwise
+ */
+static int
+_process_interface_specific_update(
+    struct dlep_extension *ext, struct dlep_session *session) {
+  struct oonf_layer2_net *l2net;
+  int result;
+
+  l2net = oonf_layer2_net_add(session->l2_listener.name);
+  if (!l2net) {
+    OONF_INFO(session->log_source, "Could not add l2net for new interface");
+    return -1;
+  }
+
+  result = dlep_reader_map_l2neigh_data(l2net->neighdata, session, ext);
+  if (result) {
+    OONF_INFO(session->log_source, "tlv mapping for extension %d failed: %d",
+        ext->id, result);
+    return result;
+  }
+
+  result = dlep_reader_map_l2net_data(l2net->data, session, ext);
+  if (result) {
+    OONF_INFO(session->log_source, "tlv mapping for extension %d failed: %d",
+        ext->id, result);
     return result;
   }
   return 0;

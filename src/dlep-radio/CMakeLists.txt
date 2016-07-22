@@ -29,7 +29,6 @@ set (OONF_APP_DEFAULT_CFG_HANDLER Compact)
 IF (NOT OONF_STATIC_PLUGINS)
     set (OONF_STATIC_PLUGINS class
                              clock
-                             interface
                              layer2
                              packet_socket
                              socket
@@ -38,12 +37,13 @@ IF (NOT OONF_STATIC_PLUGINS)
                              timer
                              viewer
                              os_clock
-                             os_socket
+                             os_fd
                              os_interface
                              os_system
                              cfg_compact
                              layer2info
                              systeminfo
+                             layer2_config
                              dlep_radio
                              )
 ENDIF (NOT OONF_STATIC_PLUGINS)

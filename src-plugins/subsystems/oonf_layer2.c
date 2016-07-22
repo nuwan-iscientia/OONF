@@ -50,7 +50,7 @@
 #include "config/cfg_schema.h"
 #include "core/oonf_subsystem.h"
 #include "subsystems/oonf_class.h"
-#include "subsystems/oonf_interface.h"
+#include "subsystems/os_interface.h"
 
 #include "subsystems/oonf_layer2.h"
 
@@ -67,7 +67,7 @@ static void _neigh_remove(struct oonf_layer2_neigh *l2neigh);
 /* subsystem definition */
 static const char *_dependencies[] = {
   OONF_CLASS_SUBSYSTEM,
-  OONF_INTERFACE_SUBSYSTEM,
+  OONF_OS_INTERFACE_SUBSYSTEM,
 };
 
 static struct oonf_subsystem _oonf_layer2_subsystem = {
@@ -119,7 +119,6 @@ static const char *oonf_layer2_network_type[OONF_LAYER2_TYPE_COUNT] = {
   [OONF_LAYER2_TYPE_WIRELESS]  = "wireless",
   [OONF_LAYER2_TYPE_ETHERNET]  = "ethernet",
   [OONF_LAYER2_TYPE_TUNNEL]    = "tunnel",
-  [OONF_LAYER2_TYPE_DLEP]      = "dlep",
 };
 
 /* infrastructure for l2net/l2neigh tree */
@@ -138,7 +137,7 @@ static struct oonf_class _l2dst_class = {
 
 static struct avl_tree _oonf_layer2_net_tree;
 
-static uint32_t _next_origin = 0;
+static struct avl_tree _oonf_originator_tree;
 
 /**
  * Subsystem constructor
@@ -151,6 +150,7 @@ _init(void) {
   oonf_class_add(&_l2dst_class);
 
   avl_init(&_oonf_layer2_net_tree, avl_comp_strcasecmp, false);
+  avl_init(&_oonf_originator_tree, avl_comp_strcasecmp, false);
   return 0;
 }
 
@@ -172,25 +172,31 @@ _cleanup(void) {
 
 /**
  * Register a new data originator number for layer2 data
- * @return originator number
+ * @param origin layer2 originator
  */
-uint32_t
-oonf_layer2_register_origin(void) {
-  _next_origin++;
-  return _next_origin;
+void
+oonf_layer2_add_origin(struct oonf_layer2_origin *origin) {
+  origin->_node.key = origin->name;
+  avl_insert(&_oonf_originator_tree, &origin->_node);
 }
 
 /**
  * Removes all layer2 data associated with this data originator
- * @param origin originator number
+ * @param origin originator
  */
 void
-oonf_layer2_cleanup_origin(uint32_t origin) {
+oonf_layer2_remove_origin(struct oonf_layer2_origin *origin) {
   struct oonf_layer2_net *l2net, *l2net_it;
+
+  if (!avl_is_node_added(&origin->_node)) {
+    return;
+  }
 
   avl_for_each_element_safe(&_oonf_layer2_net_tree, l2net, _node, l2net_it) {
     oonf_layer2_net_remove(l2net, origin);
   }
+
+  avl_remove(&_oonf_originator_tree, &origin->_node);
 }
 
 /**
@@ -224,7 +230,7 @@ oonf_layer2_net_add(const char *ifname) {
 
   /* initialize interface listener */
   l2net->if_listener.name = l2net->name;
-  oonf_interface_add_listener(&l2net->if_listener);
+  os_interface_add(&l2net->if_listener);
 
   oonf_class_event(&_l2network_class, l2net, OONF_OBJECT_ADDED);
 
@@ -236,10 +242,13 @@ oonf_layer2_net_add(const char *ifname) {
  * object.
  * @param l2net layer-2 addr object
  * @param origin originator number
+ * @param cleanup_neigh true to cleanup neighbor data too
  * @return true if a value was removed, false otherwise
  */
 bool
-oonf_layer2_net_cleanup(struct oonf_layer2_net *l2net, uint32_t origin) {
+oonf_layer2_net_cleanup(struct oonf_layer2_net *l2net,
+    const struct oonf_layer2_origin *origin, bool cleanup_neigh) {
+  struct oonf_layer2_neigh *l2neigh;
   bool changed = false;
   int i;
 
@@ -255,6 +264,12 @@ oonf_layer2_net_cleanup(struct oonf_layer2_net *l2net, uint32_t origin) {
       changed = true;
     }
   }
+
+  if (cleanup_neigh) {
+    avl_for_each_element(&l2net->neighbors, l2neigh, _node) {
+      changed |= oonf_layer2_neigh_cleanup(l2neigh, origin);
+    }
+  }
   return changed;
 }
 
@@ -262,11 +277,12 @@ oonf_layer2_net_cleanup(struct oonf_layer2_net *l2net, uint32_t origin) {
  * Remove all information of a certain originator from a layer-2 addr
  * object. Remove the object if its empty and has no neighbors anymore.
  * @param l2net layer-2 addr object
- * @param origin originator number
+ * @param origin originator identifier
  * @return true if something changed, false otherwise
  */
 bool
-oonf_layer2_net_remove(struct oonf_layer2_net *l2net, uint32_t origin) {
+oonf_layer2_net_remove(struct oonf_layer2_net *l2net,
+    const struct oonf_layer2_origin *origin) {
   struct oonf_layer2_neigh *l2neigh, *l2neigh_it;
   bool changed = false;
 
@@ -278,7 +294,7 @@ oonf_layer2_net_remove(struct oonf_layer2_net *l2net, uint32_t origin) {
     changed |= oonf_layer2_neigh_remove(l2neigh, origin);
   }
 
-  changed |= oonf_layer2_net_cleanup(l2net, origin);
+  changed |= oonf_layer2_net_cleanup(l2net, origin, false);
   if (changed) {
     oonf_layer2_net_commit(l2net);
   }
@@ -316,6 +332,37 @@ oonf_layer2_net_commit(struct oonf_layer2_net *l2net) {
 
   _net_remove(l2net);
   return true;
+}
+
+/**
+ * Relabel all network data (including neighbor data)
+ * of one origin to another one
+ * @param l2net layer2 network object
+ * @param new_origin new origin
+ * @param old_origin old origin to overwrite
+ */
+void
+oonf_layer2_net_relabel(struct oonf_layer2_net *l2net,
+    const struct oonf_layer2_origin *new_origin,
+    const struct oonf_layer2_origin *old_origin) {
+  struct oonf_layer2_neigh *l2neigh;
+  size_t i;
+
+  for (i=0; i<OONF_LAYER2_NET_COUNT; i++) {
+    if (oonf_layer2_get_origin(&l2net->data[i]) == old_origin) {
+      oonf_layer2_set_origin(&l2net->data[i], new_origin);
+    }
+  }
+
+  for (i=0; i<OONF_LAYER2_NEIGH_COUNT; i++) {
+    if (oonf_layer2_get_origin(&l2net->neighdata[i]) == old_origin) {
+      oonf_layer2_set_origin(&l2net->neighdata[i], new_origin);
+    }
+  }
+
+  avl_for_each_element(&l2net->neighbors, l2neigh, _node) {
+    oonf_layer2_neigh_relabel(l2neigh, new_origin, old_origin);
+  }
 }
 
 /**
@@ -365,7 +412,8 @@ oonf_layer2_neigh_add(struct oonf_layer2_net *l2net,
  * @return true if a value was resetted, false otherwise
  */
 bool
-oonf_layer2_neigh_cleanup(struct oonf_layer2_neigh *l2neigh, uint32_t origin) {
+oonf_layer2_neigh_cleanup(struct oonf_layer2_neigh *l2neigh,
+    const struct oonf_layer2_origin *origin) {
   bool changed = false;
   int i;
 
@@ -387,7 +435,8 @@ oonf_layer2_neigh_cleanup(struct oonf_layer2_neigh *l2neigh, uint32_t origin) {
  * @return true if something was change, false otherwise
  */
 bool
-oonf_layer2_neigh_remove(struct oonf_layer2_neigh *l2neigh, uint32_t origin) {
+oonf_layer2_neigh_remove(struct oonf_layer2_neigh *l2neigh,
+    const struct oonf_layer2_origin *origin) {
   struct oonf_layer2_destination *l2dst, *l2dst_it;
   bool changed = false;
 
@@ -436,6 +485,25 @@ oonf_layer2_neigh_commit(struct oonf_layer2_neigh *l2neigh) {
 }
 
 /**
+ * Relabel all neighbor data of one origin to another one
+ * @param l2neigh layer2 neighbor object
+ * @param new_origin new origin
+ * @param old_origin old origin to overwrite
+ */
+void
+oonf_layer2_neigh_relabel(struct oonf_layer2_neigh *l2neigh,
+    const struct oonf_layer2_origin *new_origin,
+    const struct oonf_layer2_origin *old_origin) {
+  size_t i;
+
+  for (i=0; i<OONF_LAYER2_NEIGH_COUNT; i++) {
+    if (oonf_layer2_get_origin(&l2neigh->data[i]) == old_origin) {
+      oonf_layer2_set_origin(&l2neigh->data[i], new_origin);
+    }
+  }
+}
+
+/**
  * add a layer2 destination (a MAC address behind a neighbor) to
  * the layer2 database
  * @param l2neigh layer2 neighbor of the destination
@@ -445,7 +513,8 @@ oonf_layer2_neigh_commit(struct oonf_layer2_neigh *l2neigh) {
  */
 struct oonf_layer2_destination *
 oonf_layer2_destination_add(struct oonf_layer2_neigh *l2neigh,
-    const struct netaddr *destination, uint32_t origin) {
+    const struct netaddr *destination,
+    const struct oonf_layer2_origin *origin) {
   struct oonf_layer2_destination *l2dst;
 
   l2dst = oonf_layer2_destination_get(l2neigh, destination);
@@ -558,7 +627,7 @@ oonf_layer2_neigh_get_value(const struct oonf_layer2_neigh *l2neigh,
  */
 bool
 oonf_layer2_change_value(struct oonf_layer2_data *l2data,
-    uint32_t origin, int64_t value) {
+    const struct oonf_layer2_origin *origin, int64_t value) {
   bool changed = true;
 
   if (oonf_layer2_has_value(l2data)) {
@@ -613,6 +682,15 @@ oonf_layer2_get_network_tree(void) {
 }
 
 /**
+ * get tree of layer2 originators
+ * @return originator tree
+ */
+struct avl_tree *
+oonf_layer2_get_origin_tree(void) {
+  return &_oonf_originator_tree;
+}
+
+/**
  * Removes a layer-2 addr object from the database.
  * @param l2net layer-2 addr object
  */
@@ -628,7 +706,7 @@ _net_remove(struct oonf_layer2_net *l2net) {
   oonf_class_event(&_l2network_class, l2net, OONF_OBJECT_REMOVED);
 
   /* remove interface listener */
-  oonf_interface_remove_listener(&l2net->if_listener);
+  os_interface_remove(&l2net->if_listener);
 
   /* free addr */
   avl_remove(&_oonf_layer2_net_tree, &l2net->_node);

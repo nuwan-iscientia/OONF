@@ -83,7 +83,7 @@
 static int _init(void);
 static void _cleanup(void);
 
-static void _cb_handle_netlink_timeout(void *);
+static void _cb_handle_netlink_timeout(struct oonf_timer_instance *);
 static void _netlink_handler(struct oonf_socket_entry *entry);
 static void _enqueue_netlink_buffer(struct os_system_netlink *nl);
 static void _handle_nl_err(struct os_system_netlink *, struct nlmsghdr *);
@@ -194,7 +194,7 @@ _cleanup(void) {
  * @return true if IPv6 is supported, false otherwise
  */
 bool
-os_system_is_ipv6_supported(void) {
+os_system_linux_is_ipv6_supported(void) {
   return _ioctl_v6 != -1;
 }
 
@@ -205,7 +205,7 @@ os_system_is_ipv6_supported(void) {
  * @return true if linux kernel is at least a specific version
  */
 bool
-os_linux_system_is_minimal_kernel(int v1, int v2, int v3) {
+os_system_linux_is_minimal_kernel(int v1, int v2, int v3) {
   struct utsname uts;
   char *next;
   int first = 0, second = 0, third = 0;
@@ -257,7 +257,7 @@ kernel_parse_error:
  * @return socket file descriptor, -1 if not surrported
  */
 int
-os_system_linux_get_ioctl_fd(int af_type) {
+os_system_linux_linux_get_ioctl_fd(int af_type) {
   switch (af_type) {
     case AF_INET:
       return _ioctl_v4;
@@ -275,7 +275,7 @@ os_system_linux_get_ioctl_fd(int af_type) {
  * @return -1 if an error happened, 0 otherwise
  */
 int
-os_system_netlink_add(struct os_system_netlink *nl, int protocol) {
+os_system_linux_netlink_add(struct os_system_netlink *nl, int protocol) {
   struct sockaddr_nl addr;
   int recvbuf;
   int fd;
@@ -331,7 +331,6 @@ os_system_netlink_add(struct os_system_netlink *nl, int protocol) {
   oonf_socket_add(&nl->socket);
   oonf_socket_set_read(&nl->socket, true);
 
-  nl->timeout.cb_context = nl;
   nl->timeout.class = &_netlink_timer;
 
   list_init_head(&nl->buffered);
@@ -351,7 +350,7 @@ os_add_netlink_fail:
  * @param nl pointer to handler
  */
 void
-os_system_netlink_remove(struct os_system_netlink *nl) {
+os_system_linux_netlink_remove(struct os_system_netlink *nl) {
   oonf_socket_remove(&nl->socket);
 
   os_fd_close(&nl->socket.fd);
@@ -388,10 +387,10 @@ _enqueue_netlink_buffer(struct os_system_netlink *nl) {
  * @return sequence number used for message
  */
 int
-os_system_netlink_send(struct os_system_netlink *nl,
+os_system_linux_netlink_send(struct os_system_netlink *nl,
     struct nlmsghdr *nl_hdr) {
   _seq_used = (_seq_used + 1) & INT32_MAX;
-  OONF_INFO(nl->used_by->logging, "Prepare to send netlink '%s' message %u (%u bytes)",
+  OONF_DEBUG(nl->used_by->logging, "Prepare to send netlink '%s' message %u (%u bytes)",
       nl->name, _seq_used, nl_hdr->nlmsg_len);
 
   nl_hdr->nlmsg_seq = _seq_used;
@@ -420,7 +419,7 @@ os_system_netlink_send(struct os_system_netlink *nl,
  * @return -1 if an error happened, 0 otherwise
  */
 int
-os_system_netlink_add_mc(struct os_system_netlink *nl,
+os_system_linux_netlink_add_mc(struct os_system_netlink *nl,
     const uint32_t *groups, size_t groupcount) {
   size_t i;
 
@@ -444,7 +443,7 @@ os_system_netlink_add_mc(struct os_system_netlink *nl,
  * @return -1 if an error happened, 0 otherwise
  */
 int
-os_system_netlink_drop_mc(struct os_system_netlink *nl,
+os_system_linux_netlink_drop_mc(struct os_system_netlink *nl,
     const int *groups, size_t groupcount) {
   size_t i;
 
@@ -470,7 +469,7 @@ os_system_netlink_drop_mc(struct os_system_netlink *nl,
  * @return -1 if netlink message got too large, 0 otherwise
  */
 int
-os_system_netlink_addreq(struct os_system_netlink *nl,
+os_system_linux_netlink_addreq(struct os_system_netlink *nl,
     struct nlmsghdr *nlmsg, int type, const void *data, int len) {
   struct nlattr *nl_attr;
   size_t aligned_msg_len, aligned_attr_len;
@@ -499,11 +498,13 @@ os_system_netlink_addreq(struct os_system_netlink *nl,
 
 /**
  * Handle timeout of netlink acks
- * @param ptr pointer to netlink handler
+ * @param ptr timer instance that fired
  */
 static void
-_cb_handle_netlink_timeout(void *ptr) {
-  struct os_system_netlink *nl = ptr;
+_cb_handle_netlink_timeout(struct oonf_timer_instance *ptr) {
+  struct os_system_netlink *nl;
+
+  nl = container_of(ptr, struct os_system_netlink, timeout);
 
   if (nl->cb_timeout) {
     nl->cb_timeout();
@@ -545,7 +546,11 @@ _flush_netlink_buffer(struct os_system_netlink *nl) {
   if ((ret = sendmsg(os_fd_get_fd(&nl->socket.fd),
         &_netlink_send_msg, MSG_DONTWAIT)) <= 0) {
     err = errno;
+#if EAGAIN == EWOULDBLOCK
+    if (err != EAGAIN) {
+#else
     if (err != EAGAIN && err != EWOULDBLOCK) {
+#endif
       OONF_WARN(nl->used_by->logging,
           "Cannot send data (%"PRINTF_SIZE_T_SPECIFIER" bytes)"
           " to netlink socket %s: %s (%d)",
@@ -559,7 +564,7 @@ _flush_netlink_buffer(struct os_system_netlink *nl) {
   else {
     nl->msg_in_transit += buffer->messages;
 
-    OONF_INFO(nl->used_by->logging,
+    OONF_DEBUG(nl->used_by->logging,
         "netlink %s: Sent %u bytes (%u messages in transit)",
         nl->name, buffer->total, nl->msg_in_transit);
 
@@ -633,7 +638,11 @@ netlink_rcv_retry:
       " %"PRINTF_SIZE_T_SPECIFIER" bytes buffer",
       nl->name, nl->in_len);
   if ((ret = recvmsg(entry->fd.fd, &_netlink_rcv_msg, MSG_DONTWAIT | flags)) < 0) {
+#if EAGAIN == EWOULDBLOCK
+    if (errno != EAGAIN) {
+#else
     if (errno != EAGAIN && errno != EWOULDBLOCK) {
+#endif
       OONF_WARN(nl->used_by->logging,"netlink '%s' recvmsg error: %s (%d)\n",
           nl->name, strerror(errno), errno);
     }
@@ -669,7 +678,7 @@ netlink_rcv_retry:
     goto netlink_rcv_retry;
   }
 
-  OONF_INFO(nl->used_by->logging, "Got netlink '%s' message of %"
+  OONF_DEBUG(nl->used_by->logging, "Got netlink '%s' message of %"
       PRINTF_SSIZE_T_SPECIFIER" bytes", nl->name, ret);
   OONF_DEBUG_HEX(nl->used_by->logging, nl->in, ret,
       "Content of netlink '%s' message:", nl->name);
@@ -679,7 +688,7 @@ netlink_rcv_retry:
   /* loop through netlink headers */
   len = (size_t) ret;
   for (nh = nl->in; NLMSG_OK (nh, len); nh = NLMSG_NEXT (nh, len)) {
-    OONF_INFO(nl->used_by->logging,
+    OONF_DEBUG(nl->used_by->logging,
         "Netlink '%s' message received: type %d seq %u\n",
         nl->name, nh->nlmsg_type, nh->nlmsg_seq);
 
@@ -742,7 +751,7 @@ _handle_nl_err(struct os_system_netlink *nl, struct nlmsghdr *nh) {
 
   err = (struct nlmsgerr *) NLMSG_DATA(nh);
 
-  OONF_INFO(nl->used_by->logging,
+  OONF_DEBUG(nl->used_by->logging,
       "Received netlink '%s' seq %u feedback (%u bytes): %s (%d)",
       nl->name, nh->nlmsg_seq, nh->nlmsg_len, strerror(-err->error), -err->error);
 

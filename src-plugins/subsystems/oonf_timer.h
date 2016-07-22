@@ -73,9 +73,9 @@ struct oonf_timer_class {
 
   /**
    * Callback when timer is triggered
-   * @param ptr custom user pointer
+   * @param ptr pointer to timer instance that fired
    */
-  void (*callback) (void *ptr);
+  void (*callback) (struct oonf_timer_instance *ptr);
 
   /*! true if this is a class of periodic timers */
   bool periodic;
@@ -105,10 +105,6 @@ struct oonf_timer_instance {
 
   /*! the jitter expressed in percent */
   uint8_t jitter_pct;
-
-  /* TODO: replace with pointer to the instance */
-  /*! context pointer, used as parameter in timer callback */
-  void *cb_context;
 
   /*! timeperiod between two timer events for periodical timers */
   uint64_t _period;

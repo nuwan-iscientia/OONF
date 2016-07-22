@@ -81,7 +81,7 @@ static struct cfg_schema_entry _router_entries[] = {
   CFG_MAP_INT32_MINMAX(dlep_router_if, interf.udp_config.multicast_port, "discovery_port",
     DLEP_WELL_KNOWN_MULTICAST_PORT_TXT, "UDP port for discovery packets", 0, false, 1, 65535),
 
-  CFG_MAP_ACL_V46(dlep_router_if, interf.udp_config.bindto, "discovery_bindto", "fe80::/10",
+  CFG_MAP_ACL_V46(dlep_router_if, interf.udp_config.bindto, "discovery_bindto", "224.0.0.1\0fe80::/10",
     "Filter to determine the binding of the UDP discovery socket"),
 
   CFG_MAP_CLOCK_MIN(dlep_router_if, interf.session.cfg.discovery_interval,
@@ -97,6 +97,11 @@ static struct cfg_schema_entry _router_entries[] = {
   CFG_MAP_STRING_ARRAY(dlep_router_if, interf.udp_config.interface, "datapath_if", "",
       "Overwrite datapath interface for incoming dlep traffic, used for"
       " receiving DLEP data through out-of-band channel.", IF_NAMESIZE),
+
+  CFG_MAP_NETADDR_V46(dlep_router_if, connect_to_addr, "connect_to", "-",
+      "IP to directly connect to a known DLEP radio TCP socket", false, true),
+  CFG_MAP_INT32_MINMAX(dlep_router_if, connect_to_port, "connect_to_port", "1",
+      "TCP port to directly connect to a known DLEP radio TCP socket", 0, false, 1, 65535),
 };
 
 static struct cfg_schema_section _router_section = {
@@ -174,10 +179,14 @@ _cleanup(void) {
 static void
 _cb_config_changed(void) {
   struct dlep_router_if *interface;
+  const char *ifname;
+  char ifbuf[IF_NAMESIZE];
+
+  ifname = cfg_get_phy_if(ifbuf, _router_section.section_name);
 
   if (!_router_section.post) {
     /* remove old session object */
-    interface = dlep_router_get_by_layer2_if(_router_section.section_name);
+    interface = dlep_router_get_by_layer2_if(ifname);
     if (interface) {
       dlep_router_remove_interface(interface);
     }
@@ -185,7 +194,7 @@ _cb_config_changed(void) {
   }
 
   /* get session object or create one */
-  interface = dlep_router_add_interface(_router_section.section_name);
+  interface = dlep_router_add_interface(ifname);
   if (!interface) {
     return;
   }
@@ -203,6 +212,10 @@ _cb_config_changed(void) {
     strscpy(interface->interf.udp_config.interface,
         _router_section.section_name,
         sizeof(interface->interf.udp_config.interface));
+  }
+  else {
+    cfg_get_phy_if(interface->interf.udp_config.interface,
+        interface->interf.udp_config.interface);
   }
 
   /* apply settings */

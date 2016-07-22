@@ -43,59 +43,14 @@
  * @file
  */
 
-#include <sys/times.h>
-#include <fcntl.h>
-#include <unistd.h>
-#include <stdlib.h>
-#include <syslog.h>
+#ifndef OONF_LAYER2_CONFIG_H_
+#define OONF_LAYER2_CONFIG_H_
 
-#include "core/oonf_libdata.h"
-#include "core/oonf_logging.h"
-#include "core/os_core.h"
+/*! subsystem identifier */
+#define OONF_LAYER2_CONFIG_SUBSYSTEM "layer2_config"
 
-/**
- * Initialize core
- * @param appname name of the application for syslog
- */
-void
-os_core_init(const char *appname) {
-  /* seed random number generator */
-  srandom(times(NULL) + getpid());
+enum {
+  LAYER2_RECONFIG_DELAY = 500
+};
 
-  /* open logfile */
-  openlog(appname, LOG_PID | LOG_ODELAY, LOG_DAEMON);
-  setlogmask(LOG_UPTO(LOG_DEBUG));
-}
-
-/**
- * Cleanup core
- */
-void
-os_core_cleanup(void) {
-  closelog();
-}
-
-/**
- * Print a line to the syslog
- * @param severity severity of entry
- * @param msg line to print
- */
-void
-os_core_syslog(enum oonf_log_severity severity, const char *msg) {
-  int log_sev;
-
-  switch (severity) {
-    case LOG_SEVERITY_DEBUG:
-      log_sev = LOG_DEBUG;
-      break;
-    case LOG_SEVERITY_INFO:
-      log_sev = LOG_NOTICE;
-      break;
-    default:
-    case LOG_SEVERITY_WARN:
-      log_sev = LOG_WARNING;
-      break;
-  }
-
-  syslog(log_sev, "%s", msg);
-}
+#endif /* OONF_LAYER2_CONFIG_H_ */

@@ -51,7 +51,6 @@
 #include <net/if_arp.h>
 #include <netinet/ip.h>
 #include <linux/if_tunnel.h>
-#include <linux/ip6_tunnel.h>
 #include <errno.h>
 
 #include "common/common_types.h"
@@ -65,6 +64,28 @@
 /* Definitions */
 #define LOG_OS_TUNNEL _oonf_os_tunnel_subsystem.logging
 
+/*
+ * private copy of ip6_tnl_parm2 of linux kernel to be backward compatible
+ * with older kernels
+ */
+struct my_ip6_tnl_parm2 {
+  char name[IFNAMSIZ];
+  int link;
+  uint8_t proto;
+  uint8_t encap_limit;
+  uint8_t hop_limit;
+  uint32_t flowinfo;
+  uint32_t flags;
+  struct in6_addr laddr;
+  struct in6_addr raddr;
+
+  uint16_t      i_flags;
+  uint16_t      o_flags;
+  uint32_t      i_key;
+  uint32_t      o_key;
+};
+
+/* prototypes */
 static int _init(void);
 static void _cleanup(void);
 
@@ -116,7 +137,7 @@ _cleanup(void) {
  * @return -1 if an error happened, 0 otherwise
  */
 int
-os_tunnel_add(struct os_tunnel *tunnel) {
+os_tunnel_linux_add(struct os_tunnel *tunnel) {
   int result;
 
   if (avl_is_node_added(&tunnel->_node)) {
@@ -142,7 +163,7 @@ os_tunnel_add(struct os_tunnel *tunnel) {
  * @return -1 if an error happened, 0 otherwise
  */
 int
-os_tunnel_remove(struct os_tunnel *tunnel) {
+os_tunnel_linux_remove(struct os_tunnel *tunnel) {
   int result;
 
   if (!avl_is_node_added(&tunnel->_node)) {
@@ -201,7 +222,7 @@ _handle_ipv4_tunnel(struct os_tunnel *tunnel, bool add) {
   netaddr_to_binary(&p.iph.saddr, &tunnel->p.local, sizeof(p.iph.saddr));
   netaddr_to_binary(&p.iph.daddr, &tunnel->p.remote, sizeof(p.iph.daddr));
 
-  err = ioctl(os_system_linux_get_ioctl_fd(AF_INET),
+  err = ioctl(os_system_linux_linux_get_ioctl_fd(AF_INET),
       add ? SIOCADDTUNNEL : SIOCDELTUNNEL, &ifr);
   if (err) {
     OONF_WARN(LOG_OS_TUNNEL, "Error while %s tunnel %s: %s (%d)",
@@ -219,7 +240,7 @@ _handle_ipv4_tunnel(struct os_tunnel *tunnel, bool add) {
  */
 static int
 _handle_ipv6_tunnel(struct os_tunnel *tunnel, bool add) {
-  struct ip6_tnl_parm2 p;
+  struct my_ip6_tnl_parm2 p;
   struct ifreq ifr;
   int err;
   struct netaddr_str nbuf1, nbuf2;
@@ -255,7 +276,7 @@ _handle_ipv6_tunnel(struct os_tunnel *tunnel, bool add) {
   netaddr_to_binary(&p.laddr, &tunnel->p.local, sizeof(p.laddr));
   netaddr_to_binary(&p.raddr, &tunnel->p.remote, sizeof(p.raddr));
 
-  err = ioctl(os_system_linux_get_ioctl_fd(AF_INET6),
+  err = ioctl(os_system_linux_linux_get_ioctl_fd(AF_INET6),
       add ? SIOCADDTUNNEL : SIOCDELTUNNEL, &ifr);
   if (err) {
     OONF_WARN(LOG_OS_TUNNEL, "Error while %s tunnel %s (%d,%s,%s): %s (%d)",

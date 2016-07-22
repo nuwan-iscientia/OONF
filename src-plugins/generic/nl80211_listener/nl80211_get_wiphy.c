@@ -175,14 +175,14 @@ nl80211_send_get_wiphy(struct os_system_netlink *nl,
   nl_msg->nlmsg_flags |= NLM_F_DUMP;
 
   /* add "split wiphy dump" flag */
-  os_system_netlink_addreq(nl, nl_msg, NL80211_ATTR_SPLIT_WIPHY_DUMP,
+  os_system_linux_netlink_addreq(nl, nl_msg, NL80211_ATTR_SPLIT_WIPHY_DUMP,
       NULL, 0);
 
   /* add interface index to the request */
-  os_system_netlink_addreq(nl, nl_msg, NL80211_ATTR_WIPHY,
-      &interf->phy_if, sizeof(interf->phy_if));
+  os_system_linux_netlink_addreq(nl, nl_msg, NL80211_ATTR_WIPHY,
+      &interf->wifi_phy_if, sizeof(interf->wifi_phy_if));
 
-  OONF_DEBUG(LOG_NL80211, "Send GET_WIPHY to phydev %d", interf->phy_if);
+  OONF_DEBUG(LOG_NL80211, "Send GET_WIPHY to phydev %d", interf->wifi_phy_if);
 }
 
 /**
@@ -206,7 +206,7 @@ nl80211_process_get_wiphy_result(struct nl80211_if *interf,
       genlmsg_attrlen(gnlh, 0), NULL);
 
   if (tb_msg[NL80211_ATTR_WIPHY]) {
-    interf->phy_if = nla_get_u32(tb_msg[NL80211_ATTR_WIPHY]);
+    interf->wifi_phy_if = nla_get_u32(tb_msg[NL80211_ATTR_WIPHY]);
   }
   else {
     return;
@@ -251,14 +251,18 @@ nl80211_process_get_wiphy_result(struct nl80211_if *interf,
  */
 void
 nl80211_finalize_get_wiphy(struct nl80211_if *interf) {
-  OONF_DEBUG(LOG_NL80211, "Maximum rx rate for %s: %"PRId64,
-      interf->name, interf->max_rx);
-  OONF_DEBUG(LOG_NL80211, "Maximum tx rate for %s: %"PRId64,
-      interf->name, interf->max_tx);
-  interf->ifdata_changed |= nl80211_change_l2net_neighbor_default(
-      interf->l2net, OONF_LAYER2_NEIGH_RX_MAX_BITRATE, interf->max_rx);
-  interf->ifdata_changed |= nl80211_change_l2net_neighbor_default(
-      interf->l2net, OONF_LAYER2_NEIGH_TX_MAX_BITRATE, interf->max_tx);
+  if (interf->max_rx) {
+    OONF_DEBUG(LOG_NL80211, "Maximum rx rate for %s: %"PRId64,
+        interf->name, interf->max_rx);
+    interf->ifdata_changed |= nl80211_change_l2net_neighbor_default(
+        interf->l2net, OONF_LAYER2_NEIGH_RX_MAX_BITRATE, interf->max_rx);
+  }
+  if (interf->max_tx) {
+    OONF_DEBUG(LOG_NL80211, "Maximum tx rate for %s: %"PRId64,
+        interf->name, interf->max_tx);
+    interf->ifdata_changed |= nl80211_change_l2net_neighbor_default(
+        interf->l2net, OONF_LAYER2_NEIGH_TX_MAX_BITRATE, interf->max_tx);
+  }
 }
 
 /**

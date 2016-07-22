@@ -72,7 +72,6 @@ static const uint16_t _peer_initack_mandatory[] = {
     DLEP_MDRT_TLV,
     DLEP_CDRR_TLV,
     DLEP_CDRT_TLV,
-    DLEP_LATENCY_TLV,
 };
 
 /* peer update */
@@ -198,7 +197,7 @@ static struct dlep_neighbor_mapping _neigh_mappings[] = {
         .length        = 8,
 
         .mandatory     = true,
-        .default_value = 1000000,
+        .default_value = 0,
 
         .from_tlv      = dlep_reader_map_identity,
         .to_tlv        = dlep_writer_map_identity,
@@ -207,9 +206,6 @@ static struct dlep_neighbor_mapping _neigh_mappings[] = {
         .dlep     = DLEP_LATENCY_TLV,
         .layer2   = OONF_LAYER2_NEIGH_LATENCY,
         .length   = 8,
-
-        .mandatory     = true,
-        .default_value = 0,
 
         .from_tlv      = dlep_reader_map_identity,
         .to_tlv        = dlep_writer_map_identity,

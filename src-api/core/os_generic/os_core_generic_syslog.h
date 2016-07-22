@@ -43,43 +43,15 @@
  * @file
  */
 
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <fcntl.h>
-#include <unistd.h>
+#ifndef OS_CORE_GENERIC_SYSLOG_H_
+#define OS_CORE_GENERIC_SYSLOG_H_
 
-#include "core/os_core.h"
+#include "common/common_types.h"
 
-/**
- * Get some random data
- * @param dst pointer to destination buffer
- * @param length number of random bytes requested
- * @return 0 if the random data was generated, -1 if an error happened
- */
-int
-os_core_get_random(void *dst, size_t length) {
-  int random_fd;
-  ssize_t result;
-  uint8_t *u8ptr;
+void os_core_generic_syslog_init(const char *appname);
+void os_core_generic_syslog_cleanup(void);
 
-  u8ptr = dst;
+EXPORT void os_core_generic_syslog(
+    enum oonf_log_severity severity, const char *msg);
 
-  /* open urandom */
-  random_fd = open("/dev/urandom", O_RDONLY);
-  if (random_fd == -1) {
-    return -1;
-  }
-
-  while (length > 0) {
-    result = read(random_fd, u8ptr, length);
-    if (result < 0) {
-      close (random_fd);
-      return -1;
-    }
-
-    u8ptr += result;
-    length -= result;
-  }
-  close(random_fd);
-  return 0;
-}
+#endif /* OS_CORE_GENERIC_SYSLOG_H_ */

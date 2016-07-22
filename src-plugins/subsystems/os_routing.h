@@ -52,23 +52,16 @@
 #include "common/common_types.h"
 #include "common/list.h"
 #include "common/netaddr.h"
-#include "subsystems/oonf_interface.h"
+#include "subsystems/os_interface.h"
 #include "core/oonf_logging.h"
 #include "subsystems/os_system.h"
 
 /*! subsystem identifier */
 #define OONF_OS_ROUTING_SUBSYSTEM "os_routing"
 
-/* include os-specific headers */
-#if defined(__linux__)
-#include "subsystems/os_linux/os_routing_linux.h"
-#elif defined (BSD)
-#include "subsystems/os_bsd/os_routing_bsd.h"
-#elif defined (_WIN32)
-#include "subsystems/os_win32/os_routing_win32.h"
-#else
-#error "Unknown operation system"
-#endif
+struct os_route;
+struct os_route_listener;
+struct os_route_str;
 
 /* make sure default values for routing are there */
 #ifndef RTPROT_UNSPEC
@@ -160,6 +153,14 @@ struct os_route_parameter {
   /*! index of outgoing interface */
   unsigned int if_index;
 };
+
+/* include os-specific headers */
+#if defined(__linux__)
+#include "subsystems/os_linux/os_routing_linux.h"
+#else
+#error "Unknown operation system"
+#endif
+
 /**
  * Handler for changing a route in the kernel
  * or querying the route status
@@ -204,49 +205,30 @@ struct os_route_listener {
 };
 
 /* prototypes for all os_routing functions */
-EXPORT bool os_routing_supports_source_specific(int af_family);
-EXPORT int os_routing_set(struct os_route *, bool set, bool del_similar);
-EXPORT int os_routing_query(struct os_route *);
-EXPORT void os_routing_interrupt(struct os_route *);
-EXPORT bool os_routing_is_in_progress(struct os_route *);
+static INLINE bool os_routing_supports_source_specific(int af_family);
+static INLINE int os_routing_set(struct os_route *, bool set, bool del_similar);
+static INLINE int os_routing_query(struct os_route *);
+static INLINE void os_routing_interrupt(struct os_route *);
+static INLINE bool os_routing_is_in_progress(struct os_route *);
 
-EXPORT void os_routing_listener_add(struct os_route_listener *);
-EXPORT void os_routing_listener_remove(struct os_route_listener *);
+static INLINE void os_routing_listener_add(struct os_route_listener *);
+static INLINE void os_routing_listener_remove(struct os_route_listener *);
 
-EXPORT const char *os_routing_to_string(
+static INLINE const char *os_routing_to_string(
     struct os_route_str *buf, const struct os_route_parameter *route_param);
 
-EXPORT const struct os_route_parameter *os_routing_get_wildcard_route(void);
+static INLINE void os_routing_init_wildcard_route(struct os_route *);
 
-EXPORT int os_route_avl_cmp_route_key(const void *, const void *);
-EXPORT void os_route_init_half_os_route_key(
+static INLINE void os_routing_init_half_os_route_key(
     struct netaddr *any, struct netaddr *specific,
     const struct netaddr *source);
 
-/**
- * Initialize a source specific route key with a destination.
- * Overwrites the source prefix with the IP_ANY of the
- * corresponding address family
- * @param prefix target source specific route key
- * @param destination destination prefix
- */
-static INLINE void
-os_route_init_sourcespec_prefix(struct os_route_key *prefix,
-    const struct netaddr *destination) {
-  os_route_init_half_os_route_key(&prefix->src, &prefix->dst, destination);
-}
+static INLINE void os_routing_init_sourcespec_prefix(
+    struct os_route_key *prefix, const struct netaddr *destination);
+static INLINE void os_routing_init_sourcespec_src_prefix(
+    struct os_route_key *prefix, const struct netaddr *source);
 
-/**
- * Initialize a source specific route key with a source.
- * Overwrites the destination prefix with the IP_ANY of the
- * corresponding address family
- * @param prefix target source specific route key
- * @param source source prefix
- */
-static INLINE void
-os_route_init_sourcespec_src_prefix(struct os_route_key *prefix,
-    const struct netaddr *source) {
-  os_route_init_half_os_route_key(&prefix->dst, &prefix->src, source);
-}
+/* AVL comparators are a special case so we don't do the INLINE trick here */
+EXPORT int os_routing_avl_cmp_route_key(const void *, const void *);
 
 #endif /* OS_ROUTING_H_ */

@@ -43,25 +43,66 @@
  * @file
  */
 
-#ifndef OS_CORE_GENERIC_H_
-#define OS_CORE_GENERIC_H_
+#ifndef OS_INTERFACE_LINUX_INTERNAL_H_
+#define OS_INTERFACE_LINUX_INTERNAL_H_
 
-#include <sys/time.h>
-#include <stdlib.h>
+#include <linux/netlink.h>
+#include <linux/rtnetlink.h>
 
-#include "core/os_core.h"
-
-/*! default folder for Linux lockfile */
-#define OS_CORE_LOCKFILE_FOLDER        "/var/run/"
+#include "common/common_types.h"
+#include "subsystems/os_interface.h"
 
 /**
- * Inline wrapper around gettimeofday
- * @param tv pointer to target timeval object
- * @return -1 if an error happened, 0 otherwise
+ * define scope of address on interface
  */
-static INLINE int
-os_core_gettimeofday(struct timeval *tv) {
-  return gettimeofday(tv, NULL);
-}
+enum os_addr_scope {
+  /* linklocal scope */
+  OS_ADDR_SCOPE_LINK = RT_SCOPE_LINK,
+  /*! global scope */
+  OS_ADDR_SCOPE_GLOBAL = RT_SCOPE_UNIVERSE,
+};
 
-#endif /* OS_CORE_GENERIC_H_ */
+/**
+ * linux specifc data for changing an interface address
+ */
+struct os_interface_address_change_internal {
+  /*! hook into list of IP address change handlers */
+  struct list_entity _node;
+
+  /*! netlink sequence number of command sent to the kernel */
+  uint32_t nl_seq;
+};
+
+struct os_interface_internal {
+  /**
+   * true if this interface should not be initialized as a mesh interface
+   * even if used as one. This means the user have to do all the
+   * os configuration itself.
+   */
+  bool ignore_mesh;
+
+  /**
+   * usage counter to keep track of the number of users on
+   * this interface who want to send mesh traffic
+   */
+  uint32_t mesh_counter;
+
+  /**
+   * used to store internal state of interfaces before
+   * configuring them for manet data forwarding.
+   * Only used by os_specific code.
+   */
+  uint32_t _original_state;
+
+  /**
+   * true if the interface has been configured, keep a copy around
+   */
+  bool configured;
+
+  /**
+   * true if the os configuration for mesh routing is active
+   */
+  bool mesh_settings_active;
+};
+
+#endif /* OS_INTERFACE_LINUX_INTERNAL_H_ */

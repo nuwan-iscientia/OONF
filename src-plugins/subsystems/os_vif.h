@@ -49,10 +49,12 @@
 #include "common/common_types.h"
 #include "common/avl.h"
 
-#include "subsystems/os_socket.h"
+#include "subsystems/os_fd.h"
 
 /*! subsystem identifier */
 #define OONF_OS_VIF_SUBSYSTEM "os_vif"
+
+struct os_vif;
 
 /* include os-specific headers */
 #if defined(__linux__)
@@ -92,10 +94,10 @@ struct os_vif {
   struct os_vif_internal _internal;
 };
 
-EXPORT int os_vif_open(struct os_fd *fd, struct os_vif *vif);
-EXPORT void os_vif_close(struct os_vif *vif);
+static INLINE int os_vif_open(struct os_fd *fd, struct os_vif *vif);
+static INLINE void os_vif_close(struct os_vif *vif);
 
-EXPORT struct avl_tree *os_vif_get_tree(void);
+static INLINE struct avl_tree *os_vif_get_tree(void);
 
 /**
  * Get virtual interface handler

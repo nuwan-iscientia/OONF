@@ -48,8 +48,8 @@
 #include "core/oonf_logging.h"
 #include "core/oonf_subsystem.h"
 #include "subsystems/oonf_class.h"
-#include "subsystems/oonf_interface.h"
 #include "subsystems/oonf_rfc5444.h"
+#include "subsystems/os_interface.h"
 #include "nhdp/nhdp_hysteresis.h"
 #include "nhdp/nhdp_interfaces.h"
 #include "nhdp/nhdp_domain.h"
@@ -70,7 +70,7 @@ struct _domain_parameters {
   char mpr_name[NHDP_DOMAIN_MPR_MAXLEN];
 
   /*! routing willingness */
-  uint8_t mpr_willingness;
+  int32_t mpr_willingness;
 };
 
 /**
@@ -81,7 +81,7 @@ struct _generic_parameters {
   char flooding_mpr_name[NHDP_DOMAIN_MPR_MAXLEN];
 
   /*! routing willingness */
-  uint8_t mpr_willingness;
+  int32_t mpr_willingness;
 };
 
 /* prototypes */
@@ -169,9 +169,9 @@ static struct cfg_schema_section _domain_section = {
 static const char *_dependencies[] = {
   OONF_CLOCK_SUBSYSTEM,
   OONF_CLASS_SUBSYSTEM,
-  OONF_INTERFACE_SUBSYSTEM,
   OONF_RFC5444_SUBSYSTEM,
   OONF_TIMER_SUBSYSTEM,
+  OONF_OS_INTERFACE_SUBSYSTEM,
 };
 static struct oonf_subsystem nhdp_subsystem = {
   .name = OONF_NHDP_SUBSYSTEM,
@@ -212,13 +212,8 @@ _early_cfg_init(void) {
  */
 static int
 _init(void) {
-  _protocol = oonf_rfc5444_add_protocol(RFC5444_PROTOCOL, true);
-  if (_protocol == NULL) {
-    return -1;
-  }
-
+  _protocol = oonf_rfc5444_get_default_protocol();
   if (nhdp_writer_init(_protocol)) {
-    oonf_rfc5444_remove_protocol(_protocol);
     return -1;
   }
 
@@ -411,12 +406,16 @@ _cb_cfg_domain_changed(void) {
 static void
 _cb_cfg_interface_changed(void) {
   struct nhdp_interface *interf;
+  const char *ifname;
+  char ifbuf[IF_NAMESIZE];
+
+  ifname = cfg_get_phy_if(ifbuf, _interface_section.section_name);
 
   OONF_DEBUG(LOG_NHDP, "Configuration of NHDP interface %s changed",
       _interface_section.section_name);
 
   /* get interface */
-  interf = nhdp_interface_get(_interface_section.section_name);
+  interf = nhdp_interface_get(ifname);
 
   if (_interface_section.post == NULL) {
     /* section was removed */
@@ -427,7 +426,10 @@ _cb_cfg_interface_changed(void) {
   }
 
   if (interf == NULL) {
-    interf = nhdp_interface_add(_interface_section.section_name);
+    interf = nhdp_interface_add(ifname);
+    if (!interf) {
+      return;
+    }
   }
 
   if (cfg_schema_tobin(interf, _interface_section.post,

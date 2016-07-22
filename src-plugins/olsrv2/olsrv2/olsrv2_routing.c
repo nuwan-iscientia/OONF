@@ -91,7 +91,8 @@ static void _process_kernel_queue(void);
 
 static void _cb_mpr_update(struct nhdp_domain *);
 static void _cb_metric_update(struct nhdp_domain *);
-static void _cb_trigger_dijkstra(void *);
+static void _cb_trigger_dijkstra(struct oonf_timer_instance *);
+
 static void _cb_route_finished(struct os_route *route, int error);
 
 /* Domain parameter of dijkstra algorithm */
@@ -157,7 +158,7 @@ olsrv2_routing_init(void) {
   oonf_timer_add(&_dijkstra_timer_info);
 
   for (i=0; i<NHDP_MAXIMUM_DOMAINS; i++) {
-    avl_init(&_routing_tree[i], os_route_avl_cmp_route_key, false);
+    avl_init(&_routing_tree[i], os_routing_avl_cmp_route_key, false);
   }
   list_init_head(&_routing_filter_list);
   avl_init(&_dijkstra_working_tree, avl_comp_uint32, true);
@@ -487,6 +488,8 @@ _add_entry(struct nhdp_domain *domain, struct os_route_key *prefix) {
   rtentry->route.cb_finished = _cb_route_finished;
   rtentry->route.p.family = netaddr_get_address_family(&prefix->dst);
 
+  rtentry->route.p.type = OS_ROUTE_UNICAST;
+
   avl_insert(&_routing_tree[domain->index], &rtentry->_node);
   return rtentry;
 }
@@ -527,7 +530,7 @@ _insert_into_working_tree(struct olsrv2_tc_target *target,
 #ifdef OONF_LOG_DEBUG_INFO
   struct netaddr_str nbuf1, nbuf2;
 #endif
-  if (linkcost >= RFC7181_METRIC_INFINITE) {
+  if (linkcost > RFC7181_METRIC_MAX) {
     return;
   }
 
@@ -597,7 +600,7 @@ _update_routing_entry(struct nhdp_domain *domain,
   struct olsrv2_lan_entry *lan;
   struct olsrv2_lan_domaindata *landata;
 #ifdef OONF_LOG_DEBUG_INFO
-  struct netaddr_str nbuf1, nbuf2;
+  struct netaddr_str nbuf1, nbuf2, nbuf3;
 #endif
 
   /* test if destination is already part of the local node */
@@ -622,7 +625,7 @@ _update_routing_entry(struct nhdp_domain *domain,
     }
   }
 
-  if (!netaddr_acl_check_accept(olsrv2_get_routable(), &prefix->dst)) {
+  if (!olsrv2_is_routable(&prefix->dst)) {
     /* don't set routes to non-routable destinations */
     return;
   }
@@ -644,16 +647,17 @@ _update_routing_entry(struct nhdp_domain *domain,
   }
 
   neighdata = nhdp_domain_get_neighbordata(domain, first_hop);
-  OONF_DEBUG(LOG_OLSRV2_ROUTING, "Initialize route entry dst %s [%s] with pathcost %u",
-      netaddr_to_string(&nbuf1, &rtentry->route.p.key.dst),
-      netaddr_to_string(&nbuf2, &rtentry->route.p.key.src),
-      pathcost);
-
   /* copy route parameters into data structure */
   rtentry->route.p.if_index = neighdata->best_link_ifindex;
   rtentry->path_cost = pathcost;
   rtentry->path_hops = path_hops;
   rtentry->route.p.metric = distance;
+
+  OONF_DEBUG(LOG_OLSRV2_ROUTING, "Initialize route entry dst %s [%s] (firsthop %s, domain %u) with pathcost %u, if %s",
+      netaddr_to_string(&nbuf1, &rtentry->route.p.key.dst),
+      netaddr_to_string(&nbuf2, &rtentry->route.p.key.src),
+      netaddr_to_string(&nbuf3, &first_hop->originator),
+      domain->ext, pathcost, neighdata->best_link->local_if->os_if_listener.data->name);
 
   /* remember next hop originator */
   memcpy(&rtentry->next_originator, &first_hop->originator, sizeof(struct netaddr));
@@ -932,22 +936,28 @@ _handle_nhdp_routes(struct nhdp_domain *domain) {
     neigh_data = nhdp_domain_get_neighbordata(domain, neigh);
     neighcost = neigh_data->metric.out;
 
-    if (neigh->symmetric == 0 || neighcost >= RFC7181_METRIC_INFINITE) {
+    if (neigh->symmetric == 0 || neighcost > RFC7181_METRIC_MAX) {
       continue;
     }
 
     /* make sure all addresses of the neighbor are better than our direct link */
     avl_for_each_element(&neigh->_neigh_addresses, naddr, _neigh_node) {
-      if (!netaddr_acl_check_accept(olsrv2_get_routable(), &naddr->neigh_addr)) {
+      if (!olsrv2_is_nhdp_routable(&naddr->neigh_addr)) {
         /* not a routable address, check the next one */
         continue;
       }
 
-      os_route_init_sourcespec_prefix(&ssprefix, &naddr->neigh_addr);
+      os_routing_init_sourcespec_prefix(&ssprefix, &naddr->neigh_addr);
 
       /* update routing entry */
-      _update_routing_entry(domain, &ssprefix,
-          neigh, 0, neighcost, 1, true, olsrv2_originator_get(family));
+      if (olsrv2_originator_get(family)) {
+        _update_routing_entry(domain, &ssprefix,
+            neigh, 0, neighcost, 1, true, olsrv2_originator_get(family));
+      }
+      else {
+        _update_routing_entry(domain, &ssprefix,
+            neigh, 0, neighcost, 1, true, &NETADDR_UNSPEC);
+      }
     }
 
     list_for_each_element(&neigh->_links, lnk, _neigh_node) {
@@ -959,13 +969,13 @@ _handle_nhdp_routes(struct nhdp_domain *domain) {
 
         /* get new pathcost to 2hop neighbor */
         l2hop_pathcost = nhdp_domain_get_l2hopdata(domain, l2hop)->metric.out;
-        if (l2hop_pathcost >= RFC7181_METRIC_INFINITE) {
+        if (l2hop_pathcost > RFC7181_METRIC_MAX) {
           continue;
         }
 
         l2hop_pathcost += neighcost;
 
-        os_route_init_sourcespec_prefix(&ssprefix, &l2hop->twohop_addr);
+        os_routing_init_sourcespec_prefix(&ssprefix, &l2hop->twohop_addr);
 
         /* the 2-hop route is better than the dijkstra calculation */
         _update_routing_entry(domain, &ssprefix,
@@ -1026,6 +1036,9 @@ static void
 _process_dijkstra_result(struct nhdp_domain *domain) {
   struct olsrv2_routing_entry *rtentry;
   struct olsrv2_routing_filter *filter;
+#ifdef OONF_LOG_INFO
+  struct os_route_str rbuf1, rbuf2;
+#endif
 
   avl_for_each_element(&_routing_tree[domain->index], rtentry, _node) {
     /* initialize rest of route parameters */
@@ -1051,6 +1064,10 @@ _process_dijkstra_result(struct nhdp_domain *domain) {
     if (rtentry->set
         && memcmp(&rtentry->_old, &rtentry->route.p, sizeof(rtentry->_old)) == 0) {
       /* no change, ignore this entry */
+      OONF_INFO(LOG_OLSRV2_ROUTING,
+          "Ignore route change: %s -> %s",
+          os_routing_to_string(&rbuf1, &rtentry->_old),
+          os_routing_to_string(&rbuf2, &rtentry->route.p));
       continue;
     }
     _add_route_to_kernel_queue(rtentry);
@@ -1096,10 +1113,10 @@ _process_kernel_queue(void) {
 /**
  * Callback for checking if dijkstra was triggered during
  * rate limitation time
- * @param unused
+ * @param ptr timer instance that fired
  */
 static void
-_cb_trigger_dijkstra(void *unused __attribute__((unused))) {
+_cb_trigger_dijkstra(struct oonf_timer_instance *ptr __attribute__((unused))) {
   if (_trigger_dijkstra) {
     _trigger_dijkstra = false;
     olsrv2_routing_force_update(false);

@@ -61,7 +61,7 @@
 static void _cb_init_router(struct dlep_session *);
 static void _cb_apply_router(struct dlep_session *);
 static void _cb_cleanup_router(struct dlep_session *);
-static void _cb_create_peer_discovery(void *);
+static void _cb_create_peer_discovery(struct oonf_timer_instance *);
 
 static int _router_process_peer_offer(struct dlep_extension *, struct dlep_session *);
 static int _router_process_peer_init_ack(struct dlep_extension *, struct dlep_session *);
@@ -199,7 +199,6 @@ _cb_apply_router(struct dlep_session *session) {
      * so we need to send Peer Discovery messages
      */
     session->local_event_timer.class = &_peer_discovery_class;
-    session->local_event_timer.cb_context = session;
 
     OONF_DEBUG(session->log_source, "Activate discovery with interval %"
         PRIu64, session->cfg.discovery_interval);
@@ -220,6 +219,11 @@ _cb_cleanup_router(struct dlep_session *session) {
 
   l2net = oonf_layer2_net_get(session->l2_listener.name);
   if (l2net) {
+    /* remove DLEP mark from interface */
+    l2net->if_type = OONF_LAYER2_TYPE_UNDEFINED;
+    l2net->if_dlep = false;
+
+    /* and remove all DLEP data */
     oonf_layer2_net_remove(l2net, session->l2_origin);
   }
 
@@ -228,11 +232,13 @@ _cb_cleanup_router(struct dlep_session *session) {
 
 /**
  * Callback to generate regular peer discovery signals
- * @param ptr dlep session
+ * @param ptr timer instance that fired
  */
 static void
-_cb_create_peer_discovery(void *ptr) {
-  struct dlep_session *session = ptr;
+_cb_create_peer_discovery(struct oonf_timer_instance *ptr) {
+  struct dlep_session *session;
+
+  session = container_of(ptr, struct dlep_session, local_event_timer);
 
   OONF_DEBUG(session->log_source, "Generate peer discovery");
 
@@ -256,11 +262,12 @@ _router_process_peer_offer(
   struct dlep_router_if *router_if;
   union netaddr_socket local, remote;
   struct dlep_parser_value *value;
+  const struct os_interface_ip *ip;
   const struct netaddr *result = NULL;
   struct netaddr addr;
   uint16_t port;
   bool tls;
-  struct os_interface_data *ifdata;
+  struct os_interface *ifdata;
 
   if (session->restrict_signal != DLEP_PEER_OFFER) {
     /* ignore unless we are in discovery mode */
@@ -274,7 +281,7 @@ _router_process_peer_offer(
   result = NULL;
 
   /* remember interface data */
-  ifdata = &session->l2_listener.interface->data;
+  ifdata = session->l2_listener.data;
 
   /* IPv6 offer */
   value = dlep_session_get_tlv_value(session, DLEP_IPV6_CONPOINT_TLV);
@@ -289,8 +296,9 @@ _router_process_peer_offer(
     }
     else if (netaddr_is_in_subnet(&NETADDR_IPV6_LINKLOCAL, &addr)
         || result == NULL) {
-      result = oonf_interface_get_prefix_from_dst(&addr, ifdata);
-      if (result) {
+      ip = os_interface_get_prefix_from_dst(&addr, ifdata);
+      if (ip) {
+        result = &ip->address;
         netaddr_socket_init(&remote, &addr, port, ifdata->index);
       }
     }
@@ -308,8 +316,9 @@ _router_process_peer_offer(
       /* TLS not supported at the moment */
     }
     else {
-      result = oonf_interface_get_prefix_from_dst(&addr, ifdata);
-      if (result) {
+      ip = os_interface_get_prefix_from_dst(&addr, ifdata);
+      if (ip) {
+        result = &ip->address;
         netaddr_socket_init(&remote, &addr, port, ifdata->index);
       }
     }
@@ -319,13 +328,14 @@ _router_process_peer_offer(
   /* remote address of incoming session */
   if (!result) {
     netaddr_from_socket(&addr, &session->remote_socket);
-    result = oonf_interface_get_prefix_from_dst(&addr, ifdata);
-    if (!result) {
+    ip = os_interface_get_prefix_from_dst(&addr, ifdata);
+    if (!ip) {
       /* no possible way to communicate */
       OONF_DEBUG(session->log_source,
           "No matching prefix for incoming connection found");
       return -1;
     }
+    result = &ip->address;
     netaddr_socket_init(&remote, &addr, port, ifdata->index);
   }
 
@@ -385,6 +395,11 @@ _router_process_peer_init_ack(
     return -1;
   }
 
+  /* mark interface as DLEP */
+  l2net->if_type = OONF_LAYER2_TYPE_WIRELESS;
+  l2net->if_dlep = true;
+
+  /* map user data into interface */
   result = dlep_reader_map_l2neigh_data(l2net->neighdata, session, _base);
   if (result) {
     OONF_INFO(session->log_source, "tlv mapping failed for extension %u: %u",
@@ -430,8 +445,11 @@ _router_process_peer_update(
     return -1;
   }
 
-  // we don't support IP address exchange at the moment
-  return 0;
+  /* we don't support IP address exchange at the moment */
+
+  /* generate ACK */
+  return dlep_session_generate_signal(
+      session, DLEP_PEER_UPDATE_ACK, NULL);
 }
 
 /**
@@ -488,6 +506,7 @@ _router_process_destination_up(
     return result;
   }
 
+  /* generate ACK */
   return dlep_session_generate_signal(
       session, DLEP_DESTINATION_UP_ACK, &mac);
 }
@@ -537,8 +556,9 @@ _router_process_destination_down(
   /* remove layer2 neighbor */
   oonf_layer2_neigh_remove(l2neigh, session->l2_origin);
 
+  /* generate ACK */
   return dlep_session_generate_signal(
-      session, DLEP_DESTINATION_UP_ACK, &mac);
+      session, DLEP_DESTINATION_DOWN_ACK, &mac);
 }
 
 /**

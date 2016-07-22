@@ -65,7 +65,8 @@ static enum oonf_duplicate_result _test(struct oonf_duplicate_set *,
     struct oonf_duplicate_entry *, uint64_t seqno, bool set);
 static int _avl_cmp_dupkey(const void *, const void*);
 
-static void _cb_vtime(void *);
+static void _cb_vtime(struct oonf_timer_instance *);
+static void _remove_duplicate_entry(struct oonf_duplicate_entry *entry);
 
 static struct oonf_timer_class _vtime_info = {
   .name = "Valdity time for duplicate set",
@@ -155,7 +156,7 @@ oonf_duplicate_set_remove(struct oonf_duplicate_set *set) {
   struct oonf_duplicate_entry *entry, *it;
 
   avl_for_each_element_safe(&set->_tree, entry, _node, it) {
-    _cb_vtime(entry);
+    _remove_duplicate_entry(entry);
   }
 }
 
@@ -203,7 +204,6 @@ oonf_duplicate_entry_add(struct oonf_duplicate_set *set, uint8_t msg_type,
 
     /* initialize vtime */
     entry->_vtime.class = &_vtime_info;
-    entry->_vtime.cb_context = entry;
 
     oonf_timer_start(&entry->_vtime, vtime);
 
@@ -389,17 +389,28 @@ _avl_cmp_dupkey(const void *p1, const void *p2) {
 
 /**
  * Callback fired when duplicate entry times out
- * @param ptr pointer to duplicate entry
+ * @param ptr timer instance that fired
  */
 static void
-_cb_vtime(void *ptr) {
-  struct oonf_duplicate_entry *entry = ptr;
+_cb_vtime(struct oonf_timer_instance *ptr) {
+  struct oonf_duplicate_entry *entry;
 #ifdef OONF_LOG_DEBUG_INFO
   struct netaddr_str nbuf;
 #endif
 
+  entry = container_of(ptr, struct oonf_duplicate_entry, _vtime);
   OONF_DEBUG(LOG_DUPLICATE_SET, "Duplicate entry timed out: %s/%u",
       netaddr_to_string(&nbuf, &entry->key.addr), entry->key.msg_type);
+
+  _remove_duplicate_entry(entry);
+}
+
+/**
+ * Remove a duplicate entry
+ * @param entry duplicate entry
+ */
+static void
+_remove_duplicate_entry(struct oonf_duplicate_entry *entry) {
   oonf_timer_stop(&entry->_vtime);
   avl_remove(&entry->set->_tree, &entry->_node);
 

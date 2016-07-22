@@ -24,6 +24,12 @@ function (oonf_create_app executable static_plugins optional_static_plugins)
         message (STATUS "Static plugins for ${executable} app:")
     ENDIF(VERBOSE)
 
+    IF(OONF_NEED_ROOT)
+        SET(DESTINATION sbin)
+    ELSE(OONF_NEED_ROOT)
+        SET(DESTINATION bin)
+    ENDIF(OONF_NEED_ROOT)
+
     # standard static linked targets
     SET(OBJECT_TARGETS )
     SET(EXTERNAL_LIBRARIES )
@@ -33,11 +39,15 @@ function (oonf_create_app executable static_plugins optional_static_plugins)
     configure_file(${CMAKE_SOURCE_DIR}/src/app_data.c.in ${PROJECT_BINARY_DIR}/${executable}_app_data.c)
 
     FOREACH(plugin ${optional_static_plugins})
-        IF(TARGET oonf_static_${plugin})
-            list (APPEND static_plugins ${plugin})
-        ELSE(TARGET oonf_static_${plugin})
-            message (STATUS "    Optional plugin ${plugin} is not available for executable ${executable}")
-        ENDIF(TARGET oonf_static_${plugin})
+        list(FIND static_plugins ${plugin} insanity)
+
+        IF(${insanity} EQUAL -1)
+            IF(TARGET oonf_static_${plugin})
+                list (APPEND static_plugins ${plugin})
+            ELSE(TARGET oonf_static_${plugin})
+                message (STATUS "    Optional plugin ${plugin} is not available for executable ${executable}")
+            ENDIF(TARGET oonf_static_${plugin})
+        ENDIF(${insanity} EQUAL -1)
     ENDFOREACH(plugin)
 
     # run through list of static plugins
@@ -97,10 +107,10 @@ function (oonf_create_app executable static_plugins optional_static_plugins)
     
     # create install targets
     INSTALL (TARGETS ${executable}_dynamic RUNTIME 
-                                           DESTINATION bin 
+                                           DESTINATION ${DESTINATION}
                                            COMPONENT component_${executable}_dynamic)
     INSTALL (TARGETS ${executable}_static  RUNTIME
-                                           DESTINATION bin 
+                                           DESTINATION ${DESTINATION}
                                            COMPONENT component_${executable}_static)
 
     # add custom install targets

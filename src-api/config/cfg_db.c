@@ -417,12 +417,13 @@ cfg_db_get_entry_value(struct cfg_db *db, const char *section_type,
 const struct const_strarray *
 cfg_db_get_schema_entry_value(const struct cfg_named_section *section,
     const struct cfg_schema_entry *schema_entry) {
-  struct cfg_entry *entry;
+  const struct const_strarray *value;
 
   if (section) {
-    entry = cfg_db_get_entry(section, schema_entry->key.entry);
-    if (entry) {
-      return (struct const_strarray *)&entry->val;
+    value = cfg_db_get_entry_value(section->section_type->db,
+        section->section_type->type, section->name, schema_entry->key.entry);
+    if (value) {
+      return value;
     }
   }
 

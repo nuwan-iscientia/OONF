@@ -68,8 +68,7 @@ void
 dlep_writer_start_signal(struct dlep_writer *writer, uint16_t signal_type) {
 
   writer->signal_type = signal_type;
-  writer->signal_start_ptr =
-      abuf_getptr(writer->out) + abuf_getlen(writer->out);
+  writer->signal_start = abuf_getlen(writer->out);
 
   abuf_append_uint16(writer->out, htons(signal_type));
   abuf_append_uint16(writer->out, 0);
@@ -119,7 +118,8 @@ int
 dlep_writer_finish_signal(struct dlep_writer *writer,
     enum oonf_log_source source) {
   size_t length;
-  uint16_t buffer;
+  uint16_t tmp16;
+  char *dst;
 
   if (abuf_has_failed(writer->out)) {
     OONF_WARN(source, "Could not build signal: %u",
@@ -127,8 +127,7 @@ dlep_writer_finish_signal(struct dlep_writer *writer,
     return -1;
   }
 
-  length = (abuf_getptr(writer->out) + abuf_getlen(writer->out))
-      - writer->signal_start_ptr;
+  length = abuf_getlen(writer->out) - writer->signal_start;
   if (length > 65535 + 4) {
     OONF_WARN(source, "Signal %u became too long: %" PRINTF_SIZE_T_SPECIFIER,
         writer->signal_type, abuf_getlen(writer->out));
@@ -136,12 +135,13 @@ dlep_writer_finish_signal(struct dlep_writer *writer,
   }
 
   /* calculate network ordered size */
-  buffer = htons(length - 4);
+  tmp16 = htons(length - 4);
 
   /* put it into the signal */
-  memcpy(&writer->signal_start_ptr[2], &buffer, sizeof(buffer));
+  dst = abuf_getptr(writer->out);
+  memcpy(&dst[writer->signal_start + 2], &tmp16, sizeof(tmp16));
 
-  OONF_DEBUG_HEX(source, writer->signal_start_ptr, length,
+  OONF_DEBUG_HEX(source, &dst[writer->signal_start], length,
       "Finished signal %u:", writer->signal_type);
   return 0;
 }

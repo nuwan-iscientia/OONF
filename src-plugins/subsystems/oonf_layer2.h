@@ -49,7 +49,7 @@
 #include "common/avl.h"
 #include "common/common_types.h"
 #include "core/oonf_subsystem.h"
-#include "subsystems/oonf_interface.h"
+#include "subsystems/os_interface.h"
 
 /*! subsystem identifier */
 #define OONF_LAYER2_SUBSYSTEM "layer2"
@@ -64,6 +64,32 @@
 #define LAYER2_CLASS_DESTINATION "layer2_destination"
 
 /**
+ * priorities of layer2 originators
+ */
+enum oonf_layer2_origin_priority {
+  OONF_LAYER2_ORIGIN_UNKNOWN,
+  OONF_LAYER2_ORIGIN_UNRELIABLE,
+  OONF_LAYER2_ORIGIN_CONFIGURED,
+  OONF_LAYER2_ORIGIN_RELIABLE,
+};
+
+/**
+ * Origin for layer2 data
+ */
+struct oonf_layer2_origin {
+  const char *name;
+
+  /*! true if data will be constantly updated by a plugin */
+  bool proactive;
+
+  /*! priority of this originator */
+  enum oonf_layer2_origin_priority priority;
+
+  /*! node for tree of originators */
+  struct avl_node _node;
+};
+
+/**
  * Single data entry of layer2 network or neighbor
  */
 struct oonf_layer2_data {
@@ -74,7 +100,7 @@ struct oonf_layer2_data {
   bool _has_value;
 
   /*! layer2 originator id */
-  uint32_t _origin;
+  const struct oonf_layer2_origin *_origin;
 };
 
 /**
@@ -120,7 +146,6 @@ enum oonf_layer2_network_type {
   OONF_LAYER2_TYPE_WIRELESS,
   OONF_LAYER2_TYPE_ETHERNET,
   OONF_LAYER2_TYPE_TUNNEL,
-  OONF_LAYER2_TYPE_DLEP,
 
   OONF_LAYER2_TYPE_COUNT,
 };
@@ -200,8 +225,11 @@ struct oonf_layer2_net {
   /*! interface type */
   enum oonf_layer2_network_type if_type;
 
+  /*! interface data is delivered by DLEP */
+  bool if_dlep;
+
   /*! interface listener to keep track of events and local mac address */
-  struct oonf_interface_listener if_listener;
+  struct os_interface_listener if_listener;
 
   /*! tree of remote neighbors */
   struct avl_tree neighbors;
@@ -253,7 +281,7 @@ struct oonf_layer2_destination {
   struct oonf_layer2_neigh *neighbor;
 
   /*! origin of this proxied address */
-  uint32_t origin;
+  const struct oonf_layer2_origin *origin;
 
   /*! node to hook into tree of layer2 neighbor */
   struct avl_node _node;
@@ -276,26 +304,34 @@ struct oonf_layer2_metadata {
   const bool binary;
 };
 
-EXPORT uint32_t oonf_layer2_register_origin(void);
-EXPORT void oonf_layer2_cleanup_origin(uint32_t);
+EXPORT void oonf_layer2_add_origin(struct oonf_layer2_origin *origin);
+EXPORT void oonf_layer2_remove_origin(struct oonf_layer2_origin *origin);
 
 EXPORT struct oonf_layer2_net *oonf_layer2_net_add(const char *ifname);
 EXPORT bool oonf_layer2_net_remove(
-    struct oonf_layer2_net *, uint32_t origin);
-EXPORT bool oonf_layer2_net_cleanup(struct oonf_layer2_net *l2net, uint32_t origin);
+    struct oonf_layer2_net *, const struct oonf_layer2_origin *origin);
+EXPORT bool oonf_layer2_net_cleanup(struct oonf_layer2_net *l2net,
+    const struct oonf_layer2_origin *origin, bool cleanup_neigh);
 EXPORT bool oonf_layer2_net_commit(struct oonf_layer2_net *);
+EXPORT void oonf_layer2_net_relabel(struct oonf_layer2_net *l2net,
+    const struct oonf_layer2_origin *new_origin,
+    const struct oonf_layer2_origin *old_origin);
 
 EXPORT struct oonf_layer2_neigh *oonf_layer2_neigh_add(
     struct oonf_layer2_net *, struct netaddr *l2neigh);
-EXPORT bool oonf_layer2_neigh_cleanup(struct oonf_layer2_neigh *l2neigh, uint32_t origin);
+EXPORT bool oonf_layer2_neigh_cleanup(struct oonf_layer2_neigh *l2neigh,
+    const struct oonf_layer2_origin *origin);
 EXPORT bool oonf_layer2_neigh_remove(
-    struct oonf_layer2_neigh *l2neigh, uint32_t origin);
-
+    struct oonf_layer2_neigh *l2neigh,
+    const struct oonf_layer2_origin *origin);
 EXPORT bool oonf_layer2_neigh_commit(struct oonf_layer2_neigh *l2neigh);
+EXPORT void oonf_layer2_neigh_relabel(struct oonf_layer2_neigh *l2neigh,
+    const struct oonf_layer2_origin *new_origin,
+    const struct oonf_layer2_origin *old_origin);
 
 EXPORT struct oonf_layer2_destination *oonf_layer2_destination_add(
     struct oonf_layer2_neigh *l2neigh, const struct netaddr *destination,
-    uint32_t origin);
+    const struct oonf_layer2_origin *origin);
 EXPORT void oonf_layer2_destination_remove(struct oonf_layer2_destination *);
 
 EXPORT const struct oonf_layer2_data *oonf_layer2_neigh_query(
@@ -305,7 +341,7 @@ EXPORT const struct oonf_layer2_data *oonf_layer2_neigh_get_value(
     const struct oonf_layer2_neigh *l2neigh, enum oonf_layer2_neighbor_index idx);
 
 EXPORT bool oonf_layer2_change_value(struct oonf_layer2_data *l2data,
-    uint32_t origin, int64_t value);
+    const struct oonf_layer2_origin *origin, int64_t value);
 
 EXPORT const struct oonf_layer2_metadata *oonf_layer2_get_neigh_metadata(
     enum oonf_layer2_neighbor_index);
@@ -313,6 +349,17 @@ EXPORT const struct oonf_layer2_metadata *oonf_layer2_get_net_metadata(
     enum oonf_layer2_network_index);
 EXPORT const char *oonf_layer2_get_network_type(enum oonf_layer2_network_type);
 EXPORT struct avl_tree *oonf_layer2_get_network_tree(void);
+EXPORT struct avl_tree *oonf_layer2_get_origin_tree(void);
+
+/**
+ * Checks if a layer2 originator is registered
+ * @param origin originator
+ * @return true if registered, false otherwise
+ */
+static INLINE bool
+oonf_layer2_origin_is_added(const struct oonf_layer2_origin *origin) {
+  return avl_is_node_added(&origin->_node);
+}
 
 /**
  * Get a layer-2 interface object from the database
@@ -367,7 +414,7 @@ oonf_layer2_get_value(const struct oonf_layer2_data *l2data) {
  * @param l2data layer-2 data object
  * @return originator of data value
  */
-static INLINE uint32_t
+static INLINE const struct oonf_layer2_origin *
 oonf_layer2_get_origin(const struct oonf_layer2_data *l2data) {
   return l2data->_origin;
 }
@@ -378,7 +425,8 @@ oonf_layer2_get_origin(const struct oonf_layer2_data *l2data) {
  * @param origin originator of data value
  */
 static INLINE void
-oonf_layer2_set_origin(struct oonf_layer2_data *l2data, uint32_t origin) {
+oonf_layer2_set_origin(struct oonf_layer2_data *l2data,
+    const struct oonf_layer2_origin *origin) {
   l2data->_origin = origin;
 }
 
@@ -387,13 +435,19 @@ oonf_layer2_set_origin(struct oonf_layer2_data *l2data, uint32_t origin) {
  * @param l2data layer-2 data object
  * @param origin originator of value
  * @param value new value for data object
+ * @return -1 if value was not overwritte, 0 otherwise
  */
-static INLINE void
+static INLINE int
 oonf_layer2_set_value(struct oonf_layer2_data *l2data,
-    uint32_t origin, int64_t value) {
+    const struct oonf_layer2_origin *origin, int64_t value) {
+  if (l2data->_origin && l2data->_origin->priority >= origin->priority) {
+    /* only overwrite lower priority data */
+    return -1;
+  }
   l2data->_has_value = true;
   l2data->_value = value;
   l2data->_origin = origin;
+  return 0;
 }
 
 /**
@@ -403,7 +457,7 @@ oonf_layer2_set_value(struct oonf_layer2_data *l2data,
 static INLINE void
 oonf_layer2_reset_value(struct oonf_layer2_data *l2data) {
   l2data->_has_value = false;
-  l2data->_origin = 0;
+  l2data->_origin = NULL;
 }
 
 #endif /* OONF_LAYER2_H_ */

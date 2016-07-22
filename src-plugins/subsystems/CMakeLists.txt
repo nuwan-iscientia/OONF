@@ -6,7 +6,6 @@ SET(SINGLE_FILE_NAMES    class
                          clock
                          duplicate_set
                          http
-                         interface
                          layer2
                          packet_socket
                          socket
@@ -46,7 +45,7 @@ oonf_create_plugin("rfc5444" "${RFC5444_SOURCE}" "${RFC5444_INCLUDE}" "")
 SET(OS_CLOCK_INCLUDE     os_clock.h)
 SET(OS_INTERFACE_INCLUDE os_interface.h)
 SET(OS_ROUTING_INCLUDE   os_routing.h)
-SET(OS_FD_INCLUDE    os_socket.h)
+SET(OS_FD_INCLUDE    os_fd.h)
 SET(OS_SYSTEM_INCLUDE    os_system.h)
 SET(OS_TUNNEL_INCLUDE    os_tunnel.h)
 SET(OS_VIF_INCLUDE       os_vif.h)
@@ -56,9 +55,11 @@ IF(LINUX)
     SET(OS_CLOCK_INCLUDE     ${OS_CLOCK_INCLUDE}
                              os_linus/os_clock_linux.h)
     
-    SET(OS_INTERFACE_SOURCE  os_linux/os_interface_linux.c)
+    SET(OS_INTERFACE_SOURCE  os_linux/os_interface_linux.c
+                             os_generic/os_interface_generic.c)
     SET(OS_INTERFACE_INCLUDE ${OS_INTERFACE_INCLUDE}
-                             os_linux/os_interface_linux.h)
+                             os_linux/os_interface_linux.h
+                             os_generic/os_interface_generic.h)
 
     SET(OS_ROUTING_SOURCE    os_generic/os_routing_generic_rt_to_string.c
                              os_generic/os_routing_generic_rtkey_avlcomp.c
@@ -100,7 +101,7 @@ ENDIF(LINUX)
 oonf_create_plugin("os_clock" "${OS_CLOCK_SOURCE}" "${OS_CLOCK_INCLUDE}" "rt")
 oonf_create_plugin("os_interface" "${OS_INTERFACE_SOURCE}" "${OS_INTERFACE_INCLUDE}" "")
 oonf_create_plugin("os_routing" "${OS_ROUTING_SOURCE}" "${OS_ROUTING_INCLUDE}" "")
-oonf_create_plugin("os_socket" "${OS_FD_SOURCE}" "${OS_FD_INCLUDE}" "")
+oonf_create_plugin("os_fd" "${OS_FD_SOURCE}" "${OS_FD_INCLUDE}" "")
 oonf_create_plugin("os_system" "${OS_SYSTEM_SOURCE}" "${OS_SYSTEM_INCLUDE}" "")
 oonf_create_plugin("os_tunnel" "${OS_TUNNEL_SOURCE}" "${OS_TUNNEL_INCLUDE}" "")
 oonf_create_plugin("os_vif" "${OS_VIF_SOURCE}" "${OS_VIF_INCLUDE}" "")

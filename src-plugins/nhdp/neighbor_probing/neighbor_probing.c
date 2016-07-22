@@ -51,10 +51,10 @@
 #include "core/oonf_subsystem.h"
 #include "subsystems/oonf_class.h"
 #include "subsystems/oonf_clock.h"
-#include "subsystems/oonf_interface.h"
 #include "subsystems/oonf_layer2.h"
 #include "subsystems/oonf_rfc5444.h"
 #include "subsystems/oonf_timer.h"
+#include "subsystems/os_interface.h"
 
 #include "nhdp/nhdp_db.h"
 #include "nhdp/nhdp_interfaces.h"
@@ -101,7 +101,7 @@ struct _probing_link_data {
 static int _init(void);
 static void _cleanup(void);
 static void _cb_link_removed(void *);
-static void _cb_probe_link(void *);
+static void _cb_probe_link(struct oonf_timer_instance *);
 static int _cb_addMessageHeader(struct rfc5444_writer *writer,
     struct rfc5444_writer_message *msg);
 static void _cb_addMessageTLVs(struct rfc5444_writer *);
@@ -128,10 +128,10 @@ static struct cfg_schema_section _probing_section = {
 static const char *_dependencies[] = {
   OONF_CLASS_SUBSYSTEM,
   OONF_CLOCK_SUBSYSTEM,
-  OONF_INTERFACE_SUBSYSTEM,
   OONF_LAYER2_SUBSYSTEM,
   OONF_RFC5444_SUBSYSTEM,
   OONF_TIMER_SUBSYSTEM,
+  OONF_OS_INTERFACE_SUBSYSTEM,
   OONF_NHDP_SUBSYSTEM,
 };
 static struct oonf_subsystem _olsrv2_neighbor_probing_subsystem = {
@@ -184,13 +184,9 @@ static struct rfc5444_writer_content_provider _probing_msg_provider = {
  */
 static int
 _init(void) {
-  if (oonf_class_extension_add(&_link_extenstion)) {
-    return -1;
-  }
+  _protocol = oonf_rfc5444_get_default_protocol();
 
-  _protocol = oonf_rfc5444_add_protocol(RFC5444_PROTOCOL, true);
-  if (_protocol == NULL) {
-    oonf_class_extension_remove(&_link_extenstion);
+  if (oonf_class_extension_add(&_link_extenstion)) {
     return -1;
   }
 
@@ -228,7 +224,7 @@ _cleanup(void) {
       &_protocol->writer, &_probing_msg_provider, NULL, 0);
   rfc5444_writer_unregister_message(
       &_protocol->writer, _probing_message);
-  oonf_rfc5444_remove_protocol(_protocol);
+  _protocol = NULL;
   oonf_timer_remove(&_probe_info);
   oonf_class_extension_remove(&_link_extenstion);
 }
@@ -245,23 +241,24 @@ _cb_link_removed(void *ptr) {
 
 static bool
 _check_if_type(struct oonf_layer2_net *net) {
-  if (net->if_type == OONF_LAYER2_TYPE_WIRELESS) {
-    return true;
+  if (net->if_dlep) {
+    return _probe_config.probe_dlep;
   }
 
-  if (_probe_config.probe_dlep && net->if_type == OONF_LAYER2_TYPE_DLEP) {
-    return true;
-  }
-  return false;
+  return net->if_type == OONF_LAYER2_TYPE_WIRELESS;
 }
 
+/**
+ * Callback for triggering a new neighbor probe
+ * @param ptr timer instance that fired
+ */
 static void
-_cb_probe_link(void *ptr __attribute__((unused))) {
+_cb_probe_link(struct oonf_timer_instance *ptr __attribute__((unused))) {
   struct nhdp_link *lnk, *best_lnk;
   struct _probing_link_data *ldata, *best_ldata;
-  struct nhdp_interface *ninterf;
+  struct nhdp_interface *nhdp_if;
 
-  struct os_interface *interf;
+  struct os_interface_listener *if_listener;
   struct oonf_layer2_net *l2net;
   struct oonf_layer2_neigh *l2neigh;
 
@@ -279,24 +276,24 @@ _cb_probe_link(void *ptr __attribute__((unused))) {
 
   l2neigh = NULL;
 
-  avl_for_each_element(nhdp_interface_get_tree(), ninterf, _node) {
-    interf = nhdp_interface_get_coreif(ninterf);
+  avl_for_each_element(nhdp_interface_get_tree(), nhdp_if, _node) {
+    if_listener = nhdp_interface_get_if_listener(nhdp_if);
 
-    l2net = oonf_layer2_net_get(interf->data.name);
+    l2net = oonf_layer2_net_get(if_listener->data->name);
     if (!l2net) {
       continue;
     }
 
     if(!_check_if_type(l2net)) {
       OONF_DEBUG(LOG_PROBING, "Drop interface %s (not wireless)",
-          interf->data.name);
+          if_listener->data->name);
       continue;
     }
 
     OONF_DEBUG(LOG_PROBING, "Start looking for probe candidate in interface '%s'",
-        interf->data.name);
+        if_listener->data->name);
 
-    list_for_each_element(&ninterf->_links, lnk, _if_node) {
+    list_for_each_element(&nhdp_if->_links, lnk, _if_node) {
       if (lnk->status != NHDP_LINK_SYMMETRIC) {
         /* only probe symmetric neighbors */
         continue;

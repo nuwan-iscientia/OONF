@@ -131,6 +131,9 @@ struct oonf_telnet_data {
   /*! custom data for stop handler */
   void *stop_data[4];
 
+  /*! custom timer for stop handler */
+  struct oonf_timer_instance stop_timer;
+
   /*! list of cleanup handlers */
   struct list_entity cleanup_list;
 };

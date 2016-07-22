@@ -70,9 +70,9 @@
 #include "core/oonf_logging.h"
 #include "core/oonf_subsystem.h"
 #include "subsystems/oonf_class.h"
-#include "subsystems/oonf_interface.h"
 #include "subsystems/oonf_layer2.h"
 #include "subsystems/oonf_timer.h"
+#include "subsystems/os_interface.h"
 #include "subsystems/os_system.h"
 
 #include "nl80211_listener/genl_get_family.h"
@@ -185,7 +185,7 @@ static void _nl80211_if_remove(struct nl80211_if *);
 static void _cb_config_changed(void);
 static void _cb_if_config_changed(void);
 
-static void _cb_transmission_event(void *);
+static void _cb_transmission_event(struct oonf_timer_instance *);
 static void _trigger_next_netlink_query(void);
 
 static void _cb_nl_message(struct nlmsghdr *hdr);
@@ -224,9 +224,9 @@ static struct _nl80211_config _config;
 /* plugin declaration */
 static const char *_dependencies[] = {
   OONF_CLASS_SUBSYSTEM,
-  OONF_INTERFACE_SUBSYSTEM,
   OONF_LAYER2_SUBSYSTEM,
   OONF_TIMER_SUBSYSTEM,
+  OONF_OS_INTERFACE_SUBSYSTEM,
   OONF_OS_SYSTEM_SUBSYSTEM,
 };
 
@@ -266,7 +266,16 @@ static uint32_t _nl80211_id = 0;
 static uint32_t _nl80211_multicast_group = 0;
 
 /* layer2 metadata */
-static uint32_t _layer2_origin, _layer2_old_origin;
+static struct oonf_layer2_origin _layer2_updated_origin = {
+  .name = "nl80211 updated",
+  .proactive = true,
+  .priority = OONF_LAYER2_ORIGIN_RELIABLE,
+};
+static struct oonf_layer2_origin _layer2_data_origin = {
+  .name = "nl80211",
+  .proactive = true,
+  .priority = OONF_LAYER2_ORIGIN_RELIABLE,
+};
 
 /* current query data */
 static struct nl80211_if *_current_query_if = NULL;
@@ -303,7 +312,7 @@ _early_cfg_init(void) {
  */
 static int
 _init(void) {
-  if (os_system_netlink_add(&_netlink_handler, NETLINK_GENERIC)) {
+  if (os_system_linux_netlink_add(&_netlink_handler, NETLINK_GENERIC)) {
     return -1;
   }
 
@@ -312,8 +321,8 @@ _init(void) {
   avl_init(&_nl80211_if_tree, avl_comp_strcasecmp, false);
 
   /* get layer2 origin */
-  _layer2_origin = oonf_layer2_register_origin();
-  _layer2_old_origin = oonf_layer2_register_origin();
+  oonf_layer2_add_origin(&_layer2_updated_origin);
+  oonf_layer2_add_origin(&_layer2_data_origin);
 
   oonf_timer_add(&_transmission_timer_info);
   return 0;
@@ -328,11 +337,12 @@ _cleanup(void) {
   avl_for_each_element_safe(&_nl80211_if_tree, interf, _node, it_if) {
     _nl80211_if_remove(interf);
   }
-  oonf_layer2_cleanup_origin(_layer2_origin);
+  oonf_layer2_remove_origin(&_layer2_updated_origin);
+  oonf_layer2_remove_origin(&_layer2_data_origin);
 
   oonf_timer_stop(&_transmission_timer);
   oonf_timer_remove(&_transmission_timer_info);
-  os_system_netlink_remove(&_netlink_handler);
+  os_system_linux_netlink_remove(&_netlink_handler);
 }
 
 /**
@@ -345,9 +355,9 @@ struct oonf_layer2_destination *
 nl80211_add_dst(struct oonf_layer2_neigh *l2neigh, const struct netaddr *dstmac) {
   struct oonf_layer2_destination *dst;
 
-  dst = oonf_layer2_destination_add(l2neigh, dstmac, _layer2_origin);
-  if (dst->origin == _layer2_old_origin) {
-    dst->origin = _layer2_origin;
+  dst = oonf_layer2_destination_add(l2neigh, dstmac, &_layer2_updated_origin);
+  if (dst->origin == &_layer2_data_origin) {
+    dst->origin = &_layer2_updated_origin;
   }
   return dst;
 }
@@ -362,7 +372,7 @@ nl80211_add_dst(struct oonf_layer2_neigh *l2neigh, const struct netaddr *dstmac)
 bool
 nl80211_change_l2net_data(struct oonf_layer2_net *l2net,
     enum oonf_layer2_network_index idx, uint64_t value) {
-  return oonf_layer2_change_value(&l2net->data[idx], _layer2_origin, value);
+  return oonf_layer2_change_value(&l2net->data[idx], &_layer2_updated_origin, value);
 }
 
 /**
@@ -375,7 +385,7 @@ nl80211_change_l2net_data(struct oonf_layer2_net *l2net,
 bool
 nl80211_change_l2net_neighbor_default(struct oonf_layer2_net *l2net,
     enum oonf_layer2_neighbor_index idx, uint64_t value) {
-  return oonf_layer2_change_value(&l2net->neighdata[idx], _layer2_origin, value);
+  return oonf_layer2_change_value(&l2net->neighdata[idx], &_layer2_updated_origin, value);
 }
 
 /**
@@ -385,7 +395,7 @@ nl80211_change_l2net_neighbor_default(struct oonf_layer2_net *l2net,
  */
 void
 nl80211_cleanup_l2neigh_data(struct oonf_layer2_neigh *l2neigh) {
-  oonf_layer2_neigh_cleanup(l2neigh, _layer2_old_origin);
+  oonf_layer2_neigh_cleanup(l2neigh, &_layer2_data_origin);
 }
 
 /**
@@ -398,7 +408,7 @@ nl80211_cleanup_l2neigh_data(struct oonf_layer2_neigh *l2neigh) {
 bool
 nl80211_change_l2neigh_data(struct oonf_layer2_neigh *l2neigh,
     enum oonf_layer2_neighbor_index idx, uint64_t value) {
-  return oonf_layer2_change_value(&l2neigh->data[idx], _layer2_origin, value);
+  return oonf_layer2_change_value(&l2neigh->data[idx], &_layer2_updated_origin, value);
 }
 
 /**
@@ -449,14 +459,15 @@ _nl80211_if_add(const char *name) {
 
   /* initialize interface listener */
   interf->if_listener.name = interf->name;
-  if (oonf_interface_add_listener(&interf->if_listener)) {
-    oonf_layer2_net_remove(interf->l2net, _layer2_origin);
+  if (!os_interface_add(&interf->if_listener)) {
+    oonf_layer2_net_remove(interf->l2net, &_layer2_data_origin);
+    oonf_layer2_net_remove(interf->l2net, &_layer2_updated_origin);
     oonf_class_free(&_nl80211_if_class, interf);
     return NULL;
   }
 
-  /* initialize physical interface */
-  interf->phy_if = -1;
+  /* initialize interface */
+  interf->wifi_phy_if = -1;
 
   OONF_DEBUG(LOG_NL80211, "Add if %s", name);
   avl_insert(&_nl80211_if_tree, &interf->_node);
@@ -470,7 +481,7 @@ _nl80211_if_add(const char *name) {
 static void
 _nl80211_if_remove(struct nl80211_if *interf) {
   avl_remove(&_nl80211_if_tree, &interf->_node);
-  oonf_interface_remove_listener(&interf->if_listener);
+  os_interface_remove(&interf->if_listener);
   oonf_class_free(&_nl80211_if_class, interf);
 }
 
@@ -480,16 +491,19 @@ _nl80211_if_remove(struct nl80211_if *interf) {
 static void
 _cb_if_config_changed(void) {
   struct nl80211_if *interf;
+  const char *ifname;
+  char ifbuf[IF_NAMESIZE];
 
+  ifname = cfg_get_phy_if(ifbuf, _if_section.section_name);
   if (_if_section.pre == NULL) {
-    interf = _nl80211_if_add(_if_section.section_name);
+    interf = _nl80211_if_add(ifname);
     if (interf) {
       interf->_if_section = true;
     }
   }
 
   if (_if_section.post == NULL) {
-    interf = _nl80211_if_get(_if_section.section_name);
+    interf = _nl80211_if_get(ifname);
     if (interf) {
       interf->_if_section = false;
       if (!interf->_nl80211_section) {
@@ -501,10 +515,10 @@ _cb_if_config_changed(void) {
 
 /**
  * Transmit the next netlink command to nl80211
- * @param ptr unused
+ * @param ptr timer instance that fired
  */
 static void
-_cb_transmission_event(void *ptr __attribute__((unused))) {
+_cb_transmission_event(struct oonf_timer_instance *ptr __attribute__((unused))) {
   if (!_current_query_in_progress) {
     _trigger_next_netlink_query();
   }
@@ -547,7 +561,7 @@ _send_netlink_message(struct nl80211_if *interf, enum _if_query query) {
     _if_query_ops[query].send(&_netlink_handler, _nl_msg, hdr, interf);
   }
 
-  os_system_netlink_send(&_netlink_handler, _nl_msg);
+  os_system_linux_netlink_send(&_netlink_handler, _nl_msg);
 }
 
 /**
@@ -563,16 +577,10 @@ _get_next_query(void) {
 
   /* no query left to do? start again at the first */
   if (!_current_query_if) {
-    int id;
     /* start with first interface and query */
     _current_query_if = avl_first_element(&_nl80211_if_tree, _current_query_if, _node);
     _current_query_number = QUERY_START;
     _current_query_in_progress = true;
-
-    /* switch nl80211 layer2-origin's */
-    id = _layer2_origin;
-    _layer2_origin = _layer2_old_origin;
-    _layer2_old_origin = id;
   }
   else {
     /* next query */
@@ -581,7 +589,9 @@ _get_next_query(void) {
     if (_current_query_number == QUERY_END) {
       /* commit interface data */
       if (_current_query_if->ifdata_changed) {
-        oonf_layer2_net_remove(_current_query_if->l2net, _layer2_old_origin);
+        oonf_layer2_net_cleanup(_current_query_if->l2net, &_layer2_data_origin, true);
+        oonf_layer2_net_relabel(_current_query_if->l2net,
+            &_layer2_data_origin, &_layer2_updated_origin);
         oonf_layer2_net_commit(_current_query_if->l2net);
         _current_query_if->ifdata_changed = false;
       }

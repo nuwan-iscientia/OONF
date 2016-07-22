@@ -54,9 +54,9 @@
 #include "core/oonf_cfg.h"
 #include "core/oonf_logging.h"
 #include "subsystems/oonf_class.h"
-#include "subsystems/oonf_interface.h"
 #include "subsystems/oonf_rfc5444.h"
 #include "subsystems/oonf_timer.h"
+#include "subsystems/os_interface.h"
 
 #include "nhdp/nhdp.h"
 #include "nhdp/nhdp_db.h"
@@ -67,11 +67,12 @@
 /* Prototypes of local functions */
 static void _addr_add(struct nhdp_interface *, struct netaddr *addr);
 static void _addr_remove(struct nhdp_interface_addr *addr, uint64_t vtime);
-static void _cb_remove_addr(void *ptr);
+static void _remove_addr(struct nhdp_interface_addr *ptr);
+static void _cb_addr_timeout(struct oonf_timer_instance *ptr);
 
 static int avl_comp_ifaddr(const void *k1, const void *k2);
 
-static void _cb_generate_hello(void *ptr);
+static void _cb_generate_hello(struct oonf_timer_instance *ptr);
 static void _cb_interface_event(struct oonf_rfc5444_interface_listener *, bool);
 
 /* global tree of nhdp interfaces, filters and addresses */
@@ -97,7 +98,7 @@ static struct oonf_class _addr_info = {
 
 static struct oonf_timer_class _removed_address_hold_timer = {
   .name = "NHDP interface removed address hold timer",
-  .callback = _cb_remove_addr,
+  .callback = _cb_addr_timeout,
 };
 
 /* other global variables */
@@ -225,12 +226,11 @@ nhdp_interface_add(const char *name) {
     }
 
     /* allocate core interface */
-    interf->core_if_listener.name = interf->rfc5444_if.interface->name;
-    oonf_interface_add_listener(&interf->core_if_listener);
+    interf->os_if_listener.name = interf->rfc5444_if.interface->name;
+    os_interface_add(&interf->os_if_listener);
 
     /* initialize timers */
     interf->_hello_timer.class = &_interface_hello_timer;
-    interf->_hello_timer.cb_context = interf;
 
     /* hook into global interface tree */
     interf->_node.key = interf->rfc5444_if.interface->name;
@@ -299,7 +299,7 @@ nhdp_interface_remove(struct nhdp_interface *interf) {
   oonf_timer_stop(&interf->_hello_timer);
 
   avl_for_each_element_safe(&interf->_if_addresses, addr, _if_node, a_it) {
-    _cb_remove_addr(addr);
+    _remove_addr(addr);
   }
 
   list_for_each_element_safe(&interf->_links, lnk, _if_node, l_it) {
@@ -310,7 +310,7 @@ nhdp_interface_remove(struct nhdp_interface *interf) {
   avl_remove(&_interface_tree, &interf->_node);
 
   /* now clean up the rest */
-  oonf_interface_remove_listener(&interf->core_if_listener);
+  os_interface_remove(&interf->os_if_listener);
   oonf_rfc5444_remove_interface(interf->rfc5444_if.interface, &interf->rfc5444_if);
   oonf_class_free(&_interface_info, interf);
 }
@@ -387,7 +387,6 @@ _addr_add(struct nhdp_interface *interf, struct netaddr *addr) {
 
     /* initialize validity timer for removed addresses */
     if_addr->_vtime.class = &_removed_address_hold_timer;
-    if_addr->_vtime.cb_context = if_addr;
 
     /* trigger event */
     oonf_class_event(&_addr_info, if_addr, OONF_OBJECT_ADDED);
@@ -419,16 +418,11 @@ _addr_remove(struct nhdp_interface_addr *addr, uint64_t vtime) {
 }
 
 /**
- * Callback triggered when an address from a nhdp interface
- *  should be removed from the db
+ * remove address from NHDP interface
  * @param ptr pointer to nhdp interface address
  */
 static void
-_cb_remove_addr(void *ptr) {
-  struct nhdp_interface_addr *addr;
-
-  addr = ptr;
-
+_remove_addr(struct nhdp_interface_addr *addr) {
   /* trigger event */
   oonf_class_event(&_addr_info, addr, OONF_OBJECT_REMOVED);
 
@@ -436,6 +430,18 @@ _cb_remove_addr(void *ptr) {
   avl_remove(&_ifaddr_tree, &addr->_global_node);
   avl_remove(&addr->interf->_if_addresses, &addr->_if_node);
   oonf_class_free(&_addr_info, addr);
+}
+
+/**
+ * Callback when an interface address times out
+ * @param ptr timer instance that fired
+ */
+static void
+_cb_addr_timeout(struct oonf_timer_instance *ptr) {
+  struct nhdp_interface_addr *addr;
+
+  addr = container_of(ptr, struct nhdp_interface_addr, _vtime);
+  _remove_addr(addr);
 }
 
 /**
@@ -462,11 +468,14 @@ avl_comp_ifaddr(const void *k1, const void *k2) {
 
 /**
  * Callback triggered to generate a Hello on an interface
- * @param ptr pointer to nhdp interface
+ * @param ptr timer instance that fired
  */
 static void
-_cb_generate_hello(void *ptr) {
-  nhdp_writer_send_hello(ptr);
+_cb_generate_hello(struct oonf_timer_instance *ptr) {
+  struct nhdp_interface *nhdp_if;
+
+  nhdp_if = container_of(ptr, struct nhdp_interface, _hello_timer);
+  nhdp_writer_send_hello(nhdp_if);
 }
 
 /**
@@ -480,11 +489,11 @@ _cb_interface_event(struct oonf_rfc5444_interface_listener *ifl,
     bool changed __attribute__((unused))) {
   struct nhdp_interface *interf;
   struct nhdp_interface_addr *addr, *addr_it;
-  struct os_interface *oonf_interf;
+  struct os_interface_listener *if_listener;
   struct nhdp_link *nhdp_link, *nhdp_link_it;
+  struct os_interface_ip *os_ip;
   bool has_active_addr;
   bool ipv4, ipv6;
-  size_t i;
 #ifdef OONF_LOG_DEBUG_INFO
   struct netaddr_str nbuf;
 #endif
@@ -500,33 +509,29 @@ _cb_interface_event(struct oonf_rfc5444_interface_listener *ifl,
 
   has_active_addr = false;
 
-  oonf_interf = oonf_rfc5444_get_core_interface(ifl->interface);
-  if (oonf_interf != NULL && oonf_interf->data.up) {
+  if_listener = oonf_rfc5444_get_core_if_listener(ifl->interface);
+  if (if_listener != NULL && if_listener->data && if_listener->data->flags.up) {
     ipv4 = oonf_rfc5444_is_target_active(interf->rfc5444_if.interface->multicast4);
     ipv6 = oonf_rfc5444_is_target_active(interf->rfc5444_if.interface->multicast6);
 
-    if (oonf_interf->data.up) {
-      /* get all socket addresses that are matching the filter */
-      for (i = 0; i<oonf_interf->data.addrcount; i++) {
-        struct netaddr *ifaddr = &oonf_interf->data.addresses[i];
+    /* get all socket addresses that are matching the filter */
+    avl_for_each_element(&if_listener->data->addresses, os_ip, _node) {
+      OONF_DEBUG(LOG_NHDP, "Found interface address %s",
+          netaddr_to_string(&nbuf, &os_ip->address));
 
-        OONF_DEBUG(LOG_NHDP, "Found interface address %s",
-            netaddr_to_string(&nbuf, ifaddr));
+      if (netaddr_get_address_family(&os_ip->address) == AF_INET && !ipv4) {
+        /* ignore IPv4 addresses if ipv4 socket is not up*/
+        continue;
+      }
+      if (netaddr_get_address_family(&os_ip->address) == AF_INET6 && !ipv6) {
+        /* ignore IPv6 addresses if ipv6 socket is not up*/
+        continue;
+      }
 
-        if (netaddr_get_address_family(ifaddr) == AF_INET && !ipv4) {
-          /* ignore IPv4 addresses if ipv4 socket is not up*/
-          continue;
-        }
-        if (netaddr_get_address_family(ifaddr) == AF_INET6 && !ipv6) {
-          /* ignore IPv6 addresses if ipv6 socket is not up*/
-          continue;
-        }
-
-        /* check if IP address fits to ACL */
-        if (netaddr_acl_check_accept(&interf->ifaddr_filter, ifaddr)) {
-          _addr_add(interf, ifaddr);
-          has_active_addr = true;
-        }
+      /* check if IP address fits to ACL */
+      if (netaddr_acl_check_accept(&interf->ifaddr_filter, &os_ip->address)) {
+        _addr_add(interf, &os_ip->address);
+        has_active_addr = true;
       }
     }
   }

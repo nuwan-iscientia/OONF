@@ -46,28 +46,25 @@
 #ifndef OS_CORE_H_
 #define OS_CORE_H_
 
+#include <sys/time.h>
+
 #include "common/common_types.h"
 #include "core/oonf_logging.h"
-
-#if defined(__linux__)
-#include "core/os_generic/os_core_generic.h"
-#elif defined (BSD)
-#include "core/os_generic/os_core_generic.h"
-#elif defined (_WIN32)
-#include "core/os_win32/os_core_win32.h"
-#else
-#error "Unknown operation system"
-#endif
-
 
 /* pre-decleare inlines */
 static INLINE int os_core_gettimeofday(struct timeval *tv);
 
-void os_core_init(const char *appname);
-void os_core_cleanup(void);
+static INLINE int os_core_init(const char *appname);
+static INLINE void os_core_cleanup(void);
 
-EXPORT void os_core_syslog(enum oonf_log_severity, const char *);
-EXPORT int os_core_create_lockfile(const char *);
-EXPORT int os_core_get_random(void *dst, size_t length);
+static INLINE int os_core_syslog(enum oonf_log_severity, const char *);
+static INLINE int os_core_create_lockfile(const char *);
+static INLINE int os_core_get_random(void *dst, size_t length);
+
+#if defined(__linux__)
+#include "os_linux/os_core_linux.h"
+#else
+#error "Unknown operation system"
+#endif
 
 #endif /* OS_CORE_H_ */

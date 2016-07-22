@@ -631,6 +631,7 @@ static void test_for_each_key_macros(void) {
   struct tree_element *e, *p;
   int key;
   uint32_t i;
+  int result[4];
 
   START_TEST();
   avl_init(&head, avl_comp_uint32, true);
@@ -656,27 +657,34 @@ static void test_for_each_key_macros(void) {
   avl_insert(&head, &additional_node2.node);
 
   key = 4;
-  i = 0;
-  avl_for_each_elements_with_key(&head, e, node, p, &key) {
-    i++;
+  result[0] = 0;
+  result[1] = 0;
+  result[2] = 0;
+  result[3] = 0;
 
-    switch (i) {
-      case 1:
-        CHECK_TRUE(e == &nodes[3], "First node with key=4 not returned first");
-        break;
-      case 2:
-        CHECK_TRUE(e == &additional_node1, "Second node with key=4 not returned after first");
-        break;
-      case 3:
-        CHECK_TRUE(e == &additional_node2, "Third node with key=4 not returned last");
-        break;
-      default:
-        CHECK_TRUE(false, "More than three elements with key=4 returned");
-        break;
+  avl_for_each_elements_with_key(&head, e, node, p, &key) {
+    if (e == &nodes[3]) {
+      result[0]++;
+    }
+    else if (e == &additional_node1) {
+      result[1]++;
+    }
+    else if (e == &additional_node2) {
+      result[2]++;
+    }
+    else {
+      result[3]++;
     }
   }
 
-  CHECK_TRUE(i>=3, "Less than 3 nodes returned");
+  CHECK_TRUE(result[0] >= 1, "First node with key=4 not returned");
+  CHECK_TRUE(result[0] <= 1, "First node with key=4 returned multiple times");
+  CHECK_TRUE(result[1] >= 1, "First node with key=4 not returned");
+  CHECK_TRUE(result[1] <= 1, "First node with key=4 returned multiple times");
+  CHECK_TRUE(result[2] >= 1, "First node with key=4 not returned");
+  CHECK_TRUE(result[2] <= 1, "First node with key=4 returned multiple times");
+
+  CHECK_TRUE(result[3] == 0, "Unknown node returned");
 
   /* add node with value 3 (3,4,4,4) */
   nodes[2].node.key = &nodes[2].value;
@@ -684,26 +692,34 @@ static void test_for_each_key_macros(void) {
 
   key = 4;
   i = 0;
-  avl_for_each_elements_with_key(&head, e, node, p, &key) {
-    i++;
+  result[0] = 0;
+  result[1] = 0;
+  result[2] = 0;
+  result[3] = 0;
 
-    switch (i) {
-      case 1:
-        CHECK_TRUE(e == &nodes[3], "First node with key=4 not returned first");
-        break;
-      case 2:
-        CHECK_TRUE(e == &additional_node1, "Second node with key=4 not returned after first");
-        break;
-      case 3:
-        CHECK_TRUE(e == &additional_node2, "Third node with key=4 not returned last");
-        break;
-      default:
-        CHECK_TRUE(false, "More than three elements with key=4 returned");
-        break;
+  avl_for_each_elements_with_key(&head, e, node, p, &key) {
+    if (e == &nodes[3]) {
+      result[0]++;
+    }
+    else if (e == &additional_node1) {
+      result[1]++;
+    }
+    else if (e == &additional_node2) {
+      result[2]++;
+    }
+    else {
+      result[3]++;
     }
   }
 
-  CHECK_TRUE(i>=3, "Less than 3 nodes returned");
+  CHECK_TRUE(result[0] >= 1, "First node with key=4 not returned");
+  CHECK_TRUE(result[0] <= 1, "First node with key=4 returned multiple times");
+  CHECK_TRUE(result[1] >= 1, "First node with key=4 not returned");
+  CHECK_TRUE(result[1] <= 1, "First node with key=4 returned multiple times");
+  CHECK_TRUE(result[2] >= 1, "First node with key=4 not returned");
+  CHECK_TRUE(result[2] <= 1, "First node with key=4 returned multiple times");
+
+  CHECK_TRUE(result[3] == 0, "Unknown node returned");
 
   /* add node with value 5 (3,4,4,4,5) */
   nodes[4].node.key = &nodes[4].value;
@@ -711,26 +727,34 @@ static void test_for_each_key_macros(void) {
 
   key = 4;
   i = 0;
-  avl_for_each_elements_with_key(&head, e, node, p, &key) {
-    i++;
+  result[0] = 0;
+  result[1] = 0;
+  result[2] = 0;
+  result[3] = 0;
 
-    switch (i) {
-      case 1:
-        CHECK_TRUE(e == &nodes[3], "First node with key=4 not returned first");
-        break;
-      case 2:
-        CHECK_TRUE(e == &additional_node1, "Second node with key=4 not returned after first");
-        break;
-      case 3:
-        CHECK_TRUE(e == &additional_node2, "Third node with key=4 not returned last");
-        break;
-      default:
-        CHECK_TRUE(false, "More than three elements with key=4 returned");
-        break;
+  avl_for_each_elements_with_key(&head, e, node, p, &key) {
+    if (e == &nodes[3]) {
+      result[0]++;
+    }
+    else if (e == &additional_node1) {
+      result[1]++;
+    }
+    else if (e == &additional_node2) {
+      result[2]++;
+    }
+    else {
+      result[3]++;
     }
   }
 
-  CHECK_TRUE(i>=3, "Less than 3 nodes returned");
+  CHECK_TRUE(result[0] >= 1, "First node with key=4 not returned");
+  CHECK_TRUE(result[0] <= 1, "First node with key=4 returned multiple times");
+  CHECK_TRUE(result[1] >= 1, "First node with key=4 not returned");
+  CHECK_TRUE(result[1] <= 1, "First node with key=4 returned multiple times");
+  CHECK_TRUE(result[2] >= 1, "First node with key=4 not returned");
+  CHECK_TRUE(result[2] <= 1, "First node with key=4 returned multiple times");
+
+  CHECK_TRUE(result[3] == 0, "Unknown node returned");
 
   key = 3;
   i = 0;

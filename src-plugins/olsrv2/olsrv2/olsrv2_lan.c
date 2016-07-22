@@ -74,7 +74,7 @@ void
 olsrv2_lan_init(void) {
   oonf_class_add(&_lan_class);
 
-  avl_init(&_lan_tree, os_route_avl_cmp_route_key, false);
+  avl_init(&_lan_tree, os_routing_avl_cmp_route_key, false);
 }
 
 /**

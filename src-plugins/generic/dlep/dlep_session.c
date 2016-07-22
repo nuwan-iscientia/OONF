@@ -79,7 +79,7 @@ static enum dlep_parser_error _handle_extension(struct dlep_session *session,
 static enum dlep_parser_error _process_tlvs(struct dlep_session *,
     uint16_t signal_type, uint16_t signal_length, const uint8_t *tlvs);
 static void _send_terminate(struct dlep_session *session);
-static void _cb_destination_timeout(void *);
+static void _cb_destination_timeout(struct oonf_timer_instance *);
 
 static struct oonf_class _tlv_class = {
     .name = "dlep reader tlv",
@@ -119,7 +119,7 @@ dlep_session_init(void) {
  */
 int
 dlep_session_add(struct dlep_session *session, const char *l2_ifname,
-    uint32_t l2_origin, struct autobuf *out, bool radio,
+    const struct oonf_layer2_origin *l2_origin, struct autobuf *out, bool radio,
     enum oonf_log_source log_source) {
   struct dlep_session_parser *parser;
   struct dlep_extension *ext;
@@ -139,7 +139,7 @@ dlep_session_add(struct dlep_session *session, const char *l2_ifname,
   session->l2_listener.name = l2_ifname;
 
   /* get interface listener to lock interface */
-  if ((oonf_interface_add_listener(&session->l2_listener))) {
+  if (!os_interface_add(&session->l2_listener)) {
     OONF_WARN(session->log_source,
         "Cannot activate interface listener for %s", l2_ifname);
     dlep_session_remove(session);
@@ -202,7 +202,7 @@ dlep_session_remove(struct dlep_session *session) {
       session->l2_listener.name,
       netaddr_socket_to_string(&nbuf, &session->remote_socket));
 
-  oonf_interface_remove_listener(&session->l2_listener);
+  os_interface_remove(&session->l2_listener);
 
   parser = &session->parser;
   avl_for_each_element_safe(&parser->allowed_tlvs, tlv, _node, tlv_it) {
@@ -414,9 +414,9 @@ dlep_session_process_signal(struct dlep_session *session,
     return 0;
   }
 
-  OONF_DEBUG(session->log_source, "Process signal %u (length %u)"
-      " from %s (%" PRINTF_SIZE_T_SPECIFIER" bytes)",
-      signal_type, signal_length,
+  OONF_DEBUG_HEX(session->log_source, buffer, signal_length + 4,
+      "Process signal %u from %s (%" PRINTF_SIZE_T_SPECIFIER" bytes)",
+      signal_type,
       netaddr_socket_to_string(&nbuf, &session->remote_socket),
       length);
 
@@ -469,7 +469,6 @@ dlep_session_add_local_neighbor(struct dlep_session *session,
 
   /* initialize timer */
   local->_ack_timeout.class = &_destination_ack_class;
-  local->_ack_timeout.cb_context = local;
 
   /* initialize backpointer */
   local->session = session;
@@ -785,9 +784,6 @@ _process_tlvs(struct dlep_session *session,
   enum dlep_parser_error result;
   struct dlep_extension *ext;
 
-  OONF_DEBUG(session->log_source, "Parse signal %u with length %u",
-      signal_type, signal_length);
-
   /* start at the beginning of the tlvs */
   if ((result = _parse_tlvstream(session, tlvs, signal_length))) {
     OONF_DEBUG(session->log_source, "parse_tlvstream result: %d", result);
@@ -820,13 +816,13 @@ _send_terminate(struct dlep_session *session) {
 
 /**
  * Callback when a destination up/down signal times out
- * @param ptr local dlep neighbor
+ * @param ptr timer instance that fired
  */
 static void
-_cb_destination_timeout(void *ptr) {
+_cb_destination_timeout(struct oonf_timer_instance *ptr) {
   struct dlep_local_neighbor *local;
 
-  local = ptr;
+  local = container_of(ptr, struct dlep_local_neighbor, _ack_timeout);
   if (local->session->cb_destination_timeout) {
     local->session->cb_destination_timeout(local->session, local);
   }

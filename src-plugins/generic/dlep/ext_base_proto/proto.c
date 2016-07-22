@@ -55,8 +55,8 @@
 
 #include "dlep/ext_base_proto/proto.h"
 
-static void _cb_local_heartbeat(void *);
-static void _cb_remote_heartbeat(void *);
+static void _cb_local_heartbeat(struct oonf_timer_instance *);
+static void _cb_remote_heartbeat(struct oonf_timer_instance *);
 
 /* peer discovery */
 
@@ -441,7 +441,6 @@ void
 dlep_base_proto_start_local_heartbeat(struct dlep_session *session) {
   /* timer for local heartbeat generation */
   session->local_event_timer.class = &_local_heartbeat_class;
-  session->local_event_timer.cb_context = session;
   oonf_timer_set(&session->local_event_timer,
       session->cfg.heartbeat_interval);
 }
@@ -454,7 +453,6 @@ void
 dlep_base_proto_start_remote_heartbeat(struct dlep_session *session) {
   /* timeout for remote heartbeats */
   session->remote_heartbeat_timeout.class = &_remote_heartbeat_class;
-  session->remote_heartbeat_timeout.cb_context = session;
   oonf_timer_set(&session->remote_heartbeat_timeout,
       session->remote_heartbeat_interval * 2);
 }
@@ -569,11 +567,13 @@ dlep_base_proto_write_mac_only(
 
 /**
  * Callback triggered when to generate a new heartbeat
- * @param ptr dlep session
+ * @param ptr timer instance that fired
  */
 static void
-_cb_local_heartbeat(void *ptr) {
-  struct dlep_session *session = ptr;
+_cb_local_heartbeat(struct oonf_timer_instance *ptr) {
+  struct dlep_session *session;
+
+  session = container_of(ptr, struct dlep_session, local_event_timer);
 
   dlep_session_generate_signal(session, DLEP_HEARTBEAT, NULL);
   session->cb_send_buffer(session, 0);
@@ -581,16 +581,31 @@ _cb_local_heartbeat(void *ptr) {
 
 /**
  * Callback triggered when the remote heartbeat times out
- * @param ptr dlep session
+ * @param ptr timer instance that fired
  */
 static void
-_cb_remote_heartbeat(void *ptr) {
-  struct dlep_session *session = ptr;
+_cb_remote_heartbeat(struct oonf_timer_instance *ptr) {
+  struct dlep_session *session;
 
-  /* stop local heartbeats */
-  oonf_timer_stop(&session->local_event_timer);
+  session = container_of(ptr, struct dlep_session, remote_heartbeat_timeout);
 
-  /* terminate session */
-  dlep_session_generate_signal(session, DLEP_PEER_TERMINATION, NULL);
-  session->restrict_signal = DLEP_PEER_TERMINATION_ACK;
+  if (session->restrict_signal == DLEP_PEER_TERMINATION_ACK) {
+    /* peer termination ACK is missing! */
+
+    /* stop local heartbeats */
+    oonf_timer_stop(&session->local_event_timer);
+
+    /* hard-terminate session */
+    if (session->cb_end_session) {
+      session->cb_end_session(session);
+    }
+  }
+  else {
+    /* soft-terminate session (send PEER_TERM) */
+    dlep_session_terminate(session);
+
+    /* set timeout for hard-termination */
+    oonf_timer_set(&session->remote_heartbeat_timeout,
+          session->remote_heartbeat_interval * 2);
+  }
 }

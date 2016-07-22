@@ -622,7 +622,7 @@ _cb_handle_route(struct oonf_telnet_data *data) {
   struct os_route route;
   int result;
 
-  memcpy(&route, os_routing_get_wildcard_route(), sizeof(route));
+  os_routing_init_wildcard_route(&route);
 
   if ((next = str_hasnextword(data->parameter, "add")) != NULL) {
     add = true;

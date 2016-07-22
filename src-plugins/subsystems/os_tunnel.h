@@ -53,6 +53,8 @@
 /*! subsystem identifier */
 #define OONF_OS_TUNNEL_SUBSYSTEM "os_tunnel"
 
+struct os_tunnel;
+
 /* include os-specific headers */
 #if defined(__linux__)
 #include "subsystems/os_linux/os_tunnel_linux.h"
@@ -97,7 +99,7 @@ struct os_tunnel {
   struct os_tunnel_internal _internal;
 };
 
-EXPORT int os_tunnel_add(struct os_tunnel *);
-EXPORT int os_tunnel_remove(struct os_tunnel *);
+static INLINE  int os_tunnel_add(struct os_tunnel *);
+static INLINE  int os_tunnel_remove(struct os_tunnel *);
 
 #endif /* OS_TUNNEL_H_ */

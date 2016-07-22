@@ -81,7 +81,8 @@ struct dlep_if {
 };
 
 int dlep_if_add(struct dlep_if *interf, const char *ifname,
-    uint32_t l2_origin, enum oonf_log_source log_src, bool radio);
+    const struct oonf_layer2_origin *l2_origin,
+    enum oonf_log_source log_src, bool radio);
 void dlep_if_remove(struct dlep_if *interface);
 
 #endif /* DLEP_INTERFACE_H_ */

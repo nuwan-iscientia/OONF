@@ -56,6 +56,7 @@
 #include "subsystems/oonf_rfc5444.h"
 #include "subsystems/oonf_telnet.h"
 #include "subsystems/oonf_timer.h"
+#include "subsystems/os_interface.h"
 
 #include "nhdp/nhdp_interfaces.h"
 
@@ -108,8 +109,11 @@ struct _config {
   /*! olsrv2 p_hold_time */
   uint64_t p_hold_time;
 
+  /*! decides NHDP routable status */
+  bool nhdp_routable;
+
   /*! IP filter for routable addresses */
-  struct netaddr_acl routable;
+  struct netaddr_acl routable_acl;
 
   /*! IP filter for valid originator */
   struct netaddr_acl originator_acl;
@@ -141,10 +145,10 @@ static void _cleanup(void);
 static const char *_parse_lan_parameters(struct os_route_key *prefix,
 		struct _lan_data *dst, const char *src);
 static void _parse_lan_array(struct cfg_named_section *section, bool add);
-static void _cb_generate_tc(void *);
+static void _cb_generate_tc(struct oonf_timer_instance *);
 
 static void _update_originator(int af_family);
-static int _cb_if_event(struct oonf_interface_listener *);
+static int _cb_if_event(struct os_interface_listener *);
 
 static void _cb_cfg_olsrv2_changed(void);
 static void _cb_cfg_domain_changed(void);
@@ -181,15 +185,19 @@ static struct cfg_schema_entry _olsrv2_entries[] = {
     "Holdtime for forwarding set information", 100),
   CFG_MAP_CLOCK_MIN(_config, p_hold_time, "processing_hold_time", "300.0",
     "Holdtime for processing set information", 100),
-  CFG_MAP_ACL_V46(_config, routable, "routable",
+  CFG_MAP_BOOL(_config, nhdp_routable, "nhdp_routable", "no",
+    "Decides if NHDP interface addresses"
+    " are routed to other nodes. 'true' means the 'routable_acl' parameter"
+    " will be matched to the addresses to decide."),
+  CFG_MAP_ACL_V46(_config, routable_acl, "routable_acl",
       OLSRV2_ROUTABLE_IPV4 OLSRV2_ROUTABLE_IPV6 ACL_DEFAULT_ACCEPT,
     "Filter to decide which addresses are considered routable"),
 
   CFG_VALIDATE_LAN(_LOCAL_ATTACHED_NETWORK_KEY, "",
     "locally attached network, a combination of an"
     " ip address or prefix followed by an up to four optional parameters"
-    " which define link metric cost, hopcount distance and domain of the prefix"
-    " ( <"LAN_OPTION_METRIC"...> <"LAN_OPTION_DIST"...>"
+    " which define link metric cost, hopcount distance, domain of the prefix"
+    " and the source-prefix ( <"LAN_OPTION_METRIC"...> <"LAN_OPTION_DIST"...>"
     " <"LAN_OPTION_DOMAIN"<num>/all> <"LAN_OPTION_SRC"...> ).",
     .list = true),
 
@@ -197,7 +205,7 @@ static struct cfg_schema_entry _olsrv2_entries[] = {
     OLSRV2_ORIGINATOR_IPV4 OLSRV2_ORIGINATOR_IPV6 ACL_DEFAULT_ACCEPT,
     "Filter for router originator addresses (ipv4 and ipv6)"
     " from the interface addresses. Olsrv2 will prefer routable addresses"
-    " over linklocal addresses."),
+    " over linklocal addresses and addresses from loopback over other interfaces."),
 };
 
 static struct cfg_schema_section _olsrv2_section = {
@@ -210,9 +218,9 @@ static struct cfg_schema_section _olsrv2_section = {
 
 static const char *_dependencies[] = {
   OONF_CLASS_SUBSYSTEM,
-  OONF_INTERFACE_SUBSYSTEM,
   OONF_RFC5444_SUBSYSTEM,
   OONF_TIMER_SUBSYSTEM,
+  OONF_OS_INTERFACE_SUBSYSTEM,
   OONF_NHDP_SUBSYSTEM,
 };
 static struct oonf_subsystem _olsrv2_subsystem = {
@@ -241,8 +249,9 @@ static struct oonf_timer_instance _tc_timer = {
 };
 
 /* global interface listener */
-static struct oonf_interface_listener _if_listener = {
-  .process = _cb_if_event,
+static struct os_interface_listener _if_listener = {
+  .name = OS_INTERFACE_ANY,
+  .if_changed = _cb_if_event,
 };
 
 /* global variables */
@@ -271,13 +280,9 @@ _early_cfg_init(void) {
  */
 static int
 _init(void) {
-  _protocol = oonf_rfc5444_add_protocol(RFC5444_PROTOCOL, true);
-  if (_protocol == NULL) {
-    return -1;
-  }
+  _protocol = oonf_rfc5444_get_default_protocol();
 
   if (olsrv2_writer_init(_protocol)) {
-    oonf_rfc5444_remove_protocol(_protocol);
     return -1;
   }
 
@@ -288,7 +293,7 @@ _init(void) {
   }
 
   /* activate interface listener */
-  oonf_interface_add_listener(&_if_listener);
+  os_interface_add(&_if_listener);
 
   /* activate the rest of the olsrv2 protocol */
   olsrv2_lan_init();
@@ -318,10 +323,10 @@ _initiate_shutdown(void) {
 static void
 _cleanup(void) {
   /* remove interface listener */
-  oonf_interface_remove_listener(&_if_listener);
+  os_interface_remove(&_if_listener);
 
   /* cleanup configuration */
-  netaddr_acl_remove(&_olsrv2_config.routable);
+  netaddr_acl_remove(&_olsrv2_config.routable_acl);
   netaddr_acl_remove(&_olsrv2_config.originator_acl);
 
   /* cleanup all parts of olsrv2 */
@@ -331,7 +336,7 @@ _cleanup(void) {
   olsrv2_lan_cleanup();
 
   /* free protocol instance */
-  oonf_rfc5444_remove_protocol(_protocol);
+  _protocol = NULL;
 }
 
 /**
@@ -351,13 +356,25 @@ olsrv2_get_tc_validity(void) {
 }
 
 /**
- * @return acl for checking if an address is routable
+ * @param addr NHDP address to be checked
+ * @return true if address should be routed, false otherwise
  */
-const struct netaddr_acl *
-olsrv2_get_routable(void) {
-    return &_olsrv2_config.routable;
+bool
+olsrv2_is_nhdp_routable(struct netaddr *addr) {
+  if (!_olsrv2_config.nhdp_routable) {
+    return false;
+  }
+  return olsrv2_is_routable(addr);
 }
 
+/**
+ * @param addr address to be checked
+ * @return true if address should be routed, false otherwise
+ */
+bool
+olsrv2_is_routable(struct netaddr *addr) {
+  return netaddr_acl_check_accept(&_olsrv2_config.routable_acl, addr);
+}
 
 /**
  * default implementation for rfc5444 processing handling according
@@ -674,7 +691,7 @@ _parse_lan_array(struct cfg_named_section *section, bool add) {
       continue;
     }
 
-    os_route_init_sourcespec_prefix(&prefix, &addr);
+    os_routing_init_sourcespec_prefix(&prefix, &addr);
 
     /* truncate address */
     netaddr_truncate(&prefix.dst, &prefix.dst);
@@ -706,16 +723,16 @@ _parse_lan_array(struct cfg_named_section *section, bool add) {
 
 /**
  * Callback to trigger normal tc generation with timer
- * @param ptr
+ * @param ptr timer instance that fired
  */
 static void
-_cb_generate_tc(void *ptr __attribute__((unused))) {
+_cb_generate_tc(struct oonf_timer_instance *ptr __attribute__((unused))) {
   if (nhdp_domain_node_is_mpr() || !avl_is_empty(olsrv2_lan_get_tree())) {
     olsrv2_writer_send_tc();
   }
 }
 
-static int
+static uint32_t
 _get_addr_priority(const struct netaddr *addr) {
 #ifdef OONF_LOG_DEBUG_INFO
   struct netaddr_str nbuf;
@@ -732,29 +749,29 @@ _get_addr_priority(const struct netaddr *addr) {
   if (netaddr_get_address_family(addr) == AF_INET) {
     if (netaddr_is_in_subnet(&NETADDR_IPV4_LINKLOCAL, addr)) {
       /* linklocal */
-      OONF_DEBUG(LOG_OLSRV2, "check priority for %s: 2 (linklocal)",
+      OONF_DEBUG(LOG_OLSRV2, "check priority for %s: 1 (linklocal)",
           netaddr_to_string(&nbuf, addr));
-      return 2;
+      return 1;
     }
 
     /* routable */
-    OONF_DEBUG(LOG_OLSRV2, "check priority for %s: 4 (routable)",
+    OONF_DEBUG(LOG_OLSRV2, "check priority for %s: 2 (routable)",
         netaddr_to_string(&nbuf, addr));
-    return 4;
+    return 2;
   }
 
   if (netaddr_get_address_family(addr) == AF_INET6) {
     if (netaddr_is_in_subnet(&NETADDR_IPV6_LINKLOCAL, addr)) {
       /* linklocal */
-      OONF_DEBUG(LOG_OLSRV2, "check priority for %s: 2 (linklocal)",
+      OONF_DEBUG(LOG_OLSRV2, "check priority for %s: 1 (linklocal)",
           netaddr_to_string(&nbuf, addr));
-      return 2;
+      return 1;
     }
 
     /* routable */
-    OONF_DEBUG(LOG_OLSRV2, "check priority for %s: 4 (routable)",
+    OONF_DEBUG(LOG_OLSRV2, "check priority for %s: 2 (routable)",
         netaddr_to_string(&nbuf, addr));
-    return 4;
+    return 2;
   }
 
   /* unknown */
@@ -771,13 +788,13 @@ _get_addr_priority(const struct netaddr *addr) {
 static void
 _update_originator(int af_family) {
   const struct netaddr *originator;
-  struct nhdp_interface *n_interf;
-  struct os_interface *interf;
+  struct nhdp_interface *nhdp_if;
+  struct os_interface_listener *if_listener;
   struct netaddr new_originator;
-  int new_priority;
-  int old_priority;
-  int priority;
-  size_t i;
+  struct os_interface_ip *ip;
+  uint32_t new_priority;
+  uint32_t old_priority;
+  uint32_t priority;
 #ifdef OONF_LOG_DEBUG_INFO
   struct netaddr_str buf;
 #endif
@@ -792,26 +809,27 @@ _update_originator(int af_family) {
 
   netaddr_invalidate(&new_originator);
 
-  avl_for_each_element(nhdp_interface_get_tree(), n_interf, _node) {
-    interf = nhdp_interface_get_coreif(n_interf);
+  avl_for_each_element(nhdp_interface_get_tree(), nhdp_if, _node) {
+    if_listener = nhdp_interface_get_if_listener(nhdp_if);
 
     /* check if originator is still valid */
-    for (i=0; i<interf->data.addrcount; i++) {
-      struct netaddr *addr = &interf->data.addresses[i];
-
-      if (netaddr_get_address_family(addr) == af_family) {
-        priority = _get_addr_priority(addr);
+    avl_for_each_element(&if_listener->data->addresses, ip, _node) {
+      if (netaddr_get_address_family(&ip->address) == af_family) {
+        priority = _get_addr_priority(&ip->address) * 4;
         if (priority == 0) {
           /* not useful */
           continue;
         }
 
-        if (netaddr_cmp(originator, addr) == 0) {
+        if (if_listener->data->flags.loopback) {
+          priority += 2;
+        }
+        if (netaddr_cmp(originator, &ip->address) == 0) {
           old_priority = priority + 1;
         }
 
         if (priority > old_priority && priority > new_priority) {
-          memcpy(&new_originator, addr, sizeof(new_originator));
+          memcpy(&new_originator, &ip->address, sizeof(new_originator));
           new_priority = priority;
         }
       }
@@ -831,7 +849,7 @@ _update_originator(int af_family) {
  * @return always 0
  */
 static int
-_cb_if_event(struct oonf_interface_listener *listener __attribute__((unused))) {
+_cb_if_event(struct os_interface_listener *if_listener __attribute__((unused))) {
   _update_originator(AF_INET);
   _update_originator(AF_INET6);
   return 0;

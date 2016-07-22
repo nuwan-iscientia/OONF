@@ -23,9 +23,19 @@ FILE (COPY ${BINARY}/${VERSIONFILE} DESTINATION ${SOURCE})
 execute_process(COMMAND git add ${SOURCE}/${VERSIONFILE} WORKING_DIRECTORY ${SOURCE})
 execute_process(COMMAND git stash create OUTPUT_VARIABLE COMMIT WORKING_DIRECTORY ${SOURCE} OUTPUT_STRIP_TRAILING_WHITESPACE)
 
+IF (NOT TARBALL)
+    SET(TARBALL "${SOURCE}/oonf_${VERSION}.${FORMAT}")
+ENDIF (NOT TARBALL)
+
+IF (NOT TARPREFIX)
+    SET (TARPREFIX "oonf_${VERSION}")
+ENDIF (NOT TARPREFIX)
+
 # generate archive
-execute_process(COMMAND git archive --prefix=oonf_${VERSION}/ -o ${SOURCE}/oonf_${VERSION}.${FORMAT} ${COMMIT} WORKING_DIRECTORY ${SOURCE})
+execute_process(COMMAND git archive --prefix=${TARPREFIX}/ -o ${TARBALL} ${COMMIT} WORKING_DIRECTORY ${SOURCE})
 
 # remove version file
 FILE (REMOVE ${SOURCE}/${VERSIONFILE})
 execute_process(COMMAND git rm --quiet ${SOURCE}/${VERSIONFILE} WORKING_DIRECTORY ${SOURCE})
+
+message ("created ${TARBALL}")

@@ -54,10 +54,9 @@ struct dlep_writer;
 #include "common/autobuf.h"
 #include "common/netaddr.h"
 #include "subsystems/oonf_layer2.h"
-#include "subsystems/oonf_interface.h"
 #include "subsystems/oonf_stream_socket.h"
 #include "subsystems/oonf_timer.h"
-#include "subsystems/os_interface_data.h"
+#include "subsystems/os_interface.h"
 
 #include "dlep/dlep_extension.h"
 #include "dlep/dlep_iana.h"
@@ -170,8 +169,8 @@ struct dlep_writer {
   /*! type of signal */
   uint16_t signal_type;
 
-  /*! pointer to first byte of signal */
-  char *signal_start_ptr;
+  /*! index of first byte of signal */
+  size_t signal_start;
 };
 
 /**
@@ -269,7 +268,7 @@ struct dlep_session {
   struct avl_tree local_neighbor_tree;
 
   /*! oonf layer2 origin for dlep session */
-  uint32_t l2_origin;
+  const struct oonf_layer2_origin *l2_origin;
 
   /*! send content of output buffer */
   void (*cb_send_buffer)(struct dlep_session *, int af_family);
@@ -285,7 +284,7 @@ struct dlep_session {
   enum oonf_log_source log_source;
 
   /*! local layer2 data interface */
-  struct oonf_interface_listener l2_listener;
+  struct os_interface_listener l2_listener;
 
   /*! timer to generate discovery/heartbeats */
   struct oonf_timer_instance local_event_timer;
@@ -306,7 +305,7 @@ struct dlep_session {
 void dlep_session_init(void);
 
 int dlep_session_add(struct dlep_session *session,
-    const char *l2_ifname, uint32_t l2_origin,
+    const char *l2_ifname, const struct oonf_layer2_origin *l2_origin,
     struct autobuf *out, bool radio, enum oonf_log_source);
 void dlep_session_remove(struct dlep_session *session);
 void dlep_session_terminate(struct dlep_session *session);

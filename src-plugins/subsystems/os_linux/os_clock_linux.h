@@ -46,4 +46,29 @@
 #ifndef OS_CLOCK_LINUX_H_
 #define OS_CLOCK_LINUX_H_
 
+#include "common/common_types.h"
+
+EXPORT int os_clock_linux_gettime64_ns(uint64_t *t64);
+EXPORT int os_clock_linux_gettime64(uint64_t *t64);
+
+/**
+ * Reads the current time in nanoseconds as a monotonic timestamp
+ * @param t64 pointer to timestamp
+ * @return 0 if valid timestamp was read, negative otherwise
+ */
+static INLINE int
+os_clock_gettime64_ns(uint64_t *t64) {
+  return os_clock_linux_gettime64_ns(t64);
+}
+
+/**
+ * Reads the current time in milliseconds as a monotonic timestamp
+ * @param t64 pointer to timestamp
+ * @return 0 if valid timestamp was read, negative otherwise
+ */
+static INLINE int
+os_clock_gettime64(uint64_t *t64) {
+  return os_clock_linux_gettime64(t64);
+}
+
 #endif /* OS_CLOCK_LINUX_H_ */

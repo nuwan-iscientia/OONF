@@ -130,21 +130,31 @@ struct os_system_netlink {
   struct oonf_timer_instance timeout;
 };
 
-EXPORT bool os_linux_system_is_minimal_kernel(int v1, int v2, int v3);
-EXPORT int os_system_netlink_add(struct os_system_netlink *,
+EXPORT bool os_system_linux_is_ipv6_supported(void);
+
+EXPORT bool os_system_linux_is_minimal_kernel(int v1, int v2, int v3);
+EXPORT int os_system_linux_netlink_add(struct os_system_netlink *,
     int protocol);
-EXPORT void os_system_netlink_remove(struct os_system_netlink *);
-EXPORT int os_system_netlink_send(struct os_system_netlink *fd,
+EXPORT void os_system_linux_netlink_remove(struct os_system_netlink *);
+EXPORT int os_system_linux_netlink_send(struct os_system_netlink *fd,
     struct nlmsghdr *nl_hdr);
-EXPORT int os_system_netlink_add_mc(struct os_system_netlink *,
+EXPORT int os_system_linux_netlink_add_mc(struct os_system_netlink *,
     const uint32_t *groups, size_t groupcount);
-EXPORT int os_system_netlink_drop_mc(struct os_system_netlink *,
+EXPORT int os_system_linux_netlink_drop_mc(struct os_system_netlink *,
     const int *groups, size_t groupcount);
 
-EXPORT int os_system_netlink_addreq(struct os_system_netlink *nl,
+EXPORT int os_system_linux_netlink_addreq(struct os_system_netlink *nl,
     struct nlmsghdr *n, int type, const void *data, int len);
 
-EXPORT int os_system_linux_get_ioctl_fd(int af_type);
+EXPORT int os_system_linux_linux_get_ioctl_fd(int af_type);
+
+/**
+ * @return true if IPv6 is supported, false otherwise
+ */
+static INLINE bool
+os_system_is_ipv6_supported(void) {
+  return os_system_linux_is_ipv6_supported();
+}
 
 /**
  * Adds an address TLV to a netlink stream
@@ -155,9 +165,9 @@ EXPORT int os_system_linux_get_ioctl_fd(int af_type);
  * @return -1 if an error happened, 0 otherwise
  */
 static INLINE int
-os_system_netlink_addnetaddr(struct os_system_netlink *nl, struct nlmsghdr *n,
+os_system_linux_netlink_addnetaddr(struct os_system_netlink *nl, struct nlmsghdr *n,
     int type, const struct netaddr *addr) {
-  return os_system_netlink_addreq(
+  return os_system_linux_netlink_addreq(
       nl, n, type, netaddr_get_binptr(addr), netaddr_get_maxprefix(addr)/8);
 }
 

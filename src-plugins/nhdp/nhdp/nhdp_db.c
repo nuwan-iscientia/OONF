@@ -64,11 +64,11 @@ static void _link_status_now_symmetric(struct nhdp_link *lnk);
 static void _link_status_not_symmetric_anymore(struct nhdp_link *lnk);
 int _nhdp_db_link_calculate_status(struct nhdp_link *lnk);
 
-static void _cb_link_vtime(void *);
-static void _cb_link_heard(void *);
-static void _cb_link_symtime(void *);
-static void _cb_l2hop_vtime(void *);
-static void _cb_naddr_vtime(void *);
+static void _cb_link_vtime(struct oonf_timer_instance *);
+static void _cb_link_heard(struct oonf_timer_instance *);
+static void _cb_link_symtime(struct oonf_timer_instance *);
+static void _cb_l2hop_vtime(struct oonf_timer_instance *);
+static void _cb_naddr_vtime(struct oonf_timer_instance *);
 
 /* Link status names */
 static const char *_LINK_PENDING   = "pending";
@@ -244,6 +244,9 @@ nhdp_db_neighbor_remove(struct nhdp_neighbor *neigh) {
   /* trigger event */
   oonf_class_event(&_neigh_info, neigh, OONF_OBJECT_REMOVED);
 
+  /* disconnect from other IP version */
+  nhdp_db_neigbor_disconnect_dualstack(neigh);
+
   /* remove all links */
   list_for_each_element_safe(&neigh->_links, lnk, _neigh_node, l_it) {
     nhdp_db_link_remove(lnk);
@@ -372,7 +375,6 @@ nhdp_db_neighbor_addr_add(struct nhdp_neighbor *neigh,
 
   /* initialize timer for lost addresses */
   naddr->_lost_vtime.class = &_naddr_vtime_info;
-  naddr->_lost_vtime.cb_context = naddr;
 
   /* add to trees */
   avl_insert(&_naddr_tree, &naddr->_global_node);
@@ -537,11 +539,8 @@ nhdp_db_link_add(struct nhdp_neighbor *neigh, struct nhdp_interface *local_if) {
 
   /* init timers */
   lnk->sym_time.class = &_link_symtime_info;
-  lnk->sym_time.cb_context = lnk;
   lnk->heard_time.class = &_link_heard_info;
-  lnk->heard_time.cb_context = lnk;
   lnk->vtime.class = &_link_vtime_info;
-  lnk->vtime.cb_context = lnk;
 
   /* add to originator tree if set */
   lnk->_originator_node.key = &neigh->originator;
@@ -729,7 +728,6 @@ nhdp_db_link_2hop_add(struct nhdp_link *lnk, const struct netaddr *addr) {
 
   /* initialize validity timer */
   l2hop->_vtime.class = &_l2hop_vtime_info;
-  l2hop->_vtime.cb_context = l2hop;
 
   /* add to link tree */
   avl_insert(&lnk->_2hop, &l2hop->_link_node);
@@ -949,13 +947,14 @@ _link_status_not_symmetric_anymore(struct nhdp_link *lnk) {
 
 /**
  * Callback triggered when link validity timer fires
- * @param ptr nhdp link
+ * @param ptr timer instance that fired
  */
 static void
-_cb_link_vtime(void *ptr) {
-  struct nhdp_link *lnk = ptr;
+_cb_link_vtime(struct oonf_timer_instance *ptr) {
+  struct nhdp_link *lnk;
   struct nhdp_neighbor *neigh;
 
+  lnk = container_of(ptr, struct nhdp_link, vtime);
   OONF_DEBUG(LOG_NHDP, "Link vtime fired: 0x%0zx", (size_t)ptr);
 
   neigh = lnk->neigh;
@@ -975,25 +974,29 @@ _cb_link_vtime(void *ptr) {
 
 /**
  * Callback triggered when link heard timer fires
- * @param ptr nhdp link
+ * @param ptr timer instance that fired
  */
 static void
-_cb_link_heard(void *ptr) {
-  OONF_DEBUG(LOG_NHDP, "Link heard fired: 0x%0zx", (size_t)ptr);
-  nhdp_db_link_update_status(ptr);
+_cb_link_heard(struct oonf_timer_instance *ptr) {
+  struct nhdp_link *lnk;
+
+  lnk = container_of(ptr, struct nhdp_link, heard_time);
+  OONF_DEBUG(LOG_NHDP, "Link heard fired: 0x%0zx", (size_t)lnk);
+  nhdp_db_link_update_status(lnk);
 }
 
 /**
  * Callback triggered when link symmetric timer fires
- * @param ptr nhdp link
+ * @param ptr timer instance that fired
  */
 static void
-_cb_link_symtime(void *ptr) {
-  struct nhdp_link *lnk = ptr;
+_cb_link_symtime(struct oonf_timer_instance *ptr) {
+  struct nhdp_link *lnk;
   struct nhdp_neighbor_domaindata *data;
   struct nhdp_domain *domain;
 
-  OONF_DEBUG(LOG_NHDP, "Link Symtime fired: 0x%0zx", (size_t)ptr);
+  lnk = container_of(ptr, struct nhdp_link, sym_time);
+  OONF_DEBUG(LOG_NHDP, "Link Symtime fired: 0x%0zx", (size_t)lnk);
   nhdp_db_link_update_status(lnk);
 
   list_for_each_element(nhdp_domain_get_list(), domain, _node) {
@@ -1007,12 +1010,13 @@ _cb_link_symtime(void *ptr) {
 
 /**
  * Callback triggered when nhdp address validity timer fires
- * @param ptr nhdp address
+ * @param ptr timer instance that fired
  */
 static void
-_cb_naddr_vtime(void *ptr) {
-  struct nhdp_naddr *naddr = ptr;
+_cb_naddr_vtime(struct oonf_timer_instance *ptr) {
+  struct nhdp_naddr *naddr;
 
+  naddr = container_of(ptr, struct nhdp_naddr, _lost_vtime);
   OONF_DEBUG(LOG_NHDP, "Neighbor Address Lost fired: 0x%0zx", (size_t)ptr);
 
   nhdp_db_neighbor_addr_remove(naddr);
@@ -1020,11 +1024,13 @@ _cb_naddr_vtime(void *ptr) {
 
 /**
  * Callback triggered when 2hop valitidy timer fires
- * @param ptr nhdp 2hop address
+ * @param ptr timer instance that fired
  */
 static void
-_cb_l2hop_vtime(void *ptr) {
-  struct nhdp_l2hop *l2hop = ptr;
+_cb_l2hop_vtime(struct oonf_timer_instance *ptr) {
+  struct nhdp_l2hop *l2hop;
+
+  l2hop = container_of(ptr, struct nhdp_l2hop, _vtime);
 
   OONF_DEBUG(LOG_NHDP, "2Hop vtime fired: 0x%0zx", (size_t)ptr);
   nhdp_db_link_2hop_remove(l2hop);

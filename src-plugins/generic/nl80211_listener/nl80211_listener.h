@@ -48,8 +48,8 @@
 
 #include "common/common_types.h"
 #include "core/oonf_subsystem.h"
-#include "subsystems/oonf_interface.h"
 #include "subsystems/oonf_layer2.h"
+#include "subsystems/os_interface.h"
 
 /*! subsystem identifier */
 #define OONF_NL80211_LISTENER_SUBSYSTEM "nl80211_listener"
@@ -62,13 +62,13 @@ struct nl80211_if {
   char name[IF_NAMESIZE];
 
   /*! interface listener */
-  struct oonf_interface_listener if_listener;
+  struct os_interface_listener if_listener;
 
   /*! layer2 network object of interface */
   struct oonf_layer2_net *l2net;
 
-  /*! physical interface id, might be different because of VLANs */
-  int phy_if;
+  /*! physical interface index */
+  int wifi_phy_if;
 
   /*! maximum tx rate */
   uint64_t max_tx;
@@ -107,8 +107,8 @@ bool nl80211_change_l2neigh_data(struct oonf_layer2_neigh *l2neigh,
  * @returns nl80211 interface index
  */
 static INLINE unsigned
-nl80211_get_if_index(struct nl80211_if *interf) {
-  return interf->if_listener.interface->data.index;
+nl80211_get_if_baseindex(struct nl80211_if *interf) {
+  return interf->if_listener.data->base_index;
 }
 
 #endif /* NL80211_LISTENER_H_ */

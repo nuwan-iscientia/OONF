@@ -67,7 +67,7 @@
 static int _init(void);
 static void _cleanup(void);
 
-static void _cb_l2gen_event(void *ptr);
+static void _cb_l2gen_event(struct oonf_timer_instance *);
 
 static void _cb_config_changed(void);
 
@@ -146,7 +146,11 @@ static struct oonf_subsystem _layer2_generator_subsystem = {
 };
 DECLARE_OONF_PLUGIN(_layer2_generator_subsystem);
 
-static uint32_t _origin = 0;
+static struct oonf_layer2_origin _origin = {
+  .name = "layer2 generator",
+  .proactive = true,
+  .priority = OONF_LAYER2_ORIGIN_CONFIGURED,
+};
 
 /**
  * Constructor of plugin
@@ -156,6 +160,7 @@ static int
 _init(void) {
   memset(&_l2gen_config, 0, sizeof(_l2gen_config));
 
+  oonf_layer2_add_origin(&_origin);
   oonf_timer_add(&_l2gen_timer_info);
   oonf_timer_start(&_l2gen_timer, 5000);
   return 0;
@@ -166,18 +171,18 @@ _init(void) {
  */
 static void
 _cleanup(void) {
-  if (_origin) {
-    oonf_layer2_cleanup_origin(_origin);
-    _origin = 0;
-  }
-
+  oonf_layer2_remove_origin(&_origin);
   oonf_timer_stop(&_l2gen_timer);
   oonf_timer_remove(&_l2gen_timer_info);
 }
 
 
+/**
+ * Callback for generating new layer2 test data
+ * @param ptr timer instance that fired
+ */
 static void
-_cb_l2gen_event(void *ptr __attribute((unused))) {
+_cb_l2gen_event(struct oonf_timer_instance *ptr __attribute((unused))) {
   static uint64_t event_counter = 100;
   enum oonf_layer2_network_index net_idx;
   enum oonf_layer2_neighbor_index neigh_idx;
@@ -187,7 +192,7 @@ _cb_l2gen_event(void *ptr __attribute((unused))) {
   struct netaddr_str buf1;
 #endif
 
-  if (_origin == 0) {
+  if (oonf_layer2_origin_is_added(&_origin)) {
     return;
   }
   
@@ -209,14 +214,15 @@ _cb_l2gen_event(void *ptr __attribute((unused))) {
   net->last_seen = oonf_clock_getNow();
 
   for (net_idx=0; net_idx<OONF_LAYER2_NET_COUNT; net_idx++) {
-    oonf_layer2_set_value(&net->data[net_idx], _origin, event_counter);
+    oonf_layer2_set_value(&net->data[net_idx], &_origin, event_counter);
   }
   for (neigh_idx=0; neigh_idx<OONF_LAYER2_NEIGH_COUNT; neigh_idx++) {
-    oonf_layer2_set_value(&net->neighdata[neigh_idx], _origin, event_counter);
+    oonf_layer2_set_value(&net->neighdata[neigh_idx], &_origin, event_counter);
   }
 
   if (oonf_layer2_net_commit(net)) {
     /* something bad has happened, l2net was removed */
+    OONF_WARN(LOG_L2GEN, "Could not commit interface %s", net->name);
     return;
   }
 
@@ -227,13 +233,13 @@ _cb_l2gen_event(void *ptr __attribute((unused))) {
   }
 
   if (netaddr_get_address_family(&_l2gen_config.destination) == AF_MAC48) {
-    oonf_layer2_destination_add(neigh, &_l2gen_config.destination, _origin);
+    oonf_layer2_destination_add(neigh, &_l2gen_config.destination, &_origin);
   }
   memcpy(&neigh->addr, &_l2gen_config.neighbor, sizeof(neigh->addr));
   neigh->last_seen = oonf_clock_getNow();
 
   for (neigh_idx = 0; neigh_idx < OONF_LAYER2_NEIGH_COUNT; neigh_idx++) {
-    oonf_layer2_set_value(&neigh->data[neigh_idx], _origin, event_counter);
+    oonf_layer2_set_value(&neigh->data[neigh_idx], &_origin, event_counter);
   }
   oonf_layer2_neigh_commit(neigh);
 }
@@ -247,14 +253,16 @@ _cb_config_changed(void) {
     return;
   }
 
-  OONF_DEBUG(LOG_L2GEN, "Generator is now %s\n", _l2gen_config.active ? "active" : "inactive");
+  cfg_get_phy_if(_l2gen_config.interface, _l2gen_config.interface);
+
+  OONF_DEBUG(LOG_L2GEN, "Generator is now %s for interface %s\n",
+      _l2gen_config.active ? "active" : "inactive", _l2gen_config.interface);
   
-  if (_origin == 0 && _l2gen_config.active) {
-    _origin = oonf_layer2_register_origin();
+  if (!oonf_layer2_origin_is_added(&_origin) && _l2gen_config.active) {
+    oonf_layer2_add_origin(&_origin);
   }
-  else if (_origin != 0 && !_l2gen_config.active) {
-    oonf_layer2_cleanup_origin(_origin);
-    _origin = 0;
+  else if (oonf_layer2_origin_is_added(&_origin) && !_l2gen_config.active) {
+    oonf_layer2_remove_origin(&_origin);
   }
   
   /* set new interval */

@@ -75,16 +75,12 @@ static struct oonf_class _router_session_class = {
   .size = sizeof(struct dlep_router_session),
 };
 
-static uint32_t _l2_origin;
-
 /**
  * Initialize dlep router session framework
  */
 void
 dlep_router_session_init(void) {
   oonf_class_add(&_router_session_class);
-
-  _l2_origin = oonf_layer2_register_origin();
 }
 
 /**
