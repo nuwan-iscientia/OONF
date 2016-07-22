@@ -361,7 +361,7 @@ _cb_config_changed(void) {
   l2net = oonf_layer2_net_get(ifname);
   if (l2net) {
     /* remove old entries and trigger remove events */
-    oonf_layer2_net_cleanup(l2net, &_l2_origin_old);
+    oonf_layer2_net_cleanup(l2net, &_l2_origin_old, true);
 
     commit = false;
     /* detect changes and relabel the origin */

@@ -203,6 +203,14 @@ _cb_transmission_event(struct oonf_timer_instance *ptr __attribute((unused))) {
       continue;
     }
 
+    /* get ethernet linkspeed */
+    ethspeed = ethtool_cmd_speed(&cmd);
+    if (ethspeed == 0 || ethspeed == (uint16_t)-1 || ethspeed == (uint32_t)-1) {
+      /* speed is not known */
+      continue;
+    }
+    ethspeed *= 1000 * 1000;
+
     /* layer-2 object for this interface */
     l2net = oonf_layer2_net_add(os_if->name);
     if (l2net == NULL) {
@@ -211,10 +219,6 @@ _cb_transmission_event(struct oonf_timer_instance *ptr __attribute((unused))) {
     if (l2net->if_type == OONF_LAYER2_TYPE_UNDEFINED) {
       l2net->if_type = OONF_LAYER2_TYPE_ETHERNET;
     }
-
-    /* get ethernet linkspeed */
-    ethspeed = ethtool_cmd_speed(&cmd);
-    ethspeed *= 1000 * 1000;
 
     /* set corresponding database entries */
     OONF_DEBUG(LOG_ETH, "Set default link speed of interface %s to %s",

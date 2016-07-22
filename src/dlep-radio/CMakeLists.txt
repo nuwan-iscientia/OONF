@@ -43,7 +43,7 @@ IF (NOT OONF_STATIC_PLUGINS)
                              cfg_compact
                              layer2info
                              systeminfo
-                             link_config
+                             layer2_config
                              dlep_radio
                              )
 ENDIF (NOT OONF_STATIC_PLUGINS)

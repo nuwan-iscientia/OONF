@@ -311,8 +311,11 @@ EXPORT struct oonf_layer2_net *oonf_layer2_net_add(const char *ifname);
 EXPORT bool oonf_layer2_net_remove(
     struct oonf_layer2_net *, const struct oonf_layer2_origin *origin);
 EXPORT bool oonf_layer2_net_cleanup(struct oonf_layer2_net *l2net,
-    const struct oonf_layer2_origin *origin);
+    const struct oonf_layer2_origin *origin, bool cleanup_neigh);
 EXPORT bool oonf_layer2_net_commit(struct oonf_layer2_net *);
+EXPORT void oonf_layer2_net_relabel(struct oonf_layer2_net *l2net,
+    const struct oonf_layer2_origin *new_origin,
+    const struct oonf_layer2_origin *old_origin);
 
 EXPORT struct oonf_layer2_neigh *oonf_layer2_neigh_add(
     struct oonf_layer2_net *, struct netaddr *l2neigh);
@@ -321,8 +324,10 @@ EXPORT bool oonf_layer2_neigh_cleanup(struct oonf_layer2_neigh *l2neigh,
 EXPORT bool oonf_layer2_neigh_remove(
     struct oonf_layer2_neigh *l2neigh,
     const struct oonf_layer2_origin *origin);
-
 EXPORT bool oonf_layer2_neigh_commit(struct oonf_layer2_neigh *l2neigh);
+EXPORT void oonf_layer2_neigh_relabel(struct oonf_layer2_neigh *l2neigh,
+    const struct oonf_layer2_origin *new_origin,
+    const struct oonf_layer2_origin *old_origin);
 
 EXPORT struct oonf_layer2_destination *oonf_layer2_destination_add(
     struct oonf_layer2_neigh *l2neigh, const struct netaddr *destination,

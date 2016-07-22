@@ -242,11 +242,13 @@ oonf_layer2_net_add(const char *ifname) {
  * object.
  * @param l2net layer-2 addr object
  * @param origin originator number
+ * @param cleanup_neigh true to cleanup neighbor data too
  * @return true if a value was removed, false otherwise
  */
 bool
 oonf_layer2_net_cleanup(struct oonf_layer2_net *l2net,
-    const struct oonf_layer2_origin *origin) {
+    const struct oonf_layer2_origin *origin, bool cleanup_neigh) {
+  struct oonf_layer2_neigh *l2neigh;
   bool changed = false;
   int i;
 
@@ -260,6 +262,12 @@ oonf_layer2_net_cleanup(struct oonf_layer2_net *l2net,
     if (l2net->neighdata[i]._origin == origin) {
       oonf_layer2_reset_value(&l2net->neighdata[i]);
       changed = true;
+    }
+  }
+
+  if (cleanup_neigh) {
+    avl_for_each_element(&l2net->neighbors, l2neigh, _node) {
+      changed |= oonf_layer2_neigh_cleanup(l2neigh, origin);
     }
   }
   return changed;
@@ -286,7 +294,7 @@ oonf_layer2_net_remove(struct oonf_layer2_net *l2net,
     changed |= oonf_layer2_neigh_remove(l2neigh, origin);
   }
 
-  changed |= oonf_layer2_net_cleanup(l2net, origin);
+  changed |= oonf_layer2_net_cleanup(l2net, origin, false);
   if (changed) {
     oonf_layer2_net_commit(l2net);
   }
@@ -324,6 +332,37 @@ oonf_layer2_net_commit(struct oonf_layer2_net *l2net) {
 
   _net_remove(l2net);
   return true;
+}
+
+/**
+ * Relabel all network data (including neighbor data)
+ * of one origin to another one
+ * @param l2net layer2 network object
+ * @param new_origin new origin
+ * @param old_origin old origin to overwrite
+ */
+void
+oonf_layer2_net_relabel(struct oonf_layer2_net *l2net,
+    const struct oonf_layer2_origin *new_origin,
+    const struct oonf_layer2_origin *old_origin) {
+  struct oonf_layer2_neigh *l2neigh;
+  size_t i;
+
+  for (i=0; i<OONF_LAYER2_NET_COUNT; i++) {
+    if (oonf_layer2_get_origin(&l2net->data[i]) == old_origin) {
+      oonf_layer2_set_origin(&l2net->data[i], new_origin);
+    }
+  }
+
+  for (i=0; i<OONF_LAYER2_NEIGH_COUNT; i++) {
+    if (oonf_layer2_get_origin(&l2net->neighdata[i]) == old_origin) {
+      oonf_layer2_set_origin(&l2net->neighdata[i], new_origin);
+    }
+  }
+
+  avl_for_each_element(&l2net->neighbors, l2neigh, _node) {
+    oonf_layer2_neigh_relabel(l2neigh, new_origin, old_origin);
+  }
 }
 
 /**
@@ -443,6 +482,25 @@ oonf_layer2_neigh_commit(struct oonf_layer2_neigh *l2neigh) {
 
   _neigh_remove(l2neigh);
   return true;
+}
+
+/**
+ * Relabel all neighbor data of one origin to another one
+ * @param l2neigh layer2 neighbor object
+ * @param new_origin new origin
+ * @param old_origin old origin to overwrite
+ */
+void
+oonf_layer2_neigh_relabel(struct oonf_layer2_neigh *l2neigh,
+    const struct oonf_layer2_origin *new_origin,
+    const struct oonf_layer2_origin *old_origin) {
+  size_t i;
+
+  for (i=0; i<OONF_LAYER2_NEIGH_COUNT; i++) {
+    if (oonf_layer2_get_origin(&l2neigh->data[i]) == old_origin) {
+      oonf_layer2_set_origin(&l2neigh->data[i], new_origin);
+    }
+  }
 }
 
 /**

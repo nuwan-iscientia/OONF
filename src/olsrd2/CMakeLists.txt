@@ -48,7 +48,7 @@ IF (NOT OONF_STATIC_PLUGINS)
                              systeminfo
                              nhdp
                              ff_dat_metric
-                             link_config
+                             layer2_config
                              neighbor_probing
                              nhdpinfo
                              olsrv2
