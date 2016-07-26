@@ -170,7 +170,8 @@ olsrv2_tc_node_add(struct netaddr *originator,
 
     /* initialize dijkstra data */
     node->target.type = OLSRV2_NODE_TARGET;
-    olsrv2_routing_dijkstra_node_init(&node->target._dijkstra);
+    olsrv2_routing_dijkstra_node_init(&node->target._dijkstra,
+        &node->target.prefix.dst);
 
     /* hook into global tree */
     avl_insert(&_tc_tree, &node->_originator_node);
@@ -375,7 +376,8 @@ olsrv2_tc_endpoint_add(struct olsrv2_tc_node *node,
   avl_insert(&end->_attached_networks, &net->_endpoint_node);
 
   /* initialize dijkstra data */
-  olsrv2_routing_dijkstra_node_init(&end->target._dijkstra);
+  olsrv2_routing_dijkstra_node_init(&end->target._dijkstra,
+      &node->target.prefix.dst);
 
   oonf_class_event(&_tc_attached_class, net, OONF_OBJECT_ADDED);
   return net;

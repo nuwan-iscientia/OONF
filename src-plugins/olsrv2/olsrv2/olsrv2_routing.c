@@ -300,8 +300,10 @@ olsrv2_routing_force_update(bool skip_wait) {
  * @param dijkstra pointer to dijkstra node
  */
 void
-olsrv2_routing_dijkstra_node_init(struct olsrv2_dijkstra_node *dijkstra) {
+olsrv2_routing_dijkstra_node_init(struct olsrv2_dijkstra_node *dijkstra,
+    const struct netaddr *originator) {
   dijkstra->_node.key = &dijkstra->path_cost;
+  dijkstra->originator = originator;
 }
 
 /**
@@ -517,7 +519,7 @@ _insert_into_working_tree(struct olsrv2_tc_target *target,
 /**
  * Initialize a routing entry with the result of the dijkstra calculation
  * @param domain nhdp domain
- * @param destination destination of routing entry
+ * @param dst_prefix routing destination prefix
  * @param dst_originator originator address of destination
  * @param first_hop nhdp neighbor for first hop to target
  * @param distance hopcount distance that should be used for route
@@ -528,7 +530,7 @@ _insert_into_working_tree(struct olsrv2_tc_target *target,
  */
 static void
 _update_routing_entry(struct nhdp_domain *domain,
-    struct os_route_key *prefix,
+    struct os_route_key *dst_prefix, const struct netaddr *dst_originator,
     struct nhdp_neighbor *first_hop,
     uint8_t distance, uint32_t pathcost, uint8_t path_hops,
     bool single_hop, const struct netaddr *last_originator) {
@@ -542,16 +544,16 @@ _update_routing_entry(struct nhdp_domain *domain,
 #endif
 
   /* test if destination is already part of the local node */
-  originator = olsrv2_originator_get(netaddr_get_address_family(&prefix->dst));
-  if (netaddr_cmp(originator, &prefix->dst) == 0) {
+  originator = olsrv2_originator_get(netaddr_get_address_family(&dst_prefix->dst));
+  if (netaddr_cmp(originator, &dst_prefix->dst) == 0) {
     /* don't set routes for our own originator */
     return;
   }
-  if (nhdp_interface_addr_global_get(&prefix->dst)) {
+  if (nhdp_interface_addr_global_get(&dst_prefix->dst)) {
     /* don't set routes for our own interface addresses */
     return;
   }
-  lan = olsrv2_lan_get(prefix);
+  lan = olsrv2_lan_get(dst_prefix);
   if (lan) {
     landata = olsrv2_lan_get_domaindata(domain, lan);
     if (landata->active && landata->outgoing_metric < pathcost) {
@@ -563,13 +565,13 @@ _update_routing_entry(struct nhdp_domain *domain,
     }
   }
 
-  if (!olsrv2_is_routable(&prefix->dst)) {
+  if (!olsrv2_is_routable(&dst_prefix->dst)) {
     /* don't set routes to non-routable destinations */
     return;
   }
 
   /* make sure routing entry is present */
-  rtentry = _add_entry(domain, prefix);
+  rtentry = _add_entry(domain, dst_prefix);
   if (rtentry == NULL) {
     /* out of memory... */
     return;
@@ -596,6 +598,9 @@ _update_routing_entry(struct nhdp_domain *domain,
       netaddr_to_string(&nbuf2, &rtentry->route.p.key.src),
       netaddr_to_string(&nbuf3, &first_hop->originator),
       domain->ext, pathcost, neighdata->best_link->local_if->os_if_listener.data->name);
+
+  /* remember originator */
+  memcpy(&rtentry->originator, dst_originator, sizeof(struct netaddr));
 
   /* remember next hop originator */
   memcpy(&rtentry->next_originator, &first_hop->originator, sizeof(struct netaddr));
@@ -762,7 +767,6 @@ _handle_working_queue(struct nhdp_domain *domain,
     bool use_non_ss, bool use_ss) {
   struct olsrv2_tc_target *target;
   struct nhdp_neighbor *first_hop;
-
   struct olsrv2_tc_node *tc_node;
   struct olsrv2_tc_edge *tc_edge;
   struct olsrv2_tc_attachment *tc_attached;
@@ -787,6 +791,7 @@ _handle_working_queue(struct nhdp_domain *domain,
   /* fill routing entry with dijkstra result */
   if (use_non_ss) {
     _update_routing_entry(domain, &target->prefix,
+        target->_dijkstra.originator,
         target->_dijkstra.first_hop,
         target->_dijkstra.distance,
         target->_dijkstra.path_cost,
@@ -841,9 +846,10 @@ _handle_working_queue(struct nhdp_domain *domain,
 
           /* fill routing entry with dijkstra result */
           _update_routing_entry(domain, &tc_endpoint->target.prefix,
+              &tc_node->target.prefix.dst,
               first_hop, tc_attached->distance[domain->index],
               target->_dijkstra.path_cost + tc_attached->cost[domain->index],
-              tc_endpoint->target._dijkstra.path_hops + 1,
+              target->_dijkstra.path_hops + 1,
               false, &target->prefix.dst);
         }
       }
@@ -862,6 +868,7 @@ _handle_nhdp_routes(struct nhdp_domain *domain) {
   struct nhdp_naddr *naddr;
   struct nhdp_l2hop *l2hop;
   struct nhdp_link *lnk;
+  const struct netaddr *originator;
   uint32_t neighcost;
   uint32_t l2hop_pathcost;
   int family;
@@ -885,17 +892,15 @@ _handle_nhdp_routes(struct nhdp_domain *domain) {
         continue;
       }
 
+      originator = olsrv2_originator_get(family);
+      if (!originator) {
+        originator = &NETADDR_UNSPEC;
+      }
       os_routing_init_sourcespec_prefix(&ssprefix, &naddr->neigh_addr);
 
       /* update routing entry */
-      if (olsrv2_originator_get(family)) {
-        _update_routing_entry(domain, &ssprefix,
-            neigh, 0, neighcost, 1, true, olsrv2_originator_get(family));
-      }
-      else {
-        _update_routing_entry(domain, &ssprefix,
-            neigh, 0, neighcost, 1, true, &NETADDR_UNSPEC);
-      }
+      _update_routing_entry(domain, &ssprefix, originator,
+          neigh, 0, neighcost, 1, true, originator);
     }
 
     list_for_each_element(&neigh->_links, lnk, _neigh_node) {
@@ -916,7 +921,7 @@ _handle_nhdp_routes(struct nhdp_domain *domain) {
         os_routing_init_sourcespec_prefix(&ssprefix, &l2hop->twohop_addr);
 
         /* the 2-hop route is better than the dijkstra calculation */
-        _update_routing_entry(domain, &ssprefix,
+        _update_routing_entry(domain, &ssprefix, &NETADDR_UNSPEC,
             neigh, 0, l2hop_pathcost, 2, false, &neigh->originator);
       }
     }

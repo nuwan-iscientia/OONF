@@ -96,6 +96,12 @@ struct nhdp_interface {
   /*! ACL for interface addresses that should be included into HELLOs */
   struct netaddr_acl ifaddr_filter;
 
+  /*! local ipv4 address of the NHDP rfc5444 socket */
+  struct netaddr local_ipv4;
+
+  /*! local ipv6 address of the NHDP rfc5444 socket */
+  struct netaddr local_ipv6;
+
   /**
    * true if this interface has a neighbor that should be reached through
    * IPv4 for flooding. This is set by the nhdp interface code.
@@ -313,5 +319,24 @@ static INLINE struct os_interface_listener *
 nhdp_interface_get_if_listener(struct nhdp_interface *nhdp_if) {
   return &nhdp_if->os_if_listener;
 }
+
+/**
+ * @param nhdp_if NHDP interface
+ * @param af_family address family
+ * @return socket address of NHDP interface
+ */
+static INLINE const struct netaddr *
+nhdp_interface_get_socket_address(
+    struct nhdp_interface *nhdp_if, int af_family) {
+  switch (af_family) {
+    case AF_INET:
+      return &nhdp_if->local_ipv4;
+    case AF_INET6:
+      return &nhdp_if->local_ipv6;
+    default:
+      return &NETADDR_UNSPEC;
+  }
+}
+
 
 #endif /* NHDP_INTERFACES_H_ */

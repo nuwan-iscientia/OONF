@@ -492,6 +492,7 @@ _cb_interface_event(struct oonf_rfc5444_interface_listener *ifl,
   struct os_interface_listener *if_listener;
   struct nhdp_link *nhdp_link, *nhdp_link_it;
   struct os_interface_ip *os_ip;
+  const union netaddr_socket *sock;
   bool has_active_addr;
   bool ipv4, ipv6;
 #ifdef OONF_LOG_DEBUG_INFO
@@ -549,5 +550,21 @@ _cb_interface_event(struct oonf_rfc5444_interface_listener *ifl,
     list_for_each_element_safe(&interf->_links, nhdp_link, _if_node, nhdp_link_it) {
       nhdp_db_link_set_unsymmetric(nhdp_link);
     }
+  }
+
+  /* get local IPv4 socket address */
+  netaddr_invalidate(&interf->local_ipv4);
+  sock = oonf_rfc5444_interface_get_local_socket(
+      interf->rfc5444_if.interface, AF_INET);
+  if (sock) {
+    netaddr_from_socket(&interf->local_ipv4, sock);
+  }
+
+  /* get local IPv6 socket address */
+  netaddr_invalidate(&interf->local_ipv6);
+  sock = oonf_rfc5444_interface_get_local_socket(
+      interf->rfc5444_if.interface, AF_INET6);
+  if (sock) {
+    netaddr_from_socket(&interf->local_ipv6, sock);
   }
 }
