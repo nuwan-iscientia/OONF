@@ -261,7 +261,7 @@ oonf_telnet_execute(const char *cmd, const char *para,
   data.remote = remote;
 
   result = _telnet_handle_command(&data);
-  oonf_telnet_stop(&data, false);
+  _call_stop_handler(&data);
   return abuf_has_failed(data.out) ? TELNET_RESULT_INTERNAL_ERROR : result;
 }
 

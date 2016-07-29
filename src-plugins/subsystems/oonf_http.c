@@ -612,6 +612,9 @@ _create_http_header(struct oonf_stream_session *session,
   /* connection-type */
   abuf_puts(&buf, "Connection: closed\r\n");
 
+  /* allow cross domain access */
+  abuf_puts(&buf, "Access-Control-Allow-Origin: *\r\n");
+
   /* MIME type */
   if (content_type == NULL) {
     content_type = HTTP_CONTENTTYPE_HTML;

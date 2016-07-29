@@ -979,6 +979,9 @@ static void
 _process_dijkstra_result(struct nhdp_domain *domain) {
   struct olsrv2_routing_entry *rtentry;
   struct olsrv2_routing_filter *filter;
+  struct olsrv2_lan_entry *lan_entry;
+  struct olsrv2_lan_domaindata *lan_data;
+
 #ifdef OONF_LOG_INFO
   struct os_route_str rbuf1, rbuf2;
 #endif
@@ -995,6 +998,15 @@ _process_dijkstra_result(struct nhdp_domain *domain) {
       /* copy source address to route */
       memcpy(&rtentry->route.p.src_ip, olsrv2_originator_get(AF_INET),
           sizeof(rtentry->route.p.src_ip));
+    }
+
+    lan_entry = olsrv2_lan_get(&rtentry->route.p.key);
+    if (lan_entry) {
+      lan_data = olsrv2_lan_get_domaindata(domain, lan_entry);
+      if (lan_data->active && lan_data->outgoing_metric < rtentry->path_cost) {
+        /* local prefix is BETTER than computed least const route ! */
+        rtentry->set = false;
+      }
     }
 
     list_for_each_element(&_routing_filter_list, filter, _node) {

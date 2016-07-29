@@ -433,10 +433,11 @@ _print_graph_node_lan(struct json_session *session,
  * @param session json session
  * @param domain nhdp domain
  * @param neigh nhdp neighbor
+ * @param outgoing neighbor link is on outgoing dijkstra tree
  */
 static void
 _print_edge_links(struct json_session *session,
-    struct nhdp_domain *domain, struct nhdp_neighbor *neigh) {
+    struct nhdp_domain *domain, struct nhdp_neighbor *neigh, bool outgoing) {
   struct nhdp_link *lnk;
   struct nhdp_link *best_link;
   struct nhdp_metric_str mbuf;
@@ -474,7 +475,7 @@ _print_edge_links(struct json_session *session,
         nhdp_domain_get_link_metric_value(&mbuf, domain, cost));
 
     _print_json_string(session, "outgoing_tree",
-        json_getbool(best_link == lnk));
+        json_getbool(outgoing && best_link == lnk));
 
     json_end_object(session);
   }
@@ -521,7 +522,7 @@ _print_graph_edge(struct json_session *session,
       nhdp_domain_get_link_metric_value(&mbuf, domain, out));
 
   json_start_object(session, "properties");
-  if (in <= RFC7181_METRIC_MAX) {
+  if (in >= RFC7181_METRIC_MIN && in <= RFC7181_METRIC_MAX) {
     _print_json_number(session, "in", in);
     _print_json_string(session, "in_text",
         nhdp_domain_get_link_metric_value(&mbuf, domain, in));
@@ -558,7 +559,7 @@ _print_graph_edge(struct json_session *session,
   }
 
   if (neigh) {
-    _print_edge_links(session, domain, neigh);
+    _print_edge_links(session, domain, neigh, outgoing_tree);
   }
   json_end_object(session);
   json_end_object(session);
@@ -573,6 +574,7 @@ _print_graph_edge(struct json_session *session,
 static void
 _print_graph(struct json_session *session,
     struct nhdp_domain *domain, int af_type) {
+  struct os_route_key routekey;
   const struct netaddr *originator;
   struct nhdp_neighbor *neigh;
   struct olsrv2_tc_node *node;
@@ -624,6 +626,10 @@ _print_graph(struct json_session *session,
   /* originators of all other nodes */
   avl_for_each_element(olsrv2_tc_get_tree(), node, _originator_node) {
     if (netaddr_get_address_family(&node->target.prefix.dst) == af_type) {
+      if (netaddr_cmp(&node->target.prefix.dst, originator) == 0) {
+        continue;
+      }
+
       _print_graph_node_tc(session, node);
 
       /* attached networks */
@@ -644,6 +650,11 @@ _print_graph(struct json_session *session,
   avl_for_each_element(nhdp_db_get_neigh_originator_tree(), neigh, _originator_node) {
     if (netaddr_get_address_family(&neigh->originator) == af_type
         && neigh->symmetric > 0) {
+      os_routing_init_sourcespec_prefix(&routekey, &neigh->originator);
+
+      rt_entry = avl_find_element(rt_tree, &routekey, rt_entry, _node);
+      outgoing = rt_entry != NULL
+          && netaddr_cmp(&rt_entry->last_originator, originator) == 0;
 
       _get_nhdp_neighbor_id(&node_id2, neigh);
 
@@ -651,7 +662,7 @@ _print_graph(struct json_session *session,
           &node_id1, &node_id2, originator, &neigh->originator,
           nhdp_domain_get_neighbordata(domain, neigh)->metric.out,
           nhdp_domain_get_neighbordata(domain, neigh)->metric.in,
-          0, true, NETJSON_EDGE_LOCAL, neigh);
+          0, outgoing, NETJSON_EDGE_LOCAL, neigh);
 
       _print_graph_edge(session, domain,
           &node_id2, &node_id1, &neigh->originator, originator,
@@ -665,13 +676,16 @@ _print_graph(struct json_session *session,
   avl_for_each_element(olsrv2_lan_get_tree(), lan, _node) {
     if (netaddr_get_address_family(&lan->prefix.dst) == af_type
         && olsrv2_lan_get_domaindata(domain, lan)->active) {
+      rt_entry = avl_find_element(rt_tree, &lan->prefix, rt_entry, _node);
+      outgoing = rt_entry == NULL;
+
       _get_tc_lan_id(&node_id2, lan);
 
       _print_graph_edge(session, domain,
           &node_id1, &node_id2, originator, &lan->prefix.dst,
           olsrv2_lan_get_domaindata(domain, lan)->outgoing_metric, 0,
           olsrv2_lan_get_domaindata(domain, lan)->distance,
-          false, NETJSON_EDGE_LAN, NULL);
+          outgoing, NETJSON_EDGE_LAN, NULL);
     }
   }
 
@@ -687,7 +701,7 @@ _print_graph(struct json_session *session,
             continue;
           }
 
-          rt_entry = avl_find_element(rt_tree, &edge->dst->target.prefix.dst, rt_entry, _node);
+          rt_entry = avl_find_element(rt_tree, &edge->dst->target.prefix, rt_entry, _node);
           outgoing = rt_entry != NULL
               && netaddr_cmp(&rt_entry->last_originator, &node->target.prefix.dst) == 0;
 
@@ -708,9 +722,9 @@ _print_graph(struct json_session *session,
       _get_tc_node_id(&node_id1, node);
 
       avl_for_each_element(&node->_attached_networks, attached, _src_node) {
-        rt_entry = avl_find_element(rt_tree, &attached->dst->target.prefix.dst, rt_entry, _node);
+        rt_entry = avl_find_element(rt_tree, &attached->dst->target.prefix, rt_entry, _node);
          outgoing = rt_entry != NULL
-             && netaddr_cmp(&rt_entry->last_originator, &node->target.prefix.dst) == 0;
+             && netaddr_cmp(&rt_entry->originator, &node->target.prefix.dst) == 0;
 
          _get_tc_endpoint_id(&node_id2, attached);
 
