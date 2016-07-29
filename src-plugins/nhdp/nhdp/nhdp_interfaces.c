@@ -512,8 +512,10 @@ _cb_interface_event(struct oonf_rfc5444_interface_listener *ifl,
 
   if_listener = oonf_rfc5444_get_core_if_listener(ifl->interface);
   if (if_listener != NULL && if_listener->data && if_listener->data->flags.up) {
-    ipv4 = oonf_rfc5444_is_target_active(interf->rfc5444_if.interface->multicast4);
-    ipv6 = oonf_rfc5444_is_target_active(interf->rfc5444_if.interface->multicast6);
+    ipv4 = if_listener->data->flags.loopback
+        || oonf_rfc5444_is_target_active(interf->rfc5444_if.interface->multicast4);
+    ipv6 = if_listener->data->flags.loopback
+        || oonf_rfc5444_is_target_active(interf->rfc5444_if.interface->multicast6);
 
     /* get all socket addresses that are matching the filter */
     avl_for_each_element(&if_listener->data->addresses, os_ip, _node) {

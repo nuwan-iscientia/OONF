@@ -732,8 +732,6 @@ oonf_rfc5444_reconfigure_interface(struct oonf_rfc5444_interface *interf,
       interf->name, interf->_socket_config.port, interf->_socket_config.multicast_port,
       interf->_socket_config.protocol);
 
-  OONF_DEBUG(LOG_RFC5444, "compare: '%s' == '%s'",
-      interf->name, RFC5444_UNICAST_INTERFACE);
   if (strcmp(interf->name, RFC5444_UNICAST_INTERFACE) == 0) {
     /* unicast interface */
     netaddr_invalidate(&interf->_socket_config.multicast_v4);
