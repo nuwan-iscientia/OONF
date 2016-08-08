@@ -470,7 +470,7 @@ _print_edge_links(struct json_session *session,
         nhdp_domain_get_link_metric_value(&mbuf, domain, cost));
 
     cost = nhdp_domain_get_linkdata(domain, lnk)->metric.in;
-    _print_json_number(session, "in", cost);
+    _print_json_number(session, "in_cost", cost);
     _print_json_string(session, "in_text",
         nhdp_domain_get_link_metric_value(&mbuf, domain, cost));
 
@@ -523,7 +523,7 @@ _print_graph_edge(struct json_session *session,
 
   json_start_object(session, "properties");
   if (in >= RFC7181_METRIC_MIN && in <= RFC7181_METRIC_MAX) {
-    _print_json_number(session, "in", in);
+    _print_json_number(session, "in_cost", in);
     _print_json_string(session, "in_text",
         nhdp_domain_get_link_metric_value(&mbuf, domain, in));
   }
