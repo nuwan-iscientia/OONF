@@ -158,7 +158,7 @@ static struct isonumber_str             _value_neigh_data[OONF_LAYER2_NEIGH_COUN
 static char                             _value_neigh_origin[OONF_LAYER2_NEIGH_COUNT][IF_NAMESIZE];
 
 static struct netaddr_str               _value_dst_addr;
-static char                             _value_dst_origin[TEMPLATE_JSON_BOOL_LENGTH];
+static char                             _value_dst_origin[IF_NAMESIZE];
 
 /* definition of the template data entries for JSON and table output */
 static struct abuf_template_data_entry _tde_if_key[] = {
