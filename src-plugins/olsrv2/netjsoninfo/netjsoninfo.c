@@ -196,6 +196,24 @@ _cleanup(void) {
 }
 
 /**
+ * @param af_type address family type
+ * @return originator of the other type (IPv4 for IPv6)
+ */
+static int
+_get_other_af_type(int af_type) {
+  switch (af_type) {
+    case AF_INET:
+      return AF_INET6;
+      break;
+    case AF_INET6:
+      return AF_INET;
+      break;
+    default:
+      return 0;
+  }
+}
+
+/**
  * Create a domain id string
  * @param buf output buffer
  * @param domain nhdp domain
@@ -304,13 +322,17 @@ _get_nhdp_neighbor_id(struct _node_id_str *buf,
  * Print the JSON output for a graph node
  * @param session json session
  * @param id node address
+ * @param originator node originator address
+ * @param dualstack node dualstack originator address
+ * @param type netjson node type
  */
 static void
 _print_graph_node(struct json_session *session, const struct _node_id_str *id,
-    const char *label, const struct netaddr *originator, enum netjson_node_type type) {
-  struct _node_id_str originator_id;
+    const char *label, const struct netaddr *originator,
+    const struct netaddr *dualstack, enum netjson_node_type type) {
+  struct _node_id_str originator_id, dualstack_id;
 
-  _get_node_id(&originator_id, originator, NULL);
+  ;
 
   json_start_object(session, NULL);
 
@@ -319,8 +341,15 @@ _print_graph_node(struct json_session *session, const struct _node_id_str *id,
 
   json_start_object(session, "properties");
   if (originator) {
-    _print_json_string(session, "router_id", originator_id.buf);
+    _print_json_string(session, "router_id",
+        _get_node_id(&originator_id, originator, NULL));
     _print_json_netaddr(session, "router_addr", originator);
+  }
+  if (dualstack) {
+    _print_json_string(session, "dualstack_id",
+        _get_node_id(&dualstack_id, dualstack, NULL));
+    _print_json_netaddr(session, "dualstack_addr", dualstack);
+
   }
 
   switch (type) {
@@ -352,14 +381,16 @@ _print_graph_node(struct json_session *session, const struct _node_id_str *id,
  */
 static void
 _print_graph_node_me(struct json_session *session, int af_family) {
-  struct _node_id_str ebuf;
+  struct _node_id_str ebuf1;
   struct netaddr_str nbuf1;
+  const struct netaddr *dualstack;
 
-  _get_node_id_me(&ebuf, af_family);
+  _get_node_id_me(&ebuf1, af_family);
   netaddr_to_string(&nbuf1, olsrv2_originator_get(af_family));
 
-  _print_graph_node(session, &ebuf, nbuf1.buf,
-      olsrv2_originator_get(af_family), NETJSON_NODE_LOCAL);
+  dualstack = olsrv2_originator_get(_get_other_af_type(af_family));
+  _print_graph_node(session, &ebuf1, nbuf1.buf,
+      olsrv2_originator_get(af_family), dualstack, NETJSON_NODE_LOCAL);
 }
 
 /**
@@ -370,14 +401,21 @@ _print_graph_node_me(struct json_session *session, int af_family) {
 static void
 _print_graph_node_tc(
     struct json_session *session, const struct olsrv2_tc_node *node) {
+  const struct netaddr *dualstack;
   struct _node_id_str ebuf;
   struct netaddr_str nbuf1;
+  struct nhdp_neighbor *neigh;
 
   _get_tc_node_id(&ebuf, node);
   netaddr_to_string(&nbuf1, &node->target.prefix.dst);
 
+  dualstack = NULL;
+  neigh = nhdp_db_neighbor_get_by_originator(&node->target.prefix.dst);
+  if (neigh && neigh->dualstack_partner) {
+    dualstack = &neigh->dualstack_partner->originator;
+  }
   _print_graph_node(session, &ebuf, nbuf1.buf,
-      &node->target.prefix.dst, NETJSON_NODE_ROUTERS);
+      &node->target.prefix.dst, dualstack, NETJSON_NODE_ROUTERS);
 }
 
 /**
@@ -400,7 +438,7 @@ _print_graph_node_attached(struct json_session *session,
   snprintf(labelbuf, sizeof(labelbuf), "%s: %s", nbuf1.buf, nbuf2.buf);
 
   _print_graph_node(session, &ebuf, labelbuf,
-      &attachment->src->target.prefix.dst, NETJSON_NODE_ATTACHED);
+      &attachment->src->target.prefix.dst, NULL, NETJSON_NODE_ATTACHED);
 }
 
 /**
@@ -411,21 +449,25 @@ _print_graph_node_attached(struct json_session *session,
 static void
 _print_graph_node_lan(struct json_session *session,
     const struct olsrv2_lan_entry *lan) {
-  const struct netaddr *originator;
+  const struct netaddr *originator, *dualstack;
   struct netaddr_str nbuf1, nbuf2;
   struct _node_id_str ebuf;
+  int af_type;
 
   char labelbuf[256];
 
-  originator = olsrv2_originator_get(
-      netaddr_get_address_family(&lan->prefix.dst));
+  af_type = netaddr_get_address_family(&lan->prefix.dst);
+  originator = olsrv2_originator_get(af_type);
+  dualstack = olsrv2_originator_get(_get_other_af_type(af_type));
+
   _get_tc_lan_id(&ebuf, lan);
   netaddr_to_string(&nbuf1, originator);
   netaddr_to_string(&nbuf2, &lan->prefix.dst);
 
   snprintf(labelbuf, sizeof(labelbuf), "%s: %s", nbuf1.buf, nbuf2.buf);
 
-  _print_graph_node(session, &ebuf, labelbuf, originator, NETJSON_NODE_LAN);
+  _print_graph_node(session, &ebuf, labelbuf,
+      originator, dualstack, NETJSON_NODE_LAN);
 }
 
 /**
@@ -575,7 +617,7 @@ static void
 _print_graph(struct json_session *session,
     struct nhdp_domain *domain, int af_type) {
   struct os_route_key routekey;
-  const struct netaddr *originator;
+  const struct netaddr *originator, *dualstack;
   struct nhdp_neighbor *neigh;
   struct olsrv2_tc_node *node;
   struct olsrv2_tc_edge *edge;
@@ -585,13 +627,21 @@ _print_graph(struct json_session *session,
   struct olsrv2_routing_entry *rt_entry;
   struct domain_id_str dbuf;
   struct _node_id_str node_id1, node_id2;
+  int other_af;
 
   bool outgoing;
 
   originator = olsrv2_originator_get(af_type);
-  if (netaddr_get_address_family(originator) != af_type) {
+  if (netaddr_is_unspec(originator)) {
     return;
   }
+
+  /* get "other" originator */
+  other_af = _get_other_af_type(af_type);
+
+  /* get dualstack originator */
+  dualstack = olsrv2_originator_get(AF_INET6);
+
   json_start_object(session, NULL);
 
   _print_json_string(session, "type", "NetworkGraph");
@@ -599,8 +649,7 @@ _print_graph(struct json_session *session,
   _print_json_string(session, "version", oonf_log_get_libdata()->version);
   _print_json_string(session, "revision", oonf_log_get_libdata()->git_commit);
 
-  _get_node_id_me(&node_id1, af_type);
-  _print_json_string(session, "router_id", node_id1.buf);
+  _print_json_string(session, "router_id", _get_node_id_me(&node_id1, af_type));
 
   _print_json_string(session, "metric", domain->metric->name);
   _print_json_string(session, "topology_id",
@@ -608,6 +657,13 @@ _print_graph(struct json_session *session,
 
   json_start_object(session, "properties");
   _print_json_netaddr(session, "router_addr", originator);
+  if (dualstack) {
+    _print_json_string(session, "dualstack_id",
+        _get_node_id_me(&node_id1, other_af));
+    _print_json_string(session, "dualstack_topology",
+        _create_domain_id(&dbuf, domain, other_af));
+    _print_json_netaddr(session, "dualstack_addr", dualstack);
+  }
   json_end_object(session);
 
   json_start_array(session, "nodes");
