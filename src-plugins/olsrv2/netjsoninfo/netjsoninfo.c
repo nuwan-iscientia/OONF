@@ -435,7 +435,7 @@ _print_graph_node_attached(struct json_session *session,
   netaddr_to_string(&nbuf1, &attachment->src->target.prefix.dst);
   netaddr_to_string(&nbuf2, &attachment->dst->target.prefix.dst);
 
-  snprintf(labelbuf, sizeof(labelbuf), "%s: %s", nbuf1.buf, nbuf2.buf);
+  snprintf(labelbuf, sizeof(labelbuf), "%s - %s", nbuf1.buf, nbuf2.buf);
 
   _print_graph_node(session, &ebuf, labelbuf,
       &attachment->src->target.prefix.dst, NULL, NETJSON_NODE_ATTACHED);
@@ -449,7 +449,7 @@ _print_graph_node_attached(struct json_session *session,
 static void
 _print_graph_node_lan(struct json_session *session,
     const struct olsrv2_lan_entry *lan) {
-  const struct netaddr *originator, *dualstack;
+  const struct netaddr *originator;
   struct netaddr_str nbuf1, nbuf2;
   struct _node_id_str ebuf;
   int af_type;
@@ -458,16 +458,15 @@ _print_graph_node_lan(struct json_session *session,
 
   af_type = netaddr_get_address_family(&lan->prefix.dst);
   originator = olsrv2_originator_get(af_type);
-  dualstack = olsrv2_originator_get(_get_other_af_type(af_type));
 
   _get_tc_lan_id(&ebuf, lan);
   netaddr_to_string(&nbuf1, originator);
   netaddr_to_string(&nbuf2, &lan->prefix.dst);
 
-  snprintf(labelbuf, sizeof(labelbuf), "%s: %s", nbuf1.buf, nbuf2.buf);
+  snprintf(labelbuf, sizeof(labelbuf), "%s - %s", nbuf1.buf, nbuf2.buf);
 
   _print_graph_node(session, &ebuf, labelbuf,
-      originator, dualstack, NETJSON_NODE_LAN);
+      originator, NULL, NETJSON_NODE_LAN);
 }
 
 /**
