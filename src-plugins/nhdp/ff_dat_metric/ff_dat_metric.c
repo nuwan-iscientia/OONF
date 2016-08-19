@@ -137,8 +137,8 @@ struct link_datff_data {
   /*! last received packet sequence number */
   uint16_t last_seq_nr;
 
-  /*! remember the last transmitted packet loss for hysteresis */
-  uint32_t last_packet_success_rate;
+  /*! remember the last transmitted packet loss for hysteresis (scaled by 1000) */
+  int64_t last_packet_success_rate;
 
   /*! last known hello interval */
   uint64_t hello_interval;
@@ -429,6 +429,9 @@ _cb_link_added(void *ptr) {
 
   /* start 'hello lost' timer for link */
   data->hello_lost_timer.class = &_hello_lost_info;
+
+  /* minimal value possible for success rate */
+  data->last_packet_success_rate = 1000ll;
 }
 
 /**
@@ -736,20 +739,25 @@ _apply_packet_loss(struct nhdp_link *lnk,
     struct link_datff_data *ldata, uint32_t metric,
     uint32_t received, uint32_t total) {
   int64_t success_scaled_by_1000;
-  int64_t last_scaled_by_1000;
   int loss_exponent;
+  int64_t tmp_metric;
 
-  last_scaled_by_1000 = (int64_t)ldata->last_packet_success_rate * 1000ll;
-  success_scaled_by_1000 = ((int64_t)DATFF_FRAME_SUCCESS_RANGE * 1000ll) * received / total;
+  if (received > total / DATFF_FRAME_SUCCESS_RANGE) {
+    success_scaled_by_1000 = 1000ll;
+  }
+  else {
+    success_scaled_by_1000 = (((int64_t)DATFF_FRAME_SUCCESS_RANGE * 1000ll) * received) / total;
+  }
 
-  if (success_scaled_by_1000 >= last_scaled_by_1000 - 750
-      && success_scaled_by_1000 <= last_scaled_by_1000 + 750) {
+  if (success_scaled_by_1000 >= ldata->last_packet_success_rate - 750
+      && success_scaled_by_1000 <= ldata->last_packet_success_rate + 750
+      ) {
     /* keep old loss rate */
-    success_scaled_by_1000 = last_scaled_by_1000;
+    success_scaled_by_1000 = ldata->last_packet_success_rate;
   }
   else {
     /* remember new loss rate */
-    ldata->last_packet_success_rate = success_scaled_by_1000/1000;
+    ldata->last_packet_success_rate = success_scaled_by_1000;
   }
 
   _calculate_link_neighborhood(lnk, ldata);
@@ -772,15 +780,23 @@ _apply_packet_loss(struct nhdp_link *lnk,
       break;
   }
 
+  tmp_metric = metric;
   while (loss_exponent) {
-    metric = ((int64_t)metric * (int64_t)DATFF_FRAME_SUCCESS_RANGE * 1000ll + 500ll) / success_scaled_by_1000;
+    tmp_metric = (tmp_metric * (int64_t)DATFF_FRAME_SUCCESS_RANGE * 1000ll + 500ll) / success_scaled_by_1000;
     loss_exponent--;
   }
 
-  if (_datff_config.mic) {
-    metric = metric * (int64_t)ldata->link_neigborhood;
+  if (_datff_config.mic && ldata->link_neigborhood > 1) {
+    tmp_metric = tmp_metric * (int64_t)ldata->link_neigborhood;
   }
-  return metric;
+
+  if (tmp_metric > RFC7181_METRIC_MAX) {
+    return RFC7181_METRIC_MAX;
+  }
+  if (tmp_metric < RFC7181_METRIC_MIN) {
+    return RFC7181_METRIC_MIN;
+  }
+  return tmp_metric;
 }
 
 /**
@@ -964,7 +980,7 @@ _int_link_to_string(struct nhdp_metric_str *buf, struct nhdp_link *lnk) {
   }
 
   snprintf(buf->buf, sizeof(*buf), "p_recv=%"PRId64",p_total=%"PRId64","
-      "speed=%"PRId64",success=%u,missed_hello=%d,lastseq=%u,lneigh=%d",
+      "speed=%"PRId64",success=%"PRId64",missed_hello=%d,lastseq=%u,lneigh=%d",
       received, total, (int64_t)_get_median_rx_linkspeed(ldata) * (int64_t)1024,
       ldata->last_packet_success_rate, ldata->missed_hellos,
       ldata->last_seq_nr, ldata->link_neigborhood);
