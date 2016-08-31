@@ -107,6 +107,7 @@ static struct nhdp_domain_mpr _everyone_mprs = {
 /* non-default routing domains registered to NHDP */
 static struct list_entity _domain_list;
 static struct list_entity _domain_listener_list;
+static struct list_entity _domain_metric_postprocessor_list;
 
 static size_t _domain_counter = 0;
 
@@ -134,6 +135,7 @@ nhdp_domain_init(struct oonf_rfc5444_protocol *p) {
   oonf_class_add(&_domain_class);
   list_init_head(&_domain_list);
   list_init_head(&_domain_listener_list);
+  list_init_head(&_domain_metric_postprocessor_list);
 
   avl_init(&_domain_metrics, avl_comp_strcasecmp, false);
   avl_init(&_domain_mprs, avl_comp_strcasecmp, false);
@@ -153,6 +155,7 @@ void
 nhdp_domain_cleanup(void) {
   struct nhdp_domain *domain, *d_it;
   struct nhdp_domain_listener *listener, *l_it;
+  struct nhdp_domain_metric_postprocessor *processor, *p_it;
   int i;
 
   list_for_each_element_safe(&_domain_list, domain, _node, d_it) {
@@ -167,6 +170,9 @@ nhdp_domain_cleanup(void) {
     oonf_class_free(&_domain_class, domain);
   }
 
+  list_for_each_element_safe(&_domain_metric_postprocessor_list, processor, _node, p_it) {
+    nhdp_domain_metric_postprocessor_remove(processor);
+  }
   list_for_each_element_safe(&_domain_listener_list, listener, _node, l_it) {
     nhdp_domain_listener_remove(listener);
   }
@@ -305,6 +311,20 @@ nhdp_domain_listener_remove(struct nhdp_domain_listener *listener) {
   }
 }
 
+void
+nhdp_domain_metric_postprocessor_add(
+    struct nhdp_domain_metric_postprocessor *processor) {
+  list_add_tail(&_domain_metric_postprocessor_list, &processor->_node);
+}
+
+void
+nhdp_domain_metric_postprocessor_remove(
+    struct nhdp_domain_metric_postprocessor *processor) {
+  if (list_is_node_added(&processor->_node)) {
+    list_remove(&processor->_node);
+  }
+}
+
 /**
  * @param ext TLV extension value of MPR/Linkmetrics
  * @return NHDP domain registered to this extension, NULL if not found
@@ -335,6 +355,7 @@ nhdp_domain_init_link(struct nhdp_link *lnk) {
   for (i=0; i<NHDP_MAXIMUM_DOMAINS; i++) {
     lnk->_domaindata[i].metric.in = RFC7181_METRIC_INFINITE;
     lnk->_domaindata[i].metric.out = RFC7181_METRIC_INFINITE;
+    lnk->_domaindata[i].last_metric_change = oonf_clock_getNow();
   }
   list_for_each_element(&_domain_list, domain, _node) {
     data = nhdp_domain_get_linkdata(domain, lnk);
@@ -850,16 +871,28 @@ nhdp_domain_set_flooding_mpr(const char *mpr_name, uint8_t willingness) {
 bool
 nhdp_domain_set_incoming_metric(struct nhdp_domain_metric *metric,
     struct nhdp_link *lnk, uint32_t metric_in) {
+  struct nhdp_domain_metric_postprocessor *processor;
   struct nhdp_link_domaindata *linkdata;
   struct nhdp_domain *domain;
+  uint32_t new_metric;
   bool changed;
 
   changed = false;
+
   list_for_each_element(&_domain_list, domain, _node) {
     if (domain->metric == metric) {
       linkdata = nhdp_domain_get_linkdata(domain, lnk);
-      changed |= (linkdata->metric.in != metric_in);
-      linkdata->metric.in = metric_in;
+      new_metric = metric_in;
+
+      list_for_each_element(&_domain_metric_postprocessor_list, processor, _node) {
+        new_metric = processor->process_in_metric(domain, lnk, new_metric);
+      }
+
+      if (linkdata->metric.in != new_metric) {
+        changed = true;
+        linkdata->last_metric_change = oonf_clock_getNow();
+      }
+      linkdata->metric.in = new_metric;
     }
   }
   return changed;

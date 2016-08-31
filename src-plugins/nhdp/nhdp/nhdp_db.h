@@ -117,6 +117,9 @@ struct nhdp_metric {
 struct nhdp_link_domaindata {
   /*! incoming and outgoing metric cost */
   struct nhdp_metric metric;
+
+  /*! time when this metric value was changed */
+  uint64_t last_metric_change;
 };
 
 /**
@@ -187,6 +190,9 @@ struct nhdp_link {
 
   /*! mac address of remote link end */
   struct netaddr remote_mac;
+
+  /*! timestamp when the current link status was set */
+  uint64_t last_status_change;
 
   /*! internal field for NHDP processing */
   int _process_count;

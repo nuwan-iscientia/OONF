@@ -531,6 +531,8 @@ nhdp_db_link_add(struct nhdp_neighbor *neigh, struct nhdp_interface *local_if) {
     avl_insert(&local_if->_link_originators, &lnk->_originator_node);
   }
 
+  lnk->last_status_change = oonf_clock_getNow();
+
   /* initialize link domain data */
   nhdp_domain_init_link(lnk);
 
@@ -559,6 +561,9 @@ nhdp_db_link_set_unsymmetric(struct nhdp_link *lnk) {
   avl_for_each_element_safe(&lnk->_2hop, twohop, _link_node, th_it) {
     nhdp_db_link_2hop_remove(twohop);
   }
+
+  /* link status was changed */
+  lnk->last_status_change = oonf_clock_getNow();
 
   /* trigger event */
   oonf_class_event(&_link_info, lnk, OONF_OBJECT_CHANGED);
@@ -788,8 +793,10 @@ nhdp_db_link_disconnect_dualstack(struct nhdp_link *lnk) {
  */
 void
 nhdp_db_link_update_status(struct nhdp_link *lnk) {
+  enum nhdp_link_status old_status;
   bool was_symmetric;
 
+  old_status = lnk->status;
   was_symmetric = lnk->status == NHDP_LINK_SYMMETRIC;
 
   /* update link status */
@@ -806,6 +813,11 @@ nhdp_db_link_update_status(struct nhdp_link *lnk) {
   /* trigger ip flooding interface settings recalculation */
   if (was_symmetric != (lnk->status == NHDP_LINK_SYMMETRIC)) {
     nhdp_interface_update_status(lnk->local_if);
+  }
+
+  if (old_status != lnk->status) {
+    /* link status was changed */
+    lnk->last_status_change = oonf_clock_getNow();
   }
 
   /* trigger change event */
