@@ -742,7 +742,7 @@ _apply_packet_loss(struct nhdp_link *lnk,
   int loss_exponent;
   int64_t tmp_metric;
 
-  if (received > total / DATFF_FRAME_SUCCESS_RANGE) {
+  if (received * DATFF_FRAME_SUCCESS_RANGE < total) {
     success_scaled_by_1000 = 1000ll;
   }
   else {
