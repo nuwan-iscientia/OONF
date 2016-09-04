@@ -1,6 +1,6 @@
 # How to Install
 
-See http://www.olsr.org/mediawiki/index.php/OLSR.org_Network_Framework#Requirements
+See http://www.olsr.org/mediawiki/index.php/OLSR.org_Network_Framework
 
 ## Installing from source
 
