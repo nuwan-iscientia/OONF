@@ -1,15 +1,26 @@
 # How to Install
 
+See http://www.olsr.org/mediawiki/index.php/OLSR.org_Network_Framework#Requirements
+
 ## Installing from source
+
+Get your code from the OLSR.org Network Framework GitHub:
+(see https://github.com/OLSR/OONF)
+
+ * ``git clone https://github.com/OLSR/OONF.git``
 
 ### Pre-requisites
 
+Download and install the neccessary build requirements
+(see http://www.olsr.org/mediawiki/index.php/OLSR.org_Network_Framework#Requirements)
+
+For Debian you will mostly need the following ones:
   * cmake: ``sudo apt-get install cmake``
   * build-essentials: ``sudo apt-get install build-essential``
 
-
 ## Compiling
-  * ``cmake .``
+  * ``cd build``
+  * ``cmake ..``
   * ``make``
 
 ## Configuring OLSRv2
@@ -20,17 +31,13 @@ Assuming your interfaces you want olsrd2 to listen on are ``eth0, wlan0 and lo``
 
   * ``sudo ./olsrd2_static eth0 wlan0 lo``
 
-You won't see much output though. You can enable more output (by default it comes on stderr) via:
+You won't see much output though. You can enable more output (by default it comes on stderr) for several subsystems. You can get a list of these subsystems with:
 
-  * ``sudo ./olsrd2_static --schema=log.debug``
+  * ``./olsrd2_static --schema=log.info``
+  * ``./olsrd2_static --schema=log.debug``
 
-This shows you which debug schemas exist. Let's say we are interested in the neighbor disovery protocol ("Hello message"). We can set this subsystem to debug level via:
+This shows you which info and debug schemas exist. Let's say we are interested in the neighborhood disovery protocol (NHDP, RFC6130, "Hello messages"). We can set this subsystem writing actions to debug level via:
 
-  * ``sudo ./olsrd2_static --set=log.debug=layer2 eth0 wlan0  lo``
+  * ``sudo ./olsrd2_static --set=log.debug=nhdp_w eth0 wlan0  lo``
 
 You should now see some output which shows you the info from the hello packets.
-
-
-
-
-  
