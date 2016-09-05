@@ -1,6 +1,6 @@
 # How to Install
 
-See http://www.olsr.org/mediawiki/index.php/OLSR.org_Network_Framework
+See http://www.olsr.org/mediawiki/index.php/OLSR.org_Network_Framework for a longer explanation. This README is the short version.
 
 ## Installing from source
 
@@ -16,7 +16,7 @@ Download and install the neccessary build requirements
 
 For Debian you will mostly need the following ones:
   * cmake: ``sudo apt-get install cmake``
-  * build-essentials: ``sudo apt-get install build-essential``
+  * build-essentials: ``sudo apt-get install build-essential libnl-3-dev``
 
 ## Compiling
   * ``cd build``
@@ -41,3 +41,7 @@ This shows you which info and debug schemas exist. Let's say we are interested i
   * ``sudo ./olsrd2_static --set=log.debug=nhdp_w eth0 wlan0  lo``
 
 You should now see some output which shows you the info from the hello packets.
+
+## How to proceed from here
+
+If you managed to start olsrd2 and see some output, you made it! Now is the time to review the detailed configuration setups at http://www.olsr.org/mediawiki/index.php/OLSR_network_deployments 
