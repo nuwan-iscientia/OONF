@@ -198,6 +198,8 @@ static struct cfg_schema_entry _interface_entries[] = {
     "DSCP field for outgoing UDP protocol traffic", 0, false, 0, 255),
   CFG_MAP_BOOL(oonf_packet_managed_config, rawip, "rawip", "false",
     "True if a raw IP socket should be used, false to use UDP"),
+  CFG_MAP_INT32_MINMAX(oonf_packet_managed_config, ttl_multicast, "multicast_ttl", "1",
+    "TTL value of outgoing multicast traffic", 0, false, 1, 255),
 };
 
 static struct cfg_schema_section _interface_section = {

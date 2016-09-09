@@ -112,7 +112,7 @@ static INLINE int os_fd_set_nonblocking(struct os_fd *);
 static INLINE int os_fd_join_mcast_recv(struct os_fd *, const struct netaddr *multicast,
     const struct os_interface *, enum oonf_log_source log_src);
 static INLINE int os_fd_join_mcast_send(struct os_fd *, const struct netaddr *multicast,
-    const struct os_interface *, bool loop, enum oonf_log_source log_src);
+    const struct os_interface *, bool loop, uint8_t ttl, enum oonf_log_source log_src);
 static INLINE int os_fd_set_dscp(struct os_fd *, int dscp, bool ipv6);
 static INLINE uint8_t *os_fd_skip_rawsocket_prefix(uint8_t *ptr, ssize_t *len, int af_type);
 

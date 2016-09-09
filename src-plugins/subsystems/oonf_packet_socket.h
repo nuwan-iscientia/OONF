@@ -148,6 +148,9 @@ struct oonf_packet_managed_config {
   /*! true if multicast should be looped locally */
   bool loop_multicast;
 
+  /*! TTL of outgoing multicast traffic */
+  int32_t ttl_multicast;
+
   /*! true if socket needs interface to switch to mesh mode */
   bool mesh;
 

@@ -192,13 +192,14 @@ os_fd_join_mcast_recv(struct os_fd *sock, const struct netaddr *multicast,
  * @param os_if outgoing interface for multicast,
  *   NULL if not interface specific
  * @param loop true if multicast should be locally looped
+ * @param ttl TTL of the multicast, 0 will be considered as ttl 1
  * @param log_src logging source for error messages
  * @return -1 if an error happened, 0 otherwise
  */
 static INLINE int
 os_fd_join_mcast_send(struct os_fd *sock, const struct netaddr *multicast,
-    const struct os_interface *os_if, bool loop, enum oonf_log_source log_src) {
-  return os_fd_generic_join_mcast_send(sock, multicast, os_if, loop, log_src);
+    const struct os_interface *os_if, bool loop, uint8_t ttl, enum oonf_log_source log_src) {
+  return os_fd_generic_join_mcast_send(sock, multicast, os_if, loop, ttl, log_src);
 }
 /**
  * Redirect to generic set_dscp call
