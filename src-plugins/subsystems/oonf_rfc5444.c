@@ -894,7 +894,7 @@ oonf_rfc5444_send_target_data(struct oonf_rfc5444_target *target,
     return;
   }
   if (target == target->interface->multicast4
-      || target == target->interface->multicast4) {
+      || target == target->interface->multicast6) {
     oonf_packet_send_managed_multicast(&target->interface->_socket,
         ptr, len, netaddr_get_address_family(&target->dst));
   }
