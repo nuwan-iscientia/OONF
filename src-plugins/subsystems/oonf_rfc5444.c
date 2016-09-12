@@ -89,6 +89,9 @@ static void _cleanup(void);
 static struct oonf_rfc5444_target *_create_target(
     struct oonf_rfc5444_interface *, struct netaddr *dst, bool unicast);
 static void _destroy_target(struct oonf_rfc5444_target *);
+static void _print_packet_to_buffer(enum oonf_log_source source,
+    union netaddr_socket *sock, struct oonf_rfc5444_interface *interf,
+    const uint8_t *ptr, size_t len, const char *success, const char *error);
 
 static void _cb_receive_data(struct oonf_packet_socket *,
       union netaddr_socket *from, void *ptr, size_t length);
@@ -97,7 +100,7 @@ static void _cb_send_unicast_packet(
 static void _cb_send_multicast_packet(
     struct rfc5444_writer *, struct rfc5444_writer_target *, void *, size_t);
 static void _cb_forward_message(struct rfc5444_reader_tlvblock_context *context,
-    uint8_t *buffer, size_t length);
+    const uint8_t *buffer, size_t length);
 static void _cb_forwarding_notifier(struct rfc5444_writer_target *);
 
 static bool _cb_single_target_selector(struct rfc5444_writer *, struct rfc5444_writer_target *, void *);
@@ -867,6 +870,40 @@ oonf_rfc5444_remove_target(struct oonf_rfc5444_target *target) {
 }
 
 /**
+ * Send a raw RFC5444 packet to a target
+ * @param target target for the packet data
+ * @param ptr pointer to data
+ * @param len length of data
+ */
+void
+oonf_rfc5444_send_target_data(struct oonf_rfc5444_target *target,
+    const void *ptr, size_t len) {
+  union netaddr_socket sock;
+  struct os_interface_listener *interf;
+
+  interf = oonf_rfc5444_get_core_if_listener(target->interface);
+  netaddr_socket_init(&sock, &target->dst, target->interface->protocol->port,
+      interf->data->index);
+
+  _print_packet_to_buffer(LOG_RFC5444_W, &sock, target->interface, ptr, len,
+      "Outgoing RFC5444 packet to",
+      "Error while parsing outgoing RFC5444 packet to");
+
+  if (_block_output) {
+    OONF_DEBUG(LOG_RFC5444, "Output blocked");
+    return;
+  }
+  if (target == target->interface->multicast4
+      || target == target->interface->multicast4) {
+    oonf_packet_send_managed_multicast(&target->interface->_socket,
+        ptr, len, netaddr_get_address_family(&target->dst));
+  }
+  else {
+    oonf_packet_send_managed(&target->interface->_socket, &sock, ptr, len);
+  }
+}
+
+/**
  * @param target oonf rfc5444 target
  * @return local socket corresponding to target destination
  */
@@ -988,7 +1025,7 @@ static void
 _print_packet_to_buffer(enum oonf_log_source source,
     union netaddr_socket *sock __attribute__((unused)),
     struct oonf_rfc5444_interface *interf __attribute__((unused)),
-    uint8_t *ptr, size_t len,
+    const uint8_t *ptr, size_t len,
     const char *success __attribute__((unused)),
     const char *error __attribute__((unused))) {
   enum rfc5444_result result;
@@ -1142,7 +1179,7 @@ _cb_send_unicast_packet(struct rfc5444_writer *writer __attribute__((unused)),
 static void
 _cb_forward_message(
     struct rfc5444_reader_tlvblock_context *context,
-    uint8_t *buffer, size_t length) {
+    const uint8_t *buffer, size_t length) {
   struct oonf_rfc5444_protocol *protocol;
   enum rfc5444_result result;
 

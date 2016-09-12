@@ -69,19 +69,19 @@ static uint16_t _calc_tlvconsumer_intorder(struct rfc5444_reader_tlvblock_consum
 static uint16_t _calc_tlvblock_intorder(struct rfc5444_reader_tlvblock_entry *entry);
 static int _compare_tlvtypes(struct rfc5444_reader_tlvblock_entry *tlv,
     struct rfc5444_reader_tlvblock_consumer_entry *entry);
-static uint8_t _rfc5444_get_u8(uint8_t **ptr, uint8_t *end, enum rfc5444_result *result);
-static uint16_t _rfc5444_get_u16(uint8_t **ptr, uint8_t *end, enum rfc5444_result *result);
+static uint8_t _rfc5444_get_u8(const uint8_t **ptr, const uint8_t *end, enum rfc5444_result *result);
+static uint16_t _rfc5444_get_u16(const uint8_t **ptr, const uint8_t *end, enum rfc5444_result *result);
 static void _free_tlvblock(struct rfc5444_reader *parser, struct avl_tree *entries);
-static int _parse_tlv(struct rfc5444_reader_tlvblock_entry *entry, uint8_t **ptr,
-    uint8_t *eob, uint8_t addr_count);
+static int _parse_tlv(struct rfc5444_reader_tlvblock_entry *entry, const uint8_t **ptr,
+    const uint8_t *eob, uint8_t addr_count);
 static int _parse_tlvblock(struct rfc5444_reader *parser,
-    struct avl_tree *tlvblock, uint8_t **ptr, uint8_t *eob, uint8_t addr_count);
+    struct avl_tree *tlvblock, const uint8_t **ptr, const uint8_t *eob, uint8_t addr_count);
 static int _schedule_tlvblock(struct rfc5444_reader_tlvblock_consumer *consumer,
     struct rfc5444_reader_tlvblock_context *context, struct avl_tree *entries, uint8_t idx);
 static int _parse_addrblock(struct rfc5444_reader_addrblock_entry *addr_entry,
-    struct rfc5444_reader_tlvblock_context *tlv_context, uint8_t **ptr, uint8_t *eob);
+    struct rfc5444_reader_tlvblock_context *tlv_context, const uint8_t **ptr, const uint8_t *eob);
 static int _handle_message(struct rfc5444_reader *parser,
-    struct rfc5444_reader_tlvblock_context *tlv_context, uint8_t **ptr, uint8_t *eob);
+    struct rfc5444_reader_tlvblock_context *tlv_context, const uint8_t **ptr, const uint8_t *eob);
 static struct rfc5444_reader_tlvblock_consumer *_add_consumer(
     struct rfc5444_reader_tlvblock_consumer *, struct avl_tree *consumer_tree,
     struct rfc5444_reader_tlvblock_consumer_entry *entries, int entrycount);
@@ -133,11 +133,12 @@ rfc5444_reader_cleanup(struct rfc5444_reader *context) {
  * @return RFC5444_OKAY (0) if successful, RFC5444_... otherwise
  */
 enum rfc5444_result
-rfc5444_reader_handle_packet(struct rfc5444_reader *parser, uint8_t *buffer, size_t length) {
+rfc5444_reader_handle_packet(struct rfc5444_reader *parser,
+    const uint8_t *buffer, size_t length) {
   struct rfc5444_reader_tlvblock_context context;
   struct avl_tree entries;
   struct rfc5444_reader_tlvblock_consumer *consumer, *last_started;
-  uint8_t *ptr, *eob;
+  const uint8_t *ptr, *eob;
   bool has_tlv;
   uint8_t first_byte;
   enum rfc5444_result result = RFC5444_OKAY;
@@ -394,7 +395,7 @@ _compare_tlvtypes(struct rfc5444_reader_tlvblock_entry *tlv, struct rfc5444_read
  * @return uint8_t value of the next byte
  */
 static uint8_t
-_rfc5444_get_u8(uint8_t **ptr, uint8_t *end, enum rfc5444_result *error) {
+_rfc5444_get_u8(const uint8_t **ptr, const uint8_t *end, enum rfc5444_result *error) {
   uint8_t result;
   if (*error != RFC5444_OKAY) {
     return 0;
@@ -419,7 +420,7 @@ _rfc5444_get_u8(uint8_t **ptr, uint8_t *end, enum rfc5444_result *error) {
  * @return uint16_t value of the next word (network byte order)
  */
 static uint16_t
-_rfc5444_get_u16(uint8_t **ptr, uint8_t *end, enum rfc5444_result *error) {
+_rfc5444_get_u16(const uint8_t **ptr, const uint8_t *end, enum rfc5444_result *error) {
   return ((uint16_t)_rfc5444_get_u8(ptr, end, error) << 8)
       | (uint16_t)_rfc5444_get_u8(ptr, end, error);
 }
@@ -449,7 +450,8 @@ _free_tlvblock(struct rfc5444_reader *parser, struct avl_tree *entries) {
  * @return -1 if an error happened, 0 otherwise
  */
 static enum rfc5444_result
-_parse_tlv(struct rfc5444_reader_tlvblock_entry *entry, uint8_t **ptr, uint8_t *eob, uint8_t addr_count) {
+_parse_tlv(struct rfc5444_reader_tlvblock_entry *entry,
+    const uint8_t **ptr, const uint8_t *eob, uint8_t addr_count) {
   enum rfc5444_result result = RFC5444_OKAY;
   uint8_t masked, count;
 
@@ -552,12 +554,12 @@ _parse_tlv(struct rfc5444_reader_tlvblock_entry *entry, uint8_t **ptr, uint8_t *
  *   packet tlv * @return -1 if an error happened, 0 otherwise
  */
 static enum rfc5444_result
-_parse_tlvblock(struct rfc5444_reader *parser,
-    struct avl_tree *tlvblock, uint8_t **ptr, uint8_t *eob, uint8_t addr_count) {
+_parse_tlvblock(struct rfc5444_reader *parser, struct avl_tree *tlvblock,
+    const uint8_t **ptr, const uint8_t *eob, uint8_t addr_count) {
   enum rfc5444_result result = RFC5444_OKAY;
   struct rfc5444_reader_tlvblock_entry *tlv1 = NULL;
   struct rfc5444_reader_tlvblock_entry entry;
-  uint8_t *end;
+  const uint8_t *end;
 
   /* get length of TLV block */
   end = (*ptr) + 2;
@@ -803,7 +805,8 @@ cleanup_handle_tlvblock:
  */
 static enum rfc5444_result
 _parse_addrblock(struct rfc5444_reader_addrblock_entry *addr_entry,
-    struct rfc5444_reader_tlvblock_context *tlv_context, uint8_t **ptr, uint8_t *eob) {
+    struct rfc5444_reader_tlvblock_context *tlv_context,
+    const uint8_t **ptr, const uint8_t *eob) {
   enum rfc5444_result result = RFC5444_OKAY;
   uint8_t flags;
   uint8_t tail_len;
@@ -1063,12 +1066,13 @@ schedule_end_message_cbs(struct rfc5444_reader_tlvblock_context *tlv_context,
  */
 static enum rfc5444_result
 _handle_message(struct rfc5444_reader *parser,
-    struct rfc5444_reader_tlvblock_context *tlv_context, uint8_t **ptr, uint8_t *eob) {
+    struct rfc5444_reader_tlvblock_context *tlv_context,
+    const uint8_t **ptr, const uint8_t *eob) {
   struct avl_tree tlv_entries;
   struct rfc5444_reader_tlvblock_consumer *consumer, *same_order[2];
   struct list_entity addr_head;
   struct rfc5444_reader_addrblock_entry *addr, *safe;
-  uint8_t *start, *end = NULL;
+  const uint8_t *start, *end = NULL;
   uint8_t flags;
   uint16_t size;
 

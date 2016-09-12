@@ -440,7 +440,7 @@ nhdp_domain_init_neighbor(struct nhdp_neighbor *neigh) {
  */
 void
 nhdp_domain_process_metric_linktlv(struct nhdp_domain *domain,
-    struct nhdp_link *lnk, uint8_t *value) {
+    struct nhdp_link *lnk, const uint8_t *value) {
   struct rfc7181_metric_field metric_field;
   uint32_t metric;
 
@@ -463,7 +463,7 @@ nhdp_domain_process_metric_linktlv(struct nhdp_domain *domain,
  */
 void
 nhdp_domain_process_metric_2hoptlv(struct nhdp_domain *domain,
-    struct nhdp_l2hop *l2hop, uint8_t *value) {
+    struct nhdp_l2hop *l2hop, const uint8_t *value) {
   struct rfc7181_metric_field metric_field;
   struct nhdp_l2hop_domaindata *data;
   uint32_t metric;

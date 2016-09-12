@@ -446,7 +446,8 @@ bool rfc5444_writer_alltargets_selector(struct rfc5444_writer *writer __attribut
  */
 enum rfc5444_result
 rfc5444_writer_forward_msg(struct rfc5444_writer *writer,
-    struct rfc5444_reader_tlvblock_context *context, uint8_t *msg, size_t len) {
+    struct rfc5444_reader_tlvblock_context *context,
+    const uint8_t *msg, size_t len) {
   struct rfc5444_writer_target *target;
   struct rfc5444_writer_message *rfc5444_msg;
   int cnt, hopcount = -1, hoplimit = -1;

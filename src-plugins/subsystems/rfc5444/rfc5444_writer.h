@@ -647,7 +647,7 @@ EXPORT enum rfc5444_result rfc5444_writer_create_message(
     rfc5444_writer_targetselector useIf, void *param);
 
 EXPORT enum rfc5444_result rfc5444_writer_forward_msg(struct rfc5444_writer *writer,
-    struct rfc5444_reader_tlvblock_context *context, uint8_t *msg, size_t len);
+    struct rfc5444_reader_tlvblock_context *context, const uint8_t *msg, size_t len);
 
 EXPORT void rfc5444_writer_flush(struct rfc5444_writer *, struct rfc5444_writer_target *, bool);
 

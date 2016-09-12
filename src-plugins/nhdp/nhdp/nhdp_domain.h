@@ -282,9 +282,9 @@ EXPORT void nhdp_domain_init_l2hop(struct nhdp_l2hop *);
 EXPORT void nhdp_domain_init_neighbor(struct nhdp_neighbor *);
 
 EXPORT void nhdp_domain_process_metric_linktlv(struct nhdp_domain *,
-    struct nhdp_link *lnk, uint8_t *value);
+    struct nhdp_link *lnk, const uint8_t *value);
 EXPORT void nhdp_domain_process_metric_2hoptlv(struct nhdp_domain *d,
-    struct nhdp_l2hop *l2hop, uint8_t *value);
+    struct nhdp_l2hop *l2hop, const uint8_t *value);
 
 EXPORT void nhdp_domain_neighborhood_changed(void);
 EXPORT void nhdp_domain_neighbor_changed(struct nhdp_neighbor *neigh);
