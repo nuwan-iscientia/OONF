@@ -454,7 +454,8 @@ rfc5444_writer_forward_msg(struct rfc5444_writer *writer,
   struct rfc5444_writer_target *target;
   struct rfc5444_writer_message *rfc5444_msg;
   struct rfc5444_writer_forward_handler *handler;
-  int cnt, hopcount = -1, hoplimit = -1;
+  int cnt, hopcount, hoplimit;
+  size_t max, transformer_overhead;
   uint16_t size;
   size_t generic_size, msg_size;
   uint8_t flags, addr_len;
@@ -477,8 +478,6 @@ rfc5444_writer_forward_msg(struct rfc5444_writer *writer,
 
   /* 1.) first flush all interfaces that have (too) full buffers */
   list_for_each_element(&writer->_targets, target, _target_node) {
-    size_t max, transformer_overhead;
-
     if (!rfc5444_msg->forward_target_selector(target, context)) {
       continue;
     }
@@ -490,6 +489,7 @@ rfc5444_writer_forward_msg(struct rfc5444_writer *writer,
       }
     }
 
+    max = 0;
     if (!target->_is_flushed) {
       max = target->_pkt.max - (target->_pkt.header + target->_pkt.added + target->_pkt.allocated);
 
@@ -545,6 +545,9 @@ rfc5444_writer_forward_msg(struct rfc5444_writer *writer,
   }
 
   cnt = 4;
+  hopcount = -1;
+  hoplimit = -1;
+
   if ((flags & RFC5444_MSG_FLAG_ORIGINATOR) != 0) {
     cnt += addr_len;
   }
