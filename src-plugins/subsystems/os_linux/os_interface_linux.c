@@ -969,13 +969,15 @@ _link_parse_nlmsg(const char *ifname, struct nlmsghdr *msg) {
   ifdata->flags.promisc = (ifi_msg->ifi_flags & IFF_PROMISC) != 0;
   ifdata->flags.pointtopoint = (ifi_msg->ifi_flags & IFF_POINTOPOINT) != 0;
   ifdata->flags.loopback = (ifi_msg->ifi_flags & IFF_LOOPBACK) != 0;
+  ifdata->flags.unicast_only = (ifi_msg->ifi_flags & IFF_MULTICAST) == 0;
 
-  OONF_DEBUG(LOG_OS_INTERFACE, "Parse IFI_LINK %s (%u): %c%c%c%c",
+  OONF_DEBUG(LOG_OS_INTERFACE, "Parse IFI_LINK %s (%u): %c%c%c%c%c",
       ifname, ifi_msg->ifi_index,
       ifdata->flags.up ? 'u' : '-',
       ifdata->flags.promisc ? 'p' : '-',
       ifdata->flags.pointtopoint ? 'P' : '-',
-      ifdata->flags.loopback ? 'l' : '-');
+      ifdata->flags.loopback ? 'l' : '-',
+      ifdata->flags.unicast_only ? 'U' : '-');
 
   ifdata->index = ifi_msg->ifi_index;
   ifdata->base_index = ifdata->index;
