@@ -74,11 +74,16 @@ struct _rfc5444_config {
 
   /*! IP protocol number to be used for RFC5444 communication */
   int ip_proto;
+};
 
-  /**
-   * interval to wait for aggregating
-   * RFC5444 messages on the same target
-   */
+/**
+ * RFC5444 interface specific configuration
+ */
+struct _rfc5444_if_config {
+  /*! packet socket configuration */
+  struct oonf_packet_managed_config sock;
+
+  /*! maximum aggregation interval for this interface */
   uint64_t aggregation_interval;
 };
 
@@ -101,7 +106,7 @@ static void _cb_send_multicast_packet(
     struct rfc5444_writer *, struct rfc5444_writer_target *, void *, size_t);
 static void _cb_forward_message(struct rfc5444_reader_tlvblock_context *context,
     const uint8_t *buffer, size_t length);
-static void _cb_forwarding_notifier(struct rfc5444_writer_target *);
+static void _cb_msggen_notifier(struct rfc5444_writer_target *);
 
 static bool _cb_single_target_selector(struct rfc5444_writer *, struct rfc5444_writer_target *, void *);
 static bool _cb_filtered_targets_selector(struct rfc5444_writer *writer,
@@ -175,8 +180,6 @@ static struct cfg_schema_entry _rfc5444_entries[] = {
     "UDP port for RFC5444 interface", 0, false, 1, 65535),
   CFG_MAP_INT32_MINMAX(_rfc5444_config, ip_proto, "ip_proto", RFC5444_MANET_IPPROTO_TXT,
     "IP protocol for RFC5444 interface", 0, false, 1, 255),
-  CFG_MAP_CLOCK(_rfc5444_config, aggregation_interval, "agregation_interval", "0.100",
-    "Interval in seconds for message aggregation"),
 };
 
 static struct cfg_schema_section _rfc5444_section = {
@@ -188,21 +191,24 @@ static struct cfg_schema_section _rfc5444_section = {
 };
 
 static struct cfg_schema_entry _interface_entries[] = {
-  CFG_MAP_ACL_V46(oonf_packet_managed_config, acl, "acl", ACL_DEFAULT_ACCEPT,
+  CFG_MAP_ACL_V46(_rfc5444_if_config, sock.acl, "acl", ACL_DEFAULT_ACCEPT,
     "Access control list for RFC5444 interface"),
-  CFG_MAP_ACL_V46(oonf_packet_managed_config, bindto, "bindto",
+  CFG_MAP_ACL_V46(_rfc5444_if_config, sock.bindto, "bindto",
       "-127.0.0.0/8\0" "fe80::/10\0" "-::/0\0" ACL_FIRST_ACCEPT "\0" ACL_DEFAULT_ACCEPT,
     "Bind RFC5444 socket to an address matching this filter (both IPv4 and IPv6)"),
-  CFG_MAP_NETADDR_V4(oonf_packet_managed_config, multicast_v4, "multicast_v4", RFC5444_MANET_MULTICAST_V4_TXT,
+  CFG_MAP_NETADDR_V4(_rfc5444_if_config, sock.multicast_v4, "multicast_v4", RFC5444_MANET_MULTICAST_V4_TXT,
     "ipv4 multicast address of this socket", false, true),
-  CFG_MAP_NETADDR_V6(oonf_packet_managed_config, multicast_v6, "multicast_v6", RFC5444_MANET_MULTICAST_V6_TXT,
+  CFG_MAP_NETADDR_V6(_rfc5444_if_config, sock.multicast_v6, "multicast_v6", RFC5444_MANET_MULTICAST_V6_TXT,
     "ipv6 multicast address of this socket", false, true),
-  CFG_MAP_INT32_MINMAX(oonf_packet_managed_config, dscp, "dscp", "192",
+  CFG_MAP_INT32_MINMAX(_rfc5444_if_config, sock.dscp, "dscp", "192",
     "DSCP field for outgoing UDP protocol traffic", 0, false, 0, 255),
-  CFG_MAP_BOOL(oonf_packet_managed_config, rawip, "rawip", "false",
+  CFG_MAP_BOOL(_rfc5444_if_config, sock.rawip, "rawip", "false",
     "True if a raw IP socket should be used, false to use UDP"),
-  CFG_MAP_INT32_MINMAX(oonf_packet_managed_config, ttl_multicast, "multicast_ttl", "1",
+  CFG_MAP_INT32_MINMAX(_rfc5444_if_config, sock.ttl_multicast, "multicast_ttl", "1",
     "TTL value of outgoing multicast traffic", 0, false, 1, 255),
+  CFG_MAP_CLOCK(_rfc5444_if_config, aggregation_interval, "aggregation_interval", "0.100",
+    "Interval in seconds for message aggregation"),
+
 };
 
 static struct cfg_schema_section _interface_section = {
@@ -213,8 +219,6 @@ static struct cfg_schema_section _interface_section = {
   .entry_count = ARRAYSIZE(_interface_entries),
   .next_section = &_rfc5444_section,
 };
-
-static uint64_t _aggregation_interval;
 
 /* rfc5444 handling */
 static const struct rfc5444_reader _reader_template = {
@@ -399,11 +403,6 @@ enum rfc5444_result oonf_rfc5444_send_if(
     return RFC5444_OKAY;
   }
 
-  if (!oonf_timer_is_active(&target->_aggregation)) {
-    /* activate aggregation timer */
-    oonf_timer_start(&target->_aggregation, _aggregation_interval);
-  }
-
   /* create message */
   OONF_INFO(LOG_RFC5444, "Create message id %d for protocol %s/target %s on interface %s",
       msgid, target->interface->protocol->name, netaddr_to_string(&buf, &target->dst),
@@ -466,7 +465,7 @@ oonf_rfc5444_add_protocol(const char *name, bool fixed_local_port) {
     rfc5444_reader_init(&protocol->reader);
     rfc5444_writer_init(&protocol->writer);
 
-    protocol->writer.forwarding_notifier = _cb_forwarding_notifier;
+    protocol->writer.message_generation_notifier = _cb_msggen_notifier;
 
     /* initialize processing and forwarding set */
     oonf_duplicate_set_add(&protocol->forwarded_set, OONF_DUPSET_16BIT);
@@ -904,6 +903,42 @@ oonf_rfc5444_send_target_data(struct oonf_rfc5444_target *target,
 }
 
 /**
+ * Send a raw RFC5444 packet through an interface to a destination address
+ * @param interf rfc5444 interface
+ * @param dst destination address for packet
+ * @param ptr pointer to data
+ * @param len length of data
+ */
+void
+oonf_rfc5444_send_interface_data(struct oonf_rfc5444_interface *interf,
+    const struct netaddr *dst, const void *ptr, size_t len) {
+  union netaddr_socket sock;
+  struct os_interface_listener *os_interf;
+
+  os_interf = oonf_rfc5444_get_core_if_listener(interf);
+  netaddr_socket_init(&sock, dst, interf->protocol->port,
+      os_interf->data->index);
+
+  _print_packet_to_buffer(LOG_RFC5444_W, &sock, interf, ptr, len,
+      "Outgoing RFC5444 packet to",
+      "Error while parsing outgoing RFC5444 packet to");
+
+  if (_block_output) {
+    OONF_DEBUG(LOG_RFC5444, "Output blocked");
+    return;
+  }
+
+  if (netaddr_is_in_subnet(&NETADDR_IPV4_MULTICAST, dst)
+      || netaddr_is_in_subnet(&NETADDR_IPV6_MULTICAST, dst)) {
+    oonf_packet_send_managed_multicast(&interf->_socket,
+        ptr, len, netaddr_get_address_family(dst));
+  }
+  else {
+    oonf_packet_send_managed(&interf->_socket, &sock, ptr, len);
+  }
+}
+
+/**
  * @param target oonf rfc5444 target
  * @return local socket corresponding to target destination
  */
@@ -1074,11 +1109,11 @@ _cb_receive_data(struct oonf_packet_socket *sock,
     return;
   }
 
-  protocol->input_socket = from;
-  protocol->input_address = &source_ip;
+  protocol->input.src_socket = from;
+  protocol->input.src_address = &source_ip;
+  protocol->input.interface = interf;
 
-  protocol->input_interface = interf;
-  protocol->input_is_multicast =
+  protocol->input.is_multicast =
       sock == &interf->_socket.multicast_v4
       || sock == &interf->_socket.multicast_v6;
 
@@ -1197,13 +1232,13 @@ _cb_forward_message(
 }
 
 static void
-_cb_forwarding_notifier(struct rfc5444_writer_target *rfc5444target) {
+_cb_msggen_notifier(struct rfc5444_writer_target *rfc5444target) {
   struct oonf_rfc5444_target *target;
 
   target = container_of(rfc5444target, struct oonf_rfc5444_target, rfc5444_target);
   if (!oonf_timer_is_active(&target->_aggregation)) {
     /* activate aggregation timer */
-    oonf_timer_start(&target->_aggregation, _aggregation_interval);
+    oonf_timer_start(&target->_aggregation, target->interface->aggregation_interval);
   }
 }
 
@@ -1249,11 +1284,6 @@ _cb_filtered_targets_selector(struct rfc5444_writer *writer,
   /* check if user deselected the target */
   if (!userUseIf(writer, rfc5444_target, NULL)) {
     return false;
-  }
-
-  if (!oonf_timer_is_active(&target->_aggregation)) {
-    /* activate aggregation timer */
-    oonf_timer_start(&target->_aggregation, _aggregation_interval);
   }
 
   /* create message */
@@ -1393,7 +1423,6 @@ _cb_cfg_rfc5444_changed(void) {
   /* apply values */
   oonf_rfc5444_reconfigure_protocol(_rfc5444_protocol,
       config.port, config.ip_proto);
-  _aggregation_interval = config.aggregation_interval;
 }
 
 /**
@@ -1401,7 +1430,7 @@ _cb_cfg_rfc5444_changed(void) {
  */
 static void
 _cb_cfg_interface_changed(void) {
-  struct oonf_packet_managed_config config;
+  struct _rfc5444_if_config config;
   struct oonf_rfc5444_interface *interf;
   const char *ifname;
   char ifbuf[IF_NAMESIZE];
@@ -1440,11 +1469,12 @@ _cb_cfg_interface_changed(void) {
     }
   }
 
-  oonf_rfc5444_reconfigure_interface(interf, &config);
+  oonf_rfc5444_reconfigure_interface(interf, &config.sock);
+  interf->aggregation_interval = config.aggregation_interval;
 
   /* fall through */
 interface_changed_cleanup:
-  oonf_packet_free_managed_config(&config);
+  oonf_packet_free_managed_config(&config.sock);
 }
 
 /**

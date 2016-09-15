@@ -185,7 +185,7 @@ rfc5444_writer_flush(struct rfc5444_writer *writer,
     }
   }
 
-  if (!error) {
+  if (!error && total > 0) {
     /* send packet */
     target->sendPacket(writer, target, target->_pkt.buffer,total);
   }

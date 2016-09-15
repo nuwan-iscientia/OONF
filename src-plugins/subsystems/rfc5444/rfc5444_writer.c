@@ -107,6 +107,7 @@ rfc5444_writer_init(struct rfc5444_writer *writer) {
 
   avl_init(&writer->_msgcreators, avl_comp_uint8, false);
   avl_init(&writer->_processors, avl_comp_int32, true);
+  avl_init(&writer->_forwarding_processors, avl_comp_int32, true);
 
 #if WRITER_STATE_MACHINE == true
   writer->_state = RFC5444_WRITER_NONE;
@@ -474,6 +475,31 @@ rfc5444_writer_unregister_postprocessor(struct rfc5444_writer *writer,
     struct rfc5444_writer_postprocessor *processor) {
   if (avl_is_node_added(&processor->_node)) {
     avl_remove(&writer->_processors, &processor->_node);
+  }
+}
+
+/**
+ * Registers a new post-processor
+ * @param writer rfc5444 writer
+ * @param processor rfc5444 post-processor
+ */
+void
+rfc5444_writer_register_forward_handler(struct rfc5444_writer *writer,
+    struct rfc5444_writer_forward_handler *forward) {
+  forward->_node.key = &forward->priority;
+  avl_insert(&writer->_forwarding_processors, &forward->_node);
+}
+
+/**
+ * Unregisters a post-processor
+ * @param writer rfc5444 writer
+ * @param processor rfc5444 post-processor
+ */
+void
+rfc5444_writer_unregister_forward_handler(struct rfc5444_writer *writer,
+    struct rfc5444_writer_forward_handler *forward) {
+  if (avl_is_node_added(&forward->_node)) {
+    avl_remove(&writer->_forwarding_processors, &forward->_node);
   }
 }
 

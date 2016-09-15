@@ -75,15 +75,6 @@ enum {
 #define CFG_RFC5444_SECTION "mesh"
 
 enum {
-  /*! Maximum packet size for this RFC5444 multiplexer */
-  RFC5444_MAX_PACKET_SIZE = 1500-20-8,
-
-  /**
-   * Maximum message size for this RFC5444 multiplexer
-   * (minimal ipv6 mtu - ipv6/udp/rfc5444packet/vlan-header)
-   */
-  RFC5444_MAX_MESSAGE_SIZE = 1280-40-8-3-4,
-
   /*! Maximum buffer size for address TLVs before splitting */
   RFC5444_ADDRTLV_BUFFER = 65536,
 };
@@ -103,6 +94,22 @@ enum {
 struct oonf_rfc5444_target;
 
 /**
+ * Parameters regarding currently parsed RFC5444 packet
+ */
+struct oonf_rfc5444_input_parameters {
+  /*! source address of currently parsed RFC5444 packet */
+  struct netaddr *src_address;
+
+  /*! source address and port of currently parsed RFC5444 packet */
+  union netaddr_socket *src_socket;
+
+  /*! interface of currently parsed RFC5444 packet */
+  struct oonf_rfc5444_interface *interface;
+
+  /*! true if currently parsed RFC5444 packet was multicast */
+  bool is_multicast;
+};
+/**
  * Representation of a rfc5444 based protocol
  */
 struct oonf_rfc5444_protocol {
@@ -118,20 +125,11 @@ struct oonf_rfc5444_protocol {
    */
   bool fixed_local_port;
 
-  /** IP protocol number for raw IP communication */
+  /*! IP protocol number for raw IP communication */
   int ip_proto;
 
-  /*! source address of currently parsed RFC5444 packet */
-  struct netaddr *input_address;
-
-  /*! source address and port of currently parsed RFC5444 packet */
-  union netaddr_socket *input_socket;
-
-  /*! interface of currently parsed RFC5444 packet */
-  struct oonf_rfc5444_interface *input_interface;
-
-  /*! true if currently parsed RFC5444 packet was multicast */
-  bool input_is_multicast;
+  /*! parameters of currently parsed incoming packet */
+  struct oonf_rfc5444_input_parameters input;
 
   /*! RFC5444 reader for this protocol instance */
   struct rfc5444_reader reader;
@@ -197,6 +195,9 @@ struct oonf_rfc5444_interface {
 
   /*! pointer to ipv6 multicast targets for this interface */
   struct oonf_rfc5444_target *multicast6;
+
+  /*! interval the multiplexer will wait until it generates a packet */
+  uint64_t aggregation_interval;
 
   /*! number of users of this interface */
   int _refcount;
@@ -272,6 +273,8 @@ EXPORT struct oonf_rfc5444_target *oonf_rfc5444_add_target(
 EXPORT void oonf_rfc5444_remove_target(struct oonf_rfc5444_target *target);
 EXPORT void oonf_rfc5444_send_target_data(struct oonf_rfc5444_target *target,
     const void *ptr, size_t len);
+EXPORT void oonf_rfc5444_send_interface_data(struct oonf_rfc5444_interface *interf,
+    const struct netaddr *dst, const void *ptr, size_t len);
 
 EXPORT const union netaddr_socket *oonf_rfc5444_interface_get_local_socket(
     struct oonf_rfc5444_interface *rfc5444_if, int af_type);

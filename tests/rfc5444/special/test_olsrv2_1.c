@@ -61,7 +61,7 @@ static void write_packet(struct rfc5444_writer *,
     struct rfc5444_writer_target *, void *, size_t);
 static void addAddresses(struct rfc5444_writer *wr);
 
-static uint8_t msg_buffer[MSG_MTU];
+static uint8_t msg_buffer[RFC5444_MAX_MESSAGE_SIZE];
 static uint8_t msg_addrtlvs[65536];
 
 static struct rfc5444_writer writer = {

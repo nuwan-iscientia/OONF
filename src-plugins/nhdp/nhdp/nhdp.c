@@ -313,14 +313,11 @@ nhdp_flooding_selector(struct rfc5444_writer *writer __attribute__((unused)),
  * hangle dualstack correctly
  * @param rfc5444_target rfc5444 target to flood message to
  * @param context reader context of the message to be forwarded
- * @param msg pointer to message buffer
- * @param len length of message buffer
  * @return true if target corresponds to selection
  */
 bool
 nhdp_forwarding_selector(struct rfc5444_writer_target *rfc5444_target,
-    struct rfc5444_reader_tlvblock_context *context __attribute__((unused)),
-    const uint8_t *msg __attribute__((unused)), size_t len __attribute__((unused))) {
+    struct rfc5444_reader_tlvblock_context *context __attribute__((unused))) {
   return _forwarding_selector(rfc5444_target);
 }
 

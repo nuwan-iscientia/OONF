@@ -445,7 +445,7 @@ olsrv2_mpr_shall_forwarding(struct rfc5444_reader_tlvblock_context *context,
   }
 
   /* check input interface */
-  if (_protocol->input_interface == NULL) {
+  if (_protocol->input.interface == NULL) {
     OONF_DEBUG(LOG_OLSRV2, "Do not forward because input interface is not set");
     return false;
   }
@@ -457,7 +457,7 @@ olsrv2_mpr_shall_forwarding(struct rfc5444_reader_tlvblock_context *context,
   }
 
   /* check if this is coming from the unicast receiver */
-  if (strcmp(_protocol->input_interface->name, RFC5444_UNICAST_INTERFACE) == 0) {
+  if (strcmp(_protocol->input.interface->name, RFC5444_UNICAST_INTERFACE) == 0) {
     return false;
   }
 
@@ -475,10 +475,10 @@ olsrv2_mpr_shall_forwarding(struct rfc5444_reader_tlvblock_context *context,
   }
 
   /* get NHDP interface */
-  interf = nhdp_interface_get(_protocol->input_interface->name);
+  interf = nhdp_interface_get(_protocol->input.interface->name);
   if (interf == NULL) {
     OONF_DEBUG(LOG_OLSRV2, "Do not forward because NHDP does not handle"
-        " interface '%s'", _protocol->input_interface->name);
+        " interface '%s'", _protocol->input.interface->name);
     return false;
   }
 

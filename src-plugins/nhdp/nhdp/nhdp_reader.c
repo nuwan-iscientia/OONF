@@ -383,8 +383,8 @@ _cb_messagetlvs(struct rfc5444_reader_tlvblock_context *context) {
 
   OONF_INFO(LOG_NHDP_R,
       "Incoming message type %d from %s through %s (addrlen = %u), got message tlvs",
-      context->msg_type, netaddr_socket_to_string(&buf, _protocol->input_socket),
-      _protocol->input_interface->name, context->addr_len);
+      context->msg_type, netaddr_socket_to_string(&buf, _protocol->input.src_socket),
+      _protocol->input.interface->name, context->addr_len);
 
   switch (context->addr_len) {
     case 4:
@@ -398,14 +398,14 @@ _cb_messagetlvs(struct rfc5444_reader_tlvblock_context *context) {
       break;
   }
 
-  if (!oonf_rfc5444_is_interface_active(_protocol->input_interface, af_type)) {
+  if (!oonf_rfc5444_is_interface_active(_protocol->input.interface, af_type)) {
     OONF_DEBUG(LOG_NHDP_R, "We do not handle address length %u on interface %s",
-        context->addr_len, _protocol->input_interface->name);
+        context->addr_len, _protocol->input.interface->name);
     return RFC5444_DROP_MESSAGE;
   }
 
   /* remember local NHDP interface */
-  _current.localif = nhdp_interface_get(_protocol->input_interface->name);
+  _current.localif = nhdp_interface_get(_protocol->input.interface->name);
   if (!_current.localif) {
     /* incoming message through an interface unspecific socket, ignore it */
     return RFC5444_DROP_MESSAGE;
@@ -479,8 +479,8 @@ _cb_failed_constraints(struct rfc5444_reader_tlvblock_context *context __attribu
 
   OONF_INFO(LOG_NHDP_R,
       "Incoming message type %d from %s through %s (addrlen = %u) failed constraints",
-      context->msg_type, netaddr_socket_to_string(&nbuf, _protocol->input_socket),
-      _protocol->input_interface->name, context->addr_len);
+      context->msg_type, netaddr_socket_to_string(&nbuf, _protocol->input.src_socket),
+      _protocol->input.interface->name, context->addr_len);
   return RFC5444_DROP_MESSAGE;
 }
 
@@ -644,7 +644,7 @@ _cb_addresstlvs_pass1_end(struct rfc5444_reader_tlvblock_context *context, bool 
   }
 
   /* copy interface address of link */
-  memcpy(&_current.link->if_addr, _protocol->input_address, sizeof(struct netaddr));
+  memcpy(&_current.link->if_addr, _protocol->input.src_address, sizeof(struct netaddr));
 
   /* copy mac address */
   if (netaddr_get_address_family(&_current.mac) == AF_MAC48) {
@@ -655,8 +655,8 @@ _cb_addresstlvs_pass1_end(struct rfc5444_reader_tlvblock_context *context, bool 
     struct netaddr addr;
 
     /* translate like a RFC5444 address */
-    if(netaddr_from_binary(&addr, netaddr_get_binptr(_protocol->input_address),
-        netaddr_get_binlength(_protocol->input_address), 0)) {
+    if(netaddr_from_binary(&addr, netaddr_get_binptr(_protocol->input.src_address),
+        netaddr_get_binlength(_protocol->input.src_address), 0)) {
       return RFC5444_DROP_MESSAGE;
     }
 

@@ -196,8 +196,7 @@ olsrv2_writer_send_tc(void) {
 void
 olsrv2_writer_set_forwarding_selector(
     bool (*forward_target_selector)(struct rfc5444_writer_target *,
-      struct rfc5444_reader_tlvblock_context *context,
-      const uint8_t *buffer, size_t len)) {
+      struct rfc5444_reader_tlvblock_context *context)) {
   if (forward_target_selector) {
     _olsrv2_message->forward_target_selector = forward_target_selector;
   }

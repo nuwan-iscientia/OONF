@@ -206,7 +206,7 @@ _cb_messagetlvs(struct rfc5444_reader_tlvblock_context *context) {
   memset(&_current, 0, sizeof(_current));
 
   OONF_DEBUG(LOG_OLSRV2_R, "Received TC from %s",
-      netaddr_to_string(&buf, _protocol->input_address));
+      netaddr_to_string(&buf, _protocol->input.src_address));
 
   if (!context->has_origaddr || !context->has_hopcount
       || !context->has_hoplimit || !context->has_seqno) {
@@ -231,9 +231,9 @@ _cb_messagetlvs(struct rfc5444_reader_tlvblock_context *context) {
       break;
   }
 
-  if (!oonf_rfc5444_is_interface_active(_protocol->input_interface, af_type)) {
+  if (!oonf_rfc5444_is_interface_active(_protocol->input.interface, af_type)) {
     OONF_DEBUG(LOG_OLSRV2_R, "We do not handle address length %u on interface %s",
-        context->addr_len, _protocol->input_interface->name);
+        context->addr_len, _protocol->input.interface->name);
     return RFC5444_DROP_MESSAGE;
   }
 
@@ -280,7 +280,7 @@ _cb_messagetlvs(struct rfc5444_reader_tlvblock_context *context) {
 
   /* test if we already forwarded the message */
   if (!olsrv2_mpr_shall_forwarding(
-      context, _protocol->input_address, _current.vtime)) {
+      context, _protocol->input.src_address, _current.vtime)) {
     /* mark message as 'no forward */
     rfc5444_reader_prevent_forwarding(context);
   }
