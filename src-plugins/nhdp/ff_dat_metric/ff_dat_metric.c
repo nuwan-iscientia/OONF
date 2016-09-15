@@ -88,6 +88,9 @@ struct ff_dat_config {
   /*! true if MIC factor should be applied to metric */
   bool mic;
 
+  /*! list of interface names that deliver unicasts for metric calculation */
+  struct strarray unicast_if;
+
 #ifdef COLLECT_RAW_DATA
   /* filename to store raw data into */
   char *rawdata_file;
@@ -171,6 +174,8 @@ static uint32_t _apply_packet_loss(struct nhdp_link *lnk,
 
 static void _cb_hello_lost(struct oonf_timer_instance *);
 
+static bool _shall_process_packet(void);
+
 static enum rfc5444_result _cb_process_packet(
       struct rfc5444_reader_tlvblock_context *context);
 
@@ -224,6 +229,8 @@ static struct cfg_schema_entry _datff_entries[] = {
       "scaling of the packet loss influence on the metric", LOSS_SCALING),
   CFG_MAP_BOOL(ff_dat_config, mic, "mic", "false",
       "Activates the MIC penalty-factor for link metrics"),
+  CFG_MAP_STRINGLIST(ff_dat_config, unicast_if, "unicast_if", "",
+      "Interface name where RFC5444 unicasts should be processed for metric generation"),
 #ifdef COLLECT_RAW_DATA
   CFG_MAP_STRING(ff_dat_config, rawdata_file, "raw_filename", "/tmp/olsrv2_dat_metric.txt",
       "File to write recorded data into"),
@@ -819,6 +826,36 @@ _cb_hello_lost(struct oonf_timer_instance *ptr) {
 }
 
 /**
+ * Check if an incoming packet should be used for metric calculation
+ * @return true to process packet, false otherwise
+ */
+static bool
+_shall_process_packet(void) {
+  struct os_interface_listener *if_listener;
+  const char *ptr;
+  if (_protocol->input.is_multicast) {
+    /* accept multicast */
+    return true;
+  }
+
+  if_listener = oonf_rfc5444_get_core_if_listener(_protocol->input.interface);
+  if (if_listener && if_listener->data && if_listener->data->flags.unicast_only) {
+    /* accept unicast for unicast-only interfaces */
+    return true;
+  }
+
+  strarray_for_each_element(&_datff_config.unicast_if, ptr) {
+    if (strcmp(ptr, _protocol->input.interface->name) == 0) {
+      /* accept unicast for configured interfaces */
+      return true;
+    }
+  }
+
+  /* ignore otherwise */
+  return false;
+}
+
+/**
  * Callback to process all in RFC5444 packets for metric calculation. The
  * Callback ignores all unicast packets.
  * @param consumer
@@ -833,7 +870,7 @@ _cb_process_packet(struct rfc5444_reader_tlvblock_context *context) {
   struct nhdp_link *lnk;
   int total;
 
-  if (!_protocol->input_is_multicast) {
+  if (!_shall_process_packet()) {
     /* silently ignore unicasts */
     return RFC5444_OKAY;
   }
@@ -842,18 +879,18 @@ _cb_process_packet(struct rfc5444_reader_tlvblock_context *context) {
     struct netaddr_str buf;
 
     OONF_WARN(LOG_FF_DAT, "Neighbor %s does not send packet sequence numbers, cannot collect datff data!",
-        netaddr_socket_to_string(&buf, _protocol->input_socket));
+        netaddr_socket_to_string(&buf, _protocol->input.src_socket));
     return RFC5444_OKAY;
   }
 
   /* get interface and link */
-  interf = nhdp_interface_get(_protocol->input_interface->name);
+  interf = nhdp_interface_get(_protocol->input.interface->name);
   if (interf == NULL) {
     /* silently ignore unknown interface */
     return RFC5444_OKAY;
   }
 
-  laddr = nhdp_interface_get_link_addr(interf, _protocol->input_address);
+  laddr = nhdp_interface_get_link_addr(interf, _protocol->input.src_address);
   if (laddr == NULL) {
     /* silently ignore unknown link*/
     return RFC5444_OKAY;
