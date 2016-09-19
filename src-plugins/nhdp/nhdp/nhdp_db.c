@@ -139,6 +139,9 @@ static struct avl_tree _neigh_originator_tree;
 /* list of links (to neighbors) */
 static struct list_entity _link_list;
 
+/* id that will be increased every times the symmetric neighbor set changes */
+static uint32_t _neighbor_set_id = 0;
+
 /**
  * Initialize NHDP databases
  */
@@ -489,6 +492,15 @@ nhdp_db_neigbor_disconnect_dualstack(struct nhdp_neighbor *neigh) {
     neigh->dualstack_partner->dualstack_partner = NULL;
     neigh->dualstack_partner = NULL;
   }
+}
+
+/**
+ * @return set id of symmetric neighbors, will be increased for
+ *   every change.
+ */
+uint32_t
+nhdp_db_neighbor_get_set_id(void) {
+  return _neighbor_set_id;
 }
 
 /**
@@ -910,6 +922,7 @@ _link_status_now_symmetric(struct nhdp_link *lnk) {
     avl_for_each_element(&lnk->neigh->_neigh_addresses, naddr, _neigh_node) {
       nhdp_db_neighbor_addr_not_lost(naddr);
     }
+    _neighbor_set_id++;
   }
 }
 
@@ -933,6 +946,8 @@ _link_status_not_symmetric_anymore(struct nhdp_link *lnk) {
     avl_for_each_element_safe(&lnk->neigh->_neigh_addresses, naddr, _neigh_node, na_it) {
       nhdp_db_neighbor_addr_set_lost(naddr, lnk->local_if->n_hold_time);
     }
+
+    _neighbor_set_id++;
   }
 }
 

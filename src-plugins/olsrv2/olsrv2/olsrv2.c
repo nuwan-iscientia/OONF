@@ -259,12 +259,13 @@ static struct os_interface_listener _if_listener = {
 static struct oonf_rfc5444_protocol *_protocol;
 
 static uint16_t _ansn;
+static uint32_t _sym_neighbor_id = 0;
 
 /* Additional logging sources */
-enum oonf_log_source LOG_OLSRV2;
-enum oonf_log_source LOG_OLSRV2_R;
-enum oonf_log_source LOG_OLSRV2_ROUTING;
-enum oonf_log_source LOG_OLSRV2_W;
+static enum oonf_log_source LOG_OLSRV2;
+static enum oonf_log_source LOG_OLSRV2_R;
+static enum oonf_log_source LOG_OLSRV2_ROUTING;
+static enum oonf_log_source LOG_OLSRV2_W;
 
 /**
  * Initialize additional logging sources for NHDP
@@ -544,8 +545,10 @@ olsrv2_update_ansn(void) {
     }
   }
 
-  if (changed) {
+  if (changed
+      || _sym_neighbor_id != nhdp_db_neighbor_get_set_id()) {
     _ansn++;
+    _sym_neighbor_id = nhdp_db_neighbor_get_set_id();
   }
   return _ansn;
 }
