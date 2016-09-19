@@ -192,6 +192,8 @@ EXPORT void olsrv2_routing_set_domain_parameter(struct nhdp_domain *domain,
 EXPORT void olsrv2_routing_force_update(bool skip_wait);
 EXPORT void olsrv2_routing_trigger_update(void);
 
+EXPORT void olsrv2_routing_freeze_routes(bool freeze);
+
 EXPORT const struct olsrv2_routing_domain *
     olsrv2_routing_get_parameters(struct nhdp_domain *);
 

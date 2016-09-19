@@ -125,6 +125,7 @@ static struct avl_tree _dijkstra_working_tree;
 static struct list_entity _kernel_queue;
 
 static bool _initiate_shutdown = false;
+static bool _freeze_routes = false;
 
 /**
  * Initialize olsrv2 dijkstra and routing code
@@ -156,6 +157,7 @@ olsrv2_routing_initiate_shutdown(void) {
 
   /* remember we are in shutdown */
   _initiate_shutdown = true;
+  _freeze_routes = false;
 
   /* remove all routes */
   for (i=0; i<NHDP_MAXIMUM_DOMAINS; i++) {
@@ -219,6 +221,24 @@ olsrv2_routing_trigger_update(void) {
 }
 
 /**
+ * Freeze all modifications of all OLSRv2 routing table
+ * @param freeze true to freeze tables, false to update them to
+ *   the dijkstra results again.
+ */
+void
+olsrv2_routing_freeze_routes(bool freeze) {
+  if (_freeze_routes == freeze) {
+    return;
+  }
+
+  _freeze_routes = freeze;
+  if (!freeze) {
+    /* make sure we have a current routing table */
+    olsrv2_routing_trigger_update();
+  }
+}
+
+/**
  * @param domain nhdp domain
  * @return routing domain parameters
  */
@@ -236,7 +256,7 @@ olsrv2_routing_force_update(bool skip_wait) {
   struct nhdp_domain *domain;
   bool splitv4, splitv6;
 
-  if (_initiate_shutdown) {
+  if (_initiate_shutdown || _freeze_routes) {
     /* no dijkstra anymore when in shutdown */
     return;
   }

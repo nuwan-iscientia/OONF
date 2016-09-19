@@ -565,7 +565,7 @@ _cb_finishMessageTLVs(struct rfc5444_writer *writer,
   uint16_t ansn;
 
   /* get ANSN */
-  ansn = htons(olsrv2_update_ansn());
+  ansn = htons(olsrv2_update_ansn(false));
 
   rfc5444_writer_set_messagetlv(writer, RFC7181_MSGTLV_CONT_SEQ_NUM,
       complete ? RFC7181_CONT_SEQ_NUM_COMPLETE : RFC7181_CONT_SEQ_NUM_INCOMPLETE,

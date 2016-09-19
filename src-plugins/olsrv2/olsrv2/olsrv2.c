@@ -530,10 +530,11 @@ olsrv2_get_ansn(void) {
 
 /**
  * Update answer set number if metric of a neighbor changed since last update.
+ * @param force true to force an answerset number change
  * @return new answer set number, might be the same if no metric changed.
  */
 uint16_t
-olsrv2_update_ansn(void) {
+olsrv2_update_ansn(bool force) {
   struct nhdp_domain *domain;
   bool changed;
 
@@ -545,7 +546,7 @@ olsrv2_update_ansn(void) {
     }
   }
 
-  if (changed
+  if (changed || force
       || _sym_neighbor_id != nhdp_db_neighbor_get_set_id()) {
     _ansn++;
     _sym_neighbor_id = nhdp_db_neighbor_get_set_id();
