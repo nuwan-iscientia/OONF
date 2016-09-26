@@ -75,9 +75,6 @@ struct dlep_router_session {
   /*! basic struct for tcp stream, must be first in struct! */
   struct oonf_stream_session *stream;
 
-  /*! remote socket of radio */
-  union netaddr_socket remote_socket;
-
   /*! TCP client socket for session */
   struct oonf_stream_socket tcp;
 

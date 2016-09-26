@@ -133,8 +133,8 @@ dlep_router_add_session(struct dlep_router_if *interf,
   }
 
   /* initialize tree node */
-  memcpy(&router_session->remote_socket, remote, sizeof(*remote));
-  router_session->_node.key = &router_session->remote_socket;
+  memcpy(&router_session->session.remote_socket, remote, sizeof(*remote));
+  router_session->_node.key = &router_session->session.remote_socket;
 
   /* configure and open TCP session */
   router_session->tcp.config.session_timeout = 120000; /* 120 seconds */
@@ -155,10 +155,7 @@ dlep_router_add_session(struct dlep_router_if *interf,
     return NULL;
   }
 
-  /* copy socket information */
-  memcpy(&router_session->session.remote_socket, remote,
-      sizeof(router_session->session.remote_socket));
-
+  /* open stream */
   router_session->stream = oonf_stream_connect_to(&router_session->tcp, remote);
   if (!router_session->stream) {
     OONF_WARN(LOG_DLEP_ROUTER,
@@ -180,8 +177,6 @@ dlep_router_add_session(struct dlep_router_if *interf,
   router_session->session.cb_end_session = _cb_end_session;
   memcpy(&router_session->session.cfg, &interf->interf.session.cfg,
       sizeof(router_session->session.cfg));
-  memcpy(&router_session->session.remote_socket, remote,
-      sizeof(router_session->session.remote_socket));
 
   /* initialize back pointer */
   router_session->interface = interf;

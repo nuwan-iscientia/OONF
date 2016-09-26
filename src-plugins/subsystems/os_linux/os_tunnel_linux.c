@@ -51,6 +51,7 @@
 #include <net/if_arp.h>
 #include <netinet/ip.h>
 #include <linux/if_tunnel.h>
+#include <linux/ip6_tunnel.h>
 #include <errno.h>
 
 #include "common/common_types.h"
@@ -281,6 +282,14 @@ _handle_ipv4_tunnel(struct os_tunnel *tunnel, bool add) {
       return -1;
   }
 
+  /* inherit TTL by default */
+  p.iph.ttl = tunnel->p.tunnel_ttl;
+
+  /* try to inherit TOS */
+  if (tunnel->p.inhert_tos) {
+    p.iph.tos = 1;
+  }
+
   strncpy(ifr.ifr_name, _tunnel_base_if[type], IF_NAMESIZE);
 
   netaddr_to_binary(&p.iph.saddr, &tunnel->p.local, sizeof(p.iph.saddr));
@@ -340,6 +349,17 @@ _handle_ipv6_tunnel(struct os_tunnel *tunnel, bool add) {
     default:
       return -1;
 
+  }
+
+  /* set tunnel flags */
+  if (tunnel->p.inhert_tos) {
+    p.flags |= IP6_TNL_F_USE_ORIG_TCLASS;
+  }
+  if (tunnel->p.inhert_flowlabel) {
+    p.flags |= IP6_TNL_F_USE_ORIG_FLOWLABEL;
+  }
+  if (tunnel->p.tunnel_ttl) {
+    p.hop_limit = tunnel->p.tunnel_ttl;
   }
 
   strncpy(ifr.ifr_name, _tunnel_base_if[type], IF_NAMESIZE);
