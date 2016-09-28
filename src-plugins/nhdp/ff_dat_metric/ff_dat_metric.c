@@ -72,7 +72,7 @@
 /**
  * Configuration settings of DATFF Metric
  */
-struct ff_dat_config {
+struct ff_dat_if_config {
   /*! Interval between two updates of the metric */
   uint64_t interval;
 
@@ -88,8 +88,11 @@ struct ff_dat_config {
   /*! true if MIC factor should be applied to metric */
   bool mic;
 
-  /*! list of interface names that deliver unicasts for metric calculation */
-  struct strarray unicast_if;
+  /*! true if metric should include unicast into calculation */
+  bool accept_unicast;
+
+  /*! timer for sampling interface data */
+  struct oonf_timer_instance _sampling_timer;
 
 #ifdef COLLECT_RAW_DATA
   /* filename to store raw data into */
@@ -150,7 +153,7 @@ struct link_datff_data {
   uint32_t link_neigborhood;
 
   /*! history ringbuffer */
-  struct link_datff_bucket buckets[0];
+  struct link_datff_bucket *buckets;
 };
 
 /* prototypes */
@@ -164,17 +167,22 @@ static void _cb_link_added(void *);
 static void _cb_link_changed(void *);
 static void _cb_link_removed(void *);
 
+static void _cb_nhdpif_added(void *);
+static void _cb_nhdpif_removed(void *);
+
 static void _cb_dat_sampling(struct oonf_timer_instance *);
 static void _calculate_link_neighborhood(struct nhdp_link *lnk,
     struct link_datff_data *ldata);
 static int _calculate_dynamic_loss_exponent(int link_neigborhood);
-static uint32_t _apply_packet_loss(struct nhdp_link *lnk,
+static uint32_t _apply_packet_loss(
+    struct ff_dat_if_config *ifconfig, struct nhdp_link *lnk,
     struct link_datff_data *ldata,
     uint32_t metric, uint32_t received, uint32_t total);
 
 static void _cb_hello_lost(struct oonf_timer_instance *);
 
-static bool _shall_process_packet(void);
+static bool _shall_process_packet(
+    struct nhdp_interface *, struct ff_dat_if_config *ifconfig);
 
 static enum rfc5444_result _cb_process_packet(
       struct rfc5444_reader_tlvblock_context *context);
@@ -188,8 +196,6 @@ static const char *_path_to_string(
 static const char *_int_link_to_string(struct nhdp_metric_str *,
     struct nhdp_link *);
 
-static int _cb_cfg_validate(const char *section_name,
-    struct cfg_named_section *, struct autobuf *);
 static void _cb_cfg_changed(void);
 
 /* plugin declaration */
@@ -218,19 +224,19 @@ static const char *LOSS_SCALING[] = {
 };
 
 static struct cfg_schema_entry _datff_entries[] = {
-  CFG_MAP_CLOCK_MIN(ff_dat_config, interval, "interval", "1.0",
+  CFG_MAP_CLOCK_MIN(ff_dat_if_config, interval, "ffdat_interval", "1.0",
       "Time interval between recalculations of metric", 100),
-  CFG_MAP_INT32_MINMAX(ff_dat_config, window, "window", "64",
+  CFG_MAP_INT32_MINMAX(ff_dat_if_config, window, "ffdat_window", "64",
       "Number of intervals to calculate average metric", 0, false, 2, 65535),
-  CFG_MAP_BOOL(ff_dat_config, ett, "airtime", "true",
+  CFG_MAP_BOOL(ff_dat_if_config, ett, "ffdat_airtime", "true",
       "Activates the handling of linkspeed within the metric, set to false to"
       " downgrade to ETX metric"),
-  CFG_MAP_CHOICE(ff_dat_config, loss_exponent, "loss_exponent", "linear",
+  CFG_MAP_CHOICE(ff_dat_if_config, loss_exponent, "ffdat_loss_exponent", "linear",
       "scaling of the packet loss influence on the metric", LOSS_SCALING),
-  CFG_MAP_BOOL(ff_dat_config, mic, "mic", "false",
+  CFG_MAP_BOOL(ff_dat_if_config, mic, "ffdat_mic", "false",
       "Activates the MIC penalty-factor for link metrics"),
-  CFG_MAP_STRINGLIST(ff_dat_config, unicast_if, "unicast_if", "",
-      "Interface name where RFC5444 unicasts should be processed for metric generation"),
+  CFG_MAP_BOOL(ff_dat_if_config, accept_unicast, "ffdat_unicast", "false",
+      "Include unicast into metric calculation"),
 #ifdef COLLECT_RAW_DATA
   CFG_MAP_STRING(ff_dat_config, rawdata_file, "raw_filename", "/tmp/olsrv2_dat_metric.txt",
       "File to write recorded data into"),
@@ -245,14 +251,12 @@ static struct cfg_schema_entry _datff_entries[] = {
 
 /* Subsystem definition */
 static struct cfg_schema_section _datff_section = {
-  .type = OONF_FF_DAT_METRIC_SUBSYSTEM,
-  .cb_validate = _cb_cfg_validate,
+  .type = CFG_INTERFACE_SECTION,
+  .mode = CFG_INTERFACE_SECTION_MODE,
   .cb_delta_handler = _cb_cfg_changed,
   .entries = _datff_entries,
   .entry_count = ARRAYSIZE(_datff_entries),
 };
-
-static struct ff_dat_config _datff_config;
 
 static const char *_dependencies[] = {
   OONF_CLASS_SUBSYSTEM,
@@ -260,6 +264,7 @@ static const char *_dependencies[] = {
   OONF_RFC5444_SUBSYSTEM,
   OONF_TIMER_SUBSYSTEM,
   OONF_NHDP_SUBSYSTEM,
+  OONF_OS_INTERFACE_SUBSYSTEM,
 };
 static struct oonf_subsystem _olsrv2_ffdat_subsystem = {
   .name = OONF_FF_DAT_METRIC_SUBSYSTEM,
@@ -295,15 +300,20 @@ static struct oonf_class_extension _link_extenstion = {
   .cb_remove = _cb_link_removed,
 };
 
+static struct oonf_class_extension _nhdpif_extenstion = {
+  .ext_name = "datff linkmetric",
+  .class_name = NHDP_CLASS_INTERFACE,
+  .size = sizeof(struct ff_dat_if_config),
+
+  .cb_add = _cb_nhdpif_added,
+  .cb_remove = _cb_nhdpif_removed,
+};
+
 /* timer for sampling in RFC5444 packets */
 static struct oonf_timer_class _sampling_timer_info = {
   .name = "Sampling timer for DATFF-metric",
   .callback = _cb_dat_sampling,
   .periodic = true,
-};
-
-static struct oonf_timer_instance _sampling_timer = {
-  .class = &_sampling_timer_info,
 };
 
 /* timer class to measure interval between Hellos */
@@ -329,6 +339,7 @@ static struct nhdp_domain_metric _datff_handler = {
 
 /* Temporary buffer to sort incoming link speed for median calculation */
 static int *_rx_sort_array = NULL;
+static int32_t _rx_sort_size = 0;
 
 /* rawdata collection */
 #ifdef COLLECT_RAW_DATA
@@ -348,6 +359,15 @@ _init(void) {
     return -1;
   }
 
+  if (oonf_class_extension_add(&_nhdpif_extenstion)) {
+    nhdp_domain_metric_remove(&_datff_handler);
+    return -1;
+  }
+  if (oonf_class_extension_add(&_link_extenstion)) {
+    oonf_class_extension_remove(&_link_extenstion);
+    nhdp_domain_metric_remove(&_datff_handler);
+    return -1;
+  }
   oonf_timer_add(&_sampling_timer_info);
   oonf_timer_add(&_hello_lost_info);
 
@@ -375,6 +395,7 @@ _cleanup(void) {
 #endif
   /* free sorting array */
   free (_rx_sort_array);
+  _rx_sort_size = 0;
 
   /* remove metric from core */
   nhdp_domain_metric_remove(&_datff_handler);
@@ -383,8 +404,7 @@ _cleanup(void) {
   _protocol = NULL;
 
   oonf_class_extension_remove(&_link_extenstion);
-
-  oonf_timer_stop(&_sampling_timer);
+  oonf_class_extension_remove(&_nhdpif_extenstion);
 
   oonf_timer_remove(&_sampling_timer_info);
   oonf_timer_remove(&_hello_lost_info);
@@ -395,14 +415,17 @@ _cleanup(void) {
  */
 static void
 _cb_enable_metric(void) {
+  struct nhdp_interface *nhdpif;
   struct nhdp_link *lnk;
 
+  avl_for_each_element(nhdp_interface_get_tree(), nhdpif, _node) {
+    _cb_nhdpif_added(nhdpif);
+  }
   list_for_each_element(nhdp_db_get_link_list(), lnk, _global_node) {
     _cb_link_added(lnk);
   }
 
   rfc5444_reader_add_packet_consumer(&_protocol->reader, &_packet_consumer, NULL, 0);
-  oonf_timer_set(&_sampling_timer, _datff_config.interval);
 }
 
 /**
@@ -410,13 +433,16 @@ _cb_enable_metric(void) {
  */
 static void
 _cb_disable_metric(void) {
+  struct nhdp_interface *nhdpif;
   struct nhdp_link *lnk;
 
-  oonf_timer_stop(&_sampling_timer);
   rfc5444_reader_remove_packet_consumer(&_protocol->reader, &_packet_consumer);
 
   list_for_each_element(nhdp_db_get_link_list(), lnk, _global_node) {
     _cb_link_removed(lnk);
+  }
+  avl_for_each_element(nhdp_interface_get_tree(), nhdpif, _node) {
+    _cb_nhdpif_removed(nhdpif);
   }
 }
 
@@ -426,22 +452,38 @@ _cb_disable_metric(void) {
  */
 static void
 _cb_link_added(void *ptr) {
+  struct ff_dat_if_config *ifconfig;
   struct link_datff_data *data;
   struct nhdp_link *lnk;
   int i;
 
   lnk = ptr;
   data = oonf_class_get_extension(&_link_extenstion, lnk);
+  ifconfig = oonf_class_get_extension(&_nhdpif_extenstion, lnk->local_if);
 
   memset(data, 0, sizeof(*data));
   data->activePtr = -1;
-  for (i = 0; i<_datff_config.window; i++) {
+
+  data->buckets = calloc(ifconfig->window, sizeof(struct link_datff_bucket));
+  if (!data->buckets) {
+    return;
+  }
+
+  for (i = 0; i<ifconfig->window; i++) {
     data->buckets[i].total = 1;
     data->buckets[i].scaled_speed = 0;
   }
 
   /* start 'hello lost' timer for link */
   data->hello_lost_timer.class = &_hello_lost_info;
+
+  if (lnk->itime_value > 0) {
+    data->hello_interval = lnk->itime_value;
+  }
+  else {
+    data->hello_interval = lnk->vtime_value;
+  }
+  _reset_missed_hello_timer(data);
 
   /* minimal value possible for success rate */
   data->last_packet_success_rate = 1000ll;
@@ -479,7 +521,29 @@ _cb_link_removed(void *ptr) {
 
   data = oonf_class_get_extension(&_link_extenstion, ptr);
 
+  free(data->buckets);
   oonf_timer_stop(&data->hello_lost_timer);
+}
+
+static void
+_cb_nhdpif_added(void *ptr) {
+  struct ff_dat_if_config *ifconfig;
+
+  ifconfig = oonf_class_get_extension(&_nhdpif_extenstion, ptr);
+
+  ifconfig->_sampling_timer.class = &_sampling_timer_info;
+}
+
+static void
+_cb_nhdpif_removed(void *ptr) {
+  struct ff_dat_if_config *ifconfig;
+
+  ifconfig = oonf_class_get_extension(&_nhdpif_extenstion, ptr);
+
+  if (ifconfig->_sampling_timer.class) {
+    oonf_timer_stop(&ifconfig->_sampling_timer);
+    ifconfig->_sampling_timer.class = NULL;
+  }
 }
 
 /**
@@ -508,25 +572,26 @@ _int_comparator(const void *p1, const void *p2) {
  * @return median linkspeed
  */
 static int
-_get_median_rx_linkspeed(struct link_datff_data *ldata) {
+_get_median_rx_linkspeed(
+    struct ff_dat_if_config *ifconfig, struct link_datff_data *ldata) {
   int zero_count;
   int window;
   int i;
 
   zero_count = 0;
-  for (i=0; i<_datff_config.window; i++) {
+  for (i=0; i<ifconfig->window; i++) {
     _rx_sort_array[i] = ldata->buckets[i].scaled_speed;
     if (_rx_sort_array[i] == 0) {
       zero_count++;
     }
   }
 
-  window = _datff_config.window - zero_count;
+  window = ifconfig->window - zero_count;
   if (window == 0) {
     return 1;
   }
 
-  qsort(_rx_sort_array, _datff_config.window, sizeof(int), _int_comparator);
+  qsort(_rx_sort_array, ifconfig->window, sizeof(int), _int_comparator);
 
   return _rx_sort_array[zero_count + window/2];
 }
@@ -538,13 +603,13 @@ _get_median_rx_linkspeed(struct link_datff_data *ldata) {
  * @return scaled link speed, 1 if could not be retrieved.
  */
 static int
-_get_scaled_rx_linkspeed(struct nhdp_link *lnk) {
+_get_scaled_rx_linkspeed(struct ff_dat_if_config *ifconfig, struct nhdp_link *lnk) {
   struct os_interface *os_if;
   const struct oonf_layer2_data *l2data;
   int rate;
   struct netaddr_str nbuf;
 
-  if (!_datff_config.ett) {
+  if (!ifconfig->ett) {
     /* ETT feature is switched off */
     return 1;
   }
@@ -579,16 +644,14 @@ _get_scaled_rx_linkspeed(struct nhdp_link *lnk) {
   return rate;
 }
 
-static void
-_reset_missed_hello_timer(struct link_datff_data *);
-
 /**
  * Timer callback to sample new metric values into bucket
  * @param ptr nhdp link
  */
 static void
-_cb_dat_sampling(struct oonf_timer_instance *ptr __attribute__((unused))) {
+_cb_dat_sampling(struct oonf_timer_instance *ptr) {
   struct rfc7181_metric_field encoded_metric;
+  struct ff_dat_if_config *ifconfig;
   struct link_datff_data *ldata;
   struct nhdp_link *lnk;
   uint32_t total, received;
@@ -600,12 +663,22 @@ _cb_dat_sampling(struct oonf_timer_instance *ptr __attribute__((unused))) {
 
   struct netaddr_str nbuf;
 
+  ifconfig = container_of(ptr, struct ff_dat_if_config, _sampling_timer);
+
   OONF_DEBUG(LOG_FF_DAT, "Calculate Metric from sampled data");
 
   change_happened = false;
 
   list_for_each_element(nhdp_db_get_link_list(), lnk, _global_node) {
+    if (oonf_class_get_extension(&_nhdpif_extenstion, lnk->local_if) != ifconfig) {
+      continue;
+    }
+
     ldata = oonf_class_get_extension(&_link_extenstion, lnk);
+
+    if (!ldata->buckets) {
+      continue;
+    }
 
     if (ldata->activePtr == -1) {
       /* still no data for this link */
@@ -617,7 +690,7 @@ _cb_dat_sampling(struct oonf_timer_instance *ptr __attribute__((unused))) {
     received = 0;
 
     /* calculate metric */
-    for (i=0; i<_datff_config.window; i++) {
+    for (i=0; i<ifconfig->window; i++) {
       received += ldata->buckets[i].received;
       total += ldata->buckets[i].total;
     }
@@ -626,16 +699,16 @@ _cb_dat_sampling(struct oonf_timer_instance *ptr __attribute__((unused))) {
       int32_t interval;
 
       interval = ldata->missed_hellos * ldata->hello_interval / 1000;
-      if (interval > _datff_config.window) {
+      if (interval > ifconfig->window) {
         received = 0;
       }
       else {
-        received = (received * (_datff_config.window - interval)) / _datff_config.window;
+        received = (received * (ifconfig->window - interval)) / ifconfig->window;
       }
     }
 
     /* update link speed */
-    ldata->buckets[ldata->activePtr].scaled_speed = _get_scaled_rx_linkspeed(lnk);
+    ldata->buckets[ldata->activePtr].scaled_speed = _get_scaled_rx_linkspeed(ifconfig, lnk);
 #ifdef COLLECT_RAW_DATA
     if (_rawdata_fd != -1) {
       if (0 > write(_rawdata_fd, abuf_getptr(&_rawdata_buf), abuf_getlen(&_rawdata_buf))) {
@@ -654,7 +727,7 @@ _cb_dat_sampling(struct oonf_timer_instance *ptr __attribute__((unused))) {
         (uint64_t)(ldata->buckets[ldata->activePtr].scaled_speed) * DATFF_LINKSPEED_MINIMUM);
 
     /* get median scaled link speed and apply it to metric */
-    rx_bitrate = _get_median_rx_linkspeed(ldata);
+    rx_bitrate = _get_median_rx_linkspeed(ifconfig, ldata);
     if (rx_bitrate > DATFF_LINKSPEED_RANGE) {
       OONF_WARN(LOG_FF_DAT, "Metric overflow %s (%s): %d",
           netaddr_to_string(&nbuf, &lnk->if_addr),
@@ -671,7 +744,7 @@ _cb_dat_sampling(struct oonf_timer_instance *ptr __attribute__((unused))) {
       metric *= DATFF_FRAME_SUCCESS_RANGE;
     }
     else {
-      metric = _apply_packet_loss(lnk, ldata, metric, received, total);
+      metric = _apply_packet_loss(ifconfig, lnk, ldata, metric, received, total);
     }
 
     /* convert into something that can be transmitted over the network */
@@ -711,7 +784,7 @@ _cb_dat_sampling(struct oonf_timer_instance *ptr __attribute__((unused))) {
 
     /* update rolling buffer */
     ldata->activePtr++;
-    if (ldata->activePtr >= _datff_config.window) {
+    if (ldata->activePtr >= ifconfig->window) {
       ldata->activePtr = 0;
     }
     ldata->buckets[ldata->activePtr].received = 0;
@@ -778,7 +851,7 @@ _calculate_dynamic_loss_exponent(int link_neigborhood) {
  * @return metric including linkspeed and packet loss
  */
 static uint32_t
-_apply_packet_loss(struct nhdp_link *lnk,
+_apply_packet_loss(struct ff_dat_if_config *ifconfig, struct nhdp_link *lnk,
     struct link_datff_data *ldata, uint32_t metric,
     uint32_t received, uint32_t total) {
   int64_t success_scaled_by_1000;
@@ -805,7 +878,7 @@ _apply_packet_loss(struct nhdp_link *lnk,
 
   _calculate_link_neighborhood(lnk, ldata);
 
-  switch (_datff_config.loss_exponent) {
+  switch (ifconfig->loss_exponent) {
     case IDX_LOSS_LINEAR:
       loss_exponent = 1;
       break;
@@ -829,7 +902,7 @@ _apply_packet_loss(struct nhdp_link *lnk,
     loss_exponent--;
   }
 
-  if (_datff_config.mic && ldata->link_neigborhood > 1) {
+  if (ifconfig->mic && ldata->link_neigborhood > 1) {
     tmp_metric = tmp_metric * (int64_t)ldata->link_neigborhood;
   }
 
@@ -866,29 +939,20 @@ _cb_hello_lost(struct oonf_timer_instance *ptr) {
  * @return true to process packet, false otherwise
  */
 static bool
-_shall_process_packet(void) {
+_shall_process_packet(struct nhdp_interface *nhdpif, struct ff_dat_if_config *ifconfig) {
   struct os_interface_listener *if_listener;
-  const char *ptr;
   if (_protocol->input.is_multicast) {
     /* accept multicast */
     return true;
   }
 
-  if_listener = oonf_rfc5444_get_core_if_listener(_protocol->input.interface);
+  if_listener = nhdp_interface_get_if_listener(nhdpif);
   if (if_listener && if_listener->data && if_listener->data->flags.unicast_only) {
     /* accept unicast for unicast-only interfaces */
     return true;
   }
 
-  strarray_for_each_element(&_datff_config.unicast_if, ptr) {
-    if (strcmp(ptr, _protocol->input.interface->name) == 0) {
-      /* accept unicast for configured interfaces */
-      return true;
-    }
-  }
-
-  /* ignore otherwise */
-  return false;
+  return ifconfig->accept_unicast;
 }
 
 /**
@@ -900,16 +964,14 @@ _shall_process_packet(void) {
  */
 static enum rfc5444_result
 _cb_process_packet(struct rfc5444_reader_tlvblock_context *context) {
+  struct ff_dat_if_config *ifconfig;
   struct link_datff_data *ldata;
   struct nhdp_interface *interf;
   struct nhdp_laddr *laddr;
   struct nhdp_link *lnk;
   int total;
 
-  if (!_shall_process_packet()) {
-    /* silently ignore unicasts */
-    return RFC5444_OKAY;
-  }
+  struct netaddr_str nbuf;
 
   if (!context->has_pktseqno) {
     struct netaddr_str buf;
@@ -923,6 +985,12 @@ _cb_process_packet(struct rfc5444_reader_tlvblock_context *context) {
   interf = nhdp_interface_get(_protocol->input.interface->name);
   if (interf == NULL) {
     /* silently ignore unknown interface */
+    return RFC5444_OKAY;
+  }
+
+  ifconfig = oonf_class_get_extension(&_nhdpif_extenstion, interf);
+  if (!_shall_process_packet(interf, ifconfig)) {
+    /* silently ignore unicasts */
     return RFC5444_OKAY;
   }
 
@@ -963,6 +1031,13 @@ _cb_process_packet(struct rfc5444_reader_tlvblock_context *context) {
   /* get link and its dat data */
   lnk = laddr->link;
   ldata = oonf_class_get_extension(&_link_extenstion, lnk);
+
+  if (!ldata->buckets) {
+    OONF_WARN(LOG_FF_DAT, "No buckets for link to %s (%s)",
+        netaddr_to_string(&nbuf, &lnk->if_addr),
+        nhdp_interface_get_name(lnk->local_if));
+    return RFC5444_OKAY;
+  }
 
   if (ldata->activePtr == -1) {
     ldata->activePtr = 0;
@@ -1051,20 +1126,31 @@ _path_to_string(struct nhdp_metric_str *buf, uint32_t metric, uint8_t hopcount) 
  */
 static const char *
 _int_link_to_string(struct nhdp_metric_str *buf, struct nhdp_link *lnk) {
+  struct ff_dat_if_config *ifconfig;
   struct link_datff_data *ldata;
   int64_t received = 0, total = 0;
   int i;
 
-  ldata = oonf_class_get_extension(&_link_extenstion, lnk);
+  struct netaddr_str nbuf;
 
-  for (i=0; i<_datff_config.window; i++) {
+  ldata = oonf_class_get_extension(&_link_extenstion, lnk);
+  ifconfig = oonf_class_get_extension(&_nhdpif_extenstion, lnk->local_if);
+
+  if (!ldata->buckets) {
+    OONF_WARN(LOG_FF_DAT, "No buckets for link to %s (%s)",
+        netaddr_to_string(&nbuf, &lnk->if_addr),
+        nhdp_interface_get_name(lnk->local_if));
+    return RFC5444_OKAY;
+  }
+
+  for (i=0; i<ifconfig->window; i++) {
     received += ldata->buckets[i].received;
     total += ldata->buckets[i].total;
   }
 
   snprintf(buf->buf, sizeof(*buf), "p_recv=%"PRId64",p_total=%"PRId64","
       "speed=%"PRId64",success=%"PRId64",missed_hello=%d,lastseq=%u,lneigh=%d",
-      received, total, (int64_t)_get_median_rx_linkspeed(ldata) * (int64_t)1024,
+      received, total, (int64_t)_get_median_rx_linkspeed(ifconfig, ldata) * (int64_t)1024,
       ldata->last_packet_success_rate, ldata->missed_hellos,
       ldata->last_seq_nr, ldata->link_neigborhood);
   return buf->buf;
@@ -1075,30 +1161,67 @@ _int_link_to_string(struct nhdp_metric_str *buf, struct nhdp_link *lnk) {
  */
 static void
 _cb_cfg_changed(void) {
-  bool first;
+  struct ff_dat_if_config *ifconfig;
+  struct link_datff_data *lnkdata;
+  struct nhdp_interface *nhdpif;
+  struct nhdp_link *nhdp_lnk;
+  void *new_ptr;
+  int32_t old_winsize;
 
-  first = _datff_config.window == 0;
+  nhdpif = nhdp_interface_get(_datff_section.section_name);
+  if (!_datff_section.post) {
+    if (nhdpif) {
+      nhdp_interface_remove(nhdpif);
+    }
+    return;
+  }
 
-  if (cfg_schema_tobin(&_datff_config, _datff_section.post,
+  if (!_datff_section.pre) {
+    nhdpif = nhdp_interface_add(_datff_section.section_name);
+  }
+
+  if (!nhdpif) {
+    return;
+  }
+
+  ifconfig = oonf_class_get_extension(&_nhdpif_extenstion, nhdpif);
+  old_winsize = ifconfig->window;
+
+  if (cfg_schema_tobin(ifconfig, _datff_section.post,
       _datff_entries, ARRAYSIZE(_datff_entries))) {
     OONF_WARN(LOG_FF_DAT, "Cannot convert configuration for "
         OONF_FF_DAT_METRIC_SUBSYSTEM);
     return;
   }
 
-  if (first) {
-    _link_extenstion.size +=
-        sizeof(struct link_datff_bucket) * _datff_config.window;
-
-    if (oonf_class_extension_add(&_link_extenstion)) {
-      return;
+  if (ifconfig->window > _rx_sort_size) {
+    new_ptr = realloc(_rx_sort_array,
+        sizeof(struct link_datff_bucket) * ifconfig->window);
+    if (new_ptr) {
+      _rx_sort_array = new_ptr;
     }
-
-    _rx_sort_array = calloc(_datff_config.window, sizeof(int));
+    else {
+      ifconfig->window = _rx_sort_size;
+    }
   }
 
+  if (old_winsize < ifconfig->window) {
+    list_for_each_element(&nhdpif->_links, nhdp_lnk, _if_node) {
+      lnkdata = oonf_class_get_extension(&_link_extenstion, nhdp_lnk);
+
+      new_ptr = realloc(lnkdata->buckets,
+          sizeof(struct link_datff_bucket) * ifconfig->window);
+      if (new_ptr) {
+        lnkdata->buckets = new_ptr;
+      }
+      else {
+        ifconfig->window = old_winsize;
+        break;
+      }
+    }
+  }
   /* start/change sampling timer */
-  oonf_timer_set(&_sampling_timer, _datff_config.interval);
+  oonf_timer_set(&ifconfig->_sampling_timer, ifconfig->interval);
 
 #ifdef COLLECT_RAW_DATA
   if (_rawdata_fd != -1) {
@@ -1118,35 +1241,4 @@ _cb_cfg_changed(void) {
     }
   }
 #endif
-}
-
-/**
- * Callback triggered to check validity of configuration section
- * @param section_name name of section
- * @param named configuration data of section
- * @param out output buffer for error messages
- * @return 0 if data is okay, -1 if an error happened
- */
-static int
-_cb_cfg_validate(const char *section_name,
-    struct cfg_named_section *named, struct autobuf *out) {
-  struct ff_dat_config cfg;
-
-  /* clear temporary buffer */
-  memset(&cfg, 0, sizeof(cfg));
-
-  /* convert configuration to binary */
-  if (cfg_schema_tobin(&cfg, named,
-      _datff_entries, ARRAYSIZE(_datff_entries))) {
-    OONF_WARN(LOG_FF_DAT, "Could not convert "
-        OONF_FF_DAT_METRIC_SUBSYSTEM " plugin configuration");
-    return -1;
-  }
-
-  if (_datff_config.window != 0 && cfg.window != _datff_config.window) {
-    cfg_append_printable_line(out, "%s: DATff window cannot be changed during runtime",
-        section_name);
-    return -1;
-  }
-  return 0;
 }

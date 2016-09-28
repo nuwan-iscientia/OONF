@@ -399,8 +399,14 @@ _cb_addresstlvs(struct rfc5444_reader_tlvblock_context *context __attribute__((u
           if (cost_out[i] <= RFC7181_METRIC_MAX) {
             edge->cost[i] = cost_out[i];
           }
+          else if (_current.complete_tc) {
+            edge->cost[i] = RFC7181_METRIC_INFINITE;
+          }
           if (edge->inverse->virtual && cost_in[i] <= RFC7181_METRIC_MAX) {
             edge->inverse->cost[i] = cost_in[i];
+          }
+          else if (edge->inverse->virtual && _current.complete_tc) {
+            edge->inverse->cost[i] = RFC7181_METRIC_INFINITE;
           }
         }
       }
@@ -414,6 +420,9 @@ _cb_addresstlvs(struct rfc5444_reader_tlvblock_context *context __attribute__((u
         for (i=0; i< NHDP_MAXIMUM_DOMAINS; i++) {
           if (cost_out[i] <= RFC7181_METRIC_MAX) {
             end->cost[i] = cost_out[i];
+          }
+          else if (_current.complete_tc) {
+            end->cost[i] = RFC7181_METRIC_INFINITE;
           }
         }
       }
@@ -471,6 +480,13 @@ _handle_gateways(struct rfc5444_reader_tlvblock_entry *tlv,
   }
 
   end->ansn = _current.node->ansn;
+
+  if (_current.complete_tc) {
+    /* clear unused metrics */
+    for (i=0; i<NHDP_MAXIMUM_DOMAINS; i++) {
+      end->cost[i] = RFC7181_METRIC_INFINITE;
+    }
+  }
 
   /* use MT definition of AN tlv */
   for (i=0; i<_current.mprtypes_size; i++) {
