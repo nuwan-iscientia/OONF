@@ -77,6 +77,9 @@ struct _nhdp_if_autoll4 {
   /*! back pointer to NHDP interface */
   struct nhdp_interface *nhdp_if;
 
+  /*! we have registered a NHDP interface instance */
+  bool registered;
+
   /*! true if autoll4 is active for this interface */
   bool active;
 
@@ -232,7 +235,6 @@ _initiate_shutdown(void) {
         nhdp_interface_get_if_listener(nhdp_if)->data->name);
     _cb_remove_nhdp_interface(nhdp_if);
   }
-  oonf_class_extension_remove(&_nhdp_if_extenstion);
   oonf_class_extension_remove(&_nhdp_2hop_listener);
   oonf_class_extension_remove(&_nhdp_laddr_listener);
   oonf_class_extension_remove(&_nhdp_ifaddr_listener);
@@ -243,7 +245,20 @@ _initiate_shutdown(void) {
  */
 static void
 _cleanup(void) {
+  struct nhdp_interface *nhdp_if, *nhdp_if_it;
+  struct _nhdp_if_autoll4 *auto_ll4;
+
+  avl_for_each_element_safe(nhdp_interface_get_tree(), nhdp_if, _node, nhdp_if_it) {
+    _cb_remove_nhdp_interface(nhdp_if);
+
+    auto_ll4 = oonf_class_get_extension(&_nhdp_if_extenstion, nhdp_if);
+    if (auto_ll4->registered) {
+      nhdp_interface_remove(nhdp_if);
+    }
+  }
+
   oonf_timer_remove(&_startup_timer_info);
+  oonf_class_extension_remove(&_nhdp_if_extenstion);
 }
 
 /**
@@ -263,7 +278,6 @@ _cb_add_nhdp_interface(void *ptr) {
   auto_ll4->os_addr.cb_finished = _cb_address_finished;
   auto_ll4->os_addr.scope = OS_ADDR_SCOPE_LINK;
 
-
   /* activate update_timer delay timer */
   auto_ll4->update_timer.class = &_startup_timer_info;
 }
@@ -280,19 +294,24 @@ _cb_remove_nhdp_interface(void *ptr) {
   /* get auto linklayer extension */
   auto_ll4 = oonf_class_get_extension(&_nhdp_if_extenstion, nhdp_if);
 
-  /* stop running address setting feedback */
-  auto_ll4->os_addr.cb_finished = NULL;
-  os_interface_address_interrupt(&auto_ll4->os_addr);
+  if (auto_ll4->nhdp_if) {
+    /* stop running address setting feedback */
+    auto_ll4->os_addr.cb_finished = NULL;
+    os_interface_address_interrupt(&auto_ll4->os_addr);
 
-  /* cleanup address if necessary */
-  auto_ll4->active = false;
-  _cb_update_timer(&auto_ll4->update_timer);
+    /* cleanup address if necessary */
+    if (auto_ll4->active && auto_ll4->plugin_generated) {
+      auto_ll4->os_addr.set = false;
+      os_interface_address_set(&auto_ll4->os_addr);
+    }
+    auto_ll4->active = false;
 
-  /* stop update timer */
-  oonf_timer_stop(&auto_ll4->update_timer);
+    /* stop update timer */
+    oonf_timer_stop(&auto_ll4->update_timer);
 
-  /* cleanup pointer to nhdp interface */
-  auto_ll4->nhdp_if = NULL;
+    /* cleanup pointer to nhdp interface */
+    auto_ll4->nhdp_if = NULL;
+  }
 }
 
 /**
@@ -770,17 +789,28 @@ _cb_if_cfg_changed(void) {
     nhdp_if = nhdp_interface_get(ifname);
   }
 
+  if (nhdp_if) {
+    /* get block domain extension */
+    auto_ll4 = oonf_class_get_extension(&_nhdp_if_extenstion, nhdp_if);
+    auto_ll4->registered = true;
+  }
+
   if (_interface_section.post == NULL) {
     /* section was removed */
     if (nhdp_if != NULL) {
+      auto_ll4->registered = false;
+
       /* decrease nhdp_interface refcount */
       nhdp_interface_remove(nhdp_if);
     }
+
+    nhdp_if = NULL;
+  }
+
+  if (!nhdp_if) {
     return;
   }
 
-  /* get auto linklayer extension */
-  auto_ll4 = oonf_class_get_extension(&_nhdp_if_extenstion, nhdp_if);
 
   /* get configuration */
   if (cfg_schema_tobin(auto_ll4, _interface_section.post,

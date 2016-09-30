@@ -333,6 +333,8 @@ struct dlep_extension {
 };
 
 EXPORT void dlep_extension_init(void);
+EXPORT void dlep_extension_cleanup(void);
+
 EXPORT void dlep_extension_add(struct dlep_extension *);
 EXPORT struct avl_tree *dlep_extension_get_tree(void);
 EXPORT void dlep_extension_add_processing(struct dlep_extension *, bool radio,

@@ -66,7 +66,7 @@
 
 /* Prototypes of local functions */
 static void _addr_add(struct nhdp_interface *, struct netaddr *addr);
-static void _addr_remove(struct nhdp_interface_addr *addr, uint64_t vtime);
+static void _addr_has_been_removed(struct nhdp_interface_addr *addr, uint64_t vtime);
 static void _remove_addr(struct nhdp_interface_addr *ptr);
 static void _cb_addr_timeout(struct oonf_timer_instance *ptr);
 
@@ -129,7 +129,13 @@ nhdp_interfaces_cleanup(void) {
   struct nhdp_interface *interf, *if_it;
 
   avl_for_each_element_safe(&_interface_tree, interf, _node, if_it) {
-    nhdp_interface_remove(interf);
+    if (interf->_refcount > 1) {
+      fprintf(stderr, "refcount %s: %d\n", nhdp_interface_get_name(interf), interf->_refcount);
+    }
+
+    if (interf->registered) {
+      nhdp_interface_remove(interf);
+    }
   }
 
   oonf_timer_remove(&_interface_hello_timer);
@@ -405,7 +411,7 @@ _addr_add(struct nhdp_interface *interf, struct netaddr *addr) {
  * @param vtime time in milliseconds until address should be removed from db
  */
 static void
-_addr_remove(struct nhdp_interface_addr *addr, uint64_t vtime) {
+_addr_has_been_removed(struct nhdp_interface_addr *addr, uint64_t vtime) {
 #ifdef OONF_LOG_DEBUG_INFO
   struct netaddr_str buf;
 #endif
@@ -543,7 +549,7 @@ _cb_interface_event(struct oonf_rfc5444_interface_listener *ifl,
   avl_for_each_element_safe(&interf->_if_addresses, addr, _if_node, addr_it) {
     if (addr->_to_be_removed && !addr->removed) {
       addr->_to_be_removed = false;
-      _addr_remove(addr, interf->i_hold_time);
+      _addr_has_been_removed(addr, interf->i_hold_time);
     }
   }
 

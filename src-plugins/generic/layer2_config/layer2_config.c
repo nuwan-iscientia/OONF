@@ -280,6 +280,7 @@ _remove_if_data(struct l2_config_if_data *if_data) {
 
   oonf_timer_stop(&if_data->_reconfigure_timer);
   avl_remove(&_if_data_tree, &if_data->_node);
+  free (if_data);
 }
 
 /**

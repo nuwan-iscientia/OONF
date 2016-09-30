@@ -73,6 +73,16 @@ dlep_extension_init(void) {
 }
 
 /**
+ * Cleanup DLEP extension resources
+ */
+void
+dlep_extension_cleanup(void) {
+  free (_id_array);
+  _id_array = NULL;
+  _id_array_length = 0;
+}
+
+/**
  * Add a new dlep extension
  * @param ext pointer to initialized extension handler
  */
@@ -84,16 +94,16 @@ dlep_extension_add(struct dlep_extension *ext) {
     return;
   }
 
-  ptr = realloc(_id_array, sizeof(uint16_t) * _extension_tree.count);
-  if (!ptr) {
-    return;
-  }
-
   /* add to tree */
   ext->_node.key = &ext->id;
   avl_insert(&_extension_tree, &ext->_node);
 
   /* refresh id array */
+  ptr = realloc(_id_array, sizeof(uint16_t) * _extension_tree.count);
+  if (!ptr) {
+    return;
+  }
+
   _id_array_length = 0;
   _id_array = ptr;
 
