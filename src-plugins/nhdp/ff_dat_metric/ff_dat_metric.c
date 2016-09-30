@@ -610,7 +610,9 @@ _get_scaled_rx_linkspeed(struct ff_dat_if_config *ifconfig, struct nhdp_link *ln
   struct os_interface *os_if;
   const struct oonf_layer2_data *l2data;
   int64_t rate;
+#ifdef OONF_LOG_INFO
   struct netaddr_str nbuf;
+#endif
 
   if (!ifconfig->ett) {
     /* ETT feature is switched off */
@@ -1161,7 +1163,7 @@ _int_link_to_string(struct nhdp_metric_str *buf, struct nhdp_link *lnk) {
  */
 static void
 _cb_cfg_changed(void) {
-  struct ff_dat_if_config *ifconfig;
+  struct ff_dat_if_config *ifconfig = NULL;
   struct nhdp_interface *nhdp_if;
   const char *ifname;
   char ifbuf[IF_NAMESIZE];

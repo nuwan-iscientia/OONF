@@ -773,7 +773,7 @@ _calculate_host_part(const struct netaddr *addr)
  */
 static void
 _cb_if_cfg_changed(void) {
-  struct _nhdp_if_autoll4 *auto_ll4;
+  struct _nhdp_if_autoll4 *auto_ll4 = NULL;
   struct nhdp_interface *nhdp_if;
   const char *ifname;
   char ifbuf[IF_NAMESIZE];
@@ -810,7 +810,6 @@ _cb_if_cfg_changed(void) {
   if (!nhdp_if) {
     return;
   }
-
 
   /* get configuration */
   if (cfg_schema_tobin(auto_ll4, _interface_section.post,
