@@ -129,10 +129,6 @@ nhdp_interfaces_cleanup(void) {
   struct nhdp_interface *interf, *if_it;
 
   avl_for_each_element_safe(&_interface_tree, interf, _node, if_it) {
-    if (interf->_refcount > 1) {
-      fprintf(stderr, "refcount %s: %d\n", nhdp_interface_get_name(interf), interf->_refcount);
-    }
-
     if (interf->registered) {
       nhdp_interface_remove(interf);
     }
