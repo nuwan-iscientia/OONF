@@ -124,8 +124,8 @@ struct _config {
  * Additional parameters of a single locally attached network
  */
 struct _lan_data {
-  /*! domain of LAN */
-  struct nhdp_domain *domain;
+  /*! extension domain of LAN */
+  int32_t ext;
 
   /*! source prefix */
   struct netaddr source_prefix;
@@ -638,7 +638,7 @@ _parse_lan_parameters(struct os_route_key *prefix,
   unsigned ext;
 
   ptr = src;
-  dst->domain = NULL;
+  dst->ext = -1;
   dst->metric = LAN_DEFAULT_METRIC;
   dst->dist   = LAN_DEFAULT_DISTANCE;
 
@@ -652,19 +652,15 @@ _parse_lan_parameters(struct os_route_key *prefix,
       }
     }
     else if (strncasecmp(buffer, LAN_OPTION_DOMAIN, 7) == 0) {
-      fprintf(stderr, "domain='%s'\n", &buffer[7]);
       if (strcasecmp(&buffer[7], "all") == 0) {
-        dst->domain = NULL;
+        dst->ext = -1;
       }
       else {
         ext = strtoul(&buffer[7], NULL, 10);
         if ((ext == 0 && errno != 0) || ext > 255) {
           return "an illegal domain parameter";
         }
-        dst->domain = nhdp_domain_get_by_ext(ext);
-        if (dst->domain == NULL) {
-          return "an unknown domain extension number";
-        }
+        dst->ext = ext;
       }
     }
     else if (strncasecmp(buffer, LAN_OPTION_DIST, 5) == 0) {
@@ -707,6 +703,7 @@ _parse_lan_array(struct cfg_named_section *section, bool add) {
   struct netaddr addr;
   struct os_route_key prefix;
   struct _lan_data data;
+  struct nhdp_domain *domain;
 
   const char *value, *ptr;
   struct cfg_entry *entry;
@@ -736,22 +733,26 @@ _parse_lan_array(struct cfg_named_section *section, bool add) {
       continue;
     }
 
-    if (data.domain == NULL) {
-      list_for_each_element(nhdp_domain_get_list(), data.domain, _node) {
+    if (data.ext == -1) {
+      list_for_each_element(nhdp_domain_get_list(), domain, _node) {
         if (add) {
-          olsrv2_lan_add(data.domain, &prefix, data.metric, data.dist);
+          olsrv2_lan_add(domain, &prefix, data.metric, data.dist);
         }
         else {
-          olsrv2_lan_remove(data.domain, &prefix);
+          olsrv2_lan_remove(domain, &prefix);
         }
       }
     }
     else {
+      domain = nhdp_domain_add(data.ext);
+      if (!domain) {
+        continue;
+      }
       if (add) {
-        olsrv2_lan_add(data.domain, &prefix, data.metric, data.dist);
+        olsrv2_lan_add(domain, &prefix, data.metric, data.dist);
       }
       else {
-        olsrv2_lan_remove(data.domain, &prefix);
+        olsrv2_lan_remove(domain, &prefix);
       }
     }
   }
