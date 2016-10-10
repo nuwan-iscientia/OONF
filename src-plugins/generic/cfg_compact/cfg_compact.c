@@ -45,6 +45,7 @@
 
 #include <errno.h>
 #include <fcntl.h>
+#include <glob.h>
 #include <string.h>
 #include <unistd.h>
 #include <sys/types.h>
@@ -62,10 +63,12 @@
 static void _early_cfg_init(void);
 static void _cleanup(void);
 
-static struct cfg_db *_cb_compact_load(const char *param, struct autobuf *log);
+static struct cfg_db *_cb_compact_loadall(const char *param, struct autobuf *log);
 static int _cb_compact_save(const char *param, struct cfg_db *src, struct autobuf *log);
 
-static struct cfg_db *_compact_parse(struct autobuf *input, struct autobuf *log);
+static int _cb_compact_load(struct cfg_db *db, const char *param, struct autobuf *log);
+static int _compact_parse(struct cfg_db *db,
+    struct autobuf *input, struct autobuf *log);
 static int _compact_serialize(struct autobuf *dst, struct cfg_db *src,
     struct autobuf *log);
 static int _parse_line(struct cfg_db *db, char *line, char *section, size_t section_size,
@@ -85,7 +88,7 @@ DECLARE_OONF_PLUGIN(_oonf_cfg_compact_subsystem);
 
 static struct cfg_io _cfg_compact = {
   .name = "compact",
-  .load = _cb_compact_load,
+  .load = _cb_compact_loadall,
   .save = _cb_compact_save,
   .def = true,
 };
@@ -109,18 +112,63 @@ _cleanup(void)
 }
 
 /**
- * Reads a file from a filesystem, parse it with the help of a
- * configuration parser and returns a configuration database.
- * @param param file to be read
+ * Reads all files from filesystem which match the given pattern,
+ * parse them with the help of a configuration parser and returns
+ * a configuration database.
+ * @param param file pattern to be read
  * @param log autobuffer for logging purpose
  * @return pointer to configuration database, NULL if an error happened
  */
 static struct cfg_db *
-_cb_compact_load(const char *param, struct autobuf *log) {
-  struct autobuf dst;
+_cb_compact_loadall(const char *param, struct autobuf *log) {
+  glob_t globbuf;
   struct cfg_db *db;
+  size_t i;
+
+  db = cfg_db_add();
+  if (!db){
+    cfg_append_printable_line(log, "Out of memory for database");
+    return NULL;
+  }
+
+  memset(&globbuf, 0, sizeof(globbuf));
+  switch (glob(param, GLOB_DOOFFS, NULL, &globbuf)) {
+    case GLOB_NOSPACE:
+      cfg_append_printable_line(log, "Out of memory for glob (%s)", param);
+      break;
+    case GLOB_ABORTED:
+      cfg_append_printable_line(log, "glob aborted (%s)", param);
+      break;
+    case GLOB_NOMATCH:
+      cfg_append_printable_line(log, "no match for file pattern '%s'", param);
+      break;
+    default:
+      for (i=0; i<globbuf.gl_pathc; i++) {
+        if (_cb_compact_load(db, globbuf.gl_pathv[i], log)) {
+          break;
+        }
+      }
+      return db;
+  }
+
+  cfg_db_remove(db);
+  return NULL;
+}
+
+/**
+ * Reads a file from a filesystem, parse it with the help of a
+ * configuration parser and returns a configuration database.
+ * @param db pointer to configuration database
+ * @param param file to be read
+ * @param log autobuffer for logging purpose
+ * @return -1 if an error happened, 0 otherwise
+ */
+
+static int
+_cb_compact_load(struct cfg_db *db, const char *param, struct autobuf *log) {
+  struct autobuf dst;
   char buffer[1024];
-  int fd = 0;
+  int fd = 0, result;
   ssize_t bytes;
 
   fd = open(param, O_RDONLY, 0);
@@ -128,7 +176,7 @@ _cb_compact_load(const char *param, struct autobuf *log) {
     cfg_append_printable_line(log,
         "Cannot open file '%s' to read configuration: %s (%d)",
         param, strerror(errno), errno);
-    return NULL;
+    return -1;
   }
 
   bytes = 1;
@@ -136,7 +184,7 @@ _cb_compact_load(const char *param, struct autobuf *log) {
     cfg_append_printable_line(log,
         "Out of memory error while allocating io buffer");
     close (fd);
-    return NULL;
+    return -1;
   }
 
   /* read file into binary buffer */
@@ -148,7 +196,7 @@ _cb_compact_load(const char *param, struct autobuf *log) {
           param, strerror(errno), errno);
       close(fd);
       abuf_free(&dst);
-      return NULL;
+      return -1;
     }
 
     if (bytes > 0) {
@@ -158,12 +206,12 @@ _cb_compact_load(const char *param, struct autobuf *log) {
   close(fd);
 
   if (abuf_has_failed(&dst)) {
-    return NULL;
+    return -1;
   }
-  db = _compact_parse(&dst, log);
+  result = _compact_parse(db, &dst, log);
 
   abuf_free(&dst);
-  return db;
+  return result;
 }
 
 /**
@@ -223,25 +271,21 @@ _cb_compact_save(const char *param, struct cfg_db *src_db, struct autobuf *log) 
 
 /**
  * Parse a buffer into a configuration database
+ * @param db pointer to configuration database
  * @param input autobuffer with configuration input
  * @param log autobuffer for logging output
- * @return pointer to configuration database, NULL if an error happened
+ * @return -1 if an error happened, 0 otherwise
  */
-static struct cfg_db *
-_compact_parse(struct autobuf *input, struct autobuf *log) {
+static int
+_compact_parse(struct cfg_db *db,
+    struct autobuf *input, struct autobuf *log) {
   char section[128];
   char name[128];
-  struct cfg_db *db;
   char *src;
   size_t len, eol, line;
 
   src = abuf_getptr(input);
   len = abuf_getlen(input);
-
-  db = cfg_db_add();
-  if (!db) {
-    return NULL;
-  }
 
   memset(section, 0, sizeof(section));
   memset(name, 0, sizeof(name));
@@ -263,12 +307,11 @@ _compact_parse(struct autobuf *input, struct autobuf *log) {
 
     if (_parse_line(db, &src[line], section, sizeof(section),
         name, sizeof(name), log)) {
-      cfg_db_remove(db);
-      return NULL;
+      return -1;
     }
     line = eol+1;
   }
-  return db;
+  return 0;
 }
 
 /**
