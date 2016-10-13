@@ -261,6 +261,8 @@ static struct oonf_rfc5444_protocol *_protocol;
 static uint16_t _ansn;
 static uint32_t _sym_neighbor_id = 0;
 
+static bool _generate_tcs = true;
+
 /* Additional logging sources */
 static enum oonf_log_source LOG_OLSRV2;
 static enum oonf_log_source LOG_OLSRV2_R;
@@ -552,6 +554,21 @@ olsrv2_update_ansn(bool force) {
     _sym_neighbor_id = nhdp_db_neighbor_get_set_id();
   }
   return _ansn;
+}
+
+/**
+ * Switches the automatic generation of TCs on and off
+ * @param generate true if TCs should be generated every OLSRv2 TC interval,
+ *   false otherwise
+ */
+void
+olsrv2_generate_tcs(bool generate) {
+  if (generate && !oonf_timer_is_active(&_tc_timer)) {
+    oonf_timer_set(&_tc_timer, _olsrv2_config.tc_interval);
+  }
+  else if (!generate && oonf_timer_is_active(&_tc_timer)) {
+    oonf_timer_stop(&_tc_timer);
+  }
 }
 
 /**
@@ -904,7 +921,9 @@ _cb_cfg_olsrv2_changed(void) {
   }
 
   /* set tc timer interval */
-  oonf_timer_set(&_tc_timer, _olsrv2_config.tc_interval);
+  if (_generate_tcs) {
+    oonf_timer_set(&_tc_timer, _olsrv2_config.tc_interval);
+  }
 
   /* check if we have to change the originators */
   _update_originator(AF_INET);
