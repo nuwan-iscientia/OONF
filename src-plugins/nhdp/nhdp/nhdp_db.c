@@ -830,10 +830,10 @@ nhdp_db_link_update_status(struct nhdp_link *lnk) {
   if (old_status != lnk->status) {
     /* link status was changed */
     lnk->last_status_change = oonf_clock_getNow();
-  }
 
-  /* trigger change event */
-  oonf_class_event(&_link_info, lnk, OONF_OBJECT_CHANGED);
+    /* trigger change event */
+    oonf_class_event(&_link_info, lnk, OONF_OBJECT_CHANGED);
+  }
 }
 
 /**
