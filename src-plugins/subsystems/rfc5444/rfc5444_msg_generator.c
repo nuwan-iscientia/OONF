@@ -579,7 +579,7 @@ rfc5444_writer_forward_msg(struct rfc5444_writer *writer,
                             + target->_pkt.allocated + target->_bin_msgs_size];
 
     /* copy message into packet buffer */
-    assert(ptr + generic_size < target->_pkt.buffer + target->_pkt.max);
+    assert(ptr + generic_size <= target->_pkt.buffer + target->_pkt.max);
     memcpy(ptr, msg, generic_size);
 
     /* remember position of first copy */
