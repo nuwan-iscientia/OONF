@@ -456,10 +456,10 @@ rfc5444_writer_forward_msg(struct rfc5444_writer *writer,
   struct rfc5444_writer_forward_handler *handler;
   int cnt, hopcount, hoplimit;
   size_t max, transformer_overhead;
-  uint16_t size;
   size_t generic_size, msg_size;
   uint8_t flags, addr_len;
   uint8_t *ptr;
+  bool shall_forward;
 #if WRITER_STATE_MACHINE == true
   assert(writer->_state == RFC5444_WRITER_NONE);
 #endif
@@ -477,11 +477,13 @@ rfc5444_writer_forward_msg(struct rfc5444_writer *writer,
   }
 
   /* 1.) first flush all interfaces that have (too) full buffers */
+  shall_forward = false;
   list_for_each_element(&writer->_targets, target, _target_node) {
     if (!rfc5444_msg->forward_target_selector(target, context)) {
       continue;
     }
 
+    shall_forward = true;
     transformer_overhead = 0;
     avl_for_each_element(&writer->_forwarding_processors, handler, _node) {
       if (handler->is_matching_signature(handler, msg[0])) {
@@ -491,7 +493,8 @@ rfc5444_writer_forward_msg(struct rfc5444_writer *writer,
 
     max = 0;
     if (!target->_is_flushed) {
-      max = target->_pkt.max - (target->_pkt.header + target->_pkt.added + target->_pkt.allocated);
+      max = target->_pkt.max -
+          (target->_pkt.header + target->_pkt.added + target->_pkt.allocated + target->_bin_msgs_size);
 
       if (len + transformer_overhead > max) {
         /* flush the old packet */
@@ -502,13 +505,19 @@ rfc5444_writer_forward_msg(struct rfc5444_writer *writer,
     if (target->_is_flushed) {
       /* begin a new packet */
       _rfc5444_writer_begin_packet(writer,target);
-      max = target->_pkt.max - (target->_pkt.header + target->_pkt.added + target->_pkt.allocated);
+      max = target->_pkt.max -
+          (target->_pkt.header + target->_pkt.added + target->_pkt.allocated + target->_bin_msgs_size);
     }
 
     if (len + transformer_overhead > max) {
       /* message too long, too much data in it */
       return RFC5444_FW_MESSAGE_TOO_LONG;
     }
+  }
+
+  if (!shall_forward) {
+    /* no target to forward message, everything done */
+    return RFC5444_OKAY;
   }
 
   /* 2.) generate message and do non-target specific post processors */
@@ -537,12 +546,6 @@ rfc5444_writer_forward_msg(struct rfc5444_writer *writer,
   /* 3) grab index of header structures */
   flags = msg[1];
   addr_len = (flags & RFC5444_MSG_FLAG_ADDRLENMASK) + 1;
-
-  size = (msg[2] << 8) + msg[3];
-  if (size != generic_size) {
-    /* bad message size */
-    return RFC5444_FW_BAD_SIZE;
-  }
 
   cnt = 4;
   hopcount = -1;
@@ -576,6 +579,7 @@ rfc5444_writer_forward_msg(struct rfc5444_writer *writer,
                             + target->_pkt.allocated + target->_bin_msgs_size];
 
     /* copy message into packet buffer */
+    assert(ptr + generic_size < target->_pkt.buffer + target->_pkt.max);
     memcpy(ptr, msg, generic_size);
 
     /* remember position of first copy */
@@ -597,6 +601,10 @@ rfc5444_writer_forward_msg(struct rfc5444_writer *writer,
 
     if (msg_size > 0) {
       target->_bin_msgs_size += msg_size;
+
+      /* correct message */
+      ptr[2] = msg_size >> 8;
+      ptr[3] = msg_size & 0xff;
 
       /* correct hoplimit if necesssary */
       if (hoplimit != -1) {
