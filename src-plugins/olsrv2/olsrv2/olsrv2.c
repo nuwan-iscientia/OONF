@@ -509,14 +509,14 @@ olsrv2_mpr_shall_forwarding(struct rfc5444_reader_tlvblock_context *context,
   }
 
   /* forward if this neighbor has selected us as a flooding MPR */
-  forward = neigh->local_is_flooding_mpr && neigh->symmetric > 0;
+  forward = laddr->link->local_is_flooding_mpr && neigh->symmetric > 0;
   OONF_DEBUG(LOG_OLSRV2, "Do %sforward message type %u from %s"
       " with seqno %u (%s/%u)",
       forward ? "" : "not ",
       context->msg_type,
       netaddr_to_string(&buf, &context->orig_addr),
       context->seqno,
-      neigh->local_is_flooding_mpr ? "true" : "false", neigh->symmetric);
+      laddr->link->local_is_flooding_mpr ? "true" : "false", neigh->symmetric);
   return forward;
 }
 

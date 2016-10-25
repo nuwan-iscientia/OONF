@@ -203,6 +203,15 @@ struct nhdp_link {
   /*! timestamp when the current link status was set */
   uint64_t last_status_change;
 
+  /*! true if the local router has been selected as a MPR by the neighbor */
+  bool local_is_flooding_mpr;
+
+  /*! true if the neighbor has been selected as a MPR by this router */
+  bool neigh_is_flooding_mpr;
+
+  /*! Willingness of neighbor for flooding data */
+  uint8_t flooding_willingness;
+
   /*! internal field for NHDP processing */
   int _process_count;
 
@@ -289,15 +298,6 @@ struct nhdp_neighbor {
 
   /*! pointer to other (dualstack) representation of this neighbor */
   struct nhdp_neighbor *dualstack_partner;
-
-  /*! true if the local router has been selected as a MPR by the neighbor */
-  bool local_is_flooding_mpr;
-
-  /*! true if the neighbor has been selected as a MPR by this router */
-  bool neigh_is_flooding_mpr;
-
-  /*! Willingness of neighbor for flooding data */
-  uint8_t flooding_willingness;
 
   /*! internal field for NHDP processing */
   int _process_count;

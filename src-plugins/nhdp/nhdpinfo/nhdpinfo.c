@@ -154,6 +154,15 @@ static int _cb_create_text_neighbor_address(struct oonf_viewer_template *);
 /*! template key for links remote mac address */
 #define KEY_LINK_MAC                "link_mac"
 
+/*! template key signaling link has selected node as flooding MPR */
+#define KEY_LINK_FLOOD_LOCAL        "link_flood_local"
+
+/*! template key signaling route has selected link as flooding MPR */
+#define KEY_LINK_FLOOD_REMOTE       "link_flood_remote"
+
+/*! template key for link flooding willingness */
+#define KEY_LINK_FLOOD_WILL         "link_flood_willingness"
+
 /*! template key for a link IP address */
 #define KEY_LINK_ADDRESS            "link_address"
 
@@ -172,20 +181,11 @@ static int _cb_create_text_neighbor_address(struct oonf_viewer_template *);
 /*! template key for neighbors dualstack originator IP */
 #define KEY_NEIGHBOR_DUALSTACK      "neighbor_dualstack"
 
-/*! template key signaling neighbor has selected node as flooding MPR */
-#define KEY_NEIGHBOR_FLOOD_LOCAL    "neighbor_flood_local"
-
-/*! template key signaling route has selected neighbor as flooding MPR */
-#define KEY_NEIGHBOR_FLOOD_REMOTE   "neighbor_flood_remote"
-
 /*! template key for number of symmetric links of neighbor */
 #define KEY_NEIGHBOR_SYMMETRIC      "neighbor_symmetric"
 
 /*! template key for number of links of neighbor */
 #define KEY_NEIGHBOR_LINKCOUNT      "neighbor_linkcount"
-
-/*! template key for neighbor flooding willingness */
-#define KEY_NEIGHBOR_FLOOD_WILL     "neighbor_flood_willingness"
 
 /*! template key for neighbor address */
 #define KEY_NEIGHBOR_ADDRESS        "neighbor_address"
@@ -253,6 +253,9 @@ static struct isonumber_str       _value_link_vtime;
 static char                       _value_link_status[NHDP_LINK_STATUS_TXTLENGTH];
 static struct netaddr_str         _value_link_dualstack;
 static struct netaddr_str         _value_link_mac;
+static char                       _value_link_flood_local[TEMPLATE_JSON_BOOL_LENGTH];
+static char                       _value_link_flood_remote[TEMPLATE_JSON_BOOL_LENGTH];
+static char                       _value_link_willingness[3];
 
 static struct netaddr_str         _value_link_address;
 
@@ -262,11 +265,8 @@ static struct isonumber_str       _value_twohop_vtime;
 
 static struct netaddr_str         _value_neighbor_originator;
 static struct netaddr_str         _value_neighbor_dualstack;
-static char                       _value_neighbor_flood_local[TEMPLATE_JSON_BOOL_LENGTH];
-static char                       _value_neighbor_flood_remote[TEMPLATE_JSON_BOOL_LENGTH];
 static char                       _value_neighbor_symmetric[TEMPLATE_JSON_BOOL_LENGTH];
 static char                       _value_neighbor_linkcount[10];
-static char                       _value_neighbor_willingness[3];
 static struct netaddr_str         _value_neighbor_address;
 static char                       _value_neighbor_address_lost[TEMPLATE_JSON_BOOL_LENGTH];
 static struct isonumber_str       _value_neighbor_address_lost_vtime;
@@ -320,6 +320,9 @@ static struct abuf_template_data_entry _tde_link[] = {
     { KEY_LINK_STATUS, _value_link_status, true },
     { KEY_LINK_DUALSTACK, _value_link_dualstack.buf, true },
     { KEY_LINK_MAC, _value_link_mac.buf, true },
+    { KEY_LINK_FLOOD_LOCAL, _value_link_flood_local, true },
+    { KEY_LINK_FLOOD_REMOTE, _value_link_flood_remote, true },
+    { KEY_LINK_FLOOD_WILL, _value_link_willingness, false },
     { KEY_NEIGHBOR_ORIGINATOR, _value_neighbor_originator.buf, true },
     { KEY_NEIGHBOR_DUALSTACK, _value_neighbor_dualstack.buf, true },
 };
@@ -362,9 +365,6 @@ static struct abuf_template_data_entry _tde_neigh_key[] = {
 
 static struct abuf_template_data_entry _tde_neigh[] = {
     { KEY_NEIGHBOR_DUALSTACK, _value_neighbor_dualstack.buf, true },
-    { KEY_NEIGHBOR_FLOOD_LOCAL, _value_neighbor_flood_local, true },
-    { KEY_NEIGHBOR_FLOOD_REMOTE, _value_neighbor_flood_remote, true },
-    { KEY_NEIGHBOR_FLOOD_WILL, _value_neighbor_willingness, false },
     { KEY_NEIGHBOR_SYMMETRIC, _value_neighbor_symmetric, true },
     { KEY_NEIGHBOR_LINKCOUNT, _value_neighbor_linkcount, false },
 };
@@ -617,6 +617,16 @@ _initialize_nhdp_link_values(struct nhdp_link *lnk) {
   }
 
   netaddr_to_string(&_value_link_mac, &lnk->remote_mac);
+
+  strscpy(_value_link_flood_local,
+      json_getbool(lnk->local_is_flooding_mpr),
+      sizeof(_value_link_flood_local));
+  strscpy(_value_link_flood_remote,
+      json_getbool(lnk->neigh_is_flooding_mpr),
+      sizeof(_value_link_flood_remote));
+  snprintf(_value_link_willingness, sizeof(_value_link_willingness),
+      "%d", lnk->flooding_willingness);
+
 }
 
 /**
@@ -708,15 +718,6 @@ _initialize_nhdp_neighbor_values(struct nhdp_neighbor *neigh) {
   else {
     strscpy(_value_neighbor_dualstack.buf, "-", sizeof(_value_neighbor_dualstack));
   }
-
-  strscpy(_value_neighbor_flood_local,
-      json_getbool(neigh->local_is_flooding_mpr),
-      sizeof(_value_neighbor_flood_local));
-  strscpy(_value_neighbor_flood_remote,
-      json_getbool(neigh->neigh_is_flooding_mpr),
-      sizeof(_value_neighbor_flood_remote));
-  snprintf(_value_neighbor_willingness, sizeof(_value_neighbor_willingness),
-      "%d", neigh->flooding_willingness);
 
   strscpy(_value_neighbor_symmetric,
       json_getbool(neigh->symmetric > 0),

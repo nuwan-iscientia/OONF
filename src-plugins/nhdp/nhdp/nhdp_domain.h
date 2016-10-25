@@ -296,15 +296,15 @@ EXPORT size_t nhdp_domain_process_mprtypes_tlv(
     uint8_t *mprtypes, size_t mprtypes_size,
     struct rfc5444_reader_tlvblock_entry *tlv);
 EXPORT void nhdp_domain_process_mpr_tlv(uint8_t *mprtypes, size_t mprtypes_size,
-    struct nhdp_neighbor *, struct rfc5444_reader_tlvblock_entry *tlv);
+    struct nhdp_link *, struct rfc5444_reader_tlvblock_entry *tlv);
 EXPORT void nhdp_domain_process_willingness_tlv(
     uint8_t *mpr_types, size_t mprtypes_size,
     struct rfc5444_reader_tlvblock_entry *tlv);
-EXPORT void nhdp_domain_store_willingness(struct nhdp_neighbor *);
+EXPORT void nhdp_domain_store_willingness(struct nhdp_link *);
 EXPORT size_t nhdp_domain_encode_mprtypes_tlvvalue(
     uint8_t *mprtypes, size_t mprtypes_size);
 EXPORT size_t nhdp_domain_encode_mpr_tlvvalue(
-    uint8_t *tlvvalue, size_t tlvsize, struct nhdp_neighbor *);
+    uint8_t *tlvvalue, size_t tlvsize, struct nhdp_link *);
 EXPORT size_t nhdp_domain_encode_willingness_tlvvalue(
     uint8_t *tlvvalue, size_t tlvsize);
 

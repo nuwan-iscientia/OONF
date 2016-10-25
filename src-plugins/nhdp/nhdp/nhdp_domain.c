@@ -354,6 +354,11 @@ nhdp_domain_init_link(struct nhdp_link *lnk) {
   struct nhdp_link_domaindata *data;
   int i;
 
+  /* initialize flooding MPR settings */
+  lnk->flooding_willingness = RFC7181_WILLINGNESS_NEVER;
+  lnk->local_is_flooding_mpr = false;
+  lnk->neigh_is_flooding_mpr = false;
+
   /* initialize metrics */
   for (i=0; i<NHDP_MAXIMUM_DOMAINS; i++) {
     lnk->_domaindata[i].metric.in = RFC7181_METRIC_INFINITE;
@@ -405,11 +410,6 @@ nhdp_domain_init_neighbor(struct nhdp_neighbor *neigh) {
   struct nhdp_domain *domain;
   struct nhdp_neighbor_domaindata *data;
   int i;
-
-  /* initialize flooding MPR settings */
-  neigh->flooding_willingness = RFC7181_WILLINGNESS_NEVER;
-  neigh->local_is_flooding_mpr = false;
-  neigh->neigh_is_flooding_mpr = false;
 
   for (i=0; i<NHDP_MAXIMUM_DOMAINS; i++) {
     neigh->_domaindata[i].metric.in = RFC7181_METRIC_INFINITE;
@@ -576,14 +576,15 @@ nhdp_domain_process_mprtypes_tlv(
  */
 void
 nhdp_domain_process_mpr_tlv(uint8_t *mprtypes, size_t mprtypes_size,
-    struct nhdp_neighbor *neigh, struct rfc5444_reader_tlvblock_entry *tlv) {
+    struct nhdp_link *lnk, struct rfc5444_reader_tlvblock_entry *tlv) {
   struct nhdp_domain *domain;
+  struct nhdp_neighbor *neigh;
   size_t bit_idx, byte_idx;
   size_t i;
 
-  neigh->local_is_flooding_mpr = false;
+  lnk->local_is_flooding_mpr = false;
   list_for_each_element(&_domain_list, domain, _node) {
-    nhdp_domain_get_neighbordata(domain, neigh)->local_is_mpr = false;
+    nhdp_domain_get_neighbordata(domain, lnk->neigh)->local_is_mpr = false;
   }
 
   if (!tlv) {
@@ -591,10 +592,10 @@ nhdp_domain_process_mpr_tlv(uint8_t *mprtypes, size_t mprtypes_size,
   }
 
   /* set flooding MPR flag */
-  neigh->local_is_flooding_mpr =
+  lnk->local_is_flooding_mpr =
       (tlv->single_value[0] & RFC7181_MPR_FLOODING) != 0;
   OONF_DEBUG(LOG_NHDP_R, "Flooding MPR for neighbor: %s",
-      neigh->local_is_flooding_mpr ? "true" : "false");
+      lnk->local_is_flooding_mpr ? "true" : "false");
 
   /* set routing MPR flags */
   for (i=0; i<mprtypes_size; i++) {
@@ -609,11 +610,11 @@ nhdp_domain_process_mpr_tlv(uint8_t *mprtypes, size_t mprtypes_size,
       continue;
     }
 
-    nhdp_domain_get_neighbordata(domain, neigh)->local_is_mpr =
+    nhdp_domain_get_neighbordata(domain, lnk->neigh)->local_is_mpr =
         (tlv->single_value[byte_idx] & (1 << bit_idx)) != 0;
 
     OONF_DEBUG(LOG_NHDP_R, "Routing MPR for neighbor in domain %u: %s",
-        domain->ext, nhdp_domain_get_neighbordata(domain, neigh)->local_is_mpr ? "true" : "false");
+        domain->ext, nhdp_domain_get_neighbordata(domain, lnk->neigh)->local_is_mpr ? "true" : "false");
   }
 
   _node_is_selected_as_mpr = false;
@@ -690,16 +691,16 @@ nhdp_domain_process_willingness_tlv(
  * @param neigh NHDP neighbor
  */
 void
-nhdp_domain_store_willingness(struct nhdp_neighbor *neigh) {
+nhdp_domain_store_willingness(struct nhdp_link *lnk) {
   struct nhdp_neighbor_domaindata *neighdata;
   struct nhdp_domain *domain;
 
-  neigh->flooding_willingness = _flooding_domain._tmp_willingness;
+  lnk->flooding_willingness = _flooding_domain._tmp_willingness;
   OONF_DEBUG(LOG_NHDP_R, "Set flooding willingness: %u",
-      neigh->flooding_willingness);
+      lnk->flooding_willingness);
 
   list_for_each_element(&_domain_list, domain, _node) {
-    neighdata = nhdp_domain_get_neighbordata(domain, neigh);
+    neighdata = nhdp_domain_get_neighbordata(domain, lnk->neigh);
     neighdata->willingness = domain->_tmp_willingness;
     OONF_DEBUG(LOG_NHDP_R, "Set routing willingness for domain %u: %u",
         domain->ext, neighdata->willingness);
@@ -740,19 +741,19 @@ nhdp_domain_encode_mprtypes_tlvvalue(
  */
 size_t
 nhdp_domain_encode_mpr_tlvvalue(
-    uint8_t *tlvvalue, size_t tlvsize, struct nhdp_neighbor *neigh) {
+    uint8_t *tlvvalue, size_t tlvsize, struct nhdp_link *lnk) {
   struct nhdp_domain *domain;
   size_t bit_idx, byte_idx, len;
 
   memset(tlvvalue, 0, tlvsize);
   len = 0;
   /* set flooding MPR flag */
-  if (neigh->neigh_is_flooding_mpr) {
+  if (lnk->neigh_is_flooding_mpr) {
     tlvvalue[0] |= RFC7181_MPR_FLOODING;
   }
 
   OONF_DEBUG(LOG_NHDP_W, "Set flooding MPR: %s",
-      neigh->neigh_is_flooding_mpr ? "true" : "false");
+      lnk->neigh_is_flooding_mpr ? "true" : "false");
 
   list_for_each_element(&_domain_list, domain, _node) {
     bit_idx = (domain->index + 1) & 7;
@@ -765,12 +766,12 @@ nhdp_domain_encode_mpr_tlvvalue(
       len = byte_idx + 1;
     }
 
-    if (nhdp_domain_get_neighbordata(domain, neigh)->neigh_is_mpr) {
+    if (nhdp_domain_get_neighbordata(domain, lnk->neigh)->neigh_is_mpr) {
       tlvvalue[byte_idx] |= (1 << bit_idx);
     }
 
     OONF_DEBUG(LOG_NHDP_W, "Set routing MPR for domain %u: %s",
-        domain->ext, nhdp_domain_get_neighbordata(domain, neigh)->neigh_is_mpr ? "true" : "false");
+        domain->ext, nhdp_domain_get_neighbordata(domain, lnk->neigh)->neigh_is_mpr ? "true" : "false");
   }
   return len;
 }
@@ -1249,15 +1250,18 @@ _remove_mpr(struct nhdp_domain *domain) {
 
 static void
 _cb_update_everyone_mpr(struct nhdp_domain *domain) {
+  struct nhdp_link *lnk;
   struct nhdp_neighbor *neigh;
   struct nhdp_neighbor_domaindata *domaindata;
 
-  list_for_each_element(nhdp_db_get_neigh_list(), neigh, _global_node) {
-    if (&_flooding_domain == domain) {
-      neigh->neigh_is_flooding_mpr =
-          neigh->flooding_willingness > RFC7181_WILLINGNESS_NEVER;
+  if (&_flooding_domain == domain) {
+    list_for_each_element(nhdp_db_get_link_list(), lnk, _global_node) {
+      lnk->neigh_is_flooding_mpr =
+          lnk->flooding_willingness > RFC7181_WILLINGNESS_NEVER;
     }
-    else if (domain->mpr == &_everyone_mprs) {
+  }
+  list_for_each_element(nhdp_db_get_neigh_list(), neigh, _global_node) {
+    if (domain->mpr == &_everyone_mprs) {
       domaindata = nhdp_domain_get_neighbordata(domain, neigh);
       domaindata->neigh_is_mpr =
           domaindata->willingness > RFC7181_WILLINGNESS_NEVER;

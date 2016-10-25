@@ -174,7 +174,7 @@ _update_nhdp_flooding(struct neighbor_graph *graph) {
     if (current_mpr_node != NULL) {
       OONF_DEBUG(LOG_MPR, "Processing MPR node %s",
           netaddr_to_string(&buf1, &current_mpr_node->addr));
-      current_link->neigh->neigh_is_flooding_mpr = true;
+      current_link->neigh_is_flooding_mpr = true;
     }
   }
 }
@@ -190,7 +190,7 @@ _clear_nhdp_flooding(void) {
   OONF_DEBUG(LOG_MPR, "Clear FLOODING MPRs");
 
   list_for_each_element(nhdp_db_get_link_list(), current_link, _global_node) {
-    current_link->neigh->neigh_is_flooding_mpr = false;
+    current_link->neigh_is_flooding_mpr = false;
   }
 }
 

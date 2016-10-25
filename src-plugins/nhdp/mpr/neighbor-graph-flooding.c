@@ -121,7 +121,7 @@ static bool
 _is_allowed_link_tuple(const struct nhdp_domain *domain,
     struct nhdp_interface *current_interface, struct nhdp_link *lnk) {
   if (_is_reachable_link_tuple(domain, current_interface, lnk)
-      && lnk->neigh->flooding_willingness > RFC7181_WILLINGNESS_NEVER) {
+      && lnk->flooding_willingness > RFC7181_WILLINGNESS_NEVER) {
     return true;
   }
   return false;
@@ -280,7 +280,7 @@ _calculate_n2(const struct nhdp_domain *domain, struct mpr_flooding_data *data) 
 static uint32_t
 _get_willingness_n1(const struct nhdp_domain *domain __attribute__((unused)),
     struct n1_node *node) {
-  return node->neigh->flooding_willingness;
+  return node->link->flooding_willingness;
 }
 
 void
