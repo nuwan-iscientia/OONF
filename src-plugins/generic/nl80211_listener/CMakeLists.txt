@@ -4,11 +4,7 @@ INCLUDE(FindPkgConfig)
 
 pkg_check_modules(LIBNL3 libnl-tiny)
 if (NOT LIBNL3_FOUND)
-    pkg_check_modules(LIBNL3_GENL libnl-genl-3.0)
-    pkg_check_modules(LIBNL3 libnl-3.0)
-    if (NOT LIBNL3_GENL_FOUND)
-        set (LIBNL3_FOUND false)
-    endif (NOT LIBNL3_GENL_FOUND)
+    pkg_check_modules(LIBNL3 libnl-genl-3.0)
 endif(NOT LIBNL3_FOUND)
 
 if (LIBNL3_FOUND)
