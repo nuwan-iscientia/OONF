@@ -536,7 +536,6 @@ olsrv2_generate_tcs(bool generate) {
 }
 
 /**
->>>>>>> master
  * Schema entry validator for an attached network.
  * See CFG_VALIDATE_ACL_*() macros.
  * @param entry pointer to schema entry
