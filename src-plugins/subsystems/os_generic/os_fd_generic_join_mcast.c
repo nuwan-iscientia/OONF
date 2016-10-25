@@ -138,13 +138,14 @@ os_fd_generic_join_mcast_recv(struct os_fd *sock,
  * @param multicast multicast ip/port to join
  * @param os_if pointer to outgoing interface data for multicast
  * @param loop true if multicast loop should be activated, false otherwise
+ * @param ttl TTL of the multicast, 0 will be considered as ttl 1
  * @param log_src logging source for error messages
  * @return -1 if an error happened, 0 otherwise
  */
 int
 os_fd_generic_join_mcast_send(struct os_fd *sock,
     const struct netaddr *multicast,
-    const struct os_interface *os_if, bool loop,
+    const struct os_interface *os_if, bool loop, uint8_t ttl,
     enum oonf_log_source log_src __attribute__((unused))) {
   struct netaddr_str buf1, buf2;
   unsigned i;
@@ -171,6 +172,13 @@ os_fd_generic_join_mcast_send(struct os_fd *sock,
           loop ? "" : "de", strerror(errno), errno);
       return -1;
     }
+
+    i = ttl > 0 ? ttl : 1;
+    if (setsockopt(sock->fd, IPPROTO_IP, IP_MULTICAST_TTL, &i, sizeof(i)) < 0) {
+      OONF_WARN(log_src, "Cannot set multicast TTL to %u: %s (%d)",
+          i, strerror(errno), errno);
+      return -1;
+    }
   }
   else {
     OONF_DEBUG(log_src,
@@ -193,6 +201,13 @@ os_fd_generic_join_mcast_send(struct os_fd *sock,
     if(setsockopt(sock->fd, IPPROTO_IPV6, IPV6_MULTICAST_LOOP, &i, sizeof(i)) < 0) {
       OONF_WARN(log_src, "Cannot deactivate local loop of multicast interface: %s (%d)\n",
           strerror(errno), errno);
+      return -1;
+    }
+
+    i = ttl > 0 ? ttl : 1;
+    if (setsockopt(sock->fd, IPPROTO_IPV6, IPV6_MULTICAST_HOPS, &i, sizeof(i)) < 0) {
+      OONF_WARN(log_src, "Cannot set multicast TTL to %u: %s (%d)",
+          i, strerror(errno), errno);
       return -1;
     }
   }

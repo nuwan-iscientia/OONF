@@ -222,7 +222,8 @@ _cb_l2gen_event(struct oonf_timer_instance *ptr __attribute((unused))) {
 
   if (oonf_layer2_net_commit(net)) {
     /* something bad has happened, l2net was removed */
-    OONF_WARN(LOG_L2GEN, "Could not commit interface %s", net->name);
+    OONF_WARN(LOG_L2GEN, "Could not commit interface %s",
+        _l2gen_config.interface);
     return;
   }
 

@@ -187,7 +187,8 @@ _cb_transmission_event(struct oonf_timer_instance *ptr __attribute((unused))) {
     if (os_if->base_index != os_if->index) {
       /* get name of base interface */
       if (if_indextoname(os_if->base_index, req.ifr_name) == NULL) {
-        OONF_WARN(LOG_ETH, "Could not get interface name of index %u: %s (%d)",
+        /* do not use WARN, maybe the base-index is not available in this namespace */
+        OONF_DEBUG(LOG_ETH, "Could not get interface name of index %u: %s (%d)",
             os_if->base_index, strerror(errno), errno);
         continue;
       }

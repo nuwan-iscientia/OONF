@@ -364,6 +364,10 @@ oonf_stream_apply_managed(struct oonf_stream_managed *managed,
 
   oonf_stream_copy_managed_config(&managed->_managed_config, config);
 
+  if (managed->config.memcookie == NULL) {
+    managed->config.memcookie = &_connection_cookie;
+  }
+
   /* set back pointers */
   managed->socket_v4.managed = managed;
   managed->socket_v6.managed = managed;
@@ -548,15 +552,17 @@ _apply_managed_socket(int af_type, struct oonf_stream_managed *managed,
 
     oonf_stream_remove(stream, true);
   }
-  if (oonf_stream_add(stream, &sock)) {
-    return -1;
-  }
 
   /* copy configuration */
   memcpy(&stream->config, &managed->config, sizeof(stream->config));
   if (stream->config.memcookie == NULL) {
     stream->config.memcookie = &_connection_cookie;
   }
+
+  if (oonf_stream_add(stream, &sock)) {
+    return -1;
+  }
+
   return 0;
 }
 

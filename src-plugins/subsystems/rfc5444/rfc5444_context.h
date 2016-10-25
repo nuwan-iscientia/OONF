@@ -125,8 +125,11 @@ enum rfc5444_result {
   /*! buffer for reader is larger than 64k */
   RFC5444_TOO_LARGE            = -16,
 
+  /*! transformer failed for forwarded message */
+  RFC5444_FW_BAD_TRANSFORM     = -17,
+
   /*! minimal value of result */
-  RFC5444_RESULT_MIN           = -16,
+  RFC5444_RESULT_MIN           = -17,
 };
 
 EXPORT const char *rfc5444_strerror(enum rfc5444_result result);

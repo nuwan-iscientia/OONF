@@ -57,7 +57,7 @@
  */
 uint8_t
 rfc5497_timetlv_get_from_vector(
-    uint8_t *vector, size_t vector_length, uint8_t hopcount) {
+    const uint8_t *vector, size_t vector_length, uint8_t hopcount) {
   size_t i;
 
   /* handle illegal vector length */

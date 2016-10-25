@@ -90,7 +90,7 @@ static struct cfg_schema_entry _global_entries[] = {
   [IDX_PIDFILE]    = CFG_MAP_STRING(oonf_config_global, pidfile, "pidfile", "",
       "Write the process id of the forced child into a file"),
   [IDX_LOCKFILE]   = CFG_MAP_STRING(oonf_config_global, lockfile, "lockfile", "",
-      "Write the process id of the forced child into a file"),
+      "Use this file to prevent multiple running routing agents, '-' for no locking"),
   [IDX_PLUGINPATH] = CFG_MAP_STRING(oonf_config_global, plugin_path, "plugin_path", "",
       "Additional user defined path to look for plugins"),
   [IDX_PLUGINS]    =CFG_MAP_STRINGLIST(oonf_config_global, plugin, CFG_GLOBAL_PLUGIN, "",

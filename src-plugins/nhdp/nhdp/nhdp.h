@@ -93,7 +93,6 @@ EXPORT bool nhdp_flooding_selector(struct rfc5444_writer *writer,
     struct rfc5444_writer_target *rfc5444_target, void *ptr);
 EXPORT bool nhdp_forwarding_selector(
     struct rfc5444_writer_target *rfc5444_target,
-    struct rfc5444_reader_tlvblock_context *context,
-    const uint8_t *msg, size_t len);
+    struct rfc5444_reader_tlvblock_context *context);
 
 #endif /* NHDP_H_ */

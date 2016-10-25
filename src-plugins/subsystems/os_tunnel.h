@@ -83,6 +83,15 @@ struct os_tunnel_parameter {
 
   /*! remote IP address of the tunnel */
   struct netaddr remote;
+
+  /*! true that tunnel should inherit TOS (if possible) */
+  bool inhert_tos;
+
+  /*! true that tunnel should inherit the flowlabel (if possible) */
+  bool inhert_flowlabel;
+
+  /*! IP ttl of tunnel, 0 to inherit TTL (if possible) */
+  uint8_t tunnel_ttl;
 };
 
 struct os_tunnel {

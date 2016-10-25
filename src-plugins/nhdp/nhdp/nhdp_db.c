@@ -139,6 +139,9 @@ static struct avl_tree _neigh_originator_tree;
 /* list of links (to neighbors) */
 static struct list_entity _link_list;
 
+/* id that will be increased every times the symmetric neighbor set changes */
+static uint32_t _neighbor_set_id = 0;
+
 /**
  * Initialize NHDP databases
  */
@@ -509,6 +512,15 @@ nhdp_db_neigbor_disconnect_dualstack(struct nhdp_neighbor *neigh) {
 }
 
 /**
+ * @return set id of symmetric neighbors, will be increased for
+ *   every change.
+ */
+uint32_t
+nhdp_db_neighbor_get_set_id(void) {
+  return _neighbor_set_id;
+}
+
+/**
  * Insert a new link into a nhdp neighbors database
  * @param neigh neighbor which will get the new link
  * @param local_if local interface through which the link was heard
@@ -548,6 +560,8 @@ nhdp_db_link_add(struct nhdp_neighbor *neigh, struct nhdp_interface *local_if) {
     avl_insert(&local_if->_link_originators, &lnk->_originator_node);
   }
 
+  lnk->last_status_change = oonf_clock_getNow();
+
   /* initialize link domain data */
   nhdp_domain_init_link(lnk);
 
@@ -576,6 +590,9 @@ nhdp_db_link_set_unsymmetric(struct nhdp_link *lnk) {
   avl_for_each_element_safe(&lnk->_2hop, twohop, _link_node, th_it) {
     nhdp_db_link_2hop_remove(twohop);
   }
+
+  /* link status was changed */
+  lnk->last_status_change = oonf_clock_getNow();
 
   /* trigger event */
   oonf_class_event(&_link_info, lnk, OONF_OBJECT_CHANGED);
@@ -805,8 +822,10 @@ nhdp_db_link_disconnect_dualstack(struct nhdp_link *lnk) {
  */
 void
 nhdp_db_link_update_status(struct nhdp_link *lnk) {
+  enum nhdp_link_status old_status;
   bool was_symmetric;
 
+  old_status = lnk->status;
   was_symmetric = lnk->status == NHDP_LINK_SYMMETRIC;
 
   /* update link status */
@@ -826,10 +845,13 @@ nhdp_db_link_update_status(struct nhdp_link *lnk) {
     nhdp_interface_update_status(lnk->local_if);
   }
 
-  /* trigger change event */
-  if (lnk->last_status != lnk->status) {
-    oonf_class_event(&_link_info, lnk, OONF_OBJECT_CHANGED);
+  if (old_status != lnk->status) {
+    /* link status was changed */
+    lnk->last_status_change = oonf_clock_getNow();
     nhdp_domain_recalculate_mpr(true);
+
+    /* trigger change event */
+    oonf_class_event(&_link_info, lnk, OONF_OBJECT_CHANGED);
   }
 }
 
@@ -919,6 +941,7 @@ _link_status_now_symmetric(struct nhdp_link *lnk) {
     avl_for_each_element(&lnk->neigh->_neigh_addresses, naddr, _neigh_node) {
       nhdp_db_neighbor_addr_not_lost(naddr);
     }
+    _neighbor_set_id++;
   }
 }
 
@@ -942,6 +965,8 @@ _link_status_not_symmetric_anymore(struct nhdp_link *lnk) {
     avl_for_each_element_safe(&lnk->neigh->_neigh_addresses, naddr, _neigh_node, na_it) {
       nhdp_db_neighbor_addr_set_lost(naddr, lnk->local_if->n_hold_time);
     }
+
+    _neighbor_set_id++;
   }
 }
 

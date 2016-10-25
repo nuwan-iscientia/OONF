@@ -93,6 +93,9 @@ static void _write_msgheader(struct rfc5444_writer *writer, struct rfc5444_write
 static uint8_t *_write_addresstlvs(struct rfc5444_writer *writer, struct rfc5444_writer_message *msg,
     struct rfc5444_writer_address *first, struct rfc5444_writer_address *last, uint8_t *ptr);
 
+/*! temporary buffer for messages when going through a postprocessor */
+static uint8_t _msg_buffer[RFC5444_MAX_MESSAGE_SIZE];
+
 /**
  * Create a message with a defined type
  * This function must NOT be called from the rfc5444 writer callbacks.
@@ -446,15 +449,17 @@ bool rfc5444_writer_alltargets_selector(struct rfc5444_writer *writer __attribut
  */
 enum rfc5444_result
 rfc5444_writer_forward_msg(struct rfc5444_writer *writer,
-    struct rfc5444_reader_tlvblock_context *context, uint8_t *msg, size_t len) {
+    struct rfc5444_reader_tlvblock_context *context,
+    const uint8_t *msg, size_t len) {
   struct rfc5444_writer_target *target;
   struct rfc5444_writer_message *rfc5444_msg;
-  int cnt, hopcount = -1, hoplimit = -1;
-  uint16_t size;
+  struct rfc5444_writer_forward_handler *handler;
+  int cnt, hopcount, hoplimit;
+  size_t max, transformer_overhead;
+  size_t generic_size, msg_size;
   uint8_t flags, addr_len;
   uint8_t *ptr;
-  size_t max_msg_size;
-
+  bool shall_forward;
 #if WRITER_STATE_MACHINE == true
   assert(writer->_state == RFC5444_WRITER_NONE);
 #endif
@@ -471,46 +476,81 @@ rfc5444_writer_forward_msg(struct rfc5444_writer *writer,
     return RFC5444_OKAY;
   }
 
-  /* check if message is small enough to be forwarded */
-  max_msg_size = 0;
+  /* 1.) first flush all interfaces that have (too) full buffers */
+  shall_forward = false;
   list_for_each_element(&writer->_targets, target, _target_node) {
-    size_t max;
-
-    if (!rfc5444_msg->forward_target_selector(target, context, msg, len)) {
+    if (!rfc5444_msg->forward_target_selector(target, context)) {
       continue;
+    }
+
+    shall_forward = true;
+    transformer_overhead = 0;
+    avl_for_each_element(&writer->_forwarding_processors, handler, _node) {
+      if (handler->is_matching_signature(handler, msg[0])) {
+        transformer_overhead += handler->allocate_space;
+      }
+    }
+
+    max = 0;
+    if (!target->_is_flushed) {
+      max = target->_pkt.max -
+          (target->_pkt.header + target->_pkt.added + target->_pkt.allocated + target->_bin_msgs_size);
+
+      if (len + transformer_overhead > max) {
+        /* flush the old packet */
+        rfc5444_writer_flush(writer, target, false);
+      }
     }
 
     if (target->_is_flushed) {
       /* begin a new packet */
       _rfc5444_writer_begin_packet(writer,target);
+      max = target->_pkt.max -
+          (target->_pkt.header + target->_pkt.added + target->_pkt.allocated + target->_bin_msgs_size);
     }
 
-    max = target->_pkt.max - (target->_pkt.header + target->_pkt.added + target->_pkt.allocated);
-    if (max_msg_size == 0 || max < max_msg_size) {
-      max_msg_size = max;
+    if (len + transformer_overhead > max) {
+      /* message too long, too much data in it */
+      return RFC5444_FW_MESSAGE_TOO_LONG;
     }
   }
 
-  if (max_msg_size == 0) {
-    /* no interface selected */
+  if (!shall_forward) {
+    /* no target to forward message, everything done */
     return RFC5444_OKAY;
   }
 
-  if (len > max_msg_size) {
-    /* message too long, too much data in it */
-    return RFC5444_FW_MESSAGE_TOO_LONG;
+  /* 2.) generate message and do non-target specific post processors */
+  ptr = _msg_buffer;
+  memcpy(ptr, writer->_msg.buffer, len);
+
+  /* remember length */
+  generic_size = len;
+
+  /* run processors (unpspecific) forwarding processors */
+  avl_for_each_element(&writer->_forwarding_processors, handler, _node) {
+    if (handler->is_matching_signature(handler, msg[0])
+        && !handler->target_specific) {
+      if (handler->process(handler, target, context, _msg_buffer, &generic_size)) {
+        /* error, we have not modified the _bin_msgs_size, so we can just return */
+        return RFC5444_FW_BAD_TRANSFORM;
+      }
+
+      if (generic_size == 0) {
+        return RFC5444_OKAY;
+      }
+    }
   }
 
+
+  /* 3) grab index of header structures */
   flags = msg[1];
   addr_len = (flags & RFC5444_MSG_FLAG_ADDRLENMASK) + 1;
 
-  size = (msg[2] << 8) + msg[3];
-  if (size != len) {
-    /* bad message size */
-    return RFC5444_FW_BAD_SIZE;
-  }
-
   cnt = 4;
+  hopcount = -1;
+  hoplimit = -1;
+
   if ((flags & RFC5444_MSG_FLAG_ORIGINATOR) != 0) {
     cnt += addr_len;
   }
@@ -531,37 +571,54 @@ rfc5444_writer_forward_msg(struct rfc5444_writer *writer,
 
   /* forward message */
   list_for_each_element(&writer->_targets, target, _target_node) {
-    if (!rfc5444_msg->forward_target_selector(target, context, msg, len)) {
+    if (!rfc5444_msg->forward_target_selector(target, context)) {
       continue;
-    }
-
-    /* check if we have to flush the message buffer */
-    if (target->_pkt.header + target->_pkt.added + target->_pkt.set + target->_bin_msgs_size + len
-        > target->_pkt.max) {
-      /* flush the old packet */
-      rfc5444_writer_flush(writer, target, false);
-
-      /* begin a new one */
-      _rfc5444_writer_begin_packet(writer,target);
     }
 
     ptr = &target->_pkt.buffer[target->_pkt.header + target->_pkt.added
                             + target->_pkt.allocated + target->_bin_msgs_size];
-    memcpy(ptr, msg, len);
-    target->_bin_msgs_size += len;
 
-    /* correct hoplimit if necesssary */
-    if (hoplimit != -1) {
-      ptr[hoplimit]--;
+    /* copy message into packet buffer */
+    assert(ptr + generic_size <= target->_pkt.buffer + target->_pkt.max);
+    memcpy(ptr, msg, generic_size);
+
+    /* remember position of first copy */
+    msg_size = generic_size;
+
+    /* run processors */
+    avl_for_each_element(&writer->_forwarding_processors, handler, _node) {
+      if (handler->is_matching_signature(handler, msg[0])
+          && handler->target_specific) {
+        if (handler->process(handler, target, context, ptr, &msg_size)) {
+          /* error, we have not modified the _bin_msgs_size, so we can just return */
+          return RFC5444_FW_BAD_TRANSFORM;
+        }
+        if (msg_size == 0) {
+          break;
+        }
+      }
     }
 
-    /* correct hopcount if necessary */
-    if (hopcount != -1) {
-      ptr[hopcount]++;
-    }
+    if (msg_size > 0) {
+      target->_bin_msgs_size += msg_size;
 
-    if (writer->forwarding_notifier) {
-      writer->forwarding_notifier(target);
+      /* correct message */
+      ptr[2] = msg_size >> 8;
+      ptr[3] = msg_size & 0xff;
+
+      /* correct hoplimit if necesssary */
+      if (hoplimit != -1) {
+        ptr[hoplimit]--;
+      }
+
+      /* correct hopcount if necessary */
+      if (hopcount != -1) {
+        ptr[hopcount]++;
+      }
+
+      if (writer->message_generation_notifier) {
+        writer->message_generation_notifier(target);
+      }
     }
   }
   return RFC5444_OKAY;
@@ -1368,8 +1425,8 @@ _finalize_message_fragment(struct rfc5444_writer *writer, struct rfc5444_writer_
   struct rfc5444_writer_content_provider *prv;
   struct rfc5444_writer_target *target;
   struct rfc5444_writer_address *addr, *first, *last;
-  uint8_t *ptr, *firstcopy;
-  size_t msg_minsize, firstcopy_size, msg_size;
+  uint8_t *ptr;
+  size_t msg_minsize, msg_size, generic_size;
   bool error;
 
   /* reset optional tlv length */
@@ -1433,9 +1490,6 @@ _finalize_message_fragment(struct rfc5444_writer *writer, struct rfc5444_writer_
 
   /* precalculate number of fixed bytes of message header */
   msg_minsize = writer->_msg.header + writer->_msg.added;
-  firstcopy = NULL;
-  firstcopy_size = 0;
-  ptr = NULL;
 
   /* 1.) first flush all interfaces that have full buffers */
   list_for_each_element(&writer->_targets, target, _target_node) {
@@ -1457,69 +1511,62 @@ _finalize_message_fragment(struct rfc5444_writer *writer, struct rfc5444_writer_
     }
   }
 
-  /* 2.) copy a interface-unspecific (but post-processed) message into all buffers */
-  list_for_each_element(&writer->_targets, target, _target_node) {
-    /* do we need to handle this interface ? */
-    if (!useIf(writer, target, param)) {
-      continue;
-    }
+  /* 2.) generate message and do non-target specific post processors */
 
-    /* get pointer to end of _pkt buffer */
-    ptr = &target->_pkt.buffer[target->_pkt.header + target->_pkt.added
-                                 + target->_pkt.allocated + target->_bin_msgs_size];
-    if (!firstcopy) {
-      /* first target. Assemble message and run interface-unspecific transformers */
-      firstcopy = ptr;
+  /* copy message header and message tlvs into packet buffer */
+  ptr = _msg_buffer;
+  memcpy(ptr, writer->_msg.buffer, msg_minsize + writer->_msg.set);
 
-      /* copy message header and message tlvs into packet buffer */
-      memcpy(ptr, writer->_msg.buffer, msg_minsize + writer->_msg.set);
+  /* copy address blocks and address tlvs into packet buffer */
+  ptr += msg_minsize + writer->_msg.set;
+  memcpy(ptr, &writer->_msg.buffer[msg_minsize + writer->_msg.allocated], msg->_bin_addr_size);
 
-      /* copy address blocks and address tlvs into packet buffer */
-      ptr += msg_minsize + writer->_msg.set;
-      memcpy(ptr, &writer->_msg.buffer[msg_minsize + writer->_msg.allocated], msg->_bin_addr_size);
+  /* remember position of first copy */
+  generic_size = msg_minsize + writer->_msg.set + msg->_bin_addr_size;
 
-      /* remember position of first copy */
-      firstcopy_size = msg_minsize + writer->_msg.set + msg->_bin_addr_size;
-
-      /* run processors */
-      avl_for_each_element(&writer->_processors, processor, _node) {
-        if (processor->is_matching_signature(processor, msg->type)
-            && !processor->target_specific) {
-          if (processor->process(processor, target, msg, firstcopy, &firstcopy_size)) {
-            /* error, we have not modified the _bin_msgs_size, so we can just return */
-            return;
-          }
-        }
+  /* run processors */
+  avl_for_each_element(&writer->_processors, processor, _node) {
+    if (processor->is_matching_signature(processor, msg->type)
+        && !processor->target_specific) {
+      if (processor->process(processor, target, msg, _msg_buffer, &generic_size)) {
+        /* error, we have not modified the _bin_msgs_size, so we can just return */
+        return;
       }
-    }
-    else {
-      /* we already have a copy of the message in the first targets buffer */
-      memcpy(ptr, firstcopy, firstcopy_size);
     }
   }
 
-  /* run target-specific processors */
+  /* 3.) generate target specific messages and add them to the buffers */
   list_for_each_element(&writer->_targets, target, _target_node) {
-    error = false;
-
     /* do we need to handle this interface ? */
     if (!useIf(writer, target, param)) {
       continue;
     }
 
-    msg_size = firstcopy_size;
+    /* get pointer to end of _pkt buffer  and copy it */
+    ptr = &target->_pkt.buffer[target->_pkt.header + target->_pkt.added
+                                 + target->_pkt.allocated + target->_bin_msgs_size];
+    memcpy(ptr, _msg_buffer, generic_size);
+
+    /* now run the target specific processors */
+    msg_size = generic_size;
+    error = false;
     avl_for_each_element(&writer->_processors, processor, _node) {
       if (processor->is_matching_signature(processor, msg->type)
-          && processor->target_specific) {
+          && processor->target_specific && msg_size > 0) {
         if (processor->process(processor, target, msg, ptr, &msg_size)) {
           error = true;
+          break;
         }
       }
     }
 
-    if (!error) {
+    if (!error && msg_size > 0) {
       /* increase byte count of packet */
       target->_bin_msgs_size += msg_size;
+
+      if (writer->message_generation_notifier) {
+        writer->message_generation_notifier(target);
+      }
     }
   }
 

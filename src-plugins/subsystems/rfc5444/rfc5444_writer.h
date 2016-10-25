@@ -75,8 +75,17 @@ enum rfc5444_internal_state {
   RFC5444_WRITER_FINISH_PKTHEADER
 };
 
-/* msg_type id for packet post-processor */
 enum {
+  /*! Maximum packet size for this RFC5444 multiplexer */
+  RFC5444_MAX_PACKET_SIZE = 1500-20-8,
+
+  /**
+   * Maximum message size for this RFC5444 multiplexer
+   * (minimal ipv6 mtu - ipv6/udp/rfc5444packet/vlan-header)
+   */
+  RFC5444_MAX_MESSAGE_SIZE = 1280-40-8-3-4,
+
+  /*! msg_type id for packet post-processor */
   RFC5444_WRITER_PKT_POSTPROCESSOR = -1,
 };
 
@@ -385,13 +394,10 @@ struct rfc5444_writer_message {
    * callback to determine if a message shall be forwarded
    * @param target rfc5444 target
    * @param context rfc5444 message context
-   * @param buffer pointer to binary message
-   * @param len length of message
    * @return true if message should be forwarded, false otherwise
    */
   bool (*forward_target_selector)(struct rfc5444_writer_target *target,
-      struct rfc5444_reader_tlvblock_context *context,
-      const uint8_t *buffer, size_t len);
+      struct rfc5444_reader_tlvblock_context *context);
 
   /*! number of bytes necessary for addressblocks including tlvs */
   size_t _bin_addr_size;
@@ -460,13 +466,56 @@ struct rfc5444_writer_postprocessor {
    * @param target rfc5444 target
    * @param msg rfc5444 message, NULL for packet signature
    * @param data pointer to binary data
-   * @param length pointer to length of binary data, will be overwritten by function
+   * @param length pointer to length of binary data, can be overwritten by function
    * @return -1 if an error happened, 0 otherwise
    */
   int (*process)(struct rfc5444_writer_postprocessor *processor,
       struct rfc5444_writer_target *target, struct rfc5444_writer_message *msg,
       uint8_t *data, size_t *length);
 };
+
+/**
+ * a post-processor for forwarded rfc5444 messages
+ */
+struct rfc5444_writer_forward_handler {
+  /*! node for treee of message post processors */
+  struct avl_node _node;
+
+  /*! order of message post-processors */
+  int32_t priority;
+
+  /*! number of bytes allocated for post-processor */
+  uint16_t allocate_space;
+
+  /**
+   * true if post-processing must be done per target,
+   */
+  bool target_specific;
+
+  /**
+   * checks if post-processor applies to a forwarded message
+   * @param handler this post-processor
+   * @param msg_type rfc5444 message type
+   * @return true if signature applies to message type, false otherwise
+   */
+  bool (*is_matching_signature)(
+      struct rfc5444_writer_forward_handler *handler, uint8_t msg_type);
+
+  /**
+   * Process binary data in post-processor
+   * @param handler rfc5444 forwarding post-processor
+   * @param target rfc5444 target
+   * @param context RFC5444 message context
+   * @param data pointer to binary data
+   * @param length pointer to length of binary data, can be overwritten by function
+   * @return -1 if an error happened, 0 otherwise
+   */
+  int (*process)(struct rfc5444_writer_forward_handler *handler,
+      struct rfc5444_writer_target *target,
+      struct rfc5444_reader_tlvblock_context *context,
+      uint8_t *data, size_t *length);
+};
+
 
 /**
  * This struct represents the internal state of a
@@ -489,11 +538,12 @@ struct rfc5444_writer {
   size_t addrtlv_size;
 
   /**
-   * Callback to notify an instance that a message was forwarded
+   * Callback to notify an instance that a message was put into a
+   * target buffer
    * @param target pointer to rfc5444 target where
-   *   the message has been placefd
+   *   the message has been placed
    */
-  void (*forwarding_notifier)(struct rfc5444_writer_target *target);
+  void (*message_generation_notifier)(struct rfc5444_writer_target *target);
 
   /**
    * Callback to allocate a writer_address, NULL for use calloc()
@@ -533,6 +583,9 @@ struct rfc5444_writer {
 
   /*! tree of packet post-processors */
   struct avl_tree _processors;
+
+  /*! tree of forwarding post-processors */
+  struct avl_tree _forwarding_processors;
 
   /*! list of all targets */
   struct list_entity _targets;
@@ -613,6 +666,11 @@ EXPORT void rfc5444_writer_register_postprocessor(struct rfc5444_writer *writer,
 EXPORT void rfc5444_writer_unregister_postprocessor(struct rfc5444_writer *,
     struct rfc5444_writer_postprocessor *processor);
 
+EXPORT void rfc5444_writer_register_forward_handler(struct rfc5444_writer *writer,
+    struct rfc5444_writer_forward_handler *processor);
+EXPORT void rfc5444_writer_unregister_forward_handler(struct rfc5444_writer *,
+    struct rfc5444_writer_forward_handler *processor);
+
 EXPORT struct rfc5444_writer_message *rfc5444_writer_register_message(
     struct rfc5444_writer *writer, uint8_t msgid, bool if_specific);
 EXPORT void rfc5444_writer_unregister_message(struct rfc5444_writer *writer,
@@ -647,7 +705,7 @@ EXPORT enum rfc5444_result rfc5444_writer_create_message(
     rfc5444_writer_targetselector useIf, void *param);
 
 EXPORT enum rfc5444_result rfc5444_writer_forward_msg(struct rfc5444_writer *writer,
-    struct rfc5444_reader_tlvblock_context *context, uint8_t *msg, size_t len);
+    struct rfc5444_reader_tlvblock_context *context, const uint8_t *msg, size_t len);
 
 EXPORT void rfc5444_writer_flush(struct rfc5444_writer *, struct rfc5444_writer_target *, bool);
 

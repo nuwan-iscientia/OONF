@@ -115,6 +115,7 @@ dlep_radio_interface_cleanup(void) {
 
   oonf_class_remove(&_interface_class);
   dlep_radio_session_cleanup();
+  dlep_extension_cleanup();
 }
 
 /**

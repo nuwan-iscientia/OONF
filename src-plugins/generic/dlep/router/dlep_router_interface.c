@@ -125,6 +125,7 @@ dlep_router_interface_cleanup(void) {
   oonf_class_remove(&_router_if_class);
 
   dlep_router_session_cleanup();
+  dlep_extension_cleanup();
   oonf_layer2_remove_origin(&_l2_origin);
 }
 

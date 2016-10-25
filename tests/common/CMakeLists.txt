@@ -19,6 +19,7 @@ endfunction(compile_common_test)
 
 # just run all of these tests
 set(TESTS test_common_avl
+          test_common_bitstream
           test_common_isonumber
           test_common_list
           test_common_netaddr

@@ -239,6 +239,24 @@ struct nhdp_domain_listener {
   struct list_entity _node;
 };
 
+/**
+ * Postprocessor for NHDP metric changes
+ */
+struct nhdp_domain_metric_postprocessor {
+  /**
+   * Callback getting informed about a incoming metric change.
+   * @param domain domain the metric changed happened
+   * @param lnk nhdp link the metric change happened
+   * @param new_metric new metric value
+   * @return processed new metric value
+   */
+  uint32_t (*process_in_metric)(struct nhdp_domain *domain,
+      struct nhdp_link *lnk, uint32_t new_metric);
+
+  /*! hook into global domain metric postprocessor list */
+  struct list_entity _node;
+};
+
 void nhdp_domain_init(struct oonf_rfc5444_protocol *);
 void nhdp_domain_cleanup(void);
 
@@ -256,6 +274,10 @@ EXPORT void nhdp_domain_mpr_remove(struct nhdp_domain_mpr *);
 EXPORT void nhdp_domain_listener_add(struct nhdp_domain_listener *);
 EXPORT void nhdp_domain_listener_remove(struct nhdp_domain_listener *);
 
+EXPORT void nhdp_domain_metric_postprocessor_add(
+    struct nhdp_domain_metric_postprocessor *);
+EXPORT void nhdp_domain_metric_postprocessor_remove(
+    struct nhdp_domain_metric_postprocessor *);
 EXPORT struct nhdp_domain *nhdp_domain_get_by_ext(uint8_t);
 
 EXPORT void nhdp_domain_init_link(struct nhdp_link *);
@@ -263,9 +285,9 @@ EXPORT void nhdp_domain_init_l2hop(struct nhdp_l2hop *);
 EXPORT void nhdp_domain_init_neighbor(struct nhdp_neighbor *);
 
 EXPORT void nhdp_domain_process_metric_linktlv(struct nhdp_domain *,
-    struct nhdp_link *lnk, uint8_t *value);
+    struct nhdp_link *lnk, const uint8_t *value);
 EXPORT void nhdp_domain_process_metric_2hoptlv(struct nhdp_domain *d,
-    struct nhdp_l2hop *l2hop, uint8_t *value);
+    struct nhdp_l2hop *l2hop, const uint8_t *value);
 
 EXPORT void nhdp_domain_recalculate_mpr(bool force_update);
 EXPORT bool nhdp_domain_node_is_mpr(void);

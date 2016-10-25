@@ -113,6 +113,9 @@ struct os_interface_flags {
 
   /*! true if interface is the wildcard interface */
   bool any;
+
+  /*! true if interface supports no multicast */
+  bool unicast_only;
 };
 
 /**

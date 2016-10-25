@@ -84,7 +84,7 @@ struct rfc5444_reader_tlvblock_entry {
    * pointer to tlv value, NULL if length == 0
    * this pointer is NOT aligned
    */
-  uint8_t *single_value;
+  const uint8_t *single_value;
 
   /*! first index of tlv (for address blocks) */
   uint8_t index1;
@@ -105,7 +105,7 @@ struct rfc5444_reader_tlvblock_entry {
    * pointer to start of value array, can be different from
    * "value" because of multivalue tlvs
    */
-  uint8_t *_value;
+  const uint8_t *_value;
 
   /*! true if this is a multivalue tlv */
   bool _multivalue_tlv;
@@ -230,10 +230,10 @@ struct rfc5444_reader_addrblock_entry {
    * pointer to list of prefixes, NULL if same prefix length
    * for all addresses
    */
-  uint8_t *prefixes;
+  const uint8_t *prefixes;
 
   /*! pointer to array of middle address parts */
-  uint8_t *mid_src;
+  const uint8_t *mid_src;
 
   /*! storage for head/tail of address */
   uint8_t addr[RFC5444_MAX_ADDRLEN];
@@ -386,7 +386,7 @@ struct rfc5444_reader {
    * @param length length of message
    */
   void (*forward_message)(struct rfc5444_reader_tlvblock_context *context,
-      uint8_t *buffer, size_t length);
+      const uint8_t *buffer, size_t length);
 
   /**
    * Callback to allocate a tlvblock entry
@@ -429,7 +429,7 @@ EXPORT void rfc5444_reader_remove_message_consumer(
     struct rfc5444_reader *, struct rfc5444_reader_tlvblock_consumer *);
 
 EXPORT int rfc5444_reader_handle_packet(
-    struct rfc5444_reader *parser, uint8_t *buffer, size_t length);
+    struct rfc5444_reader *parser, const uint8_t *buffer, size_t length);
 
 /**
  * Call to set the do-not-forward flag in message context

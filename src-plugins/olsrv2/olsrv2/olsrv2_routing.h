@@ -76,6 +76,9 @@ struct olsrv2_dijkstra_node {
   /*! hopcount to be inserted into the route */
   uint8_t distance;
 
+  /*! originator address of the router responsible for the prefix */
+  const struct netaddr *originator;
+
   /*! pointer to nhpd neighbor that represents the first hop */
   struct nhdp_neighbor *first_hop;
 
@@ -110,6 +113,9 @@ struct olsrv2_routing_entry {
 
   /*! path hops to the target */
   uint8_t path_hops;
+
+  /*! originator of node that announced the route */
+  struct netaddr originator;
 
   /*! originator address of next hop */
   struct netaddr next_originator;
@@ -177,7 +183,8 @@ int olsrv2_routing_init(void);
 void olsrv2_routing_initiate_shutdown(void);
 void olsrv2_routing_cleanup(void);
 
-void olsrv2_routing_dijkstra_node_init(struct olsrv2_dijkstra_node *);
+void olsrv2_routing_dijkstra_node_init(
+    struct olsrv2_dijkstra_node *, const struct netaddr *originator);
 
 EXPORT uint16_t olsrv2_routing_get_ansn(void);
 EXPORT void olsrv2_routing_set_domain_parameter(struct nhdp_domain *domain,
@@ -185,6 +192,8 @@ EXPORT void olsrv2_routing_set_domain_parameter(struct nhdp_domain *domain,
 
 EXPORT void olsrv2_routing_force_update(bool skip_wait);
 EXPORT void olsrv2_routing_trigger_update(void);
+
+EXPORT void olsrv2_routing_freeze_routes(bool freeze);
 
 EXPORT const struct olsrv2_routing_domain *
     olsrv2_routing_get_parameters(struct nhdp_domain *);

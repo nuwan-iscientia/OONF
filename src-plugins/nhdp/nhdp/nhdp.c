@@ -313,14 +313,11 @@ nhdp_flooding_selector(struct rfc5444_writer *writer __attribute__((unused)),
  * hangle dualstack correctly
  * @param rfc5444_target rfc5444 target to flood message to
  * @param context reader context of the message to be forwarded
- * @param msg pointer to message buffer
- * @param len length of message buffer
  * @return true if target corresponds to selection
  */
 bool
 nhdp_forwarding_selector(struct rfc5444_writer_target *rfc5444_target,
-    struct rfc5444_reader_tlvblock_context *context __attribute__((unused)),
-    const uint8_t *msg __attribute__((unused)), size_t len __attribute__((unused))) {
+    struct rfc5444_reader_tlvblock_context *context __attribute__((unused))) {
   return _forwarding_selector(rfc5444_target);
 }
 
@@ -405,41 +402,53 @@ _cb_cfg_domain_changed(void) {
  */
 static void
 _cb_cfg_interface_changed(void) {
-  struct nhdp_interface *interf;
+  struct nhdp_interface *nhdp_if;
   const char *ifname;
   char ifbuf[IF_NAMESIZE];
 
+
   ifname = cfg_get_phy_if(ifbuf, _interface_section.section_name);
-
   OONF_DEBUG(LOG_NHDP, "Configuration of NHDP interface %s changed",
-      _interface_section.section_name);
+        _interface_section.section_name);
 
-  /* get interface */
-  interf = nhdp_interface_get(ifname);
+  if (_interface_section.pre == NULL) {
+    /* increase nhdp_interface refcount */
+    nhdp_if = nhdp_interface_add(ifname);
+  }
+  else {
+    /* get interface */
+    nhdp_if = nhdp_interface_get(ifname);
+  }
+
+  if (nhdp_if) {
+    /* get block domain extension */
+    nhdp_if->registered = true;
+  }
 
   if (_interface_section.post == NULL) {
     /* section was removed */
-    if (interf != NULL) {
-      nhdp_interface_remove(interf);
+    if (nhdp_if != NULL) {
+      nhdp_if->registered = false;
+
+      /* decrease nhdp_interface refcount */
+      nhdp_interface_remove(nhdp_if);
     }
+
+    nhdp_if = NULL;
+  }
+
+  if (!nhdp_if) {
     return;
   }
 
-  if (interf == NULL) {
-    interf = nhdp_interface_add(ifname);
-    if (!interf) {
-      return;
-    }
-  }
-
-  if (cfg_schema_tobin(interf, _interface_section.post,
+  if (cfg_schema_tobin(nhdp_if, _interface_section.post,
       _interface_entries, ARRAYSIZE(_interface_entries))) {
     OONF_WARN(LOG_NHDP, "Cannot convert NHDP configuration for interface.");
     return;
   }
 
   /* apply new settings to interface */
-  nhdp_interface_apply_settings(interf);
+  nhdp_interface_apply_settings(nhdp_if);
 }
 
 static void

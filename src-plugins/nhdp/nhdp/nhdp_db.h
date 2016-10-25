@@ -117,6 +117,9 @@ struct nhdp_metric {
 struct nhdp_link_domaindata {
   /*! incoming and outgoing metric cost */
   struct nhdp_metric metric;
+
+  /*! time when this metric value was changed */
+  uint64_t last_metric_change;
 };
 
 /**
@@ -196,6 +199,9 @@ struct nhdp_link {
 
   /*! mac address of remote link end */
   struct netaddr remote_mac;
+
+  /*! timestamp when the current link status was set */
+  uint64_t last_status_change;
 
   /*! internal field for NHDP processing */
   int _process_count;
@@ -364,6 +370,7 @@ EXPORT void nhdp_db_neighbor_addr_move(struct nhdp_neighbor *, struct nhdp_naddr
 EXPORT void nhdp_db_neighbor_set_originator(struct nhdp_neighbor *, const struct netaddr *);
 EXPORT void nhdp_db_neighbor_connect_dualstack(struct nhdp_neighbor *, struct nhdp_neighbor *);
 EXPORT void nhdp_db_neigbor_disconnect_dualstack(struct nhdp_neighbor *neigh);
+EXPORT uint32_t nhdp_db_neighbor_get_set_id(void);
 
 EXPORT struct nhdp_link *nhdp_db_link_add(struct nhdp_neighbor *ipv4, struct nhdp_interface *ipv6);
 EXPORT void nhdp_db_link_remove(struct nhdp_link *);

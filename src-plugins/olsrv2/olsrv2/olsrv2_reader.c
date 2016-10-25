@@ -206,7 +206,7 @@ _cb_messagetlvs(struct rfc5444_reader_tlvblock_context *context) {
   memset(&_current, 0, sizeof(_current));
 
   OONF_DEBUG(LOG_OLSRV2_R, "Received TC from %s",
-      netaddr_to_string(&buf, _protocol->input_address));
+      netaddr_to_string(&buf, _protocol->input.src_address));
 
   if (!context->has_origaddr || !context->has_hopcount
       || !context->has_hoplimit || !context->has_seqno) {
@@ -231,9 +231,9 @@ _cb_messagetlvs(struct rfc5444_reader_tlvblock_context *context) {
       break;
   }
 
-  if (!oonf_rfc5444_is_interface_active(_protocol->input_interface, af_type)) {
+  if (!oonf_rfc5444_is_interface_active(_protocol->input.interface, af_type)) {
     OONF_DEBUG(LOG_OLSRV2_R, "We do not handle address length %u on interface %s",
-        context->addr_len, _protocol->input_interface->name);
+        context->addr_len, _protocol->input.interface->name);
     return RFC5444_DROP_MESSAGE;
   }
 
@@ -280,7 +280,7 @@ _cb_messagetlvs(struct rfc5444_reader_tlvblock_context *context) {
 
   /* test if we already forwarded the message */
   if (!olsrv2_mpr_shall_forwarding(
-      context, _protocol->input_address, _current.vtime)) {
+      context, _protocol->input.src_address, _current.vtime)) {
     /* mark message as 'no forward */
     rfc5444_reader_prevent_forwarding(context);
   }
@@ -399,8 +399,14 @@ _cb_addresstlvs(struct rfc5444_reader_tlvblock_context *context __attribute__((u
           if (cost_out[i] <= RFC7181_METRIC_MAX) {
             edge->cost[i] = cost_out[i];
           }
+          else if (_current.complete_tc) {
+            edge->cost[i] = RFC7181_METRIC_INFINITE;
+          }
           if (edge->inverse->virtual && cost_in[i] <= RFC7181_METRIC_MAX) {
             edge->inverse->cost[i] = cost_in[i];
+          }
+          else if (edge->inverse->virtual && _current.complete_tc) {
+            edge->inverse->cost[i] = RFC7181_METRIC_INFINITE;
           }
         }
       }
@@ -414,6 +420,9 @@ _cb_addresstlvs(struct rfc5444_reader_tlvblock_context *context __attribute__((u
         for (i=0; i< NHDP_MAXIMUM_DOMAINS; i++) {
           if (cost_out[i] <= RFC7181_METRIC_MAX) {
             end->cost[i] = cost_out[i];
+          }
+          else if (_current.complete_tc) {
+            end->cost[i] = RFC7181_METRIC_INFINITE;
           }
         }
       }
@@ -471,6 +480,13 @@ _handle_gateways(struct rfc5444_reader_tlvblock_entry *tlv,
   }
 
   end->ansn = _current.node->ansn;
+
+  if (_current.complete_tc) {
+    /* clear unused metrics */
+    for (i=0; i<NHDP_MAXIMUM_DOMAINS; i++) {
+      end->cost[i] = RFC7181_METRIC_INFINITE;
+    }
+  }
 
   /* use MT definition of AN tlv */
   for (i=0; i<_current.mprtypes_size; i++) {

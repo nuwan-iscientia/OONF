@@ -66,7 +66,7 @@
 
 /* Prototypes of local functions */
 static void _addr_add(struct nhdp_interface *, struct netaddr *addr);
-static void _addr_remove(struct nhdp_interface_addr *addr, uint64_t vtime);
+static void _addr_has_been_removed(struct nhdp_interface_addr *addr, uint64_t vtime);
 static void _remove_addr(struct nhdp_interface_addr *ptr);
 static void _cb_addr_timeout(struct oonf_timer_instance *ptr);
 
@@ -129,7 +129,9 @@ nhdp_interfaces_cleanup(void) {
   struct nhdp_interface *interf, *if_it;
 
   avl_for_each_element_safe(&_interface_tree, interf, _node, if_it) {
-    nhdp_interface_remove(interf);
+    if (interf->registered) {
+      nhdp_interface_remove(interf);
+    }
   }
 
   oonf_timer_remove(&_interface_hello_timer);
@@ -405,7 +407,7 @@ _addr_add(struct nhdp_interface *interf, struct netaddr *addr) {
  * @param vtime time in milliseconds until address should be removed from db
  */
 static void
-_addr_remove(struct nhdp_interface_addr *addr, uint64_t vtime) {
+_addr_has_been_removed(struct nhdp_interface_addr *addr, uint64_t vtime) {
 #ifdef OONF_LOG_DEBUG_INFO
   struct netaddr_str buf;
 #endif
@@ -492,6 +494,7 @@ _cb_interface_event(struct oonf_rfc5444_interface_listener *ifl,
   struct os_interface_listener *if_listener;
   struct nhdp_link *nhdp_link, *nhdp_link_it;
   struct os_interface_ip *os_ip;
+  const union netaddr_socket *sock;
   bool has_active_addr;
   bool ipv4, ipv6;
 #ifdef OONF_LOG_DEBUG_INFO
@@ -511,8 +514,10 @@ _cb_interface_event(struct oonf_rfc5444_interface_listener *ifl,
 
   if_listener = oonf_rfc5444_get_core_if_listener(ifl->interface);
   if (if_listener != NULL && if_listener->data && if_listener->data->flags.up) {
-    ipv4 = oonf_rfc5444_is_target_active(interf->rfc5444_if.interface->multicast4);
-    ipv6 = oonf_rfc5444_is_target_active(interf->rfc5444_if.interface->multicast6);
+    ipv4 = if_listener->data->flags.loopback
+        || oonf_rfc5444_is_target_active(interf->rfc5444_if.interface->multicast4);
+    ipv6 = if_listener->data->flags.loopback
+        || oonf_rfc5444_is_target_active(interf->rfc5444_if.interface->multicast6);
 
     /* get all socket addresses that are matching the filter */
     avl_for_each_element(&if_listener->data->addresses, os_ip, _node) {
@@ -540,7 +545,7 @@ _cb_interface_event(struct oonf_rfc5444_interface_listener *ifl,
   avl_for_each_element_safe(&interf->_if_addresses, addr, _if_node, addr_it) {
     if (addr->_to_be_removed && !addr->removed) {
       addr->_to_be_removed = false;
-      _addr_remove(addr, interf->i_hold_time);
+      _addr_has_been_removed(addr, interf->i_hold_time);
     }
   }
 
@@ -549,5 +554,21 @@ _cb_interface_event(struct oonf_rfc5444_interface_listener *ifl,
     list_for_each_element_safe(&interf->_links, nhdp_link, _if_node, nhdp_link_it) {
       nhdp_db_link_set_unsymmetric(nhdp_link);
     }
+  }
+
+  /* get local IPv4 socket address */
+  netaddr_invalidate(&interf->local_ipv4);
+  sock = oonf_rfc5444_interface_get_local_socket(
+      interf->rfc5444_if.interface, AF_INET);
+  if (sock) {
+    netaddr_from_socket(&interf->local_ipv4, sock);
+  }
+
+  /* get local IPv6 socket address */
+  netaddr_invalidate(&interf->local_ipv6);
+  sock = oonf_rfc5444_interface_get_local_socket(
+      interf->rfc5444_if.interface, AF_INET6);
+  if (sock) {
+    netaddr_from_socket(&interf->local_ipv6, sock);
   }
 }

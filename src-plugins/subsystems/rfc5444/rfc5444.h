@@ -77,7 +77,7 @@ struct rfc7181_metric_field {
 };
 
 EXPORT uint8_t rfc5497_timetlv_get_from_vector(
-    uint8_t *vector, size_t vector_length, uint8_t hopcount);
+    const uint8_t *vector, size_t vector_length, uint8_t hopcount);
 EXPORT uint8_t rfc5497_timetlv_encode(uint64_t);
 EXPORT uint64_t rfc5497_timetlv_decode(uint8_t);
 

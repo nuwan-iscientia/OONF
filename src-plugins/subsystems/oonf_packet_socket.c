@@ -547,8 +547,9 @@ _apply_managed_socketpair(int af_type, struct oonf_packet_managed *managed,
     *changed = true;
 
     if (real_multicast && os_if != NULL && os_if->flags.up) {
-      os_fd_join_mcast_send(&sock->scheduler_entry.fd,
-          mc_ip, os_if, managed->_managed_config.loop_multicast, LOG_PACKET);
+      os_fd_join_mcast_send(&sock->scheduler_entry.fd, mc_ip, os_if,
+          managed->_managed_config.loop_multicast,
+          managed->_managed_config.ttl_multicast, LOG_PACKET);
     }
   }
   else if (sockstate < 0) {

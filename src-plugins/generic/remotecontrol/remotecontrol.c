@@ -402,6 +402,8 @@ _start_logging(struct oonf_telnet_data *data,
   log_handler->custom = data;
   log_handler->handler = _cb_print_log;
 
+  oonf_log_addhandler(log_handler);
+
   data->stop_handler = _stop_logging;
   data->stop_data[0] = log_handler;
 

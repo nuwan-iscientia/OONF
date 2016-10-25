@@ -280,6 +280,7 @@ _remove_if_data(struct l2_config_if_data *if_data) {
 
   oonf_timer_stop(&if_data->_reconfigure_timer);
   avl_remove(&_if_data_tree, &if_data->_node);
+  free (if_data);
 }
 
 /**
@@ -363,8 +364,8 @@ _cb_validate_l2netdata(const struct cfg_schema_entry *entry,
   /* test if second word is a human readable number */
   if (cfg_validate_int(out, section_name, entry->key.entry, ptr,
       INT64_MIN, INT64_MAX, 8,
-      oonf_layer2_get_neigh_metadata(idx)->fraction,
-      oonf_layer2_get_neigh_metadata(idx)->binary)) {
+      oonf_layer2_get_net_metadata(idx)->fraction,
+      oonf_layer2_get_net_metadata(idx)->binary)) {
     return -1;
   }
   return 0;

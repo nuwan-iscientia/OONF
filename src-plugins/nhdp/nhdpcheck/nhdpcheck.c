@@ -171,7 +171,7 @@ _cb_message_start_callback(struct rfc5444_reader_tlvblock_context *context) {
 #ifdef OONF_LOG_INFO
   struct nhdp_interface *interf;
 
-  interf = nhdp_interface_get(_protocol->input_interface->name);
+  interf = nhdp_interface_get(_protocol->input.interface->name);
   assert(interf);
 #endif
 

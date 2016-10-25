@@ -51,6 +51,7 @@
 #include <net/if_arp.h>
 #include <netinet/ip.h>
 #include <linux/if_tunnel.h>
+#include <linux/ip6_tunnel.h>
 #include <errno.h>
 
 #include "common/common_types.h"
@@ -107,6 +108,28 @@ static struct oonf_subsystem _oonf_os_tunnel_subsystem = {
 };
 DECLARE_OONF_PLUGIN(_oonf_os_tunnel_subsystem);
 
+enum _tunnel_if_type {
+  _TUNNEL_IP_IN_IP,
+  _TUNNEL_IP_IN_IP6,
+  _TUNNEL_IP6_IN_IP,
+  _TUNNEL_IP6_IN_IP6,
+  _TUNNEL_GRE_IN_IP,
+  _TUNNEL_GRE_IN_IP6,
+
+  /* must be last entry */
+  _TUNNEL_IF_TYPE_COUNT,
+};
+static const char *_tunnel_base_if[] = {
+  [_TUNNEL_IP_IN_IP] = "tunl0",
+  [_TUNNEL_IP_IN_IP6] = "ip6tnl0",
+  [_TUNNEL_IP6_IN_IP] = "sit0",
+  [_TUNNEL_IP6_IN_IP6] = "ip6tnl0",
+  [_TUNNEL_GRE_IN_IP] = "gre0",
+  [_TUNNEL_GRE_IN_IP6] = "ip6gre0",
+};
+
+static bool _tunnel_base_up[_TUNNEL_IF_TYPE_COUNT];
+
 static struct avl_tree _tunnel_tree;
 
 /**
@@ -116,6 +139,7 @@ static struct avl_tree _tunnel_tree;
 static int
 _init(void) {
   avl_init(&_tunnel_tree, avl_comp_strcasecmp, false);
+  memset(_tunnel_base_up, 0, sizeof(_tunnel_base_up));
   return 0;
 }
 
@@ -177,6 +201,44 @@ os_tunnel_linux_remove(struct os_tunnel *tunnel) {
   return result;
 }
 
+static void
+_set_base_tunnel_up(enum _tunnel_if_type type) {
+  struct ifreq ifr;
+  int oldflags;
+
+  if (!_tunnel_base_up[type]) {
+    /* make sure base interface is up for incoming tunnel traffic */
+    memset(&ifr, 0, sizeof(ifr));
+    strscpy(ifr.ifr_name, _tunnel_base_if[type], IF_NAMESIZE);
+
+    if (ioctl(os_system_linux_linux_get_ioctl_fd(AF_INET),
+        SIOCGIFFLAGS, &ifr) < 0) {
+      OONF_WARN(LOG_OS_TUNNEL,
+          "ioctl SIOCGIFFLAGS (get flags) error on device %s: %s (%d)\n",
+          _tunnel_base_if[type], strerror(errno), errno);
+      return;
+    }
+
+    oldflags = ifr.ifr_flags;
+    ifr.ifr_flags |= IFF_UP;
+
+    if (oldflags == ifr.ifr_flags) {
+      /* interface is already up/down */
+      return;
+    }
+
+    if (ioctl(os_system_linux_linux_get_ioctl_fd(AF_INET),
+        SIOCSIFFLAGS, &ifr) < 0) {
+      OONF_WARN(LOG_OS_TUNNEL,
+          "ioctl SIOCSIFFLAGS (set flags up) error on device %s: %s (%d)\n",
+          _tunnel_base_if[type], strerror(errno), errno);
+      return;
+    }
+
+    _tunnel_base_up[type] = true;
+  }
+}
+
 /**
  * Add or remove an IPv4 based tunnel
  * @param tunnel initialized tunnel data
@@ -186,6 +248,7 @@ os_tunnel_linux_remove(struct os_tunnel *tunnel) {
 static int
 _handle_ipv4_tunnel(struct os_tunnel *tunnel, bool add) {
   struct ip_tunnel_parm p;
+  enum _tunnel_if_type type;
   struct ifreq ifr;
   int err;
 
@@ -205,19 +268,29 @@ _handle_ipv4_tunnel(struct os_tunnel *tunnel, bool add) {
   switch (tunnel->p.inner_type) {
     case OS_TUNNEL_IPV4:
       p.iph.protocol = IPPROTO_IPIP;
-      strncpy(ifr.ifr_name, "tunl0", IF_NAMESIZE);
+      type = _TUNNEL_IP_IN_IP;
       break;
     case OS_TUNNEL_IPV6:
       p.iph.protocol = IPPROTO_IPV6;
-      strncpy(ifr.ifr_name, "sit0", IF_NAMESIZE);
+      type = _TUNNEL_IP_IN_IP;
       break;
     case OS_TUNNEL_GRE:
       p.iph.protocol = IPPROTO_GRE;
-      strncpy(ifr.ifr_name, "gre0", IF_NAMESIZE);
+      type = _TUNNEL_IP_IN_IP;
       break;
     default:
       return -1;
   }
+
+  /* inherit TTL by default */
+  p.iph.ttl = tunnel->p.tunnel_ttl;
+
+  /* try to inherit TOS */
+  if (tunnel->p.inhert_tos) {
+    p.iph.tos = 1;
+  }
+
+  strncpy(ifr.ifr_name, _tunnel_base_if[type], IF_NAMESIZE);
 
   netaddr_to_binary(&p.iph.saddr, &tunnel->p.local, sizeof(p.iph.saddr));
   netaddr_to_binary(&p.iph.daddr, &tunnel->p.remote, sizeof(p.iph.daddr));
@@ -228,6 +301,10 @@ _handle_ipv4_tunnel(struct os_tunnel *tunnel, bool add) {
     OONF_WARN(LOG_OS_TUNNEL, "Error while %s tunnel %s: %s (%d)",
         add ? "adding" : "removing", tunnel->p.tunnel_if, strerror(errno), errno);
     return -1;
+  }
+
+  if (add) {
+    _set_base_tunnel_up(type);
   }
   return 0;
 }
@@ -241,6 +318,7 @@ _handle_ipv4_tunnel(struct os_tunnel *tunnel, bool add) {
 static int
 _handle_ipv6_tunnel(struct os_tunnel *tunnel, bool add) {
   struct my_ip6_tnl_parm2 p;
+  enum _tunnel_if_type type;
   struct ifreq ifr;
   int err;
   struct netaddr_str nbuf1, nbuf2;
@@ -258,20 +336,33 @@ _handle_ipv6_tunnel(struct os_tunnel *tunnel, bool add) {
   switch (tunnel->p.inner_type) {
     case OS_TUNNEL_IPV4:
       p.proto = IPPROTO_IPIP;
-      strscpy(ifr.ifr_name, "ip6tnl0", IF_NAMESIZE);
+      type = _TUNNEL_IP_IN_IP6;
       break;
     case OS_TUNNEL_IPV6:
       p.proto = IPPROTO_IPV6;
-      strscpy(ifr.ifr_name, "ip6tnl0", IF_NAMESIZE);
+      type = _TUNNEL_IP6_IN_IP6;
       break;
     case OS_TUNNEL_GRE:
       p.proto = IPPROTO_GRE;
-      strscpy(ifr.ifr_name, "ip6gre0", IF_NAMESIZE);
+      type = _TUNNEL_GRE_IN_IP6;
       break;
     default:
       return -1;
 
   }
+
+  /* set tunnel flags */
+  if (tunnel->p.inhert_tos) {
+    p.flags |= IP6_TNL_F_USE_ORIG_TCLASS;
+  }
+  if (tunnel->p.inhert_flowlabel) {
+    p.flags |= IP6_TNL_F_USE_ORIG_FLOWLABEL;
+  }
+  if (tunnel->p.tunnel_ttl) {
+    p.hop_limit = tunnel->p.tunnel_ttl;
+  }
+
+  strncpy(ifr.ifr_name, _tunnel_base_if[type], IF_NAMESIZE);
 
   netaddr_to_binary(&p.laddr, &tunnel->p.local, sizeof(p.laddr));
   netaddr_to_binary(&p.raddr, &tunnel->p.remote, sizeof(p.raddr));
@@ -286,6 +377,10 @@ _handle_ipv6_tunnel(struct os_tunnel *tunnel, bool add) {
         netaddr_to_string(&nbuf2, &tunnel->p.remote),
         strerror(errno), errno);
     return -1;
+  }
+
+  if (add) {
+    _set_base_tunnel_up(type);
   }
   return 0;
 }
