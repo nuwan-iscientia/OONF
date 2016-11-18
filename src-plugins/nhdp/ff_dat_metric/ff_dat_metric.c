@@ -119,13 +119,13 @@ struct ff_dat_if_config {
  */
 struct link_datff_bucket {
   /*! number of RFC5444 packets received in time interval */
-  int received;
+  uint32_t received;
 
   /*! sum of received and lost RFC5444 packets in time interval */
-  int total;
+  uint32_t total;
 
   /*! link speed scaled to "minimum speed = 1" */
-  int scaled_speed;
+  uint32_t scaled_speed;
 };
 
 /**
@@ -1052,9 +1052,11 @@ _cb_process_packet(struct rfc5444_reader_tlvblock_context *context) {
     return RFC5444_OKAY;
   }
 
-  total = (int)(context->pkt_seqno) - (int)(ldata->last_seq_nr);
-  if (total < 0) {
-    total += 65536;
+  if (context->pkt_seqno >= ldata->last_seq_nr) {
+    total = context->pkt_seqno - ldata->last_seq_nr;
+  }
+  else {
+    total = ((uint32_t)(context->pkt_seqno) + 65536) - (uint32_t)(ldata->last_seq_nr);
   }
 
   ldata->buckets[ldata->activePtr].received++;
