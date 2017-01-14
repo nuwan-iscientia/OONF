@@ -575,12 +575,17 @@ _add_interface(const char *name) {
     /* check if this is the unspecified interface "any" */
     if (strcmp(data->name, _ANY_INTERFACE) == 0) {
       data->flags.any = true;
+      data->flags.up = true;
     }
 
     /* trigger new queries */
     _trigger_link_query = true;
     _trigger_address_query = true;
 
+    data->if_linklocal_v4 = &NETADDR_UNSPEC;
+    data->if_linklocal_v6 = &NETADDR_UNSPEC;
+    data->if_v4 = &NETADDR_UNSPEC;
+    data->if_v6 = &NETADDR_UNSPEC;
     _query_interface_links();
   }
 
