@@ -604,7 +604,7 @@ _remove_interface(struct os_interface *data) {
     return;
   }
 
-  if (data->_internal.mesh_settings_active) {
+  if (data->flags.mesh) {
     _cleanup_mesh(data);
   }
 
@@ -637,11 +637,11 @@ _init_mesh(struct os_interface *os_if) {
     return 0;
   }
 
-  if (os_if->_internal.mesh_settings_active) {
+  if (os_if->flags.mesh) {
     /* mesh settings already active or not used for this interface */
     return 0;
   }
-  os_if->_internal.mesh_settings_active = true;
+  os_if->flags.mesh = true;
 
   /* handle global ip_forward setting */
   _mesh_count++;
@@ -755,7 +755,7 @@ _cleanup_mesh(struct os_interface *os_if) {
     return;
   }
 
-  if (!os_if->_internal.mesh_settings_active) {
+  if (!os_if->flags.mesh) {
     /* mesh settings not active */
     return;
   }

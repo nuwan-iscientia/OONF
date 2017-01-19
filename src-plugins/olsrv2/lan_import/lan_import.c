@@ -105,6 +105,8 @@ static void _destroy_import(struct _import_entry *);
 
 static void _cb_query(struct os_route *filter, struct os_route *route);
 static void _cb_query_finished(struct os_route *, int error);
+
+static bool _is_allowed_to_import(const struct os_route *route);
 static void _cb_rt_event(const struct os_route *, bool);
 static void _cb_cfg_changed(void);
 
@@ -233,6 +235,35 @@ _cb_query_finished(struct os_route *route __attribute__((unused)),
 }
 
 /**
+ * Checks if importing the route is prevented because of safety issues
+ * @param route route data
+ * @return true if is okay to import, false otherwise
+ */
+static bool
+_is_allowed_to_import(const struct os_route *route) {
+  struct nhdp_domain *domain;
+  const struct olsrv2_routing_domain *rtparam;
+  struct os_interface *interf;
+
+  list_for_each_element(nhdp_domain_get_list(), domain, _node) {
+    rtparam = olsrv2_routing_get_parameters(domain);
+    if (rtparam->protocol == route->p.protocol
+        && rtparam->table == route->p.table) {
+      /* do never set a LAN for a route tagged with an olsrv2 protocol */
+      OONF_DEBUG(LOG_LAN_IMPORT, "Matches olsrv2 protocol, do not import!");
+      return false;
+    }
+  }
+
+  interf = os_interface_get_data_by_ifindex(route->p.if_index);
+  if (interf != NULL && interf->flags.mesh) {
+    /* don't import routes from mesh interface */
+    return false;
+  }
+  return true;
+}
+
+/**
  * Callback for route listener
  * @param route routing data
  * @param set true if route was set, false otherwise
@@ -243,7 +274,6 @@ _cb_rt_event(const struct os_route *route, bool set) {
   struct nhdp_domain *domain;
   char ifname[IF_NAMESIZE];
   struct os_route_key ssprefix;
-  const struct olsrv2_routing_domain *rtparam;
   int metric;
 
 #ifdef OONF_LOG_DEBUG_INFO
@@ -322,14 +352,8 @@ _cb_rt_event(const struct os_route *route, bool set) {
         metric = 255;
       }
 
-      list_for_each_element(nhdp_domain_get_list(), domain, _node) {
-        rtparam = olsrv2_routing_get_parameters(domain);
-        if (rtparam->protocol == route->p.protocol
-            && rtparam->table == route->p.table) {
-          /* do never set a LAN for a route tagged with an olsrv2 protocol */
-          OONF_DEBUG(LOG_LAN_IMPORT, "Matches olsrv2 protocol!");
-          continue;
-        }
+      if (!_is_allowed_to_import(route)) {
+        continue;
       }
 
       OONF_DEBUG(LOG_LAN_IMPORT, "Add lan...");

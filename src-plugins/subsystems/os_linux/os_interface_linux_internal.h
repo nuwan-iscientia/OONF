@@ -98,11 +98,6 @@ struct os_interface_internal {
    * true if the interface has been configured, keep a copy around
    */
   bool configured;
-
-  /**
-   * true if the os configuration for mesh routing is active
-   */
-  bool mesh_settings_active;
 };
 
 #endif /* OS_INTERFACE_LINUX_INTERNAL_H_ */
