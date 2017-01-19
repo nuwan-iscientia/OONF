@@ -138,11 +138,6 @@ static void
 _update_nhdp_routing(struct neighbor_graph *graph) {
   struct nhdp_link *lnk;
   struct n1_node *current_mpr_node;
-#ifdef OONF_LOG_DEBUG_INFO
-  struct netaddr_str buf1;
-#endif
-
-//  OONF_DEBUG(LOG_MPR, "Updating ROUTING MPRs");
   
   list_for_each_element(nhdp_db_get_link_list(), lnk, _global_node) {
     lnk->neigh->_domaindata[0].neigh_is_mpr = false;
@@ -150,8 +145,6 @@ _update_nhdp_routing(struct neighbor_graph *graph) {
         &lnk->neigh->originator,
         current_mpr_node, _avl_node);
     if (current_mpr_node != NULL) {
-//      OONF_DEBUG(LOG_MPR, "Processing MPR node %s",
-//          netaddr_to_string(&buf1, &current_mpr_node->addr));
       lnk->neigh->_domaindata[0].neigh_is_mpr = true;
     }
   }
@@ -165,19 +158,12 @@ static void
 _update_nhdp_flooding(struct neighbor_graph *graph) {
   struct nhdp_link *current_link;
   struct n1_node *current_mpr_node;
-#ifdef OONF_LOG_DEBUG_INFO
-  struct netaddr_str buf1;
-#endif
-
-//  OONF_DEBUG(LOG_MPR, "Updating FLOODING MPRs");
 
   list_for_each_element(nhdp_db_get_link_list(), current_link, _global_node) {
     current_mpr_node = avl_find_element(&graph->set_mpr,
         &current_link->neigh->originator,
         current_mpr_node, _avl_node);
     if (current_mpr_node != NULL) {
-//      OONF_DEBUG(LOG_MPR, "Processing MPR node %s",
-//          netaddr_to_string(&buf1, &current_mpr_node->addr));
       current_link->neigh->neigh_is_flooding_mpr = true;
     }
   }
@@ -274,7 +260,7 @@ _cb_update_mpr(void) {
  * @return 
  */
 void
-_validate_mpr_set(struct nhdp_domain *domain, struct neighbor_graph *graph)
+_validate_mpr_set(const struct nhdp_domain *domain, struct neighbor_graph *graph)
 {
   struct n1_node *node_n1;
   struct addr_node *n2_addr;

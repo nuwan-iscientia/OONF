@@ -129,7 +129,7 @@ _is_allowed_link_tuple(const struct nhdp_domain *domain,
 
 static bool
 _is_allowed_2hop_tuple(const struct nhdp_domain *domain, struct nhdp_l2hop *two_hop) {
-  struct nhdp_neighbor_domaindata *neighdata;
+  struct nhdp_l2hop_domaindata *neighdata;
   neighdata = nhdp_domain_get_l2hopdata(domain, two_hop);
   if (neighdata->metric.in != RFC7181_METRIC_INFINITE) {
     return true;
@@ -255,7 +255,7 @@ _calculate_n2(const struct nhdp_domain *domain, struct neighbor_graph *graph) {
   struct n1_node *n1_neigh;
   struct nhdp_link *lnk;
   struct nhdp_l2hop *twohop;
-  struct nhdp_neighbor_domaindata *neighdata;
+  struct nhdp_l2hop_domaindata *neighdata;
   
 #ifdef OONF_LOG_DEBUG_INFO
   struct netaddr_str buf1;

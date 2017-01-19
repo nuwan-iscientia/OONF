@@ -328,11 +328,11 @@ _select_greatest_by_property(const struct nhdp_domain *domain,
 
 // FIXME Wrapper required for having the correct signature...
 
-static uint32_t
-_get_willingness_n1(const struct nhdp_domain *domain,
-    struct neighbor_graph *graph, struct n1_node *node) {
-  return graph->methods->get_willingness_n1(domain, node);
-}
+//static uint32_t
+//_get_willingness_n1(const struct nhdp_domain *domain,
+//    struct neighbor_graph *graph, struct n1_node *node) {
+//  return graph->methods->get_willingness_n1(domain, node);
+//}
 
 /**
  * While there exists any element x in N1 with R(x, M) > 0...

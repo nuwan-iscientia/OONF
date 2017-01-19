@@ -249,7 +249,7 @@ mpr_print_sets(struct neighbor_graph *graph) {
  * @return 
  */
 uint32_t
-mpr_calculate_d_of_y_s(struct nhdp_domain *domain, struct neighbor_graph *graph, struct addr_node *y,
+mpr_calculate_d_of_y_s(const struct nhdp_domain *domain, struct neighbor_graph *graph, struct addr_node *y,
     struct avl_tree *subset_s) {
   uint32_t d_x_y, min_cost;
   struct n1_node *node_n1;

@@ -56,6 +56,6 @@
 /* definitions and constants */
 #define OONF_MPR_SUBSYSTEM "mpr"
 
-void _validate_mpr_set(struct nhdp_domain *domain, struct neighbor_graph *graph);
+void _validate_mpr_set(const struct nhdp_domain *domain, struct neighbor_graph *graph);
 
 #endif /* MPR_H_ */
