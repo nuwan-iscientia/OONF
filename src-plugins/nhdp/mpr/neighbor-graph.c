@@ -71,6 +71,10 @@
 void
 mpr_add_n1_node_to_set(struct avl_tree *set, struct nhdp_neighbor *neigh, struct nhdp_link *lnk) {
   struct n1_node *tmp_n1_neigh;
+  tmp_n1_neigh = avl_find_element(set, &neigh->originator, tmp_n1_neigh, _avl_node);
+  if (tmp_n1_neigh) {
+    return;
+  }
   tmp_n1_neigh = malloc(sizeof (struct n1_node));
   tmp_n1_neigh->addr = neigh->originator;
   tmp_n1_neigh->_avl_node.key = &tmp_n1_neigh->addr;
@@ -87,7 +91,11 @@ mpr_add_n1_node_to_set(struct avl_tree *set, struct nhdp_neighbor *neigh, struct
 void
 mpr_add_addr_node_to_set(struct avl_tree *set, const struct netaddr addr) {
   struct addr_node *tmp_node;
-
+  
+  tmp_node = avl_find_element(set, &addr, tmp_node, _avl_node);
+  if (tmp_node) {
+    return;
+  }
   tmp_node = malloc(sizeof (struct addr_node));
   tmp_node->addr = addr;
   tmp_node->_avl_node.key = &tmp_node->addr;
@@ -101,7 +109,7 @@ mpr_add_addr_node_to_set(struct avl_tree *set, const struct netaddr addr) {
 void
 mpr_init_neighbor_graph(struct neighbor_graph *graph, struct neighbor_graph_interface *methods) {
   avl_init(&graph->set_n, avl_comp_netaddr, false);
-  avl_init(&graph->set_n1, avl_comp_netaddr, true);
+  avl_init(&graph->set_n1, avl_comp_netaddr, false);
   avl_init(&graph->set_n2, avl_comp_netaddr, false);
   avl_init(&graph->set_mpr, avl_comp_netaddr, false);
   avl_init(&graph->set_mpr_candidates, avl_comp_netaddr, false);
@@ -209,8 +217,10 @@ mpr_print_n1_set(struct avl_tree *set) {
 #endif
 
   avl_for_each_element(set, current_node, _avl_node) {
-    OONF_DEBUG(LOG_MPR, "%s",
-        netaddr_to_string(&buf1, &current_node->addr));
+    OONF_DEBUG(LOG_MPR, "%s in: %u out: %u",
+        netaddr_to_string(&buf1, &current_node->addr),
+               current_node->neigh->_domaindata[0].metric.in,
+               current_node->neigh->_domaindata[0].metric.out);
   }
 }
 
@@ -232,3 +242,27 @@ mpr_print_sets(struct neighbor_graph *graph) {
   OONF_DEBUG(LOG_MPR, "Set MPR");
   mpr_print_n1_set(&graph->set_mpr);
 }
+
+/**
+ * Calculate d(y,S) according to section 18.2 (draft 19)
+ * @param mpr_data
+ * @return 
+ */
+uint32_t
+mpr_calculate_d_of_y_s(struct nhdp_domain *domain, struct neighbor_graph *graph, struct addr_node *y,
+    struct avl_tree *subset_s) {
+  uint32_t d_x_y, min_cost;
+  struct n1_node *node_n1;
+
+  /* determine the minimum cost to y over all possible intermediate hops */
+  min_cost = graph->methods->calculate_d1_x_of_n2_addr(domain, graph, &y->addr);
+  avl_for_each_element(subset_s, node_n1, _avl_node) {
+    d_x_y = graph->methods->calculate_d_x_y(domain, node_n1, y);
+    if (d_x_y < min_cost) {
+      min_cost = d_x_y;
+    }
+  }
+
+  return min_cost;
+}
+

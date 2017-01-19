@@ -170,29 +170,6 @@ _calculate_d_x_y(const struct nhdp_domain *domain,
   return _calculate_d1_x(domain, x) + _calculate_d2_x_y(domain, x, y);
 }
 
-#if 0
-/**
- * Calculate d1(y) according to section 18.2 (draft 19)
- * @param mpr_data
- * @return 
- */
-uint32_t
-_calculate_d1_of_y(struct mpr_flooding_data *data, struct addr_node *y) {
-  struct n1_node *node_n1;
-  struct nhdp_laddr *laddr;
-
-  /* find the N1 neighbor corresponding to this address, if it exists */
-  avl_for_each_element(&data->neigh_graph.set_n1, node_n1, _avl_node) {
-    laddr = avl_find_element(&node_n1->link->_addresses, y,
-        laddr, _link_node);
-    if (laddr != NULL) {
-      return node_n1->link->_domaindata[0].metric.out;
-    }
-  }
-  return RFC5444_METRIC_INFINITE;
-}
-#endif
-
 /**
  * Calculate d1(x) according to section 18.2 (draft 19)
  * @param mpr_data
@@ -229,7 +206,7 @@ static void
 _calculate_n1(const struct nhdp_domain *domain, struct mpr_flooding_data *data) {
   struct nhdp_link *lnk;
 
-  OONF_DEBUG(LOG_MPR, "Calculate N1 for interface %s",
+  OONF_DEBUG(LOG_MPR, "Calculate N1 (flooding) for interface %s",
       nhdp_interface_get_name(data->current_interface));
 
   list_for_each_element(nhdp_db_get_link_list(), lnk, _global_node) {
@@ -261,7 +238,6 @@ _calculate_n2(const struct nhdp_domain *domain, struct mpr_flooding_data *data) 
 
   /* iterate over all two-hop neighbor addresses of N1 members */
   avl_for_each_element(&data->neigh_graph.set_n1, n1_neigh, _avl_node) {
-
     avl_for_each_element(&n1_neigh->link->_2hop, twohop, _link_node) {
       if (_is_allowed_2hop_tuple(domain, data->current_interface, twohop)) {
         mpr_add_addr_node_to_set(&data->neigh_graph.set_n2,
@@ -291,78 +267,3 @@ mpr_calculate_neighbor_graph_flooding(const struct nhdp_domain *domain, struct m
   _calculate_n1(domain, data);
   _calculate_n2(domain, data);
 }
-
-#if 0
-
-/**
- * Calculates N1(x) according to Section 18.2
- * @param addr
- * @return 
- */
-struct avl_tree *
-_calculate_n1_of_y(struct common_data *mpr_data, struct addr_node *addr) {
-  struct n1_node *node_n1;
-  struct nhdp_l2hop *two_hop;
-  struct avl_tree *n1_of_y;
-
-  n1_of_y = malloc(sizeof (struct avl_tree));
-  avl_init(n1_of_y, avl_comp_netaddr, false);
-
-  /* find the subset of N1 through which this N2 node is reachable */
-  avl_for_each_element(&mpr_data->set_n1, node_n1, _avl_node) {
-    two_hop = avl_find_element(&node_n1->link->_2hop,
-        addr,
-        two_hop, _link_node);
-    if (two_hop != NULL) {
-      _add_n1_node_to_set_flooding(n1_of_y, node_n1->link);
-    }
-  }
-
-  return n1_of_y;
-}
-
-/**
- * Calculate d(y,S) according to section 18.2 (draft 19)
- * @param mpr_data
- * @return 
- */
-uint32_t
-_calculate_d_of_y_s(struct common_data *mpr_data, struct addr_node *y,
-    struct avl_tree *subset_s) {
-  uint32_t d1_y, d_x_y, min_cost;
-  struct avl_tree *n1_y, union_subset;
-  struct n1_node *node_n1;
-
-  avl_init(&union_subset, avl_comp_netaddr, false);
-
-  n1_y = _calculate_n1_of_y(mpr_data, y);
-  d1_y = _calculate_d1_of_y(mpr_data, y);
-
-  /* calculate union of subset S and N1(y) */
-  avl_for_each_element(subset_s, node_n1, _avl_node) {
-    _add_n1_node_to_set_flooding(&union_subset, node_n1->link);
-  }
-
-  avl_for_each_element(n1_y, node_n1, _avl_node) {
-    _add_n1_node_to_set_flooding(&union_subset, node_n1->link);
-  }
-
-  /* determine the minimum cost to y over all possible intermediate hops */
-  min_cost = d1_y;
-
-  avl_for_each_element(&union_subset, node_n1, _avl_node) {
-    d_x_y = _calculate_d_x_y_routing(mpr_data, node_n1, y);
-    if (d_x_y < min_cost) {
-      min_cost = d_x_y;
-    }
-  }
-
-  /* free temporary data */
-  _clear_n1_set(n1_y);
-  _clear_n1_set(&union_subset);
-  free(n1_y);
-
-  return min_cost;
-}
-
-#endif

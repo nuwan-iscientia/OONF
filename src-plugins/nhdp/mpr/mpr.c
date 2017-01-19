@@ -71,10 +71,8 @@
 
 /* FIXME remove unneeded includes */
 
-/* definitions */
-#define LOG_MPR _nhdp_mpr_subsystem.logging
-
 /* prototypes */
+static void _early_cfg_init(void);
 static int _init(void);
 static void _cleanup(void);
 static void _cb_update_mpr(void);
@@ -90,6 +88,7 @@ static struct oonf_subsystem _nhdp_mpr_subsystem = {
   .dependencies_count = ARRAYSIZE(_dependencies),
   .descr = "RFC7181 Appendix B MPR Plugin",
   .author = "Jonathan Kirchhoff",
+  .early_cfg_init = _early_cfg_init,
 
   .init = _init,
   .cleanup = _cleanup,
@@ -100,6 +99,17 @@ static struct nhdp_domain_mpr _mpr_handler = {
   .name = OONF_MPR_SUBSYSTEM,
   .update_mpr = _cb_update_mpr,
 };
+
+/* logging sources for NHDP subsystem */
+enum oonf_log_source LOG_MPR;
+
+/**
+ * Initialize additional logging sources for NHDP
+ */
+static void
+_early_cfg_init(void) {
+  LOG_MPR = _nhdp_mpr_subsystem.logging;
+}
 
 /**
  * Initialize plugin
@@ -132,7 +142,7 @@ _update_nhdp_routing(struct neighbor_graph *graph) {
   struct netaddr_str buf1;
 #endif
 
-  OONF_DEBUG(LOG_MPR, "Updating ROUTING MPRs");
+//  OONF_DEBUG(LOG_MPR, "Updating ROUTING MPRs");
   
   list_for_each_element(nhdp_db_get_link_list(), lnk, _global_node) {
     lnk->neigh->_domaindata[0].neigh_is_mpr = false;
@@ -140,8 +150,8 @@ _update_nhdp_routing(struct neighbor_graph *graph) {
         &lnk->neigh->originator,
         current_mpr_node, _avl_node);
     if (current_mpr_node != NULL) {
-      OONF_DEBUG(LOG_MPR, "Processing MPR node %s",
-          netaddr_to_string(&buf1, &current_mpr_node->addr));
+//      OONF_DEBUG(LOG_MPR, "Processing MPR node %s",
+//          netaddr_to_string(&buf1, &current_mpr_node->addr));
       lnk->neigh->_domaindata[0].neigh_is_mpr = true;
     }
   }
@@ -159,15 +169,15 @@ _update_nhdp_flooding(struct neighbor_graph *graph) {
   struct netaddr_str buf1;
 #endif
 
-  OONF_DEBUG(LOG_MPR, "Updating FLOODING MPRs");
+//  OONF_DEBUG(LOG_MPR, "Updating FLOODING MPRs");
 
   list_for_each_element(nhdp_db_get_link_list(), current_link, _global_node) {
     current_mpr_node = avl_find_element(&graph->set_mpr,
         &current_link->neigh->originator,
         current_mpr_node, _avl_node);
     if (current_mpr_node != NULL) {
-      OONF_DEBUG(LOG_MPR, "Processing MPR node %s",
-          netaddr_to_string(&buf1, &current_mpr_node->addr));
+//      OONF_DEBUG(LOG_MPR, "Processing MPR node %s",
+//          netaddr_to_string(&buf1, &current_mpr_node->addr));
       current_link->neigh->neigh_is_flooding_mpr = true;
     }
   }
@@ -181,7 +191,7 @@ static void
 _clear_nhdp_flooding(void) {
   struct nhdp_link *current_link;
 
-  OONF_DEBUG(LOG_MPR, "Updating FLOODING MPRs");
+//  OONF_DEBUG(LOG_MPR, "Updating FLOODING MPRs");
 
   list_for_each_element(nhdp_db_get_link_list(), current_link, _global_node) {
     current_link->neigh->neigh_is_flooding_mpr = false;
@@ -199,17 +209,9 @@ _update_flooding_mpr(void) {
     return;
   }
 
-  /* FIXME Currently, the flooding set is calculated incrementally (i.e. 
-   in a coordinated way as suggested by RFC 7181; however, this should
-   be configurable (and other selection algorithms might not be compatible
-   with this approach).
-   */
-  /* FIXME How to support the coordination flooding and routing MPRs 
-   * selection? */
-  /* calculate flooding MPRs */
   _clear_nhdp_flooding();
   avl_for_each_element(nhdp_interface_get_tree(), flooding_data.current_interface, _node) {
-    OONF_DEBUG(LOG_MPR, "Calculating flooding MPRs for interface %s",
+    OONF_DEBUG(LOG_MPR, "*** Calculate flooding MPRs for interface %s ***",
         nhdp_interface_get_name(flooding_data.current_interface));
     
     mpr_calculate_neighbor_graph_flooding(
@@ -217,11 +219,12 @@ _update_flooding_mpr(void) {
     mpr_calculate_mpr_rfc7181(nhdp_domain_get_flooding(),
         &flooding_data.neigh_graph);
     mpr_print_sets(&flooding_data.neigh_graph);
+    _validate_mpr_set(nhdp_domain_get_flooding(), &flooding_data.neigh_graph);
     _update_nhdp_flooding(&flooding_data.neigh_graph);
+    mpr_clear_neighbor_graph(&flooding_data.neigh_graph);
   }
 
-  /* free memory */
-  mpr_clear_neighbor_graph(&flooding_data.neigh_graph);
+  
 }
 
 static void
@@ -234,13 +237,17 @@ _update_routing_mpr(void) {
       /* we are not the routing MPR for this domain */
       continue;
     }
+    OONF_DEBUG(LOG_MPR, "*** Calculate routing MPRs for domain %u ***", domain->index);
+    
     memset(&routing_graph, 0, sizeof(routing_graph));
-
     mpr_calculate_neighbor_graph_routing(domain, &routing_graph);
     mpr_calculate_mpr_rfc7181(domain, &routing_graph);
     mpr_print_sets(&routing_graph);
+    _validate_mpr_set(domain, &routing_graph);
     _update_nhdp_routing(&routing_graph);
-  }
+    mpr_clear_neighbor_graph(&routing_graph);
+  } 
+  
 }
 
 /**
@@ -259,7 +266,7 @@ _cb_update_mpr(void) {
   OONF_DEBUG(LOG_MPR, "Finished recalculating MPRs");
 }
 
-#if 0
+#if 1
 
 /**
  * Validate the MPR set according to section 18.3 (draft 19)
@@ -267,43 +274,44 @@ _cb_update_mpr(void) {
  * @return 
  */
 void
-_validate_mpr_set(struct common_data *mpr_data) {
+_validate_mpr_set(struct nhdp_domain *domain, struct neighbor_graph *graph)
+{
   struct n1_node *node_n1;
   struct addr_node *n2_addr;
-  uint32_t d_y_n1, d_y_mpr;
+  uint32_t d_y_n1;
+  uint32_t d_y_mpr;
 
   OONF_DEBUG(LOG_MPR, "Validating MPR set");
 
   /* 
    * First property: If x in N1 has W(x) = WILL_ALWAYS then x is in M. 
    */
-  avl_for_each_element(&mpr_data->set_n1, node_n1,
-      _avl_node) {
+  avl_for_each_element(&graph->set_n1, node_n1,
+                       _avl_node)
+  {
     if (node_n1->neigh->flooding_willingness
-        == RFC5444_WILLINGNESS_ALWAYS) {
-      assert(_is_mpr(mpr_data, &node_n1->addr));
+            == RFC7181_WILLINGNESS_ALWAYS) {
+      assert(mpr_is_mpr(graph, &node_n1->addr));
     }
   }
 
-  /*
-   * Second property: For any y in N2 that does not have a defined d1(y), 
-   * there is at least one element in M that is also in N1(y). This is 
-   * equivalent to the requirement that d(y, M) is defined.
-   */
-  avl_for_each_element(&mpr_data->set_n2, n2_addr, _avl_node) {
-    assert(_calculate_d_of_y_s(mpr_data, n2_addr, &mpr_data->set_mpr)
-        != RFC5444_METRIC_INFINITE);
-  }
+  avl_for_each_element(&graph->set_n2, n2_addr, _avl_node)
+  {
+    d_y_n1 = mpr_calculate_d_of_y_s(domain, graph, n2_addr, &graph->set_n1);
+    d_y_mpr = mpr_calculate_d_of_y_s(domain, graph, n2_addr, &graph->set_mpr);
 
-  /*
-   * Third property: For any y in N2, d(y,M) = d(y, N1).
-   */
-  avl_for_each_element(&mpr_data->set_n2, n2_addr, _avl_node) {
-    d_y_n1 = _calculate_d_of_y_s(mpr_data, n2_addr, &mpr_data->set_n1);
-    d_y_mpr = _calculate_d_of_y_s(mpr_data, n2_addr, &mpr_data->set_mpr);
-    assert(d_y_n1 == d_y_mpr);
+    /*
+     * Second property: For any y in N2 that does not have a defined d1(y), 
+     * there is at least one element in M that is also in N1(y). This is 
+     * equivalent to the requirement that d(y, M) is defined.
+     */
+    assert(d_y_mpr != RFC7181_METRIC_INFINITE);
+
+    /*
+     * Third property: For any y in N2, d(y,M) = d(y, N1).
+     */
+    assert(d_y_mpr == d_y_n1);
   }
 }
-
 
 #endif
