@@ -77,6 +77,11 @@ static int _init(void);
 static void _cleanup(void);
 static void _cb_update_mpr(void);
 
+#ifndef NDEBUG
+static void _validate_mpr_set(
+    const struct nhdp_domain *domain, struct neighbor_graph *graph);
+#endif
+
 static const char *_dependencies[] = {
   OONF_CLASS_SUBSYSTEM,
   OONF_TIMER_SUBSYSTEM,
@@ -205,12 +210,13 @@ _update_flooding_mpr(void) {
     mpr_calculate_mpr_rfc7181(nhdp_domain_get_flooding(),
         &flooding_data.neigh_graph);
     mpr_print_sets(&flooding_data.neigh_graph);
+#ifndef NDEBUG
     _validate_mpr_set(nhdp_domain_get_flooding(), &flooding_data.neigh_graph);
+#endif
     _update_nhdp_flooding(&flooding_data.neigh_graph);
     mpr_clear_neighbor_graph(&flooding_data.neigh_graph);
   }
 
-  
 }
 
 static void
@@ -229,7 +235,9 @@ _update_routing_mpr(void) {
     mpr_calculate_neighbor_graph_routing(domain, &routing_graph);
     mpr_calculate_mpr_rfc7181(domain, &routing_graph);
     mpr_print_sets(&routing_graph);
+#ifndef NDEBUG
     _validate_mpr_set(domain, &routing_graph);
+#endif
     _update_nhdp_routing(&routing_graph);
     mpr_clear_neighbor_graph(&routing_graph);
   } 
@@ -252,14 +260,14 @@ _cb_update_mpr(void) {
   OONF_DEBUG(LOG_MPR, "Finished recalculating MPRs");
 }
 
-#if 1
+#ifndef NDEBUG
 
 /**
  * Validate the MPR set according to section 18.3 (draft 19)
  * @param current_mpr_data
  * @return 
  */
-void
+static void
 _validate_mpr_set(const struct nhdp_domain *domain, struct neighbor_graph *graph)
 {
   struct n1_node *node_n1;
@@ -299,5 +307,4 @@ _validate_mpr_set(const struct nhdp_domain *domain, struct neighbor_graph *graph
     assert(d_y_mpr == d_y_n1);
   }
 }
-
 #endif
