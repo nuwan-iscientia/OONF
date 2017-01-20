@@ -114,4 +114,6 @@ void mpr_print_n1_set(struct avl_tree *set);
 
 void mpr_print_sets(struct neighbor_graph *graph);
 
+uint32_t mpr_calculate_d_of_y_s(const struct nhdp_domain *domain, struct neighbor_graph *graph, struct addr_node *y, struct avl_tree *subset_s);
+
 #endif

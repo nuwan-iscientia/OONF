@@ -116,6 +116,9 @@ struct os_interface_flags {
 
   /*! true if interface supports no multicast */
   bool unicast_only;
+
+  /*! true if interface is used for meshing */
+  bool mesh;
 };
 
 /**
@@ -263,5 +266,15 @@ static INLINE  const struct netaddr *os_interface_get_bindaddress(int af_type,
     struct netaddr_acl *filter, struct os_interface *ifdata);
 static INLINE  const struct os_interface_ip *os_interface_get_prefix_from_dst(
     struct netaddr *destination, struct os_interface *ifdata);
+
+/**
+ * @param ifname name of an interface
+ * @return os interface instance, NULL if not registered
+ */
+static INLINE struct os_interface *
+os_interface_get(const char *ifname) {
+  struct os_interface *interf;
+  return avl_find_element(os_interface_get_tree(), ifname, interf, _node);
+}
 
 #endif /* OS_INTERFACE_H_ */

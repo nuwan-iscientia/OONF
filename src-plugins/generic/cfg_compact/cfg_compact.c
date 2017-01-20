@@ -148,10 +148,12 @@ _cb_compact_loadall(const char *param, struct autobuf *log) {
           break;
         }
       }
+      globfree(&globbuf);
       return db;
   }
 
   cfg_db_remove(db);
+  globfree(&globbuf);
   return NULL;
 }
 

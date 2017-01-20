@@ -64,6 +64,9 @@
 static int _init(void);
 static void _cleanup(void);
 
+static void _handle_errno1(struct oonf_packet_socket *pktsocket,
+    union netaddr_socket *remote);
+
 static void _packet_add(struct oonf_packet_socket *pktsocket,
     union netaddr_socket *local, struct os_interface *os_if);
 static int _apply_managed(struct oonf_packet_managed *managed);
@@ -182,6 +185,8 @@ _packet_add(struct oonf_packet_socket *pktsocket,
   list_add_tail(&_packet_sockets, &pktsocket->node);
   memcpy(&pktsocket->local_socket, local, sizeof(pktsocket->local_socket));
 
+  pktsocket->_errno1_measurement_time = oonf_clock_getNow();
+
   if (pktsocket->config.input_buffer_length == 0) {
     pktsocket->config.input_buffer = _input_buffer;
     pktsocket->config.input_buffer_length = sizeof(_input_buffer);
@@ -234,6 +239,10 @@ oonf_packet_send(struct oonf_packet_socket *pktsocket, union netaddr_socket *rem
       return 0;
     }
 
+    if (errno == EPERM) {
+      _handle_errno1(pktsocket, remote);
+      return -1;
+    }
     if (errno != EINTR && errno != EAGAIN && errno != EWOULDBLOCK) {
       OONF_WARN(LOG_PACKET, "Cannot send UDP packet to %s: %s (%d)",
           netaddr_socket_to_string(&buf, remote), strerror(errno), errno);
@@ -436,6 +445,69 @@ void
 oonf_packet_free_managed_config(struct oonf_packet_managed_config *config) {
   netaddr_acl_remove(&config->acl);
   netaddr_acl_remove(&config->bindto);
+}
+
+/**
+ * Handle rate limitation of errno==1 warnings
+ * @param pktsocket packet socket the error happened
+ * @param remote target of UDP packet
+ */
+static void
+_handle_errno1(struct oonf_packet_socket *pktsocket,
+    union netaddr_socket *remote) {
+  int64_t interval;
+  uint32_t count, normalized;
+  struct netaddr_str buf;
+  const char *ifname = "-";
+  bool triggered;
+
+  /* we do a rate limitation for EPERM */
+  interval = -oonf_clock_get_relative(pktsocket->_errno1_measurement_time);
+  count = pktsocket->_errno1_count;
+  normalized = count;
+  if (interval >= 60000) {
+    normalized /= (interval / 60000);
+  }
+
+  /* increase error counter */
+  pktsocket->_errno1_count++;
+
+  triggered = false;
+  if (interval >= 60000 && pktsocket->_errno1_suppression && normalized < 5) {
+    /* switch suppression on */
+    pktsocket->_errno1_suppression = false;
+  }
+  else if (!pktsocket->_errno1_suppression && normalized > 10) {
+    /* switch suppression off */
+    pktsocket->_errno1_suppression = true;
+    count = 0;
+    triggered = true;
+  }
+
+  if (interval >= 60000 || triggered) {
+    /* start new measurement interval */
+    pktsocket->_errno1_measurement_time = oonf_clock_getNow();
+    pktsocket->_errno1_count = 1;
+  }
+
+  if (pktsocket->os_if) {
+    /* remember interface name */
+    ifname = pktsocket->os_if->name;
+  }
+
+  if (pktsocket->_errno1_suppression && count != 0) {
+    if (pktsocket->_errno1_count > 1) {
+      /* suppress warning */
+      return;
+    }
+
+    OONF_WARN(LOG_PACKET, "Cannot send UDP packet to %s (%s): %s (%d) (%d similar errors suppressed)",
+        netaddr_socket_to_string(&buf, remote), ifname, strerror(errno), errno, count);
+  }
+  else {
+    OONF_WARN(LOG_PACKET, "Cannot send UDP packet to %s (%s): %s (%d)",
+        netaddr_socket_to_string(&buf, remote), ifname, strerror(errno), errno);
+  }
 }
 
 /**

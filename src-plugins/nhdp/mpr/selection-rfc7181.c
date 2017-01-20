@@ -194,6 +194,8 @@ _process_will_always(const struct nhdp_domain *domain, struct neighbor_graph *gr
 #ifdef OONF_LOG_DEBUG_INFO
   struct netaddr_str buf1;
 #endif
+  
+  OONF_DEBUG(LOG_MPR, "Process WILL_ALWAYS");
 
   avl_for_each_element(&graph->set_n1, current_n1_node, _avl_node) {
     if (graph->methods->get_willingness_n1(domain, current_n1_node)
@@ -220,6 +222,8 @@ _process_unique_mprs(const struct nhdp_domain *domain, struct neighbor_graph *gr
 #ifdef OONF_LOG_DEBUG_INFO
   struct netaddr_str buf1;
 #endif
+  
+  OONF_DEBUG(LOG_MPR, "Process unique MPRs");
 
   avl_for_each_element(&graph->set_n, node_n, _avl_node) {
     /* iterate over N1 to determine the number of possible MPRs */
@@ -277,17 +281,15 @@ _select_greatest_by_property(const struct nhdp_domain *domain,
 
   avl_init(&tmp_candidate_subset, avl_comp_netaddr, false);
 
-  if (graph->set_mpr_candidates.count > 0) {
-    /* We already have MPR candidates, so we need to select from these
-     * (these may have resulted from a previous call to this function). */
-    n1_subset = &graph->set_mpr_candidates;
-  }
-  else {
+//  if (graph->set_mpr_candidates.count > 0) {
+//    /* We already have MPR candidates, so we need to select from these
+//     * (these may have resulted from a previous call to this function). */
+//    n1_subset = &graph->set_mpr_candidates;
+//  }
+//  else {
     /* all N1 nodes are potential MPRs */
     n1_subset = &graph->set_n1;
-  }
-
-  OONF_DEBUG(LOG_MPR, "Iterate over nodes");
+//  }
 
   avl_for_each_element(n1_subset, node_n1, _avl_node) {
     current_prop = get_property(domain, graph, node_n1);
@@ -326,11 +328,11 @@ _select_greatest_by_property(const struct nhdp_domain *domain,
 
 // FIXME Wrapper required for having the correct signature...
 
-static uint32_t
-_get_willingness_n1(const struct nhdp_domain *domain,
-    struct neighbor_graph *graph, struct n1_node *node) {
-  return graph->methods->get_willingness_n1(domain, node);
-}
+//static uint32_t
+//_get_willingness_n1(const struct nhdp_domain *domain,
+//    struct neighbor_graph *graph, struct n1_node *node) {
+//  return graph->methods->get_willingness_n1(domain, node);
+//}
 
 /**
  * While there exists any element x in N1 with R(x, M) > 0...
@@ -341,17 +343,26 @@ _process_remaining(const struct nhdp_domain *domain, struct neighbor_graph *grap
   struct n1_node *node_n1;
   bool done;
 
+#ifdef OONF_LOG_DEBUG_INFO
+  struct netaddr_str buf1;
+#endif
+  
+  OONF_DEBUG(LOG_MPR, "Process remaining");
+  
   done = false;
   while (!done) {
     /* select node(s) by willingness */
-    _select_greatest_by_property(domain, graph,
-        &_get_willingness_n1);
+//    OONF_DEBUG(LOG_MPR, "Select by greatest willingness");
+//    _select_greatest_by_property(domain, graph,
+//        &_get_willingness_n1);
 
     /* select node(s) by coverage */
-    if (graph->set_mpr_candidates.count > 1) {
+//    if (graph->set_mpr_candidates.count > 1) {
+      OONF_DEBUG(LOG_MPR, "Select by greatest coverage");
+//                 graph->set_mpr_candidates.count);
       _select_greatest_by_property(domain, graph,
           &_calculate_r);
-    }
+//    }
 
     /* TODO More tie-breaking methods might be added here 
      * Ideas from draft 19:
@@ -362,21 +373,30 @@ _process_remaining(const struct nhdp_domain *domain, struct neighbor_graph *grap
 
     if (graph->set_mpr_candidates.count == 0) {
       /* no potential MPRs; we are done */
+      OONF_DEBUG(LOG_MPR, "No more candidates, we are done!");
       done = true;
     }
     else if (graph->set_mpr_candidates.count == 1) {
       /* a unique candidate was found */
       node_n1 = avl_first_element(&graph->set_mpr_candidates,
           node_n1, _avl_node);
+      OONF_DEBUG(LOG_MPR, "Unique candidate %s",
+                 netaddr_to_string(&buf1, &node_n1->addr));
       mpr_add_n1_node_to_set(&graph->set_mpr, node_n1->neigh, node_n1->link);
-      done = true;
+      avl_remove(&graph->set_mpr_candidates, &node_n1->_avl_node);
+      free(node_n1);
+//      done = true;
     }
     else {
       /* Multiple candidates were found; arbitrarily add one of the 
        * candidate nodes (first in list). */
       node_n1 = avl_first_element(&graph->set_mpr_candidates,
           node_n1, _avl_node);
+      OONF_DEBUG(LOG_MPR, "Multiple candidates, select %s",
+                 netaddr_to_string(&buf1, &node_n1->addr));
       mpr_add_n1_node_to_set(&graph->set_mpr, node_n1->neigh, node_n1->link);
+      avl_remove(&graph->set_mpr_candidates, &node_n1->_avl_node);
+      free(node_n1);
     }
   }
 }

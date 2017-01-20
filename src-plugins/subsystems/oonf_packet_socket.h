@@ -63,6 +63,11 @@
 
 struct oonf_packet_socket;
 
+enum {
+  OONF_PACKET_ERRNO1_SUPPRESSION_THRESHOLD = 10,
+  OONF_PACKET_ERRNO1_SUPPRESSION_INTERVAL  = 60000,
+};
+
 /**
  * Configuraten of a packet socket
  */
@@ -114,6 +119,15 @@ struct oonf_packet_socket {
 
   /*! configuration of packet socket */
   struct oonf_packet_config config;
+
+  /*! true if errno==1 suppression is active */
+  bool _errno1_suppression;
+
+  /*! begin of current errno==1 measurement interval */
+  uint64_t _errno1_measurement_time;
+
+  /*! number of suppressed errno==1 warnings */
+  uint32_t _errno1_count;
 };
 
 /**

@@ -46,13 +46,6 @@
 #ifndef MPR_H_
 #define MPR_H_
 
-#include "neighbor-graph.h"
-#include "neighbor-graph-flooding.h"
-
-#include "common/common_types.h"
-#include "core/oonf_subsystem.h"
-#include "common/list.h"
-
 /* definitions and constants */
 #define OONF_MPR_SUBSYSTEM "mpr"
 

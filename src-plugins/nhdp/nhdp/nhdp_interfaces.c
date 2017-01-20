@@ -148,7 +148,7 @@ nhdp_interfaces_cleanup(void) {
 void
 nhdp_interface_update_status(struct nhdp_interface *interf) {
   struct nhdp_link *lnk;
-  int ipv4_only, ipv6_only, dualstack;
+  uint32_t ipv4_only, ipv6_only, dualstack;
 
   ipv4_only = 0;
   ipv6_only = 0;

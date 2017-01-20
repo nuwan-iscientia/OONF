@@ -32,7 +32,7 @@ os_interface_generic_get_bindaddress(int af_type,
   const struct netaddr *result;
 
   result = NULL;
-  if (os_if == NULL) {
+  if (os_if == NULL || os_if->flags.any) {
     result = _get_fixed_prefix(af_type, filter);
   }
   if (!result) {

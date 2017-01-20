@@ -158,10 +158,16 @@ struct nhdp_domain_mpr {
   const char *name;
 
   /**
-   * callback to calculate MPR set
+   * callback to calculate routing MPR set
    * @param domain NHDP domain to update MPR set
    */
-  void (*update_mpr)(struct nhdp_domain *domain);
+  void (*update_routing_mpr)(struct nhdp_domain *domain);
+
+  /**
+   * callback to calculate flooding MPR set
+   * @param domain NHDP domain used to update flooding MPR set
+   */
+  void (*update_flooding_mpr)(struct nhdp_domain *domain);
 
   /**
    * callback to enable mpr

@@ -88,21 +88,19 @@ struct os_interface_internal {
   uint32_t mesh_counter;
 
   /**
-   * used to store internal state of interfaces before
-   * configuring them for manet data forwarding.
-   * Only used by os_specific code.
+   * original value of IP spoof filter before changed to mesh state
    */
-  uint32_t _original_state;
+  char _original_ip_spoof;
+
+  /**
+   * original value of ip redirect before changed to mesh state
+   */
+  char _original_icmp_redirect;
 
   /**
    * true if the interface has been configured, keep a copy around
    */
   bool configured;
-
-  /**
-   * true if the os configuration for mesh routing is active
-   */
-  bool mesh_settings_active;
 };
 
 #endif /* OS_INTERFACE_LINUX_INTERNAL_H_ */

@@ -48,6 +48,6 @@
 #include "core/oonf_logging.h"
 
 /* headers only for use inside the MPR subsystem */
-extern enum oonf_log_source LOG_MPR;
+enum oonf_log_source LOG_MPR;
 
 #endif /* MPR_INTERNAL_H_ */

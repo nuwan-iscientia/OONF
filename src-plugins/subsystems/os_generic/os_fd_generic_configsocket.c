@@ -96,8 +96,9 @@ os_fd_generic_configsocket(struct os_fd *sock,
 
 #if defined(SO_BINDTODEVICE)
   /* this is binding the socket, not a multicast address */
-  if (os_if != NULL && setsockopt(sock->fd, SOL_SOCKET, SO_BINDTODEVICE,
-      os_if->name, strlen(os_if->name) + 1) < 0) {
+  if (os_if != NULL && !os_if->flags.any &&
+      setsockopt(sock->fd, SOL_SOCKET, SO_BINDTODEVICE,
+          os_if->name, strlen(os_if->name) + 1) < 0) {
     OONF_WARN(log_src, "Cannot bind socket to interface %s: %s (%d)\n",
         os_if->name, strerror(errno), errno);
     return -1;

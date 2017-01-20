@@ -67,7 +67,8 @@ static void _apply_mpr(struct nhdp_domain *domain,
     const char *mpr_name, uint8_t willingness);
 static void _remove_mpr(struct nhdp_domain *);
 
-static void _cb_update_everyone_mpr(struct nhdp_domain *);
+static void _cb_update_everyone_routing_mpr(struct nhdp_domain *domain);
+static void _cb_update_everyone_flooding_mpr(struct nhdp_domain *domain);
 
 static bool _recalculate_neighbor_metrics(struct nhdp_domain *domain);
 static bool _recalculate_neighbor_metric(struct nhdp_domain *domain,
@@ -104,7 +105,8 @@ static struct nhdp_domain_metric _no_metric = {
 static struct nhdp_domain_mpr _everyone_mprs = {
   .name = "Everyone MPR",
 
-  .update_mpr = _cb_update_everyone_mpr,
+  .update_flooding_mpr = _cb_update_everyone_flooding_mpr,
+  .update_routing_mpr = _cb_update_everyone_routing_mpr,
 };
 
 /* non-default routing domains registered to NHDP */
@@ -508,9 +510,9 @@ nhdp_domain_recalculate_mpr(bool force_change) {
       /* recalculate routing MPRs */
       changed_mpr[domain->index] = _recalculate_mpr_set(domain);
 
-      if (domain->ext == _flooding_domain.ext && domain->mpr->update_mpr) {
+      if (domain->ext == _flooding_domain.ext && domain->mpr->update_flooding_mpr) {
         /* recalculating flooding MPR */
-        domain->mpr->update_mpr(&_flooding_domain);
+        domain->mpr->update_flooding_mpr(&_flooding_domain);
       }
     }
 
@@ -925,7 +927,7 @@ _recalculate_mpr_set(struct nhdp_domain *domain) {
   struct nhdp_neighbor *neigh;
   struct nhdp_neighbor_domaindata *neighdata;
 
-  if (!domain->mpr->update_mpr) {
+  if (!domain->mpr->update_routing_mpr) {
     return false;
   }
 
@@ -936,7 +938,7 @@ _recalculate_mpr_set(struct nhdp_domain *domain) {
   }
 
   /* update MPR set */
-  domain->mpr->update_mpr(domain);
+  domain->mpr->update_routing_mpr(domain);
 
   /* check for changes */
   list_for_each_element(nhdp_db_get_neigh_list(), neigh, _global_node) {
@@ -1249,23 +1251,27 @@ _remove_mpr(struct nhdp_domain *domain) {
 }
 
 static void
-_cb_update_everyone_mpr(struct nhdp_domain *domain) {
-  struct nhdp_link *lnk;
+_cb_update_everyone_routing_mpr(struct nhdp_domain *domain) {
   struct nhdp_neighbor *neigh;
   struct nhdp_neighbor_domaindata *domaindata;
 
-  if (&_flooding_domain == domain) {
-    list_for_each_element(nhdp_db_get_link_list(), lnk, _global_node) {
-      lnk->neigh_is_flooding_mpr =
-          lnk->flooding_willingness > RFC7181_WILLINGNESS_NEVER;
-    }
-  }
   list_for_each_element(nhdp_db_get_neigh_list(), neigh, _global_node) {
     if (domain->mpr == &_everyone_mprs) {
       domaindata = nhdp_domain_get_neighbordata(domain, neigh);
       domaindata->neigh_is_mpr =
           domaindata->willingness > RFC7181_WILLINGNESS_NEVER;
     }
+  }
+}
+
+static void
+_cb_update_everyone_flooding_mpr(
+    struct nhdp_domain *domain __attribute__((unused))) {
+  struct nhdp_link *lnk;
+
+  list_for_each_element(nhdp_db_get_link_list(), lnk, _global_node) {
+    lnk->neigh_is_flooding_mpr =
+        lnk->flooding_willingness > RFC7181_WILLINGNESS_NEVER;
   }
 }
 
