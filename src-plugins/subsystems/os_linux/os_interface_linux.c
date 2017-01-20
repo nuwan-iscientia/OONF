@@ -109,7 +109,8 @@ static void _early_cfg_init(void);
 static struct os_interface *_add_interface(const char *name);
 static void _remove_interface(struct os_interface *data);
 
-static int _init_mesh(struct os_interface *os_if);
+static void _init_mesh(struct os_interface *os_if);
+static void _refresh_mesh(struct os_interface *os_if, char *old_redirect, char *old_spoof);
 static void _cleanup_mesh(struct os_interface *os_if);
 
 static void _query_interface_links(void);
@@ -327,7 +328,7 @@ os_interface_linux_add(struct os_interface_listener *if_listener) {
   list_add_tail(&data->_listeners, &if_listener->_node);
 
   if (if_listener->mesh && if_listener->name != _ANY_INTERFACE) {
-    if (!data->_internal.mesh_counter
+    if (data->_internal.mesh_counter == 0
         && !data->_internal.ignore_mesh) {
       _init_mesh(data);
     }
@@ -625,23 +626,21 @@ _remove_interface(struct os_interface *data) {
 /**
  * Initialize interface for mesh usage
  * @param os_if network interface data
- * @return -1 if an error happened, 0 otherwise
  */
-static int
+static void
 _init_mesh(struct os_interface *os_if) {
-  char procfile[FILENAME_MAX];
-  char old_redirect = 0, old_spoof = 0;
-
   if (os_if->flags.loopback || os_if->flags.any) {
     /* ignore loopback and unspecific interface*/
-    return 0;
+    return;
   }
 
   if (os_if->flags.mesh) {
     /* mesh settings already active or not used for this interface */
-    return 0;
+    return;
   }
   os_if->flags.mesh = true;
+
+  OONF_DEBUG(LOG_OS_INTERFACE, "Init mesh: %s", os_if->name);
 
   /* handle global ip_forward setting */
   _mesh_count++;
@@ -649,10 +648,30 @@ _init_mesh(struct os_interface *os_if) {
     _activate_if_routing();
   }
 
+  _refresh_mesh(os_if,
+      &os_if->_internal._original_icmp_redirect,
+      &os_if->_internal._original_ip_spoof);
+}
+
+static void
+_refresh_mesh(struct os_interface *os_if, char *old_redirect, char *old_spoof) {
+  char procfile[FILENAME_MAX];
+  if (os_if->flags.loopback || os_if->flags.any) {
+    /* ignore loopback and unspecific interface*/
+    return;
+  }
+
+  if (!os_if->flags.mesh) {
+    /* this is no mesh interface */
+    return;
+  }
+
+  OONF_DEBUG(LOG_OS_INTERFACE, "Refresh mesh: %s", os_if->name);
+
   /* Generate the procfile name */
   snprintf(procfile, sizeof(procfile), PROC_IF_REDIRECT, os_if->name);
 
-  if (_os_linux_writeToFile(procfile, &old_redirect, '0')) {
+  if (_os_linux_writeToFile(procfile, old_redirect, '0')) {
     OONF_WARN(LOG_OS_INTERFACE, "WARNING! Could not disable ICMP redirects! "
         "You should manually ensure that ICMP redirects are disabled!");
   }
@@ -660,12 +679,176 @@ _init_mesh(struct os_interface *os_if) {
   /* Generate the procfile name */
   snprintf(procfile, sizeof(procfile), PROC_IF_SPOOF, os_if->name);
 
-  if (_os_linux_writeToFile(procfile, &old_spoof, '0')) {
+  if (_os_linux_writeToFile(procfile, old_spoof, '0')) {
     OONF_WARN(LOG_OS_INTERFACE, "WARNING! Could not disable the IP spoof filter! "
         "You should mannually ensure that IP spoof filtering is disabled!");
   }
+}
 
-  os_if->_internal._original_state = (old_redirect << 8) | (old_spoof);
+/**
+ * Cleanup interface after mesh usage
+ * @param data network interface data
+ */
+static void
+_cleanup_mesh(struct os_interface *os_if) {
+  char procfile[FILENAME_MAX];
+
+  if (os_if->flags.loopback || os_if->flags.any) {
+    /* ignore loopback and unspecific interface*/
+    return;
+  }
+
+  if (!os_if->flags.mesh) {
+    /* mesh settings not active */
+    return;
+  }
+
+  OONF_DEBUG(LOG_OS_INTERFACE, "Cleanup mesh: %s", os_if->name);
+
+  /* Generate the procfile name */
+  snprintf(procfile, sizeof(procfile), PROC_IF_REDIRECT, os_if->name);
+
+  if (_os_linux_writeToFile(procfile, NULL,
+      os_if->_internal._original_icmp_redirect) != 0) {
+    OONF_WARN(LOG_OS_INTERFACE, "Could not restore ICMP redirect flag %s to %c",
+        procfile, os_if->_internal._original_icmp_redirect);
+  }
+
+  /* Generate the procfile name */
+  snprintf(procfile, sizeof(procfile), PROC_IF_SPOOF, os_if->name);
+
+  if (_os_linux_writeToFile(procfile, NULL,
+      os_if->_internal._original_ip_spoof) != 0) {
+    OONF_WARN(LOG_OS_INTERFACE, "Could not restore IP spoof flag %s to %c",
+        procfile, os_if->_internal._original_ip_spoof);
+  }
+
+  /* handle global ip_forward setting */
+  _mesh_count--;
+  if (_mesh_count == 0) {
+    _deactivate_if_routing();
+  }
+
+  return;
+}
+
+/**
+ * Set the required settings to allow multihop mesh routing
+ */
+static void
+_activate_if_routing(void) {
+  if (_os_linux_writeToFile(PROC_IPFORWARD_V4, &_original_ipv4_forward, '1')) {
+    OONF_WARN(LOG_OS_INTERFACE, "WARNING! Could not activate ip_forward for ipv4! "
+        "You should manually ensure that ip_forward for ipv4 is activated!");
+  }
+  if (os_system_is_ipv6_supported()) {
+    if(_os_linux_writeToFile(PROC_IPFORWARD_V6, &_original_ipv6_forward, '1')) {
+      OONF_WARN(LOG_OS_INTERFACE, "WARNING! Could not activate ip_forward for ipv6! "
+          "You should manually ensure that ip_forward for ipv6 is activated!");
+    }
+  }
+
+  if (_os_linux_writeToFile(PROC_ALL_REDIRECT, &_original_icmp_redirect, '0')) {
+    OONF_WARN(LOG_OS_INTERFACE, "WARNING! Could not disable ICMP redirects! "
+        "You should manually ensure that ICMP redirects are disabled!");
+  }
+
+  /* check kernel version and disable global rp_filter */
+  if (_is_kernel_2_6_31_or_better) {
+    if (_os_linux_writeToFile(PROC_ALL_SPOOF, &_original_rp_filter, '0')) {
+      OONF_WARN(LOG_OS_INTERFACE, "WARNING! Could not disable global rp_filter "
+          "(necessary for kernel 2.6.31 and newer)! You should manually "
+          "ensure that rp_filter is disabled!");
+    }
+  }
+}
+
+/**
+ * Reset the multihop mesh routing settings to default
+ */
+static void
+_deactivate_if_routing(void) {
+  if (_os_linux_writeToFile(PROC_ALL_REDIRECT, NULL, _original_icmp_redirect) != 0) {
+    OONF_WARN(LOG_OS_INTERFACE,
+        "WARNING! Could not restore ICMP redirect flag %s to %c!",
+        PROC_ALL_REDIRECT, _original_icmp_redirect);
+  }
+
+  if (_os_linux_writeToFile(PROC_ALL_SPOOF, NULL, _original_rp_filter)) {
+    OONF_WARN(LOG_OS_INTERFACE,
+        "WARNING! Could not restore global rp_filter flag %s to %c!",
+        PROC_ALL_SPOOF, _original_rp_filter);
+  }
+
+  if (_os_linux_writeToFile(PROC_IPFORWARD_V4, NULL, _original_ipv4_forward)) {
+    OONF_WARN(LOG_OS_INTERFACE, "WARNING! Could not restore %s to %c!",
+        PROC_IPFORWARD_V4, _original_ipv4_forward);
+  }
+  if (os_system_is_ipv6_supported()) {
+    if (_os_linux_writeToFile(PROC_IPFORWARD_V6, NULL, _original_ipv6_forward)) {
+      OONF_WARN(LOG_OS_INTERFACE, "WARNING! Could not restore %s to %c",
+          PROC_IPFORWARD_V6, _original_ipv6_forward);
+    }
+  }
+}
+
+/**
+ * Overwrite a numeric entry in the procfile system and keep the old
+ * value.
+ * @param file pointer to filename (including full path)
+ * @param old pointer to memory to store old value
+ * @param value new value
+ * @return -1 if an error happened, 0 otherwise
+ */
+static int
+_os_linux_writeToFile(const char *file, char *old, char value) {
+  int fd;
+  char rv;
+
+  if (value == 0) {
+    /* ignore */
+    return 0;
+  }
+
+  if ((fd = open(file, O_RDWR)) < 0) {
+    OONF_WARN(LOG_OS_INTERFACE,
+      "Error, cannot open proc entry %s: %s (%d)\n",
+      file, strerror(errno), errno);
+    return -1;
+  }
+
+  if (read(fd, &rv, 1) != 1) {
+    OONF_WARN(LOG_OS_INTERFACE,
+      "Error, cannot read proc entry %s: %s (%d)\n",
+      file, strerror(errno), errno);
+    close(fd);
+    return -1;
+  }
+
+  if (rv != value) {
+    if (lseek(fd, SEEK_SET, 0) == -1) {
+      OONF_WARN(LOG_OS_INTERFACE,
+        "Error, cannot rewind to start on proc entry %s: %s (%d)\n",
+        file, strerror(errno), errno);
+      close(fd);
+      return -1;
+    }
+
+    if (write(fd, &value, 1) != 1) {
+      OONF_WARN(LOG_OS_INTERFACE,
+        "Error, cannot write '%c' to proc entry %s: %s (%d)\n",
+        value, file, strerror(errno), errno);
+    }
+
+    OONF_DEBUG(LOG_OS_INTERFACE, "Writing '%c' (was %c) to %s", value, rv, file);
+  }
+
+  close(fd);
+
+  if (old && rv != value) {
+    *old = rv;
+  }
+
   return 0;
 }
 
@@ -742,174 +925,6 @@ _query_interface_addresses(void) {
 }
 
 /**
- * Cleanup interface after mesh usage
- * @param data network interface data
- */
-static void
-_cleanup_mesh(struct os_interface *os_if) {
-  char restore_redirect, restore_spoof;
-  char procfile[FILENAME_MAX];
-
-  if (os_if->flags.loopback || os_if->flags.any) {
-    /* ignore loopback and unspecific interface*/
-    return;
-  }
-
-  if (!os_if->flags.mesh) {
-    /* mesh settings not active */
-    return;
-  }
-  restore_redirect = (os_if->_internal._original_state >> 8) & 255;
-  restore_spoof = (os_if->_internal._original_state & 255);
-
-  /* Generate the procfile name */
-  snprintf(procfile, sizeof(procfile), PROC_IF_REDIRECT, os_if->name);
-
-  if (_os_linux_writeToFile(procfile, NULL, restore_redirect) != 0) {
-    OONF_WARN(LOG_OS_INTERFACE, "Could not restore ICMP redirect flag %s to %c",
-        procfile, restore_redirect);
-  }
-
-  /* Generate the procfile name */
-  snprintf(procfile, sizeof(procfile), PROC_IF_SPOOF, os_if->name);
-
-  if (_os_linux_writeToFile(procfile, NULL, restore_spoof) != 0) {
-    OONF_WARN(LOG_OS_INTERFACE, "Could not restore IP spoof flag %s to %c",
-        procfile, restore_spoof);
-  }
-
-  /* handle global ip_forward setting */
-  _mesh_count--;
-  if (_mesh_count == 0) {
-    _deactivate_if_routing();
-  }
-
-  os_if->_internal._original_state = 0;
-  return;
-}
-
-/**
- * Set the required settings to allow multihop mesh routing
- */
-static void
-_activate_if_routing(void) {
-  if (_os_linux_writeToFile(PROC_IPFORWARD_V4, &_original_ipv4_forward, '1')) {
-    OONF_WARN(LOG_OS_INTERFACE, "WARNING! Could not activate ip_forward for ipv4! "
-        "You should manually ensure that ip_forward for ipv4 is activated!");
-  }
-  if (os_system_is_ipv6_supported()) {
-    if(_os_linux_writeToFile(PROC_IPFORWARD_V6, &_original_ipv6_forward, '1')) {
-      OONF_WARN(LOG_OS_INTERFACE, "WARNING! Could not activate ip_forward for ipv6! "
-          "You should manually ensure that ip_forward for ipv6 is activated!");
-    }
-  }
-
-  if (_os_linux_writeToFile(PROC_ALL_REDIRECT, &_original_icmp_redirect, '0')) {
-    OONF_WARN(LOG_OS_INTERFACE, "WARNING! Could not disable ICMP redirects! "
-        "You should manually ensure that ICMP redirects are disabled!");
-  }
-
-  /* check kernel version and disable global rp_filter */
-  if (_is_kernel_2_6_31_or_better) {
-    if (_os_linux_writeToFile(PROC_ALL_SPOOF, &_original_rp_filter, '0')) {
-      OONF_WARN(LOG_OS_INTERFACE, "WARNING! Could not disable global rp_filter "
-          "(necessary for kernel 2.6.31 and newer)! You should manually "
-          "ensure that rp_filter is disabled!");
-    }
-  }
-}
-
-/**
- * Reset the multihop mesh routing settings to default
- */
-static void
-_deactivate_if_routing(void) {
-  if (_os_linux_writeToFile(PROC_ALL_REDIRECT, NULL, _original_icmp_redirect) != 0) {
-    OONF_WARN(LOG_OS_INTERFACE,
-        "WARNING! Could not restore ICMP redirect flag %s to %c!",
-        PROC_ALL_REDIRECT, _original_icmp_redirect);
-  }
-
-  if (_os_linux_writeToFile(PROC_ALL_SPOOF, NULL, _original_rp_filter)) {
-    OONF_WARN(LOG_OS_INTERFACE,
-        "WARNING! Could not restore global rp_filter flag %s to %c!",
-        PROC_ALL_SPOOF, _original_rp_filter);
-  }
-
-  if (_os_linux_writeToFile(PROC_IPFORWARD_V4, NULL, _original_ipv4_forward)) {
-    OONF_WARN(LOG_OS_INTERFACE, "WARNING! Could not restore %s to %c!",
-        PROC_IPFORWARD_V4, _original_ipv4_forward);
-  }
-  if (os_system_is_ipv6_supported()) {
-    if (_os_linux_writeToFile(PROC_IPFORWARD_V6, NULL, _original_ipv6_forward)) {
-      OONF_WARN(LOG_OS_INTERFACE, "WARNING! Could not restore %s to %c",
-          PROC_IPFORWARD_V6, _original_ipv6_forward);
-    }
-  }
-}
-
-
-/**
- * Overwrite a numeric entry in the procfile system and keep the old
- * value.
- * @param file pointer to filename (including full path)
- * @param old pointer to memory to store old value
- * @param value new value
- * @return -1 if an error happened, 0 otherwise
- */
-static int
-_os_linux_writeToFile(const char *file, char *old, char value) {
-  int fd;
-  char rv;
-
-  if (value == 0) {
-    /* ignore */
-    return 0;
-  }
-
-  if ((fd = open(file, O_RDWR)) < 0) {
-    OONF_WARN(LOG_OS_INTERFACE,
-      "Error, cannot open proc entry %s: %s (%d)\n",
-      file, strerror(errno), errno);
-    return -1;
-  }
-
-  if (read(fd, &rv, 1) != 1) {
-    OONF_WARN(LOG_OS_INTERFACE,
-      "Error, cannot read proc entry %s: %s (%d)\n",
-      file, strerror(errno), errno);
-    close(fd);
-    return -1;
-  }
-
-  if (rv != value) {
-    if (lseek(fd, SEEK_SET, 0) == -1) {
-      OONF_WARN(LOG_OS_INTERFACE,
-        "Error, cannot rewind to start on proc entry %s: %s (%d)\n",
-        file, strerror(errno), errno);
-      close(fd);
-      return -1;
-    }
-
-    if (write(fd, &value, 1) != 1) {
-      OONF_WARN(LOG_OS_INTERFACE,
-        "Error, cannot write '%c' to proc entry %s: %s (%d)\n",
-        value, file, strerror(errno), errno);
-    }
-
-    OONF_DEBUG(LOG_OS_INTERFACE, "Writing '%c' (was %c) to %s", value, rv, file);
-  }
-
-  close(fd);
-
-  if (old && rv != value) {
-    *old = rv;
-  }
-
-  return 0;
-}
-
-/**
  * Trigger all change listeners of a network interface
  * @param os_if network interface
  */
@@ -957,6 +972,7 @@ _link_parse_nlmsg(const char *ifname, struct nlmsghdr *msg) {
   struct netaddr addr;
   struct os_interface *ifdata;
   int iflink;
+  bool old_up;
 #if defined(OONF_LOG_DEBUG_INFO)
   struct netaddr_str nbuf;
 #endif
@@ -970,6 +986,7 @@ _link_parse_nlmsg(const char *ifname, struct nlmsghdr *msg) {
     return;
   }
 
+  old_up = ifdata->flags.up;
   ifdata->flags.up = (ifi_msg->ifi_flags & IFF_UP) != 0;
   ifdata->flags.promisc = (ifi_msg->ifi_flags & IFF_PROMISC) != 0;
   ifdata->flags.pointtopoint = (ifi_msg->ifi_flags & IFF_POINTOPOINT) != 0;
@@ -987,6 +1004,10 @@ _link_parse_nlmsg(const char *ifname, struct nlmsghdr *msg) {
   ifdata->index = ifi_msg->ifi_index;
   ifdata->base_index = ifdata->index;
 
+  if (!old_up && ifdata->flags.up && ifdata->flags.mesh && !ifdata->_internal.ignore_mesh) {
+    /* refresh mesh parameters, might be gone for LTE-sticks */
+    _refresh_mesh(ifdata, NULL, NULL);
+  }
   for(; RTA_OK(ifi_attr, ifi_len); ifi_attr = RTA_NEXT(ifi_attr,ifi_len)) {
     switch(ifi_attr->rta_type) {
       case IFLA_ADDRESS:
@@ -1470,7 +1491,7 @@ _cb_cfg_changed(void) {
       if (!data->_internal.ignore_mesh
          && data->_internal.mesh_counter > 0) {
         /* reactivate mesh settings */
-        _init_mesh(data);
+        _cleanup_mesh(data);
       }
 
       /* remove allocated instance (if no listener is left) */
