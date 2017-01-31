@@ -181,7 +181,7 @@ mpr_calculate_minimal_d_z_y(const struct nhdp_domain *domain,
   struct n1_node *z_node;
   uint32_t d_z_y, min_d_z_y;
 
-  min_d_z_y = RFC7181_METRIC_INFINITE;
+  min_d_z_y = RFC7181_METRIC_INFINITE_PATH;
 
   avl_for_each_element(&graph->set_n1, z_node, _avl_node) {
     d_z_y = graph->methods->calculate_d_x_y(domain, z_node, y);
@@ -253,11 +253,21 @@ mpr_calculate_d_of_y_s(const struct nhdp_domain *domain, struct neighbor_graph *
     struct avl_tree *subset_s) {
   uint32_t d_x_y, min_cost;
   struct n1_node *node_n1;
+  
+  #ifdef OONF_LOG_DEBUG_INFO
+  struct netaddr_str buf1;
+  #endif
 
   /* determine the minimum cost to y over all possible intermediate hops */
   min_cost = graph->methods->calculate_d1_x_of_n2_addr(domain, graph, &y->addr);
+  if (min_cost == RFC7181_METRIC_INFINITE) {
+    min_cost = RFC7181_METRIC_INFINITE_PATH;
+  }
+  OONF_DEBUG(LOG_MPR, "mpr_calculate_d_of_y_s(%s)", netaddr_to_string(&buf1, &y->addr));
+  OONF_DEBUG(LOG_MPR, "initial cost = %u", min_cost);
   avl_for_each_element(subset_s, node_n1, _avl_node) {
     d_x_y = graph->methods->calculate_d_x_y(domain, node_n1, y);
+    OONF_DEBUG(LOG_MPR, "cost via %s would be = %u", netaddr_to_string(&buf1, &node_n1->addr), d_x_y);
     if (d_x_y < min_cost) {
       min_cost = d_x_y;
     }

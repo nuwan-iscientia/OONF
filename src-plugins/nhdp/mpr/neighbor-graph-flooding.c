@@ -167,7 +167,11 @@ _calculate_d2_x_y(const struct nhdp_domain *domain,
 static uint32_t
 _calculate_d_x_y(const struct nhdp_domain *domain,
     struct n1_node *x, struct addr_node *y) {
-  return _calculate_d1_x(domain, x) + _calculate_d2_x_y(domain, x, y);
+  uint32_t cost = _calculate_d1_x(domain, x) + _calculate_d2_x_y(domain, x, y);
+  if (cost >= RFC7181_METRIC_INFINITE_PATH) {
+    return RFC7181_METRIC_INFINITE_PATH;
+  }
+  return cost;
 }
 
 /**
