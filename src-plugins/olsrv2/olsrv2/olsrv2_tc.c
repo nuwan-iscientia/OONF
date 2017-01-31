@@ -61,6 +61,9 @@
 static void _cb_tc_node_timeout(struct oonf_timer_instance *);
 static bool _remove_edge(struct olsrv2_tc_edge *edge, bool cleanup);
 
+static void _cb_neighbor_change(void *ptr);
+static void _cb_neighbor_remove(void *ptr);
+
 /* classes for topology data */
 static struct oonf_class _tc_node_class = {
   .name = OLSRV2_CLASS_TC_NODE,
@@ -82,6 +85,14 @@ static struct oonf_class _tc_endpoint_class = {
   .size = sizeof(struct olsrv2_tc_endpoint),
 };
 
+/* keep track of direct neighbors */
+static struct oonf_class_extension _nhdp_neighbor_extension = {
+  .ext_name = "olsrv2_tc tracking",
+  .class_name = NHDP_CLASS_NEIGHBOR,
+  .cb_change = _cb_neighbor_change,
+  .cb_remove = _cb_neighbor_remove,
+};
+
 /* validity timer for tc nodes */
 static struct oonf_timer_class _validity_info = {
   .name = "olsrv2 tc node validity",
@@ -101,6 +112,8 @@ olsrv2_tc_init(void) {
   oonf_class_add(&_tc_edge_class);
   oonf_class_add(&_tc_attached_class);
   oonf_class_add(&_tc_endpoint_class);
+
+  oonf_class_extension_add(&_nhdp_neighbor_extension);
 
   avl_init(&_tc_tree, avl_comp_netaddr, false);
   avl_init(&_tc_endpoint_tree, os_routing_avl_cmp_route_key, true);
@@ -129,6 +142,8 @@ olsrv2_tc_cleanup(void) {
   avl_for_each_element_safe(&_tc_tree, node, _originator_node, n_it) {
     olsrv2_tc_node_remove(node);
   }
+
+  oonf_class_extension_remove(&_nhdp_neighbor_extension);
 
   oonf_class_remove(&_tc_endpoint_class);
   oonf_class_remove(&_tc_attached_class);
@@ -217,7 +232,7 @@ olsrv2_tc_node_remove(struct olsrv2_tc_node *node) {
   oonf_timer_stop(&node->_validity_time);
 
   /* remove from global tree and free memory if node is not needed anymore*/
-  if (node->_edges.count == 0) {
+  if (node->_edges.count == 0 && !node->direct_neighbor) {
     avl_remove(&_tc_tree, &node->_originator_node);
     oonf_class_free(&_tc_node_class, node);
   }
@@ -497,4 +512,61 @@ _remove_edge(struct olsrv2_tc_edge *edge, bool cleanup) {
   oonf_class_free(&_tc_edge_class, edge);
 
   return removed_node;
+}
+
+static void
+_cb_neighbor_change(void *ptr) {
+  struct nhdp_neighbor *neigh;
+  struct olsrv2_tc_node *tc_node;
+
+  neigh = ptr;
+  if (memcmp(&neigh->originator, &neigh->_old_originator,
+      sizeof(neigh->originator)) == 0) {
+    /* no change */
+    return;
+  }
+
+  /* remove old tc_node if necessary */
+  _cb_neighbor_remove(ptr);
+
+  /* see if we have a new originator */
+  if (netaddr_is_unspec(&neigh->originator)) {
+    return;
+  }
+
+  /* add tc_node if necessary */
+  tc_node = olsrv2_tc_node_get(&neigh->originator);
+  if (!tc_node) {
+    tc_node = olsrv2_tc_node_add(&neigh->originator, 0, 0);
+    if (!tc_node) {
+      return;
+    }
+  }
+
+  /* mark as direct neighbor */
+  tc_node->direct_neighbor = true;
+}
+
+static void
+_cb_neighbor_remove(void *ptr) {
+  struct nhdp_neighbor *neigh;
+  struct olsrv2_tc_node *tc_node;
+
+  neigh = ptr;
+
+  if (netaddr_is_unspec(&neigh->originator)) {
+    return;
+  }
+
+  tc_node = olsrv2_tc_node_get(&neigh->originator);
+  if (!tc_node) {
+    return;
+  }
+
+  tc_node->direct_neighbor = false;
+
+  if (!oonf_timer_is_active(&tc_node->_validity_time)) {
+    /* virtual node, kill it */
+    olsrv2_tc_node_remove(tc_node);
+  }
 }

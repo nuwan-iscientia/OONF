@@ -117,6 +117,9 @@ struct olsrv2_tc_node {
   /*! reported interval time */
   uint64_t interval_time;
 
+  /*! true if node has to be kept alive because of HELLOs */
+  bool direct_neighbor;
+
   /*! node has announced it can do source specific routing */
   bool source_specific;
 

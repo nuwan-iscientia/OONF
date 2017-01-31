@@ -293,6 +293,12 @@ struct nhdp_neighbor {
   /*! internal field for NHDP processing */
   int _process_count;
 
+  /*!
+   * originator address of this node before it was changed.
+   * Mostly used in CHANGE events
+   */
+  struct netaddr _old_originator;
+
   /*! list of links for this neighbor */
   struct list_entity _links;
 

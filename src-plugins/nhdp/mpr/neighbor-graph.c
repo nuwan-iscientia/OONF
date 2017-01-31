@@ -275,4 +275,3 @@ mpr_calculate_d_of_y_s(const struct nhdp_domain *domain, struct neighbor_graph *
 
   return min_cost;
 }
-

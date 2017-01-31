@@ -146,6 +146,12 @@ static int _cb_create_text_route(struct oonf_viewer_template *);
 /*! template key for current node answer set number */
 #define KEY_NODE_ANSN               "node_ansn"
 
+/*! template key for nodes that exist because of HELLOs or foreign TCs */
+#define KEY_NODE_VIRTUAL            "node_virtual"
+
+/*! template key for nodes that are direct neighbors */
+#define KEY_NODE_NEIGHBOR           "node_neighbor"
+
 /*! template key for attached network destination prefix*/
 #define KEY_ATTACHED_NET            "attached_net"
 
@@ -213,6 +219,8 @@ static struct netaddr_str         _value_lan_src;
 static struct netaddr_str         _value_node;
 static struct isonumber_str       _value_node_vtime;
 static char                       _value_node_ansn[6];
+static char                       _value_node_virtual[TEMPLATE_JSON_BOOL_LENGTH];
+static char                       _value_node_neighbor[TEMPLATE_JSON_BOOL_LENGTH];
 
 static struct netaddr_str         _value_attached_net_dst;
 static struct netaddr_str         _value_attached_net_src;
@@ -273,6 +281,8 @@ static struct abuf_template_data_entry _tde_node[] = {
     { KEY_NODE, _value_node.buf, true },
     { KEY_NODE_ANSN, _value_node_ansn, false },
     { KEY_NODE_VTIME, _value_node_vtime.buf, false },
+    { KEY_NODE_VIRTUAL, _value_node_virtual, true },
+    { KEY_NODE_NEIGHBOR, _value_node_neighbor, true },
 };
 
 static struct abuf_template_data_entry _tde_attached_net[] = {
@@ -550,6 +560,13 @@ _initialize_node_values(struct olsrv2_tc_node *node) {
       oonf_timer_get_due(&node->_validity_time));
 
   snprintf(_value_node_ansn, sizeof(_value_node_ansn), "%u", node->ansn);
+
+  strscpy(_value_node_virtual,
+      json_getbool(!oonf_timer_is_active(&node->_validity_time)),
+      sizeof(_value_node_virtual));
+  strscpy(_value_node_neighbor,
+      json_getbool(node->direct_neighbor),
+      sizeof(_value_node_neighbor));
 }
 
 /**
@@ -677,9 +694,6 @@ _cb_create_text_node(struct oonf_viewer_template *template) {
   struct olsrv2_tc_node *node;
 
   avl_for_each_element(olsrv2_tc_get_tree(), node, _originator_node) {
-    if (olsrv2_tc_is_node_virtual(node)) {
-      continue;
-    }
     _initialize_node_values(node);
 
     oonf_viewer_output_print_line(template);
