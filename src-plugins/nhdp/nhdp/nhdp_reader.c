@@ -191,6 +191,8 @@ static struct {
 
   uint8_t mprtypes[NHDP_MAXIMUM_DOMAINS];
   size_t mprtypes_size;
+
+  bool timings_changed;
 } _current;
 
 /**
@@ -665,6 +667,9 @@ _cb_addresstlvs_pass1_end(struct rfc5444_reader_tlvblock_context *context, bool 
   }
 
   /* remember vtime and itime */
+  _current.timings_changed = _current.link->vtime_value != _current.vtime;
+  _current.timings_changed |= _current.link->itime_value != _current.itime;
+
   _current.link->vtime_value = _current.vtime;
   _current.link->itime_value = _current.itime;
 
@@ -977,7 +982,7 @@ _cb_msg_pass2_end(struct rfc5444_reader_tlvblock_context *context, bool dropped)
   nhdp_interface_update_status(_current.localif);
 
   /* update link status */
-  nhdp_db_link_update_status(_current.link);
+  nhdp_db_link_update_status(_current.link, _current.timings_changed);
 
   return RFC5444_OKAY;
 }

@@ -382,7 +382,7 @@ EXPORT void nhdp_db_link_connect_dualstack(struct nhdp_link *ipv4, struct nhdp_l
 EXPORT void nhdp_db_link_disconnect_dualstack(struct nhdp_link *lnk);
 
 EXPORT int _nhdp_db_link_calculate_status(struct nhdp_link *lnk);
-EXPORT void nhdp_db_link_update_status(struct nhdp_link *);
+EXPORT void nhdp_db_link_update_status(struct nhdp_link *, bool force);
 
 EXPORT const char *nhdp_db_link_status_to_string(struct nhdp_link *);
 
@@ -464,7 +464,7 @@ static INLINE void
 nhdp_db_link_set_symtime(
     struct nhdp_link *lnk, uint64_t stime) {
   oonf_timer_set(&lnk->sym_time, stime);
-  nhdp_db_link_update_status(lnk);
+  nhdp_db_link_update_status(lnk, false);
 }
 
 /**

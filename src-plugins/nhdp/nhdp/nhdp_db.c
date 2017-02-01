@@ -808,9 +808,10 @@ nhdp_db_link_disconnect_dualstack(struct nhdp_link *lnk) {
  * Recalculate the status of a nhdp link and update database
  * if link changed between symmetric and non-symmetric
  * @param lnk nhdp link with (potential) new status
+ * @param force true to force a change event
  */
 void
-nhdp_db_link_update_status(struct nhdp_link *lnk) {
+nhdp_db_link_update_status(struct nhdp_link *lnk, bool force) {
   enum nhdp_link_status old_status;
   bool was_symmetric;
 
@@ -833,7 +834,7 @@ nhdp_db_link_update_status(struct nhdp_link *lnk) {
     nhdp_interface_update_status(lnk->local_if);
   }
 
-  if (old_status != lnk->status) {
+  if (force || old_status != lnk->status) {
     /* link status was changed */
     lnk->last_status_change = oonf_clock_getNow();
 
@@ -998,7 +999,7 @@ _cb_link_heard(struct oonf_timer_instance *ptr) {
 
   lnk = container_of(ptr, struct nhdp_link, heard_time);
   OONF_DEBUG(LOG_NHDP, "Link heard fired: 0x%0zx", (size_t)lnk);
-  nhdp_db_link_update_status(lnk);
+  nhdp_db_link_update_status(lnk, false);
 }
 
 /**
@@ -1011,7 +1012,7 @@ _cb_link_symtime(struct oonf_timer_instance *ptr) {
 
   lnk = container_of(ptr, struct nhdp_link, sym_time);
   OONF_DEBUG(LOG_NHDP, "Link Symtime fired: 0x%0zx", (size_t)lnk);
-  nhdp_db_link_update_status(lnk);
+  nhdp_db_link_update_status(lnk, false);
   nhdp_domain_neighbor_changed(lnk->neigh);
 }
 

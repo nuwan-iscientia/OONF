@@ -75,9 +75,6 @@ enum {
  * Configuration settings of DATFF Metric
  */
 struct ff_dat_if_config {
-  /*! Interval between two updates of the metric */
-  uint64_t interval;
-
   /*! true if metric should include link speed */
   bool ett;
 
@@ -89,9 +86,6 @@ struct ff_dat_if_config {
 
   /*! true if metric should include unicast into calculation */
   bool accept_unicast;
-
-  /*! timer for sampling interface data */
-  struct oonf_timer_instance _sampling_timer;
 
   /*! true if we registered the interface */
   bool registered;
@@ -118,6 +112,9 @@ struct link_datff_bucket {
 struct link_datff_data {
   /*! timer for measuring lost hellos when no further packets are received */
   struct oonf_timer_instance hello_lost_timer;
+
+  /*! timer for sampling interface data */
+  struct oonf_timer_instance sampling_timer;
 
   /*! back pointer to NHDP link */
   struct nhdp_link *nhdp_link;
@@ -158,9 +155,6 @@ static void _cb_disable_metric(void);
 static void _cb_link_added(void *);
 static void _cb_link_changed(void *);
 static void _cb_link_removed(void *);
-
-static void _cb_nhdpif_added(void *);
-static void _cb_nhdpif_removed(void *);
 
 static void _cb_dat_sampling(struct oonf_timer_instance *);
 static void _calculate_link_neighborhood(struct nhdp_link *lnk,
@@ -216,8 +210,6 @@ static const char *LOSS_SCALING[] = {
 };
 
 static struct cfg_schema_entry _datff_entries[] = {
-  CFG_MAP_CLOCK_MIN(ff_dat_if_config, interval, "ffdat_interval", "1.0",
-      "Time interval between recalculations of metric", 100),
   CFG_MAP_BOOL(ff_dat_if_config, ett, "ffdat_airtime", "true",
       "Activates the handling of linkspeed within the metric, set to false to"
       " downgrade to ETX metric"),
@@ -285,9 +277,6 @@ static struct oonf_class_extension _nhdpif_extenstion = {
   .ext_name = "datff linkmetric",
   .class_name = NHDP_CLASS_INTERFACE,
   .size = sizeof(struct ff_dat_if_config),
-
-  .cb_add = _cb_nhdpif_added,
-  .cb_remove = _cb_nhdpif_removed,
 };
 
 /* timer for sampling in RFC5444 packets */
@@ -396,12 +385,8 @@ _cleanup(void) {
  */
 static void
 _cb_enable_metric(void) {
-  struct nhdp_interface *nhdpif;
   struct nhdp_link *lnk;
 
-  avl_for_each_element(nhdp_interface_get_tree(), nhdpif, _node) {
-    _cb_nhdpif_added(nhdpif);
-  }
   list_for_each_element(nhdp_db_get_link_list(), lnk, _global_node) {
     _cb_link_added(lnk);
   }
@@ -414,16 +399,12 @@ _cb_enable_metric(void) {
  */
 static void
 _cb_disable_metric(void) {
-  struct nhdp_interface *nhdpif;
   struct nhdp_link *lnk;
 
   rfc5444_reader_remove_packet_consumer(&_protocol->reader, &_packet_consumer);
 
   list_for_each_element(nhdp_db_get_link_list(), lnk, _global_node) {
     _cb_link_removed(lnk);
-  }
-  avl_for_each_element(nhdp_interface_get_tree(), nhdpif, _node) {
-    _cb_nhdpif_removed(nhdpif);
   }
 }
 
@@ -441,15 +422,16 @@ _cb_link_added(void *ptr) {
   data = oonf_class_get_extension(&_link_extenstion, lnk);
 
   memset(data, 0, sizeof(*data));
-  // data->contains_data = false;
+  data->nhdp_link = lnk;
 
   for (i = 0; i<ARRAYSIZE(data->buckets); i++) {
     data->buckets[i].total = 1;
     // data->buckets[i].scaled_speed = 0;
   }
 
-  /* initialize 'hello lost' timer for link */
+  /* initialize 'hello lost' and 'sampling' timer for link */
   data->hello_lost_timer.class = &_hello_lost_info;
+  data->sampling_timer.class = &_sampling_timer_info;
 
   if (lnk->itime_value > 0) {
     data->hello_interval = lnk->itime_value;
@@ -473,9 +455,12 @@ static void
 _cb_link_changed(void *ptr) {
   struct link_datff_data *data;
   struct nhdp_link *lnk;
+  uint64_t old_interval;
 
   lnk = ptr;
   data = oonf_class_get_extension(&_link_extenstion, lnk);
+
+  old_interval = data->hello_interval;
 
   if (lnk->itime_value > 0) {
     data->hello_interval = lnk->itime_value;
@@ -484,6 +469,9 @@ _cb_link_changed(void *ptr) {
     data->hello_interval = lnk->vtime_value;
   }
 
+  if (old_interval != data->hello_interval) {
+    oonf_timer_set(&data->sampling_timer, data->hello_interval);
+  }
   _reset_missed_hello_timer(data);
 }
 
@@ -498,27 +486,7 @@ _cb_link_removed(void *ptr) {
   data = oonf_class_get_extension(&_link_extenstion, ptr);
 
   oonf_timer_stop(&data->hello_lost_timer);
-}
-
-static void
-_cb_nhdpif_added(void *ptr) {
-  struct ff_dat_if_config *ifconfig;
-
-  ifconfig = oonf_class_get_extension(&_nhdpif_extenstion, ptr);
-
-  ifconfig->_sampling_timer.class = &_sampling_timer_info;
-}
-
-static void
-_cb_nhdpif_removed(void *ptr) {
-  struct ff_dat_if_config *ifconfig;
-
-  ifconfig = oonf_class_get_extension(&_nhdpif_extenstion, ptr);
-
-  if (ifconfig->_sampling_timer.class) {
-    oonf_timer_stop(&ifconfig->_sampling_timer);
-    ifconfig->_sampling_timer.class = NULL;
-  }
+  oonf_timer_stop(&data->sampling_timer);
 }
 
 /**
@@ -638,125 +606,114 @@ _cb_dat_sampling(struct oonf_timer_instance *ptr) {
   uint32_t missing_intervals;
   size_t i;
   int rx_bitrate;
-  bool change_happened;
 
   struct netaddr_str nbuf;
 
-  ifconfig = container_of(ptr, struct ff_dat_if_config, _sampling_timer);
+  ldata = container_of(ptr, struct link_datff_data, sampling_timer);
+
+  lnk = ldata->nhdp_link;
+  ifconfig = oonf_class_get_extension(&_nhdpif_extenstion, lnk->local_if);
 
   OONF_DEBUG(LOG_FF_DAT, "Calculate Metric from sampled data");
 
-  change_happened = false;
-
-  list_for_each_element(nhdp_db_get_link_list(), lnk, _global_node) {
-    if (oonf_class_get_extension(&_nhdpif_extenstion, lnk->local_if) != ifconfig) {
-      continue;
-    }
-
-    ldata = oonf_class_get_extension(&_link_extenstion, lnk);
-    if (!ldata->contains_data) {
-      /* still no data for this link */
-      continue;
-    }
-
-    /* initialize counter */
-    total = 0;
-    received = 0;
-
-    /* calculate metric */
-    for (i=0; i<ARRAYSIZE(ldata->buckets); i++) {
-      received += ldata->buckets[i].received;
-      total += ldata->buckets[i].total;
-    }
-
-    if (ldata->missed_hellos > 0) {
-      missing_intervals = (ldata->missed_hellos * ldata->hello_interval)
-          / ifconfig->interval;
-      if (missing_intervals > ARRAYSIZE(ldata->buckets)) {
-        received = 0;
-      }
-      else {
-        received = (received * (ARRAYSIZE(ldata->buckets) - missing_intervals))
-            / ARRAYSIZE(ldata->buckets);
-      }
-    }
-
-    /* update link speed */
-    ldata->buckets[ldata->activePtr].scaled_speed = _get_scaled_rx_linkspeed(ifconfig, lnk);
-
-    OONF_DEBUG(LOG_FF_DAT, "Query incoming linkspeed for link %s: %"PRIu64,
-        netaddr_to_string(&nbuf, &lnk->if_addr),
-        (uint64_t)(ldata->buckets[ldata->activePtr].scaled_speed) * DATFF_LINKSPEED_MINIMUM);
-
-    /* get median scaled link speed and apply it to metric */
-    rx_bitrate = _get_median_rx_linkspeed(ldata);
-    if (rx_bitrate > DATFF_LINKSPEED_RANGE) {
-      OONF_WARN(LOG_FF_DAT, "Metric overflow %s (%s): %d",
-          netaddr_to_string(&nbuf, &lnk->if_addr),
-          nhdp_interface_get_name(lnk->local_if), rx_bitrate);
-      metric = 1;
-    }
-    else {
-      metric = DATFF_LINKSPEED_RANGE / rx_bitrate;
-    }
-
-    /* calculate frame loss, use discrete values */
-    if (total == 0 || received == 0
-        || received * DATFF_FRAME_SUCCESS_RANGE <= total) {
-      metric *= DATFF_FRAME_SUCCESS_RANGE;
-    }
-    else {
-      metric = _apply_packet_loss(ifconfig, lnk, ldata, metric, received, total);
-    }
-
-    /* convert into something that can be transmitted over the network */
-    if (metric > RFC7181_METRIC_MAX) {
-      /* give the metric an upper bound */
-      OONF_INFO(LOG_FF_DAT, "Metric overflow %s (%s): %"PRIu64,
-          netaddr_to_string(&nbuf, &lnk->if_addr),
-          nhdp_interface_get_name(lnk->local_if), metric);
-      metric_value = RFC7181_METRIC_MAX;
-    }
-    else if (metric < RFC7181_METRIC_MIN) {
-      OONF_WARN(LOG_FF_DAT, "Metric underflow %s (%s): %"PRIu64,
-          netaddr_to_string(&nbuf, &lnk->if_addr),
-          nhdp_interface_get_name(lnk->local_if), metric);
-      metric_value = RFC7181_METRIC_MIN;
-    }
-    else if(!rfc7181_metric_encode(&encoded_metric, metric)) {
-      metric_value = rfc7181_metric_decode(&encoded_metric);
-    }
-    else {
-      /* metric encoding failed */
-      OONF_WARN(LOG_FF_DAT, "Metric encoding failed for link %s (%s): %"PRIu64,
-          netaddr_to_string(&nbuf, &lnk->if_addr),
-          nhdp_interface_get_name(lnk->local_if), metric);
-      metric_value = RFC7181_METRIC_MAX;
-    }
-
-    /* set metric for incoming link */
-    change_happened |= nhdp_domain_set_incoming_metric(
-        &_datff_handler, lnk, metric_value);
-
-    OONF_DEBUG(LOG_FF_DAT, "New sampling rate for link %s (%s):"
-        " %d/%d = %u (speed=%"PRIu64 ")\n",
-        netaddr_to_string(&nbuf, &lnk->if_addr),
-        nhdp_interface_get_name(lnk->local_if),
-        received, total, metric_value, (uint64_t)(rx_bitrate) * DATFF_LINKSPEED_MINIMUM);
-
-    /* update rolling buffer */
-    ldata->activePtr++;
-    if (ldata->activePtr >= ARRAYSIZE(ldata->buckets)) {
-      ldata->activePtr = 0;
-    }
-    ldata->buckets[ldata->activePtr].received = 0;
-    ldata->buckets[ldata->activePtr].total = 0;
+  if (!ldata->contains_data) {
+    /* still no data for this link */
+    return;
   }
 
-  /* update neighbor metrics */
-  if (change_happened) {
-    nhdp_domain_neighborhood_changed();
+  /* initialize counter */
+  total = 0;
+  received = 0;
+
+  /* calculate metric */
+  for (i=0; i<ARRAYSIZE(ldata->buckets); i++) {
+    received += ldata->buckets[i].received;
+    total += ldata->buckets[i].total;
   }
+
+  if (ldata->missed_hellos > 0) {
+    missing_intervals = (ldata->missed_hellos * ldata->hello_interval)
+        / (lnk->local_if->refresh_interval / 2);
+    if (missing_intervals > ARRAYSIZE(ldata->buckets)) {
+      received = 0;
+    }
+    else {
+      received = (received * (ARRAYSIZE(ldata->buckets) - missing_intervals))
+          / ARRAYSIZE(ldata->buckets);
+    }
+  }
+
+  /* update link speed */
+  ldata->buckets[ldata->activePtr].scaled_speed = _get_scaled_rx_linkspeed(ifconfig, lnk);
+
+  OONF_DEBUG(LOG_FF_DAT, "Query incoming linkspeed for link %s: %"PRIu64,
+      netaddr_to_string(&nbuf, &lnk->if_addr),
+      (uint64_t)(ldata->buckets[ldata->activePtr].scaled_speed) * DATFF_LINKSPEED_MINIMUM);
+
+  /* get median scaled link speed and apply it to metric */
+  rx_bitrate = _get_median_rx_linkspeed(ldata);
+  if (rx_bitrate > DATFF_LINKSPEED_RANGE) {
+    OONF_WARN(LOG_FF_DAT, "Metric overflow %s (%s): %d",
+        netaddr_to_string(&nbuf, &lnk->if_addr),
+        nhdp_interface_get_name(lnk->local_if), rx_bitrate);
+    metric = 1;
+  }
+  else {
+    metric = DATFF_LINKSPEED_RANGE / rx_bitrate;
+  }
+
+  /* calculate frame loss, use discrete values */
+  if (total == 0 || received == 0
+      || received * DATFF_FRAME_SUCCESS_RANGE <= total) {
+    metric *= DATFF_FRAME_SUCCESS_RANGE;
+  }
+  else {
+    metric = _apply_packet_loss(ifconfig, lnk, ldata, metric, received, total);
+  }
+
+  /* convert into something that can be transmitted over the network */
+  if (metric > RFC7181_METRIC_MAX) {
+    /* give the metric an upper bound */
+    OONF_INFO(LOG_FF_DAT, "Metric overflow %s (%s): %"PRIu64,
+        netaddr_to_string(&nbuf, &lnk->if_addr),
+        nhdp_interface_get_name(lnk->local_if), metric);
+    metric_value = RFC7181_METRIC_MAX;
+  }
+  else if (metric < RFC7181_METRIC_MIN) {
+    OONF_WARN(LOG_FF_DAT, "Metric underflow %s (%s): %"PRIu64,
+        netaddr_to_string(&nbuf, &lnk->if_addr),
+        nhdp_interface_get_name(lnk->local_if), metric);
+    metric_value = RFC7181_METRIC_MIN;
+  }
+  else if(!rfc7181_metric_encode(&encoded_metric, metric)) {
+    metric_value = rfc7181_metric_decode(&encoded_metric);
+  }
+  else {
+    /* metric encoding failed */
+    OONF_WARN(LOG_FF_DAT, "Metric encoding failed for link %s (%s): %"PRIu64,
+        netaddr_to_string(&nbuf, &lnk->if_addr),
+        nhdp_interface_get_name(lnk->local_if), metric);
+    metric_value = RFC7181_METRIC_MAX;
+  }
+
+  /* set metric for incoming link */
+  if (nhdp_domain_set_incoming_metric(&_datff_handler, lnk, metric_value)) {
+    nhdp_domain_neighbor_changed(lnk->neigh);
+  }
+
+  OONF_DEBUG(LOG_FF_DAT, "New sampling rate for link %s (%s):"
+      " %d/%d = %u (speed=%"PRIu64 ")\n",
+      netaddr_to_string(&nbuf, &lnk->if_addr),
+      nhdp_interface_get_name(lnk->local_if),
+      received, total, metric_value, (uint64_t)(rx_bitrate) * DATFF_LINKSPEED_MINIMUM);
+
+  /* update rolling buffer */
+  ldata->activePtr++;
+  if (ldata->activePtr >= ARRAYSIZE(ldata->buckets)) {
+    ldata->activePtr = 0;
+  }
+  ldata->buckets[ldata->activePtr].received = 0;
+  ldata->buckets[ldata->activePtr].total = 0;
 }
 
 /**
@@ -1148,26 +1105,4 @@ _cb_cfg_changed(void) {
         OONF_FF_DAT_METRIC_SUBSYSTEM);
     return;
   }
-
-  /* start/change sampling timer */
-  oonf_timer_set(&ifconfig->_sampling_timer, ifconfig->interval);
-
-#ifdef COLLECT_RAW_DATA
-  if (_rawdata_fd != -1) {
-    fsync(_rawdata_fd);
-    close(_rawdata_fd);
-    _rawdata_end = 0;
-    _rawdata_count = 0;
-  }
-
-  if (_datff_config.rawdata_start) {
-    _rawdata_fd = open(_datff_config.rawdata_file, O_CREAT | O_TRUNC | O_WRONLY,
-    		S_IRUSR|S_IWUSR);
-    if (_rawdata_fd != -1) {
-      abuf_clear(&_rawdata_buf);
-      abuf_appendf(&_rawdata_buf, "Time: %s\n", oonf_log_get_walltime());
-      _rawdata_end = oonf_clock_get_absolute(_datff_config.rawdata_maxtime);
-    }
-  }
-#endif
 }

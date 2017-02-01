@@ -243,14 +243,14 @@ _update_hysteresis(struct nhdp_link *lnk,
   if (!data->pending && !data->lost) {
     if (data->quality < _hysteresis_config.reject) {
       data->lost = true;
-      nhdp_db_link_update_status(lnk);
+      nhdp_db_link_update_status(lnk, false);
     }
   }
   else {
     if (data->quality > _hysteresis_config.accept) {
       data->pending = false;
       data->lost = false;
-      nhdp_db_link_update_status(lnk);
+      nhdp_db_link_update_status(lnk, false);
     }
   }
 }
