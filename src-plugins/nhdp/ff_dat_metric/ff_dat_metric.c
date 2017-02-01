@@ -934,7 +934,9 @@ _cb_process_packet(struct rfc5444_reader_tlvblock_context *context) {
   int total;
 
   struct netaddr_str nbuf;
+#ifdef OONF_LOG_DEBUG_INFO
   struct isonumber_str timebuf;
+#endif
 
   if (!context->has_pktseqno) {
     struct netaddr_str buf;
