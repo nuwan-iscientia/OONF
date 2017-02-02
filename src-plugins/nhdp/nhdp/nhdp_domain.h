@@ -286,6 +286,7 @@ EXPORT void nhdp_domain_process_metric_linktlv(struct nhdp_domain *,
 EXPORT void nhdp_domain_process_metric_2hoptlv(struct nhdp_domain *d,
     struct nhdp_l2hop *l2hop, const uint8_t *value);
 
+EXPORT void nhdp_domain_recalculate_mpr(void);
 EXPORT void nhdp_domain_neighborhood_changed(void);
 EXPORT void nhdp_domain_neighbor_changed(struct nhdp_neighbor *neigh);
 EXPORT bool nhdp_domain_node_is_mpr(void);

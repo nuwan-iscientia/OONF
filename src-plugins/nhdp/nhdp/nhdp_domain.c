@@ -480,21 +480,19 @@ nhdp_domain_process_metric_2hoptlv(struct nhdp_domain *domain,
   }
 }
 
-/**
- * Neighborhood changed in terms of metrics or connectivity.
- * This will trigger a MPR set recalculation.
- */
+static bool _recalculate_mpr = false;
+
 void
-nhdp_domain_neighborhood_changed(void) {
+nhdp_domain_recalculate_mpr(void) {
   struct nhdp_domain_listener *listener;
   struct nhdp_domain *domain;
   struct nhdp_neighbor *neigh;
   
-  list_for_each_element(&_domain_list, domain, _node) {
-    list_for_each_element(nhdp_db_get_neigh_list(), neigh, _global_node) {
-      _recalculate_neighbor_metric(domain, neigh);
-    }
+  if (!_recalculate_mpr) {
+    return;
+  }
 
+  list_for_each_element(&_domain_list, domain, _node) {
     if (domain->mpr->update_mpr != NULL) {
       domain->mpr->update_mpr();
     }
@@ -521,6 +519,23 @@ nhdp_domain_neighborhood_changed(void) {
       }
     }
   }
+
+  _recalculate_mpr = false;
+}
+/**
+ * Neighborhood changed in terms of metrics or connectivity.
+ * This will trigger a MPR set recalculation.
+ */
+void
+nhdp_domain_neighborhood_changed(void) {
+  struct nhdp_domain *domain;
+  struct nhdp_neighbor *neigh;
+
+  list_for_each_element(&_domain_list, domain, _node) {
+    list_for_each_element(nhdp_db_get_neigh_list(), neigh, _global_node) {
+      _recalculate_neighbor_metric(domain, neigh);
+    }
+  }
 }
 
 /**
@@ -530,38 +545,10 @@ nhdp_domain_neighborhood_changed(void) {
  */
 void
 nhdp_domain_neighbor_changed(struct nhdp_neighbor *neigh) {
-  struct nhdp_domain_listener *listener;
   struct nhdp_domain *domain;
   
-
   list_for_each_element(&_domain_list, domain, _node) {
     _recalculate_neighbor_metric(domain, neigh);
-
-    if (domain->mpr->update_mpr != NULL) {
-      domain->mpr->update_mpr();
-    }
-  }
-
-  // TODO: flooding mpr ?
-  // (Why do we need to consider flooding MPRs here?)
-
-  list_for_each_element(&_domain_listener_list, listener, _node) {
-    if (listener->update) {
-      listener->update(neigh);
-    }
-  }
-
-  /* check if we still have routing MPR selectors */
-  OONF_DEBUG(LOG_NHDP, "Checking if we still have routing MPR selectors");
-  _node_is_selected_as_mpr = false;
-
-  list_for_each_element(&_domain_list, domain, _node) {
-    list_for_each_element(nhdp_db_get_neigh_list(), neigh, _global_node) {
-      if (nhdp_domain_get_neighbordata(domain, neigh)->local_is_mpr) {
-        _node_is_selected_as_mpr = true;
-        return;
-      }
-    }
   }
 }
 
@@ -987,6 +974,7 @@ _recalculate_neighbor_metric(
   if (memcmp(&oldmetric, &neighdata->metric, sizeof(oldmetric)) != 0) {
     /* mark metric as updated */
     domain->neighbor_metric_changed = true;
+    _recalculate_mpr = true;
   }
 }
 
