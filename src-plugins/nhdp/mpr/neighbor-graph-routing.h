@@ -43,12 +43,12 @@
  * @file
  */
 
-#include "neighbor-graph.h"
-
 #ifndef __NEIGHBOR_GRAPH_ROUTING__
 #define __NEIGHBOR_GRAPH_ROUTING__
 
 #include "nhdp/nhdp_domain.h"
+
+#include "neighbor-graph.h"
 
 void mpr_calculate_neighbor_graph_routing(const struct nhdp_domain *domain,
     struct neighbor_graph *graph);

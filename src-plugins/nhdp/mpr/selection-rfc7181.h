@@ -43,12 +43,12 @@
  * @file
  */
 
-#include "neighbor-graph.h"
-
 #ifndef __SELECTION_RFC7181__
 #define __SELECTION_RFC7181__
 
 #include "nhdp/nhdp_domain.h"
+
+#include "neighbor-graph.h"
 
 void mpr_calculate_mpr_rfc7181(const struct nhdp_domain *, struct neighbor_graph *graph);
 
