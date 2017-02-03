@@ -407,6 +407,7 @@ nhdp_domain_init_neighbor(struct nhdp_neighbor *neigh) {
   neigh->flooding_willingness = RFC7181_WILLINGNESS_NEVER;
   neigh->local_is_flooding_mpr = false;
   neigh->neigh_is_flooding_mpr = false;
+  neigh->selection_is_mpr = false;
 
   for (i=0; i<NHDP_MAXIMUM_DOMAINS; i++) {
     neigh->_domaindata[i].metric.in = RFC7181_METRIC_INFINITE;

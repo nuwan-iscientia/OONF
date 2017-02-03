@@ -294,7 +294,7 @@ _validate_mpr_set(const struct nhdp_domain *domain, struct neighbor_graph *graph
     d_y_mpr = mpr_calculate_d_of_y_s(domain, graph, n2_addr, &graph->set_mpr);
     
     OONF_DEBUG(LOG_MPR, "d_y_n1 = %u", d_y_n1);
-    OONF_DEBUG(LOG_MPR, "d_y_n1 = %u", d_y_mpr);
+    OONF_DEBUG(LOG_MPR, "d_y_mpr = %u", d_y_mpr);
 
     /*
      * Second property: For any y in N2 that does not have a defined d1(y), 

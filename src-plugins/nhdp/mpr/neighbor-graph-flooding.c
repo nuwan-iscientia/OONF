@@ -69,12 +69,12 @@ static uint32_t _calculate_d1_x(const struct nhdp_domain *domain, struct n1_node
 static uint32_t _calculate_d2_x_y(const struct nhdp_domain *domain,
     struct n1_node *x, struct addr_node *y);
 static uint32_t _calculate_d_x_y(const struct nhdp_domain *domain,
-    struct n1_node *x, struct addr_node *y);
+    struct neighbor_graph *graph, struct n1_node *x, struct addr_node *y);
 #if 0
 static uint32_t _calculate_d1_of_y(struct mpr_flooding_data *data, struct addr_node *y);
 #endif
 static uint32_t _calculate_d1_x_of_n2_addr(const struct nhdp_domain *domain,
-    struct neighbor_graph *graph, struct netaddr *addr);
+    struct neighbor_graph *graph, struct addr_node *addr);
 static void _calculate_n1(const struct nhdp_domain *domain, struct mpr_flooding_data *data);
 static void _calculate_n2(const struct nhdp_domain *domain, struct mpr_flooding_data *data);
 
@@ -103,7 +103,7 @@ _is_reachable_link_tuple(const struct nhdp_domain *domain,
 
   linkdata = nhdp_domain_get_linkdata(domain, lnk);
   if (lnk->local_if == current_interface
-      && linkdata->metric.out != RFC7181_METRIC_INFINITE
+      && linkdata->metric.out <= RFC7181_METRIC_MAX
       && lnk->status == NHDP_LINK_SYMMETRIC) {
     return true;
   }
@@ -133,7 +133,7 @@ _is_allowed_2hop_tuple(const struct nhdp_domain *domain,
 
   twohopdata = nhdp_domain_get_l2hopdata(domain, two_hop);
   if (two_hop->link->local_if == current_interface
-      && twohopdata->metric.out != RFC7181_METRIC_INFINITE) {
+      && twohopdata->metric.out <= RFC7181_METRIC_MAX) {
     return true;
   }
   return false;
@@ -165,10 +165,37 @@ _calculate_d2_x_y(const struct nhdp_domain *domain,
 
 static uint32_t
 _calculate_d_x_y(const struct nhdp_domain *domain,
-    struct n1_node *x, struct addr_node *y) {
-  uint32_t cost = _calculate_d1_x(domain, x) + _calculate_d2_x_y(domain, x, y);
-  if (cost >= RFC7181_METRIC_INFINITE_PATH) {
-    return RFC7181_METRIC_INFINITE_PATH;
+    struct neighbor_graph *graph, struct n1_node *x, struct addr_node *y) {
+  uint32_t cost, cost1, cost2, idx;
+#ifdef OONF_LOG_DEBUG_INFO
+  struct netaddr_str nbuf1, nbuf2;
+#endif
+  
+  idx = x->table_offset + y->table_offset;
+  assert(graph->d_x_y_cache);
+  cost = graph->d_x_y_cache[idx];
+  if (!cost) {
+    cost1 = _calculate_d1_x(domain, x);
+    cost2 = _calculate_d2_x_y(domain, x, y);
+    if (cost1 > RFC7181_METRIC_MAX || cost2 > RFC7181_METRIC_MAX) {
+      cost = RFC7181_METRIC_INFINITE_PATH;
+    }
+    else {
+      cost = cost1 + cost2;
+    }
+    graph->d_x_y_cache[idx] = cost;
+    OONF_DEBUG(LOG_MPR, "d_x_y(%s,%s)=%u (%u,%u)",
+               netaddr_to_string(&nbuf1, &x->addr),
+               netaddr_to_string(&nbuf2, &y->addr),
+               cost,
+               x->table_offset, y->table_offset);
+  }
+  else {
+    OONF_DEBUG(LOG_MPR, "d_x_y(%s,%s)=%u cached(%u,%u)",
+         netaddr_to_string(&nbuf1, &x->addr),
+         netaddr_to_string(&nbuf2, &y->addr),
+         cost,
+         x->table_offset, y->table_offset);
   }
   return cost;
 }
@@ -181,7 +208,7 @@ _calculate_d_x_y(const struct nhdp_domain *domain,
  */
 uint32_t
 _calculate_d1_x_of_n2_addr(const struct nhdp_domain *domain,
-    struct neighbor_graph *graph, struct netaddr *addr) {
+    struct neighbor_graph *graph, struct addr_node *addr) {
   struct n1_node *node_n1;
   struct nhdp_naddr *naddr;
   struct nhdp_link_domaindata *linkdata;
@@ -191,7 +218,7 @@ _calculate_d1_x_of_n2_addr(const struct nhdp_domain *domain,
   avl_for_each_element(&graph->set_n1, node_n1, _avl_node) {
     /* check if the address provided corresponds to this node */
     naddr = avl_find_element(&node_n1->neigh->_neigh_addresses,
-        addr, naddr, _neigh_node);
+        &addr->addr, naddr, _neigh_node);
     if (naddr) {
       linkdata = nhdp_domain_get_linkdata(domain, node_n1->link);
       return linkdata->metric.out;
@@ -213,8 +240,11 @@ _calculate_n1(const struct nhdp_domain *domain, struct mpr_flooding_data *data) 
       nhdp_interface_get_name(data->current_interface));
 
   list_for_each_element(nhdp_db_get_link_list(), lnk, _global_node) {
+    // Reset temporary selection state 
+    lnk->neigh->selection_is_mpr = false;
+    
     if (_is_allowed_link_tuple(domain, data->current_interface, lnk)) {
-      mpr_add_n1_node_to_set(&data->neigh_graph.set_n1, lnk->neigh, lnk);
+      mpr_add_n1_node_to_set(&data->neigh_graph.set_n1, lnk->neigh, lnk, 0);
     }
   }
 }
@@ -244,7 +274,7 @@ _calculate_n2(const struct nhdp_domain *domain, struct mpr_flooding_data *data) 
     avl_for_each_element(&n1_neigh->link->_2hop, twohop, _link_node) {
       if (_is_allowed_2hop_tuple(domain, data->current_interface, twohop)) {
         mpr_add_addr_node_to_set(&data->neigh_graph.set_n2,
-            twohop->twohop_addr);
+            twohop->twohop_addr, 0);
       }
     }
   }

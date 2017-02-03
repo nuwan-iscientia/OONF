@@ -59,9 +59,9 @@ struct neighbor_graph_interface {
     bool (*is_allowed_link_tuple)(const struct nhdp_domain *,
         struct nhdp_interface *current_interface, struct nhdp_link *link);
     uint32_t (*calculate_d1_x_of_n2_addr)(const struct nhdp_domain *,
-        struct neighbor_graph*, struct netaddr*);
+        struct neighbor_graph*, struct addr_node *);
     uint32_t (*calculate_d_x_y)(const struct nhdp_domain *,
-        struct n1_node*, struct addr_node*);
+        struct neighbor_graph*, struct n1_node*, struct addr_node*);
     uint32_t (*calculate_d2_x_y)(const struct nhdp_domain *,
         struct n1_node*, struct addr_node*);
     uint32_t (*get_willingness_n1)(const struct nhdp_domain *, struct n1_node*);
@@ -74,12 +74,17 @@ struct neighbor_graph {
     struct avl_tree set_mpr;
     struct avl_tree set_mpr_candidates;
     struct neighbor_graph_interface *methods;
+    
+    uint32_t *d_x_y_cache;
 };
 
 /* FIXME Find a more consistent naming and/or approach to defining the set elements */
 struct addr_node {
     struct netaddr addr;
     struct avl_node _avl_node;
+
+    uint32_t table_offset;
+    uint32_t min_d_z_y;
 };
 
 /* FIXME The link field is only used for flooding, while neigh is only used for routingt MPRs;
@@ -89,11 +94,13 @@ struct n1_node {
     struct nhdp_link *link;
     struct nhdp_neighbor *neigh;
     struct avl_node _avl_node;
+    
+    uint32_t table_offset;
 };
 
-void mpr_add_n1_node_to_set(struct avl_tree *set, struct nhdp_neighbor *neigh, struct nhdp_link *link);
+void mpr_add_n1_node_to_set(struct avl_tree *set, struct nhdp_neighbor *neigh, struct nhdp_link *link, uint32_t offset);
 
-void mpr_add_addr_node_to_set(struct avl_tree *set, const struct netaddr addr);
+void mpr_add_addr_node_to_set(struct avl_tree *set, const struct netaddr addr, uint32_t offset);
 
 void mpr_init_neighbor_graph(struct neighbor_graph *graph, struct neighbor_graph_interface *methods);
 

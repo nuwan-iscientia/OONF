@@ -286,6 +286,9 @@ struct nhdp_neighbor {
 
   /*! true if the neighbor has been selected as a MPR by this router */
   bool neigh_is_flooding_mpr;
+  
+  /* ! true if the neighbor has been selected as an MPR during selection algorithm */
+  bool selection_is_mpr;
 
   /*! Willingness of neighbor for flooding data */
   uint8_t flooding_willingness;

@@ -94,7 +94,7 @@ _calculate_n(const struct nhdp_domain *domain, struct neighbor_graph *graph) {
     add_to_n = false;
 
     /* calculate the 1-hop cost to this node (which may be undefined) */
-    d1_y = graph->methods->calculate_d1_x_of_n2_addr(domain, graph, &y_node->addr);
+    d1_y = graph->methods->calculate_d1_x_of_n2_addr(domain, graph, y_node);
 
     /* if this neighbor can not be reached directly, we need to add it to N */
     if (d1_y == RFC7181_METRIC_INFINITE) {
@@ -104,7 +104,7 @@ _calculate_n(const struct nhdp_domain *domain, struct neighbor_graph *graph) {
 
       /* check if an intermediate hop would reduce the path cost */
       avl_for_each_element(&graph->set_n1, x_node, _avl_node) {
-        if (graph->methods->calculate_d_x_y(domain, x_node, y_node) < d1_y) {
+        if (graph->methods->calculate_d_x_y(domain, graph, x_node, y_node) < d1_y) {
           add_to_n = true;
           break;
         }
@@ -112,7 +112,7 @@ _calculate_n(const struct nhdp_domain *domain, struct neighbor_graph *graph) {
     }
 
     if (add_to_n) {
-      mpr_add_addr_node_to_set(&graph->set_n, y_node->addr);
+      mpr_add_addr_node_to_set(&graph->set_n, y_node->addr, y_node->table_offset);
     }
   }
 }
@@ -136,14 +136,14 @@ _calculate_r(const struct nhdp_domain *domain, struct neighbor_graph *graph,
   uint32_t r, d_x_y, min_d_z_y;
   bool already_covered;
 #ifdef OONF_LOG_DEBUG_INFO
-  struct netaddr_str buf1;
+  struct netaddr_str nbuf1, nbuf2, nbuf3;
 #endif
 
   OONF_DEBUG(LOG_MPR, "Calculate R of N1 member %s",
-      netaddr_to_string(&buf1, &x_node->addr));
+      netaddr_to_string(&nbuf1, &x_node->addr));
 
   /* if x is an MPR node already, we know the result must be 0 */
-  if (mpr_is_mpr(graph, &x_node->addr)) {
+  if (x_node->neigh->selection_is_mpr) {
     OONF_DEBUG(LOG_MPR, "X is an MPR node already, return 0");
     return 0;
   }
@@ -151,11 +151,17 @@ _calculate_r(const struct nhdp_domain *domain, struct neighbor_graph *graph,
   r = 0;
 
   avl_for_each_element(&graph->set_n, y_node, _avl_node) {
+    OONF_DEBUG(LOG_MPR, "-> Check y_node = %s", 
+               netaddr_to_string(&nbuf1, &y_node->addr));
     /* calculate the cost to reach y through x */
-    d_x_y = graph->methods->calculate_d_x_y(domain, x_node, y_node);
+    d_x_y = graph->methods->calculate_d_x_y(domain, graph, x_node, y_node);
 
     /* calculate the minimum cost to reach y through any node from N1 */
     min_d_z_y = mpr_calculate_minimal_d_z_y(domain, graph, y_node);
+
+    OONF_DEBUG(LOG_MPR, "d_x_y(%s, %s) = %u, min_d_z_y(%s) = %u", netaddr_to_string(&nbuf1, &x_node->addr),
+               netaddr_to_string(&nbuf2, &y_node->addr), d_x_y,
+               netaddr_to_string(&nbuf3, &y_node->addr), min_d_z_y);
 
     if (d_x_y > min_d_z_y) {
       continue;
@@ -165,8 +171,11 @@ _calculate_r(const struct nhdp_domain *domain, struct neighbor_graph *graph,
     already_covered = false;
 
     avl_for_each_element(&graph->set_n1, z_node, _avl_node) {
-      if (graph->methods->calculate_d_x_y(domain, z_node, y_node) == min_d_z_y
-          && mpr_is_mpr(graph, &z_node->addr)) {
+      if (graph->methods->calculate_d_x_y(domain, graph, z_node, y_node) == min_d_z_y
+          && z_node->neigh->selection_is_mpr) {
+        OONF_DEBUG(LOG_MPR, "Nope, %s is already covered by %s",
+                   netaddr_to_string(&nbuf1, &y_node->addr),
+                   netaddr_to_string(&nbuf2, &z_node->addr));
         already_covered = true;
         break;
       }
@@ -203,7 +212,7 @@ _process_will_always(const struct nhdp_domain *domain, struct neighbor_graph *gr
           netaddr_to_string(&buf1, &current_n1_node->addr));
       mpr_add_n1_node_to_set(&graph->set_mpr,
           current_n1_node->link->neigh,
-          current_n1_node->link);
+          current_n1_node->link, current_n1_node->table_offset);
     }
   }
 }
@@ -231,7 +240,7 @@ _process_unique_mprs(const struct nhdp_domain *domain, struct neighbor_graph *gr
 
     avl_for_each_element(&graph->set_n1, node_n1, _avl_node) {
       if (graph->methods->calculate_d2_x_y(domain, node_n1, node_n)
-          != RFC7181_METRIC_INFINITE) {
+          <= RFC7181_METRIC_MAX) {
         /* d2(x,y) is defined for this link, so this is a possible MPR node */
         possible_mprs++; // TODO Break outer loop when this becomes > 1
         possible_mpr_node = node_n1;
@@ -248,7 +257,9 @@ _process_unique_mprs(const struct nhdp_domain *domain, struct neighbor_graph *gr
           netaddr_to_string(&buf1, &possible_mpr_node->addr));
       mpr_add_n1_node_to_set(&graph->set_mpr,
           possible_mpr_node->neigh,
-          possible_mpr_node->link);
+          possible_mpr_node->link,
+          possible_mpr_node->table_offset);
+      possible_mpr_node->neigh->selection_is_mpr = true;
     }
   }
 }
@@ -290,9 +301,12 @@ _select_greatest_by_property(const struct nhdp_domain *domain,
     n1_subset = &graph->set_n1;
 //  }
 
+    /*
+     * Workaround for performance issues; function requires a rewrite!
+     */
   avl_for_each_element(n1_subset, node_n1, _avl_node) {
     current_prop = get_property(domain, graph, node_n1);
-    if (_calculate_r(domain, graph, node_n1) > 0) {
+    if (current_prop > 0) {
       if (greatest_prop_node == NULL
           || current_prop > greatest_prop) {
         greatest_prop = current_prop;
@@ -302,13 +316,13 @@ _select_greatest_by_property(const struct nhdp_domain *domain,
         /* we have a unique candidate */
         mpr_clear_n1_set(&tmp_candidate_subset);
         mpr_add_n1_node_to_set(&tmp_candidate_subset, node_n1->neigh,
-            node_n1->link);
+            node_n1->link, node_n1->table_offset);
       }
       else if (current_prop == greatest_prop) {
         /* add node to candidate subset */
         number_of_greatest++;
         mpr_add_n1_node_to_set(&tmp_candidate_subset, node_n1->neigh,
-            node_n1->link);
+            node_n1->link, node_n1->table_offset);
       }
     }
   }
@@ -318,7 +332,7 @@ _select_greatest_by_property(const struct nhdp_domain *domain,
 
   avl_for_each_element(&tmp_candidate_subset, node_n1, _avl_node) {
     mpr_add_n1_node_to_set(&graph->set_mpr_candidates, node_n1->neigh,
-        node_n1->link);
+        node_n1->link, node_n1->table_offset);
   }
 
   /* free temporary candidate subset */
@@ -381,7 +395,8 @@ _process_remaining(const struct nhdp_domain *domain, struct neighbor_graph *grap
           node_n1, _avl_node);
       OONF_DEBUG(LOG_MPR, "Unique candidate %s",
                  netaddr_to_string(&buf1, &node_n1->addr));
-      mpr_add_n1_node_to_set(&graph->set_mpr, node_n1->neigh, node_n1->link);
+      mpr_add_n1_node_to_set(&graph->set_mpr, node_n1->neigh, node_n1->link, node_n1->table_offset);
+      node_n1->neigh->selection_is_mpr = true;
       avl_remove(&graph->set_mpr_candidates, &node_n1->_avl_node);
       free(node_n1);
 //      done = true;
@@ -393,7 +408,8 @@ _process_remaining(const struct nhdp_domain *domain, struct neighbor_graph *grap
           node_n1, _avl_node);
       OONF_DEBUG(LOG_MPR, "Multiple candidates, select %s",
                  netaddr_to_string(&buf1, &node_n1->addr));
-      mpr_add_n1_node_to_set(&graph->set_mpr, node_n1->neigh, node_n1->link);
+      mpr_add_n1_node_to_set(&graph->set_mpr, node_n1->neigh, node_n1->link, node_n1->table_offset);
+      node_n1->neigh->selection_is_mpr = true;
       avl_remove(&graph->set_mpr_candidates, &node_n1->_avl_node);
       free(node_n1);
     }
@@ -405,10 +421,31 @@ _process_remaining(const struct nhdp_domain *domain, struct neighbor_graph *grap
  */
 void
 mpr_calculate_mpr_rfc7181(const struct nhdp_domain *domain, struct neighbor_graph *graph) {
+  struct n1_node *n1;
+  struct addr_node *n2;
+  uint32_t n1_count, n2_count, i;
+  
   OONF_DEBUG(LOG_MPR, "Calculate MPR set");
+  
+  n1_count = graph->set_n1.count;
+  n2_count = graph->set_n2.count;
+
+  graph->d_x_y_cache = calloc(n1_count * n2_count, sizeof(uint32_t));
+  
+  i=0;
+  avl_for_each_element(&graph->set_n1, n1, _avl_node) {
+    n1->table_offset = i;
+    i++;
+  }
+  
+  i=0;
+  avl_for_each_element(&graph->set_n2, n2, _avl_node) {
+    n2->table_offset = i;
+    i += n1_count;
+  }
 
   _calculate_n(domain, graph);
-
+  
   _process_will_always(domain, graph);
   _process_unique_mprs(domain, graph);
   _process_remaining(domain, graph);
