@@ -172,6 +172,8 @@ nhdp_writer_send_hello(struct nhdp_interface *ninterf) {
   OONF_DEBUG(LOG_NHDP_W, "Sending Hello to interface %s",
       nhdp_interface_get_name(ninterf));
 
+  nhdp_domain_recalculate_mpr(false);
+
   /* store NHDP interface */
   _nhdp_if = ninterf;
 

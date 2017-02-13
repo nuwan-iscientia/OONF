@@ -67,8 +67,6 @@
 #include "ff_dat_metric/ff_dat_metric.h"
 
 /* Definitions */
-#define LOG_FF_DAT _olsrv2_ffdat_subsystem.logging
-
 enum {
   DAT_SAMPLING_COUNT = 32,
 };
@@ -97,20 +95,6 @@ struct ff_dat_if_config {
 
   /*! true if we registered the interface */
   bool registered;
-
-#ifdef COLLECT_RAW_DATA
-  /* filename to store raw data into */
-  char *rawdata_file;
-
-  /* true if metric should collect raw data */
-  bool rawdata_start;
-
-  /* time in milliseconds until measurement stops */
-  uint64_t rawdata_maxtime;
-
-  /* maxmimum number of measured packets until measurement stops */
-  int rawdata_maxpackets;
-#endif
 };
 
 /**
@@ -164,6 +148,7 @@ struct link_datff_data {
 };
 
 /* prototypes */
+static void _early_cfg_init(void);
 static int _init(void);
 static void _cleanup(void);
 
@@ -242,16 +227,6 @@ static struct cfg_schema_entry _datff_entries[] = {
       "Activates the MIC penalty-factor for link metrics"),
   CFG_MAP_BOOL(ff_dat_if_config, accept_unicast, "ffdat_unicast", "false",
       "Include unicast into metric calculation"),
-#ifdef COLLECT_RAW_DATA
-  CFG_MAP_STRING(ff_dat_config, rawdata_file, "raw_filename", "/tmp/olsrv2_dat_metric.txt",
-      "File to write recorded data into"),
-  CFG_MAP_BOOL(ff_dat_config, rawdata_start, "raw_start", "false",
-      "Set to true to activate rawdata measurement"),
-  CFG_MAP_CLOCK(ff_dat_config, rawdata_maxtime, "raw_maxtime", "3600000",
-      "Time until measurement stops"),
-  CFG_MAP_INT32_MINMAX(ff_dat_config, rawdata_maxpackets, "raw_maxpackets", "20000",
-      "Maximum number of packets to record", 0, false, 1, INT32_MAX),
-#endif
 };
 
 /* Subsystem definition */
@@ -271,19 +246,20 @@ static const char *_dependencies[] = {
   OONF_NHDP_SUBSYSTEM,
   OONF_OS_INTERFACE_SUBSYSTEM,
 };
-static struct oonf_subsystem _olsrv2_ffdat_subsystem = {
+static struct oonf_subsystem _nhdp_ffdat_subsystem = {
   .name = OONF_FF_DAT_METRIC_SUBSYSTEM,
   .dependencies = _dependencies,
   .dependencies_count = ARRAYSIZE(_dependencies),
-  .descr = "OLSRv2 Funkfeuer Directional Airtime Metric plugin",
+  .descr = "NHDP Funkfeuer Directional Airtime Metric plugin",
   .author = "Henning Rogge",
 
   .cfg_section = &_datff_section,
 
+  .early_cfg_init = _early_cfg_init,
   .init = _init,
   .cleanup = _cleanup,
 };
-DECLARE_OONF_PLUGIN(_olsrv2_ffdat_subsystem);
+DECLARE_OONF_PLUGIN(_nhdp_ffdat_subsystem);
 
 /* RFC5444 packet listener */
 static struct oonf_rfc5444_protocol *_protocol;
@@ -345,13 +321,19 @@ static struct nhdp_domain_metric _datff_handler = {
 /* Temporary buffer to sort incoming link speed for median calculation */
 static int _rx_sort_array[DAT_SAMPLING_COUNT] = { 0 };
 
-/* rawdata collection */
-#ifdef COLLECT_RAW_DATA
-static struct autobuf _rawdata_buf;
-static int _rawdata_fd = -1;
-static uint64_t _rawdata_end = 0;
-static int _rawdata_count = 0;
-#endif
+/* ff_dat has multiple logging targets */
+enum oonf_log_source LOG_FF_DAT;
+enum oonf_log_source LOG_FF_DAT_RAW;
+
+/**
+ * Initialize additional logging sources for ffdat
+ */
+static void
+_early_cfg_init(void) {
+  LOG_FF_DAT = _nhdp_ffdat_subsystem.logging;
+  LOG_FF_DAT_RAW = oonf_log_register_source(OONF_FF_DAT_METRIC_SUBSYSTEM"_raw");
+}
+
 
 /**
  * Initialize plugin
@@ -378,9 +360,6 @@ _init(void) {
   _protocol = oonf_rfc5444_get_default_protocol();
 
   oonf_rfc5444_add_protocol_pktseqno(_protocol);
-#ifdef COLLECT_RAW_DATA
-  abuf_init(&_rawdata_buf);
-#endif
   return 0;
 }
 
@@ -392,14 +371,6 @@ _cleanup(void) {
   struct nhdp_interface *nhdp_if, *nhdp_if_it;
   struct ff_dat_if_config *ifconfig;
 
-#ifdef COLLECT_RAW_DATA
-  if (_rawdata_fd != -1) {
-    fsync(_rawdata_fd);
-    close(_rawdata_fd);
-  }
-  abuf_free(&_rawdata_buf);
-  free(_datff_config.rawdata_file);
-#endif
   avl_for_each_element_safe(nhdp_interface_get_tree(), nhdp_if, _node, nhdp_if_it) {
     ifconfig = oonf_class_get_extension(&_nhdpif_extenstion, nhdp_if);
     if (ifconfig->registered) {
@@ -708,18 +679,6 @@ _cb_dat_sampling(struct oonf_timer_instance *ptr) {
 
     /* update link speed */
     ldata->buckets[ldata->activePtr].scaled_speed = _get_scaled_rx_linkspeed(ifconfig, lnk);
-#ifdef COLLECT_RAW_DATA
-    if (_rawdata_fd != -1) {
-      if (0 > write(_rawdata_fd, abuf_getptr(&_rawdata_buf), abuf_getlen(&_rawdata_buf))) {
-        close (_rawdata_fd);
-        _rawdata_fd = -1;
-      }
-      else {
-        fsync(_rawdata_fd);
-        abuf_clear(&_rawdata_buf);
-      }
-    }
-#endif
 
     OONF_DEBUG(LOG_FF_DAT, "Query incoming linkspeed for link %s: %"PRIu64,
         netaddr_to_string(&nbuf, &lnk->if_addr),
@@ -966,6 +925,9 @@ _cb_process_packet(struct rfc5444_reader_tlvblock_context *context) {
   int total;
 
   struct netaddr_str nbuf;
+#ifdef OONF_LOG_DEBUG_INFO
+  struct isonumber_str timebuf;
+#endif
 
   if (!context->has_pktseqno) {
     struct netaddr_str buf;
@@ -994,33 +956,12 @@ _cb_process_packet(struct rfc5444_reader_tlvblock_context *context) {
     return RFC5444_OKAY;
   }
 
-#ifdef COLLECT_RAW_DATA
-  if (_rawdata_fd != -1)
-  {
-    uint64_t now;
-
-    now = oonf_clock_getNow();
-    _rawdata_count++;
-
-    if (now > _rawdata_end || _rawdata_count > _datff_config.rawdata_maxpackets) {
-      if (0 <= write(_rawdata_fd, abuf_getptr(&_rawdata_buf), abuf_getlen(&_rawdata_buf))) {
-        fsync(_rawdata_fd);
-      }
-      close(_rawdata_fd);
-      _rawdata_fd = -1;
-    }
-    else {
-      struct isonumber_str timebuf;
-      struct netaddr_str neighbuf;
-
-      abuf_appendf(&_rawdata_buf, "%s %s %u %d\n",
-          oonf_clock_toIntervalString(&timebuf, now),
-          netaddr_to_string(&neighbuf, &laddr->link_addr),
+  /* log raw metric data */
+  OONF_DEBUG(LOG_FF_DAT_RAW, "%s %s %u %d\n",
+          oonf_clock_toIntervalString(&timebuf, oonf_clock_getNow()),
+          netaddr_to_string(&nbuf, &laddr->link_addr),
           context->pkt_seqno,
-          _get_scaled_rx_linkspeed(laddr->link));
-    }
-  }
-#endif
+          _get_scaled_rx_linkspeed(ifconfig, laddr->link));
 
   /* get link and its dat data */
   lnk = laddr->link;

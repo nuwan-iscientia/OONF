@@ -302,6 +302,15 @@ struct nhdp_neighbor {
   /*! internal field for NHDP processing */
   int _process_count;
 
+  /*! true if the neighbor has been selected as an MPR during selection algorithm */
+  bool selection_is_mpr;
+
+  /*!
+   * originator address of this node before it was changed.
+   * Mostly used in CHANGE events
+   */
+  struct netaddr _old_originator;
+
   /*! list of links for this neighbor */
   struct list_entity _links;
 

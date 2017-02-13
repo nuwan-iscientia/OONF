@@ -56,7 +56,6 @@
 #include "core/oonf_subsystem.h"
 #include "subsystems/oonf_class.h"
 #include "subsystems/oonf_rfc5444.h"
-#include "subsystems/oonf_timer.h"
 
 #include "nhdp/nhdp.h"
 #include "nhdp/nhdp_db.h"
@@ -275,13 +274,16 @@ _validate_mpr_set(const struct nhdp_domain *domain, struct neighbor_graph *graph
   avl_for_each_element(&graph->set_n2, n2_addr, _avl_node) {
     d_y_n1 = mpr_calculate_d_of_y_s(domain, graph, n2_addr, &graph->set_n1);
     d_y_mpr = mpr_calculate_d_of_y_s(domain, graph, n2_addr, &graph->set_mpr);
+    
+    OONF_DEBUG(LOG_MPR, "d_y_n1 = %u", d_y_n1);
+    OONF_DEBUG(LOG_MPR, "d_y_mpr = %u", d_y_mpr);
 
     /*
      * Second property: For any y in N2 that does not have a defined d1(y), 
      * there is at least one element in M that is also in N1(y). This is 
      * equivalent to the requirement that d(y, M) is defined.
      */
-    assert(d_y_mpr != RFC7181_METRIC_INFINITE);
+    assert(d_y_mpr < RFC7181_METRIC_INFINITE_PATH);
 
     /*
      * Third property: For any y in N2, d(y,M) = d(y, N1).

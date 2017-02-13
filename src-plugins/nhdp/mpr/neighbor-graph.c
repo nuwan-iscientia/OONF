@@ -59,7 +59,6 @@
 #include "core/oonf_logging.h"
 #include "subsystems/oonf_class.h"
 #include "subsystems/oonf_rfc5444.h"
-#include "subsystems/oonf_timer.h"
 
 #include "mpr/mpr_internal.h"
 #include "mpr/neighbor-graph-flooding.h"
@@ -69,38 +68,36 @@
 /* FIXME remove unneeded includes */
 
 void
-mpr_add_n1_node_to_set(struct avl_tree *set, struct nhdp_neighbor *neigh, struct nhdp_link *lnk) {
+mpr_add_n1_node_to_set(struct avl_tree *set, struct nhdp_neighbor *neigh, struct nhdp_link *lnk, uint32_t offset) {
   struct n1_node *tmp_n1_neigh;
   tmp_n1_neigh = avl_find_element(set, &neigh->originator, tmp_n1_neigh, _avl_node);
   if (tmp_n1_neigh) {
     return;
   }
-  tmp_n1_neigh = malloc(sizeof (struct n1_node));
+  tmp_n1_neigh = calloc(1, sizeof (struct n1_node));
   tmp_n1_neigh->addr = neigh->originator;
   tmp_n1_neigh->_avl_node.key = &tmp_n1_neigh->addr;
   tmp_n1_neigh->neigh = neigh;
   tmp_n1_neigh->link = lnk;
+  tmp_n1_neigh->table_offset = offset;
   avl_insert(set, &tmp_n1_neigh->_avl_node);
 }
 
-/**
- * Add an address node to a set
- * @param current_mpr_data
- * @param node
- */
 void
-mpr_add_addr_node_to_set(struct avl_tree *set, const struct netaddr addr) {
+mpr_add_addr_node_to_set(struct avl_tree *set, const struct netaddr addr, uint32_t offset) {
   struct addr_node *tmp_node;
   
   tmp_node = avl_find_element(set, &addr, tmp_node, _avl_node);
   if (tmp_node) {
     return;
   }
-  tmp_node = malloc(sizeof (struct addr_node));
+  tmp_node = calloc(1, sizeof (struct addr_node));
   tmp_node->addr = addr;
   tmp_node->_avl_node.key = &tmp_node->addr;
+  tmp_node->table_offset = offset;
   avl_insert(set, &tmp_node->_avl_node);
 }
+
 
 /**
  * Initialize the MPR data set
@@ -155,6 +152,10 @@ mpr_clear_neighbor_graph(struct neighbor_graph *graph) {
   mpr_clear_n1_set(&graph->set_n1);
   mpr_clear_n1_set(&graph->set_mpr);
   mpr_clear_n1_set(&graph->set_mpr_candidates);
+  
+    free(graph->d_x_y_cache);
+  graph->d_x_y_cache = NULL;
+
 }
 
 /**
@@ -180,15 +181,41 @@ mpr_calculate_minimal_d_z_y(const struct nhdp_domain *domain,
     struct neighbor_graph *graph, struct addr_node *y) {
   struct n1_node *z_node;
   uint32_t d_z_y, min_d_z_y;
-
-  min_d_z_y = RFC7181_METRIC_INFINITE;
-
+#ifdef OONF_LOG_DEBUG_INFO
+  struct n1_node   *remember;
+  struct netaddr_str nbuf1, nbuf2;
+#endif  
+  if (y->min_d_z_y) {
+    return y->min_d_z_y;
+  }
+  
+  min_d_z_y = RFC7181_METRIC_INFINITE_PATH;
+#ifdef OONF_LOG_DEBUG_INFO
+  remember = NULL;
+#endif
   avl_for_each_element(&graph->set_n1, z_node, _avl_node) {
-    d_z_y = graph->methods->calculate_d_x_y(domain, z_node, y);
+    d_z_y = graph->methods->calculate_d_x_y(domain, graph, z_node, y);
     if (d_z_y < min_d_z_y) {
       min_d_z_y = d_z_y;
+#ifdef OONF_LOG_DEBUG_INFO
+      remember = z_node;
+#endif
     }
   }
+  
+#ifdef OONF_LOG_DEBUG_INFO
+  if (remember) {
+    OONF_DEBUG(LOG_MPR, "minimal d_z_y(%s) = %s (cost %u)",
+               netaddr_to_string(&nbuf1, &y->addr),
+               netaddr_to_string(&nbuf2, &remember->addr),
+               min_d_z_y);
+  }
+  else {
+    OONF_DEBUG(LOG_MPR, "minimal d_z_y(%s) = infinte",
+               netaddr_to_string(&nbuf1, &y->addr));
+  }
+#endif
+  y->min_d_z_y = min_d_z_y;
   return min_d_z_y;
 }
 
@@ -253,11 +280,21 @@ mpr_calculate_d_of_y_s(const struct nhdp_domain *domain, struct neighbor_graph *
     struct avl_tree *subset_s) {
   uint32_t d_x_y, min_cost;
   struct n1_node *node_n1;
+  
+#ifdef OONF_LOG_DEBUG_INFO
+  struct netaddr_str buf1;
+#endif
 
   /* determine the minimum cost to y over all possible intermediate hops */
-  min_cost = graph->methods->calculate_d1_x_of_n2_addr(domain, graph, &y->addr);
+  min_cost = graph->methods->calculate_d1_x_of_n2_addr(domain, graph, y);
+  if (min_cost > RFC7181_METRIC_MAX) {
+    min_cost = RFC7181_METRIC_INFINITE_PATH;
+  }
+  OONF_DEBUG(LOG_MPR, "mpr_calculate_d_of_y_s(%s)", netaddr_to_string(&buf1, &y->addr));
+  OONF_DEBUG(LOG_MPR, "initial cost = %u", min_cost);
   avl_for_each_element(subset_s, node_n1, _avl_node) {
-    d_x_y = graph->methods->calculate_d_x_y(domain, node_n1, y);
+    d_x_y = graph->methods->calculate_d_x_y(domain, graph, node_n1, y);
+    OONF_DEBUG(LOG_MPR, "cost via %s would be = %u", netaddr_to_string(&buf1, &node_n1->addr), d_x_y);
     if (d_x_y < min_cost) {
       min_cost = d_x_y;
     }
@@ -265,4 +302,3 @@ mpr_calculate_d_of_y_s(const struct nhdp_domain *domain, struct neighbor_graph *
 
   return min_cost;
 }
-

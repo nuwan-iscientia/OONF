@@ -477,6 +477,12 @@ nhdp_db_neighbor_set_originator(struct nhdp_neighbor *neigh,
       avl_insert(&lnk->local_if->_link_originators, &lnk->_originator_node);
     }
   }
+
+  /* inform everyone */
+  oonf_class_event(&_neigh_info, neigh, OONF_OBJECT_CHANGED);
+
+  /* overwrite "old originator" */
+  memcpy(&neigh->_old_originator, originator, sizeof(*originator));
 }
 
 /**

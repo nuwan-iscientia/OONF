@@ -57,7 +57,6 @@
 #include "core/oonf_logging.h"
 #include "subsystems/oonf_class.h"
 #include "subsystems/oonf_rfc5444.h"
-#include "subsystems/oonf_timer.h"
 
 #include "mpr/mpr_internal.h"
 #include "mpr/neighbor-graph-routing.h"
@@ -69,9 +68,9 @@
 static bool _is_allowed_link_tuple(const struct nhdp_domain *domain,
     struct nhdp_interface *current_interface, struct nhdp_link *lnk);
 static uint32_t _calculate_d1_x_of_n2_addr(const struct nhdp_domain *domain,
-    struct neighbor_graph *graph, struct netaddr *addr);
+    struct neighbor_graph *graph, struct addr_node *addr);
 static uint32_t _calculate_d_x_y(const struct nhdp_domain *domain,
-    struct n1_node *x, struct addr_node *y);
+    struct neighbor_graph *, struct n1_node *x, struct addr_node *y);
 static uint32_t _calculate_d2_x_y(const struct nhdp_domain *domain,
     struct n1_node *x, struct addr_node *y);
 static uint32_t _get_willingness_n1(const struct nhdp_domain *domain,
@@ -96,7 +95,7 @@ static struct neighbor_graph_interface _rt_api_interface = {
  */
 static bool
 _is_reachable_neighbor_tuple(struct nhdp_neighbor *neigh) {
-  if (neigh->_domaindata[0].metric.in != RFC7181_METRIC_INFINITE
+  if (neigh->_domaindata[0].metric.in <= RFC7181_METRIC_MAX
       && neigh->symmetric > 0) {
     return true;
   }
@@ -131,7 +130,7 @@ static bool
 _is_allowed_2hop_tuple(const struct nhdp_domain *domain, struct nhdp_l2hop *two_hop) {
   struct nhdp_l2hop_domaindata *neighdata;
   neighdata = nhdp_domain_get_l2hopdata(domain, two_hop);
-  if (neighdata->metric.in != RFC7181_METRIC_INFINITE) {
+  if (neighdata->metric.in <= RFC7181_METRIC_MAX) {
     return true;
   }
   return false;
@@ -163,20 +162,12 @@ _calculate_d2_x_y(const struct nhdp_domain *domain, struct n1_node *x, struct ad
   struct nhdp_link *lnk;
   struct nhdp_l2hop_domaindata *twohopdata;
 
-//  #ifdef OONF_LOG_DEBUG_INFO
-//  struct netaddr_str buf1;
-//#endif
-
-//  OONF_DEBUG(LOG_MPR, "Calculate d2(x,y), look for address %s", netaddr_to_string(&buf1, &y->addr));
   /* find the corresponding 2-hop entry, if it exists */
   list_for_each_element(&x->neigh->_links, lnk, _neigh_node) {
     l2hop = avl_find_element(&lnk->_2hop,
         &y->addr, l2hop, _link_node);
-//    OONF_DEBUG(LOG_MPR, "Addresses of 2hop link");
-//    mpr_print_addr_set(&lnk->_2hop);
     if (l2hop) {
       twohopdata = nhdp_domain_get_l2hopdata(domain, l2hop);
-//      OONF_DEBUG(LOG_MPR, "Got one with metric %i and address %s", l2hop->_domaindata[0].metric.in, netaddr_to_string(&buf1, &l2hop->twohop_addr));
       return twohopdata->metric.in;
     }
   }
@@ -184,8 +175,40 @@ _calculate_d2_x_y(const struct nhdp_domain *domain, struct n1_node *x, struct ad
 }
 
 static uint32_t
-_calculate_d_x_y(const struct nhdp_domain *domain, struct n1_node *x, struct addr_node *y) {
-  return _calculate_d1_x(domain, x) + _calculate_d2_x_y(domain, x, y);
+_calculate_d_x_y(const struct nhdp_domain *domain, 
+                 struct neighbor_graph *graph, struct n1_node *x, struct addr_node *y) {
+  uint32_t cost, cost1, cost2, idx;
+#ifdef OONF_LOG_DEBUG_INFO
+  struct netaddr_str nbuf1, nbuf2;
+#endif
+  
+  idx = x->table_offset + y->table_offset;
+  assert(graph->d_x_y_cache);
+  cost = graph->d_x_y_cache[idx];
+  if (!cost) {
+    cost1 = _calculate_d1_x(domain, x);
+    cost2 = _calculate_d2_x_y(domain, x, y);
+    if (cost1 > RFC7181_METRIC_MAX || cost2 > RFC7181_METRIC_MAX) {
+      cost = RFC7181_METRIC_INFINITE_PATH;
+    }
+    else {
+      cost = cost1 + cost2;
+    }
+    graph->d_x_y_cache[idx] = cost;
+    OONF_DEBUG(LOG_MPR, "d_x_y(%s,%s)=%u (%u,%u)",
+         netaddr_to_string(&nbuf1, &x->addr),
+         netaddr_to_string(&nbuf2, &y->addr),
+         cost,
+         x->table_offset, y->table_offset);
+  }
+  else {
+        OONF_DEBUG(LOG_MPR, "d_x_y(%s,%s)=%u cached(%u,%u)",
+         netaddr_to_string(&nbuf1, &x->addr),
+         netaddr_to_string(&nbuf2, &y->addr),
+         cost,
+         x->table_offset, y->table_offset);
+  }
+  return cost;
 }
 
 /**
@@ -220,15 +243,10 @@ _calculate_d1_of_y(const struct nhdp_domain *domain,
  */
 static uint32_t
 _calculate_d1_x_of_n2_addr(const struct nhdp_domain *domain,
-    struct neighbor_graph *graph, struct netaddr *addr) {
-  struct addr_node *node;
+    struct neighbor_graph *graph, struct addr_node *addr) {
   uint32_t d1_x;
 
-  node = malloc(sizeof (struct addr_node));
-  memcpy(&node->addr, addr, sizeof (struct netaddr));
-
-  d1_x = _calculate_d1_of_y(domain, graph, node);
-  free(node);
+  d1_x = _calculate_d1_of_y(domain, graph, addr);
 
   return d1_x;
 }
@@ -241,11 +259,20 @@ static void
 _calculate_n1(const struct nhdp_domain *domain, struct neighbor_graph *graph) {
   struct nhdp_neighbor *neigh;
 
+#ifdef OONF_LOG_DEBUG_INFO
+  struct netaddr_str buf1;
+#endif
+  
   OONF_DEBUG(LOG_MPR, "Calculate N1 for routing MPRs");
   
   list_for_each_element(nhdp_db_get_neigh_list(), neigh, _global_node) {
+    // Reset temporary selection state 
+
+    neigh->selection_is_mpr = false;
     if (_is_allowed_neighbor_tuple(domain, neigh)) {
-      mpr_add_n1_node_to_set(&graph->set_n1, neigh, NULL);
+      OONF_DEBUG(LOG_MPR, "Add neighbor %s in: %u", netaddr_to_string(&buf1, &neigh->originator),
+                 neigh->_domaindata[0].metric.in);
+      mpr_add_n1_node_to_set(&graph->set_n1, neigh, NULL, 0);
     }
   }
 }
@@ -257,8 +284,9 @@ _calculate_n2(const struct nhdp_domain *domain, struct neighbor_graph *graph) {
   struct nhdp_l2hop *twohop;
   
 #ifdef OONF_LOG_DEBUG_INFO
-  struct nhdp_l2hop_domaindata *neighdata;
-  struct netaddr_str buf1;
+  struct nhdp_l2hop_domaindata *l2data;
+  struct nhdp_neighbor_domaindata *neighdata;
+  struct netaddr_str nbuf1, nbuf2;
 #endif
   
   OONF_DEBUG(LOG_MPR, "Calculate N2 for routing MPRs");
@@ -274,15 +302,19 @@ _calculate_n2(const struct nhdp_domain *domain, struct neighbor_graph *graph) {
       list_for_each_element(&n1_neigh->neigh->_links,
           lnk, _neigh_node) {
         avl_for_each_element(&lnk->_2hop, twohop, _link_node) {
-          OONF_DEBUG(LOG_MPR, "Link status %u", lnk->neigh->symmetric);
+          // OONF_DEBUG(LOG_MPR, "Link status %u", lnk->neigh->symmetric);
           if (_is_allowed_2hop_tuple(domain, twohop)) {
+
 #ifdef OONF_LOG_DEBUG_INFO
-            neighdata = nhdp_domain_get_l2hopdata(domain, twohop);
-            OONF_DEBUG(LOG_MPR, "Add twohop addr %s in: %u out: %u",
-                    netaddr_to_string(&buf1, &twohop->twohop_addr),
-                       neighdata->metric.in, neighdata->metric.out);
+            neighdata = nhdp_domain_get_neighbordata(domain, n1_neigh->neigh);
+            l2data = nhdp_domain_get_l2hopdata(domain, twohop);
+            OONF_DEBUG(LOG_MPR, "Add twohop addr %s (over %s) in: %u out: %u (path-in: %u path-out: %u)",
+                    netaddr_to_string(&nbuf1, &twohop->twohop_addr),
+                    netaddr_to_string(&nbuf2, &n1_neigh->addr),
+                    l2data->metric.in, l2data->metric.out,
+                    l2data->metric.in + neighdata->metric.in, l2data->metric.out + neighdata->metric.out);
 #endif
-            mpr_add_addr_node_to_set(&graph->set_n2, twohop->twohop_addr);
+            mpr_add_addr_node_to_set(&graph->set_n2, twohop->twohop_addr, 0);
           }
         }
       }
