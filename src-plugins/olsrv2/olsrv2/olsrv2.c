@@ -260,10 +260,10 @@ static struct oonf_rfc5444_protocol *_protocol;
 static bool _generate_tcs = true;
 
 /* Additional logging sources */
-static enum oonf_log_source LOG_OLSRV2;
-static enum oonf_log_source LOG_OLSRV2_R;
-static enum oonf_log_source LOG_OLSRV2_ROUTING;
-static enum oonf_log_source LOG_OLSRV2_W;
+enum oonf_log_source LOG_OLSRV2;
+enum oonf_log_source LOG_OLSRV2_R;
+enum oonf_log_source LOG_OLSRV2_ROUTING;
+enum oonf_log_source LOG_OLSRV2_W;
 
 /**
  * Initialize additional logging sources for NHDP

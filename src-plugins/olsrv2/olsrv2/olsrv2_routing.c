@@ -437,6 +437,8 @@ olsrv2_routing_get_filter_list(void) {
  */
 static void
 _cb_mpr_update(struct nhdp_domain *domain) {
+  OONF_INFO(LOG_OLSRV2_ROUTING, "MPR update for domain %u", domain->index);
+
   _domain_changed[domain->index] = true;
   olsrv2_routing_trigger_update();
 }
@@ -447,6 +449,8 @@ _cb_mpr_update(struct nhdp_domain *domain) {
  */
 static void
 _cb_metric_update(struct nhdp_domain *domain) {
+  OONF_INFO(LOG_OLSRV2_ROUTING, "Metric update for domain %u", domain->index);
+
   _update_ansn = true;
   _domain_changed[domain->index] = true;
   olsrv2_routing_trigger_update();
@@ -679,7 +683,7 @@ _update_routing_entry(struct nhdp_domain *domain,
       netaddr_to_string(&nbuf1, &rtentry->route.p.key.dst),
       netaddr_to_string(&nbuf2, &rtentry->route.p.key.src),
       netaddr_to_string(&nbuf3, &first_hop->originator),
-      domain->ext, pathcost, neighdata->best_link->local_if->os_if_listener.data->name);
+      domain->ext, pathcost, neighdata->best_out_link->local_if->os_if_listener.data->name);
 
   /* remember originator */
   memcpy(&rtentry->originator, dst_originator, sizeof(struct netaddr));
@@ -695,12 +699,12 @@ _update_routing_entry(struct nhdp_domain *domain,
 
   /* copy gateway if necessary */
   if (single_hop
-      && netaddr_cmp(&neighdata->best_link->if_addr,
+      && netaddr_cmp(&neighdata->best_out_link->if_addr,
           &rtentry->route.p.key.dst) == 0) {
     netaddr_invalidate(&rtentry->route.p.gw);
   }
   else {
-    memcpy(&rtentry->route.p.gw, &neighdata->best_link->if_addr,
+    memcpy(&rtentry->route.p.gw, &neighdata->best_out_link->if_addr,
         sizeof(struct netaddr));
   }
 }

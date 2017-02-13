@@ -130,7 +130,10 @@ struct nhdp_neighbor_domaindata {
   struct nhdp_metric metric;
 
   /*! pointer to the best link available to the neighbor */
-  struct nhdp_link *best_link;
+  struct nhdp_link *best_out_link;
+
+  /*! outgoing link metric of the best link */
+  uint32_t best_out_link_metric;
 
   /*! interface index for the best link available to the neighbor */
   unsigned best_link_ifindex;

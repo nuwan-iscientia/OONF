@@ -417,7 +417,8 @@ nhdp_domain_init_neighbor(struct nhdp_neighbor *neigh) {
     neigh->_domaindata[i].metric.in = RFC7181_METRIC_INFINITE;
     neigh->_domaindata[i].metric.out = RFC7181_METRIC_INFINITE;
 
-    neigh->_domaindata[i].best_link = NULL;
+    neigh->_domaindata[i].best_out_link = NULL;
+    neigh->_domaindata[i].best_out_link_metric = RFC7181_METRIC_INFINITE;
     neigh->_domaindata[i].willingness = RFC7181_WILLINGNESS_NEVER;
 
 
@@ -495,20 +496,20 @@ nhdp_domain_recalculate_mpr(bool force_change) {
   struct nhdp_domain_listener *listener;
   struct nhdp_domain *domain;
 
-  bool changed_metric[NHDP_MAXIMUM_DOMAINS];
-  bool changed_mpr[NHDP_MAXIMUM_DOMAINS];
+  bool changed_metric;
+  bool changed_mpr;
 
-  memset(changed_metric, 0, sizeof(changed_metric));
-  memset(changed_mpr, 0, sizeof(changed_mpr));
-  
-  OONF_DEBUG(LOG_NHDP, "Recalculating MPR set?");
   list_for_each_element(&_domain_list, domain, _node) {
-    /* recalculate the neighbor metrics and see if they changed */
-    changed_metric[domain->index] = _recalculate_neighbor_metrics(domain);
+    OONF_INFO(LOG_NHDP, "Recalculating MPR set for domain %u", domain->index);
+    changed_metric = false;
+    changed_mpr = false;
 
-    if (changed_metric[domain->index]) {
+    /* recalculate the neighbor metrics and see if they changed */
+    changed_metric = _recalculate_neighbor_metrics(domain);
+
+    if (changed_metric) {
       /* recalculate routing MPRs */
-      changed_mpr[domain->index] = _recalculate_mpr_set(domain);
+      changed_mpr = _recalculate_mpr_set(domain);
 
       if (domain->ext == _flooding_domain.ext && domain->mpr->update_flooding_mpr) {
         /* recalculating flooding MPR */
@@ -518,13 +519,16 @@ nhdp_domain_recalculate_mpr(bool force_change) {
 
     list_for_each_element(&_domain_listener_list, listener, _node) {
       /* trigger domain listeners */
-      if ((force_change || changed_metric[domain->index]) && listener->metric_update) {
+      if ((force_change || changed_metric) && listener->metric_update) {
         listener->metric_update(domain);
       }
-      if ((force_change || changed_mpr[domain->index]) && listener->mpr_update) {
+      if ((force_change || changed_mpr) && listener->mpr_update) {
         listener->mpr_update(domain);
       }
     }
+
+    OONF_INFO(LOG_NHDP, "domain %u: metric_change=%s, mpr_changed=%s",
+        domain->index, changed_metric ? "true" : "false", changed_mpr ? "true" : "false");
   }
 }
 
@@ -968,7 +972,6 @@ _recalculate_neighbor_metric(
   struct nhdp_l2hop *l2hop;
   struct nhdp_l2hop_domaindata *l2hopdata;
   struct nhdp_neighbor_domaindata *neighdata;
-  uint32_t old_outgoing;
   bool changed;
 #ifdef OONF_LOG_DEBUG_INFO
   struct netaddr_str nbuf;
@@ -977,19 +980,17 @@ _recalculate_neighbor_metric(
   neighdata = nhdp_domain_get_neighbordata(domain, neigh);
   changed = false;
 
-    /* copy old metric value */
-  old_outgoing = neighdata->metric.out;
-
   /* reset metric */
   neighdata->metric.in = RFC7181_METRIC_INFINITE;
   neighdata->metric.out = RFC7181_METRIC_INFINITE;
 
   /* reset best link */
-  neighdata->best_link = NULL;
+  neighdata->best_out_link = NULL;
   neighdata->best_link_ifindex = 0;
 
-  OONF_DEBUG(LOG_NHDP, "Recalculate neighbor %s metrics (ext %u):",
-      netaddr_to_string(&nbuf, &neigh->originator), domain->ext);
+  OONF_INFO(LOG_NHDP, "Recalculate neighbor %s metrics (ext %u): old_outgoing=%u",
+      netaddr_to_string(&nbuf, &neigh->originator), domain->ext,
+      neighdata->best_out_link_metric);
 
   /* get best metric */
   list_for_each_element(&neigh->_links, lnk, _neigh_node) {
@@ -1004,7 +1005,7 @@ _recalculate_neighbor_metric(
               linkdata->metric.out);
 
       neighdata->metric.out = linkdata->metric.out;
-      neighdata->best_link = lnk;
+      neighdata->best_out_link = lnk;
     }
     if (linkdata->metric.in < neighdata->metric.in) {
       OONF_DEBUG(LOG_NHDP, "Link on if %s has better incoming metric: %u",
@@ -1022,13 +1023,21 @@ _recalculate_neighbor_metric(
     }
   }
 
-  if (neighdata->best_link != NULL) {
-    OONF_DEBUG(LOG_NHDP, "Best link if: %s",
-        nhdp_interface_get_if_listener(neighdata->best_link->local_if)->data->name);
+  if (neighdata->best_out_link != NULL) {
+    linkdata = nhdp_domain_get_linkdata(domain, neighdata->best_out_link);
+
+    OONF_INFO(LOG_NHDP, "Best link: if=%s, link=%s, in=%u, out=%u",
+        nhdp_interface_get_if_listener(neighdata->best_out_link->local_if)->data->name,
+        netaddr_to_string(&nbuf, &neighdata->best_out_link->if_addr),
+        linkdata->metric.in, linkdata->metric.out);
     neighdata->best_link_ifindex =
-        nhdp_interface_get_if_listener(neighdata->best_link->local_if)->data->index;
+        nhdp_interface_get_if_listener(neighdata->best_out_link->local_if)->data->index;
+
+    changed |= neighdata->best_out_link_metric != linkdata->metric.out;
+    neighdata->best_out_link_metric = linkdata->metric.out;
   }
-  return changed || neighdata->metric.out != old_outgoing;
+
+  return changed;
 }
 
 /**
