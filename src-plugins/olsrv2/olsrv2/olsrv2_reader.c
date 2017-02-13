@@ -97,6 +97,9 @@ struct _olsrv2_data {
 
   /*! number of entries in MPR type value */
   size_t mprtypes_size;
+
+  /*! true if a change happened for this domain */
+  bool changed[NHDP_MAXIMUM_DOMAINS];
 };
 
 /* Prototypes */
@@ -397,15 +400,19 @@ _cb_addresstlvs(struct rfc5444_reader_tlvblock_context *context __attribute__((u
 
         for (i=0; i<NHDP_MAXIMUM_DOMAINS; i++) {
           if (cost_out[i] <= RFC7181_METRIC_MAX) {
+            _current.changed[i] |= (edge->cost[i] != cost_out[i]);
             edge->cost[i] = cost_out[i];
           }
           else if (_current.complete_tc) {
+            _current.changed[i] |= (edge->cost[i] != RFC7181_METRIC_INFINITE);
             edge->cost[i] = RFC7181_METRIC_INFINITE;
           }
           if (edge->inverse->virtual && cost_in[i] <= RFC7181_METRIC_MAX) {
+            _current.changed[i] |= (edge->inverse->cost[i] != cost_in[i]);
             edge->inverse->cost[i] = cost_in[i];
           }
           else if (edge->inverse->virtual && _current.complete_tc) {
+            _current.changed[i] |= (edge->inverse->cost[i] != RFC7181_METRIC_INFINITE);
             edge->inverse->cost[i] = RFC7181_METRIC_INFINITE;
           }
         }
@@ -419,9 +426,11 @@ _cb_addresstlvs(struct rfc5444_reader_tlvblock_context *context __attribute__((u
         end->ansn = _current.node->ansn;
         for (i=0; i< NHDP_MAXIMUM_DOMAINS; i++) {
           if (cost_out[i] <= RFC7181_METRIC_MAX) {
+            _current.changed[i] |= (end->cost[i] != cost_out[i]);
             end->cost[i] = cost_out[i];
           }
           else if (_current.complete_tc) {
+            _current.changed[i] |= (end->cost[i] != RFC7181_METRIC_INFINITE);
             end->cost[i] = RFC7181_METRIC_INFINITE;
           }
         }

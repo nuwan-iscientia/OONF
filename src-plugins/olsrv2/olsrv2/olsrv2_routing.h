@@ -190,6 +190,7 @@ EXPORT uint16_t olsrv2_routing_get_ansn(void);
 EXPORT void olsrv2_routing_set_domain_parameter(struct nhdp_domain *domain,
     struct olsrv2_routing_domain *parameter);
 
+EXPORT void olsrv2_routing_domain_changed(struct nhdp_domain *domain);
 EXPORT void olsrv2_routing_force_update(bool skip_wait);
 EXPORT void olsrv2_routing_trigger_update(void);
 

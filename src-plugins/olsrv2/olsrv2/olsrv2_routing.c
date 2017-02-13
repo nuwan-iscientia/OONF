@@ -276,6 +276,24 @@ olsrv2_routing_get_parameters(struct nhdp_domain *domain) {
 }
 
 /**
+ * Mark a domain as changed to trigger a dijkstra run
+ * @param domain NHDP domain, NULL for all domains
+ */
+void
+olsrv2_routing_domain_changed(struct nhdp_domain *domain) {
+  if (domain) {
+    _domain_changed[domain->index] = true;
+
+    olsrv2_routing_trigger_update();
+    return;
+  }
+
+  list_for_each_element(nhdp_domain_get_list(), domain, _node) {
+    olsrv2_routing_domain_changed(domain);
+  }
+}
+
+/**
  * Trigger dijkstra and routing update now
  * @param skip_wait true to ignore rate limitation timer
  */
