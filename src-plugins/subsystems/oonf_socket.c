@@ -285,10 +285,10 @@ _handle_scheduling(void)
 
         /* handle statistics */
         if (os_fd_event_is_read(sock)) {
-          sock_entry->usage_r++;
+          sock_entry->_stat_recv++;
         }
         if (os_fd_event_is_write(sock)) {
-          sock_entry->usage_s++;
+          sock_entry->_stat_send++;
         }
         os_clock_gettime64(&start_time);
         sock_entry->process(sock_entry);
@@ -298,7 +298,7 @@ _handle_scheduling(void)
           OONF_WARN(LOG_SOCKET, "Socket '%s' (%d) scheduling took %"PRIu64" ms",
               sock_entry->name,
               os_fd_get_fd(&sock_entry->fd), end_time - start_time);
-          sock_entry->usage_long++;
+          sock_entry->_stat_long++;
         }
       }
     }

@@ -72,16 +72,16 @@ struct oonf_socket_entry {
   void (*process) (struct oonf_socket_entry *entry);
 
   /*! usage counter, will be increased every times the socket receives data */
-  uint32_t usage_r;
+  uint32_t _stat_recv;
 
   /*! usage counter, will be increased every times the socket sends data */
-  uint32_t usage_s;
+  uint32_t _stat_send;
 
   /*!
    * usage counter, will be increased every times a socket processing takes
    * more than a TIMER slice
    */
-  uint32_t usage_long;
+  uint32_t _stat_long;
 
   /*! list of socket handlers */
   struct list_entity _node;
@@ -119,7 +119,35 @@ oonf_socket_is_write(struct oonf_socket_entry *entry) {
  */
 static INLINE void
 oonf_socket_register_direct_send(struct oonf_socket_entry *entry) {
-  entry->usage_s++;
+  entry->_stat_send++;
 }
+
+/**
+ * @param sock pointer to socket entry
+ * @return number of recv events of socket
+ */
+static INLINE uint32_t
+oonf_socket_get_recv(struct oonf_socket_entry *sock) {
+  return sock->_stat_recv;
+}
+
+/**
+ * @param sock pointer to socket entry
+ * @return number of send events of socket
+ */
+static INLINE uint32_t
+oonf_socket_get_send(struct oonf_socket_entry *sock) {
+  return sock->_stat_send;
+}
+
+/**
+ * @param sock pointer to socket entry
+ * @return number of times socket handling took more than a timer slice
+ */
+static INLINE uint32_t
+oonf_socket_get_long(struct oonf_socket_entry *sock) {
+  return sock->_stat_long;
+}
+
 
 #endif /* OONF_SOCKET_H_ */

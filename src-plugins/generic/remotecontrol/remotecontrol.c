@@ -97,15 +97,11 @@ struct _remotecontrol_session {
 static int _init(void);
 static void _cleanup(void);
 
-static enum oonf_telnet_result _cb_handle_resource(struct oonf_telnet_data *data);
 static enum oonf_telnet_result _cb_handle_route(struct oonf_telnet_data *data);
 static enum oonf_telnet_result _cb_handle_log(struct oonf_telnet_data *data);
 static enum oonf_telnet_result _cb_handle_config(struct oonf_telnet_data *data);
 static enum oonf_telnet_result _update_logfilter(struct oonf_telnet_data *data,
     uint8_t *mask, const char *current, bool value);
-
-static void _print_memory(struct autobuf *buf);
-static void _print_timer(struct autobuf *buf);
 
 static enum oonf_telnet_result _start_logging(struct oonf_telnet_data *data,
     struct _remotecontrol_session *rc_session);
@@ -148,7 +144,7 @@ static struct oonf_subsystem _oonf_remotecontrol_subsystem = {
   .name = OONF_REMOTECONTROL_SUBSYSTEM,
   .dependencies = _dependencies,
   .dependencies_count = ARRAYSIZE(_dependencies),
-  .descr = "OONFD remote control and debug plugin",
+  .descr = "OONF remote control and debug plugin",
   .author = "Henning Rogge",
 
   .cfg_section = &_remotecontrol_section,
@@ -160,11 +156,6 @@ DECLARE_OONF_PLUGIN(_oonf_remotecontrol_subsystem);
 
 /* command callbacks and names */
 static struct oonf_telnet_command _telnet_cmds[] = {
-  TELNET_CMD("resources", _cb_handle_resource,
-      "\"resources memory\": display information about memory usage\n"
-      "\"resources timer\": display information about active timers\n"
-      "\"resources socket\": display information about socket usage\n",
-      .acl = &_remotecontrol_config.acl),
   TELNET_CMD("log", _cb_handle_log,
       "\"log\":      continuous output of logging to this console\n"
       "\"log show\": show configured logging option for debuginfo output\n"
@@ -246,78 +237,6 @@ _cleanup(void)
   }
 
   netaddr_acl_remove(&_remotecontrol_config.acl);
-}
-
-/**
- * Print current resources known to memory manager
- * @param buf output buffer
- */
-static void
-_print_memory(struct autobuf *buf) {
-  struct oonf_class *c;
-
-  avl_for_each_element(oonf_class_get_tree(), c, _node) {
-    abuf_appendf(buf, "%-25s (MEMORY) size: %"PRINTF_SIZE_T_SPECIFIER
-        " usage: %u freelist: %u allocations: %u/%u\n",
-        c->name, c->size,
-        oonf_class_get_usage(c),
-        oonf_class_get_free(c),
-        oonf_class_get_allocations(c),
-        oonf_class_get_recycled(c));
-  }
-}
-
-/**
- * Print current resources known to timer scheduler
- * @param buf output buffer
- */
-static void
-_print_timer(struct autobuf *buf) {
-  struct oonf_timer_class *t;
-
-  list_for_each_element(oonf_timer_get_list(), t, _node) {
-    abuf_appendf(buf, "%-25s (TIMER) usage: %u changes: %u\n",
-        t->name, t->usage, t->changes);
-  }
-}
-
-/**
- * Print current sockets
- * @param buf output buffer
- */
-static void
-_print_socket(struct autobuf *buf) {
-  struct oonf_socket_entry *sock;
-
-  list_for_each_element(oonf_socket_get_list(), sock, _node) {
-    abuf_appendf(buf, "%-25s (SOCKET) usage_r: %u usage_s: %u usage_long: %u\n",
-        sock->name, sock->usage_r, sock->usage_s, sock->usage_long);
-  }
-}
-
-/**
- * Handle resource command
- * @param data pointer to telnet data
- * @return telnet result constant
- */
-static enum oonf_telnet_result
-_cb_handle_resource(struct oonf_telnet_data *data) {
-  if (data->parameter == NULL || strcasecmp(data->parameter, "memory") == 0) {
-    abuf_puts(data->out, "Memory blocks:\n");
-    _print_memory(data->out);
-  }
-
-  if (data->parameter == NULL || strcasecmp(data->parameter, "timer") == 0) {
-    abuf_puts(data->out, "\nTimer Classes:\n");
-    _print_timer(data->out);
-  }
-
-  if (data->parameter == NULL || strcasecmp(data->parameter, "socket") == 0) {
-    abuf_puts(data->out, "Sockets:\n");
-    _print_socket(data->out);
-  }
-
-  return TELNET_RESULT_ACTIVE;
 }
 
 /**
