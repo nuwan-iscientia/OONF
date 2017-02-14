@@ -162,7 +162,8 @@ DECLARE_OONF_PLUGIN(_oonf_remotecontrol_subsystem);
 static struct oonf_telnet_command _telnet_cmds[] = {
   TELNET_CMD("resources", _cb_handle_resource,
       "\"resources memory\": display information about memory usage\n"
-      "\"resources timer\": display information about active timers\n",
+      "\"resources timer\": display information about active timers\n"
+      "\"resources socket\": display information about socket usage\n",
       .acl = &_remotecontrol_config.acl),
   TELNET_CMD("log", _cb_handle_log,
       "\"log\":      continuous output of logging to this console\n"
@@ -281,6 +282,20 @@ _print_timer(struct autobuf *buf) {
 }
 
 /**
+ * Print current sockets
+ * @param buf output buffer
+ */
+static void
+_print_socket(struct autobuf *buf) {
+  struct oonf_socket_entry *sock;
+
+  list_for_each_element(oonf_socket_get_list(), sock, _node) {
+    abuf_appendf(buf, "%-25s (SOCKET) usage_r: %u usage_s: %u usage_long: %u\n",
+        sock->name, sock->usage_r, sock->usage_s, sock->usage_long);
+  }
+}
+
+/**
  * Handle resource command
  * @param data pointer to telnet data
  * @return telnet result constant
@@ -288,14 +303,20 @@ _print_timer(struct autobuf *buf) {
 static enum oonf_telnet_result
 _cb_handle_resource(struct oonf_telnet_data *data) {
   if (data->parameter == NULL || strcasecmp(data->parameter, "memory") == 0) {
-    abuf_puts(data->out, "Memory cookies:\n");
+    abuf_puts(data->out, "Memory blocks:\n");
     _print_memory(data->out);
   }
 
   if (data->parameter == NULL || strcasecmp(data->parameter, "timer") == 0) {
-    abuf_puts(data->out, "\nTimer cookies:\n");
+    abuf_puts(data->out, "\nTimer Classes:\n");
     _print_timer(data->out);
   }
+
+  if (data->parameter == NULL || strcasecmp(data->parameter, "socket") == 0) {
+    abuf_puts(data->out, "Sockets:\n");
+    _print_socket(data->out);
+  }
+
   return TELNET_RESULT_ACTIVE;
 }
 

@@ -129,6 +129,7 @@ void
 oonf_timer_add(struct oonf_timer_class *ti) {
   assert (ti->callback);
   assert (ti->name);
+  assert (ti->name[0]);
   list_add_tail(&_timer_info_list, &ti->_node);
 }
 
