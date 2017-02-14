@@ -327,6 +327,7 @@ os_system_linux_netlink_add(struct os_system_netlink *nl, int protocol) {
     goto os_add_netlink_fail;
   }
 
+  nl->socket.name = "os_system_netlink";
   nl->socket.process = _netlink_handler;
   oonf_socket_add(&nl->socket);
   oonf_socket_set_read(&nl->socket, true);

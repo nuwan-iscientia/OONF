@@ -175,15 +175,19 @@ oonf_packet_raw_add(struct oonf_packet_socket *pktsocket, int protocol,
 static void
 _packet_add(struct oonf_packet_socket *pktsocket,
     union netaddr_socket *local, struct os_interface *interf) {
-  pktsocket->os_if = interf;
-  pktsocket->scheduler_entry.process = _cb_packet_event_unicast;
+  struct netaddr_str nbuf;
 
-  oonf_socket_add(&pktsocket->scheduler_entry);
-  oonf_socket_set_read(&pktsocket->scheduler_entry, true);
+  pktsocket->os_if = interf;
+  pktsocket->scheduler_entry.name = pktsocket->socket_name;
+  pktsocket->scheduler_entry.process = _cb_packet_event_unicast;
 
   abuf_init(&pktsocket->out);
   list_add_tail(&_packet_sockets, &pktsocket->node);
   memcpy(&pktsocket->local_socket, local, sizeof(pktsocket->local_socket));
+
+  /* generate socket name */
+  snprintf(pktsocket->socket_name, sizeof(pktsocket->socket_name),
+      "udp: %s", netaddr_socket_to_string(&nbuf, &pktsocket->local_socket));
 
   pktsocket->_errno1_measurement_time = oonf_clock_getNow();
 
@@ -191,6 +195,9 @@ _packet_add(struct oonf_packet_socket *pktsocket,
     pktsocket->config.input_buffer = _input_buffer;
     pktsocket->config.input_buffer_length = sizeof(_input_buffer);
   }
+
+  oonf_socket_add(&pktsocket->scheduler_entry);
+  oonf_socket_set_read(&pktsocket->scheduler_entry, true);
 }
 
 /**
@@ -236,6 +243,7 @@ oonf_packet_send(struct oonf_packet_socket *pktsocket, union netaddr_socket *rem
       OONF_DEBUG(LOG_PACKET, "Sent %d bytes to %s %s",
           result, netaddr_socket_to_string(&buf, remote),
           pktsocket->os_if != NULL ? pktsocket->os_if->name : "");
+      oonf_socket_register_direct_send(&pktsocket->scheduler_entry);
       return 0;
     }
 
