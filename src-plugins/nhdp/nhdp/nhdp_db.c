@@ -903,6 +903,32 @@ nhdp_db_get_neigh_originator_tree(void) {
  */
 int
 _nhdp_db_link_calculate_status(struct nhdp_link *lnk) {
+  const struct netaddr *local_originator;
+  const struct os_interface *localif;
+  int af_type;
+
+  af_type = netaddr_get_address_family(&lnk->if_addr);
+  local_originator = nhdp_get_originator(af_type);
+  localif = nhdp_interface_get_if_listener(lnk->local_if)->data;
+
+  /* check for originator collision */
+  if (!netaddr_is_unspec(local_originator)
+      && (netaddr_cmp(local_originator, &lnk->if_addr) == 0
+          || netaddr_cmp(local_originator, &lnk->neigh->originator) == 0)) {
+    return NHDP_LINK_PENDING;
+  }
+
+  /* check for interface address collision */
+  if (nhdp_interface_addr_if_get(lnk->local_if, &lnk->if_addr)) {
+    return NHDP_LINK_PENDING;
+  }
+
+  /* check for MAC collision */
+  if (netaddr_cmp(&localif->mac, &lnk->remote_mac) == 0) {
+    return NHDP_LINK_PENDING;
+  }
+
+  /* calculate link status as described in RFC 6130 */
   if (nhdp_hysteresis_is_pending(lnk))
     return NHDP_LINK_PENDING;
   if (nhdp_hysteresis_is_lost(lnk))
