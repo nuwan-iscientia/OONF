@@ -275,13 +275,14 @@ nhdp_db_neighbor_remove(struct nhdp_neighbor *neigh) {
     }
   }
 
+  if (was_mpr) {
+    /* all domains might have changed */
+    nhdp_domain_recalculate_mpr(NULL, neigh);
+  }
+
   /* remove from global list and free memory */
   list_remove(&neigh->_global_node);
   oonf_class_free(&_neigh_info, neigh);
-
-  if (was_mpr) {
-    nhdp_domain_recalculate_mpr(true);
-  }
 }
 
 /**
@@ -854,7 +855,8 @@ nhdp_db_link_update_status(struct nhdp_link *lnk) {
   if (old_status != lnk->status) {
     /* link status was changed */
     lnk->last_status_change = oonf_clock_getNow();
-    nhdp_domain_recalculate_mpr(true);
+    nhdp_domain_recalculate_metrics(NULL, lnk->neigh);
+    nhdp_domain_recalculate_mpr(NULL, lnk->neigh);
 
     /* trigger change event */
     oonf_class_event(&_link_info, lnk, OONF_OBJECT_CHANGED);
@@ -1049,20 +1051,10 @@ _cb_link_heard(struct oonf_timer_instance *ptr) {
 static void
 _cb_link_symtime(struct oonf_timer_instance *ptr) {
   struct nhdp_link *lnk;
-  struct nhdp_neighbor_domaindata *data;
-  struct nhdp_domain *domain;
 
   lnk = container_of(ptr, struct nhdp_link, sym_time);
   OONF_DEBUG(LOG_NHDP, "Link Symtime fired: 0x%0zx", (size_t)lnk);
   nhdp_db_link_update_status(lnk);
-
-  list_for_each_element(nhdp_domain_get_list(), domain, _node) {
-    data = nhdp_domain_get_neighbordata(domain, lnk->neigh);
-    if (data->neigh_is_mpr) {
-      nhdp_domain_recalculate_mpr(false);
-      return;
-    }
-  }
 }
 
 /**

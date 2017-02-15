@@ -109,6 +109,9 @@ struct _config {
   /*! olsrv2 p_hold_time */
   uint64_t p_hold_time;
 
+  /*! olsrv2 factor of a_hold_time in terms of tc_intervals */
+  uint64_t a_hold_time_factor;
+
   /*! decides NHDP routable status */
   bool nhdp_routable;
 
@@ -185,6 +188,8 @@ static struct cfg_schema_entry _olsrv2_entries[] = {
     "Holdtime for forwarding set information", 100),
   CFG_MAP_CLOCK_MIN(_config, p_hold_time, "processing_hold_time", "300.0",
     "Holdtime for processing set information", 100),
+  CFG_MAP_INT64_MINMAX(_config, a_hold_time_factor, "advertisement_hold_time_factor", "3",
+    "Holdtime for TC advertisements as a factor of TC interval time", false, false, 1, 255),
   CFG_MAP_BOOL(_config, nhdp_routable, "nhdp_routable", "no",
     "Decides if NHDP interface addresses"
     " are routed to other nodes. 'true' means the 'routable_acl' parameter"
@@ -234,6 +239,9 @@ static struct oonf_subsystem _olsrv2_subsystem = {
   .cfg_section = &_olsrv2_section,
 };
 DECLARE_OONF_PLUGIN(_olsrv2_subsystem);
+
+/*! last time a TC was advertised because of MPR or LANs */
+static uint64_t _unadvertised_tc_count;
 
 static struct _config _olsrv2_config;
 
@@ -746,6 +754,13 @@ _parse_lan_array(struct cfg_named_section *section, bool add) {
 static void
 _cb_generate_tc(struct oonf_timer_instance *ptr __attribute__((unused))) {
   if (nhdp_domain_node_is_mpr() || !avl_is_empty(olsrv2_lan_get_tree())) {
+    _unadvertised_tc_count = 0;
+  }
+  else {
+    _unadvertised_tc_count++;
+  }
+
+  if (_unadvertised_tc_count <= _olsrv2_config.a_hold_time_factor) {
     olsrv2_writer_send_tc();
   }
 }

@@ -976,8 +976,8 @@ _cb_msg_pass2_end(struct rfc5444_reader_tlvblock_context *context, bool dropped)
   /* update link status */
   nhdp_db_link_update_status(_current.link);
 
-  /* update MPR sets and link metrics */
-  nhdp_domain_recalculate_mpr(false);
+  /* update link metrics */
+  nhdp_domain_recalculate_metrics(NULL, _current.neighbor);
 
   return RFC5444_OKAY;
 }

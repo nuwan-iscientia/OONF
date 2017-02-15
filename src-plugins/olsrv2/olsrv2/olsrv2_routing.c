@@ -455,8 +455,9 @@ olsrv2_routing_get_filter_list(void) {
  */
 static void
 _cb_mpr_update(struct nhdp_domain *domain) {
-  OONF_INFO(LOG_OLSRV2_ROUTING, "MPR update for domain %u", domain->index);
+  OONF_INFO(LOG_OLSRV2, "MPR update for domain %u", domain->index);
 
+  _update_ansn = true;
   _domain_changed[domain->index] = true;
   olsrv2_routing_trigger_update();
 }
@@ -467,7 +468,7 @@ _cb_mpr_update(struct nhdp_domain *domain) {
  */
 static void
 _cb_metric_update(struct nhdp_domain *domain) {
-  OONF_INFO(LOG_OLSRV2_ROUTING, "Metric update for domain %u", domain->index);
+  OONF_INFO(LOG_OLSRV2, "Metric update for domain %u", domain->index);
 
   _update_ansn = true;
   _domain_changed[domain->index] = true;

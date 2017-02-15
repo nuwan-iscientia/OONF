@@ -215,6 +215,9 @@ struct nhdp_link {
   /*! Willingness of neighbor for flooding data */
   uint8_t flooding_willingness;
 
+  /*! true if the neighbor has been selected as a MPR by this router */
+  bool _neigh_was_flooding_mpr;
+
   /*! internal field for NHDP processing */
   int _process_count;
 

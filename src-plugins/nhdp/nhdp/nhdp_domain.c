@@ -70,10 +70,11 @@ static void _remove_mpr(struct nhdp_domain *);
 static void _cb_update_everyone_routing_mpr(struct nhdp_domain *domain);
 static void _cb_update_everyone_flooding_mpr(struct nhdp_domain *domain);
 
-static bool _recalculate_neighbor_metrics(struct nhdp_domain *domain);
 static bool _recalculate_neighbor_metric(struct nhdp_domain *domain,
         struct nhdp_neighbor *neigh);
-static bool _recalculate_mpr_set(struct nhdp_domain *domain);
+static bool _recalculate_routing_mpr_set(struct nhdp_domain *domain,
+    struct nhdp_neighbor *neigh);
+static bool _recalculate_flooding_mpr_set(void);
 
 static const char *_link_to_string(struct nhdp_metric_str *, uint32_t);
 static const char *_path_to_string(struct nhdp_metric_str *, uint32_t, uint8_t);
@@ -487,49 +488,102 @@ nhdp_domain_process_metric_2hoptlv(struct nhdp_domain *domain,
 }
 
 /**
- * This will trigger a MPR set recalculation.
- * @param force_change force a MPR recalculation and dijkstra trigger
- *    even if the existing neighbor set didn't change
+ * This will trigger a metric recalculation
+ * @param domain NHDP domain of metric change, NULL for all domains
+ * return true if metric changed, false otherwise
  */
-void
-nhdp_domain_recalculate_mpr(bool force_change) {
+static bool
+_recalculate_metrics(struct nhdp_domain *domain, struct nhdp_neighbor *neigh, bool trigger) {
   struct nhdp_domain_listener *listener;
-  struct nhdp_domain *domain;
-
   bool changed_metric;
-  bool changed_mpr;
 
-  list_for_each_element(&_domain_list, domain, _node) {
-    OONF_INFO(LOG_NHDP, "Recalculating MPR set for domain %u", domain->index);
-    changed_metric = false;
-    changed_mpr = false;
+  changed_metric = false;
 
-    /* recalculate the neighbor metrics and see if they changed */
-    changed_metric = _recalculate_neighbor_metrics(domain);
+  if (trigger) {
+    OONF_DEBUG(LOG_NHDP, "Recalculating metrics set for domain %d",
+        domain ? domain->index : -1);
+  }
 
-    if (changed_metric) {
-      /* recalculate routing MPRs */
-      changed_mpr = _recalculate_mpr_set(domain);
-
-      if (domain->ext == _flooding_domain.ext && domain->mpr->update_flooding_mpr) {
-        /* recalculating flooding MPR */
-        domain->mpr->update_flooding_mpr(&_flooding_domain);
-      }
+  if (!domain) {
+    list_for_each_element(&_domain_list, domain, _node) {
+      changed_metric |= _recalculate_metrics(domain, neigh, false);
     }
+  }
+  else if (!neigh) {
+    list_for_each_element(nhdp_db_get_neigh_list(), neigh, _global_node) {
+      changed_metric |= _recalculate_neighbor_metric(domain, neigh);
+    }
+  }
+  else {
+    changed_metric |= _recalculate_neighbor_metric(domain, neigh);
+  }
 
+  if (trigger && changed_metric) {
     list_for_each_element(&_domain_listener_list, listener, _node) {
       /* trigger domain listeners */
-      if ((force_change || changed_metric) && listener->metric_update) {
+      if (listener->metric_update) {
         listener->metric_update(domain);
       }
-      if ((force_change || changed_mpr) && listener->mpr_update) {
+    }
+  }
+
+  if (trigger) {
+    OONF_INFO(LOG_NHDP, "Metrics changed for domain %d: %s",
+        domain ? domain->index : -1, changed_metric ? "true" : "false");
+  }
+  return changed_metric;
+}
+
+bool
+nhdp_domain_recalculate_metrics(struct nhdp_domain *domain, struct nhdp_neighbor *neigh) {
+  return _recalculate_metrics(domain, neigh, true);
+}
+
+static bool
+_recalculate_mpr(struct nhdp_domain *domain, struct nhdp_neighbor *neigh, bool trigger) {
+  struct nhdp_domain_listener *listener;
+  bool changed_mpr;
+
+  if (trigger) {
+    OONF_DEBUG(LOG_NHDP, "Recalculating MPR set for domain %d",
+        domain ? domain->index : -1);
+  }
+
+  changed_mpr = false;
+  if (!domain) {
+    list_for_each_element(&_domain_list, domain, _node) {
+      changed_mpr |= _recalculate_mpr(domain, neigh, false);
+    }
+    changed_mpr |= _recalculate_mpr(&_flooding_domain, neigh, false);
+  }
+  else {
+    if (&_flooding_domain == domain) {
+      changed_mpr = _recalculate_flooding_mpr_set();
+    }
+    else {
+      changed_mpr = _recalculate_routing_mpr_set(domain, neigh);
+    }
+  }
+
+  if (trigger && changed_mpr) {
+    list_for_each_element(&_domain_listener_list, listener, _node) {
+      /* trigger domain listeners */
+      if (listener->mpr_update) {
         listener->mpr_update(domain);
       }
     }
-
-    OONF_INFO(LOG_NHDP, "domain %u: metric_change=%s, mpr_changed=%s",
-        domain->index, changed_metric ? "true" : "false", changed_mpr ? "true" : "false");
   }
+
+  if (trigger) {
+    OONF_INFO(LOG_NHDP, "MPR changed for domain %d: %s",
+        domain ? domain->index : -1, changed_mpr ? "true" : "false");
+  }
+  return changed_mpr;
+}
+
+bool
+nhdp_domain_recalculate_mpr(struct nhdp_domain *domain, struct nhdp_neighbor *neigh) {
+  return _recalculate_mpr(domain, neigh, true);
 }
 
 /**
@@ -899,40 +953,44 @@ nhdp_domain_get_listener_list(void) {
   return &_domain_listener_list;
 }
 
-/**
- * Recalculate the neighbor metrics of a NHDP domain
- * @param domain NHDP domain
- * @return if neighbor metric or two-hop link metric changed
- */
 static bool
-_recalculate_neighbor_metrics(struct nhdp_domain *domain) {
-  struct nhdp_neighbor *neigh;
-  bool changed;
+_recalculate_flooding_mpr_set(void) {
+  struct nhdp_link *lnk;
 
-  /* recalculate the neighbor metrics and see if they changed */
-  changed = false;
-  list_for_each_element(nhdp_db_get_neigh_list(), neigh, _global_node) {
-    changed |= _recalculate_neighbor_metric(domain, neigh);
+  list_for_each_element(nhdp_db_get_link_list(), lnk, _global_node) {
+    lnk->_neigh_was_flooding_mpr = lnk->neigh_is_flooding_mpr;
   }
 
-  if (changed) {
-    OONF_DEBUG(LOG_NHDP, "Domain ext %u metric changed", domain->ext);
+  _flooding_domain.mpr->update_flooding_mpr(&_flooding_domain);
+
+  list_for_each_element(nhdp_db_get_link_list(), lnk, _global_node) {
+    if (lnk->_neigh_was_flooding_mpr != lnk->neigh_is_flooding_mpr) {
+      OONF_DEBUG(LOG_NHDP, "Flooding domain MPR set changed");
+      return true;
+    }
   }
-  return changed;
+  return false;
 }
 
 /**
  * Recalculate the MPR set of a NHDP domain
  * @param domain nhdp domain
+ * @param neigh only recalculate if this neighbor is MPR
  * @return true if the MPR set changed
  */
 static bool
-_recalculate_mpr_set(struct nhdp_domain *domain) {
-  struct nhdp_neighbor *neigh;
+_recalculate_routing_mpr_set(struct nhdp_domain *domain, struct nhdp_neighbor *neigh) {
   struct nhdp_neighbor_domaindata *neighdata;
 
   if (!domain->mpr->update_routing_mpr) {
     return false;
+  }
+
+  if (neigh) {
+    neighdata = nhdp_domain_get_neighbordata(domain, neigh);
+    if (!neighdata->neigh_is_mpr) {
+      return false;
+    }
   }
 
   /* remember old MPR set */

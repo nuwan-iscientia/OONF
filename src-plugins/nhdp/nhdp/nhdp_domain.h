@@ -231,13 +231,15 @@ struct nhdp_domain {
 struct nhdp_domain_listener {
     /**
      * Callback to inform about a NHDP neighbor MPR update
-     * @param domain NHDP domain of which the MPR set changed
+     * @param domain NHDP domain of which the MPR set changed,
+     *   NULL for all domains
      */
     void (*mpr_update)(struct nhdp_domain *domain);
 
     /**
      * Callback to inform about a NHDP neighbor metric update
-     * @param domain NHDP domain of which the metric changed
+     * @param domain NHDP domain of which the metric changed,
+     *   NULL for all domains
      */
     void (*metric_update)(struct nhdp_domain *domain);
 
@@ -295,9 +297,6 @@ EXPORT void nhdp_domain_process_metric_linktlv(struct nhdp_domain *,
 EXPORT void nhdp_domain_process_metric_2hoptlv(struct nhdp_domain *d,
     struct nhdp_l2hop *l2hop, const uint8_t *value);
 
-EXPORT void nhdp_domain_recalculate_mpr(bool force_change);
-EXPORT bool nhdp_domain_node_is_mpr(void);
-
 EXPORT size_t nhdp_domain_process_mprtypes_tlv(
     uint8_t *mprtypes, size_t mprtypes_size,
     struct rfc5444_reader_tlvblock_entry *tlv);
@@ -316,6 +315,12 @@ EXPORT size_t nhdp_domain_encode_willingness_tlvvalue(
 
 EXPORT bool nhdp_domain_set_incoming_metric(
     struct nhdp_domain_metric *metric, struct nhdp_link *lnk, uint32_t metric_in);
+EXPORT bool nhdp_domain_recalculate_metrics(
+    struct nhdp_domain *domain, struct nhdp_neighbor *neigh);
+
+EXPORT bool nhdp_domain_node_is_mpr(void);
+EXPORT bool nhdp_domain_recalculate_mpr(
+    struct nhdp_domain *domain, struct nhdp_neighbor *neigh);
 
 EXPORT struct list_entity *nhdp_domain_get_list(void);
 EXPORT struct list_entity *nhdp_domain_get_listener_list(void);
