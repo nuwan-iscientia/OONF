@@ -72,8 +72,7 @@ static void _cb_update_everyone_flooding_mpr(struct nhdp_domain *domain);
 
 static bool _recalculate_neighbor_metric(struct nhdp_domain *domain,
         struct nhdp_neighbor *neigh);
-static bool _recalculate_routing_mpr_set(struct nhdp_domain *domain,
-    struct nhdp_neighbor *neigh);
+static bool _recalculate_routing_mpr_set(struct nhdp_domain *domain);
 static bool _recalculate_flooding_mpr_set(void);
 
 static const char *_link_to_string(struct nhdp_metric_str *, uint32_t);
@@ -539,51 +538,58 @@ nhdp_domain_recalculate_metrics(struct nhdp_domain *domain, struct nhdp_neighbor
   return _recalculate_metrics(domain, neigh, true);
 }
 
-static bool
-_recalculate_mpr(struct nhdp_domain *domain, struct nhdp_neighbor *neigh, bool trigger) {
+static void
+_fire_mpr_changed(struct nhdp_domain *domain) {
   struct nhdp_domain_listener *listener;
-  bool changed_mpr;
-
-  if (trigger) {
-    OONF_DEBUG(LOG_NHDP, "Recalculating MPR set for domain %d",
-        domain ? domain->index : -1);
-  }
-
-  changed_mpr = false;
-  if (!domain) {
-    list_for_each_element(&_domain_list, domain, _node) {
-      changed_mpr |= _recalculate_mpr(domain, neigh, false);
-    }
-    changed_mpr |= _recalculate_mpr(&_flooding_domain, neigh, false);
-  }
-  else {
-    if (&_flooding_domain == domain) {
-      changed_mpr = _recalculate_flooding_mpr_set();
-    }
-    else {
-      changed_mpr = _recalculate_routing_mpr_set(domain, neigh);
+  list_for_each_element(&_domain_listener_list, listener, _node) {
+    /* trigger domain listeners */
+    if (listener->mpr_update) {
+      listener->mpr_update(domain);
     }
   }
-
-  if (trigger && changed_mpr) {
-    list_for_each_element(&_domain_listener_list, listener, _node) {
-      /* trigger domain listeners */
-      if (listener->mpr_update) {
-        listener->mpr_update(domain);
-      }
-    }
-  }
-
-  if (trigger) {
-    OONF_INFO(LOG_NHDP, "MPR changed for domain %d: %s",
-        domain ? domain->index : -1, changed_mpr ? "true" : "false");
-  }
-  return changed_mpr;
 }
 
-bool
-nhdp_domain_recalculate_mpr(struct nhdp_domain *domain, struct nhdp_neighbor *neigh) {
-  return _recalculate_mpr(domain, neigh, true);
+void
+nhdp_domain_recalculate_mpr(void) {
+  struct nhdp_domain *domain;
+
+  list_for_each_element(&_domain_list, domain, _node) {
+    if (domain->_mpr_outdated) {
+      if (_recalculate_routing_mpr_set(domain)) {
+        domain->mpr->update_routing_mpr(domain);
+        _fire_mpr_changed(domain);
+      }
+      domain->_mpr_outdated = false;
+    }
+  }
+  if (_flooding_domain._mpr_outdated) {
+    if (_recalculate_flooding_mpr_set()) {
+      _flooding_domain.mpr->update_flooding_mpr(&_flooding_domain);
+      _fire_mpr_changed(&_flooding_domain);
+    }
+    _flooding_domain._mpr_outdated = false;
+  }
+}
+
+/**
+ * This marks a MPR domain as 'to be recalculated' as soon as a Hello is sent
+ * @param domain NHDP domain
+ * @param neigh neighbor that triggered the recalculation,
+ *   NULL for unspecified neighbor
+ * @return
+ */
+void
+nhdp_domain_delayed_mpr_recalculation(struct nhdp_domain *domain,
+    struct nhdp_neighbor *neigh __attribute__((unused))) {
+  if (!domain) {
+    list_for_each_element(&_domain_list, domain, _node) {
+      nhdp_domain_delayed_mpr_recalculation(domain, neigh);
+    }
+    nhdp_domain_delayed_mpr_recalculation(&_flooding_domain, neigh);
+    return;
+  }
+
+  domain->_mpr_outdated = true;
 }
 
 /**
@@ -975,22 +981,15 @@ _recalculate_flooding_mpr_set(void) {
 /**
  * Recalculate the MPR set of a NHDP domain
  * @param domain nhdp domain
- * @param neigh only recalculate if this neighbor is MPR
  * @return true if the MPR set changed
  */
 static bool
-_recalculate_routing_mpr_set(struct nhdp_domain *domain, struct nhdp_neighbor *neigh) {
+_recalculate_routing_mpr_set(struct nhdp_domain *domain) {
   struct nhdp_neighbor_domaindata *neighdata;
+  struct nhdp_neighbor *neigh;
 
   if (!domain->mpr->update_routing_mpr) {
     return false;
-  }
-
-  if (neigh) {
-    neighdata = nhdp_domain_get_neighbordata(domain, neigh);
-    if (!neighdata->neigh_is_mpr) {
-      return false;
-    }
   }
 
   /* remember old MPR set */

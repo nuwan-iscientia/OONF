@@ -277,7 +277,7 @@ nhdp_db_neighbor_remove(struct nhdp_neighbor *neigh) {
 
   if (was_mpr) {
     /* all domains might have changed */
-    nhdp_domain_recalculate_mpr(NULL, neigh);
+    nhdp_domain_delayed_mpr_recalculation(NULL, neigh);
   }
 
   /* remove from global list and free memory */
@@ -856,7 +856,7 @@ nhdp_db_link_update_status(struct nhdp_link *lnk) {
     /* link status was changed */
     lnk->last_status_change = oonf_clock_getNow();
     nhdp_domain_recalculate_metrics(NULL, lnk->neigh);
-    nhdp_domain_recalculate_mpr(NULL, lnk->neigh);
+    nhdp_domain_delayed_mpr_recalculation(NULL, lnk->neigh);
 
     /* trigger change event */
     oonf_class_event(&_link_info, lnk, OONF_OBJECT_CHANGED);

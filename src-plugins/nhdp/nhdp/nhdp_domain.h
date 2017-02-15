@@ -215,6 +215,9 @@ struct nhdp_domain {
   /*! index in the domain array */
   int index;
 
+  /*! true if MPR should be recalculated */
+  bool _mpr_outdated;
+
   /*! temporary storage for willingness processing */
   uint8_t _tmp_willingness;
 
@@ -231,15 +234,13 @@ struct nhdp_domain {
 struct nhdp_domain_listener {
     /**
      * Callback to inform about a NHDP neighbor MPR update
-     * @param domain NHDP domain of which the MPR set changed,
-     *   NULL for all domains
+     * @param domain NHDP domain of which the MPR set changed
      */
     void (*mpr_update)(struct nhdp_domain *domain);
 
     /**
      * Callback to inform about a NHDP neighbor metric update
-     * @param domain NHDP domain of which the metric changed,
-     *   NULL for all domains
+     * @param domain NHDP domain of which the metric changed
      */
     void (*metric_update)(struct nhdp_domain *domain);
 
@@ -319,8 +320,9 @@ EXPORT bool nhdp_domain_recalculate_metrics(
     struct nhdp_domain *domain, struct nhdp_neighbor *neigh);
 
 EXPORT bool nhdp_domain_node_is_mpr(void);
-EXPORT bool nhdp_domain_recalculate_mpr(
+EXPORT void nhdp_domain_delayed_mpr_recalculation(
     struct nhdp_domain *domain, struct nhdp_neighbor *neigh);
+EXPORT void nhdp_domain_recalculate_mpr(void);
 
 EXPORT struct list_entity *nhdp_domain_get_list(void);
 EXPORT struct list_entity *nhdp_domain_get_listener_list(void);
