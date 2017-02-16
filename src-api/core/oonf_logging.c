@@ -90,6 +90,8 @@ const char *LOG_SEVERITY_NAMES[LOG_SEVERITY_MAX+1] = {
   [LOG_SEVERITY_WARN]  = "WARN",
 };
 
+static uint32_t _log_warnings[LOG_MAXIMUM_SOURCES];
+
 /**
  * Initialize logging system
  * @param data builddata defined by application
@@ -143,6 +145,8 @@ oonf_log_init(const struct oonf_appdata *data, enum oonf_log_severity def_severi
   /* clear global mask */
   memset(&log_global_mask, _default_mask, sizeof(log_global_mask));
 
+  /* clear warning counter */
+  memset(_log_warnings, 0, sizeof(_log_warnings));
   return 0;
 }
 
@@ -248,6 +252,15 @@ oonf_log_get_max_sourcetextlen(void) {
 size_t
 oonf_log_get_sourcecount(void) {
   return _source_count;
+}
+
+/**
+ * @param source logging source
+ * @return number of warnings since start for this source
+ */
+uint32_t
+oonf_log_get_warning_count(enum oonf_log_source source) {
+  return _log_warnings[source];
 }
 
 /**
@@ -369,6 +382,12 @@ oonf_log(enum oonf_log_severity severity, enum oonf_log_source source, bool no_h
   char *last;
   va_list ap;
   int p1 = 0, p2 = 0;
+
+  if (severity == LOG_SEVERITY_WARN) {
+    /* count warnings */
+    _log_warnings[source]++;
+    _log_warnings[LOG_ALL]++;
+  }
 
   va_start(ap, format);
 
