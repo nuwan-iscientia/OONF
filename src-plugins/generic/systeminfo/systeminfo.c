@@ -78,12 +78,15 @@ static void _initialize_timer_values(
     struct oonf_viewer_template *template, struct oonf_timer_class *tc);
 static void _initialize_socket_values(
     struct oonf_viewer_template *template, struct oonf_socket_entry *sock);
+static void _initialize_logging_values(
+    struct oonf_viewer_template *template, enum oonf_log_source source);
 
 static int _cb_create_text_time(struct oonf_viewer_template *);
 static int _cb_create_text_version(struct oonf_viewer_template *);
 static int _cb_create_text_memory(struct oonf_viewer_template *);
 static int _cb_create_text_timer(struct oonf_viewer_template *);
 static int _cb_create_text_socket(struct oonf_viewer_template *);
+static int _cb_create_text_logging(struct oonf_viewer_template *);
 
 /*
  * list of template keys and corresponding buffers for values.
@@ -139,6 +142,12 @@ static int _cb_create_text_socket(struct oonf_viewer_template *);
 /*! template key for socket long usage events */
 #define KEY_SOCKET_LONG                 "socket_long"
 
+/*! template key for name of logging source */
+#define KEY_LOG_SOURCE                  "log_source"
+
+/*! template key for number of warnings per logging source */
+#define KEY_LOG_WARNINGS                "log_warnings"
+
 /*
  * buffer space for values that will be assembled
  * into the output of the plugin
@@ -164,6 +173,9 @@ static struct isonumber_str             _value_timer_long;
 static struct isonumber_str             _value_socket_recv;
 static struct isonumber_str             _value_socket_send;
 static struct isonumber_str             _value_socket_long;
+
+static char                             _value_log_source[64];
+static struct isonumber_str             _value_log_warnings;
 
 /* definition of the template data entries for JSON and table output */
 static struct abuf_template_data_entry _tde_time_key[] = {
@@ -194,6 +206,10 @@ static struct abuf_template_data_entry _tde_socket_key[] = {
     { KEY_SOCKET_SEND, _value_socket_send.buf, false },
     { KEY_SOCKET_LONG, _value_socket_long.buf, false },
 };
+static struct abuf_template_data_entry _tde_logging_key[] = {
+    { KEY_LOG_SOURCE, _value_log_source, true },
+    { KEY_LOG_WARNINGS, _value_log_warnings.buf, false },
+};
 
 static struct abuf_template_storage _template_storage;
 
@@ -212,6 +228,9 @@ static struct abuf_template_data _td_timer[] = {
 };
 static struct abuf_template_data _td_socket[] = {
     { _tde_socket_key, ARRAYSIZE(_tde_socket_key) },
+};
+static struct abuf_template_data _td_logging[] = {
+    { _tde_logging_key, ARRAYSIZE(_tde_logging_key) },
 };
 
 /* OONF viewer templates (based on Template Data arrays) */
@@ -245,6 +264,12 @@ static struct oonf_viewer_template _templates[] = {
         .data_size = ARRAYSIZE(_td_socket),
         .json_name = "socket",
         .cb_function = _cb_create_text_socket,
+    },
+    {
+        .data = _td_logging,
+        .data_size = ARRAYSIZE(_td_logging),
+        .json_name = "logging",
+        .cb_function = _cb_create_text_logging,
     },
 };
 
@@ -388,6 +413,19 @@ _initialize_socket_values(struct oonf_viewer_template *template,
 }
 
 /**
+ * Initialize the value buffers for a logging source
+ * @param template
+ * @param source
+ */
+static void _initialize_logging_values(
+    struct oonf_viewer_template *template, enum oonf_log_source source) {
+  strscpy(_value_log_source, LOG_SOURCE_NAMES[source],
+      sizeof(_value_log_source));
+  isonumber_from_u64(&_value_log_warnings,
+      oonf_log_get_warning_count(source), "", 0, false, template->create_raw);
+}
+
+/**
  * Callback to generate text/json description of current time
  * @param template viewer template
  * @return -1 if an error happened, 0 otherwise
@@ -466,6 +504,25 @@ _cb_create_text_socket(struct oonf_viewer_template *template) {
 
   list_for_each_element(oonf_socket_get_list(), sock, _node) {
     _initialize_socket_values(template, sock);
+
+    /* generate template output */
+    oonf_viewer_output_print_line(template);
+  }
+
+  return 0;
+}
+
+/**
+ * Callback to generate text/json description for logging sources
+ * @param template viewer template
+ * @return -1 if an error happened, 0 otherwise
+ */
+static int
+_cb_create_text_logging(struct oonf_viewer_template *template) {
+  enum oonf_log_source source;
+
+  for (source = 0; source < oonf_log_get_sourcecount(); source++) {
+    _initialize_logging_values(template, source);
 
     /* generate template output */
     oonf_viewer_output_print_line(template);
