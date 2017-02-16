@@ -1030,7 +1030,7 @@ _recalculate_neighbor_metric(
   struct nhdp_l2hop_domaindata *l2hopdata;
   struct nhdp_neighbor_domaindata *neighdata;
   bool changed;
-#ifdef OONF_LOG_DEBUG_INFO
+#ifdef OONF_LOG_INFO
   struct netaddr_str nbuf;
 #endif
 
