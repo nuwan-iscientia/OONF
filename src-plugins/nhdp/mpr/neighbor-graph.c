@@ -223,6 +223,7 @@ mpr_calculate_minimal_d_z_y(const struct nhdp_domain *domain,
  * Print a set of addresses
  * @param set
  */
+#ifdef OONF_LOG_DEBUG_INFO
 void
 mpr_print_addr_set(struct avl_tree *set) {
   struct addr_node *current_node;
@@ -235,40 +236,46 @@ mpr_print_addr_set(struct avl_tree *set) {
         netaddr_to_string(&buf1, &current_node->addr));
   }
 }
-
-void
-mpr_print_n1_set(struct avl_tree *set) {
-  struct n1_node *current_node;
-#ifdef OONF_LOG_DEBUG_INFO
-  struct netaddr_str buf1;
 #endif
 
+#ifdef OONF_LOG_DEBUG_INFO
+void
+mpr_print_n1_set(const struct nhdp_domain *domain, struct avl_tree *set) {
+  struct n1_node *current_node;
+
+  struct netaddr_str buf1;
+  struct nhdp_neighbor_domaindata *neighdata;
+
   avl_for_each_element(set, current_node, _avl_node) {
+    neighdata = nhdp_domain_get_neighbordata(domain, current_node->neigh);
     OONF_DEBUG(LOG_MPR, "%s in: %u out: %u",
         netaddr_to_string(&buf1, &current_node->addr),
-               current_node->neigh->_domaindata[0].metric.in,
-               current_node->neigh->_domaindata[0].metric.out);
+               neighdata->metric.in,
+               neighdata->metric.out);
   }
 }
+#endif
 
 /**
  * Print the MPR data sets 
  * @param current_mpr_data
  */
+#ifdef OONF_LOG_DEBUG_INFO
 void
-mpr_print_sets(struct neighbor_graph *graph) {
+mpr_print_sets(const struct nhdp_domain *domain, struct neighbor_graph *graph) {
   OONF_DEBUG(LOG_MPR, "Set N");
   mpr_print_addr_set(&graph->set_n);
 
   OONF_DEBUG(LOG_MPR, "Set N1");
-  mpr_print_n1_set(&graph->set_n1);
+  mpr_print_n1_set(domain, &graph->set_n1);
 
   OONF_DEBUG(LOG_MPR, "Set N2");
   mpr_print_addr_set(&graph->set_n2);
 
   OONF_DEBUG(LOG_MPR, "Set MPR");
-  mpr_print_n1_set(&graph->set_mpr);
+  mpr_print_n1_set(domain, &graph->set_mpr);
 }
+#endif
 
 /**
  * Calculate d(y,S) according to section 18.2 (draft 19)

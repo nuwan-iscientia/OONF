@@ -67,8 +67,8 @@ static void _apply_mpr(struct nhdp_domain *domain,
     const char *mpr_name, uint8_t willingness);
 static void _remove_mpr(struct nhdp_domain *);
 
-static void _cb_update_everyone_routing_mpr(struct nhdp_domain *domain);
-static void _cb_update_everyone_flooding_mpr(struct nhdp_domain *domain);
+static void _cb_update_everyone_routing_mpr(const struct nhdp_domain *domain);
+static void _cb_update_everyone_flooding_mpr(const struct nhdp_domain *domain);
 
 static bool _recalculate_neighbor_metric(struct nhdp_domain *domain,
         struct nhdp_neighbor *neigh);
@@ -1317,7 +1317,7 @@ _remove_mpr(struct nhdp_domain *domain) {
 }
 
 static void
-_cb_update_everyone_routing_mpr(struct nhdp_domain *domain) {
+_cb_update_everyone_routing_mpr(const struct nhdp_domain *domain) {
   struct nhdp_neighbor *neigh;
   struct nhdp_neighbor_domaindata *domaindata;
 
@@ -1332,7 +1332,7 @@ _cb_update_everyone_routing_mpr(struct nhdp_domain *domain) {
 
 static void
 _cb_update_everyone_flooding_mpr(
-    struct nhdp_domain *domain __attribute__((unused))) {
+    const struct nhdp_domain *domain __attribute__((unused))) {
   struct nhdp_link *lnk;
 
   list_for_each_element(nhdp_db_get_link_list(), lnk, _global_node) {
