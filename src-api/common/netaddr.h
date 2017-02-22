@@ -167,6 +167,7 @@ EXPORT extern const struct netaddr NETADDR_IPV6_GLOBAL;
 EXPORT extern const struct netaddr NETADDR_IPV6_IPV4COMPATIBLE;
 EXPORT extern const struct netaddr NETADDR_IPV6_IPV4MAPPED;
 EXPORT extern const struct netaddr NETADDR_IPV6_LOOPBACK;
+EXPORT extern const struct netaddr NETADDR_MAC48_BROADCAST;
 
 EXPORT extern const union netaddr_socket NETADDR_SOCKET_IPV4_ANY;
 EXPORT extern const union netaddr_socket NETADDR_SOCKET_IPV6_ANY;

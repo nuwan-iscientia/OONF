@@ -109,6 +109,9 @@ const struct netaddr NETADDR_IPV4_LOOPBACK_NET = { {127,0,0,1,0,0,0,0,0,0,0,0,0,
 /*! IPv6 loopback address */
 const struct netaddr NETADDR_IPV6_LOOPBACK = { {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1}, AF_INET6, 128 };
 
+/*! Ethernet broadcast */
+const struct netaddr NETADDR_MAC48_BROADCAST = { {0xff,0xff,0xff,0xff,0xff,0xff,0,0,0,0,0,0,0,0,0,0}, AF_MAC48, 48 };
+
 /*! socket for binding to any IPv4 address */
 const union netaddr_socket NETADDR_SOCKET_IPV4_ANY = {
   .v4 = {
