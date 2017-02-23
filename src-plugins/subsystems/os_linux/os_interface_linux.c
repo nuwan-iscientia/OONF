@@ -568,6 +568,7 @@ _add_interface(const char *name) {
 
     /* initialize list/tree */
     avl_init(&data->addresses, avl_comp_netaddr, false);
+    avl_init(&data->peers, avl_comp_netaddr, false);
     list_init_head(&data->_listeners);
 
     /* initialize change timer */
