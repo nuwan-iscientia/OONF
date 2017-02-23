@@ -312,7 +312,7 @@ _cb_addMessageTLVs(struct rfc5444_writer *writer) {
   /* add mac address of local interface */
   os_if = nhdp_interface_get_if_listener(_nhdp_if)->data;
 
-  if (_add_mac_tlv) {
+  if (_add_mac_tlv && netaddr_get_address_family(&os_if->mac) == AF_MAC48) {
     rfc5444_writer_add_messagetlv(writer, NHDP_MSGTLV_MAC, 0,
         netaddr_get_binptr(&os_if->mac), netaddr_get_binlength(&os_if->mac));
   }
