@@ -141,7 +141,6 @@ _initiate_shutdown(void) {
  * Add a socket handler to the scheduler
  *
  * @param entry pointer to initialized socket entry
- * @return -1 if an error happened, 0 otherwise
  */
 void
 oonf_socket_add(struct oonf_socket_entry *entry)

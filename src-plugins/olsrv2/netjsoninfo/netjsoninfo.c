@@ -902,7 +902,8 @@ _print_routing_tree(struct json_session *session,
 
 /**
  * Print all JSON routes
- * @param session
+ * @param session json session
+ * @param filter filter value to select domain
  */
 static void
 _create_route_json(struct json_session *session, const char *filter) {

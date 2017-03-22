@@ -1106,7 +1106,7 @@ _subnetmask_to_prefixlen(const char *src) {
  * Calculates if a binary address is part of a netaddr prefix.
  * It will assume that the length of the binary address and its
  * address family makes sense.
- * @param addr netaddr prefix
+ * @param subnet netaddr prefix
  * @param bin pointer to binary address
  * @return true if part of the prefix, false otherwise
  */

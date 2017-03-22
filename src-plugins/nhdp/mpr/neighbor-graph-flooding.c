@@ -92,9 +92,10 @@ static struct neighbor_graph_interface _api_interface = {
 
 /**
  * Check if a given tuple is "reachable" according to section 18.4
- * @param mpr_data
- * @param link
- * @return 
+ * @param domain NHDP domain
+ * @param current_interface NHDP interface
+ * @param lnk NHDP link
+ * @return true if reachable, false otherwise
  */
 static bool
 _is_reachable_link_tuple(const struct nhdp_domain *domain,
@@ -112,9 +113,10 @@ _is_reachable_link_tuple(const struct nhdp_domain *domain,
 
 /**
  * Check if a link tuple is "allowed" according to section 18.4
- * @param mpr_data
- * @param link
- * @return 
+ * @param domain NHDP domain
+ * @param current_interface NHDP interface
+ * @param lnk NHDP link
+ * @return true if link tuple is allowed, false otherwise
  */
 static bool
 _is_allowed_link_tuple(const struct nhdp_domain *domain,
@@ -202,9 +204,10 @@ _calculate_d_x_y(const struct nhdp_domain *domain,
 
 /**
  * Calculate d1(x) according to section 18.2 (draft 19)
- * @param mpr_data
- * @param addr
- * @return 
+ * @param domain NHDP domain
+ * @param graph neighbor graph instance
+ * @param addr node address
+ * @return distance of node
  */
 uint32_t
 _calculate_d1_x_of_n2_addr(const struct nhdp_domain *domain,
@@ -230,7 +233,8 @@ _calculate_d1_x_of_n2_addr(const struct nhdp_domain *domain,
 
 /**
  * Calculate N1
- * @param interf
+ * @param domain NHDP domain
+ * @param data flooding data
  */
 static void
 _calculate_n1(const struct nhdp_domain *domain, struct mpr_flooding_data *data) {
@@ -259,8 +263,8 @@ _calculate_n1(const struct nhdp_domain *domain, struct mpr_flooding_data *data) 
  * Note that N1 is generated per-interface, so we don't need to deal with 
  * multiple links to the same N1 member.
  * 
- * @param set_n1 N1 Set
- * @return 
+ * @param domain NHDP domain
+ * @param data flooding data
  */
 static void
 _calculate_n2(const struct nhdp_domain *domain, struct mpr_flooding_data *data) {
@@ -282,9 +286,9 @@ _calculate_n2(const struct nhdp_domain *domain, struct mpr_flooding_data *data) 
 
 /**
  * Returns the flooding/routing willingness of an N1 neighbor
- * @param not used
- * @param node
- * @return 
+ * @param domain NHDP domain
+ * @param node NHDP node
+ * @return flooding willingness of NHDP node
  */
 static uint32_t
 _get_willingness_n1(const struct nhdp_domain *domain __attribute__((unused)),

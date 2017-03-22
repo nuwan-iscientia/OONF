@@ -106,9 +106,8 @@ _cleanup(void) {
  *     be printed
  * @param out pointer to output buffer
  * @param format pointer to template for output, not used for JSON output
- * @return
  */
-int
+void
 oonf_viewer_output_prepare(struct oonf_viewer_template *template,
     struct abuf_template_storage *storage,
     struct autobuf *out, const char *format) {

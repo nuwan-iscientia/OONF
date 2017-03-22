@@ -473,16 +473,16 @@ _remove_entry(struct olsrv2_routing_entry *entry) {
  * Insert a new entry into the dijkstra working queue
  * @param target pointer to tc target
  * @param neigh next hop through which the target can be reached
- * @param linkcost cost of the last hop of the path towards the target
- * @param pathcost remainder of the cost to the target
+ * @param link_cost cost of the last hop of the path towards the target
+ * @param path_cost remainder of the cost to the target
  * @param distance hopcount to be used for the route to the target
  * @param single_hop true if this is a single-hop route, false otherwise
- * @param last_node address of the last originator before we reached the
+ * @param last_originator address of the last originator before we reached the
  *   destination prefix
  */
 static void
 _insert_into_working_tree(struct olsrv2_tc_target *target,
-    struct nhdp_neighbor *neigh, uint32_t linkcost,
+    struct nhdp_neighbor *neigh, uint32_t link_cost,
     uint32_t path_cost, uint8_t path_hops,
     uint8_t distance, bool single_hop,
     const struct netaddr *last_originator) {
@@ -490,7 +490,7 @@ _insert_into_working_tree(struct olsrv2_tc_target *target,
 #ifdef OONF_LOG_DEBUG_INFO
   struct netaddr_str nbuf1, nbuf2;
 #endif
-  if (linkcost > RFC7181_METRIC_MAX) {
+  if ( link_cost > RFC7181_METRIC_MAX) {
     return;
   }
 
@@ -505,7 +505,7 @@ _insert_into_working_tree(struct olsrv2_tc_target *target,
   }
 
   /* calculate new total pathcost */
-  path_cost += linkcost;
+  path_cost += link_cost;
   path_hops += 1;
 
   if (avl_is_node_added(&node->_node)) {
@@ -646,8 +646,6 @@ _update_routing_entry(struct nhdp_domain *domain,
 /**
  * Initialize internal fields for dijkstra calculation
  * @param domain nhdp domain
- * @return true if source-specific and non-source specific can
- *   be handled in the same dijkstra run, false otherwise
  */
 static void
 _prepare_routes(struct nhdp_domain *domain) {
@@ -661,9 +659,6 @@ _prepare_routes(struct nhdp_domain *domain) {
 
 /**
  * Initialize internal fields for dijkstra calculation
- * @param domain nhdp domain
- * @return true if source-specific and non-source specific can
- *   be handled in the same dijkstra run, false otherwise
  */
 static void
 _prepare_nodes(void) {
@@ -781,6 +776,8 @@ _add_one_hop_nodes(struct nhdp_domain *domain, int af_family,
 /**
  * Remove item from dijkstra working queue and process it
  * @param domain nhdp domain
+ * @param use_non_ss include non-source-specific nodes into working list
+ * @param use_ss include source-specific nodes into working list
  */
 static void
 _handle_working_queue(struct nhdp_domain *domain,
@@ -1100,7 +1097,7 @@ _cb_trigger_dijkstra(struct oonf_timer_instance *ptr __attribute__((unused))) {
 
 /**
  * Callback triggered when neighbor metrics are updates
- * @param neigh
+ * @param neigh NHDP neighbor
  */
 static void
 _cb_nhdp_update(struct nhdp_neighbor *neigh __attribute__((unused))) {
@@ -1109,7 +1106,7 @@ _cb_nhdp_update(struct nhdp_neighbor *neigh __attribute__((unused))) {
 
 /**
  * Callback for kernel route processing results
- * @param route pointer to kernel route
+ * @param route OS route data
  * @param error 0 if no error happened
  */
 static void

@@ -187,7 +187,7 @@ oonf_timer_start(struct oonf_timer_instance *timer, uint64_t rel_time) {
 }
 
 /**
- * @param timer pointer to timer class
+ * @param tc timer class
  * @return number of timers currently in use
  */
 static INLINE uint32_t
@@ -196,7 +196,7 @@ oonf_timer_get_usage(struct oonf_timer_class *tc) {
 }
 
 /**
- * @param timer pointer to timer class
+ * @param tc timer class
  * @return number of times the timer was reset
  */
 static INLINE uint32_t
@@ -205,7 +205,7 @@ oonf_timer_get_changes(struct oonf_timer_class *tc) {
 }
 
 /**
- * @param timer pointer to timer class
+ * @param tc timer class
  * @return number of times the timer was fired
  */
 static INLINE uint32_t
@@ -214,7 +214,7 @@ oonf_timer_get_fired(struct oonf_timer_class *tc) {
 }
 
 /**
- * @param timer pointer to timer class
+ * @param tc timer class
  * @return number of times the timer took more than a timeslice
  */
 static INLINE uint32_t

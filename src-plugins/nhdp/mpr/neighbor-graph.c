@@ -101,7 +101,8 @@ mpr_add_addr_node_to_set(struct avl_tree *set, const struct netaddr addr, uint32
 
 /**
  * Initialize the MPR data set
- * @param current_mpr_data
+ * @param graph neighbor graph instance
+ * @param methods callback for handling graph
  */
 void
 mpr_init_neighbor_graph(struct neighbor_graph *graph, struct neighbor_graph_interface *methods) {
@@ -115,7 +116,7 @@ mpr_init_neighbor_graph(struct neighbor_graph *graph, struct neighbor_graph_inte
 
 /**
  * Clear a set of addresses
- * @param set
+ * @param set AVL set to clear
  */
 void
 mpr_clear_addr_set(struct avl_tree *set) {
@@ -129,7 +130,7 @@ mpr_clear_addr_set(struct avl_tree *set) {
 
 /**
  * Clear set of N1 nodes
- * @param set
+ * @param set AVL set to clear
  */
 void
 mpr_clear_n1_set(struct avl_tree *set) {
@@ -143,7 +144,7 @@ mpr_clear_n1_set(struct avl_tree *set) {
 
 /**
  * Clear the MPR data set
- * @param current_mpr_data
+ * @param graph neighbor graph instance
  */
 void
 mpr_clear_neighbor_graph(struct neighbor_graph *graph) {
@@ -160,9 +161,9 @@ mpr_clear_neighbor_graph(struct neighbor_graph *graph) {
 
 /**
  * Check if a node was selected as an MPR
- * @param set_mpr
- * @param addr
- * @return 
+ * @param graph neighbor graph instance
+ * @param addr network address to check
+ * @return true if mpr, false otherwise
  */
 bool
 mpr_is_mpr(struct neighbor_graph *graph, struct netaddr *addr) {
@@ -221,7 +222,7 @@ mpr_calculate_minimal_d_z_y(const struct nhdp_domain *domain,
 
 /**
  * Print a set of addresses
- * @param set
+ * @param set AVL set to print
  */
 void
 mpr_print_addr_set(struct avl_tree *set) {
@@ -253,7 +254,7 @@ mpr_print_n1_set(struct avl_tree *set) {
 
 /**
  * Print the MPR data sets 
- * @param current_mpr_data
+ * @param graph neighbor graph instance
  */
 void
 mpr_print_sets(struct neighbor_graph *graph) {
@@ -272,8 +273,11 @@ mpr_print_sets(struct neighbor_graph *graph) {
 
 /**
  * Calculate d(y,S) according to section 18.2 (draft 19)
- * @param mpr_data
- * @return 
+ * @param domain NHDP domain
+ * @param graph neighbor graph instance
+ * @param y graph node Y
+ * @param subset_s subset of graph
+ * @return metric cost
  */
 uint32_t
 mpr_calculate_d_of_y_s(const struct nhdp_domain *domain, struct neighbor_graph *graph, struct addr_node *y,

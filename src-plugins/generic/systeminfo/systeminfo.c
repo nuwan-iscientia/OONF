@@ -414,8 +414,8 @@ _initialize_socket_values(struct oonf_viewer_template *template,
 
 /**
  * Initialize the value buffers for a logging source
- * @param template
- * @param source
+ * @param template viewer template
+ * @param source logging source
  */
 static void _initialize_logging_values(
     struct oonf_viewer_template *template, enum oonf_log_source source) {

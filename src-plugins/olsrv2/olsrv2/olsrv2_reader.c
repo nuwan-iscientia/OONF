@@ -185,8 +185,8 @@ olsrv2_reader_cleanup(void) {
 
 /**
  * Callback that parses message TLVs of TC
- * @param context
- * @return
+ * @param context RFC5444 tlvblock reader context
+ * @return see rfc5444_result enum
  */
 static enum rfc5444_result
 _cb_messagetlvs(struct rfc5444_reader_tlvblock_context *context) {
@@ -331,8 +331,8 @@ _cb_messagetlvs(struct rfc5444_reader_tlvblock_context *context) {
 
 /**
  * Callback that parses address TLVs of TC
- * @param context
- * @return
+ * @param context RFC5444 tlvblock reader context
+ * @return see rfc5444_result enum
  */
 static enum rfc5444_result
 _cb_addresstlvs(struct rfc5444_reader_tlvblock_context *context __attribute__((unused))) {
@@ -512,9 +512,9 @@ _handle_gateways(struct rfc5444_reader_tlvblock_entry *tlv,
 
 /**
  * Callback that is called when message parsing of TLV is finished
- * @param context
- * @param dropped
- * @return
+ * @param context tlv block reader context
+ * @param dropped true if context was dropped by a callback
+ * @return see rfc5444_result enum
  */
 static enum rfc5444_result
 _cb_messagetlvs_end(struct rfc5444_reader_tlvblock_context *context __attribute__((unused)),

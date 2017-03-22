@@ -291,7 +291,7 @@ _update_logfilter(struct oonf_telnet_data *data,
 
 /**
  * Log handler for telnet output
- * @param entry logging handler
+ * @param h logging handler
  * @param param logging parameter set
  */
 static void
@@ -308,7 +308,7 @@ _cb_print_log(struct oonf_log_handler_entry *h __attribute__((unused)),
 
 /**
  * Stop handler for continous logging output
- * @param telnet pointer ot telnet telnet
+ * @param session telnet session data
  */
 static void
 _stop_logging(struct oonf_telnet_data *session) {
@@ -468,7 +468,7 @@ _cb_handle_config(struct oonf_telnet_data *data) {
 
 /**
  * Handle interrupt from user console during route output
- * @param session
+ * @param data telnet session data
  */
 static void
 _cb_route_stophandler(struct oonf_telnet_data *data) {
@@ -480,7 +480,7 @@ _cb_route_stophandler(struct oonf_telnet_data *data) {
 
 /**
  * Handle end of incoming route data
- * @param rt pointer to os_route object
+ * @param rt OS route data
  * @param error error code, 0 if 0 error
  */
 static void

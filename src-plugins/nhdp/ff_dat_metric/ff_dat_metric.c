@@ -920,9 +920,8 @@ _shall_process_packet(struct nhdp_interface *nhdpif, struct ff_dat_if_config *if
 /**
  * Callback to process all in RFC5444 packets for metric calculation. The
  * Callback ignores all unicast packets.
- * @param consumer
- * @param context
- * @return
+ * @param context RFC5444 context of the incoming packet
+ * @return RFC5444 API result
  */
 static enum rfc5444_result
 _cb_process_packet(struct rfc5444_reader_tlvblock_context *context) {
@@ -975,13 +974,6 @@ _cb_process_packet(struct rfc5444_reader_tlvblock_context *context) {
   /* get link and its dat data */
   lnk = laddr->link;
   ldata = oonf_class_get_extension(&_link_extenstion, lnk);
-
-  if (!ldata->buckets) {
-    OONF_WARN(LOG_FF_DAT, "No buckets for link to %s (%s)",
-        netaddr_to_string(&nbuf, &lnk->if_addr),
-        nhdp_interface_get_name(lnk->local_if));
-    return RFC5444_OKAY;
-  }
 
   if (!ldata->contains_data) {
     ldata->contains_data = true;
@@ -1077,16 +1069,7 @@ _int_link_to_string(struct nhdp_metric_str *buf, struct nhdp_link *lnk) {
   int64_t received = 0, total = 0;
   size_t i;
 
-  struct netaddr_str nbuf;
-
   ldata = oonf_class_get_extension(&_link_extenstion, lnk);
-
-  if (!ldata->buckets) {
-    OONF_WARN(LOG_FF_DAT, "No buckets for link to %s (%s)",
-        netaddr_to_string(&nbuf, &lnk->if_addr),
-        nhdp_interface_get_name(lnk->local_if));
-    return RFC5444_OKAY;
-  }
 
   for (i=0; i<ARRAYSIZE(ldata->buckets); i++) {
     received += ldata->buckets[i].received;

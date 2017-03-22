@@ -226,8 +226,8 @@ _cb_query(struct os_route *filter __attribute__((unused)), struct os_route *rout
 
 /**
  * Dummy cb_finished callback for wildcard query
- * @param route
- * @param error
+ * @param route route that was finished
+ * @param error error code
  */
 static void
 _cb_query_finished(struct os_route *route __attribute__((unused)),

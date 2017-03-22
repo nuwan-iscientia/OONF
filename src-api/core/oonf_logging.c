@@ -175,7 +175,6 @@ oonf_log_cleanup(void)
  * Registers a custom logevent handler. Handler and bitmask_ptr have to
  * be initialized.
  * @param h pointer to log event handler struct
- * @return -1 if an out of memory error happened, 0 otherwise
  */
 void
 oonf_log_addhandler(struct oonf_log_handler_entry *h)

@@ -67,7 +67,7 @@ struct list_entity {
 
 /**
  * initialize a list-head
- * @param pointer to list-head
+ * @param head to list-head
  */
 static INLINE void
 list_init_head(struct list_entity *head) {
@@ -76,7 +76,7 @@ list_init_head(struct list_entity *head) {
 
 /**
  * initialize a list-node
- * @param pointer to list-node
+ * @param entity to list-node
  */
 static INLINE void
 list_init_node(struct list_entity *entity) {
@@ -129,7 +129,7 @@ list_add_before(struct list_entity *before, struct list_entity *new) {
 
 /**
  * adds a node after another node
- * @param before reference node in the list
+ * @param after reference node in the list
  * @param new node which will be added to the list
  */
 static INLINE void

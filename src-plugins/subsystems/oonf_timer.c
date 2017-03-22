@@ -345,11 +345,9 @@ oonf_timer_get_list(void) {
 }
 
 /**
- * Decrement a relative timer by a random number range.
- * @param the relative timer expressed in units of milliseconds.
- * @param the jitter in percent
- * @param random_val cached random variable to calculate jitter
- * @return the absolute time when timer will fire
+ * calculate the absolute time when a timer should fire, incuding jitter
+ * @param timer timer instance that will be initialized
+ * @param rel_time relative time until timer should fire
  */
 static void
 _calc_clock(struct oonf_timer_instance *timer, uint64_t rel_time)
@@ -379,9 +377,9 @@ _calc_clock(struct oonf_timer_instance *timer, uint64_t rel_time)
 
 /**
  * Custom AVL comparator for two timer entries.
- * @param p1
- * @param p2
- * @return
+ * @param p1 first timer entry
+ * @param p2 second timer entry
+ * @return -1/0/1 depending on comparision of time when timer fires
  */
 static int
 _avlcomp_timer(const void *p1, const void *p2) {

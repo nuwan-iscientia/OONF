@@ -89,9 +89,8 @@ static struct neighbor_graph_interface _rt_api_interface = {
 
 /**
  * Check if a given tuple is "reachable" according to section 18.4
- * @param mpr_data
- * @param link
- * @return 
+ * @param neigh NHDP neighbor
+ * @return true if reachable, false otherwise
  */
 static bool
 _is_reachable_neighbor_tuple(struct nhdp_neighbor *neigh) {
@@ -103,10 +102,10 @@ _is_reachable_neighbor_tuple(struct nhdp_neighbor *neigh) {
 }
 
 /**
- * Check if a link tuple is "allowed" according to section 18.4
- * @param mpr_data
- * @param link
- * @return 
+ * Check if a neighbor tuple is "allowed" according to section 18.4
+ * @param domain NHDP domain
+ * @param neigh NHDP neighbor
+ * @return true if allowed, false otherwise
  */
 static bool
 _is_allowed_neighbor_tuple(const struct nhdp_domain *domain __attribute__((unused)),
@@ -138,9 +137,9 @@ _is_allowed_2hop_tuple(const struct nhdp_domain *domain, struct nhdp_l2hop *two_
 
 /**
  * Calculate d1(x) according to section 18.2 (draft 19)
- * @param mpr_data
- * @param x
- * @return 
+ * @param domain NHDP domain
+ * @param x node x
+ * @return metric distance
  */
 static uint32_t
 _calculate_d1_x(const struct nhdp_domain *domain, struct n1_node *x) {
@@ -152,9 +151,10 @@ _calculate_d1_x(const struct nhdp_domain *domain, struct n1_node *x) {
 
 /**
  * Calculate d2(x,y) according to section 18.2 (draft 19)
- * @param x
- * @param y
- * @return 
+ * @param domain NHDP domain
+ * @param x node x
+ * @param y node y
+ * @return metric distance
  */
 static uint32_t
 _calculate_d2_x_y(const struct nhdp_domain *domain, struct n1_node *x, struct addr_node *y) {
@@ -213,8 +213,10 @@ _calculate_d_x_y(const struct nhdp_domain *domain,
 
 /**
  * Calculate d1(y) according to section 18.2 (draft 19)
- * @param mpr_data
- * @return 
+ * @param domain NHDP domain
+ * @param graph neighbor graph instance
+ * @param y node y
+ * @return metric distance
  */
 static uint32_t
 _calculate_d1_of_y(const struct nhdp_domain *domain,
@@ -237,9 +239,10 @@ _calculate_d1_of_y(const struct nhdp_domain *domain,
 
 /**
  * Calculate d1(x) according to section 18.2 (draft 19)
- * @param mpr_data
- * @param addr
- * @return 
+ * @param domain NHDP domain
+ * @param graph neighbor graph instance
+ * @param addr node address
+ * @return metric distance
  */
 static uint32_t
 _calculate_d1_x_of_n2_addr(const struct nhdp_domain *domain,
@@ -253,7 +256,8 @@ _calculate_d1_x_of_n2_addr(const struct nhdp_domain *domain,
 
 /**
  * Calculate N1
- * @param interf
+ * @param domain NHDP domain
+ * @param graph neighbor graph instance
  */
 static void
 _calculate_n1(const struct nhdp_domain *domain, struct neighbor_graph *graph) {
@@ -322,9 +326,9 @@ _calculate_n2(const struct nhdp_domain *domain, struct neighbor_graph *graph) {
 
 /**
  * Returns the flooding/routing willingness of an N1 neighbor
- * @param not used
- * @param node
- * @return 
+ * @param domain NHDP domain
+ * @param node neighbor node
+ * @return willingness
  */
 static uint32_t
 _get_willingness_n1(const struct nhdp_domain *domain, struct n1_node *node) {

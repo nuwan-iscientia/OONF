@@ -150,9 +150,8 @@ rfc5444_print_direct(struct autobuf *out, void *buffer, size_t length) {
 
 /**
  * Clear output buffer and print start of packet
- * @param c
- * @param context
- * @return
+ * @param context rfc5444 tlvblock reader context
+ * @return see rfc5444_result enum
  */
 static enum rfc5444_result
 _cb_print_pkt_start(struct rfc5444_reader_tlvblock_context *context) {
@@ -176,10 +175,9 @@ _cb_print_pkt_start(struct rfc5444_reader_tlvblock_context *context) {
 
 /**
  * Print packet TLVs
- * @param c
- * @param tlv
- * @param context
- * @return
+ * @param tlv rfc5444 tlvblock entry
+ * @param context rfc5444 tlvblock reader context
+ * @return see rfc5444_result enum
  */
 enum rfc5444_result
 _cb_print_pkt_tlv(struct rfc5444_reader_tlvblock_entry *tlv,
@@ -206,10 +204,9 @@ _cb_print_pkt_tlv(struct rfc5444_reader_tlvblock_entry *tlv,
 
 /**
  * Print end of packet and call print callback if necessary
- * @param c
- * @param context
- * @param dropped
- * @return
+ * @param context rfc5444 tlvblock reader context
+ * @param dropped unused
+ * @return see rfc5444_result enum
  */
 enum rfc5444_result
 _cb_print_pkt_end(struct rfc5444_reader_tlvblock_context *context,
@@ -227,9 +224,8 @@ _cb_print_pkt_end(struct rfc5444_reader_tlvblock_context *context,
 
 /**
  * Print start of message
- * @param c
- * @param context
- * @return
+ * @param context rfc5444 tlvblock reader context
+ * @return see rfc5444_result enum
  */
 enum rfc5444_result
 _cb_print_msg_start(struct rfc5444_reader_tlvblock_context *context) {
@@ -266,10 +262,9 @@ _cb_print_msg_start(struct rfc5444_reader_tlvblock_context *context) {
 
 /**
  * Print message TLV
- * @param c
- * @param tlv
- * @param context
- * @return
+ * @param tlv tlvblock entry
+ * @param context rfc5444 tlvblock reader context
+ * @return see rfc5444_result enum
  */
 enum rfc5444_result
 _cb_print_msg_tlv(struct rfc5444_reader_tlvblock_entry *tlv,
@@ -296,10 +291,9 @@ _cb_print_msg_tlv(struct rfc5444_reader_tlvblock_entry *tlv,
 
 /**
  * Print end of message
- * @param c
- * @param context
- * @param dropped
- * @return
+ * @param context rfc5444 tlvblock reader context
+ * @param dropped unused
+ * @return see rfc5444_result enum
  */
 enum rfc5444_result
 _cb_print_msg_end(struct rfc5444_reader_tlvblock_context *context,
@@ -316,9 +310,8 @@ _cb_print_msg_end(struct rfc5444_reader_tlvblock_context *context,
 
 /**
  * Print start of address
- * @param c
- * @param context
- * @return
+ * @param context rfc5444 tlvblock reader context
+ * @return see rfc5444_result enum
  */
 enum rfc5444_result
 _cb_print_addr_start(struct rfc5444_reader_tlvblock_context *context) {
@@ -337,10 +330,9 @@ _cb_print_addr_start(struct rfc5444_reader_tlvblock_context *context) {
 
 /**
  * Print address tlv
- * @param c
- * @param tlv
- * @param context
- * @return
+ * @param tlv tlvblock entry
+ * @param context rfc5444 tlvblock reader context
+ * @return see rfc5444_result enum
  */
 enum rfc5444_result
 _cb_print_addr_tlv(struct rfc5444_reader_tlvblock_entry *tlv,
@@ -367,10 +359,9 @@ _cb_print_addr_tlv(struct rfc5444_reader_tlvblock_entry *tlv,
 
 /**
  * Print end of address
- * @param c
- * @param context
- * @param dropped
- * @return
+ * @param context rfc5444 tlvblock reader context
+ * @param dropped unused
+ * @return see rfc5444_result enum
  */
 enum rfc5444_result
 _cb_print_addr_end(struct rfc5444_reader_tlvblock_context *context,

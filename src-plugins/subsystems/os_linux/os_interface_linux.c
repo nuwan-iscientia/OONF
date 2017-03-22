@@ -692,7 +692,7 @@ _refresh_mesh(struct os_interface *os_if, char *old_redirect, char *old_spoof) {
 
 /**
  * Cleanup interface after mesh usage
- * @param data network interface data
+ * @param os_if network interface
  */
 static void
 _cleanup_mesh(struct os_interface *os_if) {
@@ -1106,7 +1106,7 @@ _update_address_shortcuts(struct os_interface *os_if) {
  * Add an IP address/prefix to a network interface
  * @param os_if network interface
  * @param prefixed_addr full IP address with prefix length
- * @param address true if this is a peer address, false otherwise
+ * @param peer true if this is a peer address, false otherwise
  */
 static void
 _add_address(struct os_interface *os_if, struct netaddr *prefixed_addr, bool peer) {
@@ -1148,7 +1148,7 @@ _add_address(struct os_interface *os_if, struct netaddr *prefixed_addr, bool pee
  * Remove an IP address/prefix from a network interface
  * @param os_if network interface
  * @param prefixed_addr full IP address with prefix length
- * @param address true if this is a peer address, false otherwise
+ * @param peer true if this is a peer address, false otherwise
  */
 static void
 _remove_address(struct os_interface *os_if, struct netaddr *prefixed_addr, bool peer) {

@@ -521,7 +521,6 @@ _handle_errno1(struct oonf_packet_socket *pktsocket,
 /**
  * Apply a new configuration to all attached sockets
  * @param managed pointer to managed socket
- * @param config pointer to configuration
  * @return -1 if an error happened, 0 otherwise
  */
 static int
@@ -555,13 +554,13 @@ _apply_managed(struct oonf_packet_managed *managed) {
 
 /**
  * Apply a new configuration to an unicast/multicast socket pair
- * @param managed pointer to managed socket
- * @param data pointer to interface to bind sockets, NULL if unbound socket
- * @param sock pointer to unicast packet socket
- * @param bind_ip address to bind unicast socket to
+ * @param managed managed socket
+ * @param os_if OS interface to bind sockets, NULL if unbound socket
+ * @param changed buffer for boolean, will be set to true if sockets changed
+ * @param sock unicast packet socket
  * @param mc_sock pointer to multicast packet socket
  * @param mc_ip multicast address
- * @return
+ * @return 0 if okay, -1 if an error happened
  */
 static int
 _apply_managed_socketpair(int af_type, struct oonf_packet_managed *managed,
@@ -675,8 +674,8 @@ _apply_managed_socketpair(int af_type, struct oonf_packet_managed *managed,
 
 /**
  * Apply new configuration to a managed stream socket
- * @param managed pointer to managed stream
- * @param stream pointer to TCP stream to configure
+ * @param managed managed packet socket (pair)
+ * @param packet packet socket
  * @param bindto local address to bind socket to
  *   set to AF_UNSPEC for simple reinitialization
  * @param port local port number
@@ -761,10 +760,7 @@ _apply_managed_socket(struct oonf_packet_managed *managed,
 
 /**
  * callback for unicast events in socket scheduler
- * @param fd
- * @param data
- * @param event_read
- * @param event_write
+ * @param entry socket entry that fired event
  */
 static void
 _cb_packet_event_unicast(struct oonf_socket_entry *entry) {
@@ -773,10 +769,7 @@ _cb_packet_event_unicast(struct oonf_socket_entry *entry) {
 
 /**
  * callback for multicast events in socket scheduler
- * @param fd
- * @param data
- * @param event_read
- * @param event_write
+ * @param entry socket entry that fired event
  */
 static void
 _cb_packet_event_multicast(struct oonf_socket_entry *entry) {
@@ -785,10 +778,9 @@ _cb_packet_event_multicast(struct oonf_socket_entry *entry) {
 
 /**
  * Callback to handle data from the olsr socket scheduler
- * @param fd filedescriptor to read data from
- * @param data custom data pointer
- * @param event_read true if read-event is incoming
- * @param event_write true if write-event is incoming
+ * @param entry socket entry that fired event
+ * @param multicast true if the multicast socket fired the event,
+ *   false otherwise
  */
 static void
 _cb_packet_event(struct oonf_socket_entry *entry,
@@ -891,7 +883,7 @@ _cb_packet_event(struct oonf_socket_entry *entry,
 
 /**
  * Callbacks for events on the interface
- * @param l
+ * @param l OS interface listener
  * @return -1 if an error happened, 0 otherwise
  */
 static int

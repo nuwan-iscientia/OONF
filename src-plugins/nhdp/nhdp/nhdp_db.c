@@ -394,8 +394,8 @@ nhdp_db_neighbor_addr_remove(struct nhdp_naddr *naddr) {
 
 /**
  * Moves a nhdp neighbor address to a different neighbor
- * @param neigh
- * @param naddr
+ * @param neigh nhdp neighbor
+ * @param naddr nhdp neighbor address
  */
 void
 nhdp_db_neighbor_addr_move(struct nhdp_neighbor *neigh, struct nhdp_naddr *naddr) {
@@ -688,8 +688,8 @@ nhdp_db_link_addr_remove(struct nhdp_laddr *laddr) {
 
 /**
  * Moves a nhdp link address to a different link
- * @param lnk
- * @param laddr
+ * @param lnk NHDP link 
+ * @param laddr NHDP link address
  */
 void
 nhdp_db_link_addr_move(struct nhdp_link *lnk, struct nhdp_laddr *laddr) {

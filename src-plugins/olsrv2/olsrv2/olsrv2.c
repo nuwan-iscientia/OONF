@@ -383,9 +383,9 @@ olsrv2_is_routable(struct netaddr *addr) {
 /**
  * default implementation for rfc5444 processing handling according
  * to MPR settings.
- * @param context
- * @param vtime
- * @return
+ * @param context RFC5444 tlvblock reader context
+ * @param vtime validity time for duplicate entry data
+ * @return true if TC should be processed, false otherwise
  */
 bool
 olsrv2_mpr_shall_process(
@@ -899,7 +899,7 @@ _update_originator(int af_family) {
 
 /**
  * Callback for interface events
- * @param listener pointer to interface listener
+ * @param if_listener interface listener
  * @return always 0
  */
 static int

@@ -125,10 +125,10 @@ EXPORT void abuf_add_template(struct autobuf *out,
 /**
  * Helper function to initialize a template with
  * a single abuf_template_data_entry array
- * @param storage
- * @param entry
- * @param entry_count
- * @param format
+ * @param storage storage for template data for output generation
+ * @param entry array of template data entries
+ * @param entry_count number of template data entries
+ * @param format format string for template generation
  */
 static INLINE void
 abuf_template_init(struct abuf_template_storage *storage,

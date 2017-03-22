@@ -712,10 +712,7 @@ _cb_timeout_handler(struct oonf_timer_instance *ptr) {
 
 /**
  * Handle events for TCP session from network scheduler
- * @param fd filedescriptor of TCP session
- * @param data custom data
- * @param event_read true if read-event is incoming
- * @param event_write true if write-event is incoming
+ * @param entry socket entry to be parsed
  */
 static void
 _cb_parse_connection(struct oonf_socket_entry *entry) {
@@ -884,7 +881,7 @@ _cb_parse_connection(struct oonf_socket_entry *entry) {
 
 /**
  * Callbacks for events on the interface
- * @param l
+ * @param interf os interface listener that fired
  * @return -1 if an error happened, 0 otherwise
  */
 static int
