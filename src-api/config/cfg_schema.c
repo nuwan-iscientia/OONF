@@ -69,7 +69,7 @@ static bool _validate_cfg_entry(
     struct cfg_named_section *named, struct cfg_entry *entry,
     const char *section_name, bool cleanup, struct autobuf *out);
 static bool _section_needs_default_named_one(struct cfg_section_type *type);
-void _handle_named_section_change (struct cfg_schema_section* s_section, 
+static void _handle_named_section_change (struct cfg_schema_section* s_section, 
     struct cfg_db* pre_change, struct cfg_db* post_change, const char* section_name, 
     bool startup, struct cfg_named_section* pre_defnamed, 
     struct cfg_named_section* post_defnamed);

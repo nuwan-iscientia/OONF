@@ -136,8 +136,6 @@ oonf_viewer_output_prepare(struct oonf_viewer_template *template,
     abuf_template_init_ext(template->_storage,
         template->data, template->data_size, format);
   }
-
-  return 0;
 }
 
 /**
@@ -279,9 +277,7 @@ oonf_viewer_call_subcommands(struct autobuf *out,
       templates[i].create_raw = raw;
       templates[i].create_only_data = data;
 
-      if (oonf_viewer_output_prepare(&templates[i], storage, out, ptr)) {
-        return -1;
-      }
+      oonf_viewer_output_prepare(&templates[i], storage, out, ptr);
 
       if (head) {
         abuf_add_template(out, templates[i]._storage, true);
