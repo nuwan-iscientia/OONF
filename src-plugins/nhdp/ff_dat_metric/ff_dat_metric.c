@@ -932,8 +932,8 @@ _cb_process_packet(struct rfc5444_reader_tlvblock_context *context) {
   struct nhdp_link *lnk;
   int total;
 
-  struct netaddr_str nbuf;
 #ifdef OONF_LOG_DEBUG_INFO
+  struct netaddr_str nbuf;
   struct isonumber_str timebuf;
 #endif
 

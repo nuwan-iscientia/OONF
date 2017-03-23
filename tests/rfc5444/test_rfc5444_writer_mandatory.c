@@ -239,10 +239,8 @@ int main(int argc __attribute__ ((unused)), char **argv __attribute__ ((unused))
 
   BEGIN_TESTING(clear_elements);
 
-  if (0) {
-    test_frag_80_1();
-    test_frag_80_2();
-  }
+  test_frag_80_1();
+  test_frag_80_2();
   test_frag_50_3();
 
   rfc5444_writer_cleanup(&writer);
