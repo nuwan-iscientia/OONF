@@ -1131,23 +1131,4 @@ _cb_cfg_changed(void) {
 
   /* start/change sampling timer */
   oonf_timer_set(&ifconfig->_sampling_timer, 1000);
-
-#ifdef COLLECT_RAW_DATA
-  if (_rawdata_fd != -1) {
-    fsync(_rawdata_fd);
-    close(_rawdata_fd);
-    _rawdata_end = 0;
-    _rawdata_count = 0;
-  }
-
-  if (_datff_config.rawdata_start) {
-    _rawdata_fd = open(_datff_config.rawdata_file, O_CREAT | O_TRUNC | O_WRONLY,
-    		S_IRUSR|S_IWUSR);
-    if (_rawdata_fd != -1) {
-      abuf_clear(&_rawdata_buf);
-      abuf_appendf(&_rawdata_buf, "Time: %s\n", oonf_log_get_walltime());
-      _rawdata_end = oonf_clock_get_absolute(_datff_config.rawdata_maxtime);
-    }
-  }
-#endif
 }
