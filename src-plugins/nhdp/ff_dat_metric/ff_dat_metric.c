@@ -75,9 +75,6 @@ enum {
  * Configuration settings of DATFF Metric
  */
 struct ff_dat_if_config {
-  /*! Interval between two updates of the metric */
-  uint64_t interval;
-
   /*! true if metric should include link speed */
   bool ett;
 
@@ -216,8 +213,6 @@ static const char *LOSS_SCALING[] = {
 };
 
 static struct cfg_schema_entry _datff_entries[] = {
-  CFG_MAP_CLOCK_MIN(ff_dat_if_config, interval, "ffdat_interval", "1.0",
-      "Time interval between recalculations of metric", 100),
   CFG_MAP_BOOL(ff_dat_if_config, ett, "ffdat_airtime", "true",
       "Activates the handling of linkspeed within the metric, set to false to"
       " downgrade to ETX metric"),
@@ -294,7 +289,6 @@ static struct oonf_class_extension _nhdpif_extenstion = {
 static struct oonf_timer_class _sampling_timer_info = {
   .name = "Sampling timer for DATFF-metric",
   .callback = _cb_dat_sampling,
-  .periodic = true,
 };
 
 /* timer class to measure interval between Hellos */
@@ -631,6 +625,7 @@ _cb_dat_sampling(struct oonf_timer_instance *ptr) {
   struct rfc7181_metric_field encoded_metric;
   struct ff_dat_if_config *ifconfig;
   struct link_datff_data *ldata;
+  struct nhdp_interface *nhdp_if;
   struct nhdp_link *lnk;
   uint32_t total, received;
   uint64_t metric;
@@ -648,11 +643,9 @@ _cb_dat_sampling(struct oonf_timer_instance *ptr) {
 
   change_happened = false;
 
-  list_for_each_element(nhdp_db_get_link_list(), lnk, _global_node) {
-    if (oonf_class_get_extension(&_nhdpif_extenstion, lnk->local_if) != ifconfig) {
-      continue;
-    }
+  nhdp_if = oonf_class_get_base(&_nhdpif_extenstion, ifconfig);
 
+  list_for_each_element(&nhdp_if->_links, lnk, _if_node) {
     ldata = oonf_class_get_extension(&_link_extenstion, lnk);
     if (!ldata->contains_data) {
       /* still no data for this link */
@@ -671,7 +664,7 @@ _cb_dat_sampling(struct oonf_timer_instance *ptr) {
 
     if (ldata->missed_hellos > 0) {
       missing_intervals = (ldata->missed_hellos * ldata->hello_interval)
-          / ifconfig->interval;
+          / lnk->local_if->refresh_interval;
       if (missing_intervals > ARRAYSIZE(ldata->buckets)) {
         received = 0;
       }
@@ -757,6 +750,8 @@ _cb_dat_sampling(struct oonf_timer_instance *ptr) {
   if (change_happened) {
     nhdp_domain_neighborhood_changed();
   }
+
+  oonf_timer_set(&ifconfig->_sampling_timer, nhdp_if->refresh_interval);
 }
 
 /**
@@ -1135,7 +1130,7 @@ _cb_cfg_changed(void) {
   }
 
   /* start/change sampling timer */
-  oonf_timer_set(&ifconfig->_sampling_timer, ifconfig->interval);
+  oonf_timer_set(&ifconfig->_sampling_timer, 1000);
 
 #ifdef COLLECT_RAW_DATA
   if (_rawdata_fd != -1) {
