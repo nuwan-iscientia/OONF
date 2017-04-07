@@ -51,6 +51,7 @@
 #include "common/list.h"
 #include "common/netaddr.h"
 #include "core/oonf_logging.h"
+#include "core/os_core.h"
 #include "subsystems/oonf_class.h"
 #include "subsystems/oonf_rfc5444.h"
 #include "subsystems/oonf_timer.h"
@@ -87,8 +88,11 @@ static void _handle_nhdp_routes(struct nhdp_domain *);
 static void _add_route_to_kernel_queue(struct olsrv2_routing_entry *rtentry);
 static void _process_dijkstra_result(struct nhdp_domain *);
 static void _process_kernel_queue(void);
+
+static void _cb_mpr_update(struct nhdp_domain *);
+static void _cb_metric_update(struct nhdp_domain *);
 static void _cb_trigger_dijkstra(struct oonf_timer_instance *);
-static void _cb_nhdp_update(struct nhdp_neighbor *);
+
 static void _cb_route_finished(struct os_route *route, int error);
 
 /* Domain parameter of dijkstra algorithm */
@@ -110,12 +114,19 @@ static struct oonf_timer_instance _rate_limit_timer = {
   .class = &_dijkstra_timer_info
 };
 
+static bool _trigger_dijkstra = false;
+
 /* callback for NHDP domain events */
 static struct nhdp_domain_listener _nhdp_listener = {
-  .update = _cb_nhdp_update,
+  .mpr_update = _cb_mpr_update,
+  .metric_update = _cb_metric_update,
 };
 
-static bool _trigger_dijkstra = false;
+/* status variables for domain changes */
+static uint16_t _ansn;
+static bool _domain_changed[NHDP_MAXIMUM_DOMAINS];
+static bool _update_ansn;
+
 
 /* global datastructures for routing */
 static struct avl_tree _routing_tree[NHDP_MAXIMUM_DOMAINS];
@@ -130,9 +141,19 @@ static bool _freeze_routes = false;
 /**
  * Initialize olsrv2 dijkstra and routing code
  */
-void
+int
 olsrv2_routing_init(void) {
   int i;
+
+  /* initialize domain change tracker */
+  if (os_core_get_random(&_ansn, sizeof(_ansn))) {
+    return -1;
+  }
+
+  nhdp_domain_listener_add(&_nhdp_listener);
+  memset(_domain_changed, 0, sizeof(_domain_changed));
+  _update_ansn = false;
+
 
   oonf_class_add(&_rtset_entry);
   oonf_timer_add(&_dijkstra_timer_info);
@@ -144,7 +165,7 @@ olsrv2_routing_init(void) {
   avl_init(&_dijkstra_working_tree, avl_comp_uint32, true);
   list_init_head(&_kernel_queue);
 
-  nhdp_domain_listener_add(&_nhdp_listener);
+  return 0;
 }
 
 /**
@@ -187,7 +208,6 @@ olsrv2_routing_cleanup(void) {
   int i;
 
   nhdp_domain_listener_remove(&_nhdp_listener);
-
   oonf_timer_stop(&_rate_limit_timer);
 
   for (i=0; i<NHDP_MAXIMUM_DOMAINS; i++) {
@@ -203,6 +223,14 @@ olsrv2_routing_cleanup(void) {
 
   oonf_timer_remove(&_dijkstra_timer_info);
   oonf_class_remove(&_rtset_entry);
+}
+
+/**
+ * @return current answer set number for local topology database
+ */
+uint16_t
+olsrv2_routing_get_ansn(void) {
+  return _ansn;
 }
 
 /**
@@ -248,6 +276,24 @@ olsrv2_routing_get_parameters(struct nhdp_domain *domain) {
 }
 
 /**
+ * Mark a domain as changed to trigger a dijkstra run
+ * @param domain NHDP domain, NULL for all domains
+ */
+void
+olsrv2_routing_domain_changed(struct nhdp_domain *domain) {
+  if (domain) {
+    _domain_changed[domain->index] = true;
+
+    olsrv2_routing_trigger_update();
+    return;
+  }
+
+  list_for_each_element(nhdp_domain_get_list(), domain, _node) {
+    olsrv2_routing_domain_changed(domain);
+  }
+}
+
+/**
  * Trigger dijkstra and routing update now
  * @param skip_wait true to ignore rate limitation timer
  */
@@ -273,9 +319,22 @@ olsrv2_routing_force_update(bool skip_wait) {
     oonf_timer_stop(&_rate_limit_timer);
   }
 
+  if (_update_ansn) {
+    _ansn++;
+    _update_ansn = false;
+    OONF_DEBUG(LOG_OLSRV2_ROUTING, "Update ANSN to %u", _ansn);
+  }
+
   OONF_DEBUG(LOG_OLSRV2_ROUTING, "Run Dijkstra");
 
   list_for_each_element(nhdp_domain_get_list(), domain, _node) {
+    /* check if dijkstra is necessary */
+    if (!_domain_changed[domain->index]) {
+      /* nothing to do for this domain */
+      continue;
+    }
+    _domain_changed[domain->index] = false;
+
     /* initialize dijkstra specific fields */
     _prepare_routes(domain);
     _prepare_nodes();
@@ -388,6 +447,32 @@ olsrv2_routing_get_tree(struct nhdp_domain *domain) {
 struct list_entity *
 olsrv2_routing_get_filter_list(void) {
   return &_routing_filter_list;
+}
+
+/**
+ * Callback triggered when an MPR-set changed
+ * @param domain NHDP domain that changed
+ */
+static void
+_cb_mpr_update(struct nhdp_domain *domain) {
+  OONF_INFO(LOG_OLSRV2, "MPR update for domain %u", domain->index);
+
+  _update_ansn = true;
+  _domain_changed[domain->index] = true;
+  olsrv2_routing_trigger_update();
+}
+
+/**
+ * Callback triggered when an outgoing metric changed
+ * @param domain NHDP domain that changed
+ */
+static void
+_cb_metric_update(struct nhdp_domain *domain) {
+  OONF_INFO(LOG_OLSRV2, "Metric update for domain %u", domain->index);
+
+  _update_ansn = true;
+  _domain_changed[domain->index] = true;
+  olsrv2_routing_trigger_update();
 }
 
 /**
@@ -617,7 +702,7 @@ _update_routing_entry(struct nhdp_domain *domain,
       netaddr_to_string(&nbuf1, &rtentry->route.p.key.dst),
       netaddr_to_string(&nbuf2, &rtentry->route.p.key.src),
       netaddr_to_string(&nbuf3, &first_hop->originator),
-      domain->ext, pathcost, neighdata->best_link->local_if->os_if_listener.data->name);
+      domain->ext, pathcost, neighdata->best_out_link->local_if->os_if_listener.data->name);
 
   /* remember originator */
   memcpy(&rtentry->originator, dst_originator, sizeof(struct netaddr));
@@ -633,12 +718,12 @@ _update_routing_entry(struct nhdp_domain *domain,
 
   /* copy gateway if necessary */
   if (single_hop
-      && netaddr_cmp(&neighdata->best_link->if_addr,
+      && netaddr_cmp(&neighdata->best_out_link->if_addr,
           &rtentry->route.p.key.dst) == 0) {
     netaddr_invalidate(&rtentry->route.p.gw);
   }
   else {
-    memcpy(&rtentry->route.p.gw, &neighdata->best_link->if_addr,
+    memcpy(&rtentry->route.p.gw, &neighdata->best_out_link->if_addr,
         sizeof(struct netaddr));
   }
 }
@@ -1093,15 +1178,6 @@ _cb_trigger_dijkstra(struct oonf_timer_instance *ptr __attribute__((unused))) {
     _trigger_dijkstra = false;
     olsrv2_routing_force_update(false);
   }
-}
-
-/**
- * Callback triggered when neighbor metrics are updates
- * @param neigh NHDP neighbor
- */
-static void
-_cb_nhdp_update(struct nhdp_neighbor *neigh __attribute__((unused))) {
-  olsrv2_routing_trigger_update();
 }
 
 /**

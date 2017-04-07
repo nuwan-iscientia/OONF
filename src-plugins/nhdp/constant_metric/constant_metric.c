@@ -286,9 +286,6 @@ _cb_set_linkcost(struct oonf_timer_instance *ptr __attribute__((unused))) {
       nhdp_domain_set_incoming_metric(&_constant_metric_handler, lnk, RFC7181_METRIC_INFINITE);
     }
   }
-
-  /* update neighbor metrics */
-  nhdp_domain_neighborhood_changed();
 }
 
 /**

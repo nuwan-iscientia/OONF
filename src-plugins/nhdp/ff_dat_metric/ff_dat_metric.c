@@ -633,18 +633,13 @@ _cb_dat_sampling(struct oonf_timer_instance *ptr) {
   uint32_t missing_intervals;
   size_t i;
   int rx_bitrate;
-  bool change_happened;
-
   struct netaddr_str nbuf;
 
   ifconfig = container_of(ptr, struct ff_dat_if_config, _sampling_timer);
 
   OONF_DEBUG(LOG_FF_DAT, "Calculate Metric from sampled data");
 
-  change_happened = false;
-
   nhdp_if = oonf_class_get_base(&_nhdpif_extenstion, ifconfig);
-
   list_for_each_element(&nhdp_if->_links, lnk, _if_node) {
     ldata = oonf_class_get_extension(&_link_extenstion, lnk);
     if (!ldata->contains_data) {
@@ -728,7 +723,7 @@ _cb_dat_sampling(struct oonf_timer_instance *ptr) {
     }
 
     /* set metric for incoming link */
-    change_happened |= nhdp_domain_set_incoming_metric(
+    nhdp_domain_set_incoming_metric(
         &_datff_handler, lnk, metric_value);
 
     OONF_DEBUG(LOG_FF_DAT, "New sampling rate for link %s (%s):"
@@ -745,13 +740,7 @@ _cb_dat_sampling(struct oonf_timer_instance *ptr) {
     ldata->buckets[ldata->activePtr].received = 0;
     ldata->buckets[ldata->activePtr].total = 0;
   }
-
-  /* update neighbor metrics */
-  if (change_happened) {
-    nhdp_domain_neighborhood_changed();
-  }
-
-  oonf_timer_set(&ifconfig->_sampling_timer, nhdp_if->refresh_interval);
+oonf_timer_set(&ifconfig->_sampling_timer, nhdp_if->refresh_interval);
 }
 
 /**

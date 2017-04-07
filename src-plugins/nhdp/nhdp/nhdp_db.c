@@ -232,11 +232,14 @@ nhdp_db_neighbor_add(void) {
  */
 void
 nhdp_db_neighbor_remove(struct nhdp_neighbor *neigh) {
+  struct nhdp_neighbor_domaindata *neighdata;
   struct nhdp_naddr *naddr, *na_it;
   struct nhdp_link *lnk, *l_it;
+  struct nhdp_domain *domain;
 #ifdef OONF_LOG_DEBUG_INFO
   struct netaddr_str nbuf;
 #endif
+  bool was_mpr;
 
   OONF_DEBUG(LOG_NHDP, "Remove Neighbor: 0x%0zx (%s)",
       (size_t)neigh, netaddr_to_string(&nbuf, &neigh->originator));
@@ -260,6 +263,21 @@ nhdp_db_neighbor_remove(struct nhdp_neighbor *neigh) {
   /* remove from originator tree if necessary */
   if (netaddr_get_address_family(&neigh->originator) != AF_UNSPEC) {
     avl_remove(&_neigh_originator_tree, &neigh->_originator_node);
+  }
+
+  /* check if neighbor was a MPR */
+  was_mpr = false;
+  list_for_each_element(nhdp_domain_get_list(), domain, _node) {
+    neighdata = nhdp_domain_get_neighbordata(domain, neigh);
+    if (neighdata->neigh_is_mpr) {
+      was_mpr = true;
+      break;
+    }
+  }
+
+  if (was_mpr) {
+    /* all domains might have changed */
+    nhdp_domain_delayed_mpr_recalculation(NULL, neigh);
   }
 
   /* remove from global list and free memory */
@@ -818,6 +836,7 @@ nhdp_db_link_update_status(struct nhdp_link *lnk) {
   was_symmetric = lnk->status == NHDP_LINK_SYMMETRIC;
 
   /* update link status */
+  lnk->last_status = lnk->status;
   lnk->status = _nhdp_db_link_calculate_status(lnk);
 
   /* handle database changes */
@@ -836,6 +855,8 @@ nhdp_db_link_update_status(struct nhdp_link *lnk) {
   if (old_status != lnk->status) {
     /* link status was changed */
     lnk->last_status_change = oonf_clock_getNow();
+    nhdp_domain_recalculate_metrics(NULL, lnk->neigh);
+    nhdp_domain_delayed_mpr_recalculation(NULL, lnk->neigh);
 
     /* trigger change event */
     oonf_class_event(&_link_info, lnk, OONF_OBJECT_CHANGED);
@@ -1007,10 +1028,6 @@ _cb_link_vtime(struct oonf_timer_instance *ptr) {
   /* check if neighbor still has links */
   if (list_is_empty(&neigh->_links)) {
     nhdp_db_neighbor_remove(neigh);
-    nhdp_domain_neighborhood_changed();
-  }
-  else {
-    nhdp_domain_neighbor_changed(neigh);
   }
 }
 
@@ -1038,7 +1055,6 @@ _cb_link_symtime(struct oonf_timer_instance *ptr) {
   lnk = container_of(ptr, struct nhdp_link, sym_time);
   OONF_DEBUG(LOG_NHDP, "Link Symtime fired: 0x%0zx", (size_t)lnk);
   nhdp_db_link_update_status(lnk);
-  nhdp_domain_neighbor_changed(lnk->neigh);
 }
 
 /**
@@ -1062,12 +1078,9 @@ _cb_naddr_vtime(struct oonf_timer_instance *ptr) {
 static void
 _cb_l2hop_vtime(struct oonf_timer_instance *ptr) {
   struct nhdp_l2hop *l2hop;
-  struct nhdp_neighbor *neigh;
 
   l2hop = container_of(ptr, struct nhdp_l2hop, _vtime);
-  neigh = l2hop->link->neigh;
 
   OONF_DEBUG(LOG_NHDP, "2Hop vtime fired: 0x%0zx", (size_t)ptr);
   nhdp_db_link_2hop_remove(l2hop);
-  nhdp_domain_neighbor_changed(neigh);
 }

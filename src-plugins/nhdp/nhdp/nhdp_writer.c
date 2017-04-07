@@ -419,7 +419,7 @@ _add_link_address(struct rfc5444_writer *writer, struct rfc5444_writer_content_p
 
   /* add MPR tlvs */
   if (laddr != NULL) {
-    len = nhdp_domain_encode_mpr_tlvvalue(mprvalue, sizeof(mprvalue), naddr->neigh);
+    len = nhdp_domain_encode_mpr_tlvvalue(mprvalue, sizeof(mprvalue), laddr->link);
 
     if (len) {
       rfc5444_writer_add_addrtlv(writer, address,

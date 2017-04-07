@@ -148,6 +148,8 @@ struct nhdp_domain_metric {
   struct avl_node _node;
 };
 
+struct nhdp_domain;
+
 /**
  * MPR handler for a NHDP domain
  */
@@ -156,9 +158,16 @@ struct nhdp_domain_mpr {
   const char *name;
 
   /**
-   * callback to calculate MPR set
+   * callback to calculate routing MPR set
+   * @param domain NHDP domain to update MPR set
    */
-  void (*update_mpr)(void);
+  void (*update_routing_mpr)(struct nhdp_domain *domain);
+
+  /**
+   * callback to calculate flooding MPR set
+   * @param domain NHDP domain used to update flooding MPR set
+   */
+  void (*update_flooding_mpr)(struct nhdp_domain *domain);
 
   /**
    * callback to enable mpr
@@ -200,17 +209,14 @@ struct nhdp_domain {
   /*! flooding willingness */
   uint8_t local_willingness;
 
-  /**
-   * true if a neighbor metric of this domain has changed
-   * since the last reset of this variable
-   */
-  bool neighbor_metric_changed;
-
   /*! metric tlv extension */
   uint8_t ext;
 
   /*! index in the domain array */
   int index;
+
+  /*! true if MPR should be recalculated */
+  bool _mpr_outdated;
 
   /*! temporary storage for willingness processing */
   uint8_t _tmp_willingness;
@@ -226,11 +232,17 @@ struct nhdp_domain {
  * listener for NHDP domain updates
  */
 struct nhdp_domain_listener {
-  /**
-   * Callback to inform about a NHDP neighbor update
-   * @param neigh neighbor that changed, NULL if multiple neighbors changed
-   */
-  void (*update)(struct nhdp_neighbor *neigh);
+    /**
+     * Callback to inform about a NHDP neighbor MPR update
+     * @param domain NHDP domain of which the MPR set changed
+     */
+    void (*mpr_update)(struct nhdp_domain *domain);
+
+    /**
+     * Callback to inform about a NHDP neighbor metric update
+     * @param domain NHDP domain of which the metric changed
+     */
+    void (*metric_update)(struct nhdp_domain *domain);
 
   /*! hook into global domain updater list */
   struct list_entity _node;
@@ -286,34 +298,37 @@ EXPORT void nhdp_domain_process_metric_linktlv(struct nhdp_domain *,
 EXPORT void nhdp_domain_process_metric_2hoptlv(struct nhdp_domain *d,
     struct nhdp_l2hop *l2hop, const uint8_t *value);
 
-EXPORT void nhdp_domain_recalculate_mpr(void);
-EXPORT void nhdp_domain_neighborhood_changed(void);
-EXPORT void nhdp_domain_neighbor_changed(struct nhdp_neighbor *neigh);
-EXPORT bool nhdp_domain_node_is_mpr(void);
-
 EXPORT size_t nhdp_domain_process_mprtypes_tlv(
     uint8_t *mprtypes, size_t mprtypes_size,
     struct rfc5444_reader_tlvblock_entry *tlv);
 EXPORT void nhdp_domain_process_mpr_tlv(uint8_t *mprtypes, size_t mprtypes_size,
-    struct nhdp_neighbor *, struct rfc5444_reader_tlvblock_entry *tlv);
+    struct nhdp_link *, struct rfc5444_reader_tlvblock_entry *tlv);
 EXPORT void nhdp_domain_process_willingness_tlv(
     uint8_t *mpr_types, size_t mprtypes_size,
     struct rfc5444_reader_tlvblock_entry *tlv);
-EXPORT void nhdp_domain_store_willingness(struct nhdp_neighbor *);
+EXPORT void nhdp_domain_store_willingness(struct nhdp_link *);
 EXPORT size_t nhdp_domain_encode_mprtypes_tlvvalue(
     uint8_t *mprtypes, size_t mprtypes_size);
 EXPORT size_t nhdp_domain_encode_mpr_tlvvalue(
-    uint8_t *tlvvalue, size_t tlvsize, struct nhdp_neighbor *);
+    uint8_t *tlvvalue, size_t tlvsize, struct nhdp_link *);
 EXPORT size_t nhdp_domain_encode_willingness_tlvvalue(
     uint8_t *tlvvalue, size_t tlvsize);
 
 EXPORT bool nhdp_domain_set_incoming_metric(
     struct nhdp_domain_metric *metric, struct nhdp_link *lnk, uint32_t metric_in);
+EXPORT bool nhdp_domain_recalculate_metrics(
+    struct nhdp_domain *domain, struct nhdp_neighbor *neigh);
+
+EXPORT bool nhdp_domain_node_is_mpr(void);
+EXPORT void nhdp_domain_delayed_mpr_recalculation(
+    struct nhdp_domain *domain, struct nhdp_neighbor *neigh);
+EXPORT void nhdp_domain_recalculate_mpr(void);
 
 EXPORT struct list_entity *nhdp_domain_get_list(void);
 EXPORT struct list_entity *nhdp_domain_get_listener_list(void);
-EXPORT const struct nhdp_domain *nhdp_domain_get_flooding(void);
+EXPORT const struct nhdp_domain *nhdp_domain_get_flooding_domain(void);
 EXPORT void nhdp_domain_set_flooding_mpr(const char *mpr_name, uint8_t willingness);
+EXPORT const struct nhdp_domain *nhdp_domain_get_flooding_domain(void);
 
 /**
  * @param domain NHDP domain

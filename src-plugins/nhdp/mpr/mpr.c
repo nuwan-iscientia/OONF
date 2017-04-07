@@ -74,7 +74,8 @@
 static void _early_cfg_init(void);
 static int _init(void);
 static void _cleanup(void);
-static void _cb_update_mpr(void);
+static void _cb_update_routing_mpr(struct nhdp_domain *);
+static void _cb_update_flooding_mpr(struct nhdp_domain *);
 
 #ifndef NDEBUG
 static void _validate_mpr_set(
@@ -101,7 +102,8 @@ DECLARE_OONF_PLUGIN(_nhdp_mpr_subsystem);
 
 static struct nhdp_domain_mpr _mpr_handler = {
   .name = OONF_MPR_SUBSYSTEM,
-  .update_mpr = _cb_update_mpr,
+  .update_routing_mpr = _cb_update_routing_mpr,
+  .update_flooding_mpr = _cb_update_flooding_mpr,
 };
 
 /* logging sources for NHDP subsystem */
@@ -168,7 +170,7 @@ _update_nhdp_flooding(struct neighbor_graph *graph) {
         &current_link->neigh->originator,
         current_mpr_node, _avl_node);
     if (current_mpr_node != NULL) {
-      current_link->neigh->neigh_is_flooding_mpr = true;
+      current_link->neigh_is_flooding_mpr = true;
     }
   }
 }
@@ -183,7 +185,7 @@ _clear_nhdp_flooding(void) {
 //  OONF_DEBUG(LOG_MPR, "Updating FLOODING MPRs");
 
   list_for_each_element(nhdp_db_get_link_list(), current_link, _global_node) {
-    current_link->neigh->neigh_is_flooding_mpr = false;
+    current_link->neigh_is_flooding_mpr = false;
   }
 }
 
@@ -191,28 +193,21 @@ _clear_nhdp_flooding(void) {
  * Update the flooding MPR settings 
  */
 static void
-_update_flooding_mpr(void) {
+_cb_update_flooding_mpr(struct nhdp_domain *domain) {
   struct mpr_flooding_data flooding_data;
 
   memset(&flooding_data, 0, sizeof(flooding_data));
   
-  if (nhdp_domain_get_flooding()->mpr != &_mpr_handler) {
-    /* we are not the flooding mpr */
-    return;
-  }
-
   _clear_nhdp_flooding();
   avl_for_each_element(nhdp_interface_get_tree(), flooding_data.current_interface, _node) {
     OONF_DEBUG(LOG_MPR, "*** Calculate flooding MPRs for interface %s ***",
         nhdp_interface_get_name(flooding_data.current_interface));
     
-    mpr_calculate_neighbor_graph_flooding(
-        nhdp_domain_get_flooding(), &flooding_data);
-    mpr_calculate_mpr_rfc7181(nhdp_domain_get_flooding(),
-        &flooding_data.neigh_graph);
+    mpr_calculate_neighbor_graph_flooding(domain, &flooding_data);
+    mpr_calculate_mpr_rfc7181(domain, &flooding_data.neigh_graph);
     mpr_print_sets(&flooding_data.neigh_graph);
 #ifndef NDEBUG
-    _validate_mpr_set(nhdp_domain_get_flooding(), &flooding_data.neigh_graph);
+    _validate_mpr_set(domain, &flooding_data.neigh_graph);
 #endif
     _update_nhdp_flooding(&flooding_data.neigh_graph);
     mpr_clear_neighbor_graph(&flooding_data.neigh_graph);
@@ -224,44 +219,24 @@ _update_flooding_mpr(void) {
  * Update the routing MPR settings for all domains
  */
 static void
-_update_routing_mpr(void) {
+_cb_update_routing_mpr(struct nhdp_domain *domain) {
   struct neighbor_graph routing_graph;
-  struct nhdp_domain *domain;
 
-  list_for_each_element(nhdp_domain_get_list(), domain, _node) {
-    if (domain->mpr != &_mpr_handler) {
-      /* we are not the routing MPR for this domain */
-      continue;
-    }
-    OONF_DEBUG(LOG_MPR, "*** Calculate routing MPRs for domain %u ***", domain->index);
+  if (domain->mpr != &_mpr_handler) {
+    /* we are not the routing MPR for this domain */
+    return;
+  }
+  OONF_DEBUG(LOG_MPR, "*** Calculate routing MPRs for domain %u ***", domain->index);
     
-    memset(&routing_graph, 0, sizeof(routing_graph));
-    mpr_calculate_neighbor_graph_routing(domain, &routing_graph);
-    mpr_calculate_mpr_rfc7181(domain, &routing_graph);
-    mpr_print_sets(&routing_graph);
+  memset(&routing_graph, 0, sizeof(routing_graph));
+  mpr_calculate_neighbor_graph_routing(domain, &routing_graph);
+  mpr_calculate_mpr_rfc7181(domain, &routing_graph);
+  mpr_print_sets(&routing_graph);
 #ifndef NDEBUG
-    _validate_mpr_set(domain, &routing_graph);
+  _validate_mpr_set(domain, &routing_graph);
 #endif
-    _update_nhdp_routing(&routing_graph);
-    mpr_clear_neighbor_graph(&routing_graph);
-  } 
-  
-}
-
-/**
- * Callback triggered when an MPR update is required
- */
-static void
-_cb_update_mpr(void) {
-  OONF_DEBUG(LOG_MPR, "Recalculating MPRs");
-
-  /* calculate flooding MPRs */
-  _update_flooding_mpr();
-  
-  /* calculate routing MPRs */
-  _update_routing_mpr();
-
-  OONF_DEBUG(LOG_MPR, "Finished recalculating MPRs");
+  _update_nhdp_routing(&routing_graph);
+  mpr_clear_neighbor_graph(&routing_graph);
 }
 
 #ifndef NDEBUG
@@ -284,17 +259,24 @@ _validate_mpr_set(const struct nhdp_domain *domain, struct neighbor_graph *graph
   /* 
    * First property: If x in N1 has W(x) = WILL_ALWAYS then x is in M. 
    */
-  avl_for_each_element(&graph->set_n1, node_n1,
-                       _avl_node)
-  {
-    if (node_n1->neigh->flooding_willingness
+  avl_for_each_element(&graph->set_n1, node_n1, _avl_node) {
+    if (domain == nhdp_domain_get_flooding_domain()) {
+      if (node_n1->link->flooding_willingness
             == RFC7181_WILLINGNESS_ALWAYS) {
-      assert(mpr_is_mpr(graph, &node_n1->addr));
+        assert(mpr_is_mpr(graph, &node_n1->addr));
+      }
+    }
+    else {
+      struct nhdp_neighbor_domaindata *neighdata;
+
+      neighdata = nhdp_domain_get_neighbordata(domain, node_n1->neigh);
+      if (neighdata->willingness == RFC7181_WILLINGNESS_ALWAYS) {
+        assert(mpr_is_mpr(graph, &node_n1->addr));
+      }
     }
   }
 
-  avl_for_each_element(&graph->set_n2, n2_addr, _avl_node)
-  {
+  avl_for_each_element(&graph->set_n2, n2_addr, _avl_node) {
     d_y_n1 = mpr_calculate_d_of_y_s(domain, graph, n2_addr, &graph->set_n1);
     d_y_mpr = mpr_calculate_d_of_y_s(domain, graph, n2_addr, &graph->set_mpr);
     

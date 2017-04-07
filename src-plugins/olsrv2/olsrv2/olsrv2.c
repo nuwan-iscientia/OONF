@@ -53,7 +53,6 @@
 #include "config/cfg_schema.h"
 #include "core/oonf_logging.h"
 #include "core/oonf_subsystem.h"
-#include "core/os_core.h"
 #include "subsystems/oonf_rfc5444.h"
 #include "subsystems/oonf_telnet.h"
 #include "subsystems/oonf_timer.h"
@@ -109,6 +108,9 @@ struct _config {
 
   /*! olsrv2 p_hold_time */
   uint64_t p_hold_time;
+
+  /*! olsrv2 factor of a_hold_time in terms of tc_intervals */
+  uint64_t a_hold_time_factor;
 
   /*! decides NHDP routable status */
   bool nhdp_routable;
@@ -186,6 +188,8 @@ static struct cfg_schema_entry _olsrv2_entries[] = {
     "Holdtime for forwarding set information", 100),
   CFG_MAP_CLOCK_MIN(_config, p_hold_time, "processing_hold_time", "300.0",
     "Holdtime for processing set information", 100),
+  CFG_MAP_INT64_MINMAX(_config, a_hold_time_factor, "advertisement_hold_time_factor", "3",
+    "Holdtime for TC advertisements as a factor of TC interval time", false, false, 1, 255),
   CFG_MAP_BOOL(_config, nhdp_routable, "nhdp_routable", "no",
     "Decides if NHDP interface addresses"
     " are routed to other nodes. 'true' means the 'routable_acl' parameter"
@@ -236,6 +240,9 @@ static struct oonf_subsystem _olsrv2_subsystem = {
 };
 DECLARE_OONF_PLUGIN(_olsrv2_subsystem);
 
+/*! last time a TC was advertised because of MPR or LANs */
+static uint64_t _unadvertised_tc_count;
+
 static struct _config _olsrv2_config;
 
 /* timer for TC generation */
@@ -258,16 +265,13 @@ static struct os_interface_listener _if_listener = {
 /* global variables */
 static struct oonf_rfc5444_protocol *_protocol;
 
-static uint16_t _ansn;
-static uint32_t _sym_neighbor_id = 0;
-
 static bool _generate_tcs = true;
 
 /* Additional logging sources */
-static enum oonf_log_source LOG_OLSRV2;
-static enum oonf_log_source LOG_OLSRV2_R;
-static enum oonf_log_source LOG_OLSRV2_ROUTING;
-static enum oonf_log_source LOG_OLSRV2_W;
+enum oonf_log_source LOG_OLSRV2;
+enum oonf_log_source LOG_OLSRV2_R;
+enum oonf_log_source LOG_OLSRV2_ROUTING;
+enum oonf_log_source LOG_OLSRV2_W;
 
 /**
  * Initialize additional logging sources for NHDP
@@ -286,12 +290,15 @@ _early_cfg_init(void) {
  */
 static int
 _init(void) {
-  if (os_core_get_random(&_ansn, sizeof(_ansn))) {
+  _protocol = oonf_rfc5444_get_default_protocol();
+
+  if (olsrv2_writer_init(_protocol)) {
     return -1;
   }
 
-  _protocol = oonf_rfc5444_get_default_protocol();
-  if (olsrv2_writer_init(_protocol)) {
+  if (olsrv2_routing_init()) {
+    olsrv2_writer_cleanup();
+    oonf_rfc5444_remove_protocol(_protocol);
     return -1;
   }
 
@@ -303,7 +310,6 @@ _init(void) {
   olsrv2_originator_init();
   olsrv2_reader_init(_protocol);
   olsrv2_tc_init();
-  olsrv2_routing_init();
 
   /* initialize timer */
   oonf_timer_add(&_tc_timer_class);
@@ -511,49 +517,15 @@ olsrv2_mpr_shall_forwarding(struct rfc5444_reader_tlvblock_context *context,
   }
 
   /* forward if this neighbor has selected us as a flooding MPR */
-  forward = neigh->local_is_flooding_mpr && neigh->symmetric > 0;
+  forward = laddr->link->local_is_flooding_mpr && neigh->symmetric > 0;
   OONF_DEBUG(LOG_OLSRV2, "Do %sforward message type %u from %s"
       " with seqno %u (%s/%u)",
       forward ? "" : "not ",
       context->msg_type,
       netaddr_to_string(&buf, &context->orig_addr),
       context->seqno,
-      neigh->local_is_flooding_mpr ? "true" : "false", neigh->symmetric);
+      laddr->link->local_is_flooding_mpr ? "true" : "false", neigh->symmetric);
   return forward;
-}
-
-/**
- * @return current answer set number for local topology database
- */
-uint16_t
-olsrv2_get_ansn(void) {
-  return _ansn;
-}
-
-/**
- * Update answer set number if metric of a neighbor changed since last update.
- * @param force true to force an answerset number change
- * @return new answer set number, might be the same if no metric changed.
- */
-uint16_t
-olsrv2_update_ansn(bool force) {
-  struct nhdp_domain *domain;
-  bool changed;
-
-  changed = false;
-  list_for_each_element(nhdp_domain_get_list(), domain, _node) {
-    if (domain->neighbor_metric_changed) {
-      changed = true;
-      domain->neighbor_metric_changed = false;
-    }
-  }
-
-  if (changed || force
-      || _sym_neighbor_id != nhdp_db_neighbor_get_set_id()) {
-    _ansn++;
-    _sym_neighbor_id = nhdp_db_neighbor_get_set_id();
-  }
-  return _ansn;
 }
 
 /**
@@ -782,6 +754,13 @@ _parse_lan_array(struct cfg_named_section *section, bool add) {
 static void
 _cb_generate_tc(struct oonf_timer_instance *ptr __attribute__((unused))) {
   if (nhdp_domain_node_is_mpr() || !avl_is_empty(olsrv2_lan_get_tree())) {
+    _unadvertised_tc_count = 0;
+  }
+  else {
+    _unadvertised_tc_count++;
+  }
+
+  if (_unadvertised_tc_count <= _olsrv2_config.a_hold_time_factor) {
     olsrv2_writer_send_tc();
   }
 }

@@ -730,7 +730,7 @@ _process_domainspecific_linkdata(struct netaddr *addr __attribute__((unused))) {
 
   /* process MPR settings of link */
   nhdp_domain_process_mpr_tlv(_current.mprtypes, _current.mprtypes_size,
-      _current.neighbor, _nhdp_address_pass2_tlvs[IDX_ADDRTLV2_MPR].tlv);
+      _current.link, _nhdp_address_pass2_tlvs[IDX_ADDRTLV2_MPR].tlv);
 
   /* update out metric with other sides in metric */
   tlv = _nhdp_address_pass2_tlvs[IDX_ADDRTLV2_LINKMETRIC].tlv;
@@ -968,16 +968,17 @@ _cb_msg_pass2_end(struct rfc5444_reader_tlvblock_context *context, bool dropped)
   nhdp_db_neighbor_set_originator(_current.neighbor, &context->orig_addr);
 
   /* copy willingness to permanent storage */
-  nhdp_domain_store_willingness(_current.neighbor);
-
-  /* update MPR sets and link metrics */
-  nhdp_domain_neighbor_changed(_current.neighbor);
+  nhdp_domain_store_willingness(_current.link);
 
   /* update ip flooding settings */
   nhdp_interface_update_status(_current.localif);
 
   /* update link status */
   nhdp_db_link_update_status(_current.link);
+
+  /* update link metrics and MPR */
+  nhdp_domain_recalculate_metrics(NULL, _current.neighbor);
+  nhdp_domain_delayed_mpr_recalculation(NULL, _current.neighbor);
 
   return RFC5444_OKAY;
 }

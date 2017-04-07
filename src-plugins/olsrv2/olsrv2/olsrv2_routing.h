@@ -179,16 +179,18 @@ struct olsrv2_routing_filter {
   struct list_entity _node;
 };
 
-void olsrv2_routing_init(void);
+int olsrv2_routing_init(void);
 void olsrv2_routing_initiate_shutdown(void);
 void olsrv2_routing_cleanup(void);
 
 void olsrv2_routing_dijkstra_node_init(
     struct olsrv2_dijkstra_node *, const struct netaddr *originator);
 
+EXPORT uint16_t olsrv2_routing_get_ansn(void);
 EXPORT void olsrv2_routing_set_domain_parameter(struct nhdp_domain *domain,
     struct olsrv2_routing_domain *parameter);
 
+EXPORT void olsrv2_routing_domain_changed(struct nhdp_domain *domain);
 EXPORT void olsrv2_routing_force_update(bool skip_wait);
 EXPORT void olsrv2_routing_trigger_update(void);
 

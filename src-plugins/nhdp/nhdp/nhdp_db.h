@@ -130,7 +130,10 @@ struct nhdp_neighbor_domaindata {
   struct nhdp_metric metric;
 
   /*! pointer to the best link available to the neighbor */
-  struct nhdp_link *best_link;
+  struct nhdp_link *best_out_link;
+
+  /*! outgoing link metric of the best link */
+  uint32_t best_out_link_metric;
 
   /*! interface index for the best link available to the neighbor */
   unsigned best_link_ifindex;
@@ -140,6 +143,9 @@ struct nhdp_neighbor_domaindata {
 
   /*! true if the neighbor has been selected as a MPR by this router */
   bool neigh_is_mpr;
+
+  /*! true if the neighbor was a MPR of this router before the MPR recalculation */
+  bool _neigh_was_mpr;
 
   /*! Routing willingness of neighbor */
   uint8_t willingness;
@@ -151,6 +157,9 @@ struct nhdp_neighbor_domaindata {
 struct nhdp_l2hop_domaindata {
   /*! incoming and outgoing metric */
   struct nhdp_metric metric;
+
+  /*! metric used for last MPR calculation */
+  uint32_t _last_used_outgoing_metric;
 };
 
 /**
@@ -173,6 +182,9 @@ struct nhdp_link {
   /*! timer that fires when the link has to be removed from the database */
   struct oonf_timer_instance vtime;
 
+  /*! last status of the linked, used to detect status changes */
+  enum nhdp_link_status last_status;
+
   /*! cached status of the linked */
   enum nhdp_link_status status;
 
@@ -193,6 +205,18 @@ struct nhdp_link {
 
   /*! timestamp when the current link status was set */
   uint64_t last_status_change;
+
+  /*! true if the local router has been selected as a MPR by the neighbor */
+  bool local_is_flooding_mpr;
+
+  /*! true if the neighbor has been selected as a MPR by this router */
+  bool neigh_is_flooding_mpr;
+
+  /*! Willingness of neighbor for flooding data */
+  uint8_t flooding_willingness;
+
+  /*! true if the neighbor has been selected as a MPR by this router */
+  bool _neigh_was_flooding_mpr;
 
   /*! internal field for NHDP processing */
   int _process_count;
@@ -281,20 +305,11 @@ struct nhdp_neighbor {
   /*! pointer to other (dualstack) representation of this neighbor */
   struct nhdp_neighbor *dualstack_partner;
 
-  /*! true if the local router has been selected as a MPR by the neighbor */
-  bool local_is_flooding_mpr;
-
-  /*! true if the neighbor has been selected as a MPR by this router */
-  bool neigh_is_flooding_mpr;
-  
-  /* ! true if the neighbor has been selected as an MPR during selection algorithm */
-  bool selection_is_mpr;
-
-  /*! Willingness of neighbor for flooding data */
-  uint8_t flooding_willingness;
-
   /*! internal field for NHDP processing */
   int _process_count;
+
+  /*! true if the neighbor has been selected as an MPR during selection algorithm */
+  bool selection_is_mpr;
 
   /*!
    * originator address of this node before it was changed.

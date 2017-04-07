@@ -271,6 +271,7 @@ _calculate_n1(const struct nhdp_domain *domain, struct neighbor_graph *graph) {
   
   list_for_each_element(nhdp_db_get_neigh_list(), neigh, _global_node) {
     // Reset temporary selection state 
+
     neigh->selection_is_mpr = false;
     if (_is_allowed_neighbor_tuple(domain, neigh)) {
       OONF_DEBUG(LOG_MPR, "Add neighbor %s in: %u", netaddr_to_string(&buf1, &neigh->originator),
