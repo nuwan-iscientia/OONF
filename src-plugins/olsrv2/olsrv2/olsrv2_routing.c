@@ -234,6 +234,15 @@ olsrv2_routing_get_ansn(void) {
 }
 
 /**
+ * Force the answer set number to increase
+ * @param increment amount of increase
+ */
+void
+olsrv2_routing_force_ansn_increment(uint16_t increment) {
+  _ansn += increment;
+}
+
+/**
  * Trigger a new dijkstra as soon as we are back in the mainloop
  * (unless the rate limitation timer is active, then we will wait for it)
  */
