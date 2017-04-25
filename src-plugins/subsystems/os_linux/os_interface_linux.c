@@ -272,13 +272,15 @@ static void
 _cleanup(void) {
   struct os_interface_listener *if_listener, *if_listener_it;
   struct os_interface *os_if, *os_if_it;
+  bool configured;
 
   avl_for_each_element_safe(&_interface_data_tree, os_if, _node, os_if_it) {
+    configured = os_if->_internal.configured;
     list_for_each_element_safe(&os_if->_listeners, if_listener, _node, if_listener_it) {
       os_interface_linux_remove(if_listener);
     }
 
-    if (os_if->_internal.configured) {
+    if (configured) {
       os_if->_internal.configured = false;
       _remove_interface(os_if);
     }
