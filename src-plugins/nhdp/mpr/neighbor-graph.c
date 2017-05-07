@@ -238,7 +238,7 @@ mpr_print_addr_set(struct avl_tree *set) {
 }
 
 void
-mpr_print_n1_set(struct nhdp_domain *domain, struct avl_tree *set) {
+mpr_print_n1_set(struct nhdp_domain *domain __attribute__((unused)), struct avl_tree *set) {
   struct n1_node *current_node;
 #ifdef OONF_LOG_DEBUG_INFO
   struct nhdp_neighbor_domaindata *neighbordata;
