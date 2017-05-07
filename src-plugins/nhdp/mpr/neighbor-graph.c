@@ -238,17 +238,22 @@ mpr_print_addr_set(struct avl_tree *set) {
 }
 
 void
-mpr_print_n1_set(struct avl_tree *set) {
+mpr_print_n1_set(struct nhdp_domain *domain, struct avl_tree *set) {
   struct n1_node *current_node;
 #ifdef OONF_LOG_DEBUG_INFO
+  struct nhdp_neighbor_domaindata *neighbordata;
   struct netaddr_str buf1;
 #endif
 
   avl_for_each_element(set, current_node, _avl_node) {
+#ifdef OONF_LOG_DEBUG_INFO
+    neighbordata = nhdp_domain_get_neighbordata(domain, current_node->neigh);
+
     OONF_DEBUG(LOG_MPR, "%s in: %u out: %u",
         netaddr_to_string(&buf1, &current_node->addr),
-               current_node->neigh->_domaindata[0].metric.in,
-               current_node->neigh->_domaindata[0].metric.out);
+               neighbordata->metric.in,
+               neighbordata->metric.out);
+#endif
   }
 }
 
@@ -257,18 +262,18 @@ mpr_print_n1_set(struct avl_tree *set) {
  * @param graph neighbor graph instance
  */
 void
-mpr_print_sets(struct neighbor_graph *graph) {
+mpr_print_sets(struct nhdp_domain *domain, struct neighbor_graph *graph) {
   OONF_DEBUG(LOG_MPR, "Set N");
   mpr_print_addr_set(&graph->set_n);
 
   OONF_DEBUG(LOG_MPR, "Set N1");
-  mpr_print_n1_set(&graph->set_n1);
+  mpr_print_n1_set(domain, &graph->set_n1);
 
   OONF_DEBUG(LOG_MPR, "Set N2");
   mpr_print_addr_set(&graph->set_n2);
 
   OONF_DEBUG(LOG_MPR, "Set MPR");
-  mpr_print_n1_set(&graph->set_mpr);
+  mpr_print_n1_set(domain, &graph->set_mpr);
 }
 
 /**

@@ -93,8 +93,11 @@ static struct neighbor_graph_interface _rt_api_interface = {
  * @return true if reachable, false otherwise
  */
 static bool
-_is_reachable_neighbor_tuple(struct nhdp_neighbor *neigh) {
-  if (neigh->_domaindata[0].metric.in <= RFC7181_METRIC_MAX
+_is_reachable_neighbor_tuple(const struct nhdp_domain *domain, struct nhdp_neighbor *neigh) {
+  struct nhdp_neighbor_domaindata *neighbordata;
+  neighbordata = nhdp_domain_get_neighbordata(domain, neigh);
+
+  if (neighbordata->metric.in <= RFC7181_METRIC_MAX
       && neigh->symmetric > 0) {
     return true;
   }
@@ -108,9 +111,9 @@ _is_reachable_neighbor_tuple(struct nhdp_neighbor *neigh) {
  * @return true if allowed, false otherwise
  */
 static bool
-_is_allowed_neighbor_tuple(const struct nhdp_domain *domain __attribute__((unused)),
+_is_allowed_neighbor_tuple(const struct nhdp_domain *domain,
     struct nhdp_neighbor *neigh) {
-  if (_is_reachable_neighbor_tuple(neigh)) {
+  if (_is_reachable_neighbor_tuple(domain, neigh)) {
     // FIXME Willingness handling appears to be broken; routing willingness is always 0
     //      && neigh->_domaindata[0].willingness > RFC5444_WILLINGNESS_NEVER) {
     return true;
@@ -275,7 +278,7 @@ _calculate_n1(const struct nhdp_domain *domain, struct neighbor_graph *graph) {
     neigh->selection_is_mpr = false;
     if (_is_allowed_neighbor_tuple(domain, neigh)) {
       OONF_DEBUG(LOG_MPR, "Add neighbor %s in: %u", netaddr_to_string(&buf1, &neigh->originator),
-                 neigh->_domaindata[0].metric.in);
+          nhdp_domain_get_neighbordata(domain, neigh)->metric.in);
       mpr_add_n1_node_to_set(&graph->set_n1, neigh, NULL, 0);
     }
   }
