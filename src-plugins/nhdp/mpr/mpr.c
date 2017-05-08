@@ -152,9 +152,8 @@ _update_nhdp_routing(struct nhdp_domain *domain, struct neighbor_graph *graph) {
     current_mpr_node = avl_find_element(&graph->set_mpr,
         &lnk->neigh->originator,
         current_mpr_node, _avl_node);
-    if (current_mpr_node != NULL) {
-      neighbordata->neigh_is_mpr = true;
-    }
+
+    neighbordata->neigh_is_mpr = current_mpr_node != NULL;
   }
 }
 
@@ -171,9 +170,8 @@ _update_nhdp_flooding(struct neighbor_graph *graph) {
     current_mpr_node = avl_find_element(&graph->set_mpr,
         &current_link->neigh->originator,
         current_mpr_node, _avl_node);
-    if (current_mpr_node != NULL) {
-      current_link->neigh_is_flooding_mpr = true;
-    }
+
+    current_link->neigh_is_flooding_mpr = current_mpr_node != NULL;
   }
 }
 

@@ -103,12 +103,9 @@ _is_reachable_link_tuple(const struct nhdp_domain *domain,
   struct nhdp_link_domaindata *linkdata;
 
   linkdata = nhdp_domain_get_linkdata(domain, lnk);
-  if (lnk->local_if == current_interface
+  return lnk->local_if == current_interface
       && linkdata->metric.out <= RFC7181_METRIC_MAX
-      && lnk->status == NHDP_LINK_SYMMETRIC) {
-    return true;
-  }
-  return false;
+      && lnk->status == NHDP_LINK_SYMMETRIC;
 }
 
 /**
@@ -121,11 +118,8 @@ _is_reachable_link_tuple(const struct nhdp_domain *domain,
 static bool
 _is_allowed_link_tuple(const struct nhdp_domain *domain,
     struct nhdp_interface *current_interface, struct nhdp_link *lnk) {
-  if (_is_reachable_link_tuple(domain, current_interface, lnk)
-      && lnk->flooding_willingness > RFC7181_WILLINGNESS_NEVER) {
-    return true;
-  }
-  return false;
+  return _is_reachable_link_tuple(domain, current_interface, lnk)
+      && lnk->flooding_willingness > RFC7181_WILLINGNESS_NEVER;
 }
 
 static bool
@@ -134,11 +128,8 @@ _is_allowed_2hop_tuple(const struct nhdp_domain *domain,
   struct nhdp_l2hop_domaindata *twohopdata;
 
   twohopdata = nhdp_domain_get_l2hopdata(domain, two_hop);
-  if (two_hop->link->local_if == current_interface
-      && twohopdata->metric.out <= RFC7181_METRIC_MAX) {
-    return true;
-  }
-  return false;
+  return two_hop->link->local_if == current_interface
+      && twohopdata->metric.out <= RFC7181_METRIC_MAX;
 }
 
 static uint32_t

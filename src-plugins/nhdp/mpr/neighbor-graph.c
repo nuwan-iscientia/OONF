@@ -171,10 +171,7 @@ mpr_is_mpr(struct neighbor_graph *graph, struct netaddr *addr) {
 
   tmp_mpr_node = avl_find_element(&graph->set_mpr,
       addr, tmp_mpr_node, _avl_node);
-  if (tmp_mpr_node != NULL) {
-    return true;
-  }
-  return false;
+  return tmp_mpr_node != NULL;
 }
 
 uint32_t
@@ -212,7 +209,7 @@ mpr_calculate_minimal_d_z_y(const struct nhdp_domain *domain,
                min_d_z_y);
   }
   else {
-    OONF_DEBUG(LOG_MPR, "minimal d_z_y(%s) = infinte",
+    OONF_DEBUG(LOG_MPR, "minimal d_z_y(%s) = infinite",
                netaddr_to_string(&nbuf1, &y->addr));
   }
 #endif

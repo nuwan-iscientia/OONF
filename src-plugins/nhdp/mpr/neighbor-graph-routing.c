@@ -97,11 +97,8 @@ _is_reachable_neighbor_tuple(const struct nhdp_domain *domain, struct nhdp_neigh
   struct nhdp_neighbor_domaindata *neighbordata;
   neighbordata = nhdp_domain_get_neighbordata(domain, neigh);
 
-  if (neighbordata->metric.in <= RFC7181_METRIC_MAX
-      && neigh->symmetric > 0) {
-    return true;
-  }
-  return false;
+  return neighbordata->metric.in <= RFC7181_METRIC_MAX
+      && neigh->symmetric > 0;
 }
 
 /**
@@ -113,12 +110,11 @@ _is_reachable_neighbor_tuple(const struct nhdp_domain *domain, struct nhdp_neigh
 static bool
 _is_allowed_neighbor_tuple(const struct nhdp_domain *domain,
     struct nhdp_neighbor *neigh) {
-  if (_is_reachable_neighbor_tuple(domain, neigh)) {
-    // FIXME Willingness handling appears to be broken; routing willingness is always 0
-    //      && neigh->_domaindata[0].willingness > RFC5444_WILLINGNESS_NEVER) {
-    return true;
-  }
-  return false;
+  struct nhdp_neighbor_domaindata *neighbordata;
+
+  neighbordata = nhdp_domain_get_neighbordata(domain, neigh);
+  return _is_reachable_neighbor_tuple(domain, neigh)
+      && neighbordata->willingness > RFC7181_WILLINGNESS_NEVER;
 }
 
 static bool
@@ -132,10 +128,7 @@ static bool
 _is_allowed_2hop_tuple(const struct nhdp_domain *domain, struct nhdp_l2hop *two_hop) {
   struct nhdp_l2hop_domaindata *neighdata;
   neighdata = nhdp_domain_get_l2hopdata(domain, two_hop);
-  if (neighdata->metric.in <= RFC7181_METRIC_MAX) {
-    return true;
-  }
-  return false;
+  return neighdata->metric.in <= RFC7181_METRIC_MAX;
 }
 
 /**
