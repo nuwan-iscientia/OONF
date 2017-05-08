@@ -507,6 +507,7 @@ _recalculate_metrics(struct nhdp_domain *domain, struct nhdp_neighbor *neigh, bo
     list_for_each_element(&_domain_list, domain, _node) {
       changed_metric |= _recalculate_metrics(domain, neigh, false);
     }
+    domain = NULL;
   }
   else if (!neigh) {
     list_for_each_element(nhdp_db_get_neigh_list(), neigh, _global_node) {

@@ -464,6 +464,13 @@ olsrv2_routing_get_filter_list(void) {
  */
 static void
 _cb_mpr_update(struct nhdp_domain *domain) {
+  if (!domain) {
+    list_for_each_element(nhdp_domain_get_list(), domain, _node) {
+      _cb_mpr_update(domain);
+    }
+    return;
+  }
+
   OONF_INFO(LOG_OLSRV2, "MPR update for domain %u", domain->index);
 
   _update_ansn = true;
@@ -477,6 +484,13 @@ _cb_mpr_update(struct nhdp_domain *domain) {
  */
 static void
 _cb_metric_update(struct nhdp_domain *domain) {
+  if (!domain) {
+    list_for_each_element(nhdp_domain_get_list(), domain, _node) {
+      _cb_metric_update(domain);
+    }
+    return;
+  }
+
   OONF_INFO(LOG_OLSRV2, "Metric update for domain %u", domain->index);
 
   _update_ansn = true;
