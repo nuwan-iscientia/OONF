@@ -60,7 +60,7 @@ enum {
   TEMPLATE_JSON_BOOL_LENGTH = 6,
 
   /*! maximum number of template keys per template */
-  TEMPLATE_MAX_KEYS         = 32
+  TEMPLATE_MAX_KEYS         = 64
 };
 
 /**
