@@ -389,6 +389,8 @@ rfc5444_print_raw(struct autobuf *out, void *buffer, size_t length) {
       idx2 += 2;
 
       head_len = tail_len = 0;
+      head = NULL;
+      tail = NULL;
       if (flags & RFC5444_ADDR_FLAG_HEAD) {
         if (idx2 + 1 > idx + msg_size) {
           return -1;
