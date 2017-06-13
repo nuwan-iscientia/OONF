@@ -635,6 +635,8 @@ _register_addrtlvtype(struct rfc5444_writer *writer,
   tlvtype->_creator = msg;
   tlvtype->_full_type = _get_fulltype(tlvtype->type, tlvtype->exttype);
 
+  assert(!list_is_node_added(&tlvtype->_tlvtype_node));
+
   if (msg) {
     /* add to message creator list */
     list_add_tail(&msg->_msgspecific_tlvtype_head, &tlvtype->_tlvtype_node);

@@ -343,7 +343,7 @@ rfc5444_writer_create_message(struct rfc5444_writer *writer, uint8_t msgid,
         writer->_state = RFC5444_WRITER_NONE;
 #endif
         _rfc5444_writer_free_addresses(writer, msg);
-        return -1;
+        return RFC5444_MTU_TOO_SMALL;
       }
       not_fragmented = false;
 
@@ -884,12 +884,11 @@ _compress_address(struct _rfc5444_internal_addr_compress_session *acs,
     printf("Compress Address %s (last: %s)\n",
         netaddr_to_string(&nbuf1, &addr->address),
         last_addr == NULL ? "" : netaddr_to_string(&nbuf2, &last_addr->address));
-    printf("\ttotal:");
+    printf("\ttotal:   ");
     for (i=0; i<addrlen; i++) {
       printf(" %4d ", acs[i].total);
     }
     printf("\n");
-    printf("\tcurrent:");
   }
 #endif
   /* add size for address part (and header if necessary) */
@@ -910,7 +909,18 @@ _compress_address(struct _rfc5444_internal_addr_compress_session *acs,
       }
     }
     _close_addrblock(acs, writer, last_addr, common_head);
+#ifdef DEBUG_OUTPUT
+    printf("\tt-closed:");
+    for (i=0; i<addrlen; i++) {
+      printf(" %4d ", acs[i].total);
+    }
+    printf("\n");
+#endif
   }
+
+#ifdef DEBUG_OUTPUT
+  printf("\tcurrent:");
+#endif
 
   /* calculate tlv flags */
   avl_for_each_element(&addr->_addrtlv_tree, tlv, addrtlv_node) {
@@ -1016,12 +1026,13 @@ _compress_address(struct _rfc5444_internal_addr_compress_session *acs,
     if (closed || acs[i].total + continue_cost > acs[addrlen-1].total + new_cost) {
       /* forget the last addresses, longer prefix is better. */
       /* store address block for later binary generation */
+#if 0
       if (last_addr) {
         last_addr->_block_start = acs[addrlen-1].ptr;
         last_addr->_block_multiple_prefixlen = acs[addrlen-1].multiplen;
         last_addr->_block_headlen = addrlen-1;
       }
-
+#endif
       /* Create a new address block */
       acs[i].ptr = addr;
       acs[i].multiplen = false;

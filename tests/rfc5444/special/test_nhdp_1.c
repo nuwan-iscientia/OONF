@@ -229,9 +229,6 @@ int main(int argc __attribute__ ((unused)), char **argv __attribute__ ((unused))
   msg = rfc5444_writer_register_message(&writer, MSG_TYPE, false);
   msg->addMessageHeader = addMessageHeader;
 
-  rfc5444_writer_register_addrtlvtype(&writer, &addrtlvs[0], MSG_TYPE);
-  rfc5444_writer_register_addrtlvtype(&writer, &addrtlvs[1], MSG_TYPE);
-
   rfc5444_writer_register_msgcontentprovider(&writer, &cpr, addrtlvs, ARRAYSIZE(addrtlvs));
 
   BEGIN_TESTING(clear_elements);

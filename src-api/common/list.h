@@ -213,10 +213,11 @@ list_merge(struct list_entity *add_to, struct list_entity *remove_from) {
     return;
   }
 
-  add_to->next->prev = remove_from->prev;
-  remove_from->prev->next = add_to->next;
-  add_to->next = remove_from->next;
-  remove_from->next->prev = add_to;
+  add_to->prev->next = remove_from->next;
+  remove_from->next->prev = add_to->prev;
+
+  add_to->prev= remove_from->prev;
+  remove_from->prev->next = add_to;
 
   list_init_head(remove_from);
 }

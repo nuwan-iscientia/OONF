@@ -126,6 +126,7 @@ static void addAddresses(struct rfc5444_writer *wr) {
   CHECK_TRUE(0 == netaddr_from_string(&ip, "fe80::1234:5678:9abc:def0"), "failed to initialize ip");
   addr = rfc5444_writer_add_address(wr, cpr.creator, &ip, false);
   rfc5444_writer_add_addrtlv(wr, addr, &addrtlvs[1], &value1, 1, false);
+
 }
 
 static void write_packet(struct rfc5444_writer *w __attribute__ ((unused)),
@@ -146,7 +147,11 @@ static void write_packet(struct rfc5444_writer *w __attribute__ ((unused)),
   printf("\n");
 
   abuf_init(&out);
+  rfc5444_print_raw(&out, buf, length);
+#if 0
+  abuf_puts(&out, "\n\n\n");
   rfc5444_print_direct(&out, buf, length);
+#endif
 
   printf("%s\n", abuf_getptr(&out));
   abuf_free(&out);
@@ -180,9 +185,6 @@ int main(int argc __attribute__ ((unused)), char **argv __attribute__ ((unused))
 
   msg = rfc5444_writer_register_message(&writer, MSG_TYPE, false);
   msg->addMessageHeader = addMessageHeader;
-
-  rfc5444_writer_register_addrtlvtype(&writer, &addrtlvs[0], MSG_TYPE);
-  rfc5444_writer_register_addrtlvtype(&writer, &addrtlvs[1], MSG_TYPE);
 
   rfc5444_writer_register_msgcontentprovider(&writer, &cpr, addrtlvs, ARRAYSIZE(addrtlvs));
 
