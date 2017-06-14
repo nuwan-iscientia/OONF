@@ -293,25 +293,27 @@ _cb_remove_nhdp_interface(void *ptr) {
 
   /* get auto linklayer extension */
   auto_ll4 = oonf_class_get_extension(&_nhdp_if_extenstion, nhdp_if);
-
-  if (auto_ll4->nhdp_if) {
-    /* stop running address setting feedback */
-    auto_ll4->os_addr.cb_finished = NULL;
-    os_interface_address_interrupt(&auto_ll4->os_addr);
-
-    /* cleanup address if necessary */
-    if (auto_ll4->active && auto_ll4->plugin_generated) {
-      auto_ll4->os_addr.set = false;
-      os_interface_address_set(&auto_ll4->os_addr);
-    }
-    auto_ll4->active = false;
-
-    /* stop update timer */
-    oonf_timer_stop(&auto_ll4->update_timer);
-
-    /* cleanup pointer to nhdp interface */
-    auto_ll4->nhdp_if = NULL;
+  if (!auto_ll4->nhdp_if) {
+    /* Interface already cleaned up */
+    return;
   }
+
+  /* stop running address setting feedback */
+  auto_ll4->os_addr.cb_finished = NULL;
+  os_interface_address_interrupt(&auto_ll4->os_addr);
+
+  /* cleanup address if necessary */
+  if (auto_ll4->active && auto_ll4->plugin_generated) {
+    auto_ll4->os_addr.set = false;
+    os_interface_address_set(&auto_ll4->os_addr);
+  }
+  auto_ll4->active = false;
+
+  /* stop update timer */
+  oonf_timer_stop(&auto_ll4->update_timer);
+
+  /* cleanup pointer to nhdp interface */
+  auto_ll4->nhdp_if = NULL;
 }
 
 /**
@@ -330,6 +332,10 @@ _cb_address_finished(struct os_interface_ip_change *os_addr, int error) {
 
   /* get auto linklayer extension */
   auto_ll4 = container_of(os_addr, typeof(*auto_ll4), os_addr);
+  if (!auto_ll4->nhdp_if) {
+    /* Interface already cleaned up */
+    return;
+  }
 
   OONF_DEBUG(LOG_AUTO_LL4, "Got feedback from netlink for %s address %s on if %s: %s (%d)",
       os_addr->set ? "setting" : "resetting",
@@ -364,7 +370,6 @@ _cb_ifaddr_change(void *ptr) {
 
   /* get auto linklayer extension */
   auto_ll4 = oonf_class_get_extension(&_nhdp_if_extenstion, nhdp_if);
-
   if (!auto_ll4->nhdp_if) {
     /* Interface already cleaned up */
     return;
@@ -396,6 +401,10 @@ _cb_laddr_change(void *ptr) {
 
   /* get auto linklayer extension */
   auto_ll4 = oonf_class_get_extension(&_nhdp_if_extenstion, nhdp_if);
+  if (!auto_ll4->nhdp_if) {
+    /* Interface already cleaned up */
+    return;
+  }
 
   if (!oonf_timer_is_active(&auto_ll4->update_timer)) {
     /* request delayed address check */
@@ -423,6 +432,10 @@ _cb_2hop_change(void *ptr) {
 
   /* get auto linklayer extension */
   auto_ll4 = oonf_class_get_extension(&_nhdp_if_extenstion, nhdp_if);
+  if (!auto_ll4->nhdp_if) {
+    /* Interface already cleaned up */
+    return;
+  }
 
   if (!oonf_timer_is_active(&auto_ll4->update_timer)) {
     /* request delayed address check */
@@ -471,18 +484,6 @@ _cb_update_timer(struct oonf_timer_instance *ptr) {
 
   /* query current interface status */
   count = _get_current_if_ipv4_addresscount(os_if, &current_ll4, &auto_ll4->auto_ll4_addr);
-
-  if (!oonf_rfc5444_is_interface_active(nhdp_if->rfc5444_if.interface, AF_INET6)) {
-    if (auto_ll4->plugin_generated) {
-      /* remove our configured address, this interface does not support dualstack */
-      _commit_address(auto_ll4, &current_ll4, false);
-      OONF_DEBUG(LOG_AUTO_LL4,
-          "Remove LL4 address, interface is not using NHDP on IPv6");
-    }
-    OONF_DEBUG(LOG_AUTO_LL4,
-        "Done (interface %s is not using NHDP on IPv6)", os_if->name);
-    return;
-  }
 
   if (!auto_ll4->active) {
     if (auto_ll4->plugin_generated && count == 1
@@ -566,9 +567,10 @@ _generate_default_address(struct _nhdp_if_autoll4 *auto_ll4, const struct netadd
   struct netaddr_str nbuf1, nbuf2;
 #endif
 
-  if (netaddr_get_address_family(ipv6_ll) == AF_UNSPEC) {
+  if (!ipv6_ll || netaddr_get_address_family(ipv6_ll) == AF_UNSPEC) {
     /* no ipv6 linklocal address */
     netaddr_invalidate(&auto_ll4->auto_ll4_addr);
+    return;
   }
 
   host_part = _calculate_host_part(ipv6_ll);
@@ -678,6 +680,10 @@ _nhdp_if_has_collision(struct nhdp_interface *nhdp_if, struct netaddr *addr) {
   struct nhdp_link *lnk;
   struct nhdp_laddr *laddr;
   struct nhdp_l2hop *l2hop;
+
+  if (netaddr_is_unspec(addr)) {
+    return true;
+  }
 
   list_for_each_element(&nhdp_if->_links, lnk, _if_node) {
     /* check for collision with one-hop neighbor */
