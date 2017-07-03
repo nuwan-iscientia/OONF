@@ -501,10 +501,14 @@ os_fd_get_socket_error(struct os_fd *sockfd, int *value) {
  * @return same as sendto()
  */
 static INLINE ssize_t
-os_fd_sendto(struct os_fd *sockfd, const void *buf, size_t length, const union netaddr_socket *dst, bool dont_route) {
-  return sendto(sockfd->fd, buf, length,
-      dont_route ? MSG_DONTROUTE : 0,
-      dst ? &dst->std : NULL, sizeof(*dst));
+os_fd_sendto(struct os_fd *sock, const void *buf, size_t length, const union netaddr_socket *dst, bool dont_route) {
+  if (dst) {
+    return sendto(sock->fd, buf, length,
+        dont_route ? MSG_DONTROUTE : 0, &dst->std, sizeof(*dst));
+  }
+  else {
+    return send(sock->fd, buf, length, dont_route ? MSG_DONTROUTE : 0);
+  }
 }
 
 /**
@@ -521,7 +525,12 @@ static INLINE ssize_t
 os_fd_recvfrom(struct os_fd *sockfd, void *buf, size_t length, union netaddr_socket *source,
     const struct os_interface *interf __attribute__((unused))) {
   socklen_t len = sizeof(*source);
-  return recvfrom(sockfd->fd, buf, length, 0, &source->std, &len);
+  if (source) {
+    return recvfrom(sockfd->fd, buf, length, 0, &source->std, &len);
+  }
+  else {
+    return recv(sockfd->fd, buf, length, 0);
+  }
 }
 
 /**
