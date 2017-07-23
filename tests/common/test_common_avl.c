@@ -84,7 +84,7 @@ static void add_elements(struct tree_element *elements, bool do_random) {
     }
 
     for (i=0; i<COUNT; i++) {
-      int num = rand() % COUNT;
+      uint32_t num = rand() % COUNT;
 
       while (added[num]) {
         num = (num + 1) % COUNT;
@@ -104,8 +104,8 @@ static void add_elements(struct tree_element *elements, bool do_random) {
 }
 
 #if 0
-static void print_tree_int(struct tree_element *e, int step) {
-  int i;
+static void print_tree_int(struct tree_element *e, uint32_t step) {
+  uint32_t i;
 
   for (i=0; i<step; i++) {
     printf("\t");
@@ -392,7 +392,7 @@ static void test_greaterequal(bool do_random) {
 }
 
 static void test_lessequal(bool do_random) {
-  int i;
+  uint32_t i;
   START_TEST();
 
   /* create tree with 1,2,4,5,6 */
@@ -483,7 +483,7 @@ static void test_element_functions(bool do_random) {
 
 static void test_for_each_macros(bool do_random) {
   struct tree_element *e;
-  int i;
+  uint32_t i;
 
   START_TEST();
   avl_init(&head, avl_comp_uint32, true);
@@ -521,7 +521,7 @@ static void test_for_each_macros(bool do_random) {
 
 static void test_for_each_reverse_macros(bool do_random) {
   struct tree_element *e;
-  int i,j;
+  uint32_t i,j;
 
   START_TEST();
   avl_init(&head, avl_comp_uint32, true);
@@ -568,7 +568,7 @@ static void test_for_each_reverse_macros(bool do_random) {
 
 static void test_for_each_save_macro(bool do_random) {
   struct tree_element *e, *ptr;
-  int i;
+  uint32_t i;
 
   START_TEST();
   avl_init(&head, avl_comp_uint32, true);
@@ -587,7 +587,7 @@ static void test_for_each_save_macro(bool do_random) {
 
 static void test_for_each_reverse_save_macro(bool do_random) {
   struct tree_element *e, *ptr;
-  int i,j;
+  uint32_t i,j;
 
   START_TEST();
   avl_init(&head, avl_comp_uint32, true);
@@ -629,9 +629,9 @@ static void test_remove_all_macro(bool do_random) {
 
 static void test_for_each_key_macros(void) {
   struct tree_element *e, *p;
-  int key;
+  uint32_t key;
   uint32_t i;
-  int result[4];
+  uint32_t result[4];
 
   START_TEST();
   avl_init(&head, avl_comp_uint32, true);

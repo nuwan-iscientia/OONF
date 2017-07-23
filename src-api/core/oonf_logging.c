@@ -353,7 +353,7 @@ struct timeval now;
     return NULL;
   }
   snprintf(buf->buf, sizeof(buf->buf), "%02d:%02d:%02d.%03ld",
-      tm->tm_hour, tm->tm_min, tm->tm_sec, now.tv_usec / 1000);
+      tm->tm_hour % 24u, tm->tm_min % 60u, tm->tm_sec % 60u, (now.tv_usec / 1000) % 1000u);
   return buf->buf;
 }
 

@@ -625,7 +625,7 @@ _initialize_nhdp_link_values(struct nhdp_link *lnk) {
       json_getbool(lnk->neigh_is_flooding_mpr),
       sizeof(_value_link_flood_remote));
   snprintf(_value_link_willingness, sizeof(_value_link_willingness),
-      "%d", lnk->flooding_willingness);
+      "%u", lnk->flooding_willingness & 15);
 
 }
 
@@ -669,7 +669,7 @@ _initialize_nhdp_neighbor_mpr_values(struct nhdp_domain *domain,
       sizeof(_value_domain_mpr_remote));
 
   snprintf(_value_domain_mpr_will, sizeof(_value_domain_mpr_will),
-      "%d", domaindata->willingness);
+      "%1u", domaindata->willingness & 15);
 }
 
 static void

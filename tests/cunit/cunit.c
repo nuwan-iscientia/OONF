@@ -48,7 +48,7 @@
 
 #include "cunit.h"
 
-static int success, fail, total_success, total_fail;
+static unsigned success, fail, total_success, total_fail;
 static void (*clear_elements)(void);
 
 void
@@ -61,7 +61,7 @@ BEGIN_TESTING(void (*clear)(void)) {
 
 int
 FINISH_TESTING(void) {
-  printf("\n%d tests ended: %d successes, %d fails\n",
+  printf("\n%d tests ended: %u successes, %u fails\n",
       total_success + total_fail, total_success, total_fail);
   return total_fail;
 }
@@ -78,7 +78,7 @@ cunit_start_test(const char *func) {
 
 void
 cunit_end_test(const char *func) {
-  printf("End %s: %d successes, %d fails\n", func, success, fail);
+  printf("End %s: %u successes, %u fails\n", func, success, fail);
   total_success += success;
   total_fail += fail;
 }

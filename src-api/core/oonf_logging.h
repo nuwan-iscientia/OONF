@@ -361,7 +361,7 @@ struct oonf_log_handler_entry {
  */
 struct oonf_walltime_str {
   /*! string array for maximum length walltime */
-  char buf[sizeof("00:00:00.000")];
+  char buf[14];
 };
 
 /**
