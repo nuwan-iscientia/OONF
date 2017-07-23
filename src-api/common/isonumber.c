@@ -221,28 +221,22 @@ isonumber_to_u64(uint64_t *dst, const char *iso, int fraction, bool binary) {
     switch (next[0]) {
       case 'E':
         factor *= multiplicator;
-        __attribute__ ((fallthrough));
-        /* no break */
+        /* fall through */
       case 'P':
         factor *= multiplicator;
-        __attribute__ ((fallthrough));
-        /* no break */
+        /* fall through */
       case 'T':
         factor *= multiplicator;
-        __attribute__ ((fallthrough));
-        /* no break */
+        /* fall through */
       case 'G':
         factor *= multiplicator;
-        __attribute__ ((fallthrough));
-        /* no break */
+        /* fall through */
       case 'M':
         factor *= multiplicator;
-        __attribute__ ((fallthrough));
-        /* no break */
+        /* fall through */
       case 'k':
         factor *= multiplicator;
-        __attribute__ ((fallthrough));
-        /* no break */
+        /* fall through */
       case ' ':
         break;
       default:
