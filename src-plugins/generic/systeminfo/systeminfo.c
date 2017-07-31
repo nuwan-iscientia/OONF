@@ -180,7 +180,7 @@ static struct isonumber_str             _value_log_warnings;
 /* definition of the template data entries for JSON and table output */
 static struct abuf_template_data_entry _tde_time_key[] = {
     { KEY_TIME_SYSTEM, _value_system_time.buf, true },
-    { KEY_TIME_INTERNAL, _value_internal_time.buf, false },
+    { KEY_TIME_INTERNAL, _value_internal_time.buf, true },
 };
 static struct abuf_template_data_entry _tde_version_key[] = {
     { KEY_VERSION_TEXT, _value_version_text, true },
