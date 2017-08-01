@@ -78,7 +78,7 @@ static int _radio_process_link_char_request(struct dlep_extension *, struct dlep
 
 static int _radio_write_peer_offer(struct dlep_extension *,
     struct dlep_session *session, const struct netaddr *);
-static int _radio_write_peer_init_ack(struct dlep_extension *,
+static int _radio_write_session_init_ack(struct dlep_extension *,
     struct dlep_session *session, const struct netaddr *);
 
 static void _l2_neigh_added_to_session(struct dlep_session *session,
@@ -98,20 +98,20 @@ static void _cb_destination_timeout(struct dlep_session *,
 
 static struct dlep_extension_implementation _radio_signals[] = {
     {
-        .id = DLEP_PEER_DISCOVERY,
+        .id = DLEP_UDP_PEER_DISCOVERY,
         .process = _radio_process_peer_discovery
     },
     {
-        .id = DLEP_PEER_OFFER,
+        .id = DLEP_UDP_PEER_OFFER,
         .add_tlvs = _radio_write_peer_offer,
     },
     {
-        .id = DLEP_PEER_INITIALIZATION,
+        .id = DLEP_SESSION_INITIALIZATION,
         .process = _radio_process_peer_init,
     },
     {
-        .id = DLEP_PEER_INITIALIZATION_ACK,
-        .add_tlvs = _radio_write_peer_init_ack,
+        .id = DLEP_SESSION_INITIALIZATION_ACK,
+        .add_tlvs = _radio_write_session_init_ack,
     },
     {
         .id = DLEP_PEER_UPDATE,
@@ -205,7 +205,7 @@ dlep_base_proto_radio_init(void) {
  */
 static void
 _cb_init_radio(struct dlep_session *session) {
-  if (session->restrict_signal == DLEP_PEER_INITIALIZATION) {
+  if (session->restrict_signal == DLEP_SESSION_INITIALIZATION) {
     /*
      * we are waiting for a Peer Init,
      */
@@ -235,11 +235,11 @@ static int
 _radio_process_peer_discovery(
     struct dlep_extension *ext __attribute__((unused)),
     struct dlep_session *session) {
-  if (session->restrict_signal != DLEP_PEER_DISCOVERY) {
+  if (session->restrict_signal != DLEP_UDP_PEER_DISCOVERY) {
     /* ignore unless we are in discovery mode */
     return 0;
   }
-  return dlep_session_generate_signal(session, DLEP_PEER_OFFER, NULL);
+  return dlep_session_generate_signal(session, DLEP_UDP_PEER_OFFER, NULL);
 }
 
 /**
@@ -262,7 +262,7 @@ _radio_process_peer_init(
   struct netaddr_str nbuf;
 #endif
 
-  if (session->restrict_signal != DLEP_PEER_INITIALIZATION) {
+  if (session->restrict_signal != DLEP_SESSION_INITIALIZATION) {
     /* ignore unless we are in initialization mode */
     return 0;
   }
@@ -296,7 +296,7 @@ _radio_process_peer_init(
   }
 
   if (dlep_session_generate_signal(
-      session, DLEP_PEER_INITIALIZATION_ACK, NULL)) {
+      session, DLEP_SESSION_INITIALIZATION_ACK, NULL)) {
     return -1;
   }
 
@@ -494,6 +494,9 @@ _radio_write_peer_offer(
     const struct netaddr *addr __attribute__((unused))) {
   struct dlep_radio_if *radio_if;
   struct netaddr local_addr;
+#ifdef OONF_LOG_DEBUG_INFO
+  struct netaddr_str nbuf;
+#endif
 
   radio_if = dlep_radio_get_by_layer2_if(
       session->l2_listener.data->name);
@@ -502,6 +505,8 @@ _radio_write_peer_offer(
     return 0;
   }
 
+  OONF_DEBUG(session->log_source, "Local IPv4 socket: %s",
+      netaddr_socket_to_string(&nbuf, &radio_if->tcp.socket_v4.local_socket));
   netaddr_from_socket(&local_addr, &radio_if->tcp.socket_v4.local_socket);
   if (netaddr_get_address_family(&local_addr) == AF_INET) {
     /* no support for TLS at the moment */
@@ -509,6 +514,8 @@ _radio_write_peer_offer(
         &local_addr, radio_if->tcp_config.port, false);
   }
 
+  OONF_DEBUG(session->log_source, "Local IPv6 socket: %s",
+      netaddr_socket_to_string(&nbuf, &radio_if->tcp.socket_v6.local_socket));
   netaddr_from_socket(&local_addr, &radio_if->tcp.socket_v6.local_socket);
   if (netaddr_get_address_family(&local_addr) == AF_INET6) {
     /* no support for TLS at the moment */
@@ -526,7 +533,7 @@ _radio_write_peer_offer(
  * @return -1 if an error happened, 0 otherwise
  */
 static int
-_radio_write_peer_init_ack(
+_radio_write_session_init_ack(
     struct dlep_extension *ext __attribute__((unused)),
     struct dlep_session *session,
     const struct netaddr *addr __attribute__((unused))) {
@@ -535,7 +542,7 @@ _radio_write_peer_init_ack(
 
   /* write heartbeat interval */
   dlep_writer_add_heartbeat_tlv(&session->writer,
-      session->remote_heartbeat_interval);
+      session->cfg.heartbeat_interval);
 
   /* write supported extensions */
   ext_ids = dlep_extension_get_ids(&ext_count);
@@ -544,10 +551,11 @@ _radio_write_peer_init_ack(
         &session->writer, ext_ids, ext_count);
   }
 
-  if (session->cfg.peer_type) {
-    dlep_writer_add_peer_type_tlv(
-        &session->writer, session->cfg.peer_type);
-  }
+  /* TODO: check what router will report as flags */
+  dlep_writer_add_peer_type_tlv(
+      &session->writer, session->cfg.peer_type, false);
+
+  dlep_writer_add_status(&session->writer, DLEP_STATUS_OKAY, "");
 
   return 0;
 }

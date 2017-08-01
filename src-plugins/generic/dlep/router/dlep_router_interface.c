@@ -204,6 +204,7 @@ dlep_router_remove_interface(struct dlep_router_if *interface) {
   dlep_if_remove(&interface->interf);
 
   /* remove session */
+  free (interface->interf.session.cfg.peer_type);
   avl_remove(&_interface_tree, &interface->interf._node);
   oonf_class_free(&_router_if_class, interface);
 }

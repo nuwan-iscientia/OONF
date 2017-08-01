@@ -61,7 +61,7 @@ struct dlep_extension;
  */
 struct dlep_extension_signal {
   /*! signal id */
-  uint16_t id;
+  int32_t id;
 
   /*! array of supported tlv ids */
   const uint16_t *supported_tlvs;
@@ -144,7 +144,7 @@ struct dlep_extension_tlv {
  */
 struct dlep_extension_implementation {
   /*! extension id */
-  uint16_t id;
+  int32_t id;
 
   /**
    * Callback for data processing

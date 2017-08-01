@@ -112,7 +112,7 @@ static const uint16_t _dst_mandatory[] = {
 /* supported signals of this extension */
 static struct dlep_extension_signal _signals[] = {
     {
-        .id = DLEP_PEER_INITIALIZATION_ACK,
+        .id = DLEP_SESSION_INITIALIZATION_ACK,
         .supported_tlvs = _peer_initack_tlvs,
         .supported_tlv_count = ARRAYSIZE(_peer_initack_tlvs),
         .mandatory_tlvs = _peer_initack_mandatory,

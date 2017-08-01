@@ -56,22 +56,23 @@
 #include "dlep/ext_base_metric/metric.h"
 
 /* peer initialization ack */
-static const uint16_t _peer_initack_tlvs[] = {
+static const uint16_t _session_initack_tlvs[] = {
     DLEP_MDRR_TLV,
     DLEP_MDRT_TLV,
     DLEP_CDRR_TLV,
     DLEP_CDRT_TLV,
     DLEP_LATENCY_TLV,
-    DLEP_RESR_TLV,
-    DLEP_REST_TLV,
+    DLEP_RESOURCES_TLV,
     DLEP_RLQR_TLV,
     DLEP_RLQT_TLV,
+    DLEP_MTU_TLV,
 };
-static const uint16_t _peer_initack_mandatory[] = {
+static const uint16_t _session_initack_mandatory[] = {
     DLEP_MDRR_TLV,
     DLEP_MDRT_TLV,
     DLEP_CDRR_TLV,
     DLEP_CDRT_TLV,
+    DLEP_LATENCY_TLV,
 };
 
 /* peer update */
@@ -81,8 +82,7 @@ static const uint16_t _peer_update_tlvs[] = {
     DLEP_CDRR_TLV,
     DLEP_CDRT_TLV,
     DLEP_LATENCY_TLV,
-    DLEP_RESR_TLV,
-    DLEP_REST_TLV,
+    DLEP_RESOURCES_TLV,
     DLEP_RLQR_TLV,
     DLEP_RLQT_TLV,
 };
@@ -95,8 +95,7 @@ static const uint16_t _dst_tlvs[] = {
     DLEP_CDRR_TLV,
     DLEP_CDRT_TLV,
     DLEP_LATENCY_TLV,
-    DLEP_RESR_TLV,
-    DLEP_REST_TLV,
+    DLEP_RESOURCES_TLV,
     DLEP_RLQR_TLV,
     DLEP_RLQT_TLV,
 };
@@ -108,11 +107,11 @@ static const uint16_t _dst_mandatory[] = {
 /* supported signals of this extension */
 static struct dlep_extension_signal _signals[] = {
     {
-        .id = DLEP_PEER_INITIALIZATION_ACK,
-        .supported_tlvs = _peer_initack_tlvs,
-        .supported_tlv_count = ARRAYSIZE(_peer_initack_tlvs),
-        .mandatory_tlvs = _peer_initack_mandatory,
-        .mandatory_tlv_count = ARRAYSIZE(_peer_initack_mandatory),
+        .id = DLEP_SESSION_INITIALIZATION_ACK,
+        .supported_tlvs = _session_initack_tlvs,
+        .supported_tlv_count = ARRAYSIZE(_session_initack_tlvs),
+        .mandatory_tlvs = _session_initack_mandatory,
+        .mandatory_tlv_count = ARRAYSIZE(_session_initack_mandatory),
         .add_radio_tlvs = dlep_extension_radio_write_peer_init_ack,
         .process_router = dlep_extension_router_process_peer_init_ack,
     },
@@ -151,8 +150,7 @@ static struct dlep_extension_tlv _tlvs[] = {
     { DLEP_CDRR_TLV, 8,8 },
     { DLEP_CDRT_TLV, 8,8 },
     { DLEP_LATENCY_TLV, 8,8 },
-    { DLEP_RESR_TLV, 1,1 },
-    { DLEP_REST_TLV, 1,1 },
+    { DLEP_RESOURCES_TLV, 1,1 },
     { DLEP_RLQR_TLV, 1,1 },
     { DLEP_RLQT_TLV, 1,1 },
 };
@@ -207,19 +205,15 @@ static struct dlep_neighbor_mapping _neigh_mappings[] = {
         .layer2   = OONF_LAYER2_NEIGH_LATENCY,
         .length   = 8,
 
+        .mandatory     = true,
+        .default_value = 1,
+
         .from_tlv      = dlep_reader_map_identity,
         .to_tlv        = dlep_writer_map_identity,
     },
     {
-        .dlep          = DLEP_RESR_TLV,
-        .layer2        = OONF_LAYER2_NEIGH_RX_RESOURCES,
-        .length        = 1,
-        .from_tlv      = dlep_reader_map_identity,
-        .to_tlv        = dlep_writer_map_identity,
-    },
-    {
-        .dlep          = DLEP_REST_TLV,
-        .layer2        = OONF_LAYER2_NEIGH_TX_RESOURCES,
+        .dlep          = DLEP_RESOURCES_TLV,
+        .layer2        = OONF_LAYER2_NEIGH_RESOURCES,
         .length        = 1,
         .from_tlv      = dlep_reader_map_identity,
         .to_tlv        = dlep_writer_map_identity,
@@ -251,7 +245,6 @@ static struct dlep_extension _base_metric = {
   .tlv_count = ARRAYSIZE(_tlvs),
   .neigh_mapping = _neigh_mappings,
   .neigh_mapping_count = ARRAYSIZE(_neigh_mappings),
-
 };
 
 /**

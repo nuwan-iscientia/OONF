@@ -76,24 +76,24 @@ static int _router_process_link_char_ack(struct dlep_extension *, struct dlep_se
 
 static int _router_write_peer_discovery(struct dlep_extension *,
     struct dlep_session *session, const struct netaddr *);
-static int _router_write_peer_init(struct dlep_extension *,
+static int _router_write_session_init(struct dlep_extension *,
     struct dlep_session *session, const struct netaddr *);
 
 static struct dlep_extension_implementation _router_signals[] = {
     {
-        .id = DLEP_PEER_DISCOVERY,
+        .id = DLEP_UDP_PEER_DISCOVERY,
         .add_tlvs = _router_write_peer_discovery,
     },
     {
-        .id = DLEP_PEER_OFFER,
+        .id = DLEP_UDP_PEER_OFFER,
         .process = _router_process_peer_offer,
     },
     {
-        .id = DLEP_PEER_INITIALIZATION,
-        .add_tlvs = _router_write_peer_init,
+        .id = DLEP_SESSION_INITIALIZATION,
+        .add_tlvs = _router_write_session_init,
     },
     {
-        .id = DLEP_PEER_INITIALIZATION_ACK,
+        .id = DLEP_SESSION_INITIALIZATION_ACK,
         .process = _router_process_peer_init_ack,
     },
     {
@@ -173,12 +173,12 @@ dlep_base_proto_router_init(void) {
  */
 static void
 _cb_init_router(struct dlep_session *session) {
-  if (session->restrict_signal == DLEP_PEER_INITIALIZATION_ACK) {
+  if (session->restrict_signal == DLEP_SESSION_INITIALIZATION_ACK) {
     /*
      * we are waiting for a Peer Init Ack,
      * so we need to send a Peer Init
      */
-    dlep_session_generate_signal(session, DLEP_PEER_INITIALIZATION, NULL);
+    dlep_session_generate_signal(session, DLEP_SESSION_INITIALIZATION, NULL);
     session->cb_send_buffer(session, 0);
 
     session->remote_heartbeat_interval = session->cfg.heartbeat_interval;
@@ -193,7 +193,7 @@ _cb_init_router(struct dlep_session *session) {
 static void
 _cb_apply_router(struct dlep_session *session) {
   OONF_DEBUG(session->log_source, "Initialize base router session");
-  if (session->restrict_signal == DLEP_PEER_OFFER) {
+  if (session->restrict_signal == DLEP_UDP_PEER_OFFER) {
     /*
      * we are waiting for a Peer Offer,
      * so we need to send Peer Discovery messages
@@ -242,10 +242,10 @@ _cb_create_peer_discovery(struct oonf_timer_instance *ptr) {
 
   OONF_DEBUG(session->log_source, "Generate peer discovery");
 
-  dlep_session_generate_signal(session, DLEP_PEER_DISCOVERY, NULL);
+  dlep_session_generate_signal(session, DLEP_UDP_PEER_DISCOVERY, NULL);
   session->cb_send_buffer(session, AF_INET);
 
-  dlep_session_generate_signal(session, DLEP_PEER_DISCOVERY, NULL);
+  dlep_session_generate_signal(session, DLEP_UDP_PEER_DISCOVERY, NULL);
   session->cb_send_buffer(session, AF_INET6);
 }
 
@@ -269,7 +269,7 @@ _router_process_peer_offer(
   bool tls;
   struct os_interface *ifdata;
 
-  if (session->restrict_signal != DLEP_PEER_OFFER) {
+  if (session->restrict_signal != DLEP_UDP_PEER_OFFER) {
     /* ignore unless we are in discovery mode */
     return 0;
   }
@@ -366,7 +366,7 @@ _router_process_peer_init_ack(
   const uint8_t *ptr;
   int result;
 
-  if (session->restrict_signal != DLEP_PEER_INITIALIZATION_ACK) {
+  if (session->restrict_signal != DLEP_SESSION_INITIALIZATION_ACK) {
     /* ignore unless we are in initialization mode */
     return 0;
   }
@@ -641,7 +641,7 @@ _router_write_peer_discovery(
     struct dlep_extension *ext __attribute__((unused)),
     struct dlep_session *session,
     const struct netaddr *addr __attribute__((unused))) {
-  if (session->restrict_signal != DLEP_PEER_OFFER) {
+  if (session->restrict_signal != DLEP_UDP_PEER_OFFER) {
     return -1;
   }
   return 0;
@@ -655,7 +655,7 @@ _router_write_peer_discovery(
  * @return -1 if an error happened, 0 otherwise
  */
 static int
-_router_write_peer_init(
+_router_write_session_init(
     struct dlep_extension *ext __attribute__((unused)),
     struct dlep_session *session,
     const struct netaddr *addr __attribute__((unused))) {
@@ -672,10 +672,9 @@ _router_write_peer_init(
   dlep_writer_add_heartbeat_tlv(&session->writer,
       session->cfg.heartbeat_interval);
 
-  if (session->cfg.peer_type) {
-    dlep_writer_add_peer_type_tlv(
-        &session->writer, session->cfg.peer_type);
-  }
+  /* TODO: report if radio has secured the medium */
+  dlep_writer_add_peer_type_tlv(
+      &session->writer, session->cfg.peer_type, false);
 
   return 0;
 }

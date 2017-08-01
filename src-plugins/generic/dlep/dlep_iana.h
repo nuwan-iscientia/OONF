@@ -47,24 +47,26 @@
 #define DLEP_IANA_H_
 
 /*! IPv4 address for DLEP multicast discovery */
-#define DLEP_WELL_KNOWN_MULTICAST_ADDRESS "224.0.0.109"
+#define DLEP_WELL_KNOWN_MULTICAST_ADDRESS "224.0.0.117"
 
 /*! IPv6 address for DLEP multicast discovery */
-#define DLEP_WELL_KNOWN_MULTICAST_ADDRESS_6 "FF02::6D"
+#define DLEP_WELL_KNOWN_MULTICAST_ADDRESS_6 "FF02::1:7"
 
 /*! UDP port for DLEP multicast discovery */
-#define DLEP_WELL_KNOWN_MULTICAST_PORT_TXT "22222"
+#define DLEP_WELL_KNOWN_MULTICAST_PORT_TXT "854"
 
+/*! TCP port for DLEP radio server port */
+#define DLEP_WELL_KNOWN_SESSION_PORT_TXT   "854"
 /**
  * Generic DLEP Constant
  */
 enum {
   /*! DLEP IANA_PORT */
-  DLEP_PORT = 22222,//!< DLEP_PORT
+  DLEP_PORT = 854,//!< DLEP_PORT
 };
 
 /*! magic word for DLEP session */
-#define DLEP_DRAFT_17_PREFIX "DLEP"
+#define DLEP_RFC8175_PREFIX "DLEP"
 
 /**
  * Predefined DLEP extension IDs
@@ -80,10 +82,10 @@ enum dlep_extensions {
   DLEP_EXTENSION_BASE_METRIC     = -1,
 
   /*! Additional DLEP physical layer statistics */
-  DLEP_EXTENSION_L1_STATS        = 256,
+  DLEP_EXTENSION_L1_STATS        = 65520,
 
   /*! Additional DLEP link layer statistics */
-  DLEP_EXTENSION_L2_STATS        = 257,
+  DLEP_EXTENSION_L2_STATS        = 65521,
 };
 
 /**
@@ -99,35 +101,47 @@ enum dlep_signals {
   /*! control number to allow all DLEP signals */
   DLEP_ALL_SIGNALS                  = -1,
 
+  /*! constant added to UDP signals */
+  DLEP_IS_UDP_SIGNAL                = 65536,
+
+  /*! Do not use! */
+  DLEP_RESERVED_SIGNAL              =  0,
+
   /*! Router announces its presence (UDP) */
-  DLEP_PEER_DISCOVERY               =  1,
+  DLEP_UDP_PEER_DISCOVERY           =  1 + DLEP_IS_UDP_SIGNAL,
 
   /*! Radio announces the open DLEP session port(s) (UDP) */
-  DLEP_PEER_OFFER                   =  2,
+  DLEP_UDP_PEER_OFFER               =  2 + DLEP_IS_UDP_SIGNAL,
 
   /*! Router announcing the supported extensions */
-  DLEP_PEER_INITIALIZATION          =  3,
+  DLEP_SESSION_INITIALIZATION       =  1,
 
   /*! Radio announcing the supported extensions and default metrics */
-  DLEP_PEER_INITIALIZATION_ACK      =  4,
+  DLEP_SESSION_INITIALIZATION_ACK   =  2,
 
   /*! Radio update interface scope data */
-  DLEP_PEER_UPDATE                  =  5,
+  DLEP_PEER_UPDATE                  =  3,
 
   /*! Router acknowledges interface data update */
-  DLEP_PEER_UPDATE_ACK              =  6,
+  DLEP_PEER_UPDATE_ACK              =  4,
 
   /*! Radio/Router terminates DLEP session */
-  DLEP_PEER_TERMINATION             =  7,
+  DLEP_PEER_TERMINATION             =  5,
 
   /*! Radio/Router acknowledge end of DLEP session */
-  DLEP_PEER_TERMINATION_ACK         =  8,
+  DLEP_PEER_TERMINATION_ACK         =  6,
 
   /*! Radio announces a new neighbor with metrics */
-  DLEP_DESTINATION_UP               =  9,
+  DLEP_DESTINATION_UP               =  7,
 
   /*! Router acknowledges new neighbor */
-  DLEP_DESTINATION_UP_ACK           = 10,
+  DLEP_DESTINATION_UP_ACK           = 8,
+
+  /*! Router announce a new neighbor to the radio */
+  DLEP_DESTINATION_ANNOUNCE         = 9,
+
+  /*! Radio acknowledges the new neighbor */
+  DLEP_DESTINATION_ANNOUNCE_ACK     = 10,
 
   /*! Radio announces a lost neighbor */
   DLEP_DESTINATION_DOWN             = 11,
@@ -138,14 +152,14 @@ enum dlep_signals {
   /*! Radio announces new metrics for a neighbor */
   DLEP_DESTINATION_UPDATE           = 13,
 
-  /*! Radio/Router is still active */
-  DLEP_HEARTBEAT                    = 14,
-
   /*! Router demands a special link characteristic to a neighbor */
-  DLEP_LINK_CHARACTERISTICS_REQUEST = 15,
+  DLEP_LINK_CHARACTERISTICS_REQUEST = 14,
 
   /*! Radio acknowledges the changed link characterestics */
-  DLEP_LINK_CHARACTERISTICS_ACK     = 16,
+  DLEP_LINK_CHARACTERISTICS_ACK     = 15,
+
+  /*! Radio/Router is still active */
+  DLEP_HEARTBEAT                    = 16,
 };
 
 /**
@@ -201,33 +215,21 @@ enum dlep_tlvs {
   DLEP_LATENCY_TLV                 = 16,
 
   /*! resources (receive) */
-  DLEP_RESR_TLV                    = 17,
-
-  /*! resources (transmit) */
-  DLEP_REST_TLV                    = 18,
+  DLEP_RESOURCES_TLV               = 17,
 
   /*! relative link quality (receive) */
-  DLEP_RLQR_TLV                    = 19,
+  DLEP_RLQR_TLV                    = 18,
 
   /*! relative link quality (transmit) */
-  DLEP_RLQT_TLV                    = 20,
+  DLEP_RLQT_TLV                    = 19,
 
-  /*! timeout for link characteristic acknowledgement */
-  DLEP_LINK_CHAR_ACK_TIMER_TLV     = 21,
-
-  /*! grant more traffic credit to DLEP endpoint in octets */
-  DLEP_CREDIT_GRANT_TLV            = 22,
-
-  /*! current traffic credit window value in octets */
-  DLEP_CREDIT_WIN_STATUS_TLV       = 23,
-
-  /*! request more traffic credit */
-  DLEP_CREDIT_REQUEST_TLV          = 24,
+  /*! MTU of interface */
+  DLEP_MTU_TLV                     = 20,
 
   /* l1 statistics */
 
   /*! channel center frequency in Hz */
-  DLEP_FREQUENCY_TLV,
+  DLEP_FREQUENCY_TLV               = 65408,
 
   /*! channel bandwidth in Hz */
   DLEP_BANDWIDTH_TLV,
@@ -277,6 +279,13 @@ enum dlep_tlvs {
   DLEP_FRAMES_FAILED_TLV,
 };
 
+enum dlep_peer_type_flags {
+  /*! radio does not implement access control */
+  DLEP_PEER_TYPE_OPEN = 0,
+
+  /*! radio does implement access control */
+  DLEP_PEER_TYPE_SECURED = 1,
+};
 /**
  * Flags for IP address TLVs
  */

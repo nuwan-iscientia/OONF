@@ -61,7 +61,7 @@
 int
 dlep_reader_heartbeat_tlv(uint64_t *interval,
     struct dlep_session *session, struct dlep_parser_value *value) {
-  uint16_t tmp;
+  uint32_t tmp;
   const uint8_t *ptr;
 
   if (!value) {
@@ -73,7 +73,7 @@ dlep_reader_heartbeat_tlv(uint64_t *interval,
 
   ptr = dlep_session_get_tlv_binary(session, value);
   memcpy(&tmp, ptr, sizeof(tmp));
-  *interval = 1000ull * ntohs(tmp);
+  *interval = ntohl(tmp);
   return 0;
 }
 
@@ -81,13 +81,14 @@ dlep_reader_heartbeat_tlv(uint64_t *interval,
  * Parse a DLEP peer type TLV
  * @param text pointer to buffer for peer type
  * @param text_length length of buffer for peer type
+ * @param secured_medium set to true if medium is secured, false otherwise
  * @param session dlep session
  * @param value dlep value to parse, NULL for using the first
  *   DLEP_PEER_TYPE_TLV value
  * @return -1 if an error happened, 0 otherwise
  */
 int
-dlep_reader_peer_type(char *text, size_t text_length,
+dlep_reader_peer_type(char *text, size_t text_length, bool *secured_medium,
     struct dlep_session *session, struct dlep_parser_value *value) {
   const uint8_t *ptr;
 
@@ -97,18 +98,23 @@ dlep_reader_peer_type(char *text, size_t text_length,
       return -1;
     }
   }
+  if (value->length == 0) {
+    return -1;
+  }
 
   ptr = dlep_session_get_tlv_binary(session, value);
 
-  if (value->length > 0 && text_length > 0) {
+  *secured_medium = (ptr[0] & DLEP_PEER_TYPE_SECURED) != 0;
+
+  if (value->length > 1 && text_length > 0) {
     /* generate a 0 terminated copy of the text */
-    if (text_length > value->length) {
-      memcpy(text, ptr, value->length);
-      text[value->length] = 0;
+    if (text_length-1u > value->length-1u) {
+      memcpy(text, &ptr[1], value->length-1u);
+      text[value->length-1u] = 0;
     }
     else {
-      memcpy(text, ptr, text_length-1);
-      text[text_length-1] = 0;
+      memcpy(text, &ptr[1], text_length-2u);
+      text[text_length-2u] = 0;
     }
   }
   return 0;

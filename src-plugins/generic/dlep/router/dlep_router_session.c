@@ -172,7 +172,7 @@ dlep_router_add_session(struct dlep_router_if *interf,
     dlep_router_remove_session(router_session);
     return NULL;
   }
-  router_session->session.restrict_signal = DLEP_PEER_INITIALIZATION_ACK;
+  router_session->session.restrict_signal = DLEP_SESSION_INITIALIZATION_ACK;
   router_session->session.cb_send_buffer = _cb_send_buffer;
   router_session->session.cb_end_session = _cb_end_session;
   memcpy(&router_session->session.cfg, &interf->interf.session.cfg,

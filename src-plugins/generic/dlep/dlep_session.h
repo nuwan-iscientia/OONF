@@ -227,7 +227,7 @@ struct dlep_local_neighbor {
  */
 struct dlep_session_config {
   /*! peer type of local session */
-  const char *peer_type;
+  char *peer_type;
 
   /*! discovery interval */
   uint64_t discovery_interval;
@@ -316,13 +316,13 @@ enum oonf_stream_session_state dlep_session_process_tcp(
     struct oonf_stream_session *tcp_session,
     struct dlep_session *session);
 ssize_t dlep_session_process_buffer(
-    struct dlep_session *session, const void *buffer, size_t length);
+    struct dlep_session *session, const void *buffer, size_t length, bool is_udp);
 size_t dlep_session_process_signal(struct dlep_session *session,
-    const void *buffer, size_t length);
+    const void *buffer, size_t length, bool is_udp);
 int dlep_session_generate_signal(struct dlep_session *session,
-    uint16_t signal, const struct netaddr *neighbor);
+    int32_t signal, const struct netaddr *neighbor);
 int dlep_session_generate_signal_status(struct dlep_session *session,
-    uint16_t signal, const struct netaddr *neighbor,
+    int32_t signal, const struct netaddr *neighbor,
     enum dlep_status status, const char *msg);
 struct dlep_parser_value *dlep_session_get_tlv_value(
     struct dlep_session *session, uint16_t tlvtype);

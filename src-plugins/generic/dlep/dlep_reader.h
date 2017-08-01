@@ -55,7 +55,7 @@
 
 int dlep_reader_heartbeat_tlv(uint64_t *interval,
     struct dlep_session *session, struct dlep_parser_value *value);
-int dlep_reader_peer_type(char *text, size_t text_length,
+int dlep_reader_peer_type(char *text, size_t text_length, bool *secured,
     struct dlep_session *session, struct dlep_parser_value *value);
 int dlep_reader_mac_tlv(struct netaddr *mac,
     struct dlep_session *session, struct dlep_parser_value *value);

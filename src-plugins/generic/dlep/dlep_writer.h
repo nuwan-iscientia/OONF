@@ -66,7 +66,7 @@ int dlep_writer_finish_signal(struct dlep_writer *writer,
 void dlep_writer_add_heartbeat_tlv(struct dlep_writer *writer,
     uint64_t interval);
 void dlep_writer_add_peer_type_tlv(struct dlep_writer *writer,
-    const char *peer_type);
+    const char *peer_type, bool access_control);
 int dlep_writer_add_mac_tlv(struct dlep_writer *writer,
     const struct netaddr *mac);
 void dlep_writer_add_ipv4_tlv(struct dlep_writer *writer,

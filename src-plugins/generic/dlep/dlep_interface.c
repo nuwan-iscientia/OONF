@@ -58,7 +58,7 @@ static void _cb_receive_udp(struct oonf_packet_socket *,
     union netaddr_socket *from, void *ptr, size_t length);
 static void _cb_send_multicast(struct dlep_session *session, int af_family);
 
-static const char _DLEP_PREFIX[] = DLEP_DRAFT_17_PREFIX;
+static const char _DLEP_PREFIX[] = DLEP_RFC8175_PREFIX;
 
 /**
  * Add a new interface to this dlep instance
@@ -108,7 +108,7 @@ dlep_if_add(struct dlep_if *interf, const char *ifname,
   interf->session.cb_send_buffer = _cb_send_multicast;
   interf->session.cb_end_session = NULL;
   interf->session.restrict_signal =
-      radio ? DLEP_PEER_DISCOVERY : DLEP_PEER_OFFER;
+      radio ? DLEP_UDP_PEER_DISCOVERY : DLEP_UDP_PEER_OFFER;
   interf->session.writer.out = &interf->udp_out;
 
   /* inform all extension */
@@ -205,7 +205,7 @@ _cb_receive_udp(struct oonf_packet_socket *pkt,
   memcpy(&interf->session.remote_socket, from,
       sizeof(interf->session.remote_socket));
 
-  processed = dlep_session_process_buffer(&interf->session, buffer, length);
+  processed = dlep_session_process_buffer(&interf->session, buffer, length, true);
   if (processed < 0) {
     return ;
   }

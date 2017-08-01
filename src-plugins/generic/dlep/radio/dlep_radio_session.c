@@ -133,7 +133,7 @@ _cb_incoming_tcp(struct oonf_stream_session *tcp_session) {
       &tcp_session->out, true, LOG_DLEP_RADIO)) {
     return -1;
   }
-  radio_session->session.restrict_signal = DLEP_PEER_INITIALIZATION;
+  radio_session->session.restrict_signal = DLEP_SESSION_INITIALIZATION;
   radio_session->session.cb_send_buffer = _cb_send_buffer;
   radio_session->session.cb_end_session = _cb_end_session;
   memcpy(&radio_session->session.cfg, &interface->interf.session.cfg,

@@ -134,6 +134,9 @@ enum oonf_layer2_network_index {
   /*! total time in ns the channel was transmitting */
   OONF_LAYER2_NET_CHANNEL_TX,
 
+  /*! maixmum size of an IP packet for this interface */
+  OONF_LAYER2_NET_MTU,
+
   /*! number of layer2 network metrics */
   OONF_LAYER2_NET_COUNT,
 };
@@ -196,11 +199,8 @@ enum oonf_layer2_neighbor_index {
   /*! latency to neighbor in microseconds */
   OONF_LAYER2_NEIGH_LATENCY,
 
-  /*! available transmission resources (0-100) */
-  OONF_LAYER2_NEIGH_TX_RESOURCES,
-
-  /*! available receiver resources (0-100) */
-  OONF_LAYER2_NEIGH_RX_RESOURCES,
+  /*! available resources of radio (0-100) */
+  OONF_LAYER2_NEIGH_RESOURCES,
 
   /*! relative transmission link quality (0-100) */
   OONF_LAYER2_NEIGH_TX_RLQ,

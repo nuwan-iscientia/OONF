@@ -153,9 +153,9 @@ dlep_writer_finish_signal(struct dlep_writer *writer,
  */
 void
 dlep_writer_add_heartbeat_tlv(struct dlep_writer *writer, uint64_t interval) {
-  uint16_t value;
+  uint32_t value;
 
-  value = htons(interval / 1000);
+  value = htonl(interval);
 
   dlep_writer_add_tlv(writer, DLEP_HEARTBEAT_INTERVAL_TLV,
       &value, sizeof(value));
@@ -165,12 +165,17 @@ dlep_writer_add_heartbeat_tlv(struct dlep_writer *writer, uint64_t interval) {
  * Write a DLEP peer type TLV
  * @param writer dlep writer
  * @param peer_type ZERO terminated peer type
+ * @param access_control true if radio implements access control, false otherwise
  */
 void
 dlep_writer_add_peer_type_tlv(struct dlep_writer *writer,
-    const char *peer_type) {
-  dlep_writer_add_tlv(writer, DLEP_PEER_TYPE_TLV,
-      peer_type, strlen(peer_type));
+    const char *peer_type, bool access_control) {
+  char flags;
+
+  flags = access_control ? DLEP_PEER_TYPE_SECURED : DLEP_PEER_TYPE_OPEN;
+
+  dlep_writer_add_tlv2(writer, DLEP_PEER_TYPE_TLV,
+      &flags, sizeof(flags), peer_type, strlen(peer_type));
 }
 
 /**

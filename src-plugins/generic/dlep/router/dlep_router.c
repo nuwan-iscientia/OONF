@@ -74,6 +74,9 @@ static void _cb_config_changed(void);
 
 /* configuration */
 static struct cfg_schema_entry _router_entries[] = {
+  CFG_MAP_STRING(dlep_router_if, interf.session.cfg.peer_type, "peer_type", "OONF DLEP Router",
+    "Identification string of DLEP router endpoint"),
+
   CFG_MAP_NETADDR_V4(dlep_router_if, interf.udp_config.multicast_v4, "discovery_mc_v4",
     DLEP_WELL_KNOWN_MULTICAST_ADDRESS, "IPv4 address to send discovery UDP packet to", false, false),
   CFG_MAP_NETADDR_V6(dlep_router_if, interf.udp_config.multicast_v6, "discovery_mc_v6",

@@ -211,6 +211,7 @@ dlep_radio_remove_interface(struct dlep_radio_if *interface) {
   avl_remove(&_interface_tree, &interface->interf._node);
 
   /* free memory */
+  free (interface->interf.session.cfg.peer_type);
   abuf_free(&interface->interf.udp_out);
   oonf_class_free(&_interface_class, interface);
 }

@@ -78,6 +78,9 @@ static struct cfg_schema_entry _radio_entries[] = {
   CFG_MAP_STRING_ARRAY(dlep_radio_if, interf.udp_config.interface, "datapath_if", "",
      "Name of interface to talk to dlep router (default is section name)", IF_NAMESIZE),
 
+  CFG_MAP_STRING(dlep_radio_if, interf.session.cfg.peer_type, "peer_type", "OONF DLEP Radio",
+    "Identification string of DLEP radio endpoint"),
+
   CFG_MAP_NETADDR_V4(dlep_radio_if, interf.udp_config.multicast_v4, "discovery_mc_v4",
     DLEP_WELL_KNOWN_MULTICAST_ADDRESS, "IPv4 address to send discovery UDP packet to", false, false),
   CFG_MAP_NETADDR_V6(dlep_radio_if, interf.udp_config.multicast_v6, "discovery_mc_v6",
@@ -88,7 +91,7 @@ static struct cfg_schema_entry _radio_entries[] = {
     "Filter to determine the binding of the UDP discovery socket"),
 
   CFG_MAP_INT32_MINMAX(dlep_radio_if, tcp_config.port, "session_port",
-    "12345", "Server port for DLEP tcp sessions", 0, false, 1, 65535),
+      DLEP_WELL_KNOWN_SESSION_PORT_TXT, "Server port for DLEP tcp sessions", 0, false, 1, 65535),
   CFG_MAP_ACL_V46(dlep_radio_if, tcp_config.bindto, "session_bindto", "224.0.0.1\0fe80::/10",
       "Filter to determine the binding of the TCP server socket"),
   CFG_MAP_CLOCK_MINMAX(dlep_radio_if, interf.session.cfg.heartbeat_interval,
@@ -182,6 +185,7 @@ _cb_config_changed(void) {
   struct dlep_radio_if *interface;
   const char *ifname;
   char ifbuf[IF_NAMESIZE];
+  int error;
 
   ifname = cfg_get_phy_if(ifbuf, _radio_section.section_name);
 
@@ -201,10 +205,11 @@ _cb_config_changed(void) {
   }
 
   /* read configuration */
-  if (cfg_schema_tobin(interface, _radio_section.post,
-      _radio_entries, ARRAYSIZE(_radio_entries))) {
+  error = cfg_schema_tobin(interface, _radio_section.post,
+      _radio_entries, ARRAYSIZE(_radio_entries));
+  if (error) {
     OONF_WARN(LOG_DLEP_RADIO, "Could not convert "
-        OONF_DLEP_RADIO_SUBSYSTEM " config to bin");
+        OONF_DLEP_RADIO_SUBSYSTEM " config to bin (%d)", error);
     return;
   }
 

@@ -174,7 +174,7 @@ dlep_extension_get_ids(uint16_t *length) {
 int
 dlep_extension_router_process_peer_init_ack(
     struct dlep_extension *ext, struct dlep_session *session) {
-  if (session->restrict_signal != DLEP_PEER_INITIALIZATION_ACK) {
+  if (session->restrict_signal != DLEP_SESSION_INITIALIZATION_ACK) {
     /* ignore unless we are in initialization mode */
     return 0;
   }

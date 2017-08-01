@@ -95,8 +95,7 @@ static const struct oonf_layer2_metadata _oonf_layer2_metadata_neigh[OONF_LAYER2
   [OONF_LAYER2_NEIGH_TX_RETRIES]     = { .key = "tx_retries" },
   [OONF_LAYER2_NEIGH_TX_FAILED]      = { .key = "tx_failed" },
   [OONF_LAYER2_NEIGH_LATENCY]        = { .key = "latency", .unit = "s", .fraction = 6 },
-  [OONF_LAYER2_NEIGH_TX_RESOURCES]   = { .key = "tx_resources" },
-  [OONF_LAYER2_NEIGH_RX_RESOURCES]   = { .key = "rx_resources" },
+  [OONF_LAYER2_NEIGH_RESOURCES]      = { .key = "resources" },
   [OONF_LAYER2_NEIGH_TX_RLQ]         = { .key = "tx_rlq" },
   [OONF_LAYER2_NEIGH_RX_RLQ]         = { .key = "rx_rlq" },
 };
@@ -112,6 +111,7 @@ static const struct oonf_layer2_metadata _oonf_layer2_metadata_net[OONF_LAYER2_N
   [OONF_LAYER2_NET_CHANNEL_BUSY]    = { .key = "ch_busy", .unit="s", .fraction = 9 },
   [OONF_LAYER2_NET_CHANNEL_RX]      = { .key = "ch_rx", .unit="s", .fraction = 9 },
   [OONF_LAYER2_NET_CHANNEL_TX]      = { .key = "ch_tx", .unit="s", .fraction = 9 },
+  [OONF_LAYER2_NET_MTU]             = { .key = "mtu", .unit="byte" },
 };
 
 static const char *oonf_layer2_network_type[OONF_LAYER2_TYPE_COUNT] = {

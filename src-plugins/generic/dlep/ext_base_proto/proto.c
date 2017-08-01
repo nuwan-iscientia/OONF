@@ -58,34 +58,37 @@
 static void _cb_local_heartbeat(struct oonf_timer_instance *);
 static void _cb_remote_heartbeat(struct oonf_timer_instance *);
 
-/* peer discovery */
+/* UDP peer discovery */
 
-/* peer offer */
+/* UDP peer offer */
 static const uint16_t _peer_offer_tlvs[] = {
     DLEP_PEER_TYPE_TLV,
     DLEP_IPV4_CONPOINT_TLV,
     DLEP_IPV6_CONPOINT_TLV,
 };
 
-/* peer initialization */
-static const uint16_t _peer_init_tlvs[] = {
+/* session initialization */
+static const uint16_t _session_init_tlvs[] = {
     DLEP_HEARTBEAT_INTERVAL_TLV,
     DLEP_PEER_TYPE_TLV,
     DLEP_EXTENSIONS_SUPPORTED_TLV,
 };
-static const uint16_t _peer_init_mandatory[] = {
+static const uint16_t _session_init_mandatory[] = {
     DLEP_HEARTBEAT_INTERVAL_TLV,
+    DLEP_PEER_TYPE_TLV,
 };
 
-/* peer initialization ack */
-static const uint16_t _peer_initack_tlvs[] = {
+/* session initialization ack */
+static const uint16_t _session_initack_tlvs[] = {
     DLEP_HEARTBEAT_INTERVAL_TLV,
     DLEP_STATUS_TLV,
     DLEP_PEER_TYPE_TLV,
     DLEP_EXTENSIONS_SUPPORTED_TLV,
 };
-static const uint16_t _peer_initack_mandatory[] = {
+static const uint16_t _session_initack_mandatory[] = {
     DLEP_HEARTBEAT_INTERVAL_TLV,
+    DLEP_STATUS_TLV,
+    DLEP_PEER_TYPE_TLV,
 };
 
 /* peer update */
@@ -181,7 +184,6 @@ static const uint16_t _linkchar_req_tlvs[] = {
     DLEP_CDRR_TLV,
     DLEP_CDRT_TLV,
     DLEP_LATENCY_TLV,
-    DLEP_LINK_CHAR_ACK_TIMER_TLV,
 };
 static const uint16_t _linkchar_req_mandatory[] = {
     DLEP_MAC_ADDRESS_TLV,
@@ -195,8 +197,7 @@ static const uint16_t _linkchar_ack_tlvs[] = {
     DLEP_CDRR_TLV,
     DLEP_CDRT_TLV,
     DLEP_LATENCY_TLV,
-    DLEP_RESR_TLV,
-    DLEP_REST_TLV,
+    DLEP_RESOURCES_TLV,
     DLEP_RLQR_TLV,
     DLEP_RLQT_TLV,
     DLEP_STATUS_TLV,
@@ -208,26 +209,26 @@ static const uint16_t _linkchar_ack_mandatory[] = {
 /* supported signals of this extension */
 static struct dlep_extension_signal _signals[] = {
     {
-        .id = DLEP_PEER_DISCOVERY,
+        .id = DLEP_UDP_PEER_DISCOVERY,
     },
     {
-        .id = DLEP_PEER_OFFER,
+        .id = DLEP_UDP_PEER_OFFER,
         .supported_tlvs = _peer_offer_tlvs,
         .supported_tlv_count = ARRAYSIZE(_peer_offer_tlvs),
     },
     {
-        .id = DLEP_PEER_INITIALIZATION,
-        .supported_tlvs = _peer_init_tlvs,
-        .supported_tlv_count = ARRAYSIZE(_peer_init_tlvs),
-        .mandatory_tlvs = _peer_init_mandatory,
-        .mandatory_tlv_count = ARRAYSIZE(_peer_init_mandatory),
+        .id = DLEP_SESSION_INITIALIZATION,
+        .supported_tlvs = _session_init_tlvs,
+        .supported_tlv_count = ARRAYSIZE(_session_init_tlvs),
+        .mandatory_tlvs = _session_init_mandatory,
+        .mandatory_tlv_count = ARRAYSIZE(_session_init_mandatory),
     },
     {
-        .id = DLEP_PEER_INITIALIZATION_ACK,
-        .supported_tlvs = _peer_initack_tlvs,
-        .supported_tlv_count = ARRAYSIZE(_peer_initack_tlvs),
-        .mandatory_tlvs = _peer_initack_mandatory,
-        .mandatory_tlv_count = ARRAYSIZE(_peer_initack_mandatory),
+        .id = DLEP_SESSION_INITIALIZATION_ACK,
+        .supported_tlvs = _session_initack_tlvs,
+        .supported_tlv_count = ARRAYSIZE(_session_initack_tlvs),
+        .mandatory_tlvs = _session_initack_mandatory,
+        .mandatory_tlv_count = ARRAYSIZE(_session_initack_mandatory),
     },
     {
         .id = DLEP_PEER_UPDATE,
@@ -315,7 +316,7 @@ static struct dlep_extension_tlv _tlvs[] = {
     { DLEP_IPV4_CONPOINT_TLV, 5,7 },
     { DLEP_IPV6_CONPOINT_TLV, 17,19 },
     { DLEP_PEER_TYPE_TLV, 1,255 },
-    { DLEP_HEARTBEAT_INTERVAL_TLV, 2,2 },
+    { DLEP_HEARTBEAT_INTERVAL_TLV, 4,4 },
     { DLEP_EXTENSIONS_SUPPORTED_TLV, 2, 65534 },
     { DLEP_MAC_ADDRESS_TLV, 6,8 },
     { DLEP_IPV4_ADDRESS_TLV, 5,5 },
@@ -327,11 +328,9 @@ static struct dlep_extension_tlv _tlvs[] = {
     { DLEP_CDRR_TLV, 8,8 },
     { DLEP_CDRT_TLV, 8,8 },
     { DLEP_LATENCY_TLV, 8,8 },
-    { DLEP_RESR_TLV, 1,1 },
-    { DLEP_REST_TLV, 1,1 },
+    { DLEP_RESOURCES_TLV, 1,1 },
     { DLEP_RLQR_TLV, 1,1 },
     { DLEP_RLQT_TLV, 1,1 },
-    { DLEP_LINK_CHAR_ACK_TIMER_TLV, 1,1 },
 };
 
 static struct dlep_neighbor_mapping _neigh_mappings[] = {
@@ -371,15 +370,8 @@ static struct dlep_neighbor_mapping _neigh_mappings[] = {
         .to_tlv   = dlep_writer_map_identity,
     },
     {
-        .dlep     = DLEP_RESR_TLV,
-        .layer2   = OONF_LAYER2_NEIGH_RX_RESOURCES,
-        .length   = 1,
-        .from_tlv = dlep_reader_map_identity,
-        .to_tlv   = dlep_writer_map_identity,
-    },
-    {
-        .dlep     = DLEP_REST_TLV,
-        .layer2   = OONF_LAYER2_NEIGH_TX_RESOURCES,
+        .dlep     = DLEP_RESOURCES_TLV,
+        .layer2   = OONF_LAYER2_NEIGH_RESOURCES,
         .length   = 1,
         .from_tlv = dlep_reader_map_identity,
         .to_tlv   = dlep_writer_map_identity,
@@ -494,10 +486,12 @@ dlep_base_proto_print_status(struct dlep_session *session) {
 void
 dlep_base_proto_print_peer_type(struct dlep_session *session) {
   char text[256];
+  bool secure;
 
-  if (!dlep_reader_peer_type(text, sizeof(text), session, NULL)) {
+  if (!dlep_reader_peer_type(text, sizeof(text), &secure, session, NULL)) {
     OONF_DEBUG(session->log_source,
-        "Remote peer type: %s", text);
+        "Remote peer type (%s): %s",
+        secure ? "secure" : "open", text);
   }
 }
 
