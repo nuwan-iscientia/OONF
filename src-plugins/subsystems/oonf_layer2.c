@@ -134,6 +134,14 @@ static struct oonf_class _l2dst_class = {
   .name = LAYER2_CLASS_DESTINATION,
   .size = sizeof(struct oonf_layer2_destination),
 };
+static struct oonf_class _l2net_addr_class = {
+  .name = LAYER2_CLASS_NETWORK_ADDRESS,
+  .size = sizeof(struct oonf_layer2_peer_address),
+};
+static struct oonf_class _l2neigh_addr_class = {
+  .name = LAYER2_CLASS_NEIGHBOR_ADDRESS,
+  .size = sizeof(struct oonf_layer2_neighbor_address),
+};
 
 static struct avl_tree _oonf_layer2_net_tree;
 
@@ -148,6 +156,8 @@ _init(void) {
   oonf_class_add(&_l2network_class);
   oonf_class_add(&_l2neighbor_class);
   oonf_class_add(&_l2dst_class);
+  oonf_class_add(&_l2net_addr_class);
+  oonf_class_add(&_l2neigh_addr_class);
 
   avl_init(&_oonf_layer2_net_tree, avl_comp_strcasecmp, false);
   avl_init(&_oonf_originator_tree, avl_comp_strcasecmp, false);
@@ -165,6 +175,8 @@ _cleanup(void) {
     _net_remove(l2net);
   }
 
+  oonf_class_remove(&_l2neigh_addr_class);
+  oonf_class_remove(&_l2net_addr_class);
   oonf_class_remove(&_l2dst_class);
   oonf_class_remove(&_l2neighbor_class);
   oonf_class_remove(&_l2network_class);
@@ -229,8 +241,9 @@ oonf_layer2_net_add(const char *ifname) {
   l2net->_node.key = l2net->name;
   avl_insert(&_oonf_layer2_net_tree, &l2net->_node);
 
-  /* initialize tree of neighbors and proxies */
+  /* initialize tree of neighbors, ips and proxies */
   avl_init(&l2net->neighbors, avl_comp_netaddr, false);
+  avl_init(&l2net->local_peer_ips, avl_comp_netaddr, false);
 
   /* initialize interface listener */
   l2net->if_listener.name = l2net->name;
@@ -370,6 +383,88 @@ oonf_layer2_net_relabel(struct oonf_layer2_net *l2net,
 }
 
 /**
+ * Add an IP address or prefix to a layer-2 interface. This represents
+ * an address of the local radio or modem.
+ * @param l2net layer-2 network object
+ * @param ip ip address or prefix
+ * @return layer2 ip address object, NULL if out of memory
+ */
+struct oonf_layer2_peer_address *
+oonf_layer2_net_add_ip(struct oonf_layer2_net *l2net,
+    const struct oonf_layer2_origin *origin, const struct netaddr *ip) {
+  struct oonf_layer2_peer_address *l2addr;
+
+  l2addr = oonf_layer2_net_get_ip(l2net, ip);
+  if (!l2addr) {
+    l2addr = oonf_class_malloc(&_l2net_addr_class);
+    if (!l2addr) {
+      return NULL;
+    }
+
+    /* copy data */
+    memcpy(&l2addr->ip, ip, sizeof(*ip));
+
+    /* set back reference */
+    l2addr->l2net = l2net;
+
+    /* add to tree */
+    l2addr->_node.key = &l2addr->ip;
+    avl_insert(&l2net->local_peer_ips, &l2addr->_node);
+  }
+
+  l2addr->origin = origin;
+  return l2addr;
+}
+
+/**
+ * Remove a peer IP address from a layer2 network
+ * @param ip ip address or prefix
+ * @param origin origin of IP address
+ * @return 0 if IP was removed, -1 if it was registered to a different origin
+ */
+int
+oonf_layer2_net_remove_ip(
+    struct oonf_layer2_peer_address *ip, struct oonf_layer2_origin *origin) {
+  if (ip->origin != origin) {
+    return -1;
+  }
+
+  avl_remove(&ip->l2net->local_peer_ips, &ip->_node);
+  oonf_class_free(&_l2net_addr_class, ip);
+  return 0;
+}
+
+/**
+ * Look for the best matching prefix in all layer2 neighbor addresses
+ * that contains a specific address
+ * @param addr ip address to look for
+ * @return layer2 neighbor address object, NULL if no match was found
+ */
+struct oonf_layer2_neighbor_address *
+oonf_layer2_net_get_best_neighbor_match(const struct netaddr *addr) {
+  struct oonf_layer2_neighbor_address *best_match, *l2addr;
+  struct oonf_layer2_neigh *l2neigh;
+  struct oonf_layer2_net *l2net;
+  int prefix_length;
+
+  prefix_length = 256;
+  best_match = NULL;
+
+  avl_for_each_element(&_oonf_layer2_net_tree, l2net, _node) {
+    avl_for_each_element(&l2net->neighbors, l2neigh, _node) {
+      avl_for_each_element(&l2neigh->remote_neighbor_ips, l2addr, _node) {
+        if (netaddr_is_in_subnet(&l2addr->ip, addr)
+            && netaddr_get_prefix_length(&l2addr->ip) < prefix_length) {
+          best_match = l2addr;
+          prefix_length = netaddr_get_prefix_length(&l2addr->ip);
+        }
+      }
+    }
+  }
+  return best_match;
+}
+
+/**
  * Add a layer-2 neighbor to a addr.
  * @param l2net layer-2 addr object
  * @param neigh mac address of layer-2 neighbor
@@ -505,6 +600,58 @@ oonf_layer2_neigh_relabel(struct oonf_layer2_neigh *l2neigh,
       oonf_layer2_set_origin(&l2neigh->data[i], new_origin);
     }
   }
+}
+
+/**
+ * Add an IP address or prefix to a layer-2 interface. This represents
+ * an address of the local radio or modem.
+ * @param l2net layer-2 network object
+ * @param ip ip address or prefix
+ * @return layer2 ip address object, NULL if out of memory
+ */
+struct oonf_layer2_neighbor_address *
+oonf_layer2_neigh_add_ip(struct oonf_layer2_neigh *l2neigh,
+    const struct oonf_layer2_origin *origin, const struct netaddr *ip) {
+  struct oonf_layer2_neighbor_address *l2addr;
+
+  l2addr = oonf_layer2_neigh_get_ip(l2neigh, ip);
+  if (!l2addr) {
+    l2addr = oonf_class_malloc(&_l2neigh_addr_class);
+    if (!l2addr) {
+      return NULL;
+    }
+
+    /* copy data */
+    memcpy(&l2addr->ip, ip, sizeof(*ip));
+
+    /* set back reference */
+    l2addr->l2neigh = l2neigh;
+
+    /* add to tree */
+    l2addr->_node.key = &l2addr->ip;
+    avl_insert(&l2neigh->remote_neighbor_ips, &l2addr->_node);
+  }
+
+  l2addr->origin = origin;
+  return l2addr;
+}
+
+/**
+ * Remove a neighbor IP address from a layer2 neighbor
+ * @param ip ip address or prefix
+ * @param origin origin of IP address
+ * @return 0 if IP was removed, -1 if it was registered to a different origin
+ */
+int
+oonf_layer2_neigh_remove_ip(
+    struct oonf_layer2_neighbor_address *ip, struct oonf_layer2_origin *origin) {
+  if (ip->origin != origin) {
+    return -1;
+  }
+
+  avl_remove(&ip->l2neigh->remote_neighbor_ips, &ip->_node);
+  oonf_class_free(&_l2neigh_addr_class, ip);
+  return 0;
 }
 
 /**

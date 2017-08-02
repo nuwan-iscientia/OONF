@@ -63,6 +63,12 @@
 /*! memory class for layer2 destination */
 #define LAYER2_CLASS_DESTINATION "layer2_destination"
 
+/*! memory class for layer2 network address */
+#define LAYER2_CLASS_NETWORK_ADDRESS "layer2_network_address"
+
+/*! memory class for layer2 neighbor address */
+#define LAYER2_CLASS_NEIGHBOR_ADDRESS "layer2_neighbor_address"
+
 /**
  * priorities of layer2 originators
  */
@@ -234,6 +240,9 @@ struct oonf_layer2_net {
   /*! tree of remote neighbors */
   struct avl_tree neighbors;
 
+  /*! tree of IP addresses/prefixes of local radio/modem */
+  struct avl_tree local_peer_ips;
+
   /*! absolute timestamp when network has been active last */
   uint64_t last_seen;
 
@@ -244,6 +253,23 @@ struct oonf_layer2_net {
   struct oonf_layer2_data neighdata[OONF_LAYER2_NEIGH_COUNT];
 
   /*! node to hook into global l2network tree */
+  struct avl_node _node;
+};
+
+/**
+ * IP addresses that are attached to a local radio/modem
+ */
+struct oonf_layer2_peer_address {
+  /*! ip address attached to a local radio/modem */
+  struct netaddr ip;
+
+  /*! backlink to layer2 network */
+  struct oonf_layer2_net *l2net;
+
+  /*! origin of this address */
+  const struct oonf_layer2_origin *origin;
+
+  /*! node for tree of ip addresses */
   struct avl_node _node;
 };
 
@@ -260,6 +286,9 @@ struct oonf_layer2_neigh {
   /*! tree of proxied destinations */
   struct avl_tree destinations;
 
+  /*! tree of IP addresses/prefixes of remote neighbor router */
+  struct avl_tree remote_neighbor_ips;
+
   /*! absolute timestamp when neighbor has been active last */
   uint64_t last_seen;
 
@@ -267,6 +296,23 @@ struct oonf_layer2_neigh {
   struct oonf_layer2_data data[OONF_LAYER2_NEIGH_COUNT];
 
   /*! node to hook into tree of layer2 network */
+  struct avl_node _node;
+};
+
+/**
+ * IP addresses that are attached to a remote router
+ */
+struct oonf_layer2_neighbor_address {
+  /*! ip address attached to a remote router */
+  struct netaddr ip;
+
+  /*! backlink to layer2 neighbor*/
+  struct oonf_layer2_neigh *l2neigh;
+
+  /*! origin of this address */
+  const struct oonf_layer2_origin *origin;
+
+  /*! node for tree of ip addresses */
   struct avl_node _node;
 };
 
@@ -316,6 +362,13 @@ EXPORT bool oonf_layer2_net_commit(struct oonf_layer2_net *);
 EXPORT void oonf_layer2_net_relabel(struct oonf_layer2_net *l2net,
     const struct oonf_layer2_origin *new_origin,
     const struct oonf_layer2_origin *old_origin);
+EXPORT struct oonf_layer2_peer_address *oonf_layer2_net_add_ip(
+    struct oonf_layer2_net *l2net,
+    const struct oonf_layer2_origin *origin, const struct netaddr *ip);
+EXPORT int oonf_layer2_net_remove_ip(
+    struct oonf_layer2_peer_address *ip, struct oonf_layer2_origin *origin);
+EXPORT struct oonf_layer2_neighbor_address *oonf_layer2_net_get_best_neighbor_match(
+    const struct netaddr *addr);
 
 EXPORT struct oonf_layer2_neigh *oonf_layer2_neigh_add(
     struct oonf_layer2_net *, struct netaddr *l2neigh);
@@ -328,6 +381,11 @@ EXPORT bool oonf_layer2_neigh_commit(struct oonf_layer2_neigh *l2neigh);
 EXPORT void oonf_layer2_neigh_relabel(struct oonf_layer2_neigh *l2neigh,
     const struct oonf_layer2_origin *new_origin,
     const struct oonf_layer2_origin *old_origin);
+EXPORT struct oonf_layer2_neighbor_address *oonf_layer2_neigh_add_ip(
+    struct oonf_layer2_neigh *l2neigh,
+    const struct oonf_layer2_origin *origin, const struct netaddr *ip);
+EXPORT int oonf_layer2_neigh_remove_ip(
+    struct oonf_layer2_neighbor_address *ip, struct oonf_layer2_origin *origin);
 
 EXPORT struct oonf_layer2_destination *oonf_layer2_destination_add(
     struct oonf_layer2_neigh *l2neigh, const struct netaddr *destination,
@@ -373,8 +431,21 @@ oonf_layer2_net_get(const char *ifname) {
 }
 
 /**
+ * Get a layer-2 ip address object from the database
+ * @param l2net layer-2 network/interface object
+ * @param ip ip address of local radio/modem
+ * @return layer-2 ip address object, NULL if not found
+ */
+static INLINE struct oonf_layer2_peer_address *
+oonf_layer2_net_get_ip(const struct oonf_layer2_net *l2net,
+    const struct netaddr *addr) {
+  struct oonf_layer2_peer_address *l2ip;
+  return avl_find_element(&l2net->local_peer_ips, addr, l2ip, _node);
+}
+
+/**
  * Get a layer-2 neighbor object from the database
- * @param l2net layer-2 addr object
+ * @param l2net layer-2 network/interface object
  * @param addr remote mac address of neighbor
  * @return layer-2 neighbor object, NULL if not found
  */
@@ -385,11 +456,30 @@ oonf_layer2_neigh_get(const struct oonf_layer2_net *l2net,
   return avl_find_element(&l2net->neighbors, addr, l2neigh, _node);
 }
 
+/**
+ * Get a layer-2 destination (secondary MAC) for a neighbor
+ * @param l2neigh layer-2 neighbor object
+ * @param destination mac address of destination
+ * @return layer-2 destination object, NULL if not found
+ */
 static INLINE struct oonf_layer2_destination *
 oonf_layer2_destination_get(const struct oonf_layer2_neigh *l2neigh,
     const struct netaddr *destination) {
   struct oonf_layer2_destination *l2dst;
   return avl_find_element(&l2neigh->destinations, destination, l2dst, _node);
+}
+
+/**
+ * Get a layer-2 ip address object from the database
+ * @param l2neigh layer-2 neighbor object
+ * @param ip ip address of remote router
+ * @return layer-2 ip address object, NULL if not found
+ */
+static INLINE struct oonf_layer2_neighbor_address *
+oonf_layer2_neigh_get_ip(const struct oonf_layer2_neigh *l2neigh,
+    const struct netaddr *addr) {
+  struct oonf_layer2_neighbor_address *l2ip;
+  return avl_find_element(&l2neigh->remote_neighbor_ips, addr, l2ip, _node);
 }
 
 /**
