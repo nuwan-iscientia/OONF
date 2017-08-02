@@ -75,14 +75,18 @@ static void _initialize_if_data_values(struct oonf_viewer_template *template,
     struct oonf_layer2_data *data);
 static void _initialize_if_origin_values(struct oonf_layer2_data *data);
 static void _initialize_if_values(struct oonf_layer2_net *net);
+static void _initialize_if_ip_values(struct oonf_layer2_peer_address *peer_ip);
 
 static void _initialize_neigh_data_values(struct oonf_viewer_template *template,
     struct oonf_layer2_data *data);
 static void _initialize_neigh_origin_values(struct oonf_layer2_data *data);
 static void _initialize_neigh_values(struct oonf_layer2_neigh *neigh);
+static void _initialize_neigh_ip_values(struct oonf_layer2_neighbor_address *neigh_addr);
 
 static int _cb_create_text_interface(struct oonf_viewer_template *);
+static int _cb_create_text_interface_ip(struct oonf_viewer_template *);
 static int _cb_create_text_neighbor(struct oonf_viewer_template *);
+static int _cb_create_text_neighbor_ip(struct oonf_viewer_template *);
 static int _cb_create_text_default(struct oonf_viewer_template *);
 static int _cb_create_text_dst(struct oonf_viewer_template *);
 
@@ -116,11 +120,23 @@ static int _cb_create_text_dst(struct oonf_viewer_template *);
 /*! template key for last time interface was active */
 #define KEY_IF_LASTSEEN                 "if_lastseen"
 
+/*! template key for IP/prefixes of the local radio/model */
+#define KEY_IF_PEER_IP                  "if_peer_ip"
+
+/*! template key for IP/prefixes origin of the local radio/model */
+#define KEY_IF_PEER_IP_ORIGIN           "if_peer_ip_origin"
+
 /*! template key for neighbor address */
 #define KEY_NEIGH_ADDR                  "neigh_addr"
 
 /*! template key for last time neighbor was active */
 #define KEY_NEIGH_LASTSEEN              "neigh_lastseen"
+
+/*! template key for IP/prefixes of the neighbors remote router */
+#define KEY_NEIGH_REMOTE_IP             "neigh_remote_ip"
+
+/*! template key for IP/prefixes origin of the neighbors remote router */
+#define KEY_NEIGH_REMOTE_IP_ORIGIN      "neigh_remote_ip_origin"
 
 /*! template key for destination address */
 #define KEY_DST_ADDR                    "dst_addr"
@@ -150,10 +166,14 @@ static char                             _value_if_ident[33];
 static struct netaddr_str               _value_if_ident_addr;
 static struct netaddr_str               _value_if_local_addr;
 static struct isonumber_str             _value_if_lastseen;
+static struct netaddr_str               _value_if_peer_ip;
+static char                             _value_if_peer_ip_origin[IF_NAMESIZE];
 static struct isonumber_str             _value_if_data[OONF_LAYER2_NET_COUNT];
 static char                             _value_if_origin[OONF_LAYER2_NET_COUNT][IF_NAMESIZE];
 static struct netaddr_str               _value_neigh_addr;
 static struct isonumber_str             _value_neigh_lastseen;
+static struct netaddr_str               _value_neigh_remote_ip;
+static char                             _value_neigh_remote_ip_origin[IF_NAMESIZE];
 static struct isonumber_str             _value_neigh_data[OONF_LAYER2_NEIGH_COUNT];
 static char                             _value_neigh_origin[OONF_LAYER2_NEIGH_COUNT][IF_NAMESIZE];
 
@@ -175,6 +195,11 @@ static struct abuf_template_data_entry _tde_if[] = {
     { KEY_IF_LASTSEEN, _value_if_lastseen.buf, false },
 };
 
+static struct abuf_template_data_entry _tde_if_peer_ip[] = {
+    { KEY_IF_PEER_IP, _value_if_peer_ip.buf, true },
+    { KEY_IF_PEER_IP_ORIGIN, _value_if_peer_ip_origin, true },
+};
+
 static struct abuf_template_data_entry _tde_if_data[OONF_LAYER2_NET_COUNT];
 static struct abuf_template_data_entry _tde_if_origin[OONF_LAYER2_NET_COUNT];
 
@@ -184,6 +209,11 @@ static struct abuf_template_data_entry _tde_neigh_key[] = {
 
 static struct abuf_template_data_entry _tde_neigh[] = {
     { KEY_NEIGH_LASTSEEN, _value_neigh_lastseen.buf, false },
+};
+
+static struct abuf_template_data_entry _tde_neigh_remote_ip[] = {
+    { KEY_NEIGH_REMOTE_IP, _value_neigh_remote_ip.buf, true },
+    { KEY_NEIGH_REMOTE_IP_ORIGIN, _value_neigh_remote_ip_origin, true },
 };
 
 static struct abuf_template_data_entry _tde_neigh_data[OONF_LAYER2_NEIGH_COUNT];
@@ -206,12 +236,21 @@ static struct abuf_template_data _td_if[] = {
     { _tde_if_data, ARRAYSIZE(_tde_if_data) },
     { _tde_if_origin, ARRAYSIZE(_tde_if_origin) },
 };
+static struct abuf_template_data _td_if_ips[] = {
+    { _tde_if_key, ARRAYSIZE(_tde_if_key) },
+    { _tde_if_peer_ip, ARRAYSIZE(_tde_if_peer_ip) },
+};
 static struct abuf_template_data _td_neigh[] = {
     { _tde_if_key, ARRAYSIZE(_tde_if_key) },
     { _tde_neigh_key, ARRAYSIZE(_tde_neigh_key) },
     { _tde_neigh, ARRAYSIZE(_tde_neigh) },
     { _tde_neigh_data, ARRAYSIZE(_tde_neigh_data) },
     { _tde_neigh_origin, ARRAYSIZE(_tde_neigh_origin) },
+};
+static struct abuf_template_data _td_neigh_ips[] = {
+    { _tde_if_key, ARRAYSIZE(_tde_if_key) },
+    { _tde_neigh_key, ARRAYSIZE(_tde_neigh_key) },
+    { _tde_neigh_remote_ip, ARRAYSIZE(_tde_neigh_remote_ip) },
 };
 static struct abuf_template_data _td_default[] = {
     { _tde_if_key, ARRAYSIZE(_tde_if_key) },
@@ -234,10 +273,22 @@ static struct oonf_viewer_template _templates[] = {
         .cb_function = _cb_create_text_interface,
     },
     {
+        .data = _td_if_ips,
+        .data_size = ARRAYSIZE(_td_if_ips),
+        .json_name = "interface_ips",
+        .cb_function = _cb_create_text_interface_ip,
+    },
+    {
         .data = _td_neigh,
         .data_size = ARRAYSIZE(_td_neigh),
         .json_name = "neighbor",
         .cb_function = _cb_create_text_neighbor,
+    },
+    {
+        .data = _td_neigh_ips,
+        .data_size = ARRAYSIZE(_td_neigh_ips),
+        .json_name = "neighbor_ips",
+        .cb_function = _cb_create_text_neighbor_ip,
     },
     {
         .data = _td_default,
@@ -394,6 +445,17 @@ _initialize_if_values(struct oonf_layer2_net *net) {
 }
 
 /**
+ * Initialize the value buffers for a l2 peer address object
+ * @param peer_ip peer address object
+ */
+static void
+_initialize_if_ip_values(struct oonf_layer2_peer_address *peer_ip) {
+  netaddr_to_string(&_value_if_peer_ip, &peer_ip->ip);
+  strscpy(_value_if_peer_ip_origin, peer_ip->origin->name,
+      sizeof(_value_if_peer_ip_origin));
+}
+
+/**
  * Initialize the value buffers for an array of layer2 data objects
  * @param template viewer template
  * @param data array of data objects
@@ -448,6 +510,17 @@ _initialize_neigh_values(struct oonf_layer2_neigh *neigh) {
   else {
     _value_neigh_lastseen.buf[0] = 0;
   }
+}
+
+/**
+ * Initialize the value buffers for a l2 neighbor remote address object
+ * @param neigh_addr neighbor remote address
+ */
+static void
+_initialize_neigh_ip_values(struct oonf_layer2_neighbor_address *neigh_addr) {
+  netaddr_to_string(&_value_neigh_remote_ip, &neigh_addr->ip);
+  strscpy(_value_neigh_remote_ip_origin, neigh_addr->origin->name,
+      sizeof(_value_neigh_remote_ip_origin));
 }
 
 /**
@@ -522,6 +595,29 @@ _cb_create_text_interface(struct oonf_viewer_template *template) {
 }
 
 /**
+ * Callback to generate text/json description of all layer2 interface ips
+ * @param template viewer template
+ * @return -1 if an error happened, 0 otherwise
+ */
+static int
+_cb_create_text_interface_ip(struct oonf_viewer_template *template) {
+  struct oonf_layer2_net *net;
+  struct oonf_layer2_peer_address *peer_ip;
+
+  avl_for_each_element(oonf_layer2_get_network_tree(), net, _node) {
+    _initialize_if_values(net);
+
+    avl_for_each_element(&net->local_peer_ips, peer_ip, _node) {
+      _initialize_if_ip_values(peer_ip);
+
+      /* generate template output */
+      oonf_viewer_output_print_line(template);
+    }
+  }
+  return 0;
+}
+
+/**
  * Callback to generate text/json description of all layer2 neighbors
  * @param template viewer template
  * @return -1 if an error happened, 0 otherwise
@@ -541,6 +637,34 @@ _cb_create_text_neighbor(struct oonf_viewer_template *template) {
 
       /* generate template output */
       oonf_viewer_output_print_line(template);
+    }
+  }
+  return 0;
+}
+
+/**
+ * Callback to generate text/json description of all layer2 neighbor ips
+ * @param template viewer template
+ * @return -1 if an error happened, 0 otherwise
+ */
+static int
+_cb_create_text_neighbor_ip(struct oonf_viewer_template *template) {
+  struct oonf_layer2_neighbor_address *remote_ip;
+  struct oonf_layer2_neigh *neigh;
+  struct oonf_layer2_net *net;
+
+  avl_for_each_element(oonf_layer2_get_network_tree(), net, _node) {
+    _initialize_if_values(net);
+
+    avl_for_each_element(&net->neighbors, neigh, _node) {
+      _initialize_neigh_values(neigh);
+
+      avl_for_each_element(&neigh->remote_neighbor_ips, remote_ip, _node) {
+        _initialize_neigh_ip_values(remote_ip);
+
+        /* generate template output */
+        oonf_viewer_output_print_line(template);
+      }
     }
   }
   return 0;

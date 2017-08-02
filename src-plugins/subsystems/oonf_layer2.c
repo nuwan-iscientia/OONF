@@ -363,6 +363,7 @@ oonf_layer2_net_relabel(struct oonf_layer2_net *l2net,
     const struct oonf_layer2_origin *new_origin,
     const struct oonf_layer2_origin *old_origin) {
   struct oonf_layer2_neigh *l2neigh;
+  struct oonf_layer2_peer_address *peer_ip;
   size_t i;
 
   for (i=0; i<OONF_LAYER2_NET_COUNT; i++) {
@@ -374,6 +375,12 @@ oonf_layer2_net_relabel(struct oonf_layer2_net *l2net,
   for (i=0; i<OONF_LAYER2_NEIGH_COUNT; i++) {
     if (oonf_layer2_get_origin(&l2net->neighdata[i]) == old_origin) {
       oonf_layer2_set_origin(&l2net->neighdata[i], new_origin);
+    }
+  }
+
+  avl_for_each_element(&l2net->local_peer_ips, peer_ip,_node) {
+    if (peer_ip->origin == old_origin) {
+      peer_ip->origin = new_origin;
     }
   }
 
@@ -497,6 +504,7 @@ oonf_layer2_neigh_add(struct oonf_layer2_net *l2net,
   avl_insert(&l2net->neighbors, &l2neigh->_node);
 
   avl_init(&l2neigh->destinations, avl_comp_netaddr, false);
+  avl_init(&l2neigh->remote_neighbor_ips, avl_comp_netaddr, false);
 
   oonf_class_event(&_l2neighbor_class, l2neigh, OONF_OBJECT_ADDED);
 
@@ -593,11 +601,25 @@ void
 oonf_layer2_neigh_relabel(struct oonf_layer2_neigh *l2neigh,
     const struct oonf_layer2_origin *new_origin,
     const struct oonf_layer2_origin *old_origin) {
+  struct oonf_layer2_neighbor_address *neigh_ip;
+  struct oonf_layer2_destination *l2dst;
   size_t i;
 
   for (i=0; i<OONF_LAYER2_NEIGH_COUNT; i++) {
     if (oonf_layer2_get_origin(&l2neigh->data[i]) == old_origin) {
       oonf_layer2_set_origin(&l2neigh->data[i], new_origin);
+    }
+  }
+
+  avl_for_each_element(&l2neigh->remote_neighbor_ips, neigh_ip, _node) {
+    if (neigh_ip->origin == old_origin) {
+      neigh_ip->origin = new_origin;
+    }
+  }
+
+  avl_for_each_element(&l2neigh->destinations, l2dst, _node) {
+    if (l2dst->origin == old_origin) {
+      l2dst->origin = new_origin;
     }
   }
 }
