@@ -72,6 +72,9 @@ static const char *_rfc5444_negative_result_texts[] = {
   [-RFC5444_FW_BAD_SIZE]          = "Bad length field of message to be forwarded",
   [-RFC5444_TOO_LARGE]            = "RFC5444 packet larger than 64k",
   [-RFC5444_FW_BAD_TRANSFORM]     = "RFC5444 transformer failed",
+  [-RFC5444_BAD_ADDR_HEAD_LENGTH] = "Bad addrblock head length",
+  [-RFC5444_BAD_ADDR_TAIL_LENGTH] = "Bad addrblock tail length",
+  [-RFC5444_BAD_TLV_INDEX]        = "Bad tlv index fields",
 };
 
 /**

@@ -128,8 +128,17 @@ enum rfc5444_result {
   /*! transformer failed for forwarded message */
   RFC5444_FW_BAD_TRANSFORM     = -17,
 
+  /*! head length is not between 1 and 15 */
+  RFC5444_BAD_ADDR_HEAD_LENGTH = -18,
+
+  /*! tail length is not between 1 and 15 */
+  RFC5444_BAD_ADDR_TAIL_LENGTH = -19,
+
+  /*! either start or end index is beyond the number of addresses (minus 1) */
+  RFC5444_BAD_TLV_INDEX        = -20,
+
   /*! minimal value of result */
-  RFC5444_RESULT_MIN           = -17,
+  RFC5444_RESULT_MIN           = -20,
 };
 
 EXPORT const char *rfc5444_strerror(enum rfc5444_result result);
