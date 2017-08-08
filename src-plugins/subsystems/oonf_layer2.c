@@ -308,10 +308,15 @@ oonf_layer2_net_remove(struct oonf_layer2_net *l2net,
   }
 
   avl_for_each_element_safe(&l2net->neighbors, l2neigh, _node, l2neigh_it) {
-    changed |= oonf_layer2_neigh_remove(l2neigh, origin);
+    if (oonf_layer2_neigh_remove(l2neigh, origin)) {
+      changed = true;
+    }
   }
 
-  changed |= oonf_layer2_net_cleanup(l2net, origin, false);
+  if (oonf_layer2_net_cleanup(l2net, origin, false)) {
+    changed = true;
+  }
+
   if (changed) {
     oonf_layer2_net_commit(l2net);
   }
@@ -545,6 +550,8 @@ bool
 oonf_layer2_neigh_remove(struct oonf_layer2_neigh *l2neigh,
     const struct oonf_layer2_origin *origin) {
   struct oonf_layer2_destination *l2dst, *l2dst_it;
+  struct oonf_layer2_neighbor_address *l2ip, *l2ip_it;
+
   bool changed = false;
 
   if (!avl_is_node_added(&l2neigh->_node)) {
@@ -558,7 +565,16 @@ oonf_layer2_neigh_remove(struct oonf_layer2_neigh *l2neigh,
     }
   }
 
-  changed |= oonf_layer2_neigh_cleanup(l2neigh, origin);
+  avl_for_each_element_safe(&l2neigh->remote_neighbor_ips, l2ip, _node, l2ip_it) {
+    if (oonf_layer2_neigh_remove_ip(l2ip, origin) == 0) {
+      changed = true;
+    }
+  }
+
+  if (oonf_layer2_neigh_cleanup(l2neigh, origin)) {
+    changed = true;
+  }
+
   if (changed) {
     oonf_layer2_neigh_commit(l2neigh);
   }
@@ -575,7 +591,7 @@ bool
 oonf_layer2_neigh_commit(struct oonf_layer2_neigh *l2neigh) {
   size_t i;
 
-  if (l2neigh->destinations.count > 0) {
+  if (l2neigh->destinations.count > 0 || l2neigh->remote_neighbor_ips.count > 0) {
     oonf_class_event(&_l2neighbor_class, l2neigh, OONF_OBJECT_CHANGED);
     return false;
   }
@@ -666,7 +682,7 @@ oonf_layer2_neigh_add_ip(struct oonf_layer2_neigh *l2neigh,
  */
 int
 oonf_layer2_neigh_remove_ip(
-    struct oonf_layer2_neighbor_address *ip, struct oonf_layer2_origin *origin) {
+    struct oonf_layer2_neighbor_address *ip, const struct oonf_layer2_origin *origin) {
   if (ip->origin != origin) {
     return -1;
   }
