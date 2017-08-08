@@ -488,7 +488,7 @@ _parse_tlv(struct rfc5444_reader_tlvblock_entry *entry,
   }
 
   /* consistency check for index fields */
-  if (entry->index1 > addr_count-1 || entry->index2 > addr_count-1) {
+  if (entry->index1 >= addr_count || entry->index2 >= addr_count) {
     *ptr = eob;
     return RFC5444_BAD_TLV_INDEX;
   }
@@ -837,8 +837,8 @@ _parse_addrblock(struct rfc5444_reader_addrblock_entry *addr_entry,
   if ((flags & RFC5444_ADDR_FLAG_HEAD) != 0) {
     addr_entry->mid_start = _rfc5444_get_u8(ptr, eob, &result);
     if (addr_entry->mid_start < 1
-        || addr_entry->mid_start > RFC5444_MAX_ADDRLEN-1
-        || addr_entry->mid_start > tlv_context->addr_len-1) {
+        || addr_entry->mid_start >= RFC5444_MAX_ADDRLEN
+        || addr_entry->mid_start >= tlv_context->addr_len) {
       return RFC5444_BAD_ADDR_HEAD_LENGTH;
     }
     if (*ptr + addr_entry->mid_start > eob) {
@@ -860,8 +860,8 @@ _parse_addrblock(struct rfc5444_reader_addrblock_entry *addr_entry,
   else if (masked == RFC5444_ADDR_FLAG_FULLTAIL) {
     tail_len = _rfc5444_get_u8(ptr, eob, &result);
     if (tail_len < 1
-        || tail_len > RFC5444_MAX_ADDRLEN-1
-        || tail_len > tlv_context->addr_len-1) {
+        || tail_len >= RFC5444_MAX_ADDRLEN
+        || tail_len >= tlv_context->addr_len) {
       return RFC5444_BAD_ADDR_TAIL_LENGTH;
     }
     if (*ptr + tail_len > eob) {
