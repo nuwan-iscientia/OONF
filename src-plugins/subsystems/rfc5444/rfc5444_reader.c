@@ -484,11 +484,12 @@ _parse_tlv(struct rfc5444_reader_tlvblock_entry *entry,
     entry->index2 = _rfc5444_get_u8(ptr, eob, &result);
   }
   else {
-    result = RFC5444_BAD_TLV_IDXFLAGS;
+    *ptr = eob;
+    return RFC5444_BAD_TLV_IDXFLAGS;
   }
 
   /* consistency check for index fields */
-  if (entry->index1 >= addr_count || entry->index2 >= addr_count) {
+  if (addr_count > 0 && (entry->index1 >= addr_count || entry->index2 >= addr_count)) {
     *ptr = eob;
     return RFC5444_BAD_TLV_INDEX;
   }
@@ -505,7 +506,8 @@ _parse_tlv(struct rfc5444_reader_tlvblock_entry *entry,
     entry->length = _rfc5444_get_u16(ptr, eob, &result);
   }
   else {
-    result = RFC5444_BAD_TLV_VALUEFLAGS;
+    *ptr = eob;
+    return RFC5444_BAD_TLV_VALUEFLAGS;
   }
 
   /* check for multivalue tlv field */
@@ -513,7 +515,8 @@ _parse_tlv(struct rfc5444_reader_tlvblock_entry *entry,
 
   /* not enough bytes left ? */
   if (*ptr + entry->length > eob) {
-    result = RFC5444_END_OF_BUFFER;
+    *ptr = eob;
+    return RFC5444_END_OF_BUFFER;
   }
   if (result != RFC5444_OKAY) {
     *ptr = eob;
