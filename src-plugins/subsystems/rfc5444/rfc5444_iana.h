@@ -126,11 +126,11 @@ enum rfc7182_msgtlvs_iana {
 };
 
 /**
- * generic message TLVs defined in olsrv2-multi-topology draft
+ * generic message TLVs defined in RFC7722 (olsrv2-mt)
  */
-enum draft_olsrv2_mt_iana {
-  DRAFT_MT_MSGTLV_MPR_TYPES     = RFC7181_MSGTLV_MPR_WILLING,
-  DRAFT_MT_MSGTLV_MPR_TYPES_EXT = 1,
+enum rfc7722_mt_iana {
+  RFC7722_MSGTLV_MPR_TYPES     = RFC7181_MSGTLV_MPR_WILLING,
+  RFC7722_MSGTLV_MPR_TYPES_EXT = 1,
 };
 
 /**

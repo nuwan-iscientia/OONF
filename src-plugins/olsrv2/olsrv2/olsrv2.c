@@ -459,7 +459,7 @@ olsrv2_mpr_shall_forwarding(struct rfc5444_reader_tlvblock_context *context,
     return false;
   }
 
-  /* checp input source address */
+  /* check input source address */
   if (!source_address) {
     OONF_DEBUG(LOG_OLSRV2, "Do not forward because input source is not set");
     return false;

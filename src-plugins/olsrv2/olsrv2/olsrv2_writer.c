@@ -290,7 +290,7 @@ _cb_addMessageTLVs(struct rfc5444_writer *writer) {
     _mprtypes_size = nhdp_domain_encode_mprtypes_tlvvalue(mprtypes, sizeof(mprtypes));
 
     rfc5444_writer_add_messagetlv(writer,
-        DRAFT_MT_MSGTLV_MPR_TYPES, DRAFT_MT_MSGTLV_MPR_TYPES_EXT,
+        RFC7722_MSGTLV_MPR_TYPES, RFC7722_MSGTLV_MPR_TYPES_EXT,
         mprtypes, _mprtypes_size);
   }
 

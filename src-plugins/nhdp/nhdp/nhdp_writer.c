@@ -288,7 +288,7 @@ _cb_addMessageTLVs(struct rfc5444_writer *writer) {
       mprtypes, sizeof(mprtypes));
   if (mprtypes_size > 1) {
     rfc5444_writer_add_messagetlv(writer,
-        DRAFT_MT_MSGTLV_MPR_TYPES, DRAFT_MT_MSGTLV_MPR_TYPES_EXT,
+        RFC7722_MSGTLV_MPR_TYPES, RFC7722_MSGTLV_MPR_TYPES_EXT,
         &mprtypes, mprtypes_size);
   }
 
