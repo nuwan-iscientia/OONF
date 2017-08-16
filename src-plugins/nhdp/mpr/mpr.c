@@ -159,14 +159,15 @@ _update_nhdp_routing(struct nhdp_domain *domain, struct neighbor_graph *graph) {
 
 /**
  * Updates the current flooding MPR selection in the NHDP database
+ * @param nhdp_if nhdp interface to update
  * @param graph MPR neighbor graph instance
  */
 static void
-_update_nhdp_flooding(struct neighbor_graph *graph) {
+_update_nhdp_flooding(struct nhdp_interface *nhdp_if, struct neighbor_graph *graph) {
   struct nhdp_link *current_link;
   struct n1_node *current_mpr_node;
 
-  list_for_each_element(nhdp_db_get_link_list(), current_link, _global_node) {
+  list_for_each_element(&nhdp_if->_links, current_link, _if_node) {
     current_mpr_node = avl_find_element(&graph->set_mpr,
         &current_link->neigh->originator,
         current_mpr_node, _avl_node);
@@ -209,7 +210,7 @@ _cb_update_flooding_mpr(struct nhdp_domain *domain) {
 #ifndef NDEBUG
     _validate_mpr_set(domain, &flooding_data.neigh_graph);
 #endif
-    _update_nhdp_flooding(&flooding_data.neigh_graph);
+    _update_nhdp_flooding(flooding_data.current_interface, &flooding_data.neigh_graph);
     mpr_clear_neighbor_graph(&flooding_data.neigh_graph);
   }
 
