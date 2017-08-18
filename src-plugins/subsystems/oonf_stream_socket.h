@@ -64,6 +64,9 @@
  * TCP session states
  */
 enum oonf_stream_session_state {
+  /*! tcp session has not been initialized */
+  STREAM_SESSION_INACTIVE,
+
   /*! tcp session is active */
   STREAM_SESSION_ACTIVE,
 

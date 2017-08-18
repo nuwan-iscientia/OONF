@@ -233,7 +233,10 @@ oonf_telnet_flush_session(struct oonf_telnet_data *data) {
   struct oonf_telnet_session *session;
 
   session = container_of(data, struct oonf_telnet_session, data);
-  oonf_stream_flush(&session->session);
+  if (session->session.state != STREAM_SESSION_INACTIVE
+      && session->session.state != STREAM_SESSION_CLEANUP) {
+    oonf_stream_flush(&session->session);
+  }
 }
 
 #endif /* OONF_TELNET_H_ */

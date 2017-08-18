@@ -456,10 +456,6 @@ oonf_stream_copy_managed_config(struct oonf_stream_managed_config *dst,
  */
 static void
 _stream_close(struct oonf_stream_session *session) {
-  if (!list_is_node_added(&session->node)) {
-    return;
-  }
-
   if (session->stream_socket->config.cleanup) {
     session->stream_socket->config.cleanup(session);
   }
@@ -468,6 +464,7 @@ _stream_close(struct oonf_stream_session *session) {
 
   session->stream_socket->session_counter--;
   list_remove(&session->node);
+
 
   oonf_socket_remove(&session->scheduler_entry);
   os_fd_close(&session->scheduler_entry.fd);

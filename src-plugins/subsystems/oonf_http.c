@@ -389,6 +389,8 @@ _cb_receive_data(struct oonf_stream_session *session) {
   }
 
   header.decoded_request_uri = uri;
+  header.remote = &session->remote_address;
+
   handler = _get_site_handler(uri);
   if (handler == NULL) {
     OONF_DEBUG(LOG_HTTP, "No HTTP handler for site: %s", uri);
@@ -503,6 +505,7 @@ _cb_create_error(struct oonf_stream_session *session,
 static void
 _create_http_error(struct oonf_stream_session *session,
     enum oonf_http_result error) {
+  abuf_clear(&session->out);
   abuf_appendf(&session->out, "<html><head><title>%s %s http server</title></head>"
       "<body><h1>HTTP error %d: %s</h1></body></html>",
       oonf_log_get_appdata()->app_name, oonf_log_get_libdata()->version,

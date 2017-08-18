@@ -251,18 +251,31 @@ oonf_telnet_stop(struct oonf_telnet_data *data, bool print_prompt) {
 enum oonf_telnet_result
 oonf_telnet_execute(const char *cmd, const char *para,
     struct autobuf *out, struct netaddr *remote) {
-  struct oonf_telnet_data data;
+  struct oonf_telnet_cleanup *handler, *it;
+  struct oonf_telnet_session session;
   enum oonf_telnet_result result;
 
-  memset(&data, 0, sizeof(data));
-  data.command = cmd;
-  data.parameter = para;
-  data.out = out;
-  data.remote = remote;
+  memset(&session, 0, sizeof(session));
+  session.data.command = cmd;
+  session.data.parameter = para;
+  session.data.out = out;
+  session.data.remote = remote;
 
-  result = _telnet_handle_command(&data);
-  _call_stop_handler(&data);
-  return abuf_has_failed(data.out) ? TELNET_RESULT_INTERNAL_ERROR : result;
+  list_init_head(&session.data.cleanup_list);
+
+  result = _telnet_handle_command(&session.data);
+  _call_stop_handler(&session.data);
+
+  /* call all cleanup handlers */
+  list_for_each_element_safe(&session.data.cleanup_list, handler, node, it) {
+    /* remove from list first */
+    oonf_telnet_remove_cleanup(handler);
+
+    /* after this command the handler pointer might not be valid anymore */
+    handler->cleanup_handler(handler);
+  }
+
+  return abuf_has_failed(session.data.out) ? TELNET_RESULT_INTERNAL_ERROR : result;
 }
 
 /**
