@@ -70,7 +70,7 @@ static int dlep_writer_map_bandwidth(struct dlep_writer *writer,
     struct oonf_layer2_data *data, uint16_t tlv, uint16_t length);
 
 /* peer initialization ack */
-static const uint16_t _peer_initack_tlvs[] = {
+static const uint16_t _session_initack_tlvs[] = {
     DLEP_FREQUENCY_TLV,
     DLEP_BANDWIDTH_TLV,
     DLEP_NOISE_LEVEL_TLV,
@@ -81,7 +81,7 @@ static const uint16_t _peer_initack_tlvs[] = {
     DLEP_SIGNAL_RX_TLV,
     DLEP_SIGNAL_TX_TLV,
 };
-static const uint16_t _peer_initack_mandatory[] = {
+static const uint16_t _session_initack_mandatory[] = {
     DLEP_FREQUENCY_TLV,
     DLEP_BANDWIDTH_TLV,
 };
@@ -113,19 +113,19 @@ static const uint16_t _dst_mandatory[] = {
 static struct dlep_extension_signal _signals[] = {
     {
         .id = DLEP_SESSION_INITIALIZATION_ACK,
-        .supported_tlvs = _peer_initack_tlvs,
-        .supported_tlv_count = ARRAYSIZE(_peer_initack_tlvs),
-        .mandatory_tlvs = _peer_initack_mandatory,
-        .mandatory_tlv_count = ARRAYSIZE(_peer_initack_mandatory),
-        .add_radio_tlvs = dlep_extension_radio_write_peer_init_ack,
-        .process_router = dlep_extension_router_process_peer_init_ack,
+        .supported_tlvs = _session_initack_tlvs,
+        .supported_tlv_count = ARRAYSIZE(_session_initack_tlvs),
+        .mandatory_tlvs = _session_initack_mandatory,
+        .mandatory_tlv_count = ARRAYSIZE(_session_initack_mandatory),
+        .add_radio_tlvs = dlep_extension_radio_write_session_init_ack,
+        .process_router = dlep_extension_router_process_session_init_ack,
     },
     {
-        .id = DLEP_PEER_UPDATE,
+        .id = DLEP_SESSION_UPDATE,
         .supported_tlvs = _peer_update_tlvs,
         .supported_tlv_count = ARRAYSIZE(_peer_update_tlvs),
-        .add_radio_tlvs = dlep_extension_radio_write_peer_update,
-        .process_router = dlep_extension_router_process_peer_update,
+        .add_radio_tlvs = dlep_extension_radio_write_session_update,
+        .process_router = dlep_extension_router_process_session_update,
     },
     {
         .id = DLEP_DESTINATION_UP,

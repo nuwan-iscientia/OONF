@@ -64,6 +64,7 @@
 #include "dlep/router/dlep_router_internal.h"
 #include "dlep/router/dlep_router_session.h"
 
+static void _cb_socket_terminated(struct oonf_stream_socket *stream_socket);
 static void _cb_tcp_lost(struct oonf_stream_session *);
 static enum oonf_stream_session_state _cb_tcp_receive_data(struct oonf_stream_session *);
 static void _cb_send_buffer(struct dlep_session *session, int af_family);
@@ -140,7 +141,8 @@ dlep_router_add_session(struct dlep_router_if *interf,
   router_session->tcp.config.session_timeout = 120000; /* 120 seconds */
   router_session->tcp.config.maximum_input_buffer = 4096;
   router_session->tcp.config.allowed_sessions = 3;
-  router_session->tcp.config.cleanup = _cb_tcp_lost;
+  router_session->tcp.config.cleanup_session = _cb_tcp_lost;
+  router_session->tcp.config.cleanup_socket = _cb_socket_terminated;
   router_session->tcp.config.receive_data = _cb_tcp_receive_data;
 
   OONF_DEBUG(LOG_DLEP_ROUTER, "Connect DLEP session from %s to %s",
@@ -191,7 +193,6 @@ dlep_router_add_session(struct dlep_router_if *interf,
     }
   }
 
-
   return router_session;
 }
 
@@ -203,10 +204,23 @@ void
 dlep_router_remove_session(struct dlep_router_session *router_session) {
   if (router_session->stream) {
     oonf_stream_close(router_session->stream);
+    router_session->stream = NULL;
   }
-  oonf_stream_remove(&router_session->tcp, true);
+  oonf_stream_remove(&router_session->tcp, false);
 }
 
+/**
+ * Callback triggered when tcp socket (not session) has been terminated
+ * @param stream_socket terminated socket
+ */
+static void
+_cb_socket_terminated(struct oonf_stream_socket *stream_socket) {
+  struct dlep_router_session *router_session;
+
+  router_session = container_of(stream_socket, struct dlep_router_session, tcp);
+
+  oonf_class_free(&_router_session_class, router_session);
+}
 /**
  * Callback triggered when tcp session was lost and will be removed
  * @param tcp_session tcp session
@@ -233,10 +247,11 @@ _cb_tcp_lost(struct oonf_stream_session *tcp_session) {
   /* kill embedded session object */
   dlep_session_remove(&router_session->session);
 
-
   /* remove from session tree of interface */
-  avl_remove(&router_session->interface->interf.session_tree,
-      &router_session->_node);
+  if (avl_is_node_added(&router_session->_node)) {
+    avl_remove(&router_session->interface->interf.session_tree,
+        &router_session->_node);
+  }
 }
 
 /**

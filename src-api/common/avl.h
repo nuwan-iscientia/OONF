@@ -53,6 +53,14 @@
 #include "container_of.h"
 
 /**
+ * Static initializer for AVL tree
+ * @param avl avl_tree variable (not pointer!)
+ * @param avl_comp comparator to be used
+ * @param dups true if duplicates are allowed, false otherwise
+ */
+#define AVL_STATIC_INIT(avl, avl_comp, dups) { .list_head = { .next = &avl.list_head, .prev = &avl.list_head }, .root = NULL, .count = 0, .allow_dups = dups, .comp = avl_comp}
+
+/**
  * This element is a member of a avl-tree. It must be contained in all
  * larger structs that should be put into a tree.
  */

@@ -66,14 +66,11 @@ static void _cb_init_radio(struct dlep_session *);
 static void _cb_cleanup_radio(struct dlep_session *);
 
 static int _radio_process_peer_discovery(struct dlep_extension *, struct dlep_session *);
-static int _radio_process_peer_init(struct dlep_extension *, struct dlep_session *);
-static int _radio_process_peer_update(struct dlep_extension *, struct dlep_session *);
-static int _radio_process_peer_update_ack(struct dlep_extension *, struct dlep_session *);
-static int _radio_process_destination_up(struct dlep_extension *, struct dlep_session *);
+static int _radio_process_session_init(struct dlep_extension *, struct dlep_session *);
+static int _radio_process_session_update(struct dlep_extension *, struct dlep_session *);
+static int _radio_process_session_update_ack(struct dlep_extension *, struct dlep_session *);
 static int _radio_process_destination_up_ack(struct dlep_extension *, struct dlep_session *);
-static int _radio_process_destination_down(struct dlep_extension *, struct dlep_session *);
 static int _radio_process_destination_down_ack(struct dlep_extension *, struct dlep_session *);
-static int _radio_process_destination_update(struct dlep_extension *, struct dlep_session *);
 static int _radio_process_link_char_request(struct dlep_extension *, struct dlep_session *);
 
 static int _radio_write_peer_offer(struct dlep_extension *,
@@ -107,51 +104,46 @@ static struct dlep_extension_implementation _radio_signals[] = {
     },
     {
         .id = DLEP_SESSION_INITIALIZATION,
-        .process = _radio_process_peer_init,
+        .process = _radio_process_session_init,
     },
     {
         .id = DLEP_SESSION_INITIALIZATION_ACK,
         .add_tlvs = _radio_write_session_init_ack,
     },
     {
-        .id = DLEP_PEER_UPDATE,
-        .process = _radio_process_peer_update,
+        .id = DLEP_SESSION_UPDATE,
+        .process = _radio_process_session_update,
     },
     {
-        .id = DLEP_PEER_UPDATE_ACK,
-        .process = _radio_process_peer_update_ack,
+        .id = DLEP_SESSION_UPDATE_ACK,
+        .process = _radio_process_session_update_ack,
     },
     {
-        .id = DLEP_PEER_TERMINATION,
-        .process = dlep_base_proto_process_peer_termination,
+        .id = DLEP_SESSION_TERMINATION,
+        .process = dlep_base_proto_process_session_termination,
     },
     {
-        .id = DLEP_PEER_TERMINATION_ACK,
-        .process = dlep_base_proto_process_peer_termination_ack,
+        .id = DLEP_SESSION_TERMINATION_ACK,
+        .process = dlep_base_proto_process_session_termination_ack,
     },
     {
         .id = DLEP_DESTINATION_UP,
-        .process = _radio_process_destination_up,
         .add_tlvs = dlep_base_proto_write_mac_only,
     },
     {
         .id = DLEP_DESTINATION_UP_ACK,
         .process = _radio_process_destination_up_ack,
-        .add_tlvs = dlep_base_proto_write_mac_only,
     },
     {
         .id = DLEP_DESTINATION_DOWN,
-        .process = _radio_process_destination_down,
         .add_tlvs = dlep_base_proto_write_mac_only,
     },
     {
         .id = DLEP_DESTINATION_DOWN_ACK,
         .process = _radio_process_destination_down_ack,
-        .add_tlvs = dlep_base_proto_write_mac_only,
     },
     {
         .id = DLEP_DESTINATION_UPDATE,
-        .process = _radio_process_destination_update,
         .add_tlvs = dlep_base_proto_write_mac_only,
     },
     {
@@ -249,7 +241,7 @@ _radio_process_peer_discovery(
  * @return -1 if an error happened, 0 otherwise
  */
 static int
-_radio_process_peer_init(
+_radio_process_session_init(
     struct dlep_extension *ext __attribute__((unused)),
     struct dlep_session *session) {
   struct oonf_layer2_net *l2net;
@@ -321,7 +313,7 @@ _radio_process_peer_init(
     }
   }
   session->next_restrict_signal = DLEP_ALL_SIGNALS;
-
+  session->_peer_state = DLEP_PEER_IDLE;
   return 0;
 }
 
@@ -332,11 +324,11 @@ _radio_process_peer_init(
  * @return -1 if an error happened, 0 otherwise
  */
 static int
-_radio_process_peer_update(
+_radio_process_session_update(
     struct dlep_extension *ext __attribute__((unused)),
     struct dlep_session *session) {
   /* we don't support IP address exchange with the router at the moment */
-  return dlep_session_generate_signal(session, DLEP_PEER_UPDATE_ACK, NULL);
+  return dlep_session_generate_signal(session, DLEP_SESSION_UPDATE_ACK, NULL);
 }
 
 /**
@@ -346,32 +338,21 @@ _radio_process_peer_update(
  * @return always 0
  */
 static int
-_radio_process_peer_update_ack(
+_radio_process_session_update_ack(
     struct dlep_extension *ext __attribute__((unused)),
     struct dlep_session *session) {
   dlep_base_proto_print_status(session);
-  return 0;
-}
-
-/**
- * Process the destination up message
- * @param ext (this) dlep extension
- * @param session dlep session
- * @return -1 if an error happened, 0 otherwise
- */
-static int
-_radio_process_destination_up(
-    struct dlep_extension *ext __attribute__((unused)),
-    struct dlep_session *session) {
-  struct netaddr mac;
-  if (dlep_reader_mac_tlv(&mac, session, NULL)) {
-    OONF_INFO(session->log_source, "No mac TLV found");
-    return -1;
+  if (session->_peer_state == DLEP_PEER_SEND_UPDATE) {
+    if (dlep_session_generate_signal(session, DLEP_SESSION_UPDATE, NULL)) {
+      // TODO: do we need to terminate here?
+      return -1;
+    }
+    session->_peer_state = DLEP_PEER_WAIT_FOR_UPDATE_ACK;
   }
-
-  /* we don't support IP address exchange with the router at the moment */
-  return dlep_session_generate_signal(
-      session, DLEP_DESTINATION_UP_ACK, &mac);
+  else {
+    session->_peer_state = DLEP_PEER_IDLE;
+  }
+  return 0;
 }
 
 /**
@@ -407,26 +388,6 @@ _radio_process_destination_up_ack(
 }
 
 /**
- * Process the destination down message
- * @param ext (this) dlep extension
- * @param session dlep session
- * @return -1 if an error happened, 0 otherwise
- */
-static int
-_radio_process_destination_down(
-    struct dlep_extension *ext __attribute__((unused)),
-    struct dlep_session *session) {
-  struct netaddr mac;
-  if (dlep_reader_mac_tlv(&mac, session, NULL)) {
-    return -1;
-  }
-
-  /* we don't support IP address exchange with the router at the moment */
-  return dlep_session_generate_signal(
-      session, DLEP_DESTINATION_DOWN_ACK, &mac);
-}
-
-/**
  * Process the destination down ack message
  * @param ext (this) dlep extension
  * @param session dlep session
@@ -449,20 +410,6 @@ _radio_process_destination_down_ack(
       dlep_session_remove_local_neighbor(session, local);
     }
   }
-  return 0;
-}
-
-/**
- * Process the destination update message
- * @param ext (this) dlep extension
- * @param session dlep session
- * @return always 0
- */
-static int
-_radio_process_destination_update(
-    struct dlep_extension *ext __attribute__((unused)),
-    struct dlep_session *session __attribute__((unused))) {
-  /* TODO: IP address change processing ? */
   return 0;
 }
 
@@ -710,7 +657,6 @@ _l2_neigh_removed(struct oonf_layer2_neigh *l2neigh,
           radio_session->session.cfg.heartbeat_interval * 2);
     }
   }
-
 }
 
 /**

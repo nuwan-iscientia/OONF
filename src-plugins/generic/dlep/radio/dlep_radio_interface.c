@@ -60,8 +60,9 @@
 #include "dlep/radio/dlep_radio.h"
 #include "dlep/radio/dlep_radio_interface.h"
 
-#include "dlep/ext_base_proto/proto_radio.h"
 #include "dlep/ext_base_metric/metric.h"
+#include "dlep/ext_base_ip/ip.h"
+#include "dlep/ext_base_proto/proto_radio.h"
 #include "dlep/ext_l1_statistics/l1_statistics.h"
 #include "dlep/ext_l2_statistics/l2_statistics.h"
 #include "dlep/radio/dlep_radio_internal.h"
@@ -70,8 +71,6 @@
 static void _cleanup_interface(struct dlep_radio_if *interface);
 
 /* DLEP interfaces */
-static struct avl_tree _interface_tree;
-
 static struct oonf_class _interface_class = {
   .name = "DLEP radio session",
   .size = sizeof(struct dlep_radio_if),
@@ -93,12 +92,12 @@ static struct oonf_layer2_origin _l2_origin = {
 int
 dlep_radio_interface_init(void) {
   oonf_class_add(&_interface_class);
-  avl_init(&_interface_tree, avl_comp_strcasecmp, false);
 
   dlep_extension_init();
   dlep_session_init();
   dlep_radio_session_init();
   dlep_base_proto_radio_init();
+  dlep_base_ip_init();
   dlep_base_metric_init();
   dlep_l1_statistics_init();
   dlep_l2_statistics_init();
@@ -115,7 +114,7 @@ void
 dlep_radio_interface_cleanup(void) {
   struct dlep_radio_if *interf, *it;
 
-  avl_for_each_element_safe(&_interface_tree, interf, interf._node, it) {
+  avl_for_each_element_safe(dlep_if_get_tree(true), interf, interf._node, it) {
     dlep_radio_remove_interface(interf);
   }
 
@@ -133,7 +132,7 @@ struct dlep_radio_if *
 dlep_radio_get_by_layer2_if(const char *l2_ifname) {
   struct dlep_radio_if *interf;
 
-  return avl_find_element(&_interface_tree, l2_ifname, interf, interf._node);
+  return avl_find_element(dlep_if_get_tree(true), l2_ifname, interf, interf._node);
 }
 
 /**
@@ -145,7 +144,7 @@ struct dlep_radio_if *
 dlep_radio_get_by_datapath_if(const char *ifname) {
   struct dlep_radio_if *interf;
 
-  avl_for_each_element(&_interface_tree, interf, interf._node) {
+  avl_for_each_element(dlep_if_get_tree(true), interf, interf._node) {
     if (strcmp(interf->interf.udp_config.interface, ifname) == 0) {
       return interf;
     }
@@ -178,9 +177,6 @@ dlep_radio_add_interface(const char *ifname) {
     return NULL;
   }
 
-  /* add to global tree of sessions */
-  avl_insert(&_interface_tree, &interface->interf._node);
-
   /* configure TCP server socket */
   interface->tcp.config.session_timeout = 120000; /* 120 seconds */
   interface->tcp.config.maximum_input_buffer = 4096;
@@ -207,10 +203,8 @@ dlep_radio_remove_interface(struct dlep_radio_if *interface) {
   /* cleanup generic interface */
   dlep_if_remove(&interface->interf);
 
-  /* remove from interface tree */
-  avl_remove(&_interface_tree, &interface->interf._node);
-
   /* free memory */
+  oonf_stream_free_managed_config(&interface->tcp_config);
   free (interface->interf.session.cfg.peer_type);
   abuf_free(&interface->interf.udp_out);
   oonf_class_free(&_interface_class, interface);
@@ -244,7 +238,7 @@ dlep_radio_terminate_all_sessions(void) {
 
   _shutting_down = true;
 
-  avl_for_each_element(&_interface_tree, interf, interf._node) {
+  avl_for_each_element(dlep_if_get_tree(true), interf, interf._node) {
     avl_for_each_element(&interf->interf.session_tree, radio_session, _node) {
       dlep_session_terminate(&radio_session->session);
     }

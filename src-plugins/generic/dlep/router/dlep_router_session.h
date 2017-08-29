@@ -72,7 +72,7 @@ enum dlep_router_session_state {
  * DLEP session of a router
  */
 struct dlep_router_session {
-  /*! basic struct for tcp stream, must be first in struct! */
+  /*! basic struct for tcp stream */
   struct oonf_stream_session *stream;
 
   /*! TCP client socket for session */

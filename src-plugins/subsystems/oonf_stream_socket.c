@@ -231,6 +231,10 @@ oonf_stream_remove(struct oonf_stream_socket *stream_socket, bool force) {
 
   oonf_socket_remove(&stream_socket->scheduler_entry);
   os_fd_close(&stream_socket->scheduler_entry.fd);
+
+  if (stream_socket->config.cleanup_socket) {
+    stream_socket->config.cleanup_socket(stream_socket);
+  }
 }
 
 /**
@@ -456,8 +460,8 @@ oonf_stream_copy_managed_config(struct oonf_stream_managed_config *dst,
  */
 static void
 _stream_close(struct oonf_stream_session *session) {
-  if (session->stream_socket->config.cleanup) {
-    session->stream_socket->config.cleanup(session);
+  if (session->stream_socket->config.cleanup_session) {
+    session->stream_socket->config.cleanup_session(session);
   }
 
   oonf_timer_stop(&session->timeout);
@@ -675,8 +679,8 @@ _create_session(struct oonf_stream_socket *stream_socket,
   oonf_socket_set_read(&session->scheduler_entry, true);
   oonf_socket_set_write(&session->scheduler_entry, true);
 
-  if (stream_socket->config.init) {
-    if (stream_socket->config.init(session)) {
+  if (stream_socket->config.init_session) {
+    if (stream_socket->config.init_session(session)) {
       goto parse_request_error;
     }
   }

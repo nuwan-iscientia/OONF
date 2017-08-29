@@ -174,7 +174,7 @@ static struct oonf_stream_managed _http_managed_socket = {
     .allowed_sessions = 10,
     .receive_data = _cb_receive_data,
     .create_error = _cb_create_error,
-    .cleanup = _cb_cleanup_session,
+    .cleanup_session = _cb_cleanup_session,
   },
 };
 

@@ -60,6 +60,16 @@ static void _cb_send_multicast(struct dlep_session *session, int af_family);
 
 static const char _DLEP_PREFIX[] = DLEP_RFC8175_PREFIX;
 
+static struct avl_tree _radio_if_tree =
+    AVL_STATIC_INIT(_radio_if_tree, avl_comp_strcasecmp, false);
+static struct avl_tree _router_if_tree =
+    AVL_STATIC_INIT(_router_if_tree, avl_comp_strcasecmp, false);
+
+struct avl_tree *
+dlep_if_get_tree(bool radio) {
+  return radio ? &_radio_if_tree : &_router_if_tree;
+}
+
 /**
  * Add a new interface to this dlep instance
  * @param interf pointer to interface
@@ -96,6 +106,9 @@ dlep_if_add(struct dlep_if *interf, const char *ifname,
     return -1;
   }
 
+  /* remember if this is a radio interface */
+  interf->radio = radio;
+
   /* initialize stream list */
   avl_init(&interf->session_tree, avl_comp_netaddr_socket, false);
 
@@ -110,6 +123,9 @@ dlep_if_add(struct dlep_if *interf, const char *ifname,
   interf->session.restrict_signal =
       radio ? DLEP_UDP_PEER_DISCOVERY : DLEP_UDP_PEER_OFFER;
   interf->session.writer.out = &interf->udp_out;
+
+  /* add to tree */
+  avl_insert(dlep_if_get_tree(radio), &interf->_node);
 
   /* inform all extension */
   avl_for_each_element(dlep_extension_get_tree(), ext, _node) {
@@ -151,11 +167,18 @@ dlep_if_remove(struct dlep_if *interface) {
     }
   }
 
+  /* remove from tree */
+  avl_remove(dlep_if_get_tree(interface->radio), &interface->_node);
+
   /* close UDP interface */
   oonf_packet_remove_managed(&interface->udp, true);
 
   /* kill dlep session */
   dlep_session_remove(&interface->session);
+
+  /* free allocated memory data */
+  oonf_packet_free_managed_config(&interface->udp_config);
+  abuf_free(&interface->udp_out);
 }
 /**
  * Callback to receive UDP data through oonf_packet_managed API
@@ -207,7 +230,13 @@ _cb_receive_udp(struct oonf_packet_socket *pkt,
 
   processed = dlep_session_process_buffer(&interf->session, buffer, length, true);
   if (processed < 0) {
-    return ;
+    /* Session is now most likely invalid */
+    return;
+  }
+
+  if (interf->session.restrict_signal == DLEP_KILL_SESSION) {
+    /* Session was terminated */
+    return;
   }
 
   if ((size_t)processed < length) {

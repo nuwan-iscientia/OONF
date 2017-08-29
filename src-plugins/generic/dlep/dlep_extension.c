@@ -172,7 +172,7 @@ dlep_extension_get_ids(uint16_t *length) {
  * @return -1 if an error happened, 0 otherwise
  */
 int
-dlep_extension_router_process_peer_init_ack(
+dlep_extension_router_process_session_init_ack(
     struct dlep_extension *ext, struct dlep_session *session) {
   if (session->restrict_signal != DLEP_SESSION_INITIALIZATION_ACK) {
     /* ignore unless we are in initialization mode */
@@ -189,7 +189,7 @@ dlep_extension_router_process_peer_init_ack(
  * @return -1 if an error happened, 0 otherwise
  */
 int
-dlep_extension_router_process_peer_update(
+dlep_extension_router_process_session_update(
     struct dlep_extension *ext, struct dlep_session *session) {
   if (session->restrict_signal != DLEP_ALL_SIGNALS) {
     /* ignore unless we have an established session */
@@ -251,7 +251,7 @@ dlep_extension_router_process_destination(
  * @return -1 if an error happened, 0 otherwise
  */
 int
-dlep_extension_radio_write_peer_init_ack(
+dlep_extension_radio_write_session_init_ack(
     struct dlep_extension *ext, struct dlep_session *session,
     const struct netaddr *neigh __attribute__((unused))) {
   struct oonf_layer2_net *l2net;
@@ -322,7 +322,7 @@ dlep_extension_radio_write_peer_init_ack(
  * @return -1 if an error happened, 0 otherwise
  */
 int
-dlep_extension_radio_write_peer_update(
+dlep_extension_radio_write_session_update(
     struct dlep_extension *ext, struct dlep_session *session,
     const struct netaddr *neigh __attribute__((unused))) {
   struct oonf_layer2_net *l2net;

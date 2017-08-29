@@ -436,7 +436,7 @@ oonf_layer2_net_add_ip(struct oonf_layer2_net *l2net,
  */
 int
 oonf_layer2_net_remove_ip(
-    struct oonf_layer2_peer_address *ip, struct oonf_layer2_origin *origin) {
+    struct oonf_layer2_peer_address *ip, const struct oonf_layer2_origin *origin) {
   if (ip->origin != origin) {
     return -1;
   }

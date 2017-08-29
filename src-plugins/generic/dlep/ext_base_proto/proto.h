@@ -58,9 +58,9 @@ void dlep_base_proto_start_remote_heartbeat(struct dlep_session *session);
 void dlep_base_proto_stop_timers(struct dlep_session *session);
 enum dlep_status dlep_base_proto_print_status(struct dlep_session *session);
 void dlep_base_proto_print_peer_type(struct dlep_session *session);
-int dlep_base_proto_process_peer_termination(
+int dlep_base_proto_process_session_termination(
     struct dlep_extension *, struct dlep_session *);
-int dlep_base_proto_process_peer_termination_ack(
+int dlep_base_proto_process_session_termination_ack(
     struct dlep_extension *, struct dlep_session *);
 int dlep_base_proto_process_heartbeat(
     struct dlep_extension *, struct dlep_session *);

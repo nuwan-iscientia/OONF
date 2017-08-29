@@ -231,24 +231,24 @@ static struct dlep_extension_signal _signals[] = {
         .mandatory_tlv_count = ARRAYSIZE(_session_initack_mandatory),
     },
     {
-        .id = DLEP_PEER_UPDATE,
+        .id = DLEP_SESSION_UPDATE,
         .supported_tlvs = _peer_update_tlvs,
         .supported_tlv_count = ARRAYSIZE(_peer_update_tlvs),
         .duplicate_tlvs = _peer_update_duplicates,
         .duplicate_tlv_count = ARRAYSIZE(_peer_update_duplicates),
     },
     {
-        .id = DLEP_PEER_UPDATE_ACK,
+        .id = DLEP_SESSION_UPDATE_ACK,
         .supported_tlvs = _peer_updateack_tlvs,
         .supported_tlv_count = ARRAYSIZE(_peer_updateack_tlvs),
     },
     {
-        .id = DLEP_PEER_TERMINATION,
+        .id = DLEP_SESSION_TERMINATION,
         .supported_tlvs = _peer_termination_tlvs,
         .supported_tlv_count = ARRAYSIZE(_peer_termination_tlvs),
     },
     {
-        .id = DLEP_PEER_TERMINATION_ACK,
+        .id = DLEP_SESSION_TERMINATION_ACK,
         .supported_tlvs = _peer_terminationack_tlvs,
         .supported_tlv_count = ARRAYSIZE(_peer_terminationack_tlvs),
     },
@@ -319,10 +319,6 @@ static struct dlep_extension_tlv _tlvs[] = {
     { DLEP_HEARTBEAT_INTERVAL_TLV, 4,4 },
     { DLEP_EXTENSIONS_SUPPORTED_TLV, 2, 65534 },
     { DLEP_MAC_ADDRESS_TLV, 6,8 },
-    { DLEP_IPV4_ADDRESS_TLV, 5,5 },
-    { DLEP_IPV6_ADDRESS_TLV, 17,17 },
-    { DLEP_IPV4_SUBNET_TLV, 5,5 },
-    { DLEP_IPV6_SUBNET_TLV, 17,17 },
     { DLEP_MDRR_TLV, 8,8 },
     { DLEP_MDRT_TLV, 8,8 },
     { DLEP_CDRR_TLV, 8,8 },
@@ -502,12 +498,13 @@ dlep_base_proto_print_peer_type(struct dlep_session *session) {
  * @return -1 if an error happened, 0 otherwise
  */
 int
-dlep_base_proto_process_peer_termination(
+dlep_base_proto_process_session_termination(
     struct dlep_extension *ext __attribute__((unused)),
     struct dlep_session *session) {
   dlep_base_proto_print_status(session);
 
-  return dlep_session_generate_signal(session, DLEP_PEER_TERMINATION_ACK, NULL);
+  session->_peer_state = DLEP_PEER_TERMINATED;
+  return dlep_session_generate_signal(session, DLEP_SESSION_TERMINATION_ACK, NULL);
 }
 
 /**
@@ -517,12 +514,10 @@ dlep_base_proto_process_peer_termination(
  * @return -1 if an error happened, 0 otherwise
  */
 int
-dlep_base_proto_process_peer_termination_ack(
+dlep_base_proto_process_session_termination_ack(
     struct dlep_extension *ext __attribute__((unused)),
     struct dlep_session *session) {
-  if (session->cb_end_session) {
-    session->cb_end_session(session);
-  }
+  session->restrict_signal = DLEP_KILL_SESSION;
   return 0;
 }
 
@@ -583,7 +578,7 @@ _cb_remote_heartbeat(struct oonf_timer_instance *ptr) {
 
   session = container_of(ptr, struct dlep_session, remote_heartbeat_timeout);
 
-  if (session->restrict_signal == DLEP_PEER_TERMINATION_ACK) {
+  if (session->restrict_signal == DLEP_SESSION_TERMINATION_ACK) {
     /* peer termination ACK is missing! */
 
     /* stop local heartbeats */

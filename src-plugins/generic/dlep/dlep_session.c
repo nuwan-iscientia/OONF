@@ -170,6 +170,7 @@ dlep_session_add(struct dlep_session *session, const char *l2_ifname,
 
   i = 0;
   avl_for_each_element( dlep_extension_get_tree(), ext, _node) {
+    OONF_DEBUG(session->log_source, "Add extension %d to session", ext->id);
     parser->extensions[i] = ext;
     i++;
   }
@@ -180,6 +181,8 @@ dlep_session_add(struct dlep_session *session, const char *l2_ifname,
     dlep_session_remove(session);
     return -1;
   }
+
+  avl_init(&session->_ip_prefix_modification, avl_comp_netaddr, false);
 
   OONF_INFO(session->log_source, "Add session on %s",
       session->l2_listener.name);
@@ -231,9 +234,9 @@ dlep_session_terminate(struct dlep_session *session) {
   }
 
   dlep_session_generate_signal(
-      session, DLEP_PEER_TERMINATION, NULL);
+      session, DLEP_SESSION_TERMINATION, NULL);
   session->cb_send_buffer(session, 0);
-  session->restrict_signal = DLEP_PEER_TERMINATION_ACK;
+  session->restrict_signal = DLEP_SESSION_TERMINATION_ACK;
 }
 
 /**
@@ -305,11 +308,17 @@ dlep_session_process_tcp(struct oonf_stream_session *tcp_session,
       abuf_getptr(&tcp_session->in),
       abuf_getlen(&tcp_session->in), false);
 
-  OONF_DEBUG(session->log_source,
-      "Processed %" PRINTF_SSIZE_T_SPECIFIER " bytes", processed);
   if (processed < 0) {
+    /* session is most likely invalid now */
     return STREAM_SESSION_CLEANUP;
   }
+
+  if (session->restrict_signal == DLEP_KILL_SESSION) {
+    return STREAM_SESSION_CLEANUP;
+  }
+
+  OONF_DEBUG(session->log_source,
+    "Processed %" PRINTF_SSIZE_T_SPECIFIER " bytes", processed);
 
   abuf_pull(&tcp_session->in, processed);
 
@@ -359,6 +368,9 @@ dlep_session_process_buffer(
       break;
     }
 
+    if (session->restrict_signal == DLEP_KILL_SESSION) {
+      return offset;
+    }
     length -= result;
     offset += result;
   }
@@ -370,9 +382,10 @@ dlep_session_process_buffer(
  * @param session dlep session
  * @param ptr pointer to buffer with DLEP signal/message
  * @param length length of buffer
- * @return numberr of bytes parsed, 0 if an error happened
+ * @return number of bytes parsed, 0 if a generic error happened,
+ *   negative to return a parser result enum
  */
-size_t
+ssize_t
 dlep_session_process_signal(struct dlep_session *session,
     const void *ptr, size_t length, bool is_udp) {
   enum dlep_parser_error result;
@@ -436,6 +449,10 @@ dlep_session_process_signal(struct dlep_session *session,
   result = _process_tlvs(session,
       signal_type, signal_length, &buffer[4]);
 
+  if (result == DLEP_NEW_PARSER_TERMINDATED) {
+    /* session is now invalid, end parser */
+    return result;
+  }
   if (result != DLEP_NEW_PARSER_OKAY) {
     OONF_WARN(session->log_source, "Parser error: %d", result);
     _send_terminate(session);
@@ -477,6 +494,9 @@ dlep_session_add_local_neighbor(struct dlep_session *session,
 
   /* initialize backpointer */
   local->session = session;
+
+
+  avl_init(&local->_ip_prefix_modification, avl_comp_netaddr, false);
 
   return local;
 }
@@ -529,6 +549,30 @@ dlep_session_get_local_l2_neighbor(struct dlep_session *session,
     OONF_INFO(session->log_source, "Could not find l2neigh "
         "for neighbor %s (%s)", netaddr_to_string(&nbuf1, neigh),
         netaddr_to_string(&nbuf2, &dlep_neigh->neigh_addr));
+    return NULL;
+  }
+  return l2neigh;
+}
+
+struct oonf_layer2_neigh *
+dlep_session_get_l2_from_neighbor(struct dlep_local_neighbor *dlep_neigh) {
+  struct oonf_layer2_neigh *l2neigh;
+  struct oonf_layer2_net *l2net;
+#ifdef OONF_LOG_INFO
+  struct netaddr_str nbuf;
+#endif
+
+  l2net = oonf_layer2_net_get(dlep_neigh->session->l2_listener.name);
+  if (!l2net) {
+    OONF_DEBUG(dlep_neigh->session->log_source, "Could not find l2net %s for new neighbor",
+        dlep_neigh->session->l2_listener.name);
+    return NULL;
+  }
+
+  l2neigh = oonf_layer2_neigh_get(l2net, &dlep_neigh->neigh_addr);
+  if (!l2neigh) {
+    OONF_INFO(dlep_neigh->session->log_source, "Could not find l2neigh "
+        "for neighbor %s", netaddr_to_string(&nbuf, &dlep_neigh->neigh_addr));
     return NULL;
   }
   return l2neigh;
@@ -812,10 +856,10 @@ static void
 _send_terminate(struct dlep_session *session) {
   if (session->restrict_signal != DLEP_UDP_PEER_DISCOVERY
       && session->restrict_signal != DLEP_UDP_PEER_OFFER) {
-    dlep_session_generate_signal(session, DLEP_PEER_TERMINATION, NULL);
+    dlep_session_generate_signal(session, DLEP_SESSION_TERMINATION, NULL);
 
-    session->restrict_signal = DLEP_PEER_TERMINATION_ACK;
-    session->next_restrict_signal = DLEP_PEER_TERMINATION_ACK;
+    session->restrict_signal = DLEP_SESSION_TERMINATION_ACK;
+    session->next_restrict_signal = DLEP_SESSION_TERMINATION_ACK;
   }
 }
 

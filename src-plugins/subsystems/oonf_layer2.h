@@ -366,7 +366,7 @@ EXPORT struct oonf_layer2_peer_address *oonf_layer2_net_add_ip(
     struct oonf_layer2_net *l2net,
     const struct oonf_layer2_origin *origin, const struct netaddr *ip);
 EXPORT int oonf_layer2_net_remove_ip(
-    struct oonf_layer2_peer_address *ip, struct oonf_layer2_origin *origin);
+    struct oonf_layer2_peer_address *ip, const struct oonf_layer2_origin *origin);
 EXPORT struct oonf_layer2_neighbor_address *oonf_layer2_net_get_best_neighbor_match(
     const struct netaddr *addr);
 

@@ -68,29 +68,32 @@ enum dlep_parser_error {
   /*! parsing successful */
   DLEP_NEW_PARSER_OKAY                  =  0,
 
+  /*! Signal terminates session, session is now invalid! */
+  DLEP_NEW_PARSER_TERMINDATED           = -1,
+
   /*! signal too short, incomplete TLV header */
-  DLEP_NEW_PARSER_INCOMPLETE_TLV_HEADER = -1,
+  DLEP_NEW_PARSER_INCOMPLETE_TLV_HEADER = -2,
 
   /*! signal too short, incomplete TLV */
-  DLEP_NEW_PARSER_INCOMPLETE_TLV        = -2,
+  DLEP_NEW_PARSER_INCOMPLETE_TLV        = -3,
 
   /*! TLV type is not supported by session */
-  DLEP_NEW_PARSER_UNSUPPORTED_TLV       = -3,
+  DLEP_NEW_PARSER_UNSUPPORTED_TLV       = -4,
 
   /*! TLV length is not supported */
-  DLEP_NEW_PARSER_ILLEGAL_TLV_LENGTH    = -4,
+  DLEP_NEW_PARSER_ILLEGAL_TLV_LENGTH    = -5,
 
   /*! mandatory TLV is missing */
-  DLEP_NEW_PARSER_MISSING_MANDATORY_TLV = -5,
+  DLEP_NEW_PARSER_MISSING_MANDATORY_TLV = -6,
 
   /*! this TLV must not be used more than once */
-  DLEP_NEW_PARSER_DUPLICATE_TLV         = -6,
+  DLEP_NEW_PARSER_DUPLICATE_TLV         = -7,
 
   /*! out of memory error */
-  DLEP_NEW_PARSER_OUT_OF_MEMORY         = -7,
+  DLEP_NEW_PARSER_OUT_OF_MEMORY         = -8,
 
   /*! internal parser error, inconsistent data structures */
-  DLEP_NEW_PARSER_INTERNAL_ERROR        = -8,
+  DLEP_NEW_PARSER_INTERNAL_ERROR        = -9,
 };
 
 /**
@@ -209,6 +212,9 @@ struct dlep_local_neighbor {
   /*! true if the neighbor changes since the last update */
   bool changed;
 
+  /*! true if iterative updates are be used for destination IPs */
+  bool destination_ip_iterative;
+
   /*! mac address of the neighbors wireless interface */
   struct netaddr neigh_addr;
 
@@ -218,7 +224,10 @@ struct dlep_local_neighbor {
   /*! timeout for acknowledgement signal */
   struct oonf_timer_instance _ack_timeout;
 
-  /*! hook into the sessions treee of neighbors */
+  /*! tree of modifications which should be put into the next destination update */
+  struct avl_tree _ip_prefix_modification;
+
+  /*! hook into the sessions tree of neighbors */
   struct avl_node _node;
 };
 
@@ -240,6 +249,17 @@ struct dlep_session_config {
 
   /*! true if proxied neighbors should be sent with DLEP */
   bool send_proxied;
+};
+
+/**
+ * Records the state of the peer regarding PEER UPDATE messages
+ */
+enum dlep_peer_state {
+  DLEP_PEER_WAIT_FOR_INIT,
+  DLEP_PEER_WAIT_FOR_UPDATE_ACK,
+  DLEP_PEER_SEND_UPDATE,
+  DLEP_PEER_IDLE,
+  DLEP_PEER_TERMINATED,
 };
 
 /**
@@ -298,6 +318,15 @@ struct dlep_session {
   /*! remote endpoint of current communication */
   union netaddr_socket remote_socket;
 
+  /*! timeout for acknowledgement signal */
+  struct oonf_timer_instance _ack_timeout;
+
+  /*! true if we cannot send a peer update at the moment */
+  enum dlep_peer_state _peer_state;
+
+  /*! tree of modifications which should be put into the next peer update */
+  struct avl_tree _ip_prefix_modification;
+
   /*! tree of all dlep sessions of an interface */
   struct avl_node _node;
 };
@@ -317,7 +346,7 @@ enum oonf_stream_session_state dlep_session_process_tcp(
     struct dlep_session *session);
 ssize_t dlep_session_process_buffer(
     struct dlep_session *session, const void *buffer, size_t length, bool is_udp);
-size_t dlep_session_process_signal(struct dlep_session *session,
+ssize_t dlep_session_process_signal(struct dlep_session *session,
     const void *buffer, size_t length, bool is_udp);
 int dlep_session_generate_signal(struct dlep_session *session,
     int32_t signal, const struct netaddr *neighbor);
@@ -333,6 +362,8 @@ void dlep_session_remove_local_neighbor(
     struct dlep_session *session, struct dlep_local_neighbor *local);
 struct oonf_layer2_neigh *dlep_session_get_local_l2_neighbor(
     struct dlep_session *session, const struct netaddr *neigh);
+struct oonf_layer2_neigh *dlep_session_get_l2_from_neighbor(
+    struct dlep_local_neighbor *dlep_neigh);
 
 /**
  * get the dlep session tlv

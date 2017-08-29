@@ -163,8 +163,8 @@ static struct oonf_stream_managed _telnet_managed = {
     .session_timeout = 120000, /* 120 seconds */
     .allowed_sessions = 3,
     .memcookie = &_telnet_memcookie,
-    .init = _cb_telnet_init,
-    .cleanup = _cb_telnet_cleanup,
+    .init_session = _cb_telnet_init,
+    .cleanup_session = _cb_telnet_cleanup,
     .receive_data = _cb_telnet_receive_data,
     .create_error = _cb_telnet_create_error,
   },

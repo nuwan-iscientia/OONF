@@ -197,6 +197,58 @@ dlep_reader_ipv6_tlv(struct netaddr *ipv6, bool *add,
 }
 
 /**
+ * Parse DLEP IPv4 subnet TLV
+ * @param ipv4 pointer to address storage
+ * @param add pointer to boolean for flag storage
+ * @param session dlep session
+ * @param value dlep value to parse, NULL for using the first
+ *   DLEP_IPV4_SUBNET_TLV value
+ * @return -1 if an error happened, 0 otherwise
+ */
+int
+dlep_reader_ipv4_subnet_tlv(struct netaddr *ipv4, bool *add,
+    struct dlep_session *session, struct dlep_parser_value *value) {
+  const uint8_t *ptr;
+
+  if (!value) {
+    value = dlep_session_get_tlv_value(session, DLEP_IPV4_SUBNET_TLV);
+    if (!value) {
+      return -1;
+    }
+  }
+
+  ptr = dlep_session_get_tlv_binary(session, value);
+  *add = (ptr[0] & DLEP_IP_ADD) == DLEP_IP_ADD;
+  return netaddr_from_binary(ipv4, &ptr[1], 4, AF_INET);
+}
+
+/**
+ * Parse DLEP IPv6 subnet TLV
+ * @param ipv6 pointer to address storage
+ * @param add pointer to boolean for flag storage
+ * @param session dlep session
+ * @param value dlep value to parse, NULL for using the first
+ *   DLEP_IPV6_SUBNET_TLV value
+ * @return -1 if an error happened, 0 otherwise
+ */
+int
+dlep_reader_ipv6_subnet_tlv(struct netaddr *ipv6, bool *add,
+    struct dlep_session *session, struct dlep_parser_value *value) {
+  const uint8_t *ptr;
+
+  if (!value) {
+    value = dlep_session_get_tlv_value(session, DLEP_IPV6_SUBNET_TLV);
+    if (!value) {
+      return -1;
+    }
+  }
+
+  ptr = dlep_session_get_tlv_binary(session, value);
+  *add = (ptr[0] & DLEP_IP_ADD) == DLEP_IP_ADD;
+  return netaddr_from_binary(ipv6, &ptr[1], 16, AF_INET6);
+}
+
+/**
  * Parse a DLEP IPv4 conpoint TLV
  * @param addr pointer to address storage
  * @param port pointer to port storage

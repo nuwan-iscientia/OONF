@@ -73,10 +73,13 @@ enum {
  */
 enum dlep_extensions {
   /*! number of DLEP base extensions */
-  DLEP_EXTENSION_BASE_COUNT      =  2,
+  DLEP_EXTENSION_BASE_COUNT      =  3,
 
   /*! DLEP protocol/session handling */
-  DLEP_EXTENSION_BASE_PROTO      = -2,
+  DLEP_EXTENSION_BASE_PROTO      = -3,
+
+  /*! DLEP metrics defined by base RFC */
+  DLEP_EXTENSION_BASE_IP         = -2,
 
   /*! DLEP metrics defined by base RFC */
   DLEP_EXTENSION_BASE_METRIC     = -1,
@@ -120,16 +123,16 @@ enum dlep_signals {
   DLEP_SESSION_INITIALIZATION_ACK   =  2,
 
   /*! Radio update interface scope data */
-  DLEP_PEER_UPDATE                  =  3,
+  DLEP_SESSION_UPDATE               =  3,
 
   /*! Router acknowledges interface data update */
-  DLEP_PEER_UPDATE_ACK              =  4,
+  DLEP_SESSION_UPDATE_ACK           =  4,
 
   /*! Radio/Router terminates DLEP session */
-  DLEP_PEER_TERMINATION             =  5,
+  DLEP_SESSION_TERMINATION          =  5,
 
   /*! Radio/Router acknowledge end of DLEP session */
-  DLEP_PEER_TERMINATION_ACK         =  6,
+  DLEP_SESSION_TERMINATION_ACK      =  6,
 
   /*! Radio announces a new neighbor with metrics */
   DLEP_DESTINATION_UP               =  7,

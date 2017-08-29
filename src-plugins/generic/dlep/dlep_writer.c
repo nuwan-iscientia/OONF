@@ -205,47 +205,46 @@ dlep_writer_add_mac_tlv(struct dlep_writer *writer,
 }
 
 /**
- * Write a DLEP IPv4 address TLV
+ * Write a DLEP IPv4/IPv6 address/subnet TLV
  * @param writer dlep writer
- * @param ipv4 IPv4 address
+ * @param ip IPv4 address
  * @param add true if address should be added, false to remove it
  */
-void
-dlep_writer_add_ipv4_tlv(struct dlep_writer *writer,
-    const struct netaddr *ipv4, bool add) {
-  uint8_t value[5];
-
-  if (netaddr_get_address_family(ipv4) != AF_INET) {
-    return;
-  }
+int
+dlep_writer_add_ip_tlv(struct dlep_writer *writer,
+    const struct netaddr *ip, bool add) {
+  uint8_t value[18];
 
   value[0] = add ? DLEP_IP_ADD : DLEP_IP_REMOVE;
-  netaddr_to_binary(&value[1], ipv4, 4);
+  netaddr_to_binary(&value[1], ip, 16);
 
-  dlep_writer_add_tlv(writer,
-      DLEP_IPV4_ADDRESS_TLV, value, sizeof(value));
-}
-
-/**
- * Write a DLEP IPv6 address TLV
- * @param writer dlep writer
- * @param ipv6 IPv6 address
- * @param add true if address should be added, false to remove it
- */
-void
-dlep_writer_add_ipv6_tlv(struct dlep_writer *writer,
-    const struct netaddr *ipv6, bool add) {
-  uint8_t value[17];
-
-  if (netaddr_get_address_family(ipv6) != AF_INET6) {
-    return;
+  switch (netaddr_get_address_family(ip)) {
+    case AF_INET:
+      value[5] = netaddr_get_prefix_length(ip);
+      if (value[5] != 32) {
+        dlep_writer_add_tlv(writer,
+            DLEP_IPV4_SUBNET_TLV, value, 6);
+      }
+      else {
+        dlep_writer_add_tlv(writer,
+            DLEP_IPV4_ADDRESS_TLV, value, 5);
+      }
+      break;
+    case AF_INET6:
+      value[17] = netaddr_get_prefix_length(ip);
+      if (value[17] != 128) {
+        dlep_writer_add_tlv(writer,
+            DLEP_IPV6_SUBNET_TLV, value, 18);
+      }
+      else {
+        dlep_writer_add_tlv(writer,
+            DLEP_IPV6_ADDRESS_TLV, value, 17);
+      }
+      break;
+    default:
+      return -1;
   }
-
-  value[0] = add ? DLEP_IP_ADD : DLEP_IP_REMOVE;
-  netaddr_to_binary(&value[1], ipv6, 16);
-
-  dlep_writer_add_tlv(writer,
-      DLEP_IPV6_ADDRESS_TLV, value, sizeof(value));
+  return 0;
 }
 
 /**

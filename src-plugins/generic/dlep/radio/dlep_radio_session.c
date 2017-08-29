@@ -96,8 +96,8 @@ void
 dlep_radio_session_initialize_tcp_callbacks(
     struct oonf_stream_config *config) {
   config->memcookie = &_radio_session_class;
-  config->init = _cb_incoming_tcp;
-  config->cleanup = _cb_tcp_lost;
+  config->init_session = _cb_incoming_tcp;
+  config->cleanup_session = _cb_tcp_lost;
   config->receive_data = _cb_tcp_receive_data;
 }
 

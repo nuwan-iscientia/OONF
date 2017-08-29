@@ -64,9 +64,9 @@ static void _cb_cleanup_router(struct dlep_session *);
 static void _cb_create_peer_discovery(struct oonf_timer_instance *);
 
 static int _router_process_peer_offer(struct dlep_extension *, struct dlep_session *);
-static int _router_process_peer_init_ack(struct dlep_extension *, struct dlep_session *);
-static int _router_process_peer_update(struct dlep_extension *, struct dlep_session *);
-static int _router_process_peer_update_ack(struct dlep_extension *, struct dlep_session *);
+static int _router_process_session_init_ack(struct dlep_extension *, struct dlep_session *);
+static int _router_process_session_update(struct dlep_extension *, struct dlep_session *);
+static int _router_process_session_update_ack(struct dlep_extension *, struct dlep_session *);
 static int _router_process_destination_up(struct dlep_extension *, struct dlep_session *);
 static int _router_process_destination_up_ack(struct dlep_extension *, struct dlep_session *);
 static int _router_process_destination_down(struct dlep_extension *, struct dlep_session *);
@@ -94,23 +94,23 @@ static struct dlep_extension_implementation _router_signals[] = {
     },
     {
         .id = DLEP_SESSION_INITIALIZATION_ACK,
-        .process = _router_process_peer_init_ack,
+        .process = _router_process_session_init_ack,
     },
     {
-        .id = DLEP_PEER_UPDATE,
-        .process = _router_process_peer_update,
+        .id = DLEP_SESSION_UPDATE,
+        .process = _router_process_session_update,
     },
     {
-        .id = DLEP_PEER_UPDATE_ACK,
-        .process = _router_process_peer_update_ack,
+        .id = DLEP_SESSION_UPDATE_ACK,
+        .process = _router_process_session_update_ack,
     },
     {
-        .id = DLEP_PEER_TERMINATION,
-        .process = dlep_base_proto_process_peer_termination,
+        .id = DLEP_SESSION_TERMINATION,
+        .process = dlep_base_proto_process_session_termination,
     },
     {
-        .id = DLEP_PEER_TERMINATION_ACK,
-        .process = dlep_base_proto_process_peer_termination_ack,
+        .id = DLEP_SESSION_TERMINATION_ACK,
+        .process = dlep_base_proto_process_session_termination_ack,
     },
     {
         .id = DLEP_DESTINATION_UP,
@@ -358,7 +358,7 @@ _router_process_peer_offer(
  * @return -1 if an error happened, 0 otherwise
  */
 static int
-_router_process_peer_init_ack(
+_router_process_session_init_ack(
     struct dlep_extension *ext __attribute__((unused)),
     struct dlep_session *session) {
   struct oonf_layer2_net *l2net;
@@ -427,7 +427,7 @@ _router_process_peer_init_ack(
  * @return -1 if an error happened, 0 otherwise
  */
 static int
-_router_process_peer_update(
+_router_process_session_update(
     struct dlep_extension *ext __attribute__((unused)),
     struct dlep_session *session) {
   struct oonf_layer2_net *l2net;
@@ -445,11 +445,9 @@ _router_process_peer_update(
     return -1;
   }
 
-  /* we don't support IP address exchange at the moment */
-
   /* generate ACK */
   return dlep_session_generate_signal(
-      session, DLEP_PEER_UPDATE_ACK, NULL);
+      session, DLEP_SESSION_UPDATE_ACK, NULL);
 }
 
 /**
@@ -459,7 +457,7 @@ _router_process_peer_update(
  * @return -1 if an error happened, 0 otherwise
  */
 static int
-_router_process_peer_update_ack(
+_router_process_session_update_ack(
     struct dlep_extension *ext __attribute__((unused)),
     struct dlep_session *session) {
   dlep_base_proto_print_status(session);

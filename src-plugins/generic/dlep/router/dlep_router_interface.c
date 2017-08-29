@@ -65,16 +65,15 @@
 #include "dlep/router/dlep_router.h"
 #include "dlep/router/dlep_router_interface.h"
 
-#include "dlep/ext_base_proto/proto_router.h"
+#include "dlep/ext_base_ip/ip.h"
 #include "dlep/ext_base_metric/metric.h"
+#include "dlep/ext_base_proto/proto_router.h"
 #include "dlep/ext_l1_statistics/l1_statistics.h"
 #include "dlep/ext_l2_statistics/l2_statistics.h"
 #include "dlep/router/dlep_router_internal.h"
 #include "dlep/router/dlep_router_session.h"
 
 static void _cleanup_interface(struct dlep_router_if *interface);
-
-static struct avl_tree _interface_tree;
 
 static struct oonf_class _router_if_class = {
   .name = "DLEP router interface",
@@ -95,13 +94,13 @@ static struct oonf_layer2_origin _l2_origin = {
 void
 dlep_router_interface_init(void) {
   oonf_class_add(&_router_if_class);
-  avl_init(&_interface_tree, avl_comp_strcasecmp, false);
 
   dlep_extension_init();
   dlep_session_init();
   dlep_router_session_init();
   dlep_base_proto_router_init();
   dlep_base_metric_init();
+  dlep_base_ip_init();
   dlep_l1_statistics_init();
   dlep_l2_statistics_init();
 
@@ -118,12 +117,13 @@ void
 dlep_router_interface_cleanup(void) {
   struct dlep_router_if *interf, *it;
 
-  avl_for_each_element_safe(&_interface_tree, interf, interf._node, it) {
+  avl_for_each_element_safe(dlep_if_get_tree(false), interf, interf._node, it) {
     dlep_router_remove_interface(interf);
   }
 
   oonf_class_remove(&_router_if_class);
 
+  dlep_base_ip_cleanup();
   dlep_router_session_cleanup();
   dlep_extension_cleanup();
   oonf_layer2_remove_origin(&_l2_origin);
@@ -138,7 +138,7 @@ struct dlep_router_if *
 dlep_router_get_by_layer2_if(const char *l2_ifname) {
   struct dlep_router_if *interf;
 
-  return avl_find_element(&_interface_tree, l2_ifname, interf, interf._node);
+  return avl_find_element(dlep_if_get_tree(false), l2_ifname, interf, interf._node);
 }
 
 /**
@@ -150,7 +150,7 @@ struct dlep_router_if *
 dlep_router_get_by_datapath_if(const char *ifname) {
   struct dlep_router_if *interf;
 
-  avl_for_each_element(&_interface_tree, interf, interf._node) {
+  avl_for_each_element(dlep_if_get_tree(false), interf, interf._node) {
     if (strcmp(interf->interf.udp_config.interface, ifname) == 0) {
       return interf;
     }
@@ -184,9 +184,6 @@ dlep_router_add_interface(const char *ifname) {
     return NULL;
   }
 
-  /* add to global tree of sessions */
-  avl_insert(&_interface_tree, &interface->interf._node);
-
   OONF_DEBUG(LOG_DLEP_ROUTER, "Add session %s", ifname);
   return interface;
 }
@@ -205,7 +202,6 @@ dlep_router_remove_interface(struct dlep_router_if *interface) {
 
   /* remove session */
   free (interface->interf.session.cfg.peer_type);
-  avl_remove(&_interface_tree, &interface->interf._node);
   oonf_class_free(&_router_if_class, interface);
 }
 
@@ -263,7 +259,7 @@ dlep_router_terminate_all_sessions(void) {
 
   _shutting_down = true;
 
-  avl_for_each_element(&_interface_tree, interf, interf._node) {
+  avl_for_each_element(dlep_if_get_tree(false), interf, interf._node) {
     avl_for_each_element(&interf->interf.session_tree, router_session, _node) {
       dlep_session_terminate(&router_session->session);
     }

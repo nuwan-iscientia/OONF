@@ -193,13 +193,19 @@ struct oonf_stream_config {
    * @param session stream session
    * @return -1 if an error happened, 0 otherwise
    */
-  int (*init)(struct oonf_stream_session *session);
+  int (*init_session)(struct oonf_stream_session *session);
 
   /**
    * Callback to notify that a stream session will be terminated
    * @param session stream session
    */
-  void (*cleanup)(struct oonf_stream_session *session);
+  void (*cleanup_session)(struct oonf_stream_session *session);
+
+  /**
+   * Callback to notify that the socket has been terminated
+   * @param socket terminated stream socket
+   */
+  void (*cleanup_socket)(struct oonf_stream_socket *stream_socket);
 
   /**
    * Callback to notify that an error happened and the user might
