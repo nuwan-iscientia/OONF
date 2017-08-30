@@ -886,10 +886,16 @@ oonf_layer2_get_origin_tree(void) {
 static void
 _net_remove(struct oonf_layer2_net *l2net) {
   struct oonf_layer2_neigh *l2neigh, *l2n_it;
+  struct oonf_layer2_peer_address *l2peer, *l2peer_it;
 
   /* free all embedded neighbors */
   avl_for_each_element_safe(&l2net->neighbors, l2neigh, _node, l2n_it) {
     _neigh_remove(l2neigh);
+  }
+
+  /* free all attached peer addresses */
+  avl_for_each_element_safe(&l2net->local_peer_ips, l2peer, _node, l2peer_it) {
+    oonf_layer2_net_remove_ip(l2peer, l2peer->origin);
   }
 
   oonf_class_event(&_l2network_class, l2net, OONF_OBJECT_REMOVED);
@@ -909,10 +915,16 @@ _net_remove(struct oonf_layer2_net *l2net) {
 static void
 _neigh_remove(struct oonf_layer2_neigh *l2neigh) {
   struct oonf_layer2_destination *l2dst, *l2dst_it;
+  struct oonf_layer2_neighbor_address *l2addr, *l2addr_it;
 
   /* free all embedded destinations */
   avl_for_each_element_safe(&l2neigh->destinations, l2dst, _node, l2dst_it) {
     oonf_layer2_destination_remove(l2dst);
+  }
+
+  /* free all attached neighbor addresses */
+  avl_for_each_element_safe(&l2neigh->remote_neighbor_ips, l2addr, _node, l2addr_it) {
+    oonf_layer2_neigh_remove_ip(l2addr, l2addr->origin);
   }
 
   /* inform user that mac entry will be removed */

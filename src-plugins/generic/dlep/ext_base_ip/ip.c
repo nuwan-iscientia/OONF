@@ -66,7 +66,8 @@ struct _prefix_storage {
   struct avl_node _node;
 };
 
-static void _cleanup_session(struct dlep_session *);
+static void _cb_session_init(struct dlep_session *session);
+static void _cb_session_cleanup(struct dlep_session *session);
 static int _radio_write_session_update(struct dlep_extension *ext,
     struct dlep_session *session, const struct netaddr *neigh);
 static int _radio_write_destination_update(struct dlep_extension *ext,
@@ -75,6 +76,7 @@ static enum dlep_parser_error _router_process_session_update(
     struct dlep_extension *ext, struct dlep_session *session);
 static enum dlep_parser_error _router_process_destination_update(
     struct dlep_extension *ext, struct dlep_session *session);
+static void _add_prefix(struct avl_tree *tree, struct netaddr *addr, bool add);
 
 static void _cb_add_if_ip(void *ptr);
 static void _cb_remove_if_ip(void *ptr);
@@ -91,6 +93,13 @@ static const uint16_t _ip_tlvs[] = {
 
 /* supported signals of this extension */
 static struct dlep_extension_signal _signals[] = {
+    {
+        .id = DLEP_SESSION_INITIALIZATION_ACK,
+        .supported_tlvs = _ip_tlvs,
+        .supported_tlv_count = ARRAYSIZE(_ip_tlvs),
+        .add_radio_tlvs = _radio_write_session_update,
+        .process_router = _router_process_session_update,
+    },
     {
         .id = DLEP_SESSION_UPDATE,
         .supported_tlvs = _ip_tlvs,
@@ -126,8 +135,11 @@ static struct dlep_extension _base_ip = {
   .tlvs = _tlvs,
   .tlv_count = ARRAYSIZE(_tlvs),
 
-  .cb_session_cleanup_radio = _cleanup_session,
-  .cb_session_cleanup_router = _cleanup_session,
+  .cb_session_init_radio = _cb_session_init,
+  .cb_session_init_router = _cb_session_init,
+
+  .cb_session_cleanup_radio = _cb_session_cleanup,
+  .cb_session_cleanup_router = _cb_session_cleanup,
 };
 
 static struct oonf_class _prefix_class = {
@@ -173,7 +185,41 @@ dlep_base_ip_cleanup(void) {
 }
 
 static
-void _cleanup_session(struct dlep_session *session) {
+void _cb_session_init(struct dlep_session *session) {
+  struct oonf_layer2_neighbor_address *l2neigh_ip;
+  struct oonf_layer2_neigh *l2neigh;
+  struct oonf_layer2_peer_address *l2net_ip;
+  struct oonf_layer2_net *l2net;
+  struct dlep_local_neighbor *dlep_neighbor;
+
+  struct netaddr_str nbuf;
+
+  fprintf(stderr, "1\n");
+  l2net = oonf_layer2_net_get(session->l2_listener.name);
+  if (!l2net) {
+    return;
+  }
+
+  fprintf(stderr, "2\n");
+  avl_for_each_element(&l2net->local_peer_ips, l2net_ip, _node) {
+    _add_prefix(&session->_ip_prefix_modification, &l2net_ip->ip, true);
+    fprintf(stderr, "3: %s\n", netaddr_to_string(&nbuf, &l2net_ip->ip));
+  }
+
+  avl_for_each_element(&l2net->neighbors, l2neigh, _node) {
+    dlep_neighbor = dlep_session_add_local_neighbor(session, &l2neigh->addr);
+    fprintf(stderr, "4: %s\n", netaddr_to_string(&nbuf, &l2neigh->addr));
+    if (dlep_neighbor) {
+      avl_for_each_element(&l2neigh->remote_neighbor_ips, l2neigh_ip, _node) {
+        fprintf(stderr, "5: %s\n", netaddr_to_string(&nbuf, &l2neigh_ip->ip));
+        _add_prefix(&dlep_neighbor->_ip_prefix_modification, &l2neigh_ip->ip, true);
+      }
+    }
+  }
+}
+
+static
+void _cb_session_cleanup(struct dlep_session *session) {
   struct dlep_local_neighbor *l2neigh;
   struct _prefix_storage *storage, *storage_it;
 
@@ -200,6 +246,9 @@ _radio_write_session_update(struct dlep_extension *ext __attribute__((unused)),
   struct netaddr_str nbuf;
 
   avl_for_each_element(&session->_ip_prefix_modification, storage, _node) {
+    OONF_INFO(session->log_source, "Add '%s' (%s) to session update",
+        netaddr_to_string(&nbuf, &storage->prefix),
+        storage->add ? "add" : "remove");
     if (dlep_writer_add_ip_tlv(&session->writer, &storage->prefix, storage->add)) {
         OONF_WARN(session->log_source, "Cannot add '%s' (%s) to session update",
             netaddr_to_string(&nbuf, &storage->prefix),
@@ -222,21 +271,26 @@ _radio_write_destination_update(struct dlep_extension *ext __attribute__((unused
   struct dlep_local_neighbor *dlep_neigh;
   struct _prefix_storage *storage, *storage_it;
 
-  struct netaddr_str nbuf;
+  struct netaddr_str nbuf1, nbuf2;
 
   dlep_neigh = dlep_session_get_local_neighbor(session, neigh);
   if (!dlep_neigh) {
     OONF_WARN(session->log_source, "Could not find dlep_neighbor "
-        "for neighbor %s", netaddr_to_string(&nbuf, neigh));
+        "for neighbor %s", netaddr_to_string(&nbuf1, neigh));
     return -1;
   }
 
   /* send every attached IP towards the router */
   avl_for_each_element(&dlep_neigh->_ip_prefix_modification, storage, _node) {
+    OONF_INFO(session->log_source, "add '%s' (%s) to destination update %s",
+        netaddr_to_string(&nbuf1, &storage->prefix),
+        storage->add ? "add" : "remove",
+        netaddr_to_string(&nbuf2, neigh));
     if (dlep_writer_add_ip_tlv(&session->writer, &storage->prefix, storage->add)) {
-      OONF_WARN(session->log_source, "Cannot add '%s' (%s) to destination update",
-          netaddr_to_string(&nbuf, &storage->prefix),
-          storage->add ? "add" : "remove");
+      OONF_WARN(session->log_source, "Cannot add '%s' (%s) to destination update %s",
+          netaddr_to_string(&nbuf1, &storage->prefix),
+          storage->add ? "add" : "remove",
+          netaddr_to_string(&nbuf2, neigh));
       return -1;
     }
   }
