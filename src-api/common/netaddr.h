@@ -281,7 +281,7 @@ static INLINE int
 netaddr_create_host(struct netaddr *host, const struct netaddr *netmask,
     const struct netaddr *host_number) {
   return netaddr_create_host_bin(host, netmask, host_number->_addr,
-      netaddr_get_maxprefix(host_number));
+      netaddr_get_maxprefix(host_number)/8);
 }
 
 /**
