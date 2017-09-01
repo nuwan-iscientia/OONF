@@ -301,6 +301,18 @@ _handle_ipv4_tunnel(struct os_tunnel *tunnel, bool add) {
   err = ioctl(os_system_linux_linux_get_ioctl_fd(AF_INET),
       add ? SIOCADDTUNNEL : SIOCDELTUNNEL, &ifr);
   if (err) {
+    if (add && (errno == EEXIST)) {
+      /* tunnel with this name already exists, try to remove it! */
+      err = ioctl(os_system_linux_linux_get_ioctl_fd(AF_INET),
+          SIOCDELTUNNEL, &ifr);
+      if (err) {
+        OONF_WARN(LOG_OS_TUNNEL,
+            "Error while %s tunnel %s: tunnel already exists and could not be removed",
+            add ? "adding" : "removing", tunnel->p.tunnel_if);
+        return -1;
+      }
+      return _handle_ipv4_tunnel(tunnel, true);
+    }
     OONF_WARN(LOG_OS_TUNNEL, "Error while %s tunnel %s: %s (%d)",
         add ? "adding" : "removing", tunnel->p.tunnel_if, strerror(errno), errno);
     return -1;
