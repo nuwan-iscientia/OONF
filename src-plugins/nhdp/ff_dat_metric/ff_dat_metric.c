@@ -565,6 +565,44 @@ _get_median_rx_linkspeed(struct link_datff_data *ldata) {
 }
 
 /**
+ * Get the rx bitrate from the l2 database. Lookup by MAC address of neighbor,
+ * if this fails, look up by IP address.
+ * @param ifname name of interface for neighbor
+ * @param lnk NHDP link instance
+ * @return -1 if no data was available, rx_bitrate otherwise
+ */
+static int64_t
+_get_raw_rx_linkspeed(const char *ifname, struct nhdp_link *lnk) {
+  struct oonf_layer2_net *l2net;
+  struct oonf_layer2_neigh *l2neigh;
+  const struct oonf_layer2_data *rx_bitrate_entry;
+
+  rx_bitrate_entry = oonf_layer2_neigh_query(
+      ifname, &lnk->remote_mac, OONF_LAYER2_NEIGH_RX_BITRATE);
+  if (rx_bitrate_entry) {
+    return oonf_layer2_get_value(rx_bitrate_entry);
+  }
+
+  l2net = oonf_layer2_net_get(ifname);
+  if (!l2net) {
+    /* no layer2 data available for this interface */
+    return -1;
+  }
+
+  avl_for_each_element(&l2net->neighbors, l2neigh, _node) {
+    if (oonf_layer2_neigh_get_ip(l2neigh, &lnk->if_addr)) {
+      rx_bitrate_entry = &l2neigh->data[OONF_LAYER2_NEIGH_RX_BITRATE];
+      if (oonf_layer2_has_value(rx_bitrate_entry)) {
+        return oonf_layer2_get_value(rx_bitrate_entry);
+      }
+    }
+  }
+
+  /* no data available */
+  return -1;
+}
+
+/**
  * Retrieves the speed of a nhdp link, scaled to the minimum link speed
  * of this metric.
  * @param lnk nhdp link
@@ -573,8 +611,7 @@ _get_median_rx_linkspeed(struct link_datff_data *ldata) {
 static int
 _get_scaled_rx_linkspeed(struct ff_dat_if_config *ifconfig, struct nhdp_link *lnk) {
   struct os_interface *os_if;
-  const struct oonf_layer2_data *l2data;
-  int64_t rate;
+  int64_t raw_rx_rate, rx_rate;
 #ifdef OONF_LOG_INFO
   struct netaddr_str nbuf;
 #endif
@@ -587,9 +624,8 @@ _get_scaled_rx_linkspeed(struct ff_dat_if_config *ifconfig, struct nhdp_link *ln
   /* get local interface data  */
   os_if = nhdp_interface_get_if_listener(lnk->local_if)->data;
 
-  l2data = oonf_layer2_neigh_query(
-      os_if->name, &lnk->remote_mac, OONF_LAYER2_NEIGH_RX_BITRATE);
-  if (!l2data) {
+  raw_rx_rate =  _get_raw_rx_linkspeed(os_if->name, lnk);
+  if (raw_rx_rate < 0) {
     OONF_INFO(LOG_FF_DAT, "Datarate for link %s (%s) not available",
         netaddr_to_string(&nbuf, &lnk->if_addr),
         nhdp_interface_get_name(lnk->local_if));
@@ -597,23 +633,21 @@ _get_scaled_rx_linkspeed(struct ff_dat_if_config *ifconfig, struct nhdp_link *ln
   }
 
   /* round up */
-  rate = (oonf_layer2_get_value(l2data) + DATFF_LINKSPEED_MINIMUM - 1) / DATFF_LINKSPEED_MINIMUM;
-  if (rate < 1) {
+  rx_rate = (raw_rx_rate + DATFF_LINKSPEED_MINIMUM - 1) / DATFF_LINKSPEED_MINIMUM;
+  if (rx_rate < 1) {
     OONF_DEBUG(LOG_FF_DAT, "Datarate for link %s (%s) too small: %"PRId64" / %"PRId64,
         netaddr_to_string(&nbuf, &lnk->if_addr),
-        nhdp_interface_get_name(lnk->local_if), rate,
-        oonf_layer2_get_value(l2data));
+        nhdp_interface_get_name(lnk->local_if), rx_rate, raw_rx_rate);
     return 1;
   }
-  if (rate > DATFF_LINKSPEED_RANGE) {
+  if (rx_rate > DATFF_LINKSPEED_RANGE) {
     OONF_DEBUG(LOG_FF_DAT, "Datarate for link %s (%s) too large: %"PRId64" / %"PRId64,
         netaddr_to_string(&nbuf, &lnk->if_addr),
-        nhdp_interface_get_name(lnk->local_if), rate,
-        oonf_layer2_get_value(l2data));
+        nhdp_interface_get_name(lnk->local_if), rx_rate, raw_rx_rate);
 
     return DATFF_LINKSPEED_RANGE;
   }
-  return rate;
+  return rx_rate;
 }
 
 /**
