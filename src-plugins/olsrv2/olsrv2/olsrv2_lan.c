@@ -55,6 +55,7 @@
 #include "nhdp/nhdp.h"
 #include "olsrv2/olsrv2.h"
 #include "olsrv2/olsrv2_lan.h"
+#include "olsrv2/olsrv2_routing.h"
 
 static void _remove(struct olsrv2_lan_entry *entry);
 
@@ -134,6 +135,7 @@ olsrv2_lan_add(struct nhdp_domain *domain,
   lan_data->outgoing_metric = metric;
   lan_data->distance = distance;
   lan_data->active = true;
+  olsrv2_routing_domain_changed(domain, true);
 
   tmp_dist = 0;
   entry->same_distance = true;
@@ -173,6 +175,7 @@ olsrv2_lan_remove(struct nhdp_domain *domain,
 
   lan_data = olsrv2_lan_get_domaindata(domain, entry);
   lan_data->active = false;
+  olsrv2_routing_domain_changed(domain, true);
 
   for (i=0; i<NHDP_MAXIMUM_DOMAINS; i++) {
     if (entry->_domaindata[i].active) {

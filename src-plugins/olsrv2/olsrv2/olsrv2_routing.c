@@ -287,9 +287,11 @@ olsrv2_routing_get_parameters(struct nhdp_domain *domain) {
 /**
  * Mark a domain as changed to trigger a dijkstra run
  * @param domain NHDP domain, NULL for all domains
+ * @param autoupdate_ansn true to make sure ANSN changes
  */
 void
-olsrv2_routing_domain_changed(struct nhdp_domain *domain) {
+olsrv2_routing_domain_changed(struct nhdp_domain *domain, bool autoupdate_ansn) {
+  _update_ansn |= autoupdate_ansn;
   if (domain) {
     _domain_changed[domain->index] = true;
 
@@ -298,7 +300,7 @@ olsrv2_routing_domain_changed(struct nhdp_domain *domain) {
   }
 
   list_for_each_element(nhdp_domain_get_list(), domain, _node) {
-    olsrv2_routing_domain_changed(domain);
+    olsrv2_routing_domain_changed(domain, false);
   }
 }
 

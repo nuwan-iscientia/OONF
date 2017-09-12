@@ -577,7 +577,7 @@ _cb_messagetlvs_end(struct rfc5444_reader_tlvblock_context *context __attribute_
 
   list_for_each_element(nhdp_domain_get_list(), domain, _node) {
     if (_current.changed[domain->index]) {
-      olsrv2_routing_domain_changed(domain);
+      olsrv2_routing_domain_changed(domain, false);
     }
   }
 
