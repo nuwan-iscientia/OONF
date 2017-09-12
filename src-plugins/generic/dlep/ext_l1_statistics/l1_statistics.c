@@ -54,20 +54,29 @@
 #include "dlep/ext_l1_statistics/l1_statistics.h"
 
 static int dlep_reader_map_array(struct oonf_layer2_data *data,
+    const struct oonf_layer2_metadata *meta,
     struct dlep_session *session, uint16_t dlep_tlv,
     enum oonf_layer2_network_index l2idx);
 static int dlep_reader_map_frequency(struct oonf_layer2_data *data,
+    const struct oonf_layer2_metadata *meta,
     struct dlep_session *session, uint16_t dlep_tlv);
 static int dlep_reader_map_bandwidth(struct oonf_layer2_data *data,
+    const struct oonf_layer2_metadata *meta,
     struct dlep_session *session, uint16_t dlep_tlv);
 
 static int dlep_writer_map_array(struct dlep_writer *writer,
-    struct oonf_layer2_data *data, uint16_t tlv, uint16_t length,
+    struct oonf_layer2_data *data,
+    const struct oonf_layer2_metadata *meta,
+    uint16_t tlv, uint16_t length,
     enum oonf_layer2_network_index l2idx);
 static int dlep_writer_map_frequency(struct dlep_writer *writer,
-    struct oonf_layer2_data *data, uint16_t tlv, uint16_t length);
+    struct oonf_layer2_data *data,
+    const struct oonf_layer2_metadata *meta,
+    uint16_t tlv, uint16_t length);
 static int dlep_writer_map_bandwidth(struct dlep_writer *writer,
-    struct oonf_layer2_data *data, uint16_t tlv, uint16_t length);
+    struct oonf_layer2_data *data,
+    const struct oonf_layer2_metadata *meta,
+    uint16_t tlv, uint16_t length);
 
 /* peer initialization ack */
 static const uint16_t _session_initack_tlvs[] = {
@@ -278,6 +287,7 @@ dlep_l1_statistics_init(void) {
  */
 static int
 dlep_reader_map_array(struct oonf_layer2_data *data,
+    const struct oonf_layer2_metadata *meta,
     struct dlep_session *session, uint16_t dlep_tlv,
     enum oonf_layer2_network_index l2idx) {
   struct dlep_parser_value *value;
@@ -306,7 +316,8 @@ dlep_reader_map_array(struct oonf_layer2_data *data,
 
   /* copy into signed integer and set to l2 value */
   memcpy(&l2value, &tmp64[0], 8);
-  oonf_layer2_set_value(data, session->l2_origin, l2value);
+  oonf_layer2_data_set_int64(data, session->l2_origin,
+      oonf_layer2_get_net_metadata(l2idx), l2value);
 
   if (value->length == 16) {
     switch (l2idx) {
@@ -321,7 +332,8 @@ dlep_reader_map_array(struct oonf_layer2_data *data,
     }
 
     memcpy(&l2value, &tmp64[1], 8);
-    oonf_layer2_set_value(data, session->l2_origin, l2value);
+    oonf_layer2_data_set_int64(data, session->l2_origin,
+        meta, l2value);
   }
   return 0;
 }
@@ -329,28 +341,32 @@ dlep_reader_map_array(struct oonf_layer2_data *data,
 /**
  * Read frequency TLV into layer2 database objects
  * @param data layer2 network data array
+ * @param meta metadata description for data
  * @param session dlep session
  * @param dlep_tlv dlep TLV id
  * @return -1 if an error happened, 0 otherwise
  */
 static int
 dlep_reader_map_frequency(struct oonf_layer2_data *data,
+    const struct oonf_layer2_metadata *meta,
     struct dlep_session *session, uint16_t dlep_tlv) {
-  return dlep_reader_map_array(data, session, dlep_tlv,
+  return dlep_reader_map_array(data, meta, session, dlep_tlv,
       OONF_LAYER2_NET_FREQUENCY_1);
 }
 
 /**
  * Read bandwidth TLV into layer2 database objects
  * @param data layer2 network data array
+ * @param meta metadata description for data
  * @param session dlep session
  * @param dlep_tlv dlep TLV id
  * @return -1 if an error happened, 0 otherwise
  */
 static int
 dlep_reader_map_bandwidth(struct oonf_layer2_data *data,
+    const struct oonf_layer2_metadata *meta,
     struct dlep_session *session, uint16_t dlep_tlv) {
-  return dlep_reader_map_array(data, session, dlep_tlv,
+  return dlep_reader_map_array(data, meta, session, dlep_tlv,
       OONF_LAYER2_NET_BANDWIDTH_1);
 }
 
@@ -366,7 +382,9 @@ dlep_reader_map_bandwidth(struct oonf_layer2_data *data,
  */
 int
 dlep_writer_map_array(struct dlep_writer *writer,
-    struct oonf_layer2_data *data, uint16_t tlv, uint16_t length,
+    struct oonf_layer2_data *data,
+    const struct oonf_layer2_metadata *meta,
+    uint16_t tlv, uint16_t length,
     enum oonf_layer2_network_index l2idx) {
   struct oonf_layer2_data *data2;
   int64_t l2value;
@@ -375,6 +393,10 @@ dlep_writer_map_array(struct dlep_writer *writer,
   if (length != 8 && length != 16) {
     return -1;
   }
+  if (meta->type != OONF_LAYER2_INTEGER_DATA) {
+    return -1;
+  }
+
   if (length == 16) {
     switch (l2idx) {
       case OONF_LAYER2_NET_FREQUENCY_1:
@@ -390,14 +412,14 @@ dlep_writer_map_array(struct dlep_writer *writer,
     }
 
     if (oonf_layer2_has_value(data2)) {
-      l2value = oonf_layer2_get_value(data2);
+      l2value = oonf_layer2_get_int64(data2);
       memcpy(&tmp64[1], &l2value, 8);
       tmp64[1] = htobe64(tmp64[1]);
       length = 16;
     }
   }
 
-  l2value = oonf_layer2_get_value(data);
+  l2value = oonf_layer2_get_int64(data);
   memcpy(&tmp64[0], &l2value, 8);
   tmp64[0] = htobe64(tmp64[0]);
 
@@ -415,8 +437,10 @@ dlep_writer_map_array(struct dlep_writer *writer,
  */
 static int
 dlep_writer_map_frequency(struct dlep_writer *writer,
-    struct oonf_layer2_data *data, uint16_t tlv, uint16_t length) {
-  return dlep_writer_map_array(writer, data, tlv, length,
+    struct oonf_layer2_data *data,
+    const struct oonf_layer2_metadata *meta,
+    uint16_t tlv, uint16_t length) {
+  return dlep_writer_map_array(writer, data, meta, tlv, length,
       OONF_LAYER2_NET_FREQUENCY_1);
 }
 
@@ -430,7 +454,9 @@ dlep_writer_map_frequency(struct dlep_writer *writer,
  */
 static int
 dlep_writer_map_bandwidth(struct dlep_writer *writer,
-    struct oonf_layer2_data *data, uint16_t tlv, uint16_t length) {
-  return dlep_writer_map_array(writer, data, tlv, length,
+    struct oonf_layer2_data *data,
+    const struct oonf_layer2_metadata *meta,
+    uint16_t tlv, uint16_t length) {
+  return dlep_writer_map_array(writer, data, meta, tlv, length,
       OONF_LAYER2_NET_BANDWIDTH_1);
 }

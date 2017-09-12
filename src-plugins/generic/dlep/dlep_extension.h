@@ -189,23 +189,27 @@ struct dlep_neighbor_mapping {
   /**
    * callback to transform a TLV into layer2 data
    * @param l2data layer2 data
+   * @param meta metadata description for data
    * @param session dlep session
    * @param tlv tlv id
    * @return -1 if an error happened, 0 otherwise
    */
   int (*from_tlv)(struct oonf_layer2_data *l2data,
+      const struct oonf_layer2_metadata *meta,
       struct dlep_session *session, uint16_t tlv);
 
   /**
    * callback to transform layer2 data into a DLEP tlv
    * @param writer dlep writer
    * @param l2data layer2 data
+   * @param meta metadata description for data
    * @param tlv tlv id
    * @param length tlv length
    * @return -1 if an error happened, 0 otherwise
    */
   int (*to_tlv)(struct dlep_writer *writer,
       struct oonf_layer2_data *l2data,
+      const struct oonf_layer2_metadata *meta,
       uint16_t tlv, uint16_t length);
 };
 
@@ -232,23 +236,27 @@ struct dlep_network_mapping {
   /**
    * callback to transform a TLV into layer2 data
    * @param l2data layer2 data
+   * @param meta metadata description for data
    * @param session dlep session
    * @param tlv tlv id
    * @return -1 if an error happened, 0 otherwise
    */
   int (*from_tlv)(struct oonf_layer2_data *l2data,
+      const struct oonf_layer2_metadata *meta,
       struct dlep_session *session, uint16_t tlv);
 
   /**
    * callback to transform layer2 data into a DLEP tlv
    * @param writer dlep writer
    * @param l2data layer2 data
+   * @param meta metadata description for data
    * @param tlv tlv id
    * @param length tlv length
    * @return -1 if an error happened, 0 otherwise
    */
   int (*to_tlv)(struct dlep_writer *writer,
       struct oonf_layer2_data *l2data,
+      const struct oonf_layer2_metadata *meta,
       uint16_t tlv, uint16_t length);
 };
 

@@ -168,13 +168,13 @@ static struct netaddr_str               _value_if_local_addr;
 static struct isonumber_str             _value_if_lastseen;
 static struct netaddr_str               _value_if_peer_ip;
 static char                             _value_if_peer_ip_origin[IF_NAMESIZE];
-static struct isonumber_str             _value_if_data[OONF_LAYER2_NET_COUNT];
+static char                             _value_if_data[OONF_LAYER2_NET_COUNT][64];
 static char                             _value_if_origin[OONF_LAYER2_NET_COUNT][IF_NAMESIZE];
 static struct netaddr_str               _value_neigh_addr;
 static struct isonumber_str             _value_neigh_lastseen;
 static struct netaddr_str               _value_neigh_remote_ip;
 static char                             _value_neigh_remote_ip_origin[IF_NAMESIZE];
-static struct isonumber_str             _value_neigh_data[OONF_LAYER2_NEIGH_COUNT];
+static char                             _value_neigh_data[OONF_LAYER2_NEIGH_COUNT][64];
 static char                             _value_neigh_origin[OONF_LAYER2_NEIGH_COUNT][IF_NAMESIZE];
 
 static struct netaddr_str               _value_dst_addr;
@@ -275,7 +275,7 @@ static struct oonf_viewer_template _templates[] = {
     {
         .data = _td_if_ips,
         .data_size = ARRAYSIZE(_td_if_ips),
-        .json_name = "interface_ips",
+        .json_name = "interface_ip",
         .cb_function = _cb_create_text_interface_ip,
     },
     {
@@ -287,7 +287,7 @@ static struct oonf_viewer_template _templates[] = {
     {
         .data = _td_neigh_ips,
         .data_size = ARRAYSIZE(_td_neigh_ips),
-        .json_name = "neighbor_ips",
+        .json_name = "neighbor_ip",
         .cb_function = _cb_create_text_neighbor_ip,
     },
     {
@@ -342,7 +342,7 @@ _init(void) {
   for (i=0; i<OONF_LAYER2_NET_COUNT; i++) {
     _tde_if_data[i].key =
         abuf_getptr(&_key_storage) + abuf_getlen(&_key_storage);
-    _tde_if_data[i].value = _value_if_data[i].buf;
+    _tde_if_data[i].value = _value_if_data[i];
     _tde_if_data[i].string = true;
 
     abuf_puts(&_key_storage, KEY_IF_PREFIX);
@@ -363,7 +363,7 @@ _init(void) {
   for (i=0; i<OONF_LAYER2_NEIGH_COUNT; i++) {
     _tde_neigh_data[i].key =
         abuf_getptr(&_key_storage) + abuf_getlen(&_key_storage);
-    _tde_neigh_data[i].value = _value_neigh_data[i].buf;
+    _tde_neigh_data[i].value = _value_neigh_data[i];
     _tde_neigh_data[i].string = true;
 
     abuf_puts(&_key_storage, KEY_NEIGH_PREFIX);
@@ -468,13 +468,8 @@ _initialize_if_data_values(struct oonf_viewer_template *template,
   memset(_value_if_data, 0, sizeof(_value_if_data));
 
   for (i=0; i<OONF_LAYER2_NET_COUNT; i++) {
-    if (oonf_layer2_has_value(&data[i])) {
-      isonumber_from_s64(&_value_if_data[i], oonf_layer2_get_value(&data[i]),
-          oonf_layer2_get_net_metadata(i)->unit,
-          oonf_layer2_get_net_metadata(i)->fraction,
-          oonf_layer2_get_net_metadata(i)->binary,
-          template->create_raw);
-    }
+    oonf_layer2_net_data_to_string(_value_if_data[i], sizeof(_value_if_data[i]),
+        &data[i], i, template->create_raw);
   }
 }
 
@@ -536,14 +531,8 @@ _initialize_neigh_data_values(struct oonf_viewer_template *template,
   memset(_value_neigh_data, 0, sizeof(_value_neigh_data));
 
   for (i=0; i<OONF_LAYER2_NEIGH_COUNT; i++) {
-    if (oonf_layer2_has_value(&data[i])) {
-      isonumber_from_s64(&_value_neigh_data[i],
-          oonf_layer2_get_value(&data[i]),
-          oonf_layer2_get_neigh_metadata(i)->unit,
-          oonf_layer2_get_neigh_metadata(i)->fraction,
-          oonf_layer2_get_neigh_metadata(i)->binary,
-          template->create_raw);
-    }
+    oonf_layer2_neigh_data_to_string(_value_neigh_data[i], sizeof(_value_neigh_data[i]),
+        &data[i], i, template->create_raw);
   }
 }
 

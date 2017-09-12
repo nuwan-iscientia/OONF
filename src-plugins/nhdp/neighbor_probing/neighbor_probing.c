@@ -115,7 +115,8 @@ static struct cfg_schema_entry _probing_entries[] = {
       "Number of bytes used for neighbor probe",
       0, false, 1, 1500),
   CFG_MAP_BOOL(_config, probe_dlep, "probe_dlep", "true",
-      "Probe DLEP interfaces in addition to wireless interfaces"),
+      "Probe DLEP interfaces in addition to wireless interfaces"
+      " if they don't support the 'need probing' flag"),
 };
 
 static struct cfg_schema_section _probing_section = {
@@ -229,6 +230,10 @@ _cleanup(void) {
   oonf_class_extension_remove(&_link_extenstion);
 }
 
+/**
+ * Callback when link is removed to cleanup plugin data
+ * @param ptr NHDP link instance to be removed
+ */
 static void
 _cb_link_removed(void *ptr) {
   struct _probing_link_data *ldata;
@@ -239,9 +244,22 @@ _cb_link_removed(void *ptr) {
   }
 }
 
+/**
+ * Check if a certain interface should be probed
+ * @param net layer2 network instance
+ * @return true if interface should be probed, false otherwise
+ */
 static bool
 _check_if_type(struct oonf_layer2_net *net) {
+  struct oonf_layer2_data *l2data;
+
+  l2data = &net->data[OONF_LAYER2_NET_MCS_BY_PROBING];
+  if (oonf_layer2_has_value(l2data)) {
+    /* we got a direct setting reported for the interface for probing */
+    return oonf_layer2_get_boolean(l2data);
+  }
   if (net->if_dlep) {
+    /* use configuration for DLEP that does not report if probing is necessary */
     return _probe_config.probe_dlep;
   }
 
@@ -314,7 +332,7 @@ _cb_probe_link(struct oonf_timer_instance *ptr __attribute__((unused))) {
 
       /* fix tx-packets */
       last_tx_packets = ldata->last_tx_traffic;
-      ldata->last_tx_traffic = oonf_layer2_get_value(&l2neigh->data[OONF_LAYER2_NEIGH_TX_FRAMES]);
+      ldata->last_tx_traffic = oonf_layer2_get_int64(&l2neigh->data[OONF_LAYER2_NEIGH_TX_FRAMES]);
 
       /* check if link had traffic since last probe check */
       if (last_tx_packets != ldata->last_tx_traffic) {

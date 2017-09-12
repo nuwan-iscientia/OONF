@@ -264,7 +264,7 @@ _handle_traffic(struct oonf_layer2_neigh *l2neigh,
 
   data = &l2neigh->data[idx];
   if (oonf_layer2_has_value(data)) {
-    old_value = oonf_layer2_get_value(data);
+    old_value = oonf_layer2_get_int64(data);
   }
 
   new_value = old_value & UPPER_32_MASK;

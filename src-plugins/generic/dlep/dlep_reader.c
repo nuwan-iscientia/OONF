@@ -439,12 +439,14 @@ dlep_reader_status(enum dlep_status *status,
 /**
  * Parse a metric TLV and copy it into a layer2 data object
  * @param data pointer to layer2 data object
+ * @param meta metadata description for data
  * @param session dlep session
  * @param dlep_tlv DLEP TLV id
  * @return -1 if an error happened, 0 otherwise
  */
 int
 dlep_reader_map_identity(struct oonf_layer2_data *data,
+    const struct oonf_layer2_metadata *meta,
     struct dlep_session *session, uint16_t dlep_tlv) {
   struct dlep_parser_value *value;
   int64_t l2value;
@@ -479,7 +481,16 @@ dlep_reader_map_identity(struct oonf_layer2_data *data,
         return -1;
     }
 
-    oonf_layer2_set_value(data, session->l2_origin, l2value);
+    switch (meta->type) {
+      case OONF_LAYER2_INTEGER_DATA:
+        oonf_layer2_data_set_int64(data, session->l2_origin, meta, l2value);
+        break;
+      case OONF_LAYER2_BOOLEAN_DATA:
+        oonf_layer2_data_set_bool(data, session->l2_origin, meta, l2value != 0);
+        break;
+      default:
+        return -1;
+    }
   }
   return 0;
 }
@@ -503,7 +514,8 @@ dlep_reader_map_l2neigh_data(struct oonf_layer2_data *data,
   for (i=0; i<ext->neigh_mapping_count; i++) {
     map = &ext->neigh_mapping[i];
 
-    if (map->from_tlv(&data[map->layer2], session, map->dlep)) {
+    if (map->from_tlv(&data[map->layer2],
+        oonf_layer2_get_neigh_metadata(map->layer2), session, map->dlep)) {
       return -(i+1);
     }
   }
@@ -529,7 +541,8 @@ dlep_reader_map_l2net_data(struct oonf_layer2_data *data,
   for (i=0; i<ext->if_mapping_count; i++) {
     map = &ext->if_mapping[i];
 
-    if (map->from_tlv(&data[map->layer2], session, map->dlep)) {
+    if (map->from_tlv(&data[map->layer2],
+        oonf_layer2_get_net_metadata(map->layer2), session, map->dlep)) {
       return -(i+1);
     }
   }

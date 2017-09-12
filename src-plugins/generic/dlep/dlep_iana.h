@@ -73,22 +73,25 @@ enum {
  */
 enum dlep_extensions {
   /*! number of DLEP base extensions */
-  DLEP_EXTENSION_BASE_COUNT      =  3,
+  DLEP_EXTENSION_BASE_COUNT       =  3,
 
   /*! DLEP protocol/session handling */
-  DLEP_EXTENSION_BASE_PROTO      = -3,
+  DLEP_EXTENSION_BASE_PROTO       = -3,
 
   /*! DLEP metrics defined by base RFC */
-  DLEP_EXTENSION_BASE_IP         = -2,
+  DLEP_EXTENSION_BASE_IP          = -2,
 
   /*! DLEP metrics defined by base RFC */
-  DLEP_EXTENSION_BASE_METRIC     = -1,
+  DLEP_EXTENSION_BASE_METRIC      = -1,
 
   /*! Additional DLEP physical layer statistics */
-  DLEP_EXTENSION_L1_STATS        = 65520,
+  DLEP_EXTENSION_L1_STATS         = 65520,
 
   /*! Additional DLEP link layer statistics */
-  DLEP_EXTENSION_L2_STATS        = 65521,
+  DLEP_EXTENSION_L2_STATS         = 65521,
+
+  /*! Additional boolean radio attributes */
+  DLEP_EXTENSION_RADIO_ATTRIBUTES = 65522,
 };
 
 /**
@@ -280,6 +283,17 @@ enum dlep_tlvs {
 
   /*! total number of failed transmissions */
   DLEP_FRAMES_FAILED_TLV,
+
+  /* radio attributes */
+
+  /*! true if radio needs unicast traffic for MCS rate selection */
+  DLEP_MCS_BY_PROBING,
+
+  /*! true if radio can only receive unicast traffic */
+  DLEP_RX_ONLY_UNICAST,
+
+  /*! true if radio can only send unicast traffic */
+  DLEP_TX_ONLY_UNICAST,
 };
 
 enum dlep_peer_type_flags {

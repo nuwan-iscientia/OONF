@@ -72,9 +72,9 @@ struct l2_config_data {
   enum l2_data_type type;
   struct netaddr mac;
 
-  struct netaddr data_addr;
   int data_idx;
-  int64_t data;
+
+  union oonf_layer2_value data;
 };
 
 struct l2_config_if_data {
@@ -543,6 +543,7 @@ _cb_validate_l2dst(const struct cfg_schema_entry *entry,
  */
 static int
 _parse_l2net_config(struct l2_config_data *storage, const char *value) {
+  const struct oonf_layer2_metadata *meta;
   const char *ptr;
   int idx;
 
@@ -559,12 +560,10 @@ _parse_l2net_config(struct l2_config_data *storage, const char *value) {
     return -1;
   }
 
+  meta = oonf_layer2_get_net_metadata(idx);
   storage->data_idx = idx;
 
-  /* convert number */
-  return isonumber_to_s64(&storage->data, ptr,
-      oonf_layer2_get_net_metadata(idx)->fraction,
-      oonf_layer2_get_net_metadata(idx)->binary);
+  return oonf_layer2_data_parse_string(&storage->data, meta, ptr);
 }
 
 /**
@@ -575,7 +574,7 @@ _parse_l2net_config(struct l2_config_data *storage, const char *value) {
  */
 static int
 _parse_l2net_ip_config(struct l2_config_data *storage, const char *value) {
-  return netaddr_from_string(&storage->data_addr, value);
+  return netaddr_from_string(&storage->data.addr, value);
 }
 
 /**
@@ -607,9 +606,7 @@ _parse_l2neigh_config(struct l2_config_data *storage, const char *value) {
 
   /* convert number */
   ptr = str_cpynextword(sbuf.buf, ptr, sizeof(sbuf));
-  if (isonumber_to_s64(&storage->data, sbuf.buf,
-      oonf_layer2_get_neigh_metadata(idx)->fraction,
-      oonf_layer2_get_neigh_metadata(idx)->binary)) {
+  if (oonf_layer2_data_parse_string(&storage->data, oonf_layer2_get_neigh_metadata(idx), sbuf.buf)) {
     return -1;
   }
 
@@ -644,7 +641,7 @@ _parse_l2_addr_config(struct l2_config_data *storage, const char *value) {
   }
 
   /* copy second address */
-  if (netaddr_from_string(&storage->data_addr, ptr)) {
+  if (netaddr_from_string(&storage->data.addr, ptr)) {
     return -1;
   }
   return 0;
@@ -679,36 +676,36 @@ _configure_if_data(struct l2_config_if_data *if_data) {
 
       switch (entry->type) {
         case L2_NET:
-          oonf_layer2_set_value(&l2net->data[entry->data_idx],
-              &_l2_origin_current, entry->data);
+          oonf_layer2_data_set(&l2net->data[entry->data_idx],
+              &_l2_origin_current, oonf_layer2_get_net_metadata(entry->data_idx), &entry->data);
           break;
         case L2_NET_IP:
           oonf_layer2_net_add_ip(l2net,
-              &_l2_origin_current, &entry->data_addr);
+              &_l2_origin_current, &entry->data.addr);
           break;
         case L2_DEF:
-          oonf_layer2_set_value(&l2net->neighdata[entry->data_idx],
-              &_l2_origin_current, entry->data);
+          oonf_layer2_data_set(&l2net->neighdata[entry->data_idx],
+              &_l2_origin_current, oonf_layer2_get_neigh_metadata(entry->data_idx), &entry->data);
           break;
         case L2_NEIGH:
           l2neigh = oonf_layer2_neigh_add(l2net, &entry->mac);
           if (l2neigh) {
-            oonf_layer2_set_value(&l2neigh->data[entry->data_idx],
-                &_l2_origin_current, entry->data);
+            oonf_layer2_data_set(&l2neigh->data[entry->data_idx],
+                &_l2_origin_current, oonf_layer2_get_neigh_metadata(entry->data_idx), &entry->data);
           }
           break;
         case L2_NEIGH_IP:
           l2neigh = oonf_layer2_neigh_add(l2net, &entry->mac);
           if (l2neigh) {
             oonf_layer2_neigh_add_ip(l2neigh,
-                &_l2_origin_current, &entry->data_addr);
+                &_l2_origin_current, &entry->data.addr);
           }
           break;
         case L2_DST:
           l2neigh = oonf_layer2_neigh_add(l2net, &entry->mac);
           if (l2neigh) {
             oonf_layer2_destination_add(l2neigh,
-                &entry->data_addr, &_l2_origin_current);
+                &entry->data.addr, &_l2_origin_current);
           }
           break;
         default:
@@ -876,6 +873,9 @@ _cb_config_changed(void) {
         if_data->d[i].type = L2_NET;
         i++;
       }
+      else {
+        OONF_WARN(LOG_LAYER2_CONFIG, "Could not parse parameter: %s", txt_value);
+      }
     }
   }
   if (l2net_ip_entry) {
@@ -884,6 +884,9 @@ _cb_config_changed(void) {
       if (!_parse_l2net_ip_config(&if_data->d[i], txt_value)) {
         if_data->d[i].type = L2_NET_IP;
         i++;
+      }
+      else {
+        OONF_WARN(LOG_LAYER2_CONFIG, "Could not parse parameter: %s", txt_value);
       }
     }
   }
@@ -894,6 +897,9 @@ _cb_config_changed(void) {
         if_data->d[i].type = L2_DEF;
         i++;
       }
+      else {
+        OONF_WARN(LOG_LAYER2_CONFIG, "Could not parse parameter: %s", txt_value);
+      }
     }
   }
   if (l2neigh_entry) {
@@ -902,6 +908,9 @@ _cb_config_changed(void) {
       if (!_parse_l2neigh_config(&if_data->d[i], txt_value)) {
         if_data->d[i].type = L2_NEIGH;
         i++;
+      }
+      else {
+        OONF_WARN(LOG_LAYER2_CONFIG, "Could not parse parameter: %s", txt_value);
       }
     }
   }
@@ -912,6 +921,9 @@ _cb_config_changed(void) {
         if_data->d[i].type = L2_NEIGH_IP;
         i++;
       }
+      else {
+        OONF_WARN(LOG_LAYER2_CONFIG, "Could not parse parameter: %s", txt_value);
+      }
     }
   }
   if (l2dst_entry) {
@@ -920,6 +932,9 @@ _cb_config_changed(void) {
       if (!_parse_l2_addr_config(&if_data->d[i], txt_value)) {
         if_data->d[i].type = L2_DST;
         i++;
+      }
+      else {
+        OONF_WARN(LOG_LAYER2_CONFIG, "Could not parse parameter: %s", txt_value);
       }
     }
   }

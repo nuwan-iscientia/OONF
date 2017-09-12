@@ -288,11 +288,11 @@ _get_max_bitrate(struct nl80211_if *interf, uint8_t *mcs, bool ht20_sgi, bool ht
     /* we don't know the bandwidth of the channel */
     return 0;
   }
-  bandwidth = oonf_layer2_get_value(data);
+  bandwidth = oonf_layer2_get_int64(data);
 
   data = &interf->l2net->data[OONF_LAYER2_NET_BANDWIDTH_2];
   if (oonf_layer2_has_value(data)) {
-    bandwidth += oonf_layer2_get_value(data);
+    bandwidth += oonf_layer2_get_int64(data);
   }
 
   if (bandwidth == 20000000) {

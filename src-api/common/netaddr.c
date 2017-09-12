@@ -53,10 +53,14 @@
 #include "common/string.h"
 #include "common/netaddr.h"
 
-static char *_mac_to_string(char *dst, const void *bin, size_t dst_size,
-    size_t bin_size, char separator);
-static int _mac_from_string(void *bin, size_t bin_size,
+static char *_mac_to_string(char *dst, size_t dst_size,
+    const void *bin, size_t bin_size, char separator);
+static char *_uuid_to_string(char *dst, size_t dst_size,
+    const void *bin, size_t bin_size);
+static int _bin_from_hex(void *bin, size_t bin_size,
     const char *src, char separator);
+static int _uuid_from_string(void *bin, size_t bin_size,
+    const char *src);
 static int _subnetmask_to_prefixlen(const char *src);
 static int _read_hexdigit(const char c);
 static bool _binary_is_in_subnet(const struct netaddr *subnet,
@@ -538,10 +542,13 @@ netaddr_to_prefixstring(struct netaddr_str *dst,
       result = inet_ntop(AF_INET6, src->_addr, dst->buf, sizeof(*dst));
       break;
     case AF_MAC48:
-      result = _mac_to_string(dst->buf, src->_addr, sizeof(*dst), 6, ':');
+      result = _mac_to_string(dst->buf, sizeof(*dst), src->_addr, 6, ':');
       break;
     case AF_EUI64:
-      result = _mac_to_string(dst->buf, src->_addr, sizeof(*dst), 8, '-');
+      result = _mac_to_string(dst->buf, sizeof(*dst), src->_addr, 8, '-');
+      break;
+    case AF_UUID:
+      result = _uuid_to_string(dst->buf, sizeof(*dst), src->_addr, 16);
       break;
     case AF_UNSPEC:
       /* fall through */
@@ -658,17 +665,17 @@ netaddr_from_string(struct netaddr *dst, const char *src) {
     dst->_type = AF_MAC48;
     dst->_prefix_len = 48;
     if (colon_count > 0) {
-      result = _mac_from_string(dst->_addr, 6, ptr1, ':');
+      result = _bin_from_hex(dst->_addr, 6, ptr1, ':');
     }
     else {
-      result = _mac_from_string(dst->_addr, 6, ptr1, '-');
+      result = _bin_from_hex(dst->_addr, 6, ptr1, '-');
     }
   }
   else if (colon_count == 0 && !has_point && minus_count == 7) {
     dst->_type = AF_EUI64;
     dst->_prefix_len = 64;
     dst->_addr[7] = 2;
-    result = _mac_from_string(dst->_addr, 8, ptr1, '-');
+    result = _bin_from_hex(dst->_addr, 8, ptr1, '-');
   }
   else if (colon_count == 0 && has_point && minus_count == 0) {
     dst->_type = AF_INET;
@@ -684,6 +691,11 @@ netaddr_from_string(struct netaddr *dst, const char *src) {
     dst->_type = AF_INET6;
     dst->_prefix_len = 128;
     result = inet_pton(AF_INET6, ptr1, dst->_addr) == 1 ? 0 : -1;
+  }
+  else if (minus_count == 4 && colon_count == 0 && !has_point) {
+    dst->_type = AF_UUID;
+    dst->_prefix_len = 128;
+    result = _uuid_from_string(dst->_addr, sizeof(dst->_addr), ptr1);
   }
 
   /* stop if an error happened */
@@ -970,14 +982,15 @@ inet_pton(int af, const char *src, void *dst)
 /**
  * Converts a binary mac address into a string representation
  * @param dst pointer to target string buffer
- * @param bin pointer to binary source buffer
  * @param dst_size size of string buffer
+ * @param bin pointer to binary source buffer
  * @param bin_size size of binary buffer
- * @param separator character for separating hexadecimal octets
+ * @param separator character for separating hexadecimal octets,
+ *     0 for no separator
  * @return pointer to target buffer, NULL if an error happened
  */
 static char *
-_mac_to_string(char *dst, const void *bin, size_t dst_size,
+_mac_to_string(char *dst, size_t dst_size, const void *bin,
     size_t bin_size, char separator) {
   static const char hex[] = "0123456789abcdef";
   char *last_separator, *_dst;
@@ -999,14 +1012,17 @@ _mac_to_string(char *dst, const void *bin, size_t dst_size,
     last_separator = _dst;
 
     /* write separator */
-    *_dst++ = separator;
+    if (separator) {
+      *_dst++ = separator;
+      dst_size--;
+    }
 
     /* advance source pointer and decrease remaining length of buffer*/
     _bin++;
     bin_size--;
 
     /* calculate remaining destination size */
-    dst_size-=3;
+    dst_size-=2;
   }
 
   *last_separator = 0;
@@ -1014,15 +1030,57 @@ _mac_to_string(char *dst, const void *bin, size_t dst_size,
 }
 
 /**
- * Convert a string mac address into a binary representation
+ * Convert a binary UUID into its string representation
+ * @param dst pointer to target string buffer
+ * @param dst_size size of string buffer
+ * @param src pointer to binary source buffer
+ * @param src_size size of binary buffer
+ * @return pointer to target buffer, NULL if an error happened
+ */
+static char *
+_uuid_to_string(char *dst, size_t dst_size, const void *src, size_t src_size) {
+  static const size_t max_group_len[5] = { 8, 4, 4, 4, 12 };
+  const char *_src;
+  char *_dst;
+  size_t i;
+
+  if (src_size != 16) {
+    return NULL;
+  }
+  if (dst_size < 32 + 4 + 1) {
+    return NULL;
+  }
+
+  _src = src;
+  _dst = dst;
+  for (i=0; i<ARRAYSIZE(max_group_len); i++) {
+    if (!_mac_to_string(_dst, dst_size, _src, max_group_len[i]/2, 0)) {
+      return NULL;
+    }
+
+    _src += (max_group_len[i]/2);
+    _dst += (max_group_len[i]);
+    dst_size -= max_group_len[i];
+
+    if (i < ARRAYSIZE(max_group_len)-1) {
+      *_dst++ = '-';
+      dst_size--;
+    }
+  }
+  return dst;
+}
+
+/**
+ * Convert a hex string (with optional separators) into a binary representation
  * @param bin pointer to target binary buffer
  * @param bin_size pointer to size of target buffer
  * @param src pointer to source string
- * @param separator character used to separate octets in source string
- * @return 0 if sucessfully converted, -1 otherwise
+ * @param separator character used to separate octets in source string,
+ *     0 for no separator
+ * @return number of bytes left in target buffer, -1 if an error happened
  */
 static int
-_mac_from_string(void *bin, size_t bin_size, const char *src, char separator) {
+_bin_from_hex(void *bin, size_t bin_size, const char *src, char separator) {
   uint8_t *_bin;
   int num, digit_2;
 
@@ -1043,13 +1101,67 @@ _mac_from_string(void *bin, size_t bin_size, const char *src, char separator) {
     bin_size--;
 
     if (*src == 0) {
-      return bin_size ? -1 : 0;
+      return bin_size;
     }
-    if (*src++ != separator) {
-      return -1;
+    if (separator) {
+      if (*src++ != separator) {
+        return -1;
+      }
     }
   }
   return -1;
+}
+
+/**
+ * Convert a string UUID into the binary (16 byte) representation
+ * @param bin target buffer
+ * @param bin_size size of target buffer
+ * @param src UUID string
+ * @return -1 if an error happened, 0 otherwise
+ */
+static int
+_uuid_from_string(void *bin, size_t bin_size, const char *src) {
+  static const size_t max_group_len[5] = { 8, 4, 4, 4, 12 };
+  char buffer[32+4+1];
+  char *current_group, *next_group, *_bin;
+  size_t i;
+
+  if (bin_size < 16) {
+    return -1;
+  }
+  if (strlen(src) > 32+4) {
+    return -1;
+  }
+
+  strscpy(buffer, src, sizeof(buffer));
+
+  _bin = bin;
+  current_group = buffer;
+  for (i=0; i<ARRAYSIZE(max_group_len); i++) {
+    next_group = strchr(current_group, '-');
+    if (next_group) {
+      /* zero terminate current group */
+      *next_group++ = 0;
+    }
+    else if (i != ARRAYSIZE(max_group_len)-1) {
+      /* not enough components */
+      return -1;
+    }
+
+    /* check length */
+    if (strlen(current_group) != max_group_len[i]) {
+      return -1;
+    }
+
+    /* parse data, we expect a precise number of hex-numbers */
+    if (_bin_from_hex(_bin, max_group_len[i]/2, current_group, 0)) {
+      return -1;
+    }
+
+    current_group = next_group;
+    _bin = _bin + max_group_len[i]/2;
+  }
+  return 0;
 }
 
 /**

@@ -214,10 +214,12 @@ _cb_l2gen_event(struct oonf_timer_instance *ptr __attribute((unused))) {
   net->last_seen = oonf_clock_getNow();
 
   for (net_idx=0; net_idx<OONF_LAYER2_NET_COUNT; net_idx++) {
-    oonf_layer2_set_value(&net->data[net_idx], &_origin, event_counter);
+    oonf_layer2_data_set_int64(&net->data[net_idx], &_origin,
+        oonf_layer2_get_net_metadata(net_idx), event_counter);
   }
   for (neigh_idx=0; neigh_idx<OONF_LAYER2_NEIGH_COUNT; neigh_idx++) {
-    oonf_layer2_set_value(&net->neighdata[neigh_idx], &_origin, event_counter);
+    oonf_layer2_data_set_int64(&net->neighdata[neigh_idx], &_origin,
+        oonf_layer2_get_neigh_metadata(neigh_idx), event_counter);
   }
 
   if (oonf_layer2_net_commit(net)) {
@@ -240,7 +242,8 @@ _cb_l2gen_event(struct oonf_timer_instance *ptr __attribute((unused))) {
   neigh->last_seen = oonf_clock_getNow();
 
   for (neigh_idx = 0; neigh_idx < OONF_LAYER2_NEIGH_COUNT; neigh_idx++) {
-    oonf_layer2_set_value(&neigh->data[neigh_idx], &_origin, event_counter);
+    oonf_layer2_data_set_int64(&neigh->data[neigh_idx], &_origin,
+        oonf_layer2_get_neigh_metadata(neigh_idx), event_counter);
   }
   oonf_layer2_neigh_commit(neigh);
 }

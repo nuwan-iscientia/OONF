@@ -71,6 +71,9 @@ enum {
 
   /*! address family for 64-bit EUI-64 address */
   AF_EUI64 = AF_MAX + 2,
+
+  /*! universal unique identifier (UUID) */
+  AF_UUID = AF_MAX + 3,
 };
 
 enum {

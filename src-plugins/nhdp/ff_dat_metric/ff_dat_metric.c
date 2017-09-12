@@ -494,6 +494,10 @@ _cb_link_removed(void *ptr) {
   oonf_timer_stop(&data->hello_lost_timer);
 }
 
+/**
+ * Callback triggered when a NHDP interface has been added
+ * @param ptr NHDP interface instance
+ */
 static void
 _cb_nhdpif_added(void *ptr) {
   struct ff_dat_if_config *ifconfig;
@@ -503,6 +507,10 @@ _cb_nhdpif_added(void *ptr) {
   ifconfig->_sampling_timer.class = &_sampling_timer_info;
 }
 
+/**
+ * Callback triggered when a NHDP interface is removed
+ * @param ptr NHDP interface instance
+ */
 static void
 _cb_nhdpif_removed(void *ptr) {
   struct ff_dat_if_config *ifconfig;
@@ -580,7 +588,7 @@ _get_raw_rx_linkspeed(const char *ifname, struct nhdp_link *lnk) {
   rx_bitrate_entry = oonf_layer2_neigh_query(
       ifname, &lnk->remote_mac, OONF_LAYER2_NEIGH_RX_BITRATE);
   if (rx_bitrate_entry) {
-    return oonf_layer2_get_value(rx_bitrate_entry);
+    return oonf_layer2_get_int64(rx_bitrate_entry);
   }
 
   l2net = oonf_layer2_net_get(ifname);
@@ -589,11 +597,12 @@ _get_raw_rx_linkspeed(const char *ifname, struct nhdp_link *lnk) {
     return -1;
   }
 
+  /* search for an entry in the l2 database which reports the remote link IP */
   avl_for_each_element(&l2net->neighbors, l2neigh, _node) {
     if (oonf_layer2_neigh_get_ip(l2neigh, &lnk->if_addr)) {
       rx_bitrate_entry = &l2neigh->data[OONF_LAYER2_NEIGH_RX_BITRATE];
       if (oonf_layer2_has_value(rx_bitrate_entry)) {
-        return oonf_layer2_get_value(rx_bitrate_entry);
+        return oonf_layer2_get_int64(rx_bitrate_entry);
       }
     }
   }
@@ -633,7 +642,10 @@ _get_scaled_rx_linkspeed(struct ff_dat_if_config *ifconfig, struct nhdp_link *ln
   }
 
   /* round up */
-  rx_rate = (raw_rx_rate + DATFF_LINKSPEED_MINIMUM - 1) / DATFF_LINKSPEED_MINIMUM;
+  rx_rate = raw_rx_rate / DATFF_LINKSPEED_MINIMUM;
+  if (raw_rx_rate % DATFF_LINKSPEED_MINIMUM > 0) {
+    rx_rate++;
+  }
   if (rx_rate < 1) {
     OONF_DEBUG(LOG_FF_DAT, "Datarate for link %s (%s) too small: %"PRId64" / %"PRId64,
         netaddr_to_string(&nbuf, &lnk->if_addr),
@@ -921,6 +933,9 @@ _cb_hello_lost(struct oonf_timer_instance *ptr) {
 static bool
 _shall_process_packet(struct nhdp_interface *nhdpif, struct ff_dat_if_config *ifconfig) {
   struct os_interface_listener *if_listener;
+  struct oonf_layer2_data *l2data;
+  struct oonf_layer2_net *l2net;
+
   if (_protocol->input.is_multicast) {
     /* accept multicast */
     return true;
@@ -932,6 +947,17 @@ _shall_process_packet(struct nhdp_interface *nhdpif, struct ff_dat_if_config *if
     return true;
   }
 
+  l2net = oonf_layer2_net_get(if_listener->name);
+  if (l2net) {
+    /* accept for unicast-only interfaces marked in layer2-data */
+    l2data = &l2net->data[OONF_LAYER2_NET_RX_ONLY_UNICAST];
+
+    if (oonf_layer2_has_value(l2data) && oonf_layer2_get_boolean(l2data)) {
+      return true;
+    }
+  }
+
+  /* default to configuration */
   return ifconfig->accept_unicast;
 }
 

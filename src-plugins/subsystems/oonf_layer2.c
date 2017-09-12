@@ -46,6 +46,7 @@
 #include "common/avl.h"
 #include "common/avl_comp.h"
 #include "common/common_types.h"
+#include "common/json.h"
 #include "common/netaddr.h"
 #include "config/cfg_schema.h"
 #include "core/oonf_subsystem.h"
@@ -81,37 +82,40 @@ DECLARE_OONF_PLUGIN(_oonf_layer2_subsystem);
 
 /* layer2 neighbor metadata */
 static const struct oonf_layer2_metadata _oonf_layer2_metadata_neigh[OONF_LAYER2_NEIGH_COUNT] = {
-  [OONF_LAYER2_NEIGH_TX_SIGNAL]      = { .key = "tx_signal", .unit = "dBm", .fraction = 3 },
-  [OONF_LAYER2_NEIGH_RX_SIGNAL]      = { .key = "rx_signal", .unit = "dBm", .fraction = 3 },
-  [OONF_LAYER2_NEIGH_TX_BITRATE]     = { .key = "tx_bitrate", .unit = "bit/s", .binary = true },
-  [OONF_LAYER2_NEIGH_RX_BITRATE]     = { .key = "rx_bitrate", .unit = "bit/s", .binary = true },
-  [OONF_LAYER2_NEIGH_TX_MAX_BITRATE] = { .key = "tx_max_bitrate", .unit = "bit/s", .binary = true },
-  [OONF_LAYER2_NEIGH_RX_MAX_BITRATE] = { .key = "rx_max_bitrate", .unit = "bit/s", .binary = true },
-  [OONF_LAYER2_NEIGH_TX_BYTES]       = { .key = "tx_bytes", .unit = "byte", .binary = true },
-  [OONF_LAYER2_NEIGH_RX_BYTES]       = { .key = "rx_bytes", .unit = "byte", .binary = true },
-  [OONF_LAYER2_NEIGH_TX_FRAMES]      = { .key = "tx_frames" },
-  [OONF_LAYER2_NEIGH_RX_FRAMES]      = { .key = "rx_frames" },
-  [OONF_LAYER2_NEIGH_TX_THROUGHPUT]  = { .key = "tx_throughput", .unit = "bit/s", .binary = true },
-  [OONF_LAYER2_NEIGH_TX_RETRIES]     = { .key = "tx_retries" },
-  [OONF_LAYER2_NEIGH_TX_FAILED]      = { .key = "tx_failed" },
-  [OONF_LAYER2_NEIGH_LATENCY]        = { .key = "latency", .unit = "s", .fraction = 6 },
-  [OONF_LAYER2_NEIGH_RESOURCES]      = { .key = "resources" },
-  [OONF_LAYER2_NEIGH_TX_RLQ]         = { .key = "tx_rlq" },
-  [OONF_LAYER2_NEIGH_RX_RLQ]         = { .key = "rx_rlq" },
+  [OONF_LAYER2_NEIGH_TX_SIGNAL]      = { .key = "tx_signal", .type = OONF_LAYER2_INTEGER_DATA, .unit = "dBm", .fraction = 3 },
+  [OONF_LAYER2_NEIGH_RX_SIGNAL]      = { .key = "rx_signal", .type = OONF_LAYER2_INTEGER_DATA, .unit = "dBm", .fraction = 3 },
+  [OONF_LAYER2_NEIGH_TX_BITRATE]     = { .key = "tx_bitrate", .type = OONF_LAYER2_INTEGER_DATA, .unit = "bit/s", .binary = true },
+  [OONF_LAYER2_NEIGH_RX_BITRATE]     = { .key = "rx_bitrate", .type = OONF_LAYER2_INTEGER_DATA, .unit = "bit/s", .binary = true },
+  [OONF_LAYER2_NEIGH_TX_MAX_BITRATE] = { .key = "tx_max_bitrate", .type = OONF_LAYER2_INTEGER_DATA, .unit = "bit/s", .binary = true },
+  [OONF_LAYER2_NEIGH_RX_MAX_BITRATE] = { .key = "rx_max_bitrate", .type = OONF_LAYER2_INTEGER_DATA, .unit = "bit/s", .binary = true },
+  [OONF_LAYER2_NEIGH_TX_BYTES]       = { .key = "tx_bytes", .type = OONF_LAYER2_INTEGER_DATA, .unit = "byte", .binary = true },
+  [OONF_LAYER2_NEIGH_RX_BYTES]       = { .key = "rx_bytes", .type = OONF_LAYER2_INTEGER_DATA, .unit = "byte", .binary = true },
+  [OONF_LAYER2_NEIGH_TX_FRAMES]      = { .key = "tx_frames", .type = OONF_LAYER2_INTEGER_DATA },
+  [OONF_LAYER2_NEIGH_RX_FRAMES]      = { .key = "rx_frames", .type = OONF_LAYER2_INTEGER_DATA  },
+  [OONF_LAYER2_NEIGH_TX_THROUGHPUT]  = { .key = "tx_throughput", .type = OONF_LAYER2_INTEGER_DATA , .unit = "bit/s", .binary = true },
+  [OONF_LAYER2_NEIGH_TX_RETRIES]     = { .key = "tx_retries", .type = OONF_LAYER2_INTEGER_DATA },
+  [OONF_LAYER2_NEIGH_TX_FAILED]      = { .key = "tx_failed", .type = OONF_LAYER2_INTEGER_DATA  },
+  [OONF_LAYER2_NEIGH_LATENCY]        = { .key = "latency", .type = OONF_LAYER2_INTEGER_DATA , .unit = "s", .fraction = 6 },
+  [OONF_LAYER2_NEIGH_RESOURCES]      = { .key = "resources", .type = OONF_LAYER2_INTEGER_DATA  },
+  [OONF_LAYER2_NEIGH_TX_RLQ]         = { .key = "tx_rlq", .type = OONF_LAYER2_INTEGER_DATA  },
+  [OONF_LAYER2_NEIGH_RX_RLQ]         = { .key = "rx_rlq", .type = OONF_LAYER2_INTEGER_DATA  },
 };
 
 /* layer2 network metadata */
 static const struct oonf_layer2_metadata _oonf_layer2_metadata_net[OONF_LAYER2_NET_COUNT] = {
-  [OONF_LAYER2_NET_FREQUENCY_1]     = { .key = "frequency1", .unit = "Hz" },
-  [OONF_LAYER2_NET_FREQUENCY_2]     = { .key = "frequency2", .unit = "Hz" },
-  [OONF_LAYER2_NET_BANDWIDTH_1]     = { .key = "bandwidth1", .unit = "Hz" },
-  [OONF_LAYER2_NET_BANDWIDTH_2]     = { .key = "bandwidth2", .unit = "Hz" },
-  [OONF_LAYER2_NET_NOISE]           = { .key = "noise", .unit="dBm", .fraction = 3 },
-  [OONF_LAYER2_NET_CHANNEL_ACTIVE]  = { .key = "ch_active", .unit="s", .fraction = 9 },
-  [OONF_LAYER2_NET_CHANNEL_BUSY]    = { .key = "ch_busy", .unit="s", .fraction = 9 },
-  [OONF_LAYER2_NET_CHANNEL_RX]      = { .key = "ch_rx", .unit="s", .fraction = 9 },
-  [OONF_LAYER2_NET_CHANNEL_TX]      = { .key = "ch_tx", .unit="s", .fraction = 9 },
-  [OONF_LAYER2_NET_MTU]             = { .key = "mtu", .unit="byte" },
+  [OONF_LAYER2_NET_FREQUENCY_1]     = { .key = "frequency1", .type = OONF_LAYER2_INTEGER_DATA , .unit = "Hz" },
+  [OONF_LAYER2_NET_FREQUENCY_2]     = { .key = "frequency2", .type = OONF_LAYER2_INTEGER_DATA , .unit = "Hz" },
+  [OONF_LAYER2_NET_BANDWIDTH_1]     = { .key = "bandwidth1", .type = OONF_LAYER2_INTEGER_DATA , .unit = "Hz" },
+  [OONF_LAYER2_NET_BANDWIDTH_2]     = { .key = "bandwidth2", .type = OONF_LAYER2_INTEGER_DATA , .unit = "Hz" },
+  [OONF_LAYER2_NET_NOISE]           = { .key = "noise", .type = OONF_LAYER2_INTEGER_DATA , .unit="dBm", .fraction = 3 },
+  [OONF_LAYER2_NET_CHANNEL_ACTIVE]  = { .key = "ch_active", .type = OONF_LAYER2_INTEGER_DATA , .unit="s", .fraction = 9 },
+  [OONF_LAYER2_NET_CHANNEL_BUSY]    = { .key = "ch_busy", .type = OONF_LAYER2_INTEGER_DATA , .unit="s", .fraction = 9 },
+  [OONF_LAYER2_NET_CHANNEL_RX]      = { .key = "ch_rx", .type = OONF_LAYER2_INTEGER_DATA , .unit="s", .fraction = 9 },
+  [OONF_LAYER2_NET_CHANNEL_TX]      = { .key = "ch_tx", .type = OONF_LAYER2_INTEGER_DATA , .unit="s", .fraction = 9 },
+  [OONF_LAYER2_NET_MTU]             = { .key = "mtu", .type = OONF_LAYER2_INTEGER_DATA , .unit="byte" },
+  [OONF_LAYER2_NET_MCS_BY_PROBING]  = { .key = "mcs_by_probing", .type = OONF_LAYER2_BOOLEAN_DATA },
+  [OONF_LAYER2_NET_RX_ONLY_UNICAST] = { .key = "rx_only_unicast", .type = OONF_LAYER2_BOOLEAN_DATA },
+  [OONF_LAYER2_NET_TX_ONLY_UNICAST] = { .key = "tx_only_unicast", .type = OONF_LAYER2_BOOLEAN_DATA },
 };
 
 static const char *oonf_layer2_network_type[OONF_LAYER2_TYPE_COUNT] = {
@@ -209,6 +213,69 @@ oonf_layer2_remove_origin(struct oonf_layer2_origin *origin) {
   }
 
   avl_remove(&_oonf_originator_tree, &origin->_node);
+}
+
+int
+oonf_layer2_data_parse_string(union oonf_layer2_value *value,
+    const struct oonf_layer2_metadata *meta, const char *input) {
+  memset(value, 0, sizeof(*value));
+
+  switch (meta->type) {
+    case OONF_LAYER2_INTEGER_DATA:
+      return isonumber_to_s64(
+          &value->integer, input, meta->fraction, meta->binary);
+
+    case OONF_LAYER2_BOOLEAN_DATA:
+        value->boolean = cfg_get_bool(input);
+        return 0;
+
+    default:
+      return -1;
+  }
+}
+
+int
+oonf_layer2_data_to_string(char *buffer, size_t length,
+    const struct oonf_layer2_data *data,
+    const struct oonf_layer2_metadata *meta, bool raw) {
+  struct isonumber_str iso_str;
+
+  switch (meta->type) {
+    case OONF_LAYER2_INTEGER_DATA:
+      if (!isonumber_from_s64(&iso_str, data->_value.integer,
+          meta->unit, meta->fraction, meta->binary, raw)) {
+        return -1;
+      }
+      strscpy(buffer, iso_str.buf, length);
+      return 0;
+
+    case OONF_LAYER2_BOOLEAN_DATA:
+      strscpy(buffer, json_getbool(data->_value.boolean), length);
+      return 0;
+
+    default:
+      return -1;
+  }
+}
+
+bool
+oonf_layer2_data_set(struct oonf_layer2_data *l2data,
+    const struct oonf_layer2_origin *origin,
+    const struct oonf_layer2_metadata *meta,
+    const union oonf_layer2_value *input) {
+  bool changed = false;
+
+  if (l2data->_type == OONF_LAYER2_NO_DATA
+      || l2data->_origin == NULL
+      || l2data->_origin == origin
+      || l2data->_origin->priority < origin->priority) {
+    changed = l2data->_type != meta->type
+        || memcmp(&l2data->_value, input, sizeof(*input)) != 0;
+    memcpy(&l2data->_value, input, sizeof(*input));
+    l2data->_type = meta->type;
+    l2data->_origin = origin;
+  }
+  return changed;
 }
 
 /**
@@ -805,30 +872,6 @@ oonf_layer2_neigh_get_value(const struct oonf_layer2_neigh *l2neigh,
     return data;
   }
   return NULL;
-}
-
-/**
- * Changes a layer2 data value
- * @param l2data pointer to layer2 data
- * @param origin origin for new data
- * @param value value of new data
- * @return true if value has changed, false otherwise
- */
-bool
-oonf_layer2_change_value(struct oonf_layer2_data *l2data,
-    const struct oonf_layer2_origin *origin, int64_t value) {
-  bool changed = true;
-
-  if (oonf_layer2_has_value(l2data)) {
-    changed = value != oonf_layer2_get_value(l2data);
-  }
-  if (changed) {
-    oonf_layer2_set_value(l2data, origin, value);
-  }
-  else {
-    l2data->_origin = origin;
-  }
-  return changed;
 }
 
 /**

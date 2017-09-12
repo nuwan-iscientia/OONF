@@ -119,7 +119,7 @@ isonumber_from_s64(struct isonumber_str *out,
 
   if (_isonumber_u64_to_string(
       outbuf, len, num, unit, fraction, binary, raw)) {
-  return out->buf;
+    return out->buf;
   }
   return NULL;
 }
@@ -169,11 +169,13 @@ isonumber_to_s64(int64_t *dst, const char *iso, int fractions, bool binary) {
  */
 int
 isonumber_to_u64(uint64_t *dst, const char *iso, int fraction, bool binary) {
+  static const char symbol_large[] = " kMGTPE";
+
   uint64_t num;
   uint64_t factor;
   uint64_t multiplicator;
   int frac;
-  char *next = NULL;
+  char *next = NULL, *prefix;
 
   errno = 0;
   num = strtoull(iso, &next, 10);
@@ -218,29 +220,14 @@ isonumber_to_u64(uint64_t *dst, const char *iso, int fraction, bool binary) {
 
     multiplicator = binary ? 1024 : 1000;
 
-    switch (next[0]) {
-      case 'E':
-        factor *= multiplicator;
-        /* fall through */
-      case 'P':
-        factor *= multiplicator;
-        /* fall through */
-      case 'T':
-        factor *= multiplicator;
-        /* fall through */
-      case 'G':
-        factor *= multiplicator;
-        /* fall through */
-      case 'M':
-        factor *= multiplicator;
-        /* fall through */
-      case 'k':
-        factor *= multiplicator;
-        /* fall through */
-      case ' ':
-        break;
-      default:
-        return -1;
+    prefix = strchr(symbol_large, next[0]);
+    if (!prefix) {
+      return -1;
+    }
+
+    while (prefix > next) {
+      factor *= multiplicator;
+      prefix--;
     }
   }
 

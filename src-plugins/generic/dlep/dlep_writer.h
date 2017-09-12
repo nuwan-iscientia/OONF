@@ -85,7 +85,8 @@ void dlep_writer_add_supported_extensions(struct dlep_writer *writer,
     const uint16_t *extensions, uint16_t ext_count);
 
 int dlep_writer_map_identity(struct dlep_writer *writer,
-    struct oonf_layer2_data *data, uint16_t tlv, uint16_t length);
+    struct oonf_layer2_data *data, const struct oonf_layer2_metadata *meta,
+    uint16_t tlv, uint16_t length);
 int dlep_writer_map_l2neigh_data(struct dlep_writer *writer,
     struct dlep_extension *ext, struct oonf_layer2_data *data,
     struct oonf_layer2_data *def);

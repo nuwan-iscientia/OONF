@@ -80,6 +80,10 @@ struct netaddr_string_tests string_tests[] = {
 
   /* eui-64 */
   { "10-00-00-00-00-0a-0a-0b", { {0x10,0,0,0, 0,0x0a,0x0a,0x0b, 0,0,0,0, 0,0,0,0}, AF_EUI64, 64 } },
+
+  /* uuid */
+  { "00112233-4455-6677-8899-aabbccddeeff",
+      { { 0x00,0x11,0x22,0x33,0x44,0x55,0x66,0x77,0x88,0x99,0xaa,0xbb,0xcc,0xdd,0xee,0xff }, AF_UUID, 128 } },
 };
 
 /* special test cases for netaddr_from_string */
@@ -118,6 +122,8 @@ const char *bad_netaddr_from_string[] = {
   "10-0:0-0-0-",
   "10-0-0-0--0",
   "10-0-0-0-0-0-0-0-0-0-0",
+  "001122-334455-6677-8899-aabbccddeeff",
+  "001122-33-4455-6677-8899-aabbccddeeff",
 };
 
 /* in subnet tests */
@@ -243,7 +249,7 @@ test_netaddr_to_string(void) {
   START_TEST();
 
   /* test successful netaddr to string conversions first */
-  for (i=0; i<sizeof(string_tests) / sizeof(*string_tests); i++) {
+  for (i=0; i<ARRAYSIZE(string_tests); i++) {
     ptr = netaddr_to_string(&strbuf, &string_tests[i].bin);
     CHECK_TRUE(ptr == strbuf.buf, "netaddr_to_string %s return error condition",
         string_tests[i].str);
@@ -266,7 +272,7 @@ test_netaddr_from_string(void) {
   START_TEST();
 
   /* test successful string to netaddr conversions first */
-  for (i=0; i<sizeof(string_tests) / sizeof(*string_tests); i++) {
+  for (i=0; i<ARRAYSIZE(string_tests); i++) {
     ret = netaddr_from_string(&netaddr_buf, string_tests[i].str);
     CHECK_TRUE(ret == 0, "netaddr_from_string (%s) returns %d", string_tests[i].str, ret);
 
@@ -277,7 +283,7 @@ test_netaddr_from_string(void) {
   }
 
   /* test special cases of string to netaddr conversions next */
-  for (i=0; i<sizeof(good_netaddr_from_string) / sizeof(*good_netaddr_from_string); i++) {
+  for (i=0; i<ARRAYSIZE(good_netaddr_from_string); i++) {
     ret = netaddr_from_string(&netaddr_buf, good_netaddr_from_string[i].str);
     CHECK_TRUE(ret == 0, "netaddr_from_string (%s) returns %d", good_netaddr_from_string[i].str, ret);
 
@@ -288,7 +294,7 @@ test_netaddr_from_string(void) {
   }
 
   /* test error cases of string to netaddr conversions next */
-  for (i=0; i<sizeof(bad_netaddr_from_string)/sizeof(*bad_netaddr_from_string); i++) {
+  for (i=0; i<ARRAYSIZE(bad_netaddr_from_string); i++) {
     CHECK_TRUE (0 != netaddr_from_string(&netaddr_buf, bad_netaddr_from_string[i]),
         "netaddr_from_string %s returns %d", bad_netaddr_from_string[i], ret);
   }
@@ -340,8 +346,8 @@ test_netaddr_is_in_subnet(void) {
   size_t a, s;
   START_TEST();
 
-  for (s = 0; s < sizeof(in_subnet_subnets) / sizeof(*in_subnet_subnets); s++) {
-    for (a = 0; a < sizeof(in_subnet_addrs) / sizeof(*in_subnet_addrs); a++) {
+  for (s = 0; s < ARRAYSIZE(in_subnet_subnets); s++) {
+    for (a = 0; a < ARRAYSIZE(in_subnet_addrs); a++) {
       CHECK_TRUE(
           in_subnet_results[a][s] == netaddr_binary_is_in_subnet(&in_subnet_subnets[s], &in_subnet_addrs[a],
               netaddr_get_maxprefix(&in_subnet_addrs[a])/8, in_subnet_addrs[a]._type),

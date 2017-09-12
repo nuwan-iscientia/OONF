@@ -95,18 +95,50 @@ struct oonf_layer2_origin {
   struct avl_node _node;
 };
 
+enum oonf_layer2_data_type {
+  OONF_LAYER2_NO_DATA,
+  OONF_LAYER2_INTEGER_DATA,
+  OONF_LAYER2_BOOLEAN_DATA,
+};
+
+union oonf_layer2_value {
+  int64_t        integer;
+  bool           boolean;
+  struct netaddr addr;
+};
+
 /**
  * Single data entry of layer2 network or neighbor
  */
 struct oonf_layer2_data {
   /*! data value */
-  int64_t _value;
+  union oonf_layer2_value _value;
 
-  /*! true if the data contains value */
-  bool _has_value;
+  /*! type of data contained in this element */
+  enum oonf_layer2_data_type _type;
 
   /*! layer2 originator id */
   const struct oonf_layer2_origin *_origin;
+};
+
+/**
+ * Metadata of layer2 data entry for automatic processing
+ */
+struct oonf_layer2_metadata {
+  /*! type of data */
+  const char key[16];
+
+  /*! data type */
+  enum oonf_layer2_data_type type;
+
+  /*! unit (bit/s, byte, ...) */
+  const char unit[8];
+
+  /*! number of fractional digits of the data */
+  const int fraction;
+
+  /*! true if data is "base" 1024 instead of "base" 1000 */
+  const bool binary;
 };
 
 /**
@@ -142,6 +174,15 @@ enum oonf_layer2_network_index {
 
   /*! maixmum size of an IP packet for this interface */
   OONF_LAYER2_NET_MTU,
+
+  /*! true if unicast traffic is necessary for ratecontrol */
+  OONF_LAYER2_NET_MCS_BY_PROBING,
+
+  /*! true if interface does not support incoming broadcast/multicast */
+  OONF_LAYER2_NET_RX_ONLY_UNICAST,
+
+  /*! true if interface does not support incoming broadcast/multicast */
+  OONF_LAYER2_NET_TX_ONLY_UNICAST,
 
   /*! number of layer2 network metrics */
   OONF_LAYER2_NET_COUNT,
@@ -333,25 +374,19 @@ struct oonf_layer2_destination {
   struct avl_node _node;
 };
 
-/**
- * Metadata of layer2 data entry for automatic processing
- */
-struct oonf_layer2_metadata {
-  /*! type of data */
-  const char key[16];
-
-  /*! unit (bit/s, byte, ...) */
-  const char unit[8];
-
-  /*! number of fractional digits of the data */
-  const int fraction;
-
-  /*! true if data is "base" 1024 instead of "base" 1000 */
-  const bool binary;
-};
-
 EXPORT void oonf_layer2_add_origin(struct oonf_layer2_origin *origin);
 EXPORT void oonf_layer2_remove_origin(struct oonf_layer2_origin *origin);
+
+EXPORT int oonf_layer2_data_parse_string(union oonf_layer2_value *value,
+    const struct oonf_layer2_metadata *meta,
+    const char *input);
+EXPORT int oonf_layer2_data_to_string(char *buffer, size_t length,
+    const struct oonf_layer2_data *data,
+    const struct oonf_layer2_metadata *meta, bool raw);
+EXPORT bool oonf_layer2_data_set(struct oonf_layer2_data *data,
+    const struct oonf_layer2_origin *origin,
+    const struct oonf_layer2_metadata *meta,
+    const union oonf_layer2_value *input);
 
 EXPORT struct oonf_layer2_net *oonf_layer2_net_add(const char *ifname);
 EXPORT bool oonf_layer2_net_remove(
@@ -397,9 +432,6 @@ EXPORT const struct oonf_layer2_data *oonf_layer2_neigh_query(
     enum oonf_layer2_neighbor_index idx);
 EXPORT const struct oonf_layer2_data *oonf_layer2_neigh_get_value(
     const struct oonf_layer2_neigh *l2neigh, enum oonf_layer2_neighbor_index idx);
-
-EXPORT bool oonf_layer2_change_value(struct oonf_layer2_data *l2data,
-    const struct oonf_layer2_origin *origin, int64_t value);
 
 EXPORT const struct oonf_layer2_metadata *oonf_layer2_get_neigh_metadata(
     enum oonf_layer2_neighbor_index);
@@ -488,7 +520,12 @@ oonf_layer2_neigh_get_ip(const struct oonf_layer2_neigh *l2neigh,
  */
 static INLINE bool
 oonf_layer2_has_value(const struct oonf_layer2_data *l2data) {
-  return l2data->_has_value;
+  return l2data->_type != OONF_LAYER2_NO_DATA;
+}
+
+static INLINE enum oonf_layer2_data_type
+oonf_layer2_data_get_type(const struct oonf_layer2_data *l2data) {
+  return l2data->_type;
 }
 
 /**
@@ -496,8 +533,19 @@ oonf_layer2_has_value(const struct oonf_layer2_data *l2data) {
  * @return value of data object
  */
 static INLINE int64_t
-oonf_layer2_get_value(const struct oonf_layer2_data *l2data) {
-  return l2data->_value;
+oonf_layer2_get_int64(const struct oonf_layer2_data *l2data) {
+  assert (l2data->_type == OONF_LAYER2_INTEGER_DATA);
+  return l2data->_value.integer;
+}
+
+/**
+ * @param l2data layer-2 data object
+ * @return value of data object
+ */
+static INLINE bool
+oonf_layer2_get_boolean(const struct oonf_layer2_data *l2data) {
+  assert (l2data->_type == OONF_LAYER2_BOOLEAN_DATA);
+  return l2data->_value.boolean;
 }
 
 /**
@@ -520,26 +568,80 @@ oonf_layer2_set_origin(struct oonf_layer2_data *l2data,
   l2data->_origin = origin;
 }
 
+static INLINE bool
+oonf_layer2_data_from_string(struct oonf_layer2_data *data,
+    const struct oonf_layer2_origin *origin,
+    const struct oonf_layer2_metadata *meta,
+    const char *input) {
+  union oonf_layer2_value value;
+
+  if (oonf_layer2_data_parse_string(&value, meta, input)) {
+    return false;
+  }
+  return oonf_layer2_data_set(data, origin, meta, &value);
+}
+
+static INLINE int
+oonf_layer2_net_data_to_string(char *buffer, size_t length,
+    const struct oonf_layer2_data *data, enum oonf_layer2_network_index idx, bool raw) {
+  return oonf_layer2_data_to_string(buffer, length, data,
+      oonf_layer2_get_net_metadata(idx), raw);
+}
+
+static INLINE int
+oonf_layer2_neigh_data_to_string(char *buffer, size_t length,
+    const struct oonf_layer2_data *data, enum oonf_layer2_neighbor_index idx, bool raw) {
+  return oonf_layer2_data_to_string(buffer, length, data,
+      oonf_layer2_get_neigh_metadata(idx), raw);
+}
+
 /**
  * Set the value of a layer-2 data object
  * @param l2data layer-2 data object
  * @param origin originator of value
- * @param value new value for data object
- * @return -1 if value was not overwritte, 0 otherwise
+ * @param integer new value for data object
+ * @return true if value was overwrite, false otherwise
  */
+static INLINE bool
+oonf_layer2_data_set_int64(struct oonf_layer2_data *l2data,
+    const struct oonf_layer2_origin *origin,
+    const struct oonf_layer2_metadata *meta, int64_t integer) {
+  union oonf_layer2_value value = {0};
+  value.integer = integer;
+
+  return oonf_layer2_data_set(l2data, origin, meta, &value);
+}
+
+/**
+ * Set the value of a layer-2 data object
+ * @param l2data layer-2 data object
+ * @param origin originator of value
+ * @param boolean new value for data object
+ * @return true if value was overwrite, false otherwise
+ */
+static INLINE bool
+oonf_layer2_data_set_bool(struct oonf_layer2_data *l2data,
+    const struct oonf_layer2_origin *origin,
+    const struct oonf_layer2_metadata *meta, bool boolean) {
+  union oonf_layer2_value value = {0};
+  value.boolean = boolean;
+  return oonf_layer2_data_set(l2data, origin, meta, &value);
+}
+
 static INLINE int
-oonf_layer2_set_value(struct oonf_layer2_data *l2data,
-    const struct oonf_layer2_origin *origin, int64_t value) {
-  if (l2data->_origin
-      && l2data->_origin != origin
-      && l2data->_origin->priority >= origin->priority) {
-    /* only overwrite lower priority data */
-    return -1;
-  }
-  l2data->_has_value = true;
-  l2data->_value = value;
-  l2data->_origin = origin;
-  return 0;
+oonf_layer2_net_data_from_string(
+    struct oonf_layer2_data *data, enum oonf_layer2_network_index idx,
+    struct oonf_layer2_origin *origin, const char *input) {
+  return oonf_layer2_data_from_string(
+      data, origin, oonf_layer2_get_net_metadata(idx), input);
+}
+
+static INLINE int
+oonf_layer2_neigh_data_from_string(
+    struct oonf_layer2_data *data, enum oonf_layer2_neighbor_index idx,
+    struct oonf_layer2_origin *origin, const char *input) {
+  return oonf_layer2_data_from_string(
+      data, origin, oonf_layer2_get_neigh_metadata(idx), input);
 }
 
 /**
@@ -548,7 +650,7 @@ oonf_layer2_set_value(struct oonf_layer2_data *l2data,
  */
 static INLINE void
 oonf_layer2_reset_value(struct oonf_layer2_data *l2data) {
-  l2data->_has_value = false;
+  l2data->_type = OONF_LAYER2_NO_DATA;
   l2data->_origin = NULL;
 }
 

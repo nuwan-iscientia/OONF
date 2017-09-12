@@ -372,7 +372,8 @@ nl80211_add_dst(struct oonf_layer2_neigh *l2neigh, const struct netaddr *dstmac)
 bool
 nl80211_change_l2net_data(struct oonf_layer2_net *l2net,
     enum oonf_layer2_network_index idx, uint64_t value) {
-  return oonf_layer2_change_value(&l2net->data[idx], &_layer2_updated_origin, value);
+  return oonf_layer2_data_set_int64(&l2net->data[idx], &_layer2_updated_origin,
+      oonf_layer2_get_net_metadata(idx), value);
 }
 
 /**
@@ -385,7 +386,8 @@ nl80211_change_l2net_data(struct oonf_layer2_net *l2net,
 bool
 nl80211_change_l2net_neighbor_default(struct oonf_layer2_net *l2net,
     enum oonf_layer2_neighbor_index idx, uint64_t value) {
-  return oonf_layer2_change_value(&l2net->neighdata[idx], &_layer2_updated_origin, value);
+  return oonf_layer2_data_set_int64(&l2net->neighdata[idx], &_layer2_updated_origin,
+      oonf_layer2_get_neigh_metadata(idx), value);
 }
 
 /**
@@ -408,7 +410,8 @@ nl80211_cleanup_l2neigh_data(struct oonf_layer2_neigh *l2neigh) {
 bool
 nl80211_change_l2neigh_data(struct oonf_layer2_neigh *l2neigh,
     enum oonf_layer2_neighbor_index idx, uint64_t value) {
-  return oonf_layer2_change_value(&l2neigh->data[idx], &_layer2_updated_origin, value);
+  return oonf_layer2_data_set_int64(&l2neigh->data[idx], &_layer2_updated_origin,
+      oonf_layer2_get_neigh_metadata(idx), value);
 }
 
 /**
