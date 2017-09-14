@@ -260,6 +260,16 @@ netaddr_get_maxprefix(const struct netaddr *addr) {
 }
 
 /**
+ * Check if an address has the maximum prefix length
+ * @param addr netaddr object
+ * @return true if prefix length is maximum, false otherwise
+ */
+static INLINE bool
+netaddr_is_host(const struct netaddr *addr) {
+  return netaddr_get_maxprefix(addr) == addr->_prefix_len;
+}
+
+/**
  * Converts a netaddr object into a string.
  * Prefix will be added if necessary.
  * @param dst target buffer
