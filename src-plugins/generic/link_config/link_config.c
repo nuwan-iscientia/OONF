@@ -303,8 +303,7 @@ _parse_strarray(struct strarray *array, const char *ifname,
 
     if (ptr == NULL) {
       /* add network wide data entry */
-      if (!oonf_layer2_data_set_int64(&l2net->neighdata[idx], &_l2_origin_current,
-          oonf_layer2_neigh_metadata_get(idx),value)) {
+      if (!oonf_layer2_data_set_int64(&l2net->neighdata[idx], &_l2_origin_current ,value)) {
         OONF_INFO(LOG_LINK_CONFIG, "if-wide %s for %s: %s",
             oonf_layer2_neigh_metadata_get(idx)->key, ifname, hbuf.buf);
       }
@@ -323,8 +322,7 @@ _parse_strarray(struct strarray *array, const char *ifname,
         continue;
       }
 
-      if (!oonf_layer2_data_set_int64(&l2neigh->data[idx], &_l2_origin_current,
-          oonf_layer2_neigh_metadata_get(idx),value)) {
+      if (!oonf_layer2_data_set_int64(&l2neigh->data[idx], &_l2_origin_current, value)) {
         OONF_INFO(LOG_LINK_CONFIG, "%s to neighbor %s on %s: %s",
             oonf_layer2_neigh_metadata_get(idx)->key, nbuf.buf, ifname, hbuf.buf);
       }

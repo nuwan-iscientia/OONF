@@ -483,10 +483,10 @@ dlep_reader_map_identity(struct oonf_layer2_data *data,
 
     switch (meta->type) {
       case OONF_LAYER2_INTEGER_DATA:
-        oonf_layer2_data_set_int64(data, session->l2_origin, meta, l2value);
+        oonf_layer2_data_set_int64(data, session->l2_origin, l2value);
         break;
       case OONF_LAYER2_BOOLEAN_DATA:
-        oonf_layer2_data_set_bool(data, session->l2_origin, meta, l2value != 0);
+        oonf_layer2_data_set_bool(data, session->l2_origin, l2value != 0);
         break;
       default:
         return -1;

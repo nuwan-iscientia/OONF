@@ -264,7 +264,7 @@ oonf_layer2_data_to_string(char *buffer, size_t length,
 bool
 oonf_layer2_data_set(struct oonf_layer2_data *l2data,
     const struct oonf_layer2_origin *origin,
-    const struct oonf_layer2_metadata *meta,
+    enum oonf_layer2_data_type type,
     const union oonf_layer2_value *input) {
   bool changed = false;
 
@@ -272,10 +272,10 @@ oonf_layer2_data_set(struct oonf_layer2_data *l2data,
       || l2data->_origin == NULL
       || l2data->_origin == origin
       || l2data->_origin->priority < origin->priority) {
-    changed = l2data->_type != meta->type
+    changed = l2data->_type != type
         || memcmp(&l2data->_value, input, sizeof(*input)) != 0;
     memcpy(&l2data->_value, input, sizeof(*input));
-    l2data->_type = meta->type;
+    l2data->_type = type;
     l2data->_origin = origin;
   }
   return changed;

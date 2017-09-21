@@ -287,7 +287,7 @@ dlep_l1_statistics_init(void) {
  */
 static int
 dlep_reader_map_array(struct oonf_layer2_data *data,
-    const struct oonf_layer2_metadata *meta,
+    const struct oonf_layer2_metadata *meta __attribute__((unused)),
     struct dlep_session *session, uint16_t dlep_tlv,
     enum oonf_layer2_network_index l2idx) {
   struct dlep_parser_value *value;
@@ -316,8 +316,7 @@ dlep_reader_map_array(struct oonf_layer2_data *data,
 
   /* copy into signed integer and set to l2 value */
   memcpy(&l2value, &tmp64[0], 8);
-  oonf_layer2_data_set_int64(data, session->l2_origin,
-      oonf_layer2_net_metadata_get(l2idx), l2value);
+  oonf_layer2_data_set_int64(data, session->l2_origin, l2value);
 
   if (value->length == 16) {
     switch (l2idx) {
@@ -332,8 +331,7 @@ dlep_reader_map_array(struct oonf_layer2_data *data,
     }
 
     memcpy(&l2value, &tmp64[1], 8);
-    oonf_layer2_data_set_int64(data, session->l2_origin,
-        meta, l2value);
+    oonf_layer2_data_set_int64(data, session->l2_origin, l2value);
   }
   return 0;
 }

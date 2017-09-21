@@ -394,7 +394,7 @@ EXPORT int oonf_layer2_data_to_string(char *buffer, size_t length,
     const struct oonf_layer2_metadata *meta, bool raw);
 EXPORT bool oonf_layer2_data_set(struct oonf_layer2_data *data,
     const struct oonf_layer2_origin *origin,
-    const struct oonf_layer2_metadata *meta,
+    enum oonf_layer2_data_type type,
     const union oonf_layer2_value *input);
 
 EXPORT struct oonf_layer2_net *oonf_layer2_net_add(const char *ifname);
@@ -642,7 +642,7 @@ oonf_layer2_data_from_string(struct oonf_layer2_data *data,
   if (oonf_layer2_data_parse_string(&value, meta, input)) {
     return false;
   }
-  return oonf_layer2_data_set(data, origin, meta, &value);
+  return oonf_layer2_data_set(data, origin, meta->type, &value);
 }
 
 static INLINE int
@@ -668,12 +668,11 @@ oonf_layer2_neigh_data_to_string(char *buffer, size_t length,
  */
 static INLINE bool
 oonf_layer2_data_set_int64(struct oonf_layer2_data *l2data,
-    const struct oonf_layer2_origin *origin,
-    const struct oonf_layer2_metadata *meta, int64_t integer) {
+    const struct oonf_layer2_origin *origin, int64_t integer) {
   union oonf_layer2_value value = {0};
   value.integer = integer;
 
-  return oonf_layer2_data_set(l2data, origin, meta, &value);
+  return oonf_layer2_data_set(l2data, origin, OONF_LAYER2_INTEGER_DATA, &value);
 }
 
 /**
@@ -685,11 +684,10 @@ oonf_layer2_data_set_int64(struct oonf_layer2_data *l2data,
  */
 static INLINE bool
 oonf_layer2_data_set_bool(struct oonf_layer2_data *l2data,
-    const struct oonf_layer2_origin *origin,
-    const struct oonf_layer2_metadata *meta, bool boolean) {
+    const struct oonf_layer2_origin *origin, bool boolean) {
   union oonf_layer2_value value = {0};
   value.boolean = boolean;
-  return oonf_layer2_data_set(l2data, origin, meta, &value);
+  return oonf_layer2_data_set(l2data, origin, OONF_LAYER2_BOOLEAN_DATA, &value);
 }
 
 static INLINE int
