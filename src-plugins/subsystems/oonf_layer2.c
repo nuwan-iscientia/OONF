@@ -151,6 +151,8 @@ static struct avl_tree _oonf_layer2_net_tree;
 
 static struct avl_tree _oonf_originator_tree;
 
+static struct avl_tree _local_peer_ips_tree;
+
 /**
  * Subsystem constructor
  * @return always returns 0
@@ -165,6 +167,7 @@ _init(void) {
 
   avl_init(&_oonf_layer2_net_tree, avl_comp_strcasecmp, false);
   avl_init(&_oonf_originator_tree, avl_comp_strcasecmp, false);
+  avl_init(&_local_peer_ips_tree, avl_comp_netaddr, true);
   return 0;
 }
 
@@ -191,7 +194,7 @@ _cleanup(void) {
  * @param origin layer2 originator
  */
 void
-oonf_layer2_add_origin(struct oonf_layer2_origin *origin) {
+oonf_layer2_origin_add(struct oonf_layer2_origin *origin) {
   origin->_node.key = origin->name;
   avl_insert(&_oonf_originator_tree, &origin->_node);
 }
@@ -201,7 +204,7 @@ oonf_layer2_add_origin(struct oonf_layer2_origin *origin) {
  * @param origin originator
  */
 void
-oonf_layer2_remove_origin(struct oonf_layer2_origin *origin) {
+oonf_layer2_origin_remove(struct oonf_layer2_origin *origin) {
   struct oonf_layer2_net *l2net, *l2net_it;
 
   if (!avl_is_node_added(&origin->_node)) {
@@ -311,6 +314,7 @@ oonf_layer2_net_add(const char *ifname) {
   /* initialize tree of neighbors, ips and proxies */
   avl_init(&l2net->neighbors, avl_comp_netaddr, false);
   avl_init(&l2net->local_peer_ips, avl_comp_netaddr, false);
+  avl_init(&l2net->remote_neighbor_ips, avl_comp_netaddr, true);
 
   /* initialize interface listener */
   l2net->if_listener.name = l2net->name;
@@ -338,13 +342,13 @@ oonf_layer2_net_cleanup(struct oonf_layer2_net *l2net,
 
   for (i=0; i<OONF_LAYER2_NET_COUNT; i++) {
     if (l2net->data[i]._origin == origin) {
-      oonf_layer2_reset_value(&l2net->data[i]);
+      oonf_layer2_data_reset(&l2net->data[i]);
       changed = true;
     }
   }
   for (i=0; i<OONF_LAYER2_NEIGH_COUNT; i++) {
     if (l2net->neighdata[i]._origin == origin) {
-      oonf_layer2_reset_value(&l2net->neighdata[i]);
+      oonf_layer2_data_reset(&l2net->neighdata[i]);
       changed = true;
     }
   }
@@ -406,14 +410,14 @@ oonf_layer2_net_commit(struct oonf_layer2_net *l2net) {
   }
 
   for (i=0; i<OONF_LAYER2_NET_COUNT; i++) {
-    if (oonf_layer2_has_value(&l2net->data[i])) {
+    if (oonf_layer2_data_has_value(&l2net->data[i])) {
       oonf_class_event(&_l2network_class, l2net, OONF_OBJECT_CHANGED);
       return false;
     }
   }
 
   for (i=0; i<OONF_LAYER2_NEIGH_COUNT; i++) {
-    if (oonf_layer2_has_value(&l2net->neighdata[i])) {
+    if (oonf_layer2_data_has_value(&l2net->neighdata[i])) {
       oonf_class_event(&_l2network_class, l2net, OONF_OBJECT_CHANGED);
       return false;
     }
@@ -439,18 +443,18 @@ oonf_layer2_net_relabel(struct oonf_layer2_net *l2net,
   size_t i;
 
   for (i=0; i<OONF_LAYER2_NET_COUNT; i++) {
-    if (oonf_layer2_get_origin(&l2net->data[i]) == old_origin) {
-      oonf_layer2_set_origin(&l2net->data[i], new_origin);
+    if (oonf_layer2_data_get_origin(&l2net->data[i]) == old_origin) {
+      oonf_layer2_data_set_origin(&l2net->data[i], new_origin);
     }
   }
 
   for (i=0; i<OONF_LAYER2_NEIGH_COUNT; i++) {
-    if (oonf_layer2_get_origin(&l2net->neighdata[i]) == old_origin) {
-      oonf_layer2_set_origin(&l2net->neighdata[i], new_origin);
+    if (oonf_layer2_data_get_origin(&l2net->neighdata[i]) == old_origin) {
+      oonf_layer2_data_set_origin(&l2net->neighdata[i], new_origin);
     }
   }
 
-  avl_for_each_element(&l2net->local_peer_ips, peer_ip,_node) {
+  avl_for_each_element(&l2net->local_peer_ips, peer_ip,_net_node) {
     if (peer_ip->origin == old_origin) {
       peer_ip->origin = new_origin;
     }
@@ -487,8 +491,11 @@ oonf_layer2_net_add_ip(struct oonf_layer2_net *l2net,
     l2addr->l2net = l2net;
 
     /* add to tree */
-    l2addr->_node.key = &l2addr->ip;
-    avl_insert(&l2net->local_peer_ips, &l2addr->_node);
+    l2addr->_net_node.key = &l2addr->ip;
+    avl_insert(&l2net->local_peer_ips, &l2addr->_net_node);
+
+    l2addr->_global_node.key = &l2addr->ip;
+    avl_insert(&_local_peer_ips_tree, &l2addr->_global_node);
   }
 
   l2addr->origin = origin;
@@ -508,7 +515,8 @@ oonf_layer2_net_remove_ip(
     return -1;
   }
 
-  avl_remove(&ip->l2net->local_peer_ips, &ip->_node);
+  avl_remove(&ip->l2net->local_peer_ips, &ip->_net_node);
+  avl_remove(&_local_peer_ips_tree, &ip->_global_node);
   oonf_class_free(&_l2net_addr_class, ip);
   return 0;
 }
@@ -531,7 +539,7 @@ oonf_layer2_net_get_best_neighbor_match(const struct netaddr *addr) {
 
   avl_for_each_element(&_oonf_layer2_net_tree, l2net, _node) {
     avl_for_each_element(&l2net->neighbors, l2neigh, _node) {
-      avl_for_each_element(&l2neigh->remote_neighbor_ips, l2addr, _node) {
+      avl_for_each_element(&l2neigh->remote_neighbor_ips, l2addr, _neigh_node) {
         if (netaddr_is_in_subnet(&l2addr->ip, addr)
             && netaddr_get_prefix_length(&l2addr->ip) < prefix_length) {
           best_match = l2addr;
@@ -551,7 +559,7 @@ oonf_layer2_net_get_best_neighbor_match(const struct netaddr *addr) {
  */
 struct oonf_layer2_neigh *
 oonf_layer2_neigh_add(struct oonf_layer2_net *l2net,
-    struct netaddr *neigh) {
+    const struct netaddr *neigh) {
   struct oonf_layer2_neigh *l2neigh;
 
   if (netaddr_get_address_family(neigh) != AF_MAC48
@@ -598,7 +606,7 @@ oonf_layer2_neigh_cleanup(struct oonf_layer2_neigh *l2neigh,
 
   for (i=0; i<OONF_LAYER2_NEIGH_COUNT; i++) {
     if (l2neigh->data[i]._origin == origin) {
-      oonf_layer2_reset_value(&l2neigh->data[i]);
+      oonf_layer2_data_reset(&l2neigh->data[i]);
       changed = true;
     }
   }
@@ -632,7 +640,7 @@ oonf_layer2_neigh_remove(struct oonf_layer2_neigh *l2neigh,
     }
   }
 
-  avl_for_each_element_safe(&l2neigh->remote_neighbor_ips, l2ip, _node, l2ip_it) {
+  avl_for_each_element_safe(&l2neigh->remote_neighbor_ips, l2ip, _neigh_node, l2ip_it) {
     if (oonf_layer2_neigh_remove_ip(l2ip, origin) == 0) {
       changed = true;
     }
@@ -664,7 +672,7 @@ oonf_layer2_neigh_commit(struct oonf_layer2_neigh *l2neigh) {
   }
 
   for (i=0; i<OONF_LAYER2_NEIGH_COUNT; i++) {
-    if (oonf_layer2_has_value(&l2neigh->data[i])) {
+    if (oonf_layer2_data_has_value(&l2neigh->data[i])) {
       oonf_class_event(&_l2neighbor_class, l2neigh, OONF_OBJECT_CHANGED);
       return false;
     }
@@ -689,12 +697,12 @@ oonf_layer2_neigh_relabel(struct oonf_layer2_neigh *l2neigh,
   size_t i;
 
   for (i=0; i<OONF_LAYER2_NEIGH_COUNT; i++) {
-    if (oonf_layer2_get_origin(&l2neigh->data[i]) == old_origin) {
-      oonf_layer2_set_origin(&l2neigh->data[i], new_origin);
+    if (oonf_layer2_data_get_origin(&l2neigh->data[i]) == old_origin) {
+      oonf_layer2_data_set_origin(&l2neigh->data[i], new_origin);
     }
   }
 
-  avl_for_each_element(&l2neigh->remote_neighbor_ips, neigh_ip, _node) {
+  avl_for_each_element(&l2neigh->remote_neighbor_ips, neigh_ip, _neigh_node) {
     if (neigh_ip->origin == old_origin) {
       neigh_ip->origin = new_origin;
     }
@@ -733,8 +741,10 @@ oonf_layer2_neigh_add_ip(struct oonf_layer2_neigh *l2neigh,
     l2addr->l2neigh = l2neigh;
 
     /* add to tree */
-    l2addr->_node.key = &l2addr->ip;
-    avl_insert(&l2neigh->remote_neighbor_ips, &l2addr->_node);
+    l2addr->_neigh_node.key = &l2addr->ip;
+    avl_insert(&l2neigh->remote_neighbor_ips, &l2addr->_neigh_node);
+    l2addr->_net_node.key = &l2addr->ip;
+    avl_insert(&l2neigh->network->remote_neighbor_ips, &l2addr->_net_node);
   }
 
   l2addr->origin = origin;
@@ -754,7 +764,8 @@ oonf_layer2_neigh_remove_ip(
     return -1;
   }
 
-  avl_remove(&ip->l2neigh->remote_neighbor_ips, &ip->_node);
+  avl_remove(&ip->l2neigh->remote_neighbor_ips, &ip->_neigh_node);
+  avl_remove(&ip->l2neigh->network->remote_neighbor_ips, &ip->_net_node);
   oonf_class_free(&_l2neigh_addr_class, ip);
   return 0;
 }
@@ -837,14 +848,14 @@ oonf_layer2_neigh_query(const char *ifname,
   l2neigh = oonf_layer2_neigh_get(l2net, l2neigh_addr);
   if (l2neigh != NULL) {
     data = &l2neigh->data[idx];
-    if (oonf_layer2_has_value(data)) {
+    if (oonf_layer2_data_has_value(data)) {
       return data;
     }
   }
 
   /* look for network specific default */
   data = &l2net->neighdata[idx];
-  if (oonf_layer2_has_value(data)) {
+  if (oonf_layer2_data_has_value(data)) {
     return data;
   }
   return NULL;
@@ -857,18 +868,18 @@ oonf_layer2_neigh_query(const char *ifname,
  * @return pointer to linklayer data, NULL if no value available
  */
 const struct oonf_layer2_data *
-oonf_layer2_neigh_get_value(const struct oonf_layer2_neigh *l2neigh,
+oonf_layer2_neigh_get_data(const struct oonf_layer2_neigh *l2neigh,
     enum oonf_layer2_neighbor_index idx) {
   const struct oonf_layer2_data *data;
 
   data = &l2neigh->data[idx];
-  if (oonf_layer2_has_value(data)) {
+  if (oonf_layer2_data_has_value(data)) {
     return data;
   }
 
   /* look for network specific default */
   data = &l2neigh->network->neighdata[idx];
-  if (oonf_layer2_has_value(data)) {
+  if (oonf_layer2_data_has_value(data)) {
     return data;
   }
   return NULL;
@@ -880,7 +891,7 @@ oonf_layer2_neigh_get_value(const struct oonf_layer2_neigh *l2neigh,
  * @return metadata object
  */
 const struct oonf_layer2_metadata *
-oonf_layer2_get_neigh_metadata(enum oonf_layer2_neighbor_index idx) {
+oonf_layer2_neigh_metadata_get(enum oonf_layer2_neighbor_index idx) {
   return &_oonf_layer2_metadata_neigh[idx];
 }
 
@@ -890,7 +901,7 @@ oonf_layer2_get_neigh_metadata(enum oonf_layer2_neighbor_index idx) {
  * @return metadata object
  */
 const struct oonf_layer2_metadata *
-oonf_layer2_get_net_metadata(enum oonf_layer2_network_index idx) {
+oonf_layer2_net_metadata_get(enum oonf_layer2_network_index idx) {
   return &_oonf_layer2_metadata_net[idx];
 }
 
@@ -900,7 +911,7 @@ oonf_layer2_get_net_metadata(enum oonf_layer2_network_index idx) {
  * @return text representation
  */
 const char *
-oonf_layer2_get_network_type(enum oonf_layer2_network_type type) {
+oonf_layer2_net_get_type_name(enum oonf_layer2_network_type type) {
   return oonf_layer2_network_type[type];
 }
 
@@ -909,7 +920,7 @@ oonf_layer2_get_network_type(enum oonf_layer2_network_type type) {
  * @return network tree
  */
 struct avl_tree *
-oonf_layer2_get_network_tree(void) {
+oonf_layer2_get_net_tree(void) {
   return &_oonf_layer2_net_tree;
 }
 
@@ -937,7 +948,7 @@ _net_remove(struct oonf_layer2_net *l2net) {
   }
 
   /* free all attached peer addresses */
-  avl_for_each_element_safe(&l2net->local_peer_ips, l2peer, _node, l2peer_it) {
+  avl_for_each_element_safe(&l2net->local_peer_ips, l2peer, _net_node, l2peer_it) {
     oonf_layer2_net_remove_ip(l2peer, l2peer->origin);
   }
 
@@ -966,7 +977,7 @@ _neigh_remove(struct oonf_layer2_neigh *l2neigh) {
   }
 
   /* free all attached neighbor addresses */
-  avl_for_each_element_safe(&l2neigh->remote_neighbor_ips, l2addr, _node, l2addr_it) {
+  avl_for_each_element_safe(&l2neigh->remote_neighbor_ips, l2addr, _neigh_node, l2addr_it) {
     oonf_layer2_neigh_remove_ip(l2addr, l2addr->origin);
   }
 

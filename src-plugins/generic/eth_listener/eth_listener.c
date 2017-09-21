@@ -144,14 +144,14 @@ _init(void) {
   }
 
   oonf_timer_add(&_transmission_timer_info);
-  oonf_layer2_add_origin(&_l2_origin);
+  oonf_layer2_origin_add(&_l2_origin);
 
   return 0;
 }
 
 static void
 _cleanup(void) {
-  oonf_layer2_remove_origin(&_l2_origin);
+  oonf_layer2_origin_remove(&_l2_origin);
 
   oonf_timer_stop(&_transmission_timer);
   oonf_timer_remove(&_transmission_timer_info);
@@ -227,9 +227,9 @@ _cb_transmission_event(struct oonf_timer_instance *ptr __attribute((unused))) {
         isonumber_from_s64(&ibuf, ethspeed, "bit/s", 0, false, false));
 
     oonf_layer2_data_set_int64(&l2net->neighdata[OONF_LAYER2_NEIGH_RX_BITRATE],
-        &_l2_origin, oonf_layer2_get_neigh_metadata(OONF_LAYER2_NEIGH_RX_BITRATE), ethspeed);
+        &_l2_origin, oonf_layer2_neigh_metadata_get(OONF_LAYER2_NEIGH_RX_BITRATE), ethspeed);
     oonf_layer2_data_set_int64(&l2net->neighdata[OONF_LAYER2_NEIGH_TX_BITRATE],
-        &_l2_origin, oonf_layer2_get_neigh_metadata(OONF_LAYER2_NEIGH_TX_BITRATE), ethspeed);
+        &_l2_origin, oonf_layer2_neigh_metadata_get(OONF_LAYER2_NEIGH_TX_BITRATE), ethspeed);
   }
 }
 

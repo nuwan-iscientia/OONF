@@ -317,7 +317,7 @@ dlep_reader_map_array(struct oonf_layer2_data *data,
   /* copy into signed integer and set to l2 value */
   memcpy(&l2value, &tmp64[0], 8);
   oonf_layer2_data_set_int64(data, session->l2_origin,
-      oonf_layer2_get_net_metadata(l2idx), l2value);
+      oonf_layer2_net_metadata_get(l2idx), l2value);
 
   if (value->length == 16) {
     switch (l2idx) {
@@ -411,15 +411,14 @@ dlep_writer_map_array(struct dlep_writer *writer,
         return -1;
     }
 
-    if (oonf_layer2_has_value(data2)) {
-      l2value = oonf_layer2_get_int64(data2);
+    if (!oonf_layer2_data_read_int64(&l2value, data2)) {
       memcpy(&tmp64[1], &l2value, 8);
       tmp64[1] = htobe64(tmp64[1]);
       length = 16;
     }
   }
 
-  l2value = oonf_layer2_get_int64(data);
+  l2value = oonf_layer2_data_get_int64(data);
   memcpy(&tmp64[0], &l2value, 8);
   tmp64[0] = htobe64(tmp64[0]);
 

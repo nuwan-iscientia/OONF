@@ -257,15 +257,13 @@ _handle_traffic(struct oonf_layer2_neigh *l2neigh,
   static const uint64_t UPPER_32_MASK = 0xffffffff00000000ull;
   static const uint64_t LOWER_32_MASK = 0x00000000ffffffffull;
   struct oonf_layer2_data *data;
-  uint64_t old_value, new_value;
+  int64_t old_value, new_value;
 
   new_value = 0;
   old_value = 0;
 
   data = &l2neigh->data[idx];
-  if (oonf_layer2_has_value(data)) {
-    old_value = oonf_layer2_get_int64(data);
-  }
+  oonf_layer2_data_read_int64(&old_value, data);
 
   new_value = old_value & UPPER_32_MASK;
   new_value |= (new_32bit & LOWER_32_MASK);
@@ -273,9 +271,9 @@ _handle_traffic(struct oonf_layer2_neigh *l2neigh,
   OONF_DEBUG(LOG_NL80211, "new32: 0x%08x old: %016"PRIx64 " new: %016"PRIx64,
       new_32bit, old_value, new_value);
 
-  if (new_value + 0x80000000ull < old_value) {
+  if (new_value + 0x80000000ll < old_value) {
     /* handle 32bit counter overflow */
-    new_value += 0x100000000ull;
+    new_value += 0x100000000ll;
     OONF_DEBUG(LOG_NL80211, "Overflow, new: %016"PRIx64, new_value);
   }
 

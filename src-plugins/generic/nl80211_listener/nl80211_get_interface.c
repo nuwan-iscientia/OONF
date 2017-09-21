@@ -116,6 +116,8 @@ nl80211_process_get_interface_result(struct nl80211_if *interf,
     struct nlmsghdr *hdr) {
   struct genlmsghdr *gnlh;
   struct nlattr *tb_msg[NL80211_ATTR_MAX + 1];
+  struct oonf_layer2_neigh *l2neigh;
+  uint64_t mc_rate;
 
   gnlh = nlmsg_data(hdr);
   nla_parse(tb_msg, NL80211_ATTR_MAX, genlmsg_attrdata(gnlh, 0),
@@ -179,6 +181,16 @@ nl80211_process_get_interface_result(struct nl80211_if *interf,
         OONF_LAYER2_NET_BANDWIDTH_1, bandwidth[0]);
     interf->ifdata_changed |= nl80211_change_l2net_data(interf->l2net,
         OONF_LAYER2_NET_BANDWIDTH_2, bandwidth[1]);
+
+    if (bandwidth[0] > 0 && nl80211_create_broadcast_neighbor()) {
+      /* calculate multicast rate */
+      mc_rate = 6000000ull * 20000000ull / (bandwidth[0] + bandwidth[1]);
+
+      l2neigh = oonf_layer2_neigh_add(interf->l2net, &NETADDR_MAC48_BROADCAST);
+      if (l2neigh) {
+        nl80211_change_l2neigh_data(l2neigh, OONF_LAYER2_NEIGH_TX_BITRATE, mc_rate);
+      }
+    }
   }
 }
 

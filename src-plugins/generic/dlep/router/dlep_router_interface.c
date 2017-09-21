@@ -108,7 +108,7 @@ dlep_router_interface_init(void) {
 
   _shutting_down = false;
 
-  oonf_layer2_add_origin(&_l2_origin);
+  oonf_layer2_origin_add(&_l2_origin);
 }
 
 /**
@@ -128,7 +128,7 @@ dlep_router_interface_cleanup(void) {
   dlep_base_ip_cleanup();
   dlep_router_session_cleanup();
   dlep_extension_cleanup();
-  oonf_layer2_remove_origin(&_l2_origin);
+  oonf_layer2_origin_remove(&_l2_origin);
 }
 
 /**

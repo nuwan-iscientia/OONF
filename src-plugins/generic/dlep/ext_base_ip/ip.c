@@ -192,26 +192,19 @@ void _cb_session_init(struct dlep_session *session) {
   struct oonf_layer2_net *l2net;
   struct dlep_local_neighbor *dlep_neighbor;
 
-  struct netaddr_str nbuf;
-
-  fprintf(stderr, "1\n");
   l2net = oonf_layer2_net_get(session->l2_listener.name);
   if (!l2net) {
     return;
   }
 
-  fprintf(stderr, "2\n");
-  avl_for_each_element(&l2net->local_peer_ips, l2net_ip, _node) {
+  avl_for_each_element(&l2net->local_peer_ips, l2net_ip, _net_node) {
     _add_prefix(&session->_ip_prefix_modification, &l2net_ip->ip, true);
-    fprintf(stderr, "3: %s\n", netaddr_to_string(&nbuf, &l2net_ip->ip));
   }
 
   avl_for_each_element(&l2net->neighbors, l2neigh, _node) {
     dlep_neighbor = dlep_session_add_local_neighbor(session, &l2neigh->addr);
-    fprintf(stderr, "4: %s\n", netaddr_to_string(&nbuf, &l2neigh->addr));
     if (dlep_neighbor) {
-      avl_for_each_element(&l2neigh->remote_neighbor_ips, l2neigh_ip, _node) {
-        fprintf(stderr, "5: %s\n", netaddr_to_string(&nbuf, &l2neigh_ip->ip));
+      avl_for_each_element(&l2neigh->remote_neighbor_ips, l2neigh_ip, _neigh_node) {
         _add_prefix(&dlep_neighbor->_ip_prefix_modification, &l2neigh_ip->ip, true);
       }
     }

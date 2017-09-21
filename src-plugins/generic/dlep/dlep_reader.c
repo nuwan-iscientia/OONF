@@ -515,7 +515,7 @@ dlep_reader_map_l2neigh_data(struct oonf_layer2_data *data,
     map = &ext->neigh_mapping[i];
 
     if (map->from_tlv(&data[map->layer2],
-        oonf_layer2_get_neigh_metadata(map->layer2), session, map->dlep)) {
+        oonf_layer2_neigh_metadata_get(map->layer2), session, map->dlep)) {
       return -(i+1);
     }
   }
@@ -542,7 +542,7 @@ dlep_reader_map_l2net_data(struct oonf_layer2_data *data,
     map = &ext->if_mapping[i];
 
     if (map->from_tlv(&data[map->layer2],
-        oonf_layer2_get_net_metadata(map->layer2), session, map->dlep)) {
+        oonf_layer2_net_metadata_get(map->layer2), session, map->dlep)) {
       return -(i+1);
     }
   }

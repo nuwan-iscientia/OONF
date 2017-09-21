@@ -284,6 +284,9 @@ struct oonf_layer2_net {
   /*! tree of IP addresses/prefixes of local radio/modem */
   struct avl_tree local_peer_ips;
 
+  /*! global tree of all remote neighbor IPs */
+  struct avl_tree remote_neighbor_ips;
+
   /*! absolute timestamp when network has been active last */
   uint64_t last_seen;
 
@@ -310,8 +313,11 @@ struct oonf_layer2_peer_address {
   /*! origin of this address */
   const struct oonf_layer2_origin *origin;
 
-  /*! node for tree of ip addresses */
-  struct avl_node _node;
+  /*! node for global tree of network IP addresses */
+  struct avl_node _global_node;
+
+  /*! node for tree of ip addresses in network */
+  struct avl_node _net_node;
 };
 
 /**
@@ -353,8 +359,11 @@ struct oonf_layer2_neighbor_address {
   /*! origin of this address */
   const struct oonf_layer2_origin *origin;
 
+  /*! (interface) global tree of neighbor IP addresses */
+  struct avl_node _net_node;
+
   /*! node for tree of ip addresses */
-  struct avl_node _node;
+  struct avl_node _neigh_node;
 };
 
 /**
@@ -374,8 +383,8 @@ struct oonf_layer2_destination {
   struct avl_node _node;
 };
 
-EXPORT void oonf_layer2_add_origin(struct oonf_layer2_origin *origin);
-EXPORT void oonf_layer2_remove_origin(struct oonf_layer2_origin *origin);
+EXPORT void oonf_layer2_origin_add(struct oonf_layer2_origin *origin);
+EXPORT void oonf_layer2_origin_remove(struct oonf_layer2_origin *origin);
 
 EXPORT int oonf_layer2_data_parse_string(union oonf_layer2_value *value,
     const struct oonf_layer2_metadata *meta,
@@ -404,9 +413,10 @@ EXPORT int oonf_layer2_net_remove_ip(
     struct oonf_layer2_peer_address *ip, const struct oonf_layer2_origin *origin);
 EXPORT struct oonf_layer2_neighbor_address *oonf_layer2_net_get_best_neighbor_match(
     const struct netaddr *addr);
+EXPORT struct avl_tree *oonf_layer2_net_get_remote_ip_tree(void);
 
 EXPORT struct oonf_layer2_neigh *oonf_layer2_neigh_add(
-    struct oonf_layer2_net *, struct netaddr *l2neigh);
+    struct oonf_layer2_net *, const struct netaddr *l2neigh);
 EXPORT bool oonf_layer2_neigh_cleanup(struct oonf_layer2_neigh *l2neigh,
     const struct oonf_layer2_origin *origin);
 EXPORT bool oonf_layer2_neigh_remove(
@@ -430,15 +440,17 @@ EXPORT void oonf_layer2_destination_remove(struct oonf_layer2_destination *);
 EXPORT const struct oonf_layer2_data *oonf_layer2_neigh_query(
     const char *ifname, const struct netaddr *l2neigh,
     enum oonf_layer2_neighbor_index idx);
-EXPORT const struct oonf_layer2_data *oonf_layer2_neigh_get_value(
+EXPORT const struct oonf_layer2_data *oonf_layer2_neigh_get_data(
     const struct oonf_layer2_neigh *l2neigh, enum oonf_layer2_neighbor_index idx);
 
-EXPORT const struct oonf_layer2_metadata *oonf_layer2_get_neigh_metadata(
+EXPORT const struct oonf_layer2_metadata *oonf_layer2_neigh_metadata_get(
     enum oonf_layer2_neighbor_index);
-EXPORT const struct oonf_layer2_metadata *oonf_layer2_get_net_metadata(
+EXPORT const struct oonf_layer2_metadata *oonf_layer2_net_metadata_get(
     enum oonf_layer2_network_index);
-EXPORT const char *oonf_layer2_get_network_type(enum oonf_layer2_network_type);
-EXPORT struct avl_tree *oonf_layer2_get_network_tree(void);
+EXPORT const char *oonf_layer2_net_get_type_name(enum oonf_layer2_network_type);
+
+EXPORT struct avl_tree *oonf_layer2_get_net_tree(void);
+EXPORT struct avl_tree *oonf_layer2_get_peer_ip_tree(void);
 EXPORT struct avl_tree *oonf_layer2_get_origin_tree(void);
 
 /**
@@ -459,7 +471,18 @@ oonf_layer2_origin_is_added(const struct oonf_layer2_origin *origin) {
 static INLINE struct oonf_layer2_net *
 oonf_layer2_net_get(const char *ifname) {
   struct oonf_layer2_net *l2net;
-  return avl_find_element(oonf_layer2_get_network_tree(), ifname, l2net, _node);
+  return avl_find_element(oonf_layer2_get_net_tree(), ifname, l2net, _node);
+}
+
+/**
+ * Get a layer-2 ip address object from the database
+ * @param ip ip address of local radio/modem
+ * @return layer-2 ip address object, NULL if not found
+ */
+static INLINE struct oonf_layer2_peer_address *
+oonf_layer2_get_net_ip(const struct netaddr *addr) {
+  struct oonf_layer2_peer_address *l2ip;
+  return avl_find_element(oonf_layer2_get_peer_ip_tree(), addr, l2ip, _global_node);
 }
 
 /**
@@ -472,7 +495,7 @@ static INLINE struct oonf_layer2_peer_address *
 oonf_layer2_net_get_ip(const struct oonf_layer2_net *l2net,
     const struct netaddr *addr) {
   struct oonf_layer2_peer_address *l2ip;
-  return avl_find_element(&l2net->local_peer_ips, addr, l2ip, _node);
+  return avl_find_element(&l2net->local_peer_ips, addr, l2ip, _net_node);
 }
 
 /**
@@ -511,7 +534,20 @@ static INLINE struct oonf_layer2_neighbor_address *
 oonf_layer2_neigh_get_ip(const struct oonf_layer2_neigh *l2neigh,
     const struct netaddr *addr) {
   struct oonf_layer2_neighbor_address *l2ip;
-  return avl_find_element(&l2neigh->remote_neighbor_ips, addr, l2ip, _node);
+  return avl_find_element(&l2neigh->remote_neighbor_ips, addr, l2ip, _neigh_node);
+}
+
+/**
+ * Get a layer-2 ip address object from the database
+ * @param l2net layer-2 network object
+ * @param ip ip address of remote router
+ * @return layer-2 ip address object, NULL if not found
+ */
+static INLINE struct oonf_layer2_neighbor_address *
+oonf_layer2_net_get_neigh_ip(const struct oonf_layer2_net *l2net,
+    const struct netaddr *addr) {
+  struct oonf_layer2_neighbor_address *l2ip;
+  return avl_find_element(&l2net->remote_neighbor_ips, addr, l2ip, _net_node);
 }
 
 /**
@@ -519,7 +555,7 @@ oonf_layer2_neigh_get_ip(const struct oonf_layer2_neigh *l2neigh,
  * @return true if object contains a value, false otherwise
  */
 static INLINE bool
-oonf_layer2_has_value(const struct oonf_layer2_data *l2data) {
+oonf_layer2_data_has_value(const struct oonf_layer2_data *l2data) {
   return l2data->_type != OONF_LAYER2_NO_DATA;
 }
 
@@ -533,7 +569,7 @@ oonf_layer2_data_get_type(const struct oonf_layer2_data *l2data) {
  * @return value of data object
  */
 static INLINE int64_t
-oonf_layer2_get_int64(const struct oonf_layer2_data *l2data) {
+oonf_layer2_data_get_int64(const struct oonf_layer2_data *l2data) {
   assert (l2data->_type == OONF_LAYER2_INTEGER_DATA);
   return l2data->_value.integer;
 }
@@ -543,9 +579,37 @@ oonf_layer2_get_int64(const struct oonf_layer2_data *l2data) {
  * @return value of data object
  */
 static INLINE bool
-oonf_layer2_get_boolean(const struct oonf_layer2_data *l2data) {
+oonf_layer2_data_get_boolean(const struct oonf_layer2_data *l2data) {
   assert (l2data->_type == OONF_LAYER2_BOOLEAN_DATA);
   return l2data->_value.boolean;
+}
+
+/**
+ * @param buffer pointer to int64 data storage
+ * @param l2data layer-2 data object
+ * @return 0 if value was read, -1 if it was the wrong type
+ */
+static INLINE int
+oonf_layer2_data_read_int64(int64_t *buffer, const struct oonf_layer2_data *l2data) {
+  if (l2data->_type != OONF_LAYER2_INTEGER_DATA) {
+    return -1;
+  }
+  *buffer = l2data->_value.integer;
+  return 0;
+}
+
+/**
+ * @param buffer pointer to boolean data storage
+ * @param l2data layer-2 data object
+ * @return 0 if value was read, -1 if it was the wrong type
+ */
+static INLINE int
+oonf_layer2_data_read_boolean(bool *buffer, const struct oonf_layer2_data *l2data) {
+  if (l2data->_type != OONF_LAYER2_BOOLEAN_DATA) {
+    return -1;
+  }
+  *buffer = l2data->_value.boolean;
+  return 0;
 }
 
 /**
@@ -553,7 +617,7 @@ oonf_layer2_get_boolean(const struct oonf_layer2_data *l2data) {
  * @return originator of data value
  */
 static INLINE const struct oonf_layer2_origin *
-oonf_layer2_get_origin(const struct oonf_layer2_data *l2data) {
+oonf_layer2_data_get_origin(const struct oonf_layer2_data *l2data) {
   return l2data->_origin;
 }
 
@@ -563,7 +627,7 @@ oonf_layer2_get_origin(const struct oonf_layer2_data *l2data) {
  * @param origin originator of data value
  */
 static INLINE void
-oonf_layer2_set_origin(struct oonf_layer2_data *l2data,
+oonf_layer2_data_set_origin(struct oonf_layer2_data *l2data,
     const struct oonf_layer2_origin *origin) {
   l2data->_origin = origin;
 }
@@ -585,14 +649,14 @@ static INLINE int
 oonf_layer2_net_data_to_string(char *buffer, size_t length,
     const struct oonf_layer2_data *data, enum oonf_layer2_network_index idx, bool raw) {
   return oonf_layer2_data_to_string(buffer, length, data,
-      oonf_layer2_get_net_metadata(idx), raw);
+      oonf_layer2_net_metadata_get(idx), raw);
 }
 
 static INLINE int
 oonf_layer2_neigh_data_to_string(char *buffer, size_t length,
     const struct oonf_layer2_data *data, enum oonf_layer2_neighbor_index idx, bool raw) {
   return oonf_layer2_data_to_string(buffer, length, data,
-      oonf_layer2_get_neigh_metadata(idx), raw);
+      oonf_layer2_neigh_metadata_get(idx), raw);
 }
 
 /**
@@ -633,7 +697,7 @@ oonf_layer2_net_data_from_string(
     struct oonf_layer2_data *data, enum oonf_layer2_network_index idx,
     struct oonf_layer2_origin *origin, const char *input) {
   return oonf_layer2_data_from_string(
-      data, origin, oonf_layer2_get_net_metadata(idx), input);
+      data, origin, oonf_layer2_net_metadata_get(idx), input);
 }
 
 static INLINE int
@@ -641,7 +705,7 @@ oonf_layer2_neigh_data_from_string(
     struct oonf_layer2_data *data, enum oonf_layer2_neighbor_index idx,
     struct oonf_layer2_origin *origin, const char *input) {
   return oonf_layer2_data_from_string(
-      data, origin, oonf_layer2_get_neigh_metadata(idx), input);
+      data, origin, oonf_layer2_neigh_metadata_get(idx), input);
 }
 
 /**
@@ -649,7 +713,7 @@ oonf_layer2_neigh_data_from_string(
  * @param l2data layer-2 data object
  */
 static INLINE void
-oonf_layer2_reset_value(struct oonf_layer2_data *l2data) {
+oonf_layer2_data_reset(struct oonf_layer2_data *l2data) {
   l2data->_type = OONF_LAYER2_NO_DATA;
   l2data->_origin = NULL;
 }

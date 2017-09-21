@@ -166,7 +166,7 @@ _early_cfg_init(void) {
 
   for (i=0; i<ARRAYSIZE(_link_config_if_entries); i++) {
     entry = &_link_config_if_entries[i];
-    entry->key.entry = oonf_layer2_get_neigh_metadata(
+    entry->key.entry = oonf_layer2_neigh_metadata_get(
         (enum oonf_layer2_neighbor_index)
         entry->validate_param[0].i32[0])->key;
   }
@@ -178,8 +178,8 @@ _early_cfg_init(void) {
  */
 static int
 _init(void) {
-  oonf_layer2_add_origin(&_l2_origin_current);
-  oonf_layer2_add_origin(&_l2_origin_old);
+  oonf_layer2_origin_add(&_l2_origin_current);
+  oonf_layer2_origin_add(&_l2_origin_old);
 
   oonf_class_extension_add(&_l2net_listener);
   oonf_class_extension_add(&_l2neigh_listener);
@@ -200,8 +200,8 @@ _cleanup(void) {
   oonf_class_extension_remove(&_l2net_listener);
   oonf_class_extension_remove(&_l2neigh_listener);
 
-  oonf_layer2_remove_origin(&_l2_origin_current);
-  oonf_layer2_remove_origin(&_l2_origin_old);
+  oonf_layer2_origin_remove(&_l2_origin_current);
+  oonf_layer2_origin_remove(&_l2_origin_old);
 }
 
 /**
@@ -251,8 +251,8 @@ _cb_validate_linkdata(const struct cfg_schema_entry *entry,
   ptr = str_cpynextword(sbuf.buf, value, sizeof(sbuf));
   if (cfg_validate_int(out, section_name, entry->key.entry, sbuf.buf,
       INT64_MIN, INT64_MAX, 8,
-      oonf_layer2_get_neigh_metadata(idx)->fraction,
-      oonf_layer2_get_neigh_metadata(idx)->binary)) {
+      oonf_layer2_neigh_metadata_get(idx)->fraction,
+      oonf_layer2_neigh_metadata_get(idx)->binary)) {
     return -1;
   }
 
@@ -296,17 +296,17 @@ _parse_strarray(struct strarray *array, const char *ifname,
   strarray_for_each_element(array, entry) {
     ptr = str_cpynextword(hbuf.buf, entry, sizeof(hbuf));
     if (isonumber_to_s64(&value, hbuf.buf,
-        oonf_layer2_get_neigh_metadata(idx)->fraction,
-        oonf_layer2_get_neigh_metadata(idx)->binary)) {
+        oonf_layer2_neigh_metadata_get(idx)->fraction,
+        oonf_layer2_neigh_metadata_get(idx)->binary)) {
       continue;
     }
 
     if (ptr == NULL) {
       /* add network wide data entry */
       if (!oonf_layer2_data_set_int64(&l2net->neighdata[idx], &_l2_origin_current,
-          oonf_layer2_get_neigh_metadata(idx),value)) {
+          oonf_layer2_neigh_metadata_get(idx),value)) {
         OONF_INFO(LOG_LINK_CONFIG, "if-wide %s for %s: %s",
-            oonf_layer2_get_neigh_metadata(idx)->key, ifname, hbuf.buf);
+            oonf_layer2_neigh_metadata_get(idx)->key, ifname, hbuf.buf);
       }
       continue;
     }
@@ -324,9 +324,9 @@ _parse_strarray(struct strarray *array, const char *ifname,
       }
 
       if (!oonf_layer2_data_set_int64(&l2neigh->data[idx], &_l2_origin_current,
-          oonf_layer2_get_neigh_metadata(idx),value)) {
+          oonf_layer2_neigh_metadata_get(idx),value)) {
         OONF_INFO(LOG_LINK_CONFIG, "%s to neighbor %s on %s: %s",
-            oonf_layer2_get_neigh_metadata(idx)->key, nbuf.buf, ifname, hbuf.buf);
+            oonf_layer2_neigh_metadata_get(idx)->key, nbuf.buf, ifname, hbuf.buf);
       }
     }
   }
@@ -369,8 +369,8 @@ _cb_config_changed(void) {
     /* detect changes and relabel the origin */
     avl_for_each_element_safe(&l2net->neighbors, l2neigh, _node, l2neigh_it) {
       for (idx = 0; idx < OONF_LAYER2_NEIGH_COUNT; idx++) {
-        if (oonf_layer2_get_origin(&l2neigh->data[idx]) == &_l2_origin_current) {
-          oonf_layer2_set_origin(&l2neigh->data[idx], &_l2_origin_old);
+        if (oonf_layer2_data_get_origin(&l2neigh->data[idx]) == &_l2_origin_current) {
+          oonf_layer2_data_set_origin(&l2neigh->data[idx], &_l2_origin_old);
           commit = true;
         }
       }
@@ -383,8 +383,8 @@ _cb_config_changed(void) {
     commit = false;
     /* detect changes and relabel the origin */
     for (idx = 0; idx < OONF_LAYER2_NET_COUNT; idx++) {
-      if (oonf_layer2_get_origin(&l2net->neighdata[idx]) == &_l2_origin_current) {
-        oonf_layer2_set_origin(&l2net->neighdata[idx], &_l2_origin_old);
+      if (oonf_layer2_data_get_origin(&l2net->neighdata[idx]) == &_l2_origin_current) {
+        oonf_layer2_data_set_origin(&l2net->neighdata[idx], &_l2_origin_old);
         commit = true;
       }
     }

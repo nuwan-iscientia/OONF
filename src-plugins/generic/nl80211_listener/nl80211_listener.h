@@ -101,6 +101,7 @@ bool nl80211_change_l2net_neighbor_default(struct oonf_layer2_net *l2net,
 void nl80211_cleanup_l2neigh_data(struct oonf_layer2_neigh *l2neigh);
 bool nl80211_change_l2neigh_data(struct oonf_layer2_neigh *l2neigh,
     enum oonf_layer2_neighbor_index idx, uint64_t value);
+bool nl80211_create_broadcast_neighbor(void);
 
 /**
  * @param interf nl80211 interface

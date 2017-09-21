@@ -275,9 +275,9 @@ dlep_extension_radio_write_session_init_ack(
     l2data = &l2net->neighdata[ext->neigh_mapping[i].layer2];
 
 
-    if (!oonf_layer2_has_value(l2data)) {
+    if (!oonf_layer2_data_has_value(l2data)) {
       oonf_layer2_data_set_int64(l2data, session->l2_origin,
-          oonf_layer2_get_neigh_metadata(ext->neigh_mapping[i].layer2),
+          oonf_layer2_neigh_metadata_get(ext->neigh_mapping[i].layer2),
           ext->neigh_mapping[i].default_value);
     }
   }
@@ -290,9 +290,9 @@ dlep_extension_radio_write_session_init_ack(
 
     l2data = &l2net->data[ext->if_mapping[i].layer2];
 
-    if (!oonf_layer2_has_value(l2data)) {
+    if (!oonf_layer2_data_has_value(l2data)) {
       oonf_layer2_data_set_int64(l2data, session->l2_origin,
-          oonf_layer2_get_net_metadata(ext->if_mapping[i].layer2),
+          oonf_layer2_net_metadata_get(ext->if_mapping[i].layer2),
           ext->if_mapping[i].default_value);
     }
   }

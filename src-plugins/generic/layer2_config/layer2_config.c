@@ -224,8 +224,8 @@ static struct oonf_timer_class _reconfigure_timer = {
  */
 static int
 _init(void) {
-  oonf_layer2_add_origin(&_l2_origin_current);
-  oonf_layer2_add_origin(&_l2_origin_old);
+  oonf_layer2_origin_add(&_l2_origin_current);
+  oonf_layer2_origin_add(&_l2_origin_old);
 
   oonf_class_extension_add(&_l2net_listener);
   oonf_class_extension_add(&_l2neigh_listener);
@@ -251,8 +251,8 @@ _cleanup(void) {
   oonf_class_extension_remove(&_l2net_listener);
   oonf_class_extension_remove(&_l2neigh_listener);
 
-  oonf_layer2_remove_origin(&_l2_origin_current);
-  oonf_layer2_remove_origin(&_l2_origin_old);
+  oonf_layer2_origin_remove(&_l2_origin_current);
+  oonf_layer2_origin_remove(&_l2_origin_old);
 }
 
 /**
@@ -371,7 +371,7 @@ _cb_validate_l2netdata(const struct cfg_schema_entry *entry,
 
   /* search for network metadata index */
   for (idx = 0; idx < OONF_LAYER2_NET_COUNT; idx++) {
-    if ((ptr = str_hasnextword(value, oonf_layer2_get_net_metadata(idx)->key))) {
+    if ((ptr = str_hasnextword(value, oonf_layer2_net_metadata_get(idx)->key))) {
       break;
     }
   }
@@ -386,8 +386,8 @@ _cb_validate_l2netdata(const struct cfg_schema_entry *entry,
   /* test if second word is a human readable number */
   if (cfg_validate_int(out, section_name, entry->key.entry, ptr,
       INT64_MIN, INT64_MAX, 8,
-      oonf_layer2_get_net_metadata(idx)->fraction,
-      oonf_layer2_get_net_metadata(idx)->binary)) {
+      oonf_layer2_net_metadata_get(idx)->fraction,
+      oonf_layer2_net_metadata_get(idx)->binary)) {
     return -1;
   }
   return 0;
@@ -411,7 +411,7 @@ _cb_validate_l2defdata(const struct cfg_schema_entry *entry,
 
   /* search for network metadata index */
   for (idx = 0; idx < OONF_LAYER2_NEIGH_COUNT; idx++) {
-    if ((ptr = str_hasnextword(value, oonf_layer2_get_neigh_metadata(idx)->key))) {
+    if ((ptr = str_hasnextword(value, oonf_layer2_neigh_metadata_get(idx)->key))) {
       break;
     }
   }
@@ -426,8 +426,8 @@ _cb_validate_l2defdata(const struct cfg_schema_entry *entry,
   /* test if second word is a human readable number */
   if (cfg_validate_int(out, section_name, entry->key.entry, ptr,
       INT64_MIN, INT64_MAX, 8,
-      oonf_layer2_get_neigh_metadata(idx)->fraction,
-      oonf_layer2_get_neigh_metadata(idx)->binary)) {
+      oonf_layer2_neigh_metadata_get(idx)->fraction,
+      oonf_layer2_neigh_metadata_get(idx)->binary)) {
     return -1;
   }
   return 0;
@@ -453,7 +453,7 @@ _cb_validate_l2neighdata(const struct cfg_schema_entry *entry,
 
   /* search for network metadata index */
   for (idx = 0; idx < OONF_LAYER2_NEIGH_COUNT; idx++) {
-    if ((ptr = str_hasnextword(value, oonf_layer2_get_neigh_metadata(idx)->key))) {
+    if ((ptr = str_hasnextword(value, oonf_layer2_neigh_metadata_get(idx)->key))) {
       break;
     }
   }
@@ -469,8 +469,8 @@ _cb_validate_l2neighdata(const struct cfg_schema_entry *entry,
   ptr = str_cpynextword(sbuf.buf, ptr, sizeof(sbuf));
   if (cfg_validate_int(out, section_name, entry->key.entry, sbuf.buf,
       INT64_MIN, INT64_MAX, 8,
-      oonf_layer2_get_neigh_metadata(idx)->fraction,
-      oonf_layer2_get_neigh_metadata(idx)->binary)) {
+      oonf_layer2_neigh_metadata_get(idx)->fraction,
+      oonf_layer2_neigh_metadata_get(idx)->binary)) {
     return -1;
   }
 
@@ -551,7 +551,7 @@ _parse_l2net_config(struct l2_config_data *storage, const char *value) {
 
   /* search for network metadata index */
   for (idx = 0; idx < OONF_LAYER2_NET_COUNT; idx++) {
-    if ((ptr = str_hasnextword(value, oonf_layer2_get_net_metadata(idx)->key))) {
+    if ((ptr = str_hasnextword(value, oonf_layer2_net_metadata_get(idx)->key))) {
       break;
     }
   }
@@ -560,7 +560,7 @@ _parse_l2net_config(struct l2_config_data *storage, const char *value) {
     return -1;
   }
 
-  meta = oonf_layer2_get_net_metadata(idx);
+  meta = oonf_layer2_net_metadata_get(idx);
   storage->data_idx = idx;
 
   return oonf_layer2_data_parse_string(&storage->data, meta, ptr);
@@ -593,7 +593,7 @@ _parse_l2neigh_config(struct l2_config_data *storage, const char *value) {
 
   /* search for network metadata index */
   for (idx = 0; idx < OONF_LAYER2_NEIGH_COUNT; idx++) {
-    if ((ptr = str_hasnextword(value, oonf_layer2_get_neigh_metadata(idx)->key))) {
+    if ((ptr = str_hasnextword(value, oonf_layer2_neigh_metadata_get(idx)->key))) {
       break;
     }
   }
@@ -606,7 +606,7 @@ _parse_l2neigh_config(struct l2_config_data *storage, const char *value) {
 
   /* convert number */
   ptr = str_cpynextword(sbuf.buf, ptr, sizeof(sbuf));
-  if (oonf_layer2_data_parse_string(&storage->data, oonf_layer2_get_neigh_metadata(idx), sbuf.buf)) {
+  if (oonf_layer2_data_parse_string(&storage->data, oonf_layer2_neigh_metadata_get(idx), sbuf.buf)) {
     return -1;
   }
 
@@ -677,7 +677,7 @@ _configure_if_data(struct l2_config_if_data *if_data) {
       switch (entry->type) {
         case L2_NET:
           oonf_layer2_data_set(&l2net->data[entry->data_idx],
-              &_l2_origin_current, oonf_layer2_get_net_metadata(entry->data_idx), &entry->data);
+              &_l2_origin_current, oonf_layer2_net_metadata_get(entry->data_idx), &entry->data);
           break;
         case L2_NET_IP:
           oonf_layer2_net_add_ip(l2net,
@@ -685,13 +685,13 @@ _configure_if_data(struct l2_config_if_data *if_data) {
           break;
         case L2_DEF:
           oonf_layer2_data_set(&l2net->neighdata[entry->data_idx],
-              &_l2_origin_current, oonf_layer2_get_neigh_metadata(entry->data_idx), &entry->data);
+              &_l2_origin_current, oonf_layer2_neigh_metadata_get(entry->data_idx), &entry->data);
           break;
         case L2_NEIGH:
           l2neigh = oonf_layer2_neigh_add(l2net, &entry->mac);
           if (l2neigh) {
             oonf_layer2_data_set(&l2neigh->data[entry->data_idx],
-                &_l2_origin_current, oonf_layer2_get_neigh_metadata(entry->data_idx), &entry->data);
+                &_l2_origin_current, oonf_layer2_neigh_metadata_get(entry->data_idx), &entry->data);
           }
           break;
         case L2_NEIGH_IP:
@@ -736,7 +736,7 @@ _cb_valhelp_l2net(const struct cfg_schema_entry *entry __attribute((unused)),
 
   for (i=0; i<OONF_LAYER2_NET_COUNT; i++) {
     abuf_appendf(out, "        %s\n",
-        oonf_layer2_get_net_metadata(i)->key);
+        oonf_layer2_net_metadata_get(i)->key);
   }
 
   abuf_puts(out, "    <value> is an numeric value (with optional iso prefix)\n");
@@ -780,7 +780,7 @@ _create_neigh_help(struct autobuf *out, bool mac) {
 
   for (i=0; i<OONF_LAYER2_NEIGH_COUNT; i++) {
     abuf_appendf(out, "        %s\n",
-        oonf_layer2_get_neigh_metadata(i)->key);
+        oonf_layer2_neigh_metadata_get(i)->key);
   }
 
   abuf_puts(out, "    <value> is an numeric value (with optional iso prefix)\n");

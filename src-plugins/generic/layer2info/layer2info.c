@@ -346,7 +346,7 @@ _init(void) {
     _tde_if_data[i].string = true;
 
     abuf_puts(&_key_storage, KEY_IF_PREFIX);
-    abuf_puts(&_key_storage, oonf_layer2_get_net_metadata(i)->key);
+    abuf_puts(&_key_storage, oonf_layer2_net_metadata_get(i)->key);
     abuf_memcpy(&_key_storage, "\0", 1);
 
     _tde_if_origin[i].key =
@@ -355,7 +355,7 @@ _init(void) {
     _tde_if_origin[i].string = true;
 
     abuf_puts(&_key_storage, KEY_IF_PREFIX);
-    abuf_puts(&_key_storage, oonf_layer2_get_net_metadata(i)->key);
+    abuf_puts(&_key_storage, oonf_layer2_net_metadata_get(i)->key);
     abuf_puts(&_key_storage, KEY_ORIGIN_SUFFIX);
     abuf_memcpy(&_key_storage, "\0", 1);
   }
@@ -367,7 +367,7 @@ _init(void) {
     _tde_neigh_data[i].string = true;
 
     abuf_puts(&_key_storage, KEY_NEIGH_PREFIX);
-    abuf_puts(&_key_storage, oonf_layer2_get_neigh_metadata(i)->key);
+    abuf_puts(&_key_storage, oonf_layer2_neigh_metadata_get(i)->key);
     abuf_memcpy(&_key_storage, "\0", 1);
 
     _tde_neigh_origin[i].key =
@@ -376,7 +376,7 @@ _init(void) {
     _tde_neigh_origin[i].string = true;
 
     abuf_puts(&_key_storage, KEY_NEIGH_PREFIX);
-    abuf_puts(&_key_storage, oonf_layer2_get_neigh_metadata(i)->key);
+    abuf_puts(&_key_storage, oonf_layer2_neigh_metadata_get(i)->key);
     abuf_puts(&_key_storage, KEY_ORIGIN_SUFFIX);
     abuf_memcpy(&_key_storage, "\0", 1);
   }
@@ -432,7 +432,7 @@ _initialize_if_values(struct oonf_layer2_net *net) {
   snprintf(_value_if_index, sizeof(_value_if_index), "%u", os_if->index);
   strscpy(_value_if_ident, net->if_ident, sizeof(_value_if_ident));
   netaddr_to_string(&_value_if_local_addr, &os_if->mac);
-  strscpy(_value_if_type, oonf_layer2_get_network_type(net->if_type), IF_NAMESIZE);
+  strscpy(_value_if_type, oonf_layer2_net_get_type_name(net->if_type), IF_NAMESIZE);
   strscpy(_value_if_dlep, json_getbool(net->if_dlep), TEMPLATE_JSON_BOOL_LENGTH);
 
   if (net->last_seen) {
@@ -484,8 +484,8 @@ _initialize_if_origin_values(struct oonf_layer2_data *data) {
   memset(_value_if_origin, 0, sizeof(_value_if_origin));
 
   for (i=0; i<OONF_LAYER2_NET_COUNT; i++) {
-    if (oonf_layer2_has_value(&data[i])) {
-      strscpy(_value_if_origin[i], oonf_layer2_get_origin(&data[i])->name, IF_NAMESIZE);
+    if (oonf_layer2_data_has_value(&data[i])) {
+      strscpy(_value_if_origin[i], oonf_layer2_data_get_origin(&data[i])->name, IF_NAMESIZE);
     }
   }
 }
@@ -547,8 +547,8 @@ _initialize_neigh_origin_values(struct oonf_layer2_data *data) {
   memset(_value_neigh_origin, 0, sizeof(_value_neigh_origin));
 
   for (i=0; i<OONF_LAYER2_NEIGH_COUNT; i++) {
-    if (oonf_layer2_has_value(&data[i])) {
-      strscpy(_value_neigh_origin[i], oonf_layer2_get_origin(&data[i])->name, IF_NAMESIZE);
+    if (oonf_layer2_data_has_value(&data[i])) {
+      strscpy(_value_neigh_origin[i], oonf_layer2_data_get_origin(&data[i])->name, IF_NAMESIZE);
     }
   }
 }
@@ -572,7 +572,7 @@ static int
 _cb_create_text_interface(struct oonf_viewer_template *template) {
   struct oonf_layer2_net *net;
 
-  avl_for_each_element(oonf_layer2_get_network_tree(), net, _node) {
+  avl_for_each_element(oonf_layer2_get_net_tree(), net, _node) {
     _initialize_if_values(net);
     _initialize_if_data_values(template, net->data);
     _initialize_if_origin_values(net->data);
@@ -593,10 +593,10 @@ _cb_create_text_interface_ip(struct oonf_viewer_template *template) {
   struct oonf_layer2_net *net;
   struct oonf_layer2_peer_address *peer_ip;
 
-  avl_for_each_element(oonf_layer2_get_network_tree(), net, _node) {
+  avl_for_each_element(oonf_layer2_get_net_tree(), net, _node) {
     _initialize_if_values(net);
 
-    avl_for_each_element(&net->local_peer_ips, peer_ip, _node) {
+    avl_for_each_element(&net->local_peer_ips, peer_ip, _net_node) {
       _initialize_if_ip_values(peer_ip);
 
       /* generate template output */
@@ -616,7 +616,7 @@ _cb_create_text_neighbor(struct oonf_viewer_template *template) {
   struct oonf_layer2_neigh *neigh;
   struct oonf_layer2_net *net;
 
-  avl_for_each_element(oonf_layer2_get_network_tree(), net, _node) {
+  avl_for_each_element(oonf_layer2_get_net_tree(), net, _node) {
     _initialize_if_values(net);
 
     avl_for_each_element(&net->neighbors, neigh, _node) {
@@ -642,13 +642,13 @@ _cb_create_text_neighbor_ip(struct oonf_viewer_template *template) {
   struct oonf_layer2_neigh *neigh;
   struct oonf_layer2_net *net;
 
-  avl_for_each_element(oonf_layer2_get_network_tree(), net, _node) {
+  avl_for_each_element(oonf_layer2_get_net_tree(), net, _node) {
     _initialize_if_values(net);
 
     avl_for_each_element(&net->neighbors, neigh, _node) {
       _initialize_neigh_values(neigh);
 
-      avl_for_each_element(&neigh->remote_neighbor_ips, remote_ip, _node) {
+      avl_for_each_element(&neigh->remote_neighbor_ips, remote_ip, _neigh_node) {
         _initialize_neigh_ip_values(remote_ip);
 
         /* generate template output */
@@ -669,7 +669,7 @@ static int
 _cb_create_text_default(struct oonf_viewer_template *template) {
   struct oonf_layer2_net *net;
 
-  avl_for_each_element(oonf_layer2_get_network_tree(), net, _node) {
+  avl_for_each_element(oonf_layer2_get_net_tree(), net, _node) {
     _initialize_if_values(net);
     _initialize_neigh_data_values(template, net->neighdata);
     _initialize_neigh_origin_values(net->neighdata);
@@ -691,7 +691,7 @@ _cb_create_text_dst(struct oonf_viewer_template *template) {
   struct oonf_layer2_neigh *neigh;
   struct oonf_layer2_net *net;
 
-  avl_for_each_element(oonf_layer2_get_network_tree(), net, _node) {
+  avl_for_each_element(oonf_layer2_get_net_tree(), net, _node) {
     _initialize_if_values(net);
 
     avl_for_each_element(&net->neighbors, neigh, _node) {

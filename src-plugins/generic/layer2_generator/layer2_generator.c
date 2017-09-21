@@ -160,7 +160,7 @@ static int
 _init(void) {
   memset(&_l2gen_config, 0, sizeof(_l2gen_config));
 
-  oonf_layer2_add_origin(&_origin);
+  oonf_layer2_origin_add(&_origin);
   oonf_timer_add(&_l2gen_timer_info);
   oonf_timer_start(&_l2gen_timer, 5000);
   return 0;
@@ -171,7 +171,7 @@ _init(void) {
  */
 static void
 _cleanup(void) {
-  oonf_layer2_remove_origin(&_origin);
+  oonf_layer2_origin_remove(&_origin);
   oonf_timer_stop(&_l2gen_timer);
   oonf_timer_remove(&_l2gen_timer_info);
 }
@@ -215,11 +215,11 @@ _cb_l2gen_event(struct oonf_timer_instance *ptr __attribute((unused))) {
 
   for (net_idx=0; net_idx<OONF_LAYER2_NET_COUNT; net_idx++) {
     oonf_layer2_data_set_int64(&net->data[net_idx], &_origin,
-        oonf_layer2_get_net_metadata(net_idx), event_counter);
+        oonf_layer2_net_metadata_get(net_idx), event_counter);
   }
   for (neigh_idx=0; neigh_idx<OONF_LAYER2_NEIGH_COUNT; neigh_idx++) {
     oonf_layer2_data_set_int64(&net->neighdata[neigh_idx], &_origin,
-        oonf_layer2_get_neigh_metadata(neigh_idx), event_counter);
+        oonf_layer2_neigh_metadata_get(neigh_idx), event_counter);
   }
 
   if (oonf_layer2_net_commit(net)) {
@@ -243,7 +243,7 @@ _cb_l2gen_event(struct oonf_timer_instance *ptr __attribute((unused))) {
 
   for (neigh_idx = 0; neigh_idx < OONF_LAYER2_NEIGH_COUNT; neigh_idx++) {
     oonf_layer2_data_set_int64(&neigh->data[neigh_idx], &_origin,
-        oonf_layer2_get_neigh_metadata(neigh_idx), event_counter);
+        oonf_layer2_neigh_metadata_get(neigh_idx), event_counter);
   }
   oonf_layer2_neigh_commit(neigh);
 }
@@ -263,10 +263,10 @@ _cb_config_changed(void) {
       _l2gen_config.active ? "active" : "inactive", _l2gen_config.interface);
   
   if (!oonf_layer2_origin_is_added(&_origin) && _l2gen_config.active) {
-    oonf_layer2_add_origin(&_origin);
+    oonf_layer2_origin_add(&_origin);
   }
   else if (oonf_layer2_origin_is_added(&_origin) && !_l2gen_config.active) {
-    oonf_layer2_remove_origin(&_origin);
+    oonf_layer2_origin_remove(&_origin);
   }
   
   /* set new interval */

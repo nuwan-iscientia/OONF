@@ -396,17 +396,17 @@ dlep_writer_map_identity(struct dlep_writer *writer,
     /* bad data type */
     return -1;
   }
-  if (!oonf_layer2_has_value(data)) {
+  if (!oonf_layer2_data_has_value(data)) {
     /* no data available */
     return 0;
   }
 
   switch (oonf_layer2_data_get_type(data)) {
     case OONF_LAYER2_INTEGER_DATA:
-      l2value64 = oonf_layer2_get_int64(data);
+      l2value64 = oonf_layer2_data_get_int64(data);
       break;
     case OONF_LAYER2_BOOLEAN_DATA:
-      l2value64 = oonf_layer2_get_boolean(data) ? 1 : 0;
+      l2value64 = oonf_layer2_data_get_boolean(data) ? 1 : 0;
       break;
     default:
       return -1;
@@ -460,12 +460,12 @@ dlep_writer_map_l2neigh_data(struct dlep_writer *writer,
     map = &ext->neigh_mapping[i];
 
     ptr = &data[map->layer2];
-    if (!oonf_layer2_has_value(ptr) && def) {
+    if (!oonf_layer2_data_has_value(ptr) && def) {
       ptr = &def[map->layer2];
     }
 
     if (map->to_tlv(writer, ptr,
-        oonf_layer2_get_neigh_metadata(map->layer2),
+        oonf_layer2_neigh_metadata_get(map->layer2),
         map->dlep, map->length)) {
       return -(i+1);
     }
@@ -493,7 +493,7 @@ dlep_writer_map_l2net_data(struct dlep_writer *writer,
     map = &ext->if_mapping[i];
 
     if (map->to_tlv(writer, &data[map->layer2],
-        oonf_layer2_get_net_metadata(map->layer2),
+        oonf_layer2_net_metadata_get(map->layer2),
         map->dlep, map->length)) {
       return -(i+1);
     }

@@ -91,6 +91,9 @@
 struct _nl80211_config {
   /*! interval between two series of netlink probes */
   uint64_t interval;
+
+  /*! true if plugin should set multicast rate in the l2 db */
+  bool report_multicast_rate;
 };
 
 /**
@@ -128,8 +131,9 @@ struct _nl80211_query {
  * Index number for nl80211 configuration entries
  */
 enum _nl80211_cfg_idx {
-  IDX_INTERVAL,  //!< IDX_INTERVAL
-  IDX_INTERFACES,//!< IDX_INTERFACES
+  IDX_INTERVAL,
+  IDX_INTERFACES,
+  IDX_MC_RATE,
 };
 
 /**
@@ -209,6 +213,8 @@ static struct cfg_schema_entry _nl80211_entries[] = {
   [IDX_INTERFACES] = CFG_VALIDATE_PRINTABLE_LEN("if", "",
       "List of additional interfaces to read nl80211 data from",
       IF_NAMESIZE, .list=true),
+  [IDX_MC_RATE] = CFG_MAP_BOOL(_nl80211_config, report_multicast_rate, "report_mc_rate", "false",
+      "Activate to write the multicast/broadcast speed into the layer2 database"),
 };
 
 static struct cfg_schema_section _nl80211_section = {
@@ -321,8 +327,8 @@ _init(void) {
   avl_init(&_nl80211_if_tree, avl_comp_strcasecmp, false);
 
   /* get layer2 origin */
-  oonf_layer2_add_origin(&_layer2_updated_origin);
-  oonf_layer2_add_origin(&_layer2_data_origin);
+  oonf_layer2_origin_add(&_layer2_updated_origin);
+  oonf_layer2_origin_add(&_layer2_data_origin);
 
   oonf_timer_add(&_transmission_timer_info);
   return 0;
@@ -337,8 +343,8 @@ _cleanup(void) {
   avl_for_each_element_safe(&_nl80211_if_tree, interf, _node, it_if) {
     _nl80211_if_remove(interf);
   }
-  oonf_layer2_remove_origin(&_layer2_updated_origin);
-  oonf_layer2_remove_origin(&_layer2_data_origin);
+  oonf_layer2_origin_remove(&_layer2_updated_origin);
+  oonf_layer2_origin_remove(&_layer2_data_origin);
 
   oonf_timer_stop(&_transmission_timer);
   oonf_timer_remove(&_transmission_timer_info);
@@ -373,7 +379,7 @@ bool
 nl80211_change_l2net_data(struct oonf_layer2_net *l2net,
     enum oonf_layer2_network_index idx, uint64_t value) {
   return oonf_layer2_data_set_int64(&l2net->data[idx], &_layer2_updated_origin,
-      oonf_layer2_get_net_metadata(idx), value);
+      oonf_layer2_net_metadata_get(idx), value);
 }
 
 /**
@@ -387,7 +393,7 @@ bool
 nl80211_change_l2net_neighbor_default(struct oonf_layer2_net *l2net,
     enum oonf_layer2_neighbor_index idx, uint64_t value) {
   return oonf_layer2_data_set_int64(&l2net->neighdata[idx], &_layer2_updated_origin,
-      oonf_layer2_get_neigh_metadata(idx), value);
+      oonf_layer2_neigh_metadata_get(idx), value);
 }
 
 /**
@@ -411,7 +417,15 @@ bool
 nl80211_change_l2neigh_data(struct oonf_layer2_neigh *l2neigh,
     enum oonf_layer2_neighbor_index idx, uint64_t value) {
   return oonf_layer2_data_set_int64(&l2neigh->data[idx], &_layer2_updated_origin,
-      oonf_layer2_get_neigh_metadata(idx), value);
+      oonf_layer2_neigh_metadata_get(idx), value);
+}
+
+/**
+ * @return true if plugin should create a broadcast entry neighbor
+ */
+bool
+nl80211_create_broadcast_neighbor(void) {
+  return _config.report_multicast_rate;
 }
 
 /**

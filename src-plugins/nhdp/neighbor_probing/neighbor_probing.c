@@ -252,11 +252,12 @@ _cb_link_removed(void *ptr) {
 static bool
 _check_if_type(struct oonf_layer2_net *net) {
   struct oonf_layer2_data *l2data;
+  bool value;
 
   l2data = &net->data[OONF_LAYER2_NET_MCS_BY_PROBING];
-  if (oonf_layer2_has_value(l2data)) {
+  if (!oonf_layer2_data_read_boolean(&value, l2data)) {
     /* we got a direct setting reported for the interface for probing */
-    return oonf_layer2_get_boolean(l2data);
+    return value;
   }
   if (net->if_dlep) {
     /* use configuration for DLEP that does not report if probing is necessary */
@@ -320,8 +321,8 @@ _cb_probe_link(struct oonf_timer_instance *ptr __attribute__((unused))) {
       /* get layer2 data */
       l2neigh = oonf_layer2_neigh_get(l2net, &lnk->remote_mac);
       if (l2neigh == NULL
-          || !oonf_layer2_has_value(&l2neigh->data[OONF_LAYER2_NEIGH_RX_BITRATE])
-          || !oonf_layer2_has_value(&l2neigh->data[OONF_LAYER2_NEIGH_TX_FRAMES])) {
+          || !oonf_layer2_data_has_value(&l2neigh->data[OONF_LAYER2_NEIGH_RX_BITRATE])
+          || !oonf_layer2_data_has_value(&l2neigh->data[OONF_LAYER2_NEIGH_TX_FRAMES])) {
         OONF_DEBUG(LOG_PROBING, "Drop link %s (missing l2 data)",
             netaddr_to_string(&nbuf, &lnk->remote_mac));
         continue;
@@ -332,7 +333,7 @@ _cb_probe_link(struct oonf_timer_instance *ptr __attribute__((unused))) {
 
       /* fix tx-packets */
       last_tx_packets = ldata->last_tx_traffic;
-      ldata->last_tx_traffic = oonf_layer2_get_int64(&l2neigh->data[OONF_LAYER2_NEIGH_TX_FRAMES]);
+      ldata->last_tx_traffic = oonf_layer2_data_get_int64(&l2neigh->data[OONF_LAYER2_NEIGH_TX_FRAMES]);
 
       /* check if link had traffic since last probe check */
       if (last_tx_packets != ldata->last_tx_traffic) {
