@@ -225,7 +225,7 @@ isonumber_to_u64(uint64_t *dst, const char *iso, int fraction, bool binary) {
       return -1;
     }
 
-    while (prefix > next) {
+    while (prefix > symbol_large) {
       factor *= multiplicator;
       prefix--;
     }
