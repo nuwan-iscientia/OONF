@@ -323,16 +323,28 @@ nhdp_interface_remove(struct nhdp_interface *interf) {
  */
 void
 nhdp_interface_apply_settings(struct nhdp_interface *interf) {
+  uint64_t itime, vtime;
   /* parse ip address list again and apply ACL */
   _cb_interface_event(&interf->rfc5444_if, false);
 
-  /* reset hello generation frequency */
-  oonf_timer_set(&interf->_hello_timer, interf->refresh_interval);
+  /* calculate interval and validity time */
+  itime = interf->overwrite_hello_interval;
+  if (!itime) {
+    itime = interf->refresh_interval;
+  }
+  vtime = interf->overwrite_hello_validity;
+  if (!vtime) {
+    vtime = interf->validity_time;
+  }
 
-  /* just copy hold time for now */
-  interf->l_hold_time = interf->h_hold_time;
-  interf->n_hold_time = interf->l_hold_time;
-  interf->i_hold_time = interf->n_hold_time;
+  /* reset hello generation frequency */
+  oonf_timer_set(&interf->_hello_timer, itime);
+
+  /* just copy validity_time for now */
+  interf->h_hold_time = vtime;
+  interf->l_hold_time = vtime;
+  interf->n_hold_time = vtime;
+  interf->i_hold_time = vtime;
 }
 
 /**
@@ -353,6 +365,42 @@ nhdp_interface_get_address_tree(void) {
   return &_ifaddr_tree;
 }
 
+/**
+ * Set or reset the hello interval of a NHDP interface.
+ * This will overwrite the configured value
+ * @param interf NHDP interface
+ * @param interval hello interval, 0 to reset to configured value
+ * @return last hello interval, 0 if configuration was used
+ */
+uint64_t
+nhdp_interface_set_hello_interval(
+    struct nhdp_interface *interf, uint64_t interval) {
+  uint64_t old;
+
+  old = interf->overwrite_hello_interval;
+  interf->overwrite_hello_interval = interval;
+
+  nhdp_interface_apply_settings(interf);
+  return old;
+}
+
+/**
+ * Set or reset the hello validity time of a NHDP interface.
+ * This will overwrite the configured value
+ * @param interf NHDP interface
+ * @param interval hello validity, 0 to reset to configured value
+ * @return last hello validity time, 0 if configuration was used
+ */
+uint64_t nhdp_set_hello_validity(
+    struct nhdp_interface *interf, uint64_t interval) {
+  uint64_t old;
+
+  old = interf->overwrite_hello_validity;
+  interf->overwrite_hello_validity = interval;
+
+  nhdp_interface_apply_settings(interf);
+  return old;
+}
 
 /**
  * Add a nhdp interface address to an interface

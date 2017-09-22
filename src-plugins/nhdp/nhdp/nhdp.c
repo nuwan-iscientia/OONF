@@ -122,7 +122,7 @@ static struct cfg_schema_entry _interface_entries[] = {
   CFG_MAP_ACL_V46(nhdp_interface, ifaddr_filter, "ifaddr_filter",
       "-127.0.0.0/8\0-::1\0" ACL_DEFAULT_ACCEPT,
       "Filter for ip interface addresses that should be included in HELLO messages"),
-  CFG_MAP_CLOCK_MIN(nhdp_interface, h_hold_time, "hello_validity", "20.0",
+  CFG_MAP_CLOCK_MIN(nhdp_interface, validity_time, "hello_validity", "20.0",
     "Validity time for NHDP Hello Messages", 100),
   CFG_MAP_CLOCK_MIN(nhdp_interface, refresh_interval, "hello_interval", "2.0",
     "Time interval between two NHDP Hello Messages", 100),
@@ -193,9 +193,9 @@ static struct oonf_rfc5444_protocol *_protocol;
 static struct netaddr _originator_v4, _originator_v6;
 
 /* logging sources for NHDP subsystem */
-enum oonf_log_source LOG_NHDP;
-enum oonf_log_source LOG_NHDP_R;
-enum oonf_log_source LOG_NHDP_W;
+static enum oonf_log_source LOG_NHDP;
+static enum oonf_log_source LOG_NHDP_R;
+static enum oonf_log_source LOG_NHDP_W;
 
 /**
  * Initialize additional logging sources for NHDP

@@ -81,6 +81,9 @@ struct nhdp_interface {
   /*! interval between two hellos sent through this interface */
   uint64_t refresh_interval;
 
+  /*! interval until a hello is considered lost */
+  uint64_t validity_time;
+
   /*! See RFC 6130, 5.3.2 and 5.4.1 */
   uint64_t h_hold_time;
 
@@ -92,6 +95,12 @@ struct nhdp_interface {
 
   /*! See RFC 6130, 5.3.2 and 5.4.1 */
   uint64_t i_hold_time;
+
+  /*! variables to store hello interval overwritten by a plugin */
+  uint64_t overwrite_hello_interval;
+
+  /*! variables to store hello validity overwritten by a plugin */
+  uint64_t overwrite_hello_validity;
 
   /*! ACL for interface addresses that should be included into HELLOs */
   struct netaddr_acl ifaddr_filter;
@@ -184,6 +193,11 @@ EXPORT void nhdp_interface_update_status(struct nhdp_interface *);
 
 EXPORT struct avl_tree *nhdp_interface_get_tree(void);
 EXPORT struct avl_tree *nhdp_interface_get_address_tree(void);
+
+EXPORT uint64_t nhdp_interface_set_hello_interval(
+    struct nhdp_interface *interf, uint64_t new_interval);
+EXPORT uint64_t nhdp_set_hello_validity(
+    struct nhdp_interface *interf, uint64_t new_interval);
 
 /**
  * @param name interface name

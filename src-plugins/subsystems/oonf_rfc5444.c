@@ -289,7 +289,7 @@ DECLARE_OONF_PLUGIN(_oonf_rfc5444_subsystem);
 static bool _block_output = false;
 
 /* additional logging targets */
-enum oonf_log_source LOG_RFC5444_R, LOG_RFC5444_W;
+static enum oonf_log_source LOG_RFC5444_R, LOG_RFC5444_W;
 
 /**
  * Initialize RFC5444 handling system
@@ -805,6 +805,24 @@ oonf_rfc5444_reconfigure_interface(struct oonf_rfc5444_interface *interf,
 }
 
 /**
+ * Set/Reset value to overwrite the configured aggregation
+ * interval of a RFC5444 interface
+ * @param interf RFC5444 interface
+ * @param aggregation new aggregation interval, 0 to reset to
+ *   configured value
+ * @return old aggregation interval, 0 if configured value was used
+ */
+uint64_t
+oonf_rfc5444_interface_set_aggregation(
+    struct oonf_rfc5444_interface *interf, uint64_t aggregation) {
+  uint64_t old;
+
+  old = interf->overwrite_aggregation_interval;
+  interf->overwrite_aggregation_interval = aggregation;
+  return old;
+}
+
+/**
  * Add an unicast target to a rfc5444 interface
  * @param interf pointer to interface instance
  * @param dst pointer to destination IP address
@@ -1234,9 +1252,15 @@ _cb_forward_message(
 static void
 _cb_msggen_notifier(struct rfc5444_writer_target *rfc5444target) {
   struct oonf_rfc5444_target *target;
+  uint64_t interval;
 
   target = container_of(rfc5444target, struct oonf_rfc5444_target, rfc5444_target);
   if (!oonf_timer_is_active(&target->_aggregation)) {
+    interval = target->interface->overwrite_aggregation_interval;
+    if (!interval) {
+      interval = target->interface->aggregation_interval;
+    }
+
     /* activate aggregation timer */
     oonf_timer_start(&target->_aggregation, target->interface->aggregation_interval);
   }

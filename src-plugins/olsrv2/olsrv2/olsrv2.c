@@ -267,11 +267,15 @@ static struct oonf_rfc5444_protocol *_protocol;
 
 static bool _generate_tcs = true;
 
+/* TC settings overwrite */
+static uint64_t _overwrite_tc_interval;
+static uint64_t _overwrite_tc_validity;
+
 /* Additional logging sources */
-enum oonf_log_source LOG_OLSRV2;
-enum oonf_log_source LOG_OLSRV2_R;
-enum oonf_log_source LOG_OLSRV2_ROUTING;
-enum oonf_log_source LOG_OLSRV2_W;
+static enum oonf_log_source LOG_OLSRV2;
+static enum oonf_log_source LOG_OLSRV2_R;
+static enum oonf_log_source LOG_OLSRV2_ROUTING;
+static enum oonf_log_source LOG_OLSRV2_W;
 
 /**
  * Initialize additional logging sources for NHDP
@@ -354,6 +358,9 @@ _cleanup(void) {
  */
 uint64_t
 olsrv2_get_tc_interval(void) {
+  if (_overwrite_tc_interval) {
+    return _overwrite_tc_interval;
+  }
   return _olsrv2_config.tc_interval;
 }
 
@@ -362,6 +369,9 @@ olsrv2_get_tc_interval(void) {
  */
 uint64_t
 olsrv2_get_tc_validity(void) {
+  if (_overwrite_tc_validity) {
+    return _overwrite_tc_validity;
+  }
   return _olsrv2_config.tc_validity;
 }
 
@@ -535,12 +545,36 @@ olsrv2_mpr_shall_forwarding(struct rfc5444_reader_tlvblock_context *context,
  */
 void
 olsrv2_generate_tcs(bool generate) {
+  uint64_t interval;
+
+  interval = _overwrite_tc_interval;
+  if (!interval) {
+    interval = _olsrv2_config.tc_interval;
+  }
   if (generate && !oonf_timer_is_active(&_tc_timer)) {
-    oonf_timer_set(&_tc_timer, _olsrv2_config.tc_interval);
+    oonf_timer_set(&_tc_timer, interval);
   }
   else if (!generate && oonf_timer_is_active(&_tc_timer)) {
     oonf_timer_stop(&_tc_timer);
   }
+}
+
+uint64_t
+olsrv2_set_tc_interval(uint64_t interval) {
+  uint64_t old;
+
+  old = _overwrite_tc_interval;
+  _overwrite_tc_interval = interval;
+  return old;
+}
+
+uint64_t
+olsrv2_set_tc_validity(uint64_t interval) {
+  uint64_t old;
+
+  old = _overwrite_tc_validity;
+  _overwrite_tc_validity = interval;
+  return old;
 }
 
 /**
@@ -900,7 +934,7 @@ _cb_cfg_olsrv2_changed(void) {
   }
 
   /* set tc timer interval */
-  if (_generate_tcs) {
+  if (_generate_tcs && _overwrite_tc_interval == 0) {
     oonf_timer_set(&_tc_timer, _olsrv2_config.tc_interval);
   }
 

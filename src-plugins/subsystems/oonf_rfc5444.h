@@ -199,6 +199,12 @@ struct oonf_rfc5444_interface {
   /*! interval the multiplexer will wait until it generates a packet */
   uint64_t aggregation_interval;
 
+  /*!
+   * value to overwrite configured aggregation interval,
+   * 0 to use configured value
+   */
+  uint64_t overwrite_aggregation_interval;
+
   /*! number of users of this interface */
   int _refcount;
 };
@@ -275,6 +281,9 @@ EXPORT void oonf_rfc5444_send_target_data(struct oonf_rfc5444_target *target,
     const void *ptr, size_t len);
 EXPORT void oonf_rfc5444_send_interface_data(struct oonf_rfc5444_interface *interf,
     const struct netaddr *dst, const void *ptr, size_t len);
+
+EXPORT uint64_t oonf_rfc5444_interface_set_aggregation(
+    struct oonf_rfc5444_interface *interf, uint64_t aggregation);
 
 EXPORT const union netaddr_socket *oonf_rfc5444_interface_get_local_socket(
     struct oonf_rfc5444_interface *rfc5444_if, int af_type);

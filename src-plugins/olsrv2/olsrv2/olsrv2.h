@@ -93,6 +93,9 @@ EXPORT void olsrv2_generate_tcs(bool);
 EXPORT int olsrv2_validate_lan(const struct cfg_schema_entry *entry,
     const char *section_name, const char *value, struct autobuf *out);
 
+EXPORT uint64_t olsrv2_set_tc_interval(uint64_t new_interval);
+EXPORT uint64_t olsrv2_set_tc_validity(uint64_t new_interval);
+
 /**
  * @return validity time of former originator IDs
  */
