@@ -137,18 +137,16 @@ cfg_validate_choice(struct autobuf *out, const char *section_name,
  * @param max maximum value of number including fractional digits
  * @param bytelen number of bytes available for target number
  * @param fraction number of fractional digits of target number
- * @param base2 true if number shall use binary prefixes instead of
- *    iso prefixes (1024 instead of 1000)
  * @return 0 if value is valid, -1 otherwise
  */
 int
 cfg_validate_int(struct autobuf *out, const char *section_name,
     const char *entry_name, const char *value, int64_t min, int64_t max,
-    uint16_t bytelen, uint16_t fraction, bool base2) {
+    uint16_t bytelen, uint16_t fraction) {
   int64_t i, min64, max64;
   struct isonumber_str hbuf;
 
-  if (isonumber_to_s64(&i, value, fraction, base2)) {
+  if (isonumber_to_s64(&i, value, fraction)) {
     if (fraction) {
       cfg_append_printable_line(out, "Value '%s' for entry '%s'"
           " in section %s is not a fractional %d-byte integer"
@@ -180,14 +178,14 @@ cfg_validate_int(struct autobuf *out, const char *section_name,
     cfg_append_printable_line(out, "Value '%s' for entry '%s' in section %s is "
         "smaller than %s",
         value, entry_name, section_name,
-        isonumber_from_s64(&hbuf, min, "", fraction, base2, true));
+        isonumber_from_s64(&hbuf, min, "", fraction, true));
     return -1;
   }
   if (i > max) {
     cfg_append_printable_line(out, "Value '%s' for entry '%s' in section %s is "
         "larger than %s",
         value, entry_name, section_name,
-        isonumber_from_s64(&hbuf, min, "", fraction, base2, true));
+        isonumber_from_s64(&hbuf, min, "", fraction, true));
     return -1;
   }
   return 0;

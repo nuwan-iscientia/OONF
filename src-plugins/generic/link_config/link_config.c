@@ -250,9 +250,7 @@ _cb_validate_linkdata(const struct cfg_schema_entry *entry,
   /* test if first word is a human readable number */
   ptr = str_cpynextword(sbuf.buf, value, sizeof(sbuf));
   if (cfg_validate_int(out, section_name, entry->key.entry, sbuf.buf,
-      INT64_MIN, INT64_MAX, 8,
-      oonf_layer2_neigh_metadata_get(idx)->fraction,
-      oonf_layer2_neigh_metadata_get(idx)->binary)) {
+      INT64_MIN, INT64_MAX, 8, oonf_layer2_neigh_metadata_get(idx)->fraction)) {
     return -1;
   }
 
@@ -295,9 +293,7 @@ _parse_strarray(struct strarray *array, const char *ifname,
 
   strarray_for_each_element(array, entry) {
     ptr = str_cpynextword(hbuf.buf, entry, sizeof(hbuf));
-    if (isonumber_to_s64(&value, hbuf.buf,
-        oonf_layer2_neigh_metadata_get(idx)->fraction,
-        oonf_layer2_neigh_metadata_get(idx)->binary)) {
+    if (isonumber_to_s64(&value, hbuf.buf, oonf_layer2_neigh_metadata_get(idx)->fraction)) {
       continue;
     }
 

@@ -84,15 +84,15 @@ DECLARE_OONF_PLUGIN(_oonf_layer2_subsystem);
 static const struct oonf_layer2_metadata _oonf_layer2_metadata_neigh[OONF_LAYER2_NEIGH_COUNT] = {
   [OONF_LAYER2_NEIGH_TX_SIGNAL]      = { .key = "tx_signal", .type = OONF_LAYER2_INTEGER_DATA, .unit = "dBm", .fraction = 3 },
   [OONF_LAYER2_NEIGH_RX_SIGNAL]      = { .key = "rx_signal", .type = OONF_LAYER2_INTEGER_DATA, .unit = "dBm", .fraction = 3 },
-  [OONF_LAYER2_NEIGH_TX_BITRATE]     = { .key = "tx_bitrate", .type = OONF_LAYER2_INTEGER_DATA, .unit = "bit/s", .binary = true },
-  [OONF_LAYER2_NEIGH_RX_BITRATE]     = { .key = "rx_bitrate", .type = OONF_LAYER2_INTEGER_DATA, .unit = "bit/s", .binary = true },
-  [OONF_LAYER2_NEIGH_TX_MAX_BITRATE] = { .key = "tx_max_bitrate", .type = OONF_LAYER2_INTEGER_DATA, .unit = "bit/s", .binary = true },
-  [OONF_LAYER2_NEIGH_RX_MAX_BITRATE] = { .key = "rx_max_bitrate", .type = OONF_LAYER2_INTEGER_DATA, .unit = "bit/s", .binary = true },
-  [OONF_LAYER2_NEIGH_TX_BYTES]       = { .key = "tx_bytes", .type = OONF_LAYER2_INTEGER_DATA, .unit = "byte", .binary = true },
-  [OONF_LAYER2_NEIGH_RX_BYTES]       = { .key = "rx_bytes", .type = OONF_LAYER2_INTEGER_DATA, .unit = "byte", .binary = true },
+  [OONF_LAYER2_NEIGH_TX_BITRATE]     = { .key = "tx_bitrate", .type = OONF_LAYER2_INTEGER_DATA, .unit = "bit/s" },
+  [OONF_LAYER2_NEIGH_RX_BITRATE]     = { .key = "rx_bitrate", .type = OONF_LAYER2_INTEGER_DATA, .unit = "bit/s" },
+  [OONF_LAYER2_NEIGH_TX_MAX_BITRATE] = { .key = "tx_max_bitrate", .type = OONF_LAYER2_INTEGER_DATA, .unit = "bit/s" },
+  [OONF_LAYER2_NEIGH_RX_MAX_BITRATE] = { .key = "rx_max_bitrate", .type = OONF_LAYER2_INTEGER_DATA, .unit = "bit/s" },
+  [OONF_LAYER2_NEIGH_TX_BYTES]       = { .key = "tx_bytes", .type = OONF_LAYER2_INTEGER_DATA, .unit = "byte" },
+  [OONF_LAYER2_NEIGH_RX_BYTES]       = { .key = "rx_bytes", .type = OONF_LAYER2_INTEGER_DATA, .unit = "byte" },
   [OONF_LAYER2_NEIGH_TX_FRAMES]      = { .key = "tx_frames", .type = OONF_LAYER2_INTEGER_DATA },
   [OONF_LAYER2_NEIGH_RX_FRAMES]      = { .key = "rx_frames", .type = OONF_LAYER2_INTEGER_DATA  },
-  [OONF_LAYER2_NEIGH_TX_THROUGHPUT]  = { .key = "tx_throughput", .type = OONF_LAYER2_INTEGER_DATA , .unit = "bit/s", .binary = true },
+  [OONF_LAYER2_NEIGH_TX_THROUGHPUT]  = { .key = "tx_throughput", .type = OONF_LAYER2_INTEGER_DATA , .unit = "bit/s" },
   [OONF_LAYER2_NEIGH_TX_RETRIES]     = { .key = "tx_retries", .type = OONF_LAYER2_INTEGER_DATA },
   [OONF_LAYER2_NEIGH_TX_FAILED]      = { .key = "tx_failed", .type = OONF_LAYER2_INTEGER_DATA  },
   [OONF_LAYER2_NEIGH_LATENCY]        = { .key = "latency", .type = OONF_LAYER2_INTEGER_DATA , .unit = "s", .fraction = 6 },
@@ -226,7 +226,7 @@ oonf_layer2_data_parse_string(union oonf_layer2_value *value,
   switch (meta->type) {
     case OONF_LAYER2_INTEGER_DATA:
       return isonumber_to_s64(
-          &value->integer, input, meta->fraction, meta->binary);
+          &value->integer, input, meta->fraction);
 
     case OONF_LAYER2_BOOLEAN_DATA:
         value->boolean = cfg_get_bool(input);
@@ -246,7 +246,7 @@ oonf_layer2_data_to_string(char *buffer, size_t length,
   switch (meta->type) {
     case OONF_LAYER2_INTEGER_DATA:
       if (!isonumber_from_s64(&iso_str, data->_value.integer,
-          meta->unit, meta->fraction, meta->binary, raw)) {
+          meta->unit, meta->fraction, raw)) {
         return -1;
       }
       strscpy(buffer, iso_str.buf, length);

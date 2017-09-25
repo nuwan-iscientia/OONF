@@ -522,8 +522,7 @@ cfg_schema_validate_int(const struct cfg_schema_entry *entry,
   return cfg_validate_int(out, section_name, entry->key.entry, value,
       entry->validate_param[0].i64, entry->validate_param[1].i64,
       entry->validate_param[2].i16[0],
-      entry->validate_param[2].i16[1],
-      entry->validate_param[2].i16[2] == 2);
+      entry->validate_param[2].i16[1]);
 }
 
 /**
@@ -622,8 +621,7 @@ void
 cfg_schema_help_int(const struct cfg_schema_entry *entry, struct autobuf *out) {
   cfg_help_int(out, entry->validate_param[0].i64, entry->validate_param[1].i64,
       entry->validate_param[2].i16[0],
-      entry->validate_param[2].i16[1],
-      entry->validate_param[2].i16[2] == 2);
+      entry->validate_param[2].i16[1]);
 }
 
 /**
@@ -760,7 +758,7 @@ cfg_schema_tobin_int(const struct cfg_schema_entry *s_entry,
   }
 
   result = isonumber_to_s64(&i, strarray_get_first_c(value),
-      s_entry->validate_param[2].u16[1], s_entry->validate_param[2].u16[2] == 2);
+      s_entry->validate_param[2].u16[1]);
   if (result == 0) {
     switch (s_entry->validate_param[2].u16[0]) {
       case 4:

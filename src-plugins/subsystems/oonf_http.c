@@ -148,7 +148,7 @@ static struct cfg_schema_entry _http_entries[] = {
   CFG_MAP_ACL_V46(_http_config, smc.bindto,
       "bindto", "127.0.0.1\0" "::1\0" ACL_DEFAULT_REJECT, "Bind http socket to this address"),
   CFG_MAP_INT32_MINMAX(_http_config, smc.port,
-      "port", "1980", "Network port for http interface", 0, false, 1, 65535),
+      "port", "1980", "Network port for http interface", 0, 1, 65535),
   CFG_MAP_STRING(_http_config, www_dir, "webserver", "",
       "Path to map into the /www subdirectory of the HTTP server, empty path"
       " feature will be disabled"),

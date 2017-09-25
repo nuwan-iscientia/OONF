@@ -54,7 +54,7 @@ EXPORT void cfg_help_strlen(struct autobuf *out, size_t len);
 EXPORT void cfg_help_choice(struct autobuf *out, bool preamble,
     const char **choices, size_t choice_count);
 EXPORT void cfg_help_int(struct autobuf *out,
-    int64_t min, int64_t max, uint16_t bytelen, uint16_t fraction, bool base2);
+    int64_t min, int64_t max, uint16_t bytelen, uint16_t fraction);
 EXPORT void cfg_help_netaddr(struct autobuf *out, bool preamble,
     bool prefix, const int8_t *af_types, size_t af_types_count);
 EXPORT void cfg_help_acl(struct autobuf *out, bool preamble,

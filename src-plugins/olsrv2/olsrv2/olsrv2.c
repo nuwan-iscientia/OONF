@@ -161,11 +161,11 @@ static struct cfg_schema_entry _rt_domain_entries[] = {
   CFG_MAP_BOOL(olsrv2_routing_domain, use_srcip_in_routes, "srcip_routes", "true",
       "Set the source IP of IPv4-routes to a fixed value."),
   CFG_MAP_INT32_MINMAX(olsrv2_routing_domain, protocol, "protocol", "100",
-      "Protocol number to be used in routing table", 0, false, 1, 254),
+      "Protocol number to be used in routing table", 0, 1, 254),
   CFG_MAP_INT32_MINMAX(olsrv2_routing_domain, table, "table", "254",
-      "Routing table number for routes", 0, false, 1, 254),
+      "Routing table number for routes", 0, 1, 254),
   CFG_MAP_INT32_MINMAX(olsrv2_routing_domain, distance, "distance", "2",
-      "Metric Distance to be used in routing table", 0, false, 1, 255),
+      "Metric Distance to be used in routing table", 0, 1, 255),
   CFG_MAP_BOOL(olsrv2_routing_domain, source_specific, "source_specific", "true",
       "This domain uses IPv6 source specific routing"),
 };
@@ -189,7 +189,7 @@ static struct cfg_schema_entry _olsrv2_entries[] = {
   CFG_MAP_CLOCK_MIN(_config, p_hold_time, "processing_hold_time", "300.0",
     "Holdtime for processing set information", 100),
   CFG_MAP_INT64_MINMAX(_config, a_hold_time_factor, "advertisement_hold_time_factor", "3",
-    "Holdtime for TC advertisements as a factor of TC interval time", false, false, 1, 255),
+    "Holdtime for TC advertisements as a factor of TC interval time", false, 1, 255),
   CFG_MAP_BOOL(_config, nhdp_routable, "nhdp_routable", "no",
     "Decides if NHDP interface addresses"
     " are routed to other nodes. 'true' means the 'routable_acl' parameter"

@@ -107,7 +107,7 @@ static struct cfg_schema_entry _nhdp_entries[] = {
       NHDP_DOMAIN_MPR_MAXLEN),
   CFG_MAP_INT32_MINMAX(_generic_parameters, mpr_willingness, "willingness",
       RFC7181_WILLINGNESS_DEFAULT_STRING,
-      "Flooding willingness for MPR calculation", 0, false,
+      "Flooding willingness for MPR calculation", 0,
       RFC7181_WILLINGNESS_MIN, RFC7181_WILLINGNESS_MAX),
 };
 
@@ -151,7 +151,7 @@ static struct cfg_schema_entry _domain_entries[] = {
       NHDP_DOMAIN_MPR_MAXLEN),
   CFG_MAP_INT32_MINMAX(_domain_parameters, mpr_willingness, "willingness",
       RFC7181_WILLINGNESS_DEFAULT_STRING, "Routing willingness used for MPR calculation",
-      0, false, RFC7181_WILLINGNESS_MIN, RFC7181_WILLINGNESS_MAX),
+      0, RFC7181_WILLINGNESS_MIN, RFC7181_WILLINGNESS_MAX),
 };
 
 static struct cfg_schema_section _domain_section = {

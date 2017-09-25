@@ -82,7 +82,7 @@ static struct cfg_schema_entry _router_entries[] = {
   CFG_MAP_NETADDR_V6(dlep_router_if, interf.udp_config.multicast_v6, "discovery_mc_v6",
     DLEP_WELL_KNOWN_MULTICAST_ADDRESS_6, "IPv6 address to send discovery UDP packet to", false, false),
   CFG_MAP_INT32_MINMAX(dlep_router_if, interf.udp_config.multicast_port, "discovery_port",
-    DLEP_WELL_KNOWN_MULTICAST_PORT_TXT, "UDP port for discovery packets", 0, false, 1, 65535),
+    DLEP_WELL_KNOWN_MULTICAST_PORT_TXT, "UDP port for discovery packets", 0, 1, 65535),
 
   CFG_MAP_ACL_V46(dlep_router_if, interf.udp_config.bindto, "discovery_bindto", "224.0.0.1\0fe80::/10",
     "Filter to determine the binding of the UDP discovery socket"),
@@ -104,7 +104,7 @@ static struct cfg_schema_entry _router_entries[] = {
   CFG_MAP_NETADDR_V46(dlep_router_if, connect_to_addr, "connect_to", "-",
       "IP to directly connect to a known DLEP radio TCP socket", false, true),
   CFG_MAP_INT32_MINMAX(dlep_router_if, connect_to_port, "connect_to_port", "1",
-      "TCP port to directly connect to a known DLEP radio TCP socket", 0, false, 1, 65535),
+      "TCP port to directly connect to a known DLEP radio TCP socket", 0, 1, 65535),
 };
 
 static struct cfg_schema_section _router_section = {

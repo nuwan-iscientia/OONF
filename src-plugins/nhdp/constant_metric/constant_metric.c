@@ -336,7 +336,7 @@ _cb_validate_link(const struct cfg_schema_entry *entry,
   /* test if second word is a human readable number */
   ptr = str_cpynextword(sbuf.buf, ptr, sizeof(sbuf));
   if (cfg_validate_int(out, section_name, entry->key.entry, sbuf.buf,
-      RFC7181_METRIC_MIN, RFC7181_METRIC_MAX, 4, 0, false)) {
+      RFC7181_METRIC_MIN, RFC7181_METRIC_MAX, 4, 0)) {
     return -1;
   }
 
@@ -385,7 +385,7 @@ _cb_cfg_changed(void) {
         oonf_class_free(&_linkcost_class, lk);
         continue;
       }
-      if (isonumber_to_s64(&cost, cost_ptr, 0, false)) {
+      if (isonumber_to_s64(&cost, cost_ptr, 0)) {
         oonf_class_free(&_linkcost_class, lk);
         continue;
       }

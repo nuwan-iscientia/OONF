@@ -177,9 +177,9 @@ static struct oonf_timer_class _aggregation_timer = {
 /* configuration settings for handler */
 static struct cfg_schema_entry _rfc5444_entries[] = {
   CFG_MAP_INT32_MINMAX(_rfc5444_config, port, "port", RFC5444_MANET_UDP_PORT_TXT,
-    "UDP port for RFC5444 interface", 0, false, 1, 65535),
+    "UDP port for RFC5444 interface", 0, 1, 65535),
   CFG_MAP_INT32_MINMAX(_rfc5444_config, ip_proto, "ip_proto", RFC5444_MANET_IPPROTO_TXT,
-    "IP protocol for RFC5444 interface", 0, false, 1, 255),
+    "IP protocol for RFC5444 interface", 0, 1, 255),
 };
 
 static struct cfg_schema_section _rfc5444_section = {
@@ -201,11 +201,11 @@ static struct cfg_schema_entry _interface_entries[] = {
   CFG_MAP_NETADDR_V6(_rfc5444_if_config, sock.multicast_v6, "multicast_v6", RFC5444_MANET_MULTICAST_V6_TXT,
     "ipv6 multicast address of this socket", false, true),
   CFG_MAP_INT32_MINMAX(_rfc5444_if_config, sock.dscp, "dscp", "192",
-    "DSCP field for outgoing UDP protocol traffic", 0, false, 0, 255),
+    "DSCP field for outgoing UDP protocol traffic", 0, 0, 255),
   CFG_MAP_BOOL(_rfc5444_if_config, sock.rawip, "rawip", "false",
     "True if a raw IP socket should be used, false to use UDP"),
   CFG_MAP_INT32_MINMAX(_rfc5444_if_config, sock.ttl_multicast, "multicast_ttl", "1",
-    "TTL value of outgoing multicast traffic", 0, false, 1, 255),
+    "TTL value of outgoing multicast traffic", 0, 1, 255),
   CFG_MAP_CLOCK(_rfc5444_if_config, aggregation_interval, "aggregation_interval", "0.100",
     "Interval in seconds for message aggregation"),
 

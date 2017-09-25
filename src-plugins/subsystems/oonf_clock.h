@@ -116,7 +116,7 @@ enum {
  * @param p_help help text for configuration entry
  * @param args variable list of additional arguments
  */
-#define CFG_MAP_CLOCK(p_reference, p_field, p_name, p_def, p_help, args...)                  CFG_MAP_INT64_MINMAX(p_reference, p_field, p_name, p_def, p_help, 3, false, 0, INT64_MAX, ##args)
+#define CFG_MAP_CLOCK(p_reference, p_field, p_name, p_def, p_help, args...)                  CFG_MAP_INT64_MINMAX(p_reference, p_field, p_name, p_def, p_help, 3, 0, INT64_MAX, ##args)
 
 /**
  * Creates a cfg_schema_entry for a clock value with minimal value that
@@ -130,7 +130,7 @@ enum {
  * @param min minimal allowed clock value
  * @param args variable list of additional arguments
  */
-#define CFG_MAP_CLOCK_MIN(p_reference, p_field, p_name, p_def, p_help, min, args...)         CFG_MAP_INT64_MINMAX(p_reference, p_field, p_name, p_def, p_help, 3, false, min, INT64_MAX, ##args)
+#define CFG_MAP_CLOCK_MIN(p_reference, p_field, p_name, p_def, p_help, min, args...)         CFG_MAP_INT64_MINMAX(p_reference, p_field, p_name, p_def, p_help, 3, min, INT64_MAX, ##args)
 
 /**
  * Creates a cfg_schema_entry for a clock value with maximal value that
@@ -144,7 +144,7 @@ enum {
  * @param max maximal allowed clock value
  * @param args variable list of additional arguments
  */
-#define CFG_MAP_CLOCK_MAX(p_reference, p_field, p_name, p_def, p_help, max, args...)         CFG_MAP_INT64_MINMAX(p_reference, p_field, p_name, p_def, p_help, 3, false, 0, max, ##args)
+#define CFG_MAP_CLOCK_MAX(p_reference, p_field, p_name, p_def, p_help, max, args...)         CFG_MAP_INT64_MINMAX(p_reference, p_field, p_name, p_def, p_help, 3, 0, max, ##args)
 
 /**
  * Creates a cfg_schema_entry for a clock value with minimal
@@ -159,7 +159,7 @@ enum {
  * @param max maximal allowed clock value
  * @param args variable list of additional arguments
  */
-#define CFG_MAP_CLOCK_MINMAX(p_reference, p_field, p_name, p_def, p_help, min, max, args...) CFG_MAP_INT64_MINMAX(p_reference, p_field, p_name, p_def, p_help, 3, false, min, max, ##args)
+#define CFG_MAP_CLOCK_MINMAX(p_reference, p_field, p_name, p_def, p_help, min, max, args...) CFG_MAP_INT64_MINMAX(p_reference, p_field, p_name, p_def, p_help, 3, min, max, ##args)
 
 EXPORT int oonf_clock_update(void) __attribute__((warn_unused_result));
 
@@ -176,7 +176,7 @@ EXPORT const char *oonf_clock_toClockString(struct isonumber_str *, uint64_t);
  */
 static INLINE const char *
 oonf_clock_toIntervalString(struct isonumber_str *buf, int64_t i) {
-  return isonumber_from_s64(buf, i, "", 3, false, true);
+  return isonumber_from_s64(buf, i, "", 3, true);
 }
 
 /**
@@ -191,7 +191,7 @@ oonf_clock_fromIntervalString(uint64_t *result, const char *string) {
   int64_t t;
   int r;
 
-  r = isonumber_to_s64(&t, string, 3, false);
+  r = isonumber_to_s64(&t, string, 3);
   if (r == 0) {
     *result = t;
   }

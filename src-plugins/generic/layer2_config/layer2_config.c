@@ -386,9 +386,7 @@ _cb_validate_l2netdata(const struct cfg_schema_entry *entry,
 
   /* test if second word is a human readable number */
   if (cfg_validate_int(out, section_name, entry->key.entry, ptr,
-      INT64_MIN, INT64_MAX, 8,
-      oonf_layer2_net_metadata_get(idx)->fraction,
-      oonf_layer2_net_metadata_get(idx)->binary)) {
+      INT64_MIN, INT64_MAX, 8, oonf_layer2_net_metadata_get(idx)->fraction)) {
     return -1;
   }
   return 0;
@@ -426,9 +424,7 @@ _cb_validate_l2defdata(const struct cfg_schema_entry *entry,
 
   /* test if second word is a human readable number */
   if (cfg_validate_int(out, section_name, entry->key.entry, ptr,
-      INT64_MIN, INT64_MAX, 8,
-      oonf_layer2_neigh_metadata_get(idx)->fraction,
-      oonf_layer2_neigh_metadata_get(idx)->binary)) {
+      INT64_MIN, INT64_MAX, 8, oonf_layer2_neigh_metadata_get(idx)->fraction)) {
     return -1;
   }
   return 0;
@@ -469,9 +465,7 @@ _cb_validate_l2neighdata(const struct cfg_schema_entry *entry,
   /* test if second word is a human readable number */
   ptr = str_cpynextword(sbuf.buf, ptr, sizeof(sbuf));
   if (cfg_validate_int(out, section_name, entry->key.entry, sbuf.buf,
-      INT64_MIN, INT64_MAX, 8,
-      oonf_layer2_neigh_metadata_get(idx)->fraction,
-      oonf_layer2_neigh_metadata_get(idx)->binary)) {
+      INT64_MIN, INT64_MAX, 8, oonf_layer2_neigh_metadata_get(idx)->fraction)) {
     return -1;
   }
 

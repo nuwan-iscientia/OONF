@@ -108,12 +108,11 @@ struct cfg_schema_entry;
  * @param p_help help text for configuration entry
  * @param size number of bytes for integer storage
  * @param fraction number of fractional digits
- * @param base2 true if iso prefixes should use factor 1024
  * @param min minimal allowed parameter value
  * @param max maximum allowed parameter value
  * @param args variable list of additional arguments
  */
-#define _CFG_VALIDATE_INT(p_name, p_def, p_help, size, fraction, base2, min, max, args...)   _CFG_VALIDATE(p_name, p_def, p_help, .cb_validate = cfg_schema_validate_int, .cb_valhelp = cfg_schema_help_int, .validate_param = {{.i64 = (min)}, {.i64 = (max)}, {.u16 = {size, fraction, !!(base2) ? 2 : 10}}}, ##args )
+#define _CFG_VALIDATE_INT(p_name, p_def, p_help, size, fraction, min, max, args...)   _CFG_VALIDATE(p_name, p_def, p_help, .cb_validate = cfg_schema_validate_int, .cb_valhelp = cfg_schema_help_int, .validate_param = {{.i64 = (min)}, {.i64 = (max)}, {.u16 = {size, fraction}}}, ##args )
 
 /**
  * Creates a cfg_schema_entry for a parameter that does not need to be validated
@@ -173,10 +172,9 @@ struct cfg_schema_entry;
  * @param p_def parameter default value
  * @param p_help help text for configuration entry
  * @param fraction number of fractional digits
- * @param base2 true if iso-prefixes should use factor 1024
  * @param args variable list of additional arguments
  */
-#define CFG_VALIDATE_INT32(p_name, p_def, p_help, fraction, base2, args...)                  _CFG_VALIDATE_INT(p_name, p_def, p_help, 4, fraction, base2, INT32_MIN, INT32_MAX, ##args)
+#define CFG_VALIDATE_INT32(p_name, p_def, p_help, fraction, base2, args...)                  _CFG_VALIDATE_INT(p_name, p_def, p_help, 4, fraction, INT32_MIN, INT32_MAX, ##args)
 
 /**
  * Creates a cfg_schema_entry for a 64 bit signed integer parameter
@@ -184,10 +182,9 @@ struct cfg_schema_entry;
  * @param p_def parameter default value
  * @param p_help help text for configuration entry
  * @param fraction number of fractional digits
- * @param base2 true if iso-prefixes should use factor 1024
  * @param args variable list of additional arguments
  */
-#define CFG_VALIDATE_INT64(p_name, p_def, p_help, fraction, base2, args...)                  _CFG_VALIDATE_INT(p_name, p_def, p_help, 8, fraction, base2, INT64_MIN, INT64_MAX, ##args)
+#define CFG_VALIDATE_INT64(p_name, p_def, p_help, fraction, base2, args...)                  _CFG_VALIDATE_INT(p_name, p_def, p_help, 8, fraction, INT64_MIN, INT64_MAX, ##args)
 
 /**
  * Creates a cfg_schema_entry for a 32 bit signed integer parameter
@@ -196,12 +193,11 @@ struct cfg_schema_entry;
  * @param p_def parameter default value
  * @param p_help help text for configuration entry
  * @param fraction number of fractional digits
- * @param base2 true if iso-prefixes should use factor 1024
  * @param min minimal allowed value
  * @param max maximal allowed value
  * @param args variable list of additional arguments
  */
-#define CFG_VALIDATE_INT32_MINMAX(p_name, p_def, p_help, fraction, base2, min, max, args...) _CFG_VALIDATE_INT(p_name, p_def, p_help, 4, fraction, base2, min, max, ##args)
+#define CFG_VALIDATE_INT32_MINMAX(p_name, p_def, p_help, fraction, base2, min, max, args...) _CFG_VALIDATE_INT(p_name, p_def, p_help, 4, fraction, min, max, ##args)
 
 /**
  * Creates a cfg_schema_entry for a 64 bit signed integer parameter
@@ -210,12 +206,11 @@ struct cfg_schema_entry;
  * @param p_def parameter default value
  * @param p_help help text for configuration entry
  * @param fraction number of fractional digits
- * @param base2 true if iso-prefixes should use factor 1024
  * @param min minimal allowed value
  * @param max maximal allowed value
  * @param args variable list of additional arguments
  */
-#define CFG_VALIDATE_INT64_MINMAX(p_name, p_def, p_help, fraction, base2, min, max, args...) _CFG_VALIDATE_INT(p_name, p_def, p_help, 8, fraction, base2, min, max, ##args)
+#define CFG_VALIDATE_INT64_MINMAX(p_name, p_def, p_help, fraction, base2, min, max, args...) _CFG_VALIDATE_INT(p_name, p_def, p_help, 8, fraction, min, max, ##args)
 
 /**
  * Creates a cfg_schema_entry for a network address of any type
@@ -434,7 +429,7 @@ struct cfg_schema_entry;
  * @param max maximum allowed parameter value
  * @param args variable list of additional arguments
  */
-#define _CFG_MAP_INT(p_reference, p_field, p_name, p_def, p_help, size, fraction, base2, min, max, args...)   _CFG_VALIDATE_INT(p_name, p_def, p_help, size, fraction, base2, min, max, .cb_to_binary = cfg_schema_tobin_int, .bin_size = calculate_size(p_reference, p_field), .bin_offset = offsetof(struct p_reference, p_field), ##args )
+#define _CFG_MAP_INT(p_reference, p_field, p_name, p_def, p_help, size, fraction, min, max, args...)   _CFG_VALIDATE_INT(p_name, p_def, p_help, size, fraction, min, max, .cb_to_binary = cfg_schema_tobin_int, .bin_size = calculate_size(p_reference, p_field), .bin_offset = offsetof(struct p_reference, p_field), ##args )
 
 /**
  * Creates a cfg_schema_entry for a parameter that does not need to be validated
@@ -543,10 +538,9 @@ struct cfg_schema_entry;
  * @param p_def parameter default value
  * @param p_help help text for configuration entry
  * @param fraction number of fractional digits
- * @param base2 true if iso-prefixes should use factor 1024
  * @param args variable list of additional arguments
  */
-#define CFG_MAP_INT32(p_reference, p_field, p_name, p_def, p_help, fraction, base2, args...)                  _CFG_MAP_INT(p_reference, p_field, p_name, p_def, p_help, 4, fraction, base2, INT32_MIN, INT32_MAX, ##args)
+#define CFG_MAP_INT32(p_reference, p_field, p_name, p_def, p_help, fraction, args...)                  _CFG_MAP_INT(p_reference, p_field, p_name, p_def, p_help, 4, fraction, INT32_MIN, INT32_MAX, ##args)
 
 /**
  * Creates a cfg_schema_entry for a 64 bit signed integer parameter
@@ -558,10 +552,9 @@ struct cfg_schema_entry;
  * @param p_def parameter default value
  * @param p_help help text for configuration entry
  * @param fraction number of fractional digits
- * @param base2 true if iso-prefixes should use factor 1024
  * @param args variable list of additional arguments
  */
-#define CFG_MAP_INT64(p_reference, p_field, p_name, p_def, p_help, fraction, base2, args...)                  _CFG_MAP_INT(p_reference, p_field, p_name, p_def, p_help, 8, fraction, base2, INT64_MIN, INT64_MAX, ##args)
+#define CFG_MAP_INT64(p_reference, p_field, p_name, p_def, p_help, fraction, args...)                  _CFG_MAP_INT(p_reference, p_field, p_name, p_def, p_help, 8, fraction, INT64_MIN, INT64_MAX, ##args)
 
 /**
  * Creates a cfg_schema_entry for a 32 bit signed integer parameter
@@ -573,12 +566,11 @@ struct cfg_schema_entry;
  * @param p_def parameter default value
  * @param p_help help text for configuration entry
  * @param fraction number of fractional digits
- * @param base2 true if iso-prefixes should use factor 1024
  * @param min minimal allowed value
  * @param max maximal allowed value
  * @param args variable list of additional arguments
  */
-#define CFG_MAP_INT32_MINMAX(p_reference, p_field, p_name, p_def, p_help, fraction, base2, min, max, args...) _CFG_MAP_INT(p_reference, p_field, p_name, p_def, p_help, 4, fraction, base2, min, max, ##args)
+#define CFG_MAP_INT32_MINMAX(p_reference, p_field, p_name, p_def, p_help, fraction, min, max, args...) _CFG_MAP_INT(p_reference, p_field, p_name, p_def, p_help, 4, fraction, min, max, ##args)
 
 /**
  * Creates a cfg_schema_entry for a 64 bit signed integer parameter
@@ -590,12 +582,11 @@ struct cfg_schema_entry;
  * @param p_def parameter default value
  * @param p_help help text for configuration entry
  * @param fraction number of fractional digits
- * @param base2 true if iso-prefixes should use factor 1024
  * @param min minimal allowed value
  * @param max maximal allowed value
  * @param args variable list of additional arguments
  */
-#define CFG_MAP_INT64_MINMAX(p_reference, p_field, p_name, p_def, p_help, fraction, base2, min, max, args...) _CFG_MAP_INT(p_reference, p_field, p_name, p_def, p_help, 8, fraction, base2, min, max, ##args)
+#define CFG_MAP_INT64_MINMAX(p_reference, p_field, p_name, p_def, p_help, fraction, min, max, args...) _CFG_MAP_INT(p_reference, p_field, p_name, p_def, p_help, 8, fraction, min, max, ##args)
 
 /**
  * Creates a cfg_schema_entry for a network address of any type

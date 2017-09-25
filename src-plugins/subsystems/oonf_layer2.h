@@ -136,9 +136,6 @@ struct oonf_layer2_metadata {
 
   /*! number of fractional digits of the data */
   const int fraction;
-
-  /*! true if data is "base" 1024 instead of "base" 1000 */
-  const bool binary;
 };
 
 /**

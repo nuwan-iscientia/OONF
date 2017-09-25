@@ -345,7 +345,7 @@ static void
 _initialize_time_values(struct oonf_viewer_template *template) {
   oonf_log_get_walltime(&_value_system_time);
   isonumber_from_u64(&_value_internal_time, oonf_clock_getNow(),
-      "", 3, false, template->create_raw);
+      "", 3, template->create_raw);
 }
 
 /**
@@ -369,13 +369,13 @@ _initialize_memory_values(struct oonf_viewer_template *template,
   strscpy(_value_stat_name, cl->name, sizeof(_value_stat_name));
 
   isonumber_from_u64(&_value_memory_usage,
-      oonf_class_get_usage(cl), "", 0, false, template->create_raw);
+      oonf_class_get_usage(cl), "", 0, template->create_raw);
   isonumber_from_u64(&_value_memory_freelist,
-      oonf_class_get_free(cl), "", 0, false, template->create_raw);
+      oonf_class_get_free(cl), "", 0, template->create_raw);
   isonumber_from_u64(&_value_memory_alloc,
-      oonf_class_get_allocations(cl), "", 0, false, template->create_raw);
+      oonf_class_get_allocations(cl), "", 0, template->create_raw);
   isonumber_from_u64(&_value_memory_recycled,
-      oonf_class_get_recycled(cl), "", 0, false, template->create_raw);
+      oonf_class_get_recycled(cl), "", 0, template->create_raw);
 }
 
 /**
@@ -387,13 +387,13 @@ _initialize_timer_values(struct oonf_viewer_template *template,
   strscpy(_value_stat_name, tc->name, sizeof(_value_stat_name));
 
   isonumber_from_u64(&_value_timer_usage,
-      oonf_timer_get_usage(tc), "", 0, false, template->create_raw);
+      oonf_timer_get_usage(tc), "", 0, template->create_raw);
   isonumber_from_u64(&_value_timer_change,
-      oonf_timer_get_changes(tc), "", 0, false, template->create_raw);
+      oonf_timer_get_changes(tc), "", 0, template->create_raw);
   isonumber_from_u64(&_value_timer_fire,
-      oonf_timer_get_fired(tc), "", 0, false, template->create_raw);
+      oonf_timer_get_fired(tc), "", 0, template->create_raw);
   isonumber_from_u64(&_value_timer_long,
-      oonf_timer_get_long(tc), "", 0, false, template->create_raw);
+      oonf_timer_get_long(tc), "", 0, template->create_raw);
 }
 
 /**
@@ -405,11 +405,11 @@ _initialize_socket_values(struct oonf_viewer_template *template,
   strscpy(_value_stat_name, sock->name, sizeof(_value_stat_name));
 
   isonumber_from_u64(&_value_socket_recv,
-      oonf_socket_get_recv(sock), "", 0, false, template->create_raw);
+      oonf_socket_get_recv(sock), "", 0, template->create_raw);
   isonumber_from_u64(&_value_socket_send,
-      oonf_socket_get_send(sock), "", 0, false, template->create_raw);
+      oonf_socket_get_send(sock), "", 0, template->create_raw);
   isonumber_from_u64(&_value_socket_long,
-      oonf_socket_get_long(sock), "", 0, false, template->create_raw);
+      oonf_socket_get_long(sock), "", 0, template->create_raw);
 }
 
 /**
@@ -422,7 +422,7 @@ static void _initialize_logging_values(
   strscpy(_value_log_source, LOG_SOURCE_NAMES[source],
       sizeof(_value_log_source));
   isonumber_from_u64(&_value_log_warnings,
-      oonf_log_get_warning_count(source), "", 0, false, template->create_raw);
+      oonf_log_get_warning_count(source), "", 0, template->create_raw);
 }
 
 /**

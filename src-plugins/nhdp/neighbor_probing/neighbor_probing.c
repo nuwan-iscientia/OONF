@@ -113,7 +113,7 @@ static struct cfg_schema_entry _probing_entries[] = {
       "Time interval between link probing", 100),
   CFG_MAP_INT32_MINMAX(_config, probe_size, "size", "512",
       "Number of bytes used for neighbor probe",
-      0, false, 1, 1500),
+      0, 1, 1500),
   CFG_MAP_BOOL(_config, probe_dlep, "probe_dlep", "true",
       "Probe DLEP interfaces in addition to wireless interfaces"
       " if they don't support the 'need probing' flag"),

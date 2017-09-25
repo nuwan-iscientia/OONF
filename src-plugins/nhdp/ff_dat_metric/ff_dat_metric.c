@@ -1078,7 +1078,7 @@ _link_to_string(struct nhdp_metric_str *buf, uint32_t metric) {
     value = (uint32_t)(DATFF_LINKSPEED_MINIMUM) * (uint32_t)(DATFF_LINKSPEED_RANGE) / metric;
   }
   isonumber_from_u64((struct isonumber_str *)buf,
-      value, "bit/s", 0, true, false);
+      value, "bit/s", 0, false);
   return buf->buf;
 }
 

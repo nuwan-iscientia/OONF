@@ -52,7 +52,7 @@
 
 static const char *_isonumber_u64_to_string(char *out,
     size_t out_len, uint64_t number, const char *unit, size_t fraction,
-    bool binary, bool raw);
+    bool raw);
 
 /**
  * Converts an unsigned 64 bit integer into a human readable number
@@ -64,18 +64,15 @@ static const char *_isonumber_u64_to_string(char *out,
  * @param number number to convert.
  * @param unit unit to be appended at the end, can be NULL
  * @param fraction number of fractional digits
- * @param binary true if conversion should use 1024 as factor,
- *   false for default 1000 conversion factor
  * @param raw true if the whole text conversion should be bypassed
  *   and only the raw number shall be written, false otherwise
  * @return pointer to converted string
  */
 const char *
 isonumber_from_u64(struct isonumber_str *out,
-    uint64_t number, const char *unit, int fraction,
-    bool binary, bool raw) {
+    uint64_t number, const char *unit, int fraction, bool raw) {
   return _isonumber_u64_to_string(
-      out->buf, sizeof(*out), number, unit, fraction, binary, raw);
+      out->buf, sizeof(*out), number, unit, fraction, raw);
 }
 
 /**
@@ -88,16 +85,13 @@ isonumber_from_u64(struct isonumber_str *out,
  * @param number number to convert.
  * @param unit unit to be appended at the end, can be NULL
  * @param fraction number of fractional digits of fractional digits
- * @param binary true if conversion should use 1024 as factor,
- *   false for default 1000 conversion factor
  * @param raw true if the whole text conversion should be bypassed
  *   and only the raw number shall be written, false otherwise
  * @return pointer to converted string
  */
 const char *
 isonumber_from_s64(struct isonumber_str *out,
-    int64_t number, const char *unit, int fraction,
-    bool binary, bool raw) {
+    int64_t number, const char *unit, int fraction, bool raw) {
   char *outbuf = out->buf;
   uint64_t num;
   size_t len;
@@ -118,7 +112,7 @@ isonumber_from_s64(struct isonumber_str *out,
   }
 
   if (_isonumber_u64_to_string(
-      outbuf, len, num, unit, fraction, binary, raw)) {
+      outbuf, len, num, unit, fraction, raw)) {
     return out->buf;
   }
   return NULL;
@@ -130,12 +124,10 @@ isonumber_from_s64(struct isonumber_str *out,
  * @param dst pointer to destination variable
  * @param iso pointer to string source
  * @param fractions number of fractional digits, might be zero
- * @param binary true if prefixes should use factor 1024, false if they should
- *   use a factor of 1000
  * @return -1 if an error happened, 0 otherwise
  */
 int
-isonumber_to_s64(int64_t *dst, const char *iso, int fractions, bool binary) {
+isonumber_to_s64(int64_t *dst, const char *iso, int fractions) {
   const char *ptr;
   int result;
   uint64_t u64;
@@ -145,7 +137,7 @@ isonumber_to_s64(int64_t *dst, const char *iso, int fractions, bool binary) {
     ptr++;
   }
 
-  result = isonumber_to_u64(&u64, ptr, fractions, binary);
+  result = isonumber_to_u64(&u64, ptr, fractions);
   if (!result) {
     if (*iso == '-') {
       *dst = -((int64_t)u64);
@@ -163,17 +155,14 @@ isonumber_to_s64(int64_t *dst, const char *iso, int fractions, bool binary) {
  * @param dst pointer to destination variable
  * @param iso pointer to string source
  * @param fraction number of fractional digits, might be zero
- * @param binary true if prefixes should use factor 1024, false if they should
- *   use a factor of 1000
  * @return -1 if an error happened, 0 otherwise
  */
 int
-isonumber_to_u64(uint64_t *dst, const char *iso, int fraction, bool binary) {
+isonumber_to_u64(uint64_t *dst, const char *iso, int fraction) {
   static const char symbol_large[] = " kMGTPE";
 
   uint64_t num;
   uint64_t factor;
-  uint64_t multiplicator;
   int frac;
   char *next = NULL, *prefix;
 
@@ -195,15 +184,16 @@ isonumber_to_u64(uint64_t *dst, const char *iso, int fraction, bool binary) {
   frac = 0;
   if (*next == '.') {
     next++;
-    while (*next >='0' && *next <='9' && frac < fraction) {
+    while (*next >='0' && *next <='9') {
       num *= 10;
       num += (*next - '0');
       frac++;
       next++;
     }
   }
-  while (frac++ < fraction) {
+  while (frac < fraction) {
     num *= 10;
+    frac ++;
   }
 
   /* handle spaces */
@@ -218,19 +208,26 @@ isonumber_to_u64(uint64_t *dst, const char *iso, int fraction, bool binary) {
       return -1;
     }
 
-    multiplicator = binary ? 1024 : 1000;
-
     prefix = strchr(symbol_large, next[0]);
     if (!prefix) {
       return -1;
     }
 
     while (prefix > symbol_large) {
-      factor *= multiplicator;
+      factor *= 1000;
       prefix--;
     }
   }
 
+  while (frac > fraction) {
+    frac -= 3;
+    if (factor > 1) {
+      factor /= 1000;
+    }
+    else {
+      num /= 1000;
+    }
+  }
   if (num > UINT64_MAX / factor) {
     /* this would be an integer overflow */
     return -1;
@@ -249,23 +246,19 @@ isonumber_to_u64(uint64_t *dst, const char *iso, int fraction, bool binary) {
  * @param number number to convert
  * @param unit unit that should be appended on result
  * @param fraction number of fractional digits
- * @param binary true if prefixes should use factor 1024, false if they should
- *   use a factor of 1000
  * @param raw true to suppress iso prefixes and unit, false otherwise
  * @return pointer to output buffer, NULL if an error happened
  */
 static const char *
 _isonumber_u64_to_string(char *out, size_t out_len,
-    uint64_t number, const char *unit, size_t fraction,
-    bool binary, bool raw) {
+    uint64_t number, const char *unit, size_t fraction, bool raw) {
   static const char symbol_large[] = " kMGTPE";
   static const char symbol_small[] = " munpfa";
-  uint64_t step, multiplier, print, n;
+  uint64_t multiplier, print, n;
   const char *unit_modifier;
   size_t idx, len;
   int result;
 
-  step = binary ? 1024 : 1000;
   multiplier = 1;
 
   while (fraction > 0) {
@@ -275,16 +268,16 @@ _isonumber_u64_to_string(char *out, size_t out_len,
 
   if (number >= multiplier) {
     unit_modifier = symbol_large;
-    while (!raw && *unit_modifier != 0 && number / step >= multiplier) {
-      multiplier *= step;
+    while (!raw && *unit_modifier != 0 && number / 1000 >= multiplier) {
+      multiplier *= 1000;
       unit_modifier++;
     }
   }
   else {
     unit_modifier = symbol_small;
     while (!raw && *unit_modifier != 0 && number < multiplier
-        && multiplier >= step) {
-      multiplier /= step;
+        && multiplier >= 1000) {
+      multiplier /= 1000;
       unit_modifier++;
     }
   }

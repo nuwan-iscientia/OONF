@@ -77,7 +77,7 @@ static void _cb_config_changed(void);
 /* configuration */
 static struct cfg_schema_entry _example_entries[] = {
   CFG_MAP_INT64_MINMAX(_example_config, start, "start", "0",
-      "Starting value for counter", 0, false, 0, 1000),
+      "Starting value for counter", 0, 0, 1000),
   CFG_MAP_CLOCK_MIN(_example_config, interval, "interval", "1.0",
       "Interval between counter updates", 100),
 };

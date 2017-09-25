@@ -109,11 +109,10 @@ cfg_help_choice(struct autobuf *out, bool preamble,
  * @param max maximal value
  * @param bytelen number of bytes the storage types has
  * @param fraction number of fractional digits
- * @param base2 true if iso prefixes should use factor 1024
  */
 void
 cfg_help_int(struct autobuf *out,
-    int64_t min, int64_t max, uint16_t bytelen, uint16_t fraction, bool base2) {
+    int64_t min, int64_t max, uint16_t bytelen, uint16_t fraction) {
   struct isonumber_str hbuf1, hbuf2;
   int64_t min64, max64;
 
@@ -121,8 +120,8 @@ cfg_help_int(struct autobuf *out,
   max64 = INT64_MAX >> (8 * (8 - bytelen));
 
   /* get string representation of min/max */
-  isonumber_from_s64(&hbuf1, min, "", fraction, base2, true);
-  isonumber_from_s64(&hbuf2, max, "", fraction, base2, true);
+  isonumber_from_s64(&hbuf1, min, "", fraction, true);
+  isonumber_from_s64(&hbuf2, max, "", fraction, true);
 
   if (min > min64) {
     if (max < max64) {

@@ -124,11 +124,11 @@ static int _cb_cfg_validate(const char *section_name,
 /* configuration options */
 static struct cfg_schema_entry _hysteresis_entries[] = {
   CFG_MAP_INT32_MINMAX(_config, accept, "accept", "0.7",
-      "link quality to consider a link up", 3, false, 0, 1000),
+      "link quality to consider a link up", 3, 0, 1000),
   CFG_MAP_INT32_MINMAX(_config, reject, "reject", "0.3",
-      "link quality to consider a link down", 3, false, 0, 1000),
+      "link quality to consider a link down", 3, 0, 1000),
   CFG_MAP_INT32_MINMAX(_config, scaling, "scaling", "0.25",
-      "exponential aging to control speed of link hysteresis", 3, false, 1, 1000),
+      "exponential aging to control speed of link hysteresis", 3, 1, 1000),
 };
 
 static struct cfg_schema_section _hysteresis_section = {
@@ -350,7 +350,7 @@ _cb_to_string(struct nhdp_hysteresis_str *buf, struct nhdp_link *lnk) {
   data = oonf_class_get_extension(&_link_extenstion, lnk);
 
   snprintf(buf->buf, sizeof(*buf), "quality=%s",
-      isonumber_from_s64(&fbuf, data->quality, "", 3, false, true));
+      isonumber_from_s64(&fbuf, data->quality, "", 3, true));
 
   return buf->buf;
 }
@@ -405,8 +405,8 @@ _cb_cfg_validate(const char *section_name,
 
   if (cfg.accept <= cfg.reject) {
     cfg_append_printable_line(out, "hysteresis accept (%s) is not smaller than reject (%s) value",
-        isonumber_from_s64(&buf1, cfg.accept, "", 3, false, true),
-        isonumber_from_s64(&buf2, cfg.reject, "", 3, false, true));
+        isonumber_from_s64(&buf1, cfg.accept, "", 3, true),
+        isonumber_from_s64(&buf2, cfg.reject, "", 3, true));
     return -1;
   }
   return 0;

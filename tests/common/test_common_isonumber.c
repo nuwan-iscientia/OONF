@@ -57,23 +57,15 @@ clear_elements(void) {
 }
 
 static void
-test_str_to_isonumber_u64(void) {
-  static const char *results[2][3][5] = {
-    {
+test_str_from_isonumber_u64(void) {
+  static const char *results[3][5] = {
       { "999", "1.023k", "999.999k", "1.023M",  "1.048M" },
       { "1k", "1.024k", "1M", "1.024M", "1.048M" },
       { "1.001k", "1.025k", "1M", "1.024M", "1.048M" }
-    },
-    {
-      { "999", "1023", "976.561k", "999.999k", "1023.999k" },
-      { "1000", "1k",  "976.562k", "1000k", "1M" },
-      { "1001", "1k", "976.563k", "1000k", "1M" }
-    }
   };
   static uint64_t tests[] = { 1000, 1024, 1000*1000, 1000*1024, 1024*1024 };
   struct isonumber_str buf;
   uint64_t diff;
-  int binary;
   size_t i;
 
   const char *tmp;
@@ -81,42 +73,87 @@ test_str_to_isonumber_u64(void) {
 
   START_TEST();
 
-  for (binary=0; binary < 2; binary++) {
-    for (diff=0; diff < 3; diff++) {
-      for (i=0; i<ARRAYSIZE(tests); i++) {
-    	tmp = isonumber_from_u64(&buf, tests[i]+diff-1, NULL, 0, binary==1, false);
-    	correct = tmp != NULL && strcmp(tmp, results[binary][diff][i]) == 0;
+  for (diff=0; diff < 3; diff++) {
+    for (i=0; i<5; i++) {
+      tmp = isonumber_from_u64(&buf, tests[i]+diff-1, NULL, 0, false);
+      correct = tmp != NULL && strcmp(tmp, results[diff][i]) == 0;
 
-    	CHECK_TRUE(tmp != NULL, "str_to_isonumber_u64(%"PRIu64", %s) is not null",
-        		tests[i]+diff-1, binary == 1 ? "binary" : "normal");
-    	CHECK_TRUE(correct, "str_to_isonumber_u64(%"PRIu64", %s) = %s should be %s",
-        		tests[i]+diff-1, binary == 1 ? "binary" : "normal",
-        		tmp, results[binary][diff][i]);
-      }
-	}
+      CHECK_TRUE(tmp != NULL, "isonumber_from_u64(%"PRIu64") is not null",
+          tests[i]+diff-1);
+    	CHECK_TRUE(correct, "isonumber_from_u64(%"PRIu64") = %s should be %s",
+        		tests[i]+diff-1, tmp, results[diff][i]);
+    }
   }
 
   END_TEST();
 }
 
 static void
-test_str_to_isonumber_s64(void) {
-  static const char *results[2][3][5] = {
-    {
+test_isonumber_to_u64_to_string(void) {
+  static const char *tests[] = {
+      "1k", "1.024k", "1M", "1.024M", "1.023k"
+  };
+  static uint64_t results[] = { 1000, 1024, 1000*1000, 1000*1024, 1023 };
+
+  size_t i;
+
+  uint64_t result;
+  int tmp;
+
+  START_TEST();
+
+  for (i=0; i<ARRAYSIZE(tests); i++) {
+    result = 0;
+    tmp = isonumber_to_u64(&result, tests[i], 0);
+    CHECK_TRUE(tmp == 0, "isonumber_to_u64(\"%s\") failed", tests[i]);
+    if (!tmp) {
+      CHECK_TRUE(result== results[i], "isonumber_to_u64(\"%s\") != %"PRIu64" (was %"PRIu64")",
+          tests[i], results[i], result);
+    }
+  }
+  END_TEST();
+}
+
+static void
+test_isonumber_to_s64_to_string(void) {
+  static const char *tests[] = {
+       "1k",  "1.024k",  "1M",  "1.024M",  "1.023k",
+      "-1k", "-1.024k", "-1M", "-1.024M", "-1.023k"
+  };
+  static int64_t results[] = {
+       1000,  1024,  1000*1000,  1000*1024,  1023,
+      -1000, -1024, -1000*1000, -1000*1024, -1023
+  };
+
+  size_t i;
+
+  int64_t result;
+  int tmp;
+
+  START_TEST();
+
+  for (i=0; i<ARRAYSIZE(tests); i++) {
+    result = 0;
+    tmp = isonumber_to_s64(&result, tests[i], 0);
+    CHECK_TRUE(tmp == 0, "isonumber_to_u64(\"%s\") failed", tests[i]);
+    if (!tmp) {
+      CHECK_TRUE(result== results[i], "isonumber_to_u64(\"%s\") != %"PRId64" (was %"PRId64")",
+          tests[i], results[i], result);
+    }
+  }
+  END_TEST();
+}
+
+static void
+test_str_from_isonumber_s64(void) {
+  static const char *results[3][5] = {
       { "-999", "-1.023k", "-999.999k", "-1.023M",  "-1.048M" },
       { "-1k", "-1.024k", "-1M", "-1.024M", "-1.048M" },
       { "-1.001k", "-1.025k", "-1M", "-1.024M", "-1.048M" }
-    },
-    {
-      { "-999", "-1023", "-976.561k", "-999.999k", "-1023.999k" },
-      { "-1000", "-1k",  "-976.562k", "-1000k", "-1M" },
-      { "-1001", "-1k", "-976.563k", "-1000k", "-1M" }
-    }
   };
   static int64_t tests[] = { -1000, -1024, -1000*1000, -1000*1024, -1024*1024 };
   struct isonumber_str buf;
   uint64_t diff;
-  int binary;
   size_t i;
 
   const char *tmp;
@@ -124,32 +161,30 @@ test_str_to_isonumber_s64(void) {
 
   START_TEST();
 
-  for (binary=0; binary < 2; binary++) {
-    for (diff=0; diff < 3; diff++) {
-      for (i=0; i<ARRAYSIZE(tests); i++) {
-    	tmp = isonumber_from_s64(&buf, tests[i]-diff+1, NULL, 0, binary==1, false);
-    	correct = tmp != NULL && strcmp(tmp, results[binary][diff][i]) == 0;
+  for (diff=0; diff < 3; diff++) {
+    for (i=0; i<5; i++) {
+      tmp = isonumber_from_s64(&buf, tests[i]-diff+1, NULL, 0, false);
+      correct = tmp != NULL && strcmp(tmp, results[diff][i]) == 0;
 
-    	CHECK_TRUE(tmp != NULL, "str_to_isonumber_s64(%"PRId64", %s) is not null",
-        		tests[i]-diff+1, binary == 1 ? "binary" : "normal");
-    	CHECK_TRUE(correct, "str_to_isonumber_s64(%"PRId64", %s) = %s should be %s",
-        		tests[i]-diff+1, binary == 1 ? "binary" : "normal",
-        		tmp, results[binary][diff][i]);
-      }
-	}
+      CHECK_TRUE(tmp != NULL, "str_to_isonumber_s64(%"PRId64") is not null",
+          tests[i]-diff+1);
+      CHECK_TRUE(correct, "str_to_isonumber_s64(%"PRId64") = %s should be %s",
+          tests[i]-diff+1,
+      		tmp, results[diff][i]);
+    }
   }
 
   END_TEST();
 }
 
 static void
-test_str_to_isonumber_s64_2(void) {
+test_str_from_isonumber_s64_2(void) {
   struct isonumber_str buf;
   START_TEST();
 
   CHECK_TRUE(
       isonumber_from_s64(&buf,
-          5185050545986994176ll, "bit/s", 0, true, false) != NULL, "test");
+          5185050545986994176ll, "bit/s", 0, false) != NULL, "test");
   END_TEST();
 }
 
@@ -157,9 +192,12 @@ int
 main(int argc __attribute__ ((unused)), char **argv __attribute__ ((unused))) {
   BEGIN_TESTING(clear_elements);
 
-  test_str_to_isonumber_u64();
-  test_str_to_isonumber_s64();
-  test_str_to_isonumber_s64_2();
+  test_str_from_isonumber_u64();
+  test_isonumber_to_u64_to_string();
+
+  test_str_from_isonumber_s64();
+  test_isonumber_to_s64_to_string();
+  test_str_from_isonumber_s64_2();
 
   return FINISH_TESTING();
 }

@@ -60,7 +60,7 @@ EXPORT int cfg_validate_choice(struct autobuf *out,
     const char **choices, size_t choice_count);
 EXPORT int cfg_validate_int(struct autobuf *out,
     const char *section_name, const char *entry_name, const char *value,
-    int64_t min, int64_t max, uint16_t bytelen, uint16_t fraction, bool base2);
+    int64_t min, int64_t max, uint16_t bytelen, uint16_t fraction);
 EXPORT int cfg_validate_netaddr(struct autobuf *out,
     const char *section_name, const char *entry_name, const char *value,
     bool prefix, const int8_t *af_types, size_t af_types_count);

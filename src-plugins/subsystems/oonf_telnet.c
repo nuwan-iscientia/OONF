@@ -101,9 +101,9 @@ static struct cfg_schema_entry _telnet_entries[] = {
   CFG_MAP_ACL(_telnet_config, osmc.bindto,
       "bindto", "127.0.0.1\0" "::1\0" ACL_DEFAULT_REJECT, "Allowed addressed to bind telnet socket to"),
   CFG_MAP_INT32_MINMAX(_telnet_config, osmc.port,
-      "port", "2009", "Network port for telnet interface", 0, false, 1, 65535),
+      "port", "2009", "Network port for telnet interface", 0, 1, 65535),
   CFG_MAP_INT32_MINMAX(_telnet_config, allowed_sessions,
-      "allowed_sessions", "3", "Maximum number of allowed simultaneous sessions",0, false, 3, 1024),
+      "allowed_sessions", "3", "Maximum number of allowed simultaneous sessions",0, 3, 1024),
   CFG_MAP_CLOCK(_telnet_config, timeout,
       "timeout", "120000", "Time until a telnet session is closed when idle"),
 };
