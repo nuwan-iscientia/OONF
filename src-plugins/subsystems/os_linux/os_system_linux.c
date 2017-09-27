@@ -561,7 +561,6 @@ _flush_netlink_buffer(struct os_system_netlink *nl) {
 
       /* remove netlink message from internal queue */
       nl->cb_error(nl->in->nlmsg_seq, err);
-      return;
     }
   }
   else {
@@ -571,14 +570,14 @@ _flush_netlink_buffer(struct os_system_netlink *nl) {
         "netlink %s: Sent %u bytes (%u messages in transit)",
         nl->name, buffer->total, nl->msg_in_transit);
 
-    list_remove(&buffer->_node);
-    free(buffer);
+    /* start feedback timer */
+    oonf_timer_set(&nl->timeout, OS_SYSTEM_NETLINK_TIMEOUT);
   }
 
-  oonf_socket_set_write(&nl->socket, !list_is_empty(&nl->buffered));
+  list_remove(&buffer->_node);
+  free(buffer);
 
-  /* start feedback timer */
-  oonf_timer_set(&nl->timeout, OS_SYSTEM_NETLINK_TIMEOUT);
+  oonf_socket_set_write(&nl->socket, !list_is_empty(&nl->buffered));
 }
 
 /**
