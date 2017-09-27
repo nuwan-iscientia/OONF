@@ -874,9 +874,10 @@ _query_interface_links(void) {
     return;
   }
 
-  OONF_DEBUG(LOG_OS_INTERFACE, "Request all interfaces");
+  OONF_DEBUG(LOG_OS_INTERFACE, "Request all interface links");
 
   _trigger_link_query = false;
+  _link_query_in_progress = true;
 
   /* get pointers for netlink message */
   msg = (void *)&buffer[0];
@@ -910,8 +911,9 @@ _query_interface_addresses(void) {
   }
 
   _trigger_address_query = false;
+  _address_query_in_progress = true;
 
-  OONF_DEBUG(LOG_OS_INTERFACE, "Request all interfaces");
+  OONF_DEBUG(LOG_OS_INTERFACE, "Request all interface addresses");
 
   /* get pointers for netlink message */
   msg = (void *)&buffer[0];
@@ -1417,6 +1419,7 @@ _process_bad_end_of_query(void) {
 static void
 _cb_query_error(uint32_t seq __attribute((unused)),
     int error __attribute((unused))) {
+  OONF_DEBUG(LOG_OS_INTERFACE, "Received error %d for query %u", error, seq);
   _process_bad_end_of_query();
 }
 
@@ -1426,6 +1429,7 @@ _cb_query_error(uint32_t seq __attribute((unused)),
  */
 static void
 _cb_query_done(uint32_t seq __attribute((unused))) {
+  OONF_DEBUG(LOG_OS_INTERFACE, "Query %u done", seq);
   _process_end_of_query();
 }
 
@@ -1434,6 +1438,7 @@ _cb_query_done(uint32_t seq __attribute((unused))) {
  */
 static void
 _cb_query_timeout(void) {
+  OONF_DEBUG(LOG_OS_INTERFACE, "Query timeout");
   _process_bad_end_of_query();
 }
 

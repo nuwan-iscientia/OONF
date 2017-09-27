@@ -145,8 +145,6 @@ static struct oonf_subsystem _oonf_os_system_subsystem = {
 };
 DECLARE_OONF_PLUGIN(_oonf_os_system_subsystem);
 
-static uint32_t _socket_count = 0;
-
 /* tracking of used netlink sequence numbers */
 static uint32_t _seq_used = 0;
 
@@ -309,9 +307,6 @@ os_system_linux_netlink_add(struct os_system_netlink *nl, int protocol) {
   memset(&addr, 0, sizeof(addr));
   addr.nl_family = AF_NETLINK;
 
-  addr.nl_pid = getpid() + (_socket_count << 22);
-  _socket_count++;
-
 #if defined(SO_RCVBUF)
   recvbuf = 65536*16;
   if (setsockopt(nl->socket.fd.fd, SOL_SOCKET, SO_RCVBUF,
@@ -338,11 +333,13 @@ os_system_linux_netlink_add(struct os_system_netlink *nl, int protocol) {
   return 0;
 
 os_add_netlink_fail:
+  os_fd_invalidate(&nl->socket.fd);
   if (fd != -1) {
     close(fd);
   }
   free (nl->in);
   abuf_free(&nl->out);
+  fd = -1;
   return -1;
 }
 
@@ -352,11 +349,13 @@ os_add_netlink_fail:
  */
 void
 os_system_linux_netlink_remove(struct os_system_netlink *nl) {
-  oonf_socket_remove(&nl->socket);
+  if (os_fd_is_initialized(&nl->socket.fd)) {
+    oonf_socket_remove(&nl->socket);
 
-  os_fd_close(&nl->socket.fd);
-  free (nl->in);
-  abuf_free(&nl->out);
+    os_fd_close(&nl->socket.fd);
+    free (nl->in);
+    abuf_free(&nl->out);
+  }
 }
 
 /**
@@ -408,7 +407,9 @@ os_system_linux_netlink_send(struct os_system_netlink *nl,
   nl->out_messages++;
 
   /* trigger write */
-  oonf_socket_set_write(&nl->socket, true);
+  if (nl->msg_in_transit == 0) {
+    oonf_socket_set_write(&nl->socket, true);
+  }
   return _seq_used;
 }
 
@@ -524,6 +525,7 @@ _flush_netlink_buffer(struct os_system_netlink *nl) {
   int err;
 
   if (nl->msg_in_transit > 0) {
+    oonf_socket_set_write(&nl->socket, false);
     return;
   }
 
