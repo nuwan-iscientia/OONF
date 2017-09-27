@@ -121,6 +121,7 @@ struct _imported_lan {
 
 /* prototypes */
 static int _init(void);
+static void _initiate_shutdown(void);
 static void _cleanup(void);
 
 static struct _import_entry *_get_import(const char *name);
@@ -199,6 +200,7 @@ static struct oonf_subsystem _import_subsystem = {
 
   .init = _init,
   .cleanup = _cleanup,
+  .initiate_shutdown = _initiate_shutdown,
 };
 DECLARE_OONF_PLUGIN(_import_subsystem);
 
@@ -243,12 +245,18 @@ _init(void) {
   os_routing_listener_add(&_routing_listener);
   oonf_timer_add(&_aging_timer_class);
 
-  /* send wildcard query */
+  /* initialize wildcard query */
   os_routing_init_wildcard_route(&_unicast_query);
   _unicast_query.cb_get = _cb_query;
   _unicast_query.cb_finished = _cb_query_finished;
   _unicast_query.p.type = OS_ROUTE_UNICAST;
   return 0;
+}
+
+static void
+_initiate_shutdown(void) {
+  /* we are not interested in listening to all the routing cleanup */
+  os_routing_listener_remove(&_routing_listener);
 }
 
 /**
@@ -263,7 +271,6 @@ _cleanup(void) {
   }
 
   oonf_timer_remove(&_aging_timer_class);
-  os_routing_listener_remove(&_routing_listener);
   oonf_class_remove(&_lan_import_class);
   oonf_class_remove(&_import_class);
 }
@@ -351,6 +358,10 @@ _cb_rt_event(const struct os_route *route, bool set) {
   OONF_DEBUG(LOG_LAN_IMPORT, "Received route event (%s): %s",
       set ? "set" : "remove", os_routing_to_string(&rbuf, &route->p));
 
+  if (!_is_allowed_to_import(route)) {
+    return;
+  }
+
   avl_for_each_element(&_import_tree, import, _node) {
     OONF_DEBUG(LOG_LAN_IMPORT, "Check for import: %s", import->name);
 
@@ -404,10 +415,6 @@ _cb_rt_event(const struct os_route *route, bool set) {
       }
       if (metric > 255) {
         metric = 255;
-      }
-
-      if (!_is_allowed_to_import(route)) {
-        continue;
       }
 
       OONF_DEBUG(LOG_LAN_IMPORT, "Add lan...");
