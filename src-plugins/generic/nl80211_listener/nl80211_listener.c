@@ -603,6 +603,10 @@ _get_next_query(void) {
     if (_current_query_number == QUERY_END) {
       /* commit interface data */
       if (_current_query_if->ifdata_changed) {
+        /* set fixed flags for nl80211 data */
+        oonf_layer2_data_set_bool(&_current_query_if->l2net->data[OONF_LAYER2_NET_MCS_BY_PROBING], &_layer2_updated_origin, true);
+
+        /* cleanup old data and relable new one, then commit everything */
         oonf_layer2_net_cleanup(_current_query_if->l2net, &_layer2_data_origin, true);
         oonf_layer2_net_relabel(_current_query_if->l2net,
             &_layer2_data_origin, &_layer2_updated_origin);
