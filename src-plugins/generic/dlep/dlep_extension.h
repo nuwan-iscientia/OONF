@@ -184,7 +184,7 @@ struct dlep_neighbor_mapping {
   bool mandatory;
 
   /*! default value for mandatory TLVs */
-  uint64_t default_value;
+  union oonf_layer2_value default_value;
 
   /**
    * callback to transform a TLV into layer2 data
@@ -231,7 +231,7 @@ struct dlep_network_mapping {
   bool mandatory;
 
   /*! default value for mandatory TLVs */
-  uint64_t default_value;
+  union oonf_layer2_value default_value;
 
   /**
    * callback to transform a TLV into layer2 data

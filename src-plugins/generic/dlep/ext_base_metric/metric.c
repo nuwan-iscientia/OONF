@@ -162,7 +162,7 @@ static struct dlep_neighbor_mapping _neigh_mappings[] = {
         .length        = 8,
 
         .mandatory     = true,
-        .default_value = 0,
+        .default_value.integer = 0,
 
         .from_tlv      = dlep_reader_map_identity,
         .to_tlv        = dlep_writer_map_identity,
@@ -173,7 +173,7 @@ static struct dlep_neighbor_mapping _neigh_mappings[] = {
         .length        = 8,
 
         .mandatory     = true,
-        .default_value = 0,
+        .default_value.integer = 0,
 
         .from_tlv      = dlep_reader_map_identity,
         .to_tlv        = dlep_writer_map_identity,
@@ -184,7 +184,7 @@ static struct dlep_neighbor_mapping _neigh_mappings[] = {
         .length        = 8,
 
         .mandatory     = true,
-        .default_value = 0,
+        .default_value.integer = 0,
 
         .from_tlv      = dlep_reader_map_identity,
         .to_tlv        = dlep_writer_map_identity,
@@ -195,7 +195,7 @@ static struct dlep_neighbor_mapping _neigh_mappings[] = {
         .length        = 8,
 
         .mandatory     = true,
-        .default_value = 0,
+        .default_value.integer = 0,
 
         .from_tlv      = dlep_reader_map_identity,
         .to_tlv        = dlep_writer_map_identity,
@@ -206,7 +206,7 @@ static struct dlep_neighbor_mapping _neigh_mappings[] = {
         .length   = 8,
 
         .mandatory     = true,
-        .default_value = 1,
+        .default_value.integer = 1,
 
         .from_tlv      = dlep_reader_map_identity,
         .to_tlv        = dlep_writer_map_identity,

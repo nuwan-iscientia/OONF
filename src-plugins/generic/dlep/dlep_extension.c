@@ -254,9 +254,11 @@ int
 dlep_extension_radio_write_session_init_ack(
     struct dlep_extension *ext, struct dlep_session *session,
     const struct netaddr *neigh __attribute__((unused))) {
+  const struct oonf_layer2_metadata *meta;
   struct oonf_layer2_net *l2net;
   struct oonf_layer2_data *l2data;
   size_t i;
+  int idx;
   int result;
 
   /* first make sure defaults are set correctly */
@@ -272,13 +274,14 @@ dlep_extension_radio_write_session_init_ack(
       continue;
     }
 
-    l2data = &l2net->neighdata[ext->neigh_mapping[i].layer2];
+    idx = ext->neigh_mapping[i].layer2;
+    l2data = &l2net->neighdata[idx];
 
 
     if (!oonf_layer2_data_has_value(l2data)) {
-      // TODO: is this always int64?
-      oonf_layer2_data_set_int64(l2data, session->l2_origin,
-          ext->neigh_mapping[i].default_value);
+      meta = oonf_layer2_neigh_metadata_get(idx);
+      oonf_layer2_data_set(l2data, session->l2_origin,
+          meta->type, &ext->neigh_mapping[i].default_value);
     }
   }
 
@@ -288,12 +291,13 @@ dlep_extension_radio_write_session_init_ack(
       continue;
     }
 
-    l2data = &l2net->data[ext->if_mapping[i].layer2];
+    idx = ext->if_mapping[i].layer2;
+    l2data = &l2net->data[idx];
 
     if (!oonf_layer2_data_has_value(l2data)) {
-      // TODO: is this always int64?
-      oonf_layer2_data_set_int64(l2data, session->l2_origin,
-          ext->if_mapping[i].default_value);
+      meta = oonf_layer2_net_metadata_get(idx);
+      oonf_layer2_data_set(l2data, session->l2_origin,
+          meta->type, &ext->if_mapping[i].default_value);
     }
   }
 

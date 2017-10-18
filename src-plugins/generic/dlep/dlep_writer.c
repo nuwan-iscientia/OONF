@@ -392,13 +392,13 @@ dlep_writer_map_identity(struct dlep_writer *writer,
   uint8_t tmp8;
   void *value;
 
-  if (meta->type != oonf_layer2_data_get_type(data)) {
-    /* bad data type */
-    return -1;
-  }
   if (!oonf_layer2_data_has_value(data)) {
     /* no data available */
     return 0;
+  }
+  if (meta->type != oonf_layer2_data_get_type(data)) {
+    /* bad data type */
+    return -1;
   }
 
   switch (oonf_layer2_data_get_type(data)) {
