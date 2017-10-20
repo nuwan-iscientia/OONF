@@ -126,24 +126,24 @@ cfg_help_int(struct autobuf *out,
   if (min > min64) {
     if (max < max64) {
       cfg_append_printable_line(out, _PREFIX "Parameter must be a %d-byte fractional integer"
-          " between %s and %s with a maximum of %d digits",
+          " between %s and %s with a maximum of %d fractional digits",
           bytelen, hbuf1.buf, hbuf2.buf, fraction);
     }
     else {
       cfg_append_printable_line(out, _PREFIX "Parameter must be a %d-byte fractional integer"
-          " larger or equal than %s with a maximum of %d digits",
+          " larger or equal than %s with a maximum of %d fractional digits",
           bytelen, hbuf1.buf, fraction);
     }
   }
   else {
     if (max < max64) {
       cfg_append_printable_line(out, _PREFIX "Parameter must be a %d-byte fractional integer"
-          " smaller or equal than %s with a maximum of %d digits",
+          " smaller or equal than %s with a maximum of %d fractional digits",
           bytelen, hbuf2.buf, fraction);
     }
     else {
       cfg_append_printable_line(out, _PREFIX "Parameter must be a %d-byte signed integer"
-          " with a maximum of %d digits",
+          " with a maximum of %d fractional digits",
           bytelen, fraction);
     }
   }
