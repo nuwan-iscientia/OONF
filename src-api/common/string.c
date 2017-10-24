@@ -257,6 +257,30 @@ str_skipnextword (const char *src) {
 }
 
 /**
+ * @param src pointer to source string
+ * @return number of non-whitespace words separated by whitespaces in string
+ */
+size_t
+str_countwords(const char *src) {
+  size_t count = 0;
+
+  /* sanity check */
+  if (src != NULL) {
+    /* skip whitespace prefix */
+    while (isblank(*src)) {
+      src++;
+    }
+
+    while (src != NULL && *src != 0) {
+      count++;
+
+      src = str_skipnextword(src);
+    }
+  }
+  return count;
+}
+
+/**
  * Printable is defined as all ascii characters >= 32 except
  * 127 and 255.
  * @param value stringpointer
