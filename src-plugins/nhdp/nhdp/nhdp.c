@@ -112,7 +112,8 @@ static struct cfg_schema_entry _nhdp_entries[] = {
 };
 
 static struct cfg_schema_section _nhdp_section = {
-  .type = OONF_NHDP_SUBSYSTEM,
+  CFG_NHDP_SCHEMA_NHDP_SECTION_INIT,
+
   .cb_delta_handler = _cb_cfg_nhdp_changed,
   .entries = _nhdp_entries,
   .entry_count = ARRAYSIZE(_nhdp_entries),
@@ -129,8 +130,8 @@ static struct cfg_schema_entry _interface_entries[] = {
 };
 
 static struct cfg_schema_section _interface_section = {
-  .type = CFG_INTERFACE_SECTION,
-  .mode = CFG_INTERFACE_SECTION_MODE,
+  CFG_OSIF_SCHEMA_INTERFACE_SECTION_INIT,
+
   .cb_delta_handler = _cb_cfg_interface_changed,
   .entries = _interface_entries,
   .entry_count = ARRAYSIZE(_interface_entries),
@@ -155,9 +156,7 @@ static struct cfg_schema_entry _domain_entries[] = {
 };
 
 static struct cfg_schema_section _domain_section = {
-  .type = CFG_NHDP_DOMAIN_SECTION,
-  .mode = CFG_SSMODE_NAMED_WITH_DEFAULT,
-  .def_name = CFG_NHDP_DEFAULT_DOMAIN,
+  CFG_NHDP_SCHEMA_DOMAIN_SECTION_INIT,
 
   .cb_delta_handler = _cb_cfg_domain_changed,
   .cb_validate = _cb_validate_domain_section,

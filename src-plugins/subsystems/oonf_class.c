@@ -313,7 +313,7 @@ oonf_class_extension_add(struct oonf_class_extension *ext) {
  */
 void
 oonf_class_extension_remove(struct oonf_class_extension *ext) {
-  if (list_is_node_added(&ext->_node)) {
+  if (oonf_class_is_extension_registered(ext)) {
     list_remove(&ext->_node);
     ext->_offset = 0;
   }

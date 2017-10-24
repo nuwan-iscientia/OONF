@@ -1,7 +1,7 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=oonf-olsrd2-git-debug
-PKG_VERSION:=2017-06-08
+PKG_VERSION:=2017-10-17
 
 CMAKE_INSTALL:=1
 
@@ -18,6 +18,8 @@ CMAKE_OPTIONAL_PLUGINS:= $(subst $(SPACE),;,$(strip \
         $(if $(filter y,$(CONFIG_OONF_GENERIC_REMOTECONTROL)),remotecontrol,) \
         $(if $(filter y,$(CONFIG_OONF_OLSRV2_MPR)),mpr,) \
         $(if $(filter y,$(CONFIG_OONF_GENERIC_HTTP)),http,) \
+        $(if $(filter y,$(CONFIG_OONF_OLSRV2_LAN)),olsrv2_lan,) \
+        $(if $(filter y,$(CONFIG_OONF_OLSRV2_OLD_LAN)),olsrv2_old_lan,) \
     ))
 
 CMAKE_SOURCE_DIR=$(CURDIR)/../../

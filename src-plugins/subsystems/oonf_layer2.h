@@ -69,6 +69,68 @@
 /*! memory class for layer2 neighbor address */
 #define LAYER2_CLASS_NEIGHBOR_ADDRESS "layer2_neighbor_address"
 
+/* configuration Macros for Layer2 keys */
+
+/**
+ * Creates a cfg_schema_entry for a parameter that can be choosen
+ * from the layer2 interface keys
+ * @param p_name parameter name
+ * @param p_def parameter default value
+ * @param p_help help text for configuration entry
+ * @param args variable list of additional arguments
+ */
+#define CFG_VALIDATE_LAYER2_NET_KEY(p_name, p_def, p_help, args...)   CFG_VALIDATE_CHOICE_CB_ARG(p_name, p_def, p_help, oonf_layer2_cfg_get_l2net_key, OONF_LAYER2_NET_COUNT, NULL, ##args )
+
+/**
+ * Creates a cfg_schema_entry for a parameter that can be choosen
+ * from the layer2 interface keys
+ * @param p_name parameter name
+ * @param p_def parameter default value
+ * @param p_help help text for configuration entry
+ * @param args variable list of additional arguments
+ */
+#define CFG_VALIDATE_LAYER2_NEIGH_KEY(p_name, p_def, p_help, args...)   CFG_VALIDATE_CHOICE_CB_ARG(p_name, p_def, p_help, oonf_layer2_cfg_get_l2neigh_key, OONF_LAYER2_NEIGH_COUNT, NULL, ##args )
+
+/**
+ * Creates a cfg_schema_entry for a parameter that can be choosen
+ * from the layer2 data comparators
+ * @param p_name parameter name
+ * @param p_def parameter default value
+ * @param p_help help text for configuration entry
+ * @param args variable list of additional arguments
+ */
+#define CFG_VALIDATE_LAYER2_COMP(p_name, p_def, p_help, args...)   CFG_VALIDATE_CHOICE_CB_ARG(p_name, p_def, p_help, oonf_layer2_cfg_get_l2comp, OONF_LAYER2_DATA_CMP_COUNT, NULL, ##args )
+
+/**
+ * Creates a cfg_schema_entry for a parameter that can be choosen
+ * from the layer2 interface keys
+ * @param p_name parameter name
+ * @param p_def parameter default value
+ * @param p_help help text for configuration entry
+ * @param args variable list of additional arguments
+ */
+#define CFG_MAP_CHOICE_L2NET(p_reference, p_field, p_name, p_def, p_help, args...)   CFG_MAP_CHOICE_CB_ARG(p_reference, p_field, p_name, p_def, p_help, oonf_layer2_cfg_get_l2net_key, OONF_LAYER2_NET_COUNT, NULL, ##args )
+
+/**
+ * Creates a cfg_schema_entry for a parameter that can be choosen
+ * from the layer2 interface keys
+ * @param p_name parameter name
+ * @param p_def parameter default value
+ * @param p_help help text for configuration entry
+ * @param args variable list of additional arguments
+ */
+#define CFG_MAP_CHOICE_L2NEIGH(p_reference, p_field, p_name, p_def, p_help, args...)   CFG_MAP_CHOICE_CB_ARG(p_reference, p_field, p_name, p_def, p_help, oonf_layer2_cfg_get_l2neigh_key, OONF_LAYER2_NEIGH_COUNT, NULL, ##args )
+
+/**
+ * Creates a cfg_schema_entry for a parameter that can be choosen
+ * from the layer2 data comparators
+ * @param p_name parameter name
+ * @param p_def parameter default value
+ * @param p_help help text for configuration entry
+ * @param args variable list of additional arguments
+ */
+#define CFG_MAP_CHOICE_L2COMP(p_reference, p_field, p_name, p_def, p_help, args...)   CFG_MAP_CHOICE_CB_ARG(p_reference, p_field, p_name, p_def, p_help, oonf_layer2_cfg_get_l2comp, OONF_LAYER2_DATA_CMP_COUNT, NULL, ##args )
+
 /**
  * priorities of layer2 originators
  */
@@ -99,6 +161,9 @@ enum oonf_layer2_data_type {
   OONF_LAYER2_NO_DATA,
   OONF_LAYER2_INTEGER_DATA,
   OONF_LAYER2_BOOLEAN_DATA,
+  OONF_LAYER2_NETWORK_DATA,
+
+  OONF_LAYER2_DATA_TYPE_COUNT,
 };
 
 union oonf_layer2_value {
@@ -136,6 +201,22 @@ struct oonf_layer2_metadata {
 
   /*! number of fractional digits of the data */
   const int fraction;
+};
+
+/**
+ * Comparator options for layer2 data
+ */
+enum oonf_layer2_data_comparator_type {
+  OONF_LAYER2_DATA_CMP_EQUALS,
+  OONF_LAYER2_DATA_CMP_NOT_EQUALS,
+  OONF_LAYER2_DATA_CMP_LESSER,
+  OONF_LAYER2_DATA_CMP_LESSER_OR_EQUALS,
+  OONF_LAYER2_DATA_CMP_GREATER,
+  OONF_LAYER2_DATA_CMP_GREATER_OR_EQUALS,
+
+  OONF_LAYER2_DATA_CMP_COUNT,
+
+  OONF_LAYER2_DATA_CMP_ILLEGAL = -1,
 };
 
 /**
@@ -386,13 +467,20 @@ EXPORT void oonf_layer2_origin_remove(struct oonf_layer2_origin *origin);
 EXPORT int oonf_layer2_data_parse_string(union oonf_layer2_value *value,
     const struct oonf_layer2_metadata *meta,
     const char *input);
-EXPORT int oonf_layer2_data_to_string(char *buffer, size_t length,
+EXPORT const char *oonf_layer2_data_to_string(char *buffer, size_t length,
     const struct oonf_layer2_data *data,
     const struct oonf_layer2_metadata *meta, bool raw);
 EXPORT bool oonf_layer2_data_set(struct oonf_layer2_data *data,
     const struct oonf_layer2_origin *origin,
     enum oonf_layer2_data_type type,
     const union oonf_layer2_value *input);
+EXPORT bool oonf_layer2_data_compare(const union oonf_layer2_value *left,
+    const union oonf_layer2_value *right,
+    enum oonf_layer2_data_comparator_type comparator,
+    enum oonf_layer2_data_type data_type);
+EXPORT enum oonf_layer2_data_comparator_type oonf_layer2_data_get_comparator(const char *);
+EXPORT const char *oonf_layer2_data_get_comparator_string(enum oonf_layer2_data_comparator_type type);
+EXPORT const char *oonf_layer2_data_get_type_string(enum oonf_layer2_data_type type);
 
 EXPORT struct oonf_layer2_net *oonf_layer2_net_add(const char *ifname);
 EXPORT bool oonf_layer2_net_remove(
@@ -444,6 +532,10 @@ EXPORT const struct oonf_layer2_metadata *oonf_layer2_neigh_metadata_get(
     enum oonf_layer2_neighbor_index);
 EXPORT const struct oonf_layer2_metadata *oonf_layer2_net_metadata_get(
     enum oonf_layer2_network_index);
+EXPORT const char *oonf_layer2_cfg_get_l2net_key(size_t index, const void *unused);
+EXPORT const char *oonf_layer2_cfg_get_l2neigh_key(size_t index, const void *unused);
+EXPORT const char *oonf_layer2_cfg_get_l2comp(size_t index, const void *unused);
+
 EXPORT const char *oonf_layer2_net_get_type_name(enum oonf_layer2_network_type);
 
 EXPORT struct avl_tree *oonf_layer2_get_net_tree(void);
@@ -642,14 +734,14 @@ oonf_layer2_data_from_string(struct oonf_layer2_data *data,
   return oonf_layer2_data_set(data, origin, meta->type, &value);
 }
 
-static INLINE int
+static INLINE const char *
 oonf_layer2_net_data_to_string(char *buffer, size_t length,
     const struct oonf_layer2_data *data, enum oonf_layer2_network_index idx, bool raw) {
   return oonf_layer2_data_to_string(buffer, length, data,
       oonf_layer2_net_metadata_get(idx), raw);
 }
 
-static INLINE int
+static INLINE const char *
 oonf_layer2_neigh_data_to_string(char *buffer, size_t length,
     const struct oonf_layer2_data *data, enum oonf_layer2_neighbor_index idx, bool raw) {
   return oonf_layer2_data_to_string(buffer, length, data,

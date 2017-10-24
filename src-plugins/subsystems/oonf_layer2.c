@@ -81,7 +81,7 @@ static struct oonf_subsystem _oonf_layer2_subsystem = {
 DECLARE_OONF_PLUGIN(_oonf_layer2_subsystem);
 
 /* layer2 neighbor metadata */
-static const struct oonf_layer2_metadata _oonf_layer2_metadata_neigh[OONF_LAYER2_NEIGH_COUNT] = {
+static const struct oonf_layer2_metadata _metadata_neigh[OONF_LAYER2_NEIGH_COUNT] = {
   [OONF_LAYER2_NEIGH_TX_SIGNAL]      = { .key = "tx_signal", .type = OONF_LAYER2_INTEGER_DATA, .unit = "dBm", .fraction = 3 },
   [OONF_LAYER2_NEIGH_RX_SIGNAL]      = { .key = "rx_signal", .type = OONF_LAYER2_INTEGER_DATA, .unit = "dBm", .fraction = 3 },
   [OONF_LAYER2_NEIGH_TX_BITRATE]     = { .key = "tx_bitrate", .type = OONF_LAYER2_INTEGER_DATA, .unit = "bit/s" },
@@ -102,7 +102,7 @@ static const struct oonf_layer2_metadata _oonf_layer2_metadata_neigh[OONF_LAYER2
 };
 
 /* layer2 network metadata */
-static const struct oonf_layer2_metadata _oonf_layer2_metadata_net[OONF_LAYER2_NET_COUNT] = {
+static const struct oonf_layer2_metadata _metadata_net[OONF_LAYER2_NET_COUNT] = {
   [OONF_LAYER2_NET_FREQUENCY_1]     = { .key = "frequency1", .type = OONF_LAYER2_INTEGER_DATA , .unit = "Hz" },
   [OONF_LAYER2_NET_FREQUENCY_2]     = { .key = "frequency2", .type = OONF_LAYER2_INTEGER_DATA , .unit = "Hz" },
   [OONF_LAYER2_NET_BANDWIDTH_1]     = { .key = "bandwidth1", .type = OONF_LAYER2_INTEGER_DATA , .unit = "Hz" },
@@ -118,11 +118,27 @@ static const struct oonf_layer2_metadata _oonf_layer2_metadata_net[OONF_LAYER2_N
   [OONF_LAYER2_NET_TX_ONLY_UNICAST] = { .key = "tx_only_unicast", .type = OONF_LAYER2_BOOLEAN_DATA },
 };
 
-static const char *oonf_layer2_network_type[OONF_LAYER2_TYPE_COUNT] = {
+static const char *_network_type[OONF_LAYER2_TYPE_COUNT] = {
   [OONF_LAYER2_TYPE_UNDEFINED] = "undefined",
   [OONF_LAYER2_TYPE_WIRELESS]  = "wireless",
   [OONF_LAYER2_TYPE_ETHERNET]  = "ethernet",
   [OONF_LAYER2_TYPE_TUNNEL]    = "tunnel",
+};
+
+static const char *_data_comparators[OONF_LAYER2_DATA_CMP_COUNT] = {
+  [OONF_LAYER2_DATA_CMP_EQUALS]            = "==",
+  [OONF_LAYER2_DATA_CMP_NOT_EQUALS]        = "!=",
+  [OONF_LAYER2_DATA_CMP_LESSER]            = "<",
+  [OONF_LAYER2_DATA_CMP_LESSER_OR_EQUALS]  = "<=",
+  [OONF_LAYER2_DATA_CMP_GREATER]           = ">",
+  [OONF_LAYER2_DATA_CMP_GREATER_OR_EQUALS] = ">=",
+};
+
+static const char *_data_types[OONF_LAYER2_DATA_TYPE_COUNT] = {
+  [OONF_LAYER2_NO_DATA]       = "none",
+  [OONF_LAYER2_INTEGER_DATA]  = "integer",
+  [OONF_LAYER2_BOOLEAN_DATA]  = "boolean",
+  [OONF_LAYER2_NETWORK_DATA]  = "network",
 };
 
 /* infrastructure for l2net/l2neigh tree */
@@ -218,6 +234,13 @@ oonf_layer2_origin_remove(struct oonf_layer2_origin *origin) {
   avl_remove(&_oonf_originator_tree, &origin->_node);
 }
 
+/**
+ * Parse a string into a layer2 data object
+ * @param value target buffer for layer2 data
+ * @param meta metadata for layer2 data
+ * @param input input string
+ * @return -1 if an error happened, 0 otherwise
+ */
 int
 oonf_layer2_data_parse_string(union oonf_layer2_value *value,
     const struct oonf_layer2_metadata *meta, const char *input) {
@@ -229,15 +252,27 @@ oonf_layer2_data_parse_string(union oonf_layer2_value *value,
           &value->integer, input, meta->fraction);
 
     case OONF_LAYER2_BOOLEAN_DATA:
-        value->boolean = cfg_get_bool(input);
-        return 0;
+      if (!cfg_is_bool(input)) {
+        return -1;
+      }
+      value->boolean = cfg_get_bool(input);
+      return 0;
 
     default:
       return -1;
   }
 }
 
-int
+/**
+ * Convert a layer2 data object into a string representation
+ * @param buffer destination string buffer
+ * @param length length of string buffer
+ * @param data layer2 data
+ * @param meta layer2 metadata
+ * @param raw true for raw conversion (switch of isoprefix conversion)
+ * @return pointer to output buffer, NULL if an error happened
+ */
+const char *
 oonf_layer2_data_to_string(char *buffer, size_t length,
     const struct oonf_layer2_data *data,
     const struct oonf_layer2_metadata *meta, bool raw) {
@@ -247,20 +282,26 @@ oonf_layer2_data_to_string(char *buffer, size_t length,
     case OONF_LAYER2_INTEGER_DATA:
       if (!isonumber_from_s64(&iso_str, data->_value.integer,
           meta->unit, meta->fraction, raw)) {
-        return -1;
+        return NULL;
       }
-      strscpy(buffer, iso_str.buf, length);
-      return 0;
+      return strscpy(buffer, iso_str.buf, length);
 
     case OONF_LAYER2_BOOLEAN_DATA:
-      strscpy(buffer, json_getbool(data->_value.boolean), length);
-      return 0;
+      return strscpy(buffer, json_getbool(data->_value.boolean), length);
 
     default:
-      return -1;
+      return NULL;
   }
 }
 
+/**
+ * (Over)write the value of a layer2 data object
+ * @param l2data layer2 data object
+ * @param origin origin of new data
+ * @param type type of new data
+ * @param input new data value
+ * @return true if data changed, false otherwise
+ */
 bool
 oonf_layer2_data_set(struct oonf_layer2_data *l2data,
     const struct oonf_layer2_origin *origin,
@@ -279,6 +320,99 @@ oonf_layer2_data_set(struct oonf_layer2_data *l2data,
     l2data->_origin = origin;
   }
   return changed;
+}
+
+/**
+ * Compare two layer2 data objects
+ * @param left left parameter for comparator
+ * @param right right parameter for comparator
+ * @param cmp comparator
+ * @return comparator result, false if not valid
+ *   (e.g. comparing different types of data)
+ */
+bool
+oonf_layer2_data_compare(const union oonf_layer2_value *left,
+    const union oonf_layer2_value *right,
+    enum oonf_layer2_data_comparator_type comparator,
+    enum oonf_layer2_data_type data_type) {
+  int result;
+
+  switch (data_type) {
+    case OONF_LAYER2_INTEGER_DATA:
+      if (left->integer > right->integer) {
+        result = 1;
+      }
+      else if (left->integer < right->integer) {
+        result = -1;
+      }
+      else {
+        result = 0;
+      }
+      break;
+    case OONF_LAYER2_BOOLEAN_DATA:
+      result = memcmp(&left->boolean, &right->boolean,
+          sizeof(left->boolean));
+      break;
+    case OONF_LAYER2_NETWORK_DATA:
+      result = memcmp(&left->addr, &right->addr,
+                sizeof(left->addr));
+      break;
+    default:
+      return false;
+  }
+
+
+  switch (comparator) {
+    case OONF_LAYER2_DATA_CMP_EQUALS:
+      return result == 0;
+    case OONF_LAYER2_DATA_CMP_NOT_EQUALS:
+      return result != 0;
+    case OONF_LAYER2_DATA_CMP_LESSER:
+      return result < 0;
+    case OONF_LAYER2_DATA_CMP_LESSER_OR_EQUALS:
+      return result <= 0;
+    case OONF_LAYER2_DATA_CMP_GREATER:
+      return result > 0;
+    case OONF_LAYER2_DATA_CMP_GREATER_OR_EQUALS:
+      return result >= 0;
+    default:
+      return false;
+  }
+}
+
+/**
+ * Get comparator type from string
+ * @param string string (C) representation of comparator
+ * @return comparator type
+ */
+enum oonf_layer2_data_comparator_type
+oonf_layer2_data_get_comparator(const char *string) {
+  enum oonf_layer2_data_comparator_type i;
+
+  for (i=0; i<OONF_LAYER2_DATA_CMP_COUNT; i++) {
+    if (strcmp(string, _data_comparators[i]) == 0) {
+      return i;
+    }
+  }
+  return OONF_LAYER2_DATA_CMP_ILLEGAL;
+}
+
+/**
+ * @param type layer2 comparator type
+ * @return string representation of comparator
+ */
+const char *
+oonf_layer2_data_get_comparator_string(enum oonf_layer2_data_comparator_type type) {
+  return _data_comparators[type];
+}
+
+/**
+ * @param type type index of layer2 data
+ * @return the string name of a layer2 data type
+ */
+const char *
+oonf_layer2_data_get_type_string(enum oonf_layer2_data_type type) {
+  return _data_types[type];
 }
 
 /**
@@ -892,7 +1026,7 @@ oonf_layer2_neigh_get_data(const struct oonf_layer2_neigh *l2neigh,
  */
 const struct oonf_layer2_metadata *
 oonf_layer2_neigh_metadata_get(enum oonf_layer2_neighbor_index idx) {
-  return &_oonf_layer2_metadata_neigh[idx];
+  return &_metadata_neigh[idx];
 }
 
 /**
@@ -902,7 +1036,40 @@ oonf_layer2_neigh_metadata_get(enum oonf_layer2_neighbor_index idx) {
  */
 const struct oonf_layer2_metadata *
 oonf_layer2_net_metadata_get(enum oonf_layer2_network_index idx) {
-  return &_oonf_layer2_metadata_net[idx];
+  return &_metadata_net[idx];
+}
+
+/**
+ * Callback for configuration choice of layer2 network key
+ * @param idx index
+ * @param unused not used
+ * @return pointer to network key
+ */
+const char *
+oonf_layer2_cfg_get_l2net_key(size_t idx, const void *unused __attribute__((unused))) {
+  return _metadata_net[idx].key;
+}
+
+/**
+ * Callback for configuration choice of layer2 neighbor key
+ * @param idx index
+ * @param unused not used
+ * @return pointer to neighbor key
+ */
+const char *
+oonf_layer2_cfg_get_l2neigh_key(size_t idx, const void *unused __attribute__((unused))) {
+  return _metadata_neigh[idx].key;
+}
+
+/**
+ * Callback for configuration choice of layer2 neighbor key
+ * @param idx index
+ * @param unused not used
+ * @return pointer to neighbor key
+ */
+const char *
+oonf_layer2_cfg_get_l2comp(size_t idx, const void *unused __attribute__((unused))) {
+  return _data_comparators[idx];
 }
 
 /**
@@ -912,7 +1079,7 @@ oonf_layer2_net_metadata_get(enum oonf_layer2_network_index idx) {
  */
 const char *
 oonf_layer2_net_get_type_name(enum oonf_layer2_network_type type) {
-  return oonf_layer2_network_type[type];
+  return _network_type[type];
 }
 
 /**

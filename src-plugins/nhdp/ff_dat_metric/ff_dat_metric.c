@@ -226,8 +226,8 @@ static struct cfg_schema_entry _datff_entries[] = {
 
 /* Subsystem definition */
 static struct cfg_schema_section _datff_section = {
-  .type = CFG_INTERFACE_SECTION,
-  .mode = CFG_INTERFACE_SECTION_MODE,
+  CFG_OSIF_SCHEMA_INTERFACE_SECTION_INIT,
+
   .cb_delta_handler = _cb_cfg_changed,
   .entries = _datff_entries,
   .entry_count = ARRAYSIZE(_datff_entries),

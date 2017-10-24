@@ -132,8 +132,8 @@ static struct cfg_schema_entry _interface_entries[] = {
 };
 
 static struct cfg_schema_section _interface_section = {
-  .type = CFG_INTERFACE_SECTION,
-  .mode = CFG_INTERFACE_SECTION_MODE,
+  CFG_OSIF_SCHEMA_INTERFACE_SECTION_INIT,
+
   .cb_delta_handler = _cb_if_cfg_changed,
   .entries = _interface_entries,
   .entry_count = ARRAYSIZE(_interface_entries),

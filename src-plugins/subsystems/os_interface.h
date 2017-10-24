@@ -59,10 +59,7 @@
 #define OONF_OS_INTERFACE_SUBSYSTEM "os_interface"
 
 /*! interface configuration section name */
-#define CFG_INTERFACE_SECTION      "interface"
-
-/*! interface configuration section mode */
-#define CFG_INTERFACE_SECTION_MODE CFG_SSMODE_NAMED
+#define CFG_OSIF_SCHEMA_INTERFACE_SECTION_INIT      .type = "interface", .mode = CFG_SSMODE_NAMED
 
 /* include os-specific headers */
 #if defined(__linux__)

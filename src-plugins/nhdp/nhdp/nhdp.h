@@ -48,7 +48,7 @@
 
 #include "common/common_types.h"
 #include "common/netaddr.h"
-
+#include "config/cfg_schema.h"
 #include "core/oonf_subsystem.h"
 #include "subsystems/oonf_rfc5444.h"
 
@@ -56,13 +56,10 @@
 #define OONF_NHDP_SUBSYSTEM "nhdp"
 
 /*! configuration section for NHDP */
-#define CFG_NHDP_SECTION        "nhdp"
+#define CFG_NHDP_SCHEMA_DOMAIN_SECTION_INIT    .type = "domain", .mode = CFG_SSMODE_NAMED_WITH_DEFAULT, .def_name = "0"
 
 /*! configuration section for NHDP domains */
-#define CFG_NHDP_DOMAIN_SECTION "domain"
-
-/*! default NHDP domain name */
-#define CFG_NHDP_DEFAULT_DOMAIN "0"
+#define CFG_NHDP_SCHEMA_NHDP_SECTION_INIT      .type = "nhdp", .mode = CFG_SSMODE_UNNAMED
 
 /*! special name for 'no' metric/mpr */
 #define CFG_DOMAIN_NO_METRIC_MPR    "-"

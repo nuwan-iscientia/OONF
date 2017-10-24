@@ -141,8 +141,7 @@ static struct cfg_schema_entry _interface_entries[] = {
 };
 
 static struct cfg_schema_section _interface_section = {
-  .type = CFG_INTERFACE_SECTION,
-  .mode = CFG_INTERFACE_SECTION_MODE,
+  CFG_OSIF_SCHEMA_INTERFACE_SECTION_INIT,
   .cb_delta_handler = _cb_cfg_changed,
   .entries = _interface_entries,
   .entry_count = ARRAYSIZE(_interface_entries),
@@ -1497,7 +1496,8 @@ _handle_unused_parameter(const char *arg) {
 
   ifname = cfg_get_phy_if(ifbuf, arg);
 
-  cfg_db_add_namedsection(oonf_cfg_get_rawdb(), CFG_INTERFACE_SECTION, ifname);
+  cfg_db_add_namedsection(
+      oonf_cfg_get_rawdb(), _interface_section.type, ifname);
   return 0;
 }
 
@@ -1526,9 +1526,8 @@ _cb_cfg_changed(void) {
     result = cfg_schema_tobin(data, _interface_section.post,
         _interface_entries, ARRAYSIZE(_interface_entries));
     if (result) {
-      OONF_WARN(LOG_OS_INTERFACE,
-          "Could not convert "CFG_INTERFACE_SECTION" '%s' to binary (%d)",
-          data->name, -(result+1));
+      OONF_WARN(LOG_OS_INTERFACE, "Could not convert %s '%s' to binary (%d)",
+          _interface_section.type, data->name, -(result+1));
       return;
     }
   }

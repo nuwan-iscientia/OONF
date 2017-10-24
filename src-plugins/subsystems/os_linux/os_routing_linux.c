@@ -517,6 +517,7 @@ _routing_parse_nlmsg(struct os_route *route, struct nlmsghdr *msg) {
   rt_len = RTM_PAYLOAD(msg);
 
   if ((rt_msg->rtm_flags & RTM_F_CLONED) != 0) {
+    OONF_DEBUG(LOG_OS_ROUTING, "Received a cloned route");
     /* ignore cloned route events by returning the wildcard route */
     return 1;
   }
@@ -528,6 +529,7 @@ _routing_parse_nlmsg(struct os_route *route, struct nlmsghdr *msg) {
   route->p.family = rt_msg->rtm_family;
 
   if (route->p.family != AF_INET && route->p.family != AF_INET6) {
+    OONF_WARN(LOG_OS_ROUTING, "Got illegal route address family: %d", route->p.family);
     return -1;
   }
 
@@ -540,8 +542,8 @@ _routing_parse_nlmsg(struct os_route *route, struct nlmsghdr *msg) {
     }
   }
   if (route->p.type == OS_ROUTE_UNDEFINED) {
-    OONF_WARN(LOG_OS_ROUTING, "Got route type: %u", rt_msg->rtm_type);
-    return -1;
+    OONF_DEBUG(LOG_OS_ROUTING, "Got route type: %u", rt_msg->rtm_type);
+    return 2;
   }
 
   for(; RTA_OK(rt_attr, rt_len); rt_attr = RTA_NEXT(rt_attr,rt_len)) {
@@ -643,7 +645,7 @@ _cb_rtnetlink_message(struct nlmsghdr *msg) {
 
   if ((result = _routing_parse_nlmsg(&rt, msg))) {
     if (result < 0) {
-      OONF_WARN(LOG_OS_ROUTING, "Error while processing route reply");
+      OONF_WARN(LOG_OS_ROUTING, "Error while processing route reply (result %d)", result);
     }
     return;
   }

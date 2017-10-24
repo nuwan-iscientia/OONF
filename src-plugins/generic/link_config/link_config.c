@@ -98,8 +98,8 @@ static struct cfg_schema_entry _link_config_if_entries[] = {
 };
 
 static struct cfg_schema_section _link_config_section = {
-  .type = CFG_INTERFACE_SECTION,
-  .mode = CFG_INTERFACE_SECTION_MODE,
+  CFG_OSIF_SCHEMA_INTERFACE_SECTION_INIT,
+
   .cb_delta_handler = _cb_config_changed,
   .entries = _link_config_if_entries,
   .entry_count = ARRAYSIZE(_link_config_if_entries),

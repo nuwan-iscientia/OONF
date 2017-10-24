@@ -200,8 +200,8 @@ static void _cb_nl_done(uint32_t seq);
 
 /* configuration */
 static struct cfg_schema_section _if_section = {
-  .type = CFG_INTERFACE_SECTION,
-  .mode = CFG_INTERFACE_SECTION_MODE,
+  CFG_OSIF_SCHEMA_INTERFACE_SECTION_INIT,
+
   .cb_delta_handler = _cb_if_config_changed,
   .entries = NULL,
   .entry_count = 0,

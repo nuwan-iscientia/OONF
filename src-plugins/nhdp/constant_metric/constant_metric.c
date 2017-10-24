@@ -51,6 +51,7 @@
 #include "common/avl.h"
 #include "common/avl_comp.h"
 #include "config/cfg_schema.h"
+#include "config/cfg_tobin.h"
 #include "config/cfg_validate.h"
 #include "core/oonf_cfg.h"
 #include "core/oonf_logging.h"
@@ -79,11 +80,11 @@ struct _linkcost {
   /*! name of interface */
   char if_name[IF_NAMESIZE];
 
-  /*! neighbor IP the metric is restricted to, NULL if interface generic */
+  /*! neighbor IP the metric is restricted to, NULL if neighbor generic */
   struct netaddr neighbor;
 
   /*! configured metric */
-  uint32_t cost;
+  int32_t cost;
 };
 
 /* prototypes */
@@ -95,22 +96,23 @@ static void _cb_set_linkcost(struct oonf_timer_instance *);
 
 static int _avlcmp_linkcost(const void *, const void *);
 
-static int _cb_validate_link(const struct cfg_schema_entry *entry,
-      const char *section_name, const char *value, struct autobuf *out);
 static void _cb_cfg_changed(void);
 
 /* plugin declaration */
+static struct cfg_schema_entry _constant_entry[] = {
+  CFG_MAP_NETADDR_V46(_linkcost, neighbor, "neighbor", "-",
+      "Originator of neighbor, '-' for all neighbors", false, true),
+  CFG_MAP_INT32_MINMAX(_linkcost, cost, "cost", "1000",
+      "Link cost to neighbor (or all neighbors)", 0,
+      RFC7181_METRIC_MIN, RFC7181_METRIC_MAX),
+};
 static struct cfg_schema_entry _constant_entries[] = {
-  _CFG_VALIDATE("link", "", "Defines the static cost to the link to a neighbor."
-      " Value consists of the originator address (or '-' for all neighbors)"
-      " followed by the link cost",
-      .cb_validate = _cb_validate_link, .list = true),
+  CFG_VALIDATE_TOKENS("constant_metric", "", "Defines the static cost to the link to a neighbor.",
+      _constant_entry, .list=true),
 };
 
 static struct cfg_schema_section _constant_section = {
-  .type = OONF_CONSTANT_METRIC_SUBSYSTEM,
-  .mode = CFG_SSMODE_NAMED_WITH_DEFAULT,
-  .def_name = OS_INTERFACE_ANY,
+  CFG_OSIF_SCHEMA_INTERFACE_SECTION_INIT,
   .cb_delta_handler = _cb_cfg_changed,
   .entries = _constant_entries,
   .entry_count = ARRAYSIZE(_constant_entries),
@@ -311,54 +313,14 @@ _avlcmp_linkcost(const void *ptr1, const void *ptr2) {
 }
 
 /**
- * Validate configuration parameter for a constant metric
- * @param entry configuration schema entry
- * @param section_name name of section the entry was set
- * @param value value of the entry
- * @param out output buffer for error messages
- * @return -1 if validation failed, 0 otherwise
- */
-static int
-_cb_validate_link(const struct cfg_schema_entry *entry,
-      const char *section_name, const char *value, struct autobuf *out) {
-  struct isonumber_str sbuf;
-  struct netaddr_str nbuf;
-  const char *ptr;
-  int8_t af[] = { AF_INET, AF_INET6, AF_UNSPEC };
-
-  /* test if first word is a network address readable number */
-  ptr = str_cpynextword(nbuf.buf, value, sizeof(nbuf));
-  if (cfg_validate_netaddr(out, section_name, entry->key.entry, nbuf.buf,
-      false, af, ARRAYSIZE(af))) {
-    return -1;
-  }
-
-  /* test if second word is a human readable number */
-  ptr = str_cpynextword(sbuf.buf, ptr, sizeof(sbuf));
-  if (cfg_validate_int(out, section_name, entry->key.entry, sbuf.buf,
-      RFC7181_METRIC_MIN, RFC7181_METRIC_MAX, 4, 0)) {
-    return -1;
-  }
-
-  if (ptr) {
-    cfg_append_printable_line(out, "Value '%s' for entry '%s'"
-        " in section %s should have only an address and a link cost",
-        value, entry->key.entry, section_name);
-    return -1;
-  }
-  return 0;
-}
-
-/**
  * Callback triggered when configuration changes
  */
 static void
 _cb_cfg_changed(void) {
   struct _linkcost *lk, *lk_it;
   struct netaddr_str nbuf;
-  const char *ptr, *cost_ptr;
+  const char *ptr;
   const struct const_strarray *array;
-  int64_t cost;
 
   /* remove old entries for this interface */
   avl_for_each_element_safe(&_linkcost_tree, lk, _node, lk_it) {
@@ -378,25 +340,19 @@ _cb_cfg_changed(void) {
   strarray_for_each_element(array, ptr) {
     lk = oonf_class_malloc(&_linkcost_class);
     if (lk) {
-      cost_ptr = str_cpynextword(nbuf.buf, ptr, sizeof(nbuf));
-
-      strscpy(lk->if_name, _constant_section.section_name, IF_NAMESIZE);
-      if (netaddr_from_string(&lk->neighbor, nbuf.buf)) {
-        oonf_class_free(&_linkcost_class, lk);
-        continue;
+      if (cfg_tobin_tokens(lk, ptr, _constant_entry, ARRAYSIZE(_constant_entry), NULL)) {
+        OONF_WARN(LOG_CONSTANT_METRIC,
+            "Could not convert value '%s' in section/key '%s/%s' to binary",
+            _constant_section.type, _constant_entries[0].key.entry, ptr);
       }
-      if (isonumber_to_s64(&cost, cost_ptr, 0)) {
-        oonf_class_free(&_linkcost_class, lk);
-        continue;
+      else {
+        strscpy(lk->if_name, _constant_section.section_name, IF_NAMESIZE);
+        lk->_node.key = lk;
+        avl_insert(&_linkcost_tree, &lk->_node);
+
+        OONF_DEBUG(LOG_CONSTANT_METRIC, "Add entry (%s/%s: %d)",
+            lk->if_name, netaddr_to_string(&nbuf, &lk->neighbor), lk->cost);
       }
-
-      lk->cost = cost;
-
-      lk->_node.key = lk;
-      avl_insert(&_linkcost_tree, &lk->_node);
-
-      OONF_DEBUG(LOG_CONSTANT_METRIC, "Add entry (%s/%s: %s)",
-          lk->if_name, nbuf.buf, cost_ptr);
     }
   }
 

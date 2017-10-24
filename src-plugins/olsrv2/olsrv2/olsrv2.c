@@ -145,9 +145,6 @@ static int _init(void);
 static void _initiate_shutdown(void);
 static void _cleanup(void);
 
-static const char *_parse_lan_parameters(struct os_route_key *prefix,
-		struct _lan_data *dst, const char *src);
-static void _parse_lan_array(struct cfg_named_section *section, bool add);
 static void _cb_generate_tc(struct oonf_timer_instance *);
 
 static void _update_originator(int af_family);
@@ -171,9 +168,8 @@ static struct cfg_schema_entry _rt_domain_entries[] = {
 };
 
 static struct cfg_schema_section _rt_domain_section = {
-  .type = CFG_NHDP_DOMAIN_SECTION,
-  .mode = CFG_SSMODE_NAMED_WITH_DEFAULT,
-  .def_name = CFG_NHDP_DEFAULT_DOMAIN,
+  CFG_NHDP_SCHEMA_DOMAIN_SECTION_INIT,
+
   .cb_delta_handler = _cb_cfg_domain_changed,
   .entries = _rt_domain_entries,
   .entry_count = ARRAYSIZE(_rt_domain_entries),
@@ -197,15 +193,6 @@ static struct cfg_schema_entry _olsrv2_entries[] = {
   CFG_MAP_ACL_V46(_config, routable_acl, "routable_acl",
       OLSRV2_ROUTABLE_IPV4 OLSRV2_ROUTABLE_IPV6 ACL_DEFAULT_ACCEPT,
     "Filter to decide which addresses are considered routable"),
-
-  CFG_VALIDATE_LAN(_LOCAL_ATTACHED_NETWORK_KEY, "",
-    "locally attached network, a combination of an"
-    " ip address or prefix followed by an up to four optional parameters"
-    " which define link metric cost, hopcount distance, domain of the prefix"
-    " and the source-prefix ( <"LAN_OPTION_METRIC"...> <"LAN_OPTION_DIST"...>"
-    " <"LAN_OPTION_DOMAIN"<num>/all> <"LAN_OPTION_SRC"...> ).",
-    .list = true),
-
   CFG_MAP_ACL_V46(_config, originator_acl, "originator",
     OLSRV2_ORIGINATOR_IPV4 OLSRV2_ORIGINATOR_IPV6 ACL_DEFAULT_ACCEPT,
     "Filter for router originator addresses (ipv4 and ipv6)"
@@ -578,210 +565,6 @@ olsrv2_set_tc_validity(uint64_t interval) {
 }
 
 /**
- * Schema entry validator for an attached network.
- * See CFG_VALIDATE_ACL_*() macros.
- * @param entry pointer to schema entry
- * @param section_name name of section type and name
- * @param value value of schema entry
- * @param out pointer to autobuffer for validator output
- * @return 0 if validation found no problems, -1 otherwise
- */
-int
-olsrv2_validate_lan(const struct cfg_schema_entry *entry,
-    const char *section_name, const char *value, struct autobuf *out) {
-  struct netaddr_str buf;
-  struct _lan_data data;
-  const char *ptr, *result;
-  struct os_route_key prefix;
-
-  if (value == NULL) {
-    cfg_schema_help_netaddr(entry, out);
-    cfg_append_printable_line(out,
-        "    This value is followed by a list of four optional parameters.");
-    cfg_append_printable_line(out,
-        "    - '"LAN_OPTION_SRC"<prefix>' the source specific prefix of this attached network."
-        " The default is 2.");
-    cfg_append_printable_line(out,
-        "    - '"LAN_OPTION_METRIC"<m>' the link metric of the LAN (between %u and %u)."
-        " The default is 0.", RFC7181_METRIC_MIN, RFC7181_METRIC_MAX);
-    cfg_append_printable_line(out,
-        "    - '"LAN_OPTION_DOMAIN"<d>' the domain of the LAN (between 0 and 255) or 'all'."
-        " The default is all.");
-    cfg_append_printable_line(out,
-        "    - '"LAN_OPTION_DIST"<d>' the hopcount distance of the LAN (between 0 and 255)."
-        " The default is 2.");
-    return 0;
-  }
-
-  ptr = str_cpynextword(buf.buf, value, sizeof(buf));
-  if (cfg_schema_validate_netaddr(entry, section_name, buf.buf, out)) {
-    /* check prefix first */
-    return -1;
-  }
-
-  if (netaddr_from_string(&prefix.dst, buf.buf)) {
-    return -1;
-  }
-
-  result = _parse_lan_parameters(&prefix, &data, ptr);
-  if (result) {
-    cfg_append_printable_line(out, "Value '%s' for entry '%s'"
-        " in section %s has %s",
-        value, entry->key.entry, section_name, result);
-    return -1;
-  }
-
-  if (data.metric < RFC7181_METRIC_MIN || data.metric > RFC7181_METRIC_MAX) {
-    cfg_append_printable_line(out, "Metric %u for prefix %s must be between %u and %u",
-        data.metric, buf.buf, RFC7181_METRIC_MIN, RFC7181_METRIC_MAX);
-    return -1;
-  }
-  if (data.dist > 255) {
-    cfg_append_printable_line(out,
-        "Distance %u for prefix %s must be between 0 and 255", data.dist, buf.buf);
-    return -1;
-  }
-
-  return 0;
-}
-
-/**
- * Parse parameters of lan prefix string
- * @param prefix source specific prefix (to store source prefix)
- * @param dst pointer to data structure to store results.
- * @param src source string
- * @return NULL if parser worked without an error, a pointer
- *   to the suffix of the error message otherwise.
- */
-static const char *
-_parse_lan_parameters(struct os_route_key *prefix,
-		struct _lan_data *dst, const char *src) {
-  char buffer[64];
-  const char *ptr, *next;
-  unsigned ext;
-
-  ptr = src;
-  dst->ext = -1;
-  dst->metric = LAN_DEFAULT_METRIC;
-  dst->dist   = LAN_DEFAULT_DISTANCE;
-
-  while (ptr != NULL) {
-    next = str_cpynextword(buffer, ptr, sizeof(buffer));
-
-    if (strncasecmp(buffer, LAN_OPTION_METRIC, 7) == 0) {
-      dst->metric = strtoul(&buffer[7], NULL, 0);
-      if (dst->metric == 0 && errno != 0) {
-        return "an illegal metric parameter";
-      }
-    }
-    else if (strncasecmp(buffer, LAN_OPTION_DOMAIN, 7) == 0) {
-      if (strcasecmp(&buffer[7], "all") == 0) {
-        dst->ext = -1;
-      }
-      else {
-        ext = strtoul(&buffer[7], NULL, 10);
-        if ((ext == 0 && errno != 0) || ext > 255) {
-          return "an illegal domain parameter";
-        }
-        dst->ext = ext;
-      }
-    }
-    else if (strncasecmp(buffer, LAN_OPTION_DIST, 5) == 0) {
-      dst->dist = strtoul(&buffer[5], NULL, 10);
-      if (dst->dist == 0 && errno != 0) {
-        return "an illegal distance parameter";
-      }
-    }
-    else if (strncasecmp(buffer, LAN_OPTION_SRC, 4) == 0) {
-      if (netaddr_from_string(&prefix->src, &buffer[4])) {
-        return "an illegal source prefix";
-      }
-      if (netaddr_get_address_family(&prefix->dst)
-            != netaddr_get_address_family(&prefix->src)) {
-    	  return "an illegal source prefix address type";
-      }
-      if (!os_routing_supports_source_specific(
-          netaddr_get_address_family(&prefix->dst))) {
-        return "an unsupported sourc specific prefix";
-      }
-    }
-    else {
-      return "an unknown parameter";
-    }
-    ptr = next;
-  }
-  return NULL;
-}
-
-/**
- * Takes a named configuration section, extracts the attached network
- * array and apply it
- * @param section pointer to configuration section.
- * @param add true if new lan entries should be created, false if
- *   existing entries should be removed.
- */
-static void
-_parse_lan_array(struct cfg_named_section *section, bool add) {
-  struct netaddr_str addr_buf;
-  struct netaddr addr;
-  struct os_route_key prefix;
-  struct _lan_data data;
-  struct nhdp_domain *domain;
-
-  const char *value, *ptr;
-  struct cfg_entry *entry;
-
-  if (section == NULL) {
-    return;
-  }
-
-  entry = cfg_db_get_entry(section, _LOCAL_ATTACHED_NETWORK_KEY);
-  if (entry == NULL) {
-    return;
-  }
-
-  strarray_for_each_element(&entry->val, value) {
-    /* extract data */
-    ptr = str_cpynextword(addr_buf.buf, value, sizeof(addr_buf));
-    if (netaddr_from_string(&addr, addr_buf.buf)) {
-      continue;
-    }
-
-    os_routing_init_sourcespec_prefix(&prefix, &addr);
-
-    /* truncate address */
-    netaddr_truncate(&prefix.dst, &prefix.dst);
-
-    if (_parse_lan_parameters(&prefix, &data, ptr)) {
-      continue;
-    }
-
-    if (data.ext == -1) {
-      list_for_each_element(nhdp_domain_get_list(), domain, _node) {
-        if (add) {
-          olsrv2_lan_add(domain, &prefix, data.metric, data.dist);
-        }
-        else {
-          olsrv2_lan_remove(domain, &prefix);
-        }
-      }
-    }
-    else {
-      domain = nhdp_domain_add(data.ext);
-      if (!domain) {
-        continue;
-      }
-      if (add) {
-        olsrv2_lan_add(domain, &prefix, data.metric, data.dist);
-      }
-      else {
-        olsrv2_lan_remove(domain, &prefix);
-      }
-    }
-  }
-}
-
-/**
  * Callback to trigger normal tc generation with timer
  * @param ptr timer instance that fired
  */
@@ -941,12 +724,6 @@ _cb_cfg_olsrv2_changed(void) {
   /* check if we have to change the originators */
   _update_originator(AF_INET);
   _update_originator(AF_INET6);
-
-  /* run through all pre-update LAN entries and remove them */
-  _parse_lan_array(_olsrv2_section.pre, false);
-
-  /* run through all post-update LAN entries and add them */
-  _parse_lan_array(_olsrv2_section.post, true);
 }
 
 /**

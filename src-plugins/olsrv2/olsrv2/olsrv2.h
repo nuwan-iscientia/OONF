@@ -71,15 +71,6 @@
 /*! default IPv6 originator addresses */
 #define OLSRV2_ORIGINATOR_IPV6 "-::1\0-ff00::/8\0"
 
-/**
- * Creates a cfg_schema_entry for a locally attached network
- * @param p_name parameter name
- * @param p_def parameter default value
- * @param p_help help text for configuration entry
- * @param args variable list of additional arguments
- */
-#define CFG_VALIDATE_LAN(p_name, p_def, p_help, args...)         _CFG_VALIDATE(p_name, p_def, p_help, .cb_validate = olsrv2_validate_lan, .validate_param = {{.i8 = {AF_INET, AF_INET6, -1,-1, -1}}, {.b = true}}, ##args )
-
 EXPORT uint64_t olsrv2_get_tc_interval(void);
 EXPORT uint64_t olsrv2_get_tc_validity(void);
 EXPORT bool olsrv2_is_nhdp_routable(struct netaddr *addr);
@@ -90,9 +81,6 @@ EXPORT bool olsrv2_mpr_shall_forwarding(
     struct rfc5444_reader_tlvblock_context *context,
     struct netaddr *source_address, uint64_t vtime);
 EXPORT void olsrv2_generate_tcs(bool);
-EXPORT int olsrv2_validate_lan(const struct cfg_schema_entry *entry,
-    const char *section_name, const char *value, struct autobuf *out);
-
 EXPORT uint64_t olsrv2_set_tc_interval(uint64_t new_interval);
 EXPORT uint64_t olsrv2_set_tc_validity(uint64_t new_interval);
 
