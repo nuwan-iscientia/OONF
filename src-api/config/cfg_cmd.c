@@ -51,6 +51,7 @@
 #include "common/common_types.h"
 #include "config/cfg_io.h"
 #include "config/cfg_cmd.h"
+#include "config/cfg_help.h"
 
 /**
  *  contains data parsing logic */
@@ -347,14 +348,15 @@ cfg_cmd_handle_schema(struct cfg_db *db,
         "(use this command with the types as parameter for more information)\n");
     avl_for_each_element(&db->schema->sections, s_section, _section_node) {
       if (!s_section->_section_node.follower) {
-        cfg_append_printable_line(log, "    %s (%s)%s%s",
+        cfg_append_printable_line(log, CFG_HELP_INDENT_PREFIX "%s (%s)%s%s",
             s_section->type,
             CFG_SCHEMA_SECTIONMODE[s_section->mode],
             s_section->help ? ": " : "",
             s_section->help ? s_section->help : "");
       }
       else if (s_section->help) {
-        cfg_append_printable_line(log, "        %s", s_section->help);
+        cfg_append_printable_line(log,
+            CFG_HELP_INDENT_PREFIX CFG_HELP_INDENT_PREFIX "%s", s_section->help);
       }
     }
     return 0;
@@ -431,14 +433,15 @@ _print_schema_section(struct autobuf *log, struct cfg_db *db, const char *sectio
     }
 
     if (!s_entry_it->_node.follower) {
-      cfg_append_printable_line(log, "    %s%s%s",
+      cfg_append_printable_line(log, CFG_HELP_INDENT_PREFIX "%s%s%s",
           s_entry_it->key.entry,
           strarray_is_empty_c(&s_entry_it->def) ? " (mandatory)" : "",
               s_entry_it->list ? " (list)" : "");
     }
 #if !defined(REMOVE_HELPTEXT)
     if (s_entry_it->help) {
-      cfg_append_printable_line(log, "        %s", s_entry_it->help);
+      cfg_append_printable_line(log,
+          CFG_HELP_INDENT_PREFIX CFG_HELP_INDENT_PREFIX "%s", s_entry_it->help);
     }
 #endif
   }
@@ -461,16 +464,17 @@ _print_schema_entry(struct autobuf *log, struct cfg_db *db,
   avl_for_each_elements_with_key(&db->schema->entries, s_entry_it, _node, s_entry_first, &key) {
     if (s_entry_it == s_entry_first) {
       /* print type/parameter */
-      cfg_append_printable_line(log, "    %s%s%s",
+      cfg_append_printable_line(log, CFG_HELP_INDENT_PREFIX "%s%s%s",
           s_entry_it->key.entry,
           strarray_is_empty_c(&s_entry_it->def) ? " (mandatory)" : "",
               s_entry_it->list ? " (list)" : "");
 
       /* print defaults */
       if (!strarray_is_empty_c(&s_entry_it->def)) {
-        cfg_append_printable_line(log, "    Default value:");
+        cfg_append_printable_line(log, CFG_HELP_INDENT_PREFIX "Default value:");
         strarray_for_each_element(&s_entry_it->def, c_ptr) {
-          cfg_append_printable_line(log, "        '%s'", c_ptr);
+          cfg_append_printable_line(log,
+              CFG_HELP_INDENT_PREFIX CFG_HELP_INDENT_PREFIX "'%s'", c_ptr);
         }
       }
     }
@@ -491,9 +495,10 @@ _print_schema_entry(struct autobuf *log, struct cfg_db *db,
     /* print help text */
     if (s_entry_it->help) {
       if (s_entry_it == s_entry_first) {
-        abuf_puts(log, "    Description:\n");
+        abuf_puts(log, CFG_HELP_INDENT_PREFIX "Description:\n");
       }
-      cfg_append_printable_line(log, "        %s", s_entry_it->help);
+      cfg_append_printable_line(log,
+          CFG_HELP_INDENT_PREFIX CFG_HELP_INDENT_PREFIX "%s", s_entry_it->help);
     }
   }
 #endif

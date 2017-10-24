@@ -44,6 +44,7 @@
  */
 
 #include <errno.h>
+#include <stdio.h>
 
 #include "common/common_types.h"
 #include "common/autobuf.h"
@@ -113,10 +114,11 @@ cfg_validate_strlen(struct autobuf *out, const char *section_name,
  */
 int
 cfg_validate_choice(struct autobuf *out, const char *section_name,
-    const char *entry_name, const char *value, const char **choices,
-    size_t choices_count) {
+    const char *entry_name, const char *value,
+    const char *(*callback)(size_t idx, const void *ptr),
+    size_t choices_count, const void *ptr) {
   int i;
-  i = cfg_get_choice_index(value, choices, choices_count);
+  i = cfg_get_choice_index(value, callback, choices_count, ptr);
   if (i >= 0) {
     return 0;
   }
@@ -303,6 +305,62 @@ cfg_validate_bitmap256(struct autobuf *out,
         " (with optional '-' in front of the number)",
         value, entry_name, section_name);
     return -1;
+  }
+  return 0;
+}
+
+/**
+ * Validates if a value is defined as in a list of configuration
+ * entries split by whitespaces.
+ * @param out output buffer for error messages
+ * @param section_name name of configuration section
+ * @param entry_name name of configuration entry
+ * @param value value that needs to be validated
+ * @param entries pointer to array of configuration entries
+ * @param entry_count number of configuration entries
+ * @return 0 if value is valid, -1 otherwise
+ */
+int
+cfg_validate_tokens(struct autobuf *out,
+    const char *section_name, const char *entry_name, const char *value,
+    struct cfg_schema_entry *entries, size_t entry_count,
+    struct cfg_schema_token_customizer *custom) {
+  char buffer[256];
+  char section_name_entry[32];
+  const char *ptr;
+  size_t i;
+
+  if (str_countwords(value) < entry_count) {
+    cfg_append_printable_line(out, "Missing token for entry '%s'"
+        " in section %s. At least %"PRINTF_SIZE_T_SPECIFIER" tokens"
+        " expected. Tokens must be separated by whitespaces.",
+        entry_name, section_name, entry_count);
+    return -1;
+  }
+  snprintf(section_name_entry, sizeof(section_name_entry), "%s.%s",
+      section_name, entry_name);
+
+  /* check each token */
+  ptr = value;
+  for (i=0; i<entry_count-1; i++) {
+    ptr = str_cpynextword(buffer, ptr, sizeof(buffer));
+
+    /* see if token is valid */
+    if (entries[i].cb_validate(&entries[i], section_name_entry,
+        buffer, out)) {
+      return -1;
+    }
+  }
+
+  /* see if the rest of the value is a valid "last" token */
+  if (entries[i].cb_validate(&entries[entry_count-1],
+      section_name_entry, ptr, out)) {
+    return -1;
+  }
+
+  if (custom && custom->cb_validator) {
+    return custom->cb_validator(out, section_name, entry_name,
+        value, entries, entry_count);
   }
   return 0;
 }

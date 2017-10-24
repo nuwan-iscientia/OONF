@@ -156,6 +156,22 @@ struct cfg_schema_entry;
 
 /**
  * Creates a cfg_schema_entry for a parameter that can be choosen
+ * from a fixed list defined by a callback.
+ * @param p_name parameter name
+ * @param p_def parameter default value
+ * @param p_help help text for configuration entry
+ * @param p_choice_cb reference a function with a size_t argument and a
+ *   const void pointer argument stored in the schema entry
+ *   that returns a const char pointer, the choice with the given index.
+ *   see cfg_schema_get_choice_value() function as an example
+ * @param p_choice_count number of elements in the list
+ * @param p_choice_arg argument for choice callback function
+ * @param args variable list of additional arguments
+ */
+#define CFG_VALIDATE_CHOICE_CB_ARG(p_name, p_def, p_help, p_choice_cb, p_choice_count, p_choice_arg, args...)   _CFG_VALIDATE(p_name, p_def, p_help, .cb_validate = cfg_schema_validate_choice, .cb_valhelp = cfg_schema_help_choice, .validate_param = {{.ptr = (p_choice_cb)}, {.s = (p_choice_count)}, {.ptr = (p_choice_arg)}}, ##args )
+
+/**
+ * Creates a cfg_schema_entry for a parameter that can be choosen
  * from a fixed list.
  * @param p_name parameter name
  * @param p_def parameter default value
@@ -164,7 +180,22 @@ struct cfg_schema_entry;
  *   (not a pointer to the array, ARRAYSIZE() would not work)
  * @param args variable list of additional arguments
  */
-#define CFG_VALIDATE_CHOICE(p_name, p_def, p_help, p_list, args...)                          _CFG_VALIDATE(p_name, p_def, p_help, .cb_validate = cfg_schema_validate_choice, .cb_valhelp = cfg_schema_help_choice, .validate_param = {{.ptr = (p_list)}, { .s = ARRAYSIZE(p_list)}}, ##args )
+#define CFG_VALIDATE_CHOICE(p_name, p_def, p_help, p_list, args...)                           CFG_VALIDATE_CHOICE_CB_ARG(p_name, p_def, p_help, cfg_schema_get_choice_value, ARRAYSIZE(p_list), p_list, ##args )
+
+/**
+ * Creates a cfg_schema_entry for a parameter that can be choosen
+ * from a fixed list defined by a callback.
+ * @param p_name parameter name
+ * @param p_def parameter default value
+ * @param p_help help text for configuration entry
+ * @param p_choice_cb reference a function with a size_t argument and a
+ *   const void pointer argument stored in the schema entry
+ *   that returns a const char pointer, the choice with the given index.
+ *   see cfg_schema_get_choice_value() function as an example
+ * @param p_choice_count number of elements in the list
+ * @param args variable list of additional arguments
+ */
+#define CFG_VALIDATE_CHOICE_CB(p_name, p_def, p_help, p_choice_cb, p_choice_count, args...)   CFG_VALIDATE_CHOICE_CB_ARG(p_name, p_def, p_help, p_choice_cb, p_choice_count, NULL, ##args )
 
 /**
  * Creates a cfg_schema_entry for a 32 bit signed integer parameter
@@ -379,6 +410,28 @@ struct cfg_schema_entry;
  */
 #define CFG_VALIDATE_BOOL(p_name, p_def, p_help, args...)                                    CFG_VALIDATE_CHOICE(p_name, p_def, p_help, CFGLIST_BOOL, ##args)
 
+/**
+ * Creates a cfg_schema_entry for a list of parameters, split by spaces
+ * @param p_name parameter name
+ * @param p_def parameter default value
+ * @param p_help help text for configuration entry
+ * @param schema_entries array of schema entries for tokens
+ * @param args variable list of additional arguments
+ */
+#define CFG_VALIDATE_TOKENS(p_name, p_def, p_help, schema_entries, args...)                  _CFG_VALIDATE(p_name, p_def, p_help, .cb_validate = cfg_schema_validate_tokens, .cb_valhelp = cfg_schema_help_token, .validate_param = {{.ptr = (schema_entries)}, {.s = ARRAYSIZE(schema_entries)}}, ##args)
+
+/**
+ * Creates a cfg_schema_entry for a list of parameters, split by spaces.
+ * Contains a pointer to a customizer for validation, binary conversion
+ * and help output.
+ * @param p_help help text for configuration entry
+ * @param schema_entries array of schema entries for tokens
+ * @param custom pointer to customizer for tokens
+ * @param args variable list of additional arguments
+ */
+#define CFG_VALIDATE_TOKENS_CUSTOM(p_name, p_def, p_help, schema_entries, custom, args...)   _CFG_VALIDATE(p_name, p_def, p_help, .cb_validate = cfg_schema_validate_tokens, .cb_valhelp = cfg_schema_help_token, .validate_param = {{.ptr = (schema_entries)}, {.s = ARRAYSIZE(schema_entries)}, {.ptr = &(custom)}}, ##args)
+
+
 /*
  * Example of a section schema definition with binary mapping
  *
@@ -514,7 +567,26 @@ struct cfg_schema_entry;
 #define CFG_MAP_PRINTABLE_ARRAY(p_reference, p_field, p_name, p_def, p_help, maxlen, args...)                 CFG_VALIDATE_PRINTABLE_LEN(p_name, p_def, p_help, maxlen, .cb_to_binary = cfg_schema_tobin_strarray, .bin_size = calculate_size(p_reference, p_field), .bin_offset = offsetof(struct p_reference, p_field), ##args)
 
 /**
+ * Creates a cfg_schema_entry for a parameter that can be chosen
+ * from a fixed list defined by a callback.
+ * @param p_reference reference to instance of struct
+ * @param p_field name of field in the struct for the parameter,
+ * @param p_name parameter name
+ * @param p_def parameter default value
+ * @param p_help help text for configuration entry
+ * @param p_choice_cb reference a function with a size_t argument and a
+ *   const void pointer argument stored in the schema entry
+ *   that returns a const char pointer, the choice with the given index.
+ *   see cfg_schema_get_choice_value() function as an example
+ * @param p_choice_count number of elements in the list
+ * @param p_choice_arg argument for choice callback function
+ * @param args variable list of additional arguments
+ */
+#define CFG_MAP_CHOICE_CB_ARG(p_reference, p_field, p_name, p_def, p_help, p_choice_cb, p_choice_count, p_choice_arg, args...)   CFG_VALIDATE_CHOICE_CB_ARG(p_name, p_def, p_help, p_choice_cb, p_choice_count, p_choice_arg, .cb_to_binary = cfg_schema_tobin_choice, .bin_size = calculate_size(p_reference, p_field), .bin_offset = offsetof(struct p_reference, p_field), ##args )
+
+/**
  * Creates a cfg_schema_entry for a parameter that can be choosen
+ * from a fixed list.
  * @param p_reference reference to instance of struct
  * @param p_field name of field in the struct for the parameter,
  *   it must be an integer for the index of the selected choice
@@ -526,7 +598,23 @@ struct cfg_schema_entry;
  *   (not a pointer to the array, ARRAYSIZE() would not work)
  * @param args variable list of additional arguments
  */
-#define CFG_MAP_CHOICE(p_reference, p_field, p_name, p_def, p_help, p_list, args...)                          CFG_VALIDATE_CHOICE(p_name, p_def, p_help, p_list, .cb_to_binary = cfg_schema_tobin_choice, .bin_size = calculate_size(p_reference, p_field), .bin_offset = offsetof(struct p_reference, p_field), ##args)
+#define CFG_MAP_CHOICE_CB(p_reference, p_field, p_name, p_def, p_help, p_choice_cb, p_choice_count, args...)                          CFG_MAP_CHOICE_CB_ARG(p_reference, p_field, p_name, p_def, p_help, p_choice_cb, p_choice_count, NULL, ##args)
+
+/**
+ * Creates a cfg_schema_entry for a parameter that can be choosen
+ * from a fixed list.
+ * @param p_reference reference to instance of struct
+ * @param p_field name of field in the struct for the parameter,
+ *   it must be an integer for the index of the selected choice
+ * @param p_name parameter name
+ * from a fixed list and can be mapped into a binary struct
+ * @param p_def parameter default value
+ * @param p_help help text for configuration entry
+ * @param p_list reference to an array of string pointers with the options
+ *   (not a pointer to the array, ARRAYSIZE() would not work)
+ * @param args variable list of additional arguments
+ */
+#define CFG_MAP_CHOICE(p_reference, p_field, p_name, p_def, p_help, p_list, args...)                          CFG_MAP_CHOICE_CB_ARG(p_reference, p_field, p_name, p_def, p_help, cfg_schema_get_choice_value, ARRAYSIZE(p_list), p_list, ##args)
 
 /**
  * Creates a cfg_schema_entry for a 32 bit signed integer parameter
@@ -829,6 +917,28 @@ struct cfg_schema_entry;
  */
 #define CFG_MAP_STRINGLIST(p_reference, p_field, p_name, p_def, p_help, args...)                              _CFG_VALIDATE(p_name, p_def, p_help, .cb_to_binary = cfg_schema_tobin_stringlist, .bin_size = calculate_size(p_reference, p_field), .bin_offset = offsetof(struct p_reference, p_field), .list = true, ##args )
 
+/**
+ * Creates a cfg_schema_entry for a list of parameters, split by spaces
+ * that can be mapped into a binary struct
+ * @param p_name parameter name
+ * @param p_def parameter default value
+ * @param p_help help text for configuration entry
+ * @param schema_entries array of schema entries for tokens
+ * @param args variable list of additional arguments
+ */
+#define CFG_MAP_TOKENS(p_name, p_def, p_help, schema_entries, args...)                                        CFG_VALIDATE_TOKENS(p_name, p_def, p_help, schema_entries, .cb_to_binary = cfg_schema_tobin_tokens, ##args)
+/**
+ * Creates a cfg_schema_entry for a list of parameters, split by spaces
+ * that can be mapped into a binary struct. Contains a pointer to
+ * a customizer for validation, binary conversion and help output.
+ * @param p_name parameter name
+ * @param p_def parameter default value
+ * @param p_help help text for configuration entry
+ * @param schema_entries array of schema entries for tokens
+ * @param custom pointer to customizer for tokens
+ * @param args variable list of additional arguments
+ */
+#define CFG_MAP_TOKENS_CUSTOM(p_name, p_def, p_help, schema_entries, custom, args...)                         CFG_VALIDATE_TOKENS(p_name, p_def, p_help, schema_entries, custom, .cb_to_binary = cfg_schema_tobin_tokens, ##args)
 
 /*! convenience definition for configuration that only allows access from loopback */
 #define ACL_LOCALHOST_ONLY "+127.0.0.1/8\0+::1/128\0" ACL_DEFAULT_REJECT
@@ -1038,6 +1148,48 @@ struct cfg_schema_entry {
   bool delta_changed;
 };
 
+/**
+ * Callback table to customize the behavior of a TOKEN configuration
+ * entry, which might be necessary if the tokens depend on each other
+ * for validation and conversion to binary.
+ */
+struct cfg_schema_token_customizer {
+  /**
+   * Additional validator, will be called after all schema entries have
+   * been successfully validated with their own validator.
+   * @param out buffer for text output of validation
+   * @param section_name name of configuration section
+   * @param entry_name name of configuration entry
+   * @param value complete token string defined by the user
+   * @param entries pointer to array of schema entries for token
+   * @param entry_count number of schema entries for token
+   * @return -1 if validation failed, 0 otherwise
+   */
+  int (*cb_validator)(struct autobuf *out,
+      const char *section_name, const char *entry_name,
+      const char *value, struct cfg_schema_entry *entries, size_t entry_count);
+
+  /**
+   * Additional binary converter for TOKENs
+   * @param entries pointer to array of schema entries for token
+   * @param entry_count number of schema entries for token
+   * @param value string array of values specified by the user, use only first
+   *   string if converter does not need multiple entries
+   * @param ptr pointer to the beginning of the data structure used for
+   *   placing the content of the tokens
+   * @return -1 if an error happened, 0 otherwise
+   */
+  int (*cb_tobin)(struct cfg_schema_entry *entries, size_t entry_count,
+      const char *value, void *ptr);
+
+  /**
+   * Additional help output generator for TOKENs
+   * @param entry token schema entry
+   * @param out buffer for help text output
+   */
+  void (*cb_valhelp)(const struct cfg_schema_entry *entry, struct autobuf *out);
+};
+
 /*! List of strings that are considered valid boolean options */
 #define CFGLIST_BOOL_VALUES "true", "1", "on", "yes", "false", "0", "off", "no"
 
@@ -1064,6 +1216,8 @@ EXPORT int cfg_schema_handle_db_startup_changes(struct cfg_db *db);
 
 EXPORT int cfg_avlcmp_schemaentries(const void *p1, const void *p2);
 
+EXPORT const char *cfg_schema_get_choice_value(size_t idx, const void *ptr);
+
 EXPORT int cfg_schema_validate_printable(const struct cfg_schema_entry *entry,
     const char *section_name, const char *value, struct autobuf *out);
 EXPORT int cfg_schema_validate_strlen(const struct cfg_schema_entry *entry,
@@ -1077,6 +1231,8 @@ EXPORT int cfg_schema_validate_netaddr(const struct cfg_schema_entry *entry,
 EXPORT int cfg_schema_validate_acl(const struct cfg_schema_entry *entry,
     const char *section_name, const char *value, struct autobuf *out);
 EXPORT int cfg_schema_validate_bitmap256(const struct cfg_schema_entry *entry,
+    const char *section_name, const char *value, struct autobuf *out);
+EXPORT int cfg_schema_validate_tokens(const struct cfg_schema_entry *entry,
     const char *section_name, const char *value, struct autobuf *out);
 
 EXPORT void cfg_schema_help_printable(
@@ -1092,6 +1248,8 @@ EXPORT void cfg_schema_help_netaddr(
 EXPORT void cfg_schema_help_acl(
     const struct cfg_schema_entry *entry, struct autobuf *out);
 EXPORT void cfg_schema_help_bitmap256(
+    const struct cfg_schema_entry *entry, struct autobuf *out);
+EXPORT void cfg_schema_help_token(
     const struct cfg_schema_entry *entry, struct autobuf *out);
 
 EXPORT int cfg_schema_tobin_strptr(const struct cfg_schema_entry *s_entry,
@@ -1112,6 +1270,8 @@ EXPORT int cfg_schema_tobin_acl(const struct cfg_schema_entry *s_entry,
     const struct const_strarray *value, void *reference);
 EXPORT int cfg_schema_tobin_bitmap256(const struct cfg_schema_entry *s_entry,
      const struct const_strarray *value, void *reference);
+EXPORT int cfg_schema_tobin_tokens(const struct cfg_schema_entry *s_entry,
+    const struct const_strarray *value, void *reference);
 
 /**
  * Finds a section in a schema

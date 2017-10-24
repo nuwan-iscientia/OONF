@@ -61,8 +61,9 @@
 #include "config/cfg.h"
 #include "config/cfg_db.h"
 #include "config/cfg_help.h"
-#include "config/cfg_schema.h"
+#include "config/cfg_tobin.h"
 #include "config/cfg_validate.h"
+#include "config/cfg_schema.h"
 
 static bool _validate_cfg_entry(
     struct cfg_db *db, struct cfg_section_type *section,
@@ -458,6 +459,20 @@ cfg_avlcmp_schemaentries(const void *p1, const void *p2) {
 }
 
 /**
+ * Helper function to get a value from an string array.
+ * Used by the CFG_xxx_CHOICE macro
+ * @param idx index to be retrieved from the string array
+ * @param ptr pointer to string array
+ * @return array element
+ */
+const char *
+cfg_schema_get_choice_value(size_t idx, const void *ptr) {
+  const char* const *array = ptr;
+
+  return array[idx];
+}
+
+/**
  * Schema entry validator for string maximum length.
  * See CFG_VALIDATE_STRING_LEN() macro in cfg_schema.h
  * @param entry pointer to schema entry
@@ -504,8 +519,11 @@ int
 cfg_schema_validate_choice(const struct cfg_schema_entry *entry,
     const char *section_name, const char *value, struct autobuf *out) {
   return cfg_validate_choice(out, section_name, entry->key.entry, value,
-      entry->validate_param[0].ptr, entry->validate_param[1].s);
+      entry->validate_param[0].ptr, entry->validate_param[1].s,
+      entry->validate_param[2].ptr);
 }
+
+
 
 /**
  * Schema entry validator for integers.
@@ -573,6 +591,22 @@ cfg_schema_validate_bitmap256(const struct cfg_schema_entry *entry,
 }
 
 /**
+ * Schema entry validator for a Token of space separated
+ * entries of a "sub"-schema.
+ * @param entry pointer to schema entry
+ * @param section_name name of section type and name
+ * @param value value of schema entry
+ * @param out pointer to autobuffer for validator output
+ * @return 0 if validation found no problems, -1 otherwise
+ */
+int
+cfg_schema_validate_tokens(const struct cfg_schema_entry *entry,
+    const char *section_name, const char *value, struct autobuf *out) {
+  return cfg_validate_tokens(out, section_name, entry->key.entry, value,
+      entry->validate_param[0].ptr, entry->validate_param[1].s,
+      entry->validate_param[2].ptr);
+}
+/**
  * Help generator for string maximum length validator.
  * See CFG_VALIDATE_STRING_LEN() macro in cfg_schema.h
  * @param entry pointer to schema entry
@@ -608,7 +642,7 @@ void
 cfg_schema_help_choice(
     const struct cfg_schema_entry *entry, struct autobuf *out) {
   cfg_help_choice(out, true, entry->validate_param[0].ptr,
-      entry->validate_param[1].s);
+      entry->validate_param[1].s, entry->validate_param[2].ptr);
 }
 
 /**
@@ -664,6 +698,21 @@ cfg_schema_help_bitmap256(
 }
 
 /**
+ * Help generator for token validator.
+ * See CFG_VALIDATE_TOKEN() macro in cfg_schema.h
+ * @param entry pointer to schema entry
+ * @param out pointer to autobuffer for help output
+ */
+void
+cfg_schema_help_token(
+    const struct cfg_schema_entry *entry, struct autobuf *out) {
+  cfg_help_token(out, true, entry,
+      entry->validate_param[0].ptr, entry->validate_param[1].s,
+      entry->validate_param[2].ptr);
+}
+
+
+/**
  * Binary converter for string pointers. This validator will
  * allocate additional memory for the string.
  * See CFG_MAP_STRING() and CFG_MAP_STRING_LEN() macro
@@ -674,21 +723,13 @@ cfg_schema_help_bitmap256(
  * @return 0 if conversion succeeded, -1 otherwise.
  */
 int
-cfg_schema_tobin_strptr(const struct cfg_schema_entry *s_entry __attribute__((unused)),
+cfg_schema_tobin_strptr(const struct cfg_schema_entry *s_entry,
     const struct const_strarray *value, void *reference) {
-  char **ptr;
-
-  if (s_entry->bin_size != sizeof(*ptr)) {
+  if (s_entry->list) {
+    /* we don't support direct list conversion to binary */
     return -1;
   }
-
-  ptr = (char **)reference;
-  if (*ptr) {
-    free(*ptr);
-  }
-
-  *ptr = strdup(strarray_get_first_c(value));
-  return *ptr == NULL ? -1 : 0;
+  return cfg_tobin_strptr(reference, s_entry->bin_size, value);
 }
 
 /**
@@ -702,16 +743,12 @@ cfg_schema_tobin_strptr(const struct cfg_schema_entry *s_entry __attribute__((un
 int
 cfg_schema_tobin_strarray(const struct cfg_schema_entry *s_entry,
     const struct const_strarray *value, void *reference) {
-  char *ptr;
-
-  if (s_entry->bin_size < s_entry->validate_param[0].s) {
+  if (s_entry->list) {
+    /* we don't support direct list conversion to binary */
     return -1;
   }
-
-  ptr = (char *)reference;
-
-  strscpy(ptr, strarray_get_first_c(value), s_entry->validate_param[0].s);
-  return 0;
+  return cfg_tobin_strarray(reference, s_entry->bin_size, value,
+      s_entry->validate_param[0].s);
 }
 
 /**
@@ -726,17 +763,13 @@ cfg_schema_tobin_strarray(const struct cfg_schema_entry *s_entry,
 int
 cfg_schema_tobin_choice(const struct cfg_schema_entry *s_entry,
     const struct const_strarray *value, void *reference) {
-  int *ptr;
-
-  if (s_entry->bin_size != sizeof(int)) {
+  if (s_entry->list) {
+    /* we don't support direct list conversion to binary */
     return -1;
   }
-
-  ptr = (int *)reference;
-
-  *ptr = cfg_get_choice_index(strarray_get_first_c(value),
-      s_entry->validate_param[0].ptr, s_entry->validate_param[1].s);
-  return 0;
+  return cfg_tobin_choice(reference, s_entry->bin_size, value,
+      s_entry->validate_param[0].ptr, s_entry->validate_param[1].s,
+      s_entry->validate_param[2].ptr);
 }
 
 /**
@@ -750,28 +783,12 @@ cfg_schema_tobin_choice(const struct cfg_schema_entry *s_entry,
 int
 cfg_schema_tobin_int(const struct cfg_schema_entry *s_entry,
     const struct const_strarray *value, void *reference) {
-  int64_t i;
-  int result;
-
-  if (s_entry->bin_size != s_entry->validate_param[2].u16[0]) {
+  if (s_entry->list) {
+    /* we don't support direct list conversion to binary */
     return -1;
   }
-
-  result = isonumber_to_s64(&i, strarray_get_first_c(value),
-      s_entry->validate_param[2].u16[1]);
-  if (result == 0) {
-    switch (s_entry->validate_param[2].u16[0]) {
-      case 4:
-        *((int32_t *)reference) = i;
-        break;
-      case 8:
-        *((int64_t *)reference) = i;
-        break;
-      default:
-        return -1;
-    }
-  }
-  return result;
+  return cfg_tobin_int(reference, s_entry->bin_size, value,
+      s_entry->validate_param[2].u16[1], s_entry->validate_param[2].u16[0]);
 }
 
 /**
@@ -782,17 +799,13 @@ cfg_schema_tobin_int(const struct cfg_schema_entry *s_entry,
  * @param reference pointer to binary output buffer.
  * @return 0 if conversion succeeded, -1 otherwise.
  */int
-cfg_schema_tobin_netaddr(const struct cfg_schema_entry *s_entry __attribute__((unused)),
+cfg_schema_tobin_netaddr(const struct cfg_schema_entry *s_entry,
     const struct const_strarray *value, void *reference) {
-  struct netaddr *ptr;
-
-  if (s_entry->bin_size != sizeof(*ptr)) {
+  if (s_entry->list) {
+    /* we don't support direct list conversion to binary */
     return -1;
   }
-
-  ptr = (struct netaddr *)reference;
-
-  return netaddr_from_string(ptr, strarray_get_first_c(value));
+  return cfg_tobin_netaddr(reference, s_entry->bin_size, value);
 }
 
 /**
@@ -804,18 +817,9 @@ cfg_schema_tobin_netaddr(const struct cfg_schema_entry *s_entry __attribute__((u
  * @return -1 if an error happened, 0 otherwise
  */
 int
-cfg_schema_tobin_acl(const struct cfg_schema_entry *s_entry __attribute__((unused)),
+cfg_schema_tobin_acl(const struct cfg_schema_entry *s_entry,
      const struct const_strarray *value, void *reference) {
-  struct netaddr_acl *ptr;
-
-  if (s_entry->bin_size != sizeof(*ptr)) {
-    return -1;
-  }
-
-  ptr = (struct netaddr_acl *)reference;
-  netaddr_acl_remove(ptr);
-
-  return netaddr_acl_from_strarray(ptr, value);
+  return cfg_tobin_acl(reference, s_entry->bin_size, value);
 }
 
 /**
@@ -827,41 +831,9 @@ cfg_schema_tobin_acl(const struct cfg_schema_entry *s_entry __attribute__((unuse
  * @return -1 if an error happened, 0 otherwise
  */
 int
-cfg_schema_tobin_bitmap256(const struct cfg_schema_entry *s_entry __attribute__((unused)),
+cfg_schema_tobin_bitmap256(const struct cfg_schema_entry *s_entry,
      const struct const_strarray *value, void *reference) {
-  struct bitmap256 *bitmap;
-  const char *ptr;
-  int idx;
-
-  if (s_entry->bin_size != sizeof(*bitmap)) {
-    return -1;
-  }
-
-  bitmap = (struct bitmap256 *)reference;
-  memset(bitmap, 0, sizeof(*bitmap));
-
-  strarray_for_each_element(value, ptr) {
-    errno = 0;
-    if (strcasecmp(ptr, BITMAP256_ALL) == 0) {
-      memset(bitmap, 255, sizeof(*bitmap));
-    }
-    else if (strcasecmp(ptr, BITMAP256_NONE) == 0) {
-      memset(bitmap, 0, sizeof(*bitmap));
-    }
-    else if (*ptr == '-') {
-      idx = strtol(&ptr[1], NULL, 10);
-      if (!errno) {
-        bitmap256_reset(bitmap, idx);
-      }
-    }
-    else {
-      idx = strtol(ptr, NULL, 10);
-      if (!errno) {
-        bitmap256_set(bitmap, idx);
-      }
-    }
-  }
-  return 0;
+  return cfg_tobin_bitmap256(reference, s_entry->bin_size, value);
 }
 
  /**
@@ -873,18 +845,13 @@ cfg_schema_tobin_bitmap256(const struct cfg_schema_entry *s_entry __attribute__(
   * @return 0 if conversion succeeded, -1 otherwise.
   */
 int
-cfg_schema_tobin_bool(const struct cfg_schema_entry *s_entry __attribute__((unused)),
+cfg_schema_tobin_bool(const struct cfg_schema_entry *s_entry,
     const struct const_strarray *value, void *reference) {
-  bool *ptr;
-
-  if (s_entry->bin_size != sizeof(*ptr)) {
+  if (s_entry->list) {
+    /* we don't support direct list conversion to binary */
     return -1;
   }
-
-  ptr = (bool *)reference;
-
-  *ptr = cfg_get_bool(strarray_get_first_c(value));
-  return 0;
+  return cfg_tobin_bool(reference, s_entry->bin_size, value);
 }
 
 /**
@@ -896,21 +863,30 @@ cfg_schema_tobin_bool(const struct cfg_schema_entry *s_entry __attribute__((unus
  * @return 0 if conversion succeeded, -1 otherwise.
  */
 int
-cfg_schema_tobin_stringlist(const struct cfg_schema_entry *s_entry __attribute__((unused)),
+cfg_schema_tobin_stringlist(const struct cfg_schema_entry *s_entry,
     const struct const_strarray *value, void *reference) {
-  struct strarray *array;
+  return cfg_tobin_stringlist(reference, s_entry->bin_size, value);
+}
 
-  if (s_entry->bin_size != sizeof(*array)) {
+/**
+ * Binary converter for tokenized list of parameters.
+ * See CFG_MAP_TOKENS() macro in cfg_schema.h
+ * @param s_entry pointer to configuration entry schema.
+ * @param value pointer to value of configuration entry.
+ * @param reference pointer to binary output buffer.
+ * @return 0 if conversion succeeded, -1 otherwise.
+ */
+int
+cfg_schema_tobin_tokens(const struct cfg_schema_entry *s_entry,
+    const struct const_strarray *value, void *reference) {
+  if (s_entry->list) {
+    /* we don't support direct list conversion to binary */
     return -1;
   }
-
-  array = (struct strarray *)reference;
-
-  if (!value->value[0]) {
-    strarray_init(array);
-    return 0;
-  }
-  return strarray_copy_c(array, value);
+  return cfg_tobin_tokens(reference,
+      strarray_get_first_c(value),
+      s_entry->validate_param[0].ptr, s_entry->validate_param[1].s,
+      s_entry->validate_param[2].ptr);
 }
 
 /**

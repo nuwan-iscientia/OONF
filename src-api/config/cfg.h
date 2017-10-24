@@ -78,7 +78,10 @@ EXPORT void cfg_remove(struct cfg_instance *);
 EXPORT int cfg_append_printable_line(struct autobuf *autobuf, const char *fmt, ...)
   __attribute__ ((format(printf, 2, 3)));
 EXPORT bool cfg_is_allowed_key(const char *key);
-EXPORT int cfg_get_choice_index(const char *value, const char **array, size_t array_size);
+EXPORT const char *cfg_get_choice_array_value(size_t idx, const void *ptr);
+EXPORT int cfg_get_choice_index(const char *key,
+    const char *(*callback)(size_t idx, const void *ptr),
+    size_t choices_count, const void *ptr);
 
 EXPORT int cfg_avlcmp_keys(const void *p1, const void *p2);
 
@@ -104,7 +107,8 @@ cfg_cmp_keys(const char *str1, const char *str2) {
  */
 static INLINE bool
 cfg_get_bool(const char *value) {
-  return cfg_get_choice_index(value, CFGLIST_BOOL_TRUE, ARRAYSIZE(CFGLIST_BOOL_TRUE)) >= 0;
+  return cfg_get_choice_index(value, cfg_get_choice_array_value,
+      ARRAYSIZE(CFGLIST_BOOL_TRUE), CFGLIST_BOOL_TRUE) >= 0;
 }
 
 /**
@@ -114,7 +118,8 @@ cfg_get_bool(const char *value) {
  */
 static INLINE bool
 cfg_is_bool(const char *value) {
-  return cfg_get_choice_index(value, CFGLIST_BOOL, ARRAYSIZE(CFGLIST_BOOL)) >= 0;
+  return cfg_get_choice_index(value, cfg_get_choice_array_value,
+      ARRAYSIZE(CFGLIST_BOOL), CFGLIST_BOOL) >= 0;
 }
 
 /**

@@ -161,18 +161,37 @@ cfg_avlcmp_keys(const void *p1, const void *p2) {
 }
 
 /**
+ * Returns an element of a string array for the CHOICE schema entry
+ * @param idx index of the array
+ * @param ptr pointer to the string array
+ * @return element of the string array at the index
+ */
+const char *
+cfg_get_choice_array_value(size_t idx, const void *ptr) {
+  const char * const *string_array;
+
+  string_array = ptr;
+
+  return string_array[idx];
+}
+
+
+/**
  * Looks up the index of a string within a string array
  * @param key pointer to string to be looked up in the array
- * @param array pointer to string pointer array
- * @param array_size number of strings in array
+ * @param callback pointer to the callback that returns choice options
+ * @param choice_count number of choices
+ * @param ptr (optional) pointer for choice callback
  * @return index of the string inside the array, -1 if not found
  */
 int
-cfg_get_choice_index(const char *key, const char **array, size_t array_size) {
+cfg_get_choice_index(const char *key,
+    const char *(*callback)(size_t idx, const void *ptr),
+    size_t choices_count, const void *ptr) {
   size_t i;
 
-  for (i=0; i<array_size; i++) {
-    if (strcasecmp(key, array[i]) == 0) {
+  for (i=0; i<choices_count; i++) {
+    if (strcasecmp(key, callback(i, ptr)) == 0) {
       return (int) i;
     }
   }
