@@ -86,6 +86,7 @@ static const struct oonf_layer2_metadata _metadata_neigh[OONF_LAYER2_NEIGH_COUNT
   [OONF_LAYER2_NEIGH_RX_SIGNAL]      = { .key = "rx_signal", .type = OONF_LAYER2_INTEGER_DATA, .unit = "dBm", .fraction = 3 },
   [OONF_LAYER2_NEIGH_TX_BITRATE]     = { .key = "tx_bitrate", .type = OONF_LAYER2_INTEGER_DATA, .unit = "bit/s" },
   [OONF_LAYER2_NEIGH_RX_BITRATE]     = { .key = "rx_bitrate", .type = OONF_LAYER2_INTEGER_DATA, .unit = "bit/s" },
+  [OONF_LAYER2_NEIGH_RX_BC_BITRATE]  = { .key = "rx_bc_bitrate", .type = OONF_LAYER2_INTEGER_DATA, .unit = "bit/s" },
   [OONF_LAYER2_NEIGH_TX_MAX_BITRATE] = { .key = "tx_max_bitrate", .type = OONF_LAYER2_INTEGER_DATA, .unit = "bit/s" },
   [OONF_LAYER2_NEIGH_RX_MAX_BITRATE] = { .key = "rx_max_bitrate", .type = OONF_LAYER2_INTEGER_DATA, .unit = "bit/s" },
   [OONF_LAYER2_NEIGH_TX_BYTES]       = { .key = "tx_bytes", .type = OONF_LAYER2_INTEGER_DATA, .unit = "byte" },

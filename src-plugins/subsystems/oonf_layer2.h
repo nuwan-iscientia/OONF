@@ -294,6 +294,9 @@ enum oonf_layer2_neighbor_index {
   /*! incoming bitrate in bit/s */
   OONF_LAYER2_NEIGH_RX_BITRATE,
 
+  /*! incoming broadcast bitrate in bit/s */
+  OONF_LAYER2_NEIGH_RX_BC_BITRATE,
+
   /*! maximum possible outgoing bitrate in bit/s */
   OONF_LAYER2_NEIGH_TX_MAX_BITRATE,
 
