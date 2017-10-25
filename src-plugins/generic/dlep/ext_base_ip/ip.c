@@ -304,7 +304,7 @@ _process_session_ip_tlvs(const struct oonf_layer2_origin *origin,
   if (add) {
     oonf_layer2_net_add_ip(l2net, origin, ip);
   }
-  else if ((l2addr = oonf_layer2_net_get_ip(l2net, ip))){
+  else if ((l2addr = oonf_layer2_net_get_local_ip(l2net, ip))){
     oonf_layer2_net_remove_ip(l2addr, origin);
   }
 }
@@ -372,7 +372,7 @@ _process_destination_ip_tlv(const struct oonf_layer2_origin *origin,
   if (add) {
     oonf_layer2_neigh_add_ip(l2neigh, origin, ip);
   }
-  else if ((l2addr = oonf_layer2_neigh_get_ip(l2neigh, ip))){
+  else if ((l2addr = oonf_layer2_neigh_get_remote_ip(l2neigh, ip))){
     oonf_layer2_neigh_remove_ip(l2addr, origin);
   }
 }

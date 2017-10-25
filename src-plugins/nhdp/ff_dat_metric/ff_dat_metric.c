@@ -588,7 +588,7 @@ _get_raw_rx_linkspeed(const char *ifname, struct nhdp_link *lnk) {
   rx_bitrate_entry = oonf_layer2_neigh_query(
       ifname, &lnk->remote_mac, OONF_LAYER2_NEIGH_RX_BITRATE);
   if (rx_bitrate_entry) {
-    return oonf_layer2_data_get_int64(rx_bitrate_entry);
+    return oonf_layer2_data_get_int64(rx_bitrate_entry, 0);
   }
 
   l2net = oonf_layer2_net_get(ifname);
@@ -599,10 +599,10 @@ _get_raw_rx_linkspeed(const char *ifname, struct nhdp_link *lnk) {
 
   /* search for an entry in the l2 database which reports the remote link IP */
   avl_for_each_element(&l2net->neighbors, l2neigh, _node) {
-    if (oonf_layer2_neigh_get_ip(l2neigh, &lnk->if_addr)) {
+    if (oonf_layer2_neigh_get_remote_ip(l2neigh, &lnk->if_addr)) {
       rx_bitrate_entry = &l2neigh->data[OONF_LAYER2_NEIGH_RX_BITRATE];
       if (oonf_layer2_data_has_value(rx_bitrate_entry)) {
-        return oonf_layer2_data_get_int64(rx_bitrate_entry);
+        return oonf_layer2_data_get_int64(rx_bitrate_entry, 0);
       }
     }
   }
@@ -952,7 +952,7 @@ _shall_process_packet(struct nhdp_interface *nhdpif, struct ff_dat_if_config *if
     /* accept for unicast-only interfaces marked in layer2-data */
     l2data = &l2net->data[OONF_LAYER2_NET_RX_ONLY_UNICAST];
 
-    if (oonf_layer2_data_has_value(l2data) && oonf_layer2_data_get_boolean(l2data)) {
+    if (oonf_layer2_data_get_boolean(l2data, false)) {
       return true;
     }
   }

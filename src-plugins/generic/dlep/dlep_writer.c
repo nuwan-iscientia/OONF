@@ -403,10 +403,10 @@ dlep_writer_map_identity(struct dlep_writer *writer,
 
   switch (oonf_layer2_data_get_type(data)) {
     case OONF_LAYER2_INTEGER_DATA:
-      l2value64 = oonf_layer2_data_get_int64(data);
+      l2value64 = oonf_layer2_data_get_int64(data, 0);
       break;
     case OONF_LAYER2_BOOLEAN_DATA:
-      l2value64 = oonf_layer2_data_get_boolean(data) ? 1 : 0;
+      l2value64 = oonf_layer2_data_get_boolean(data, false) ? 1 : 0;
       break;
     default:
       return -1;

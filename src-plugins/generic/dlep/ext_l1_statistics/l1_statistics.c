@@ -416,7 +416,7 @@ dlep_writer_map_array(struct dlep_writer *writer,
     }
   }
 
-  l2value = oonf_layer2_data_get_int64(data);
+  l2value = oonf_layer2_data_get_int64(data, 0);
   memcpy(&tmp64[0], &l2value, 8);
   tmp64[0] = htobe64(tmp64[0]);
 

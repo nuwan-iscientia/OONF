@@ -539,7 +539,6 @@ EXPORT const char *oonf_layer2_cfg_get_l2comp(size_t index, const void *unused);
 EXPORT const char *oonf_layer2_net_get_type_name(enum oonf_layer2_network_type);
 
 EXPORT struct avl_tree *oonf_layer2_get_net_tree(void);
-EXPORT struct avl_tree *oonf_layer2_get_peer_ip_tree(void);
 EXPORT struct avl_tree *oonf_layer2_get_origin_tree(void);
 
 /**
@@ -564,27 +563,29 @@ oonf_layer2_net_get(const char *ifname) {
 }
 
 /**
- * Get a layer-2 ip address object from the database
- * @param ip ip address of local radio/modem
- * @return layer-2 ip address object, NULL if not found
- */
-static INLINE struct oonf_layer2_peer_address *
-oonf_layer2_get_net_ip(const struct netaddr *addr) {
-  struct oonf_layer2_peer_address *l2ip;
-  return avl_find_element(oonf_layer2_get_peer_ip_tree(), addr, l2ip, _global_node);
-}
-
-/**
- * Get a layer-2 ip address object from the database
+ * Get a layer-2 local peer ip address object from the database
  * @param l2net layer-2 network/interface object
  * @param ip ip address of local radio/modem
  * @return layer-2 ip address object, NULL if not found
  */
 static INLINE struct oonf_layer2_peer_address *
-oonf_layer2_net_get_ip(const struct oonf_layer2_net *l2net,
+oonf_layer2_net_get_local_ip(const struct oonf_layer2_net *l2net,
     const struct netaddr *addr) {
   struct oonf_layer2_peer_address *l2ip;
   return avl_find_element(&l2net->local_peer_ips, addr, l2ip, _net_node);
+}
+
+/**
+ * Get a layer-2 ip address object from the database
+ * @param l2net layer-2 network object
+ * @param ip ip address of remote router
+ * @return layer-2 ip address object, NULL if not found
+ */
+static INLINE struct oonf_layer2_neighbor_address *
+oonf_layer2_net_get_remote_ip(const struct oonf_layer2_net *l2net,
+    const struct netaddr *addr) {
+  struct oonf_layer2_neighbor_address *l2ip;
+  return avl_find_element(&l2net->remote_neighbor_ips, addr, l2ip, _net_node);
 }
 
 /**
@@ -601,6 +602,19 @@ oonf_layer2_neigh_get(const struct oonf_layer2_net *l2net,
 }
 
 /**
+ * Get a layer-2 ip address object from the database
+ * @param l2neigh layer-2 neighbor object
+ * @param ip ip address of remote router
+ * @return layer-2 ip address object, NULL if not found
+ */
+static INLINE struct oonf_layer2_neighbor_address *
+oonf_layer2_neigh_get_remote_ip(const struct oonf_layer2_neigh *l2neigh,
+    const struct netaddr *addr) {
+  struct oonf_layer2_neighbor_address *l2ip;
+  return avl_find_element(&l2neigh->remote_neighbor_ips, addr, l2ip, _neigh_node);
+}
+
+/**
  * Get a layer-2 destination (secondary MAC) for a neighbor
  * @param l2neigh layer-2 neighbor object
  * @param destination mac address of destination
@@ -614,32 +628,6 @@ oonf_layer2_destination_get(const struct oonf_layer2_neigh *l2neigh,
 }
 
 /**
- * Get a layer-2 ip address object from the database
- * @param l2neigh layer-2 neighbor object
- * @param ip ip address of remote router
- * @return layer-2 ip address object, NULL if not found
- */
-static INLINE struct oonf_layer2_neighbor_address *
-oonf_layer2_neigh_get_ip(const struct oonf_layer2_neigh *l2neigh,
-    const struct netaddr *addr) {
-  struct oonf_layer2_neighbor_address *l2ip;
-  return avl_find_element(&l2neigh->remote_neighbor_ips, addr, l2ip, _neigh_node);
-}
-
-/**
- * Get a layer-2 ip address object from the database
- * @param l2net layer-2 network object
- * @param ip ip address of remote router
- * @return layer-2 ip address object, NULL if not found
- */
-static INLINE struct oonf_layer2_neighbor_address *
-oonf_layer2_net_get_neigh_ip(const struct oonf_layer2_net *l2net,
-    const struct netaddr *addr) {
-  struct oonf_layer2_neighbor_address *l2ip;
-  return avl_find_element(&l2net->remote_neighbor_ips, addr, l2ip, _net_node);
-}
-
-/**
  * @param l2data layer-2 data object
  * @return true if object contains a value, false otherwise
  */
@@ -648,6 +636,10 @@ oonf_layer2_data_has_value(const struct oonf_layer2_data *l2data) {
   return l2data->_type != OONF_LAYER2_NO_DATA;
 }
 
+/**
+ * @param l2data layer-2 data object
+ * @return type of data in object
+ */
 static INLINE enum oonf_layer2_data_type
 oonf_layer2_data_get_type(const struct oonf_layer2_data *l2data) {
   return l2data->_type;
@@ -655,21 +647,27 @@ oonf_layer2_data_get_type(const struct oonf_layer2_data *l2data) {
 
 /**
  * @param l2data layer-2 data object
- * @return value of data object
+ * @param def default value to return
+ * @return value of data object, default value if not net
  */
 static INLINE int64_t
-oonf_layer2_data_get_int64(const struct oonf_layer2_data *l2data) {
-  assert (l2data->_type == OONF_LAYER2_INTEGER_DATA);
+oonf_layer2_data_get_int64(const struct oonf_layer2_data *l2data, int64_t def) {
+  if (l2data->_type == OONF_LAYER2_INTEGER_DATA) {
+    return def;
+  }
   return l2data->_value.integer;
 }
 
 /**
  * @param l2data layer-2 data object
- * @return value of data object
+ * @param def default value to return
+ * @return value of data object, default value if not net
  */
 static INLINE bool
-oonf_layer2_data_get_boolean(const struct oonf_layer2_data *l2data) {
-  assert (l2data->_type == OONF_LAYER2_BOOLEAN_DATA);
+oonf_layer2_data_get_boolean(const struct oonf_layer2_data *l2data, bool def) {
+  if (l2data->_type == OONF_LAYER2_BOOLEAN_DATA) {
+    return def;
+  }
   return l2data->_value.boolean;
 }
 

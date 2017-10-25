@@ -611,7 +611,7 @@ oonf_layer2_net_add_ip(struct oonf_layer2_net *l2net,
     const struct oonf_layer2_origin *origin, const struct netaddr *ip) {
   struct oonf_layer2_peer_address *l2addr;
 
-  l2addr = oonf_layer2_net_get_ip(l2net, ip);
+  l2addr = oonf_layer2_net_get_local_ip(l2net, ip);
   if (!l2addr) {
     l2addr = oonf_class_malloc(&_l2net_addr_class);
     if (!l2addr) {
@@ -861,7 +861,7 @@ oonf_layer2_neigh_add_ip(struct oonf_layer2_neigh *l2neigh,
     const struct oonf_layer2_origin *origin, const struct netaddr *ip) {
   struct oonf_layer2_neighbor_address *l2addr;
 
-  l2addr = oonf_layer2_neigh_get_ip(l2neigh, ip);
+  l2addr = oonf_layer2_neigh_get_remote_ip(l2neigh, ip);
   if (!l2addr) {
     l2addr = oonf_class_malloc(&_l2neigh_addr_class);
     if (!l2addr) {
