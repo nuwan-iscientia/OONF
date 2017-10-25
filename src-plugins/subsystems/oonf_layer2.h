@@ -652,7 +652,7 @@ oonf_layer2_data_get_type(const struct oonf_layer2_data *l2data) {
  */
 static INLINE int64_t
 oonf_layer2_data_get_int64(const struct oonf_layer2_data *l2data, int64_t def) {
-  if (l2data->_type == OONF_LAYER2_INTEGER_DATA) {
+  if (l2data->_type != OONF_LAYER2_INTEGER_DATA) {
     return def;
   }
   return l2data->_value.integer;
@@ -665,7 +665,7 @@ oonf_layer2_data_get_int64(const struct oonf_layer2_data *l2data, int64_t def) {
  */
 static INLINE bool
 oonf_layer2_data_get_boolean(const struct oonf_layer2_data *l2data, bool def) {
-  if (l2data->_type == OONF_LAYER2_BOOLEAN_DATA) {
+  if (l2data->_type != OONF_LAYER2_BOOLEAN_DATA) {
     return def;
   }
   return l2data->_value.boolean;
