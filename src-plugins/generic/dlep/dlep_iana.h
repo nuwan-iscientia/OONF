@@ -294,6 +294,11 @@ enum dlep_tlvs {
 
   /*! true if radio can only send unicast traffic */
   DLEP_TX_ONLY_UNICAST,
+
+  /* more layer1 statistics */
+
+  /*! rx broadcast bitrate */
+  DLEP_CDRR_BC_TLV,
 };
 
 enum dlep_peer_type_flags {
