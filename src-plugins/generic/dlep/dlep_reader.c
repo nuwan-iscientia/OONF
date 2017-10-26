@@ -433,6 +433,9 @@ dlep_reader_status(enum dlep_status *status,
       text[text_length-1] = 0;
     }
   }
+  else if (text_length) {
+    *text = 0;
+  }
   return 0;
 }
 

@@ -138,6 +138,7 @@ static struct dlep_extension_tlv _tlvs[] = {
     { DLEP_BYTES_R_TLV, 8, 8 },
     { DLEP_BYTES_T_TLV, 8, 8 },
     { DLEP_THROUGHPUT_T_TLV, 8,8 },
+    { DLEP_CDRR_BC_TLV, 8,8 },
 };
 
 static struct dlep_neighbor_mapping _neigh_mappings[] = {
