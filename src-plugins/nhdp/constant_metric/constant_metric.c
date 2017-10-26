@@ -318,7 +318,9 @@ _avlcmp_linkcost(const void *ptr1, const void *ptr2) {
 static void
 _cb_cfg_changed(void) {
   struct _linkcost *lk, *lk_it;
+#ifdef OONF_LOG_DEBUG_INFO
   struct netaddr_str nbuf;
+#endif
   const char *ptr;
   const struct const_strarray *array;
 

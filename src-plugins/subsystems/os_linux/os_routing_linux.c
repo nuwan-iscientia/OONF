@@ -635,8 +635,9 @@ _cb_rtnetlink_message(struct nlmsghdr *msg) {
   struct os_route rt;
   int result;
 
+#ifdef OONF_LOG_DEBUG_INFO
   struct os_route_str rbuf;
-
+#endif
   OONF_DEBUG(LOG_OS_ROUTING, "Got message: %d %d 0x%04x", msg->nlmsg_seq, msg->nlmsg_type, msg->nlmsg_flags);
 
   if (msg->nlmsg_type != RTM_NEWROUTE && msg->nlmsg_type != RTM_DELROUTE) {
