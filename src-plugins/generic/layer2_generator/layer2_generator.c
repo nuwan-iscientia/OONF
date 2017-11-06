@@ -230,7 +230,7 @@ _cb_l2gen_event(struct oonf_timer_instance *ptr __attribute((unused))) {
     _set_data(&net->data[net_idx], oonf_layer2_net_metadata_get(net_idx)->type, event_counter);
   }
   for (neigh_idx=0; neigh_idx<OONF_LAYER2_NEIGH_COUNT; neigh_idx++) {
-    _set_data(&net->neighdata[neigh_idx], oonf_layer2_neigh_metadata_get(net_idx)->type, event_counter);
+    _set_data(&net->neighdata[neigh_idx], oonf_layer2_neigh_metadata_get(neigh_idx)->type, event_counter);
   }
 
   if (oonf_layer2_net_commit(net)) {
