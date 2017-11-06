@@ -293,7 +293,7 @@ _handle_ipv4_tunnel(struct os_tunnel *tunnel, bool add) {
     p.iph.tos = 1;
   }
 
-  strncpy(ifr.ifr_name, _tunnel_base_if[type], IF_NAMESIZE);
+  strscpy(ifr.ifr_name, _tunnel_base_if[type], IF_NAMESIZE);
 
   netaddr_to_binary(&p.iph.saddr, &tunnel->p.local, sizeof(p.iph.saddr));
   netaddr_to_binary(&p.iph.daddr, &tunnel->p.remote, sizeof(p.iph.daddr));
@@ -377,7 +377,7 @@ _handle_ipv6_tunnel(struct os_tunnel *tunnel, bool add) {
     p.hop_limit = tunnel->p.tunnel_ttl;
   }
 
-  strncpy(ifr.ifr_name, _tunnel_base_if[type], IF_NAMESIZE);
+  strscpy(ifr.ifr_name, _tunnel_base_if[type], IF_NAMESIZE);
 
   netaddr_to_binary(&p.laddr, &tunnel->p.local, sizeof(p.laddr));
   netaddr_to_binary(&p.raddr, &tunnel->p.remote, sizeof(p.raddr));
