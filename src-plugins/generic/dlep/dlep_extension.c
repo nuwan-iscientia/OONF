@@ -257,8 +257,9 @@ dlep_extension_radio_write_session_init_ack(
   const struct oonf_layer2_metadata *meta;
   struct oonf_layer2_net *l2net;
   struct oonf_layer2_data *l2data;
+  enum oonf_layer2_neighbor_index neigh_idx;
+  enum oonf_layer2_network_index net_idx;
   size_t i;
-  int idx;
   int result;
 
   /* first make sure defaults are set correctly */
@@ -274,12 +275,12 @@ dlep_extension_radio_write_session_init_ack(
       continue;
     }
 
-    idx = ext->neigh_mapping[i].layer2;
-    l2data = &l2net->neighdata[idx];
+    neigh_idx = ext->neigh_mapping[i].layer2;
+    l2data = &l2net->neighdata[neigh_idx];
 
 
     if (!oonf_layer2_data_has_value(l2data)) {
-      meta = oonf_layer2_neigh_metadata_get(idx);
+      meta = oonf_layer2_neigh_metadata_get(neigh_idx);
       oonf_layer2_data_set(l2data, session->l2_origin,
           meta->type, &ext->neigh_mapping[i].default_value);
     }
@@ -291,11 +292,11 @@ dlep_extension_radio_write_session_init_ack(
       continue;
     }
 
-    idx = ext->if_mapping[i].layer2;
-    l2data = &l2net->data[idx];
+    net_idx = ext->if_mapping[i].layer2;
+    l2data = &l2net->data[net_idx];
 
     if (!oonf_layer2_data_has_value(l2data)) {
-      meta = oonf_layer2_net_metadata_get(idx);
+      meta = oonf_layer2_net_metadata_get(net_idx);
       oonf_layer2_data_set(l2data, session->l2_origin,
           meta->type, &ext->if_mapping[i].default_value);
     }
