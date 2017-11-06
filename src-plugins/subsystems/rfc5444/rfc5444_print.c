@@ -159,9 +159,10 @@ _print_hex(struct autobuf *out, uint8_t *ptr, size_t length) {
 
 static int
 _print_raw_tlvblock(struct autobuf *out, const char *prefix,
-    uint8_t *ptr, size_t *idx, size_t length) {
+    uint8_t *blockptr, size_t *idx, size_t length) {
   char valueprefix[128];
   uint16_t blocklength, tlv_len, tlv_singlelength;
+  uint8_t *tlvptr;
   size_t idx2;
   uint8_t tlv_flags, startidx, endidx;
 
@@ -173,7 +174,7 @@ _print_raw_tlvblock(struct autobuf *out, const char *prefix,
   abuf_appendf(out, "%s|  TLV BLOCK\n", prefix);
   abuf_appendf(out, "%s|-------------------\n", prefix);
 
-  blocklength = (ptr[*idx] << 8) | ptr[*idx + 1];
+  blocklength = (blockptr[*idx] << 8) | blockptr[*idx + 1];
   abuf_appendf(out, "%s| * TLV Block Size: %u\n", prefix, blocklength);
 
   if (blocklength + 2u > length) {
@@ -181,7 +182,7 @@ _print_raw_tlvblock(struct autobuf *out, const char *prefix,
   }
 
   *idx += 2;
-  ptr = &ptr[*idx];
+  tlvptr = &blockptr[*idx];
   for (idx2 = 0; idx2 < blocklength;) {
     if (idx2 + 2 > blocklength) {
       return -1;
@@ -191,10 +192,10 @@ _print_raw_tlvblock(struct autobuf *out, const char *prefix,
     abuf_appendf(out, "%s|    |  TLV\n", prefix);
     abuf_appendf(out, "%s|    |-------------------\n", prefix);
 
-    abuf_appendf(out, "%s|    | type:        %u\n", prefix, ptr[idx2]);
+    abuf_appendf(out, "%s|    | type:        %u\n", prefix, tlvptr[idx2]);
     idx2++;
 
-    tlv_flags = ptr[idx2];
+    tlv_flags = tlvptr[idx2];
     abuf_appendf(out, "%s|    | flags:       0x%02x\n", prefix, tlv_flags);
     idx2++;
 
@@ -202,7 +203,7 @@ _print_raw_tlvblock(struct autobuf *out, const char *prefix,
       if (idx2 + 1 > blocklength) {
         return -1;
       }
-      abuf_appendf(out, "%s|    | ext-type:    %u\n", prefix, ptr[idx2]);
+      abuf_appendf(out, "%s|    | ext-type:    %u\n", prefix, tlvptr[idx2]);
       idx2++;
     }
 
@@ -212,7 +213,7 @@ _print_raw_tlvblock(struct autobuf *out, const char *prefix,
       if (idx2 + 1 > blocklength) {
         return -1;
       }
-      startidx = ptr[idx2];
+      startidx = tlvptr[idx2];
       endidx = startidx;
       abuf_appendf(out, "%s|    | index-start: %u\n", prefix, startidx);
       idx2++;
@@ -221,7 +222,10 @@ _print_raw_tlvblock(struct autobuf *out, const char *prefix,
       if (idx2 + 1 > blocklength) {
         return -1;
       }
-      endidx = ptr[idx2];
+      endidx = tlvptr[idx2];
+      if (endidx < startidx) {
+        return -1;
+      }
       abuf_appendf(out, "%s|    | index-end:   %u\n", prefix, endidx);
       idx2++;
     }
@@ -230,14 +234,14 @@ _print_raw_tlvblock(struct autobuf *out, const char *prefix,
       if (idx2 + 1 > blocklength) {
         return -1;
       }
-      tlv_len = ptr[idx2] << 8;
+      tlv_len = tlvptr[idx2] << 8;
       idx2++;
     }
     if (tlv_flags & (RFC5444_TLV_FLAG_VALUE)) {
       if (idx2 + 1 > blocklength) {
         return -1;
       }
-      tlv_len |= ptr[idx2];
+      tlv_len |= tlvptr[idx2];
       idx2++;
     }
     if (tlv_flags & (RFC5444_TLV_FLAG_EXTVALUE | RFC5444_TLV_FLAG_VALUE)) {
@@ -260,7 +264,10 @@ _print_raw_tlvblock(struct autobuf *out, const char *prefix,
 
     snprintf(valueprefix, sizeof(valueprefix), "%s|    |   ", prefix);
     for (; startidx <= endidx; startidx++) {
-      abuf_hexdump(out, valueprefix, &ptr[idx2], tlv_singlelength);
+      if (idx2 + tlv_singlelength > blocklength) {
+        return -1;
+      }
+      abuf_hexdump(out, valueprefix, &tlvptr[idx2], tlv_singlelength);
       idx2 += tlv_singlelength;
       abuf_puts(out, "\n");
     }
@@ -284,7 +291,7 @@ rfc5444_print_raw(struct autobuf *out, void *buffer, size_t length) {
   ptr = buffer;
   idx = 0;
 
-  if (idx + 1> length) {
+  if (idx + 1 > length) {
     return -1;
   }
 
@@ -307,6 +314,9 @@ rfc5444_print_raw(struct autobuf *out, void *buffer, size_t length) {
   }
 
   if (flags & RFC5444_PKT_FLAG_TLV) {
+    if (idx + 2 > length) {
+      return -1;
+    }
     if (_print_raw_tlvblock(out, "\t|    | ", ptr, &idx, length)) {
       return -1;
     }
@@ -440,6 +450,10 @@ rfc5444_print_raw(struct autobuf *out, void *buffer, size_t length) {
         abuf_puts(out, "\n");
 
         idx2++;
+      }
+
+      if (head_len + tail_len >= addr_length) {
+        return -1;
       }
 
       mid_len = (addr_length - head_len - tail_len) * num_addr;
