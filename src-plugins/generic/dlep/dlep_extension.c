@@ -281,7 +281,7 @@ dlep_extension_radio_write_session_init_ack(
 
     if (!oonf_layer2_data_has_value(l2data)) {
       meta = oonf_layer2_neigh_metadata_get(neigh_idx);
-      oonf_layer2_data_set(l2data, session->l2_origin,
+      oonf_layer2_data_set(l2data, session->l2_default_origin,
           meta->type, &ext->neigh_mapping[i].default_value);
     }
   }
@@ -297,7 +297,7 @@ dlep_extension_radio_write_session_init_ack(
 
     if (!oonf_layer2_data_has_value(l2data)) {
       meta = oonf_layer2_net_metadata_get(net_idx);
-      oonf_layer2_data_set(l2data, session->l2_origin,
+      oonf_layer2_data_set(l2data, session->l2_default_origin,
           meta->type, &ext->if_mapping[i].default_value);
     }
   }
