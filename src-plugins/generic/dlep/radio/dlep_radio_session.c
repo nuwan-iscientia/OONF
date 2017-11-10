@@ -130,6 +130,7 @@ _cb_incoming_tcp(struct oonf_stream_session *tcp_session) {
   /* activate session */
   if (dlep_session_add(&radio_session->session,
       interface->interf.l2_ifname, interface->interf.session.l2_origin,
+      interface->interf.session.l2_default_origin,
       &tcp_session->out, true, LOG_DLEP_RADIO)) {
     return -1;
   }

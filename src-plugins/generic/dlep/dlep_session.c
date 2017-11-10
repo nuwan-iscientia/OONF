@@ -111,6 +111,7 @@ dlep_session_init(void) {
  * @param session session to initialize
  * @param l2_ifname name of layer2 interface for dlep session
  * @param l2_origin layer2 db origin id for session
+ * @param l2_default_origin layer2 originator that shall be used for setting defaults
  * @param out output buffer for session
  * @param radio true if this is a radio session,
  *   false for a router session
@@ -119,7 +120,9 @@ dlep_session_init(void) {
  */
 int
 dlep_session_add(struct dlep_session *session, const char *l2_ifname,
-    const struct oonf_layer2_origin *l2_origin, struct autobuf *out, bool radio,
+    const struct oonf_layer2_origin *l2_origin,
+    const struct oonf_layer2_origin *l2_default_origin,
+    struct autobuf *out, bool radio,
     enum oonf_log_source log_source) {
   struct dlep_session_parser *parser;
   struct dlep_extension *ext;
@@ -132,6 +135,7 @@ dlep_session_add(struct dlep_session *session, const char *l2_ifname,
 
   session->log_source = log_source;
   session->l2_origin = l2_origin;
+  session->l2_default_origin = l2_default_origin;
   session->radio = radio;
   session->writer.out = out;
 

@@ -170,6 +170,7 @@ dlep_router_add_session(struct dlep_router_if *interf,
 
   if (dlep_session_add(&router_session->session,
       interf->interf.l2_ifname, interf->interf.session.l2_origin,
+      interf->interf.session.l2_default_origin,
       &router_session->stream->out, false, LOG_DLEP_ROUTER)) {
     dlep_router_remove_session(router_session);
     return NULL;

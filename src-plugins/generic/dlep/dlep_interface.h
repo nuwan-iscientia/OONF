@@ -86,6 +86,7 @@ struct dlep_if {
 struct avl_tree *dlep_if_get_tree(bool radio);
 int dlep_if_add(struct dlep_if *interf, const char *ifname,
     const struct oonf_layer2_origin *l2_origin,
+    const struct oonf_layer2_origin *l2_default_origin,
     enum oonf_log_source log_src, bool radio);
 void dlep_if_remove(struct dlep_if *interface);
 

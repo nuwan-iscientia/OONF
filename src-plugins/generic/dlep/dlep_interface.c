@@ -75,6 +75,7 @@ dlep_if_get_tree(bool radio) {
  * @param interf pointer to interface
  * @param ifname name of interface
  * @param l2_origin layer2 originator that shall be used
+ * @param l2_default_origin layer2 originator that shall be used for setting defaults
  * @param log_src logging source that shall be used
  * @param radio true if it is a radio interface, false for router
  * @return -1 if an error happened, 0 otherwise
@@ -82,6 +83,7 @@ dlep_if_get_tree(bool radio) {
 int
 dlep_if_add(struct dlep_if *interf, const char *ifname,
     const struct oonf_layer2_origin *l2_origin,
+    const struct oonf_layer2_origin *l2_default_origin,
     enum oonf_log_source log_src, bool radio) {
   struct dlep_extension *ext;
 
@@ -99,7 +101,7 @@ dlep_if_add(struct dlep_if *interf, const char *ifname,
       _DLEP_PREFIX, sizeof(_DLEP_PREFIX) - 1);
 
   if (dlep_session_add(&interf->session,
-      interf->l2_ifname, l2_origin,
+      interf->l2_ifname, l2_origin, l2_default_origin,
       &interf->udp_out,
       radio, log_src)) {
     abuf_free(&interf->udp_out);

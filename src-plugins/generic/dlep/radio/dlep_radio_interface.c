@@ -73,16 +73,22 @@ static void _cleanup_interface(struct dlep_radio_if *interface);
 
 /* DLEP interfaces */
 static struct oonf_class _interface_class = {
-  .name = "DLEP radio session",
+  .name = "DLEP radio interface",
   .size = sizeof(struct dlep_radio_if),
 };
 
 static bool _shutting_down;
 
 static struct oonf_layer2_origin _l2_origin = {
-  .name = "dlep radio interface",
+  .name = "dlep radio",
   .proactive = true,
   .priority = OONF_LAYER2_ORIGIN_RELIABLE,
+};
+
+static struct oonf_layer2_origin _l2_default_origin = {
+  .name = "dlep radio defaults",
+  .proactive = false,
+  .priority = OONF_LAYER2_ORIGIN_UNRELIABLE,
 };
 
 /**
@@ -174,7 +180,8 @@ dlep_radio_add_interface(const char *ifname) {
     return NULL;
   }
 
-  if (dlep_if_add(&interface->interf, ifname, &_l2_origin, LOG_DLEP_RADIO, true)) {
+  if (dlep_if_add(&interface->interf, ifname,
+      &_l2_origin, &_l2_default_origin, LOG_DLEP_RADIO, true)) {
     oonf_class_free(&_interface_class, interface);
     return NULL;
   }
