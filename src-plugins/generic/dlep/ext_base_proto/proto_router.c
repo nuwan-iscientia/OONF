@@ -204,7 +204,7 @@ _cb_apply_router(struct dlep_session *session) {
         PRIu64, session->cfg.discovery_interval);
 
     /* use the "local event" for the discovery timer */
-    oonf_timer_start(&session->local_event_timer,
+    oonf_timer_set(&session->local_event_timer,
         session->cfg.discovery_interval);
   }
 }

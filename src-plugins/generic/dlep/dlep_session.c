@@ -234,12 +234,10 @@ dlep_session_remove(struct dlep_session *session) {
 void
 dlep_session_terminate(struct dlep_session *session) {
   if (session->restrict_signal != DLEP_ALL_SIGNALS) {
-    return;
+    dlep_session_generate_signal(
+        session, DLEP_SESSION_TERMINATION, NULL);
+    session->cb_send_buffer(session, 0);
   }
-
-  dlep_session_generate_signal(
-      session, DLEP_SESSION_TERMINATION, NULL);
-  session->cb_send_buffer(session, 0);
   session->restrict_signal = DLEP_SESSION_TERMINATION_ACK;
 }
 
