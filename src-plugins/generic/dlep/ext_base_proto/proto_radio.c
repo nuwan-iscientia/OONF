@@ -83,6 +83,8 @@ static void _l2_neigh_added_to_session(struct dlep_session *session,
 static void _l2_neigh_added(struct oonf_layer2_neigh *l2neigh,
       struct oonf_layer2_destination *l2dest, const struct netaddr *mac);
 
+static void _cb_l2_net_changed(void *);
+
 static void _cb_l2_neigh_added(void *);
 static void _cb_l2_neigh_changed(void *);
 static void _cb_l2_neigh_removed(void *);
@@ -156,6 +158,13 @@ static struct dlep_extension_implementation _radio_signals[] = {
     },
 };
 
+static struct oonf_class_extension _layer2_net_listener = {
+  .ext_name = "dlep radio",
+  .class_name = LAYER2_CLASS_NETWORK,
+
+  .cb_change = _cb_l2_net_changed,
+};
+
 static struct oonf_class_extension _layer2_neigh_listener = {
   .ext_name = "dlep radio",
   .class_name = LAYER2_CLASS_NEIGHBOR,
@@ -184,6 +193,7 @@ dlep_base_proto_radio_init(void) {
   dlep_extension_add_processing(_base, true,
       _radio_signals, ARRAYSIZE(_radio_signals));
 
+  oonf_class_extension_add(&_layer2_net_listener);
   oonf_class_extension_add(&_layer2_neigh_listener);
   oonf_class_extension_add(&_layer2_dst_listener);
 
@@ -215,6 +225,10 @@ _cb_init_radio(struct dlep_session *session) {
 static void
 _cb_cleanup_radio(struct dlep_session *session) {
   dlep_base_proto_stop_timers(session);
+
+  oonf_class_extension_remove(&_layer2_net_listener);
+  oonf_class_extension_remove(&_layer2_neigh_listener);
+  oonf_class_extension_remove(&_layer2_dst_listener);
 }
 
 /**
@@ -655,6 +669,27 @@ _l2_neigh_removed(struct oonf_layer2_neigh *l2neigh,
       local->state = DLEP_NEIGHBOR_DOWN_SENT;
       oonf_timer_set(&local->_ack_timeout,
           radio_session->session.cfg.heartbeat_interval * 2);
+    }
+  }
+}
+
+static void
+_cb_l2_net_changed(void *ptr) {
+  struct dlep_radio_session *radio_session;
+  struct dlep_radio_if *radio_if;
+  struct oonf_layer2_net *l2net;
+
+  l2net = ptr;
+
+  radio_if = dlep_radio_get_by_layer2_if(l2net->name);
+  if (!radio_if) {
+    return;
+  }
+
+  avl_for_each_element(&radio_if->interf.session_tree, radio_session, _node) {
+    if (radio_session->session.restrict_signal == DLEP_ALL_SIGNALS) {
+      dlep_session_generate_signal(&radio_session->session,
+          DLEP_SESSION_UPDATE, NULL);
     }
   }
 }

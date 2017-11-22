@@ -303,6 +303,7 @@ dlep_extension_radio_write_session_init_ack(
   }
 
   /* write default metric values */
+  OONF_DEBUG(session->log_source, "Mapping default neighbor data (%s) to TLVs", l2net->name);
   result = dlep_writer_map_l2neigh_data(&session->writer, ext,
       l2net->neighdata, NULL);
   if (result) {
@@ -312,6 +313,7 @@ dlep_extension_radio_write_session_init_ack(
   }
 
   /* write network wide data */
+  OONF_DEBUG(session->log_source, "Mapping if data (%s) to TLVs", l2net->name);
   result = dlep_writer_map_l2net_data(&session->writer, ext, l2net->data);
   if(result) {
     OONF_WARN(session->log_source, "tlv mapping for extension %d failed: %d",
@@ -344,6 +346,14 @@ dlep_extension_radio_write_session_update(
 
   result = dlep_writer_map_l2neigh_data(&session->writer, ext,
       l2net->neighdata, NULL);
+  if (result) {
+    OONF_WARN(session->log_source, "tlv mapping for extension %d failed: %d",
+        ext->id, result);
+    return result;
+  }
+
+  result = dlep_writer_map_l2net_data(&session->writer, ext,
+      l2net->data);
   if (result) {
     OONF_WARN(session->log_source, "tlv mapping for extension %d failed: %d",
         ext->id, result);
