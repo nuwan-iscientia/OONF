@@ -631,6 +631,8 @@ oonf_layer2_net_add_ip(struct oonf_layer2_net *l2net,
 
     l2addr->_global_node.key = &l2addr->ip;
     avl_insert(&_local_peer_ips_tree, &l2addr->_global_node);
+
+    oonf_class_event(&_l2net_addr_class, l2addr, OONF_OBJECT_ADDED);
   }
 
   l2addr->origin = origin;
@@ -649,6 +651,8 @@ oonf_layer2_net_remove_ip(
   if (ip->origin != origin) {
     return -1;
   }
+
+  oonf_class_event(&_l2net_addr_class, ip, OONF_OBJECT_REMOVED);
 
   avl_remove(&ip->l2net->local_peer_ips, &ip->_net_node);
   avl_remove(&_local_peer_ips_tree, &ip->_global_node);
@@ -880,6 +884,8 @@ oonf_layer2_neigh_add_ip(struct oonf_layer2_neigh *l2neigh,
     avl_insert(&l2neigh->remote_neighbor_ips, &l2addr->_neigh_node);
     l2addr->_net_node.key = &l2addr->ip;
     avl_insert(&l2neigh->network->remote_neighbor_ips, &l2addr->_net_node);
+
+    oonf_class_event(&_l2neigh_addr_class, l2addr, OONF_OBJECT_ADDED);
   }
 
   l2addr->origin = origin;
@@ -898,6 +904,8 @@ oonf_layer2_neigh_remove_ip(
   if (ip->origin != origin) {
     return -1;
   }
+
+  oonf_class_event(&_l2neigh_addr_class, ip, OONF_OBJECT_REMOVED);
 
   avl_remove(&ip->l2neigh->remote_neighbor_ips, &ip->_neigh_node);
   avl_remove(&ip->l2neigh->network->remote_neighbor_ips, &ip->_net_node);
