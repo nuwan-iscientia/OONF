@@ -347,7 +347,7 @@ _router_process_session_update(struct dlep_extension *ext __attribute((unused)),
   /* ipv4 subnet */
   value = dlep_session_get_tlv_value(session, DLEP_IPV4_SUBNET_TLV);
   while (value) {
-    if (dlep_reader_ipv4_tlv(&ip, &add_ip, session, value)) {
+    if (dlep_reader_ipv4_subnet_tlv(&ip, &add_ip, session, value)) {
       return -1;
     }
     _process_session_ip_tlvs(session->l2_origin, l2net, &ip, add_ip);
@@ -357,7 +357,7 @@ _router_process_session_update(struct dlep_extension *ext __attribute((unused)),
   /* ipv6 subnet */
   value = dlep_session_get_tlv_value(session, DLEP_IPV6_SUBNET_TLV);
   while (value) {
-    if (dlep_reader_ipv6_tlv(&ip, &add_ip, session, value)) {
+    if (dlep_reader_ipv6_subnet_tlv(&ip, &add_ip, session, value)) {
       return -1;
     }
     _process_session_ip_tlvs(session->l2_origin, l2net, &ip, add_ip);
@@ -425,7 +425,7 @@ _router_process_destination_update(struct dlep_extension *ext __attribute((unuse
   /* ipv4 subnet */
   value = dlep_session_get_tlv_value(session, DLEP_IPV4_SUBNET_TLV);
   while (value) {
-    if (dlep_reader_ipv4_tlv(&ip, &add_ip, session, value)) {
+    if (dlep_reader_ipv4_subnet_tlv(&ip, &add_ip, session, value)) {
       return -1;
     }
     _process_destination_ip_tlv(session->l2_origin, l2neigh, &ip, add_ip);
@@ -435,7 +435,7 @@ _router_process_destination_update(struct dlep_extension *ext __attribute((unuse
   /* ipv6 subnet */
   value = dlep_session_get_tlv_value(session, DLEP_IPV6_SUBNET_TLV);
   while (value) {
-    if (dlep_reader_ipv4_tlv(&ip, &add_ip, session, value)) {
+    if (dlep_reader_ipv6_subnet_tlv(&ip, &add_ip, session, value)) {
       return -1;
     }
     _process_destination_ip_tlv(session->l2_origin, l2neigh, &ip, add_ip);
