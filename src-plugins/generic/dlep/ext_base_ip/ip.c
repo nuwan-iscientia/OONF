@@ -110,6 +110,13 @@ static struct dlep_extension_signal _signals[] = {
         .process_router = _router_process_session_update,
     },
     {
+        .id = DLEP_DESTINATION_UP,
+        .supported_tlvs = _ip_tlvs,
+        .supported_tlv_count = ARRAYSIZE(_ip_tlvs),
+        .add_radio_tlvs = _radio_write_destination_update,
+        .process_router = _router_process_destination_update,
+    },
+    {
         .id = DLEP_DESTINATION_UPDATE,
         .supported_tlvs = _ip_tlvs,
         .supported_tlv_count = ARRAYSIZE(_ip_tlvs),
@@ -496,14 +503,14 @@ _cb_remove_if_ip(void *ptr) {
 static void
 _modify_neigh_ip(const char *if_name, struct netaddr *neighbor,
     struct netaddr *prefix, bool add) {
-  struct dlep_radio_if *interf;
+  struct dlep_radio_if *radio_interf;
   struct dlep_local_neighbor *dlep_neighbor;
   struct dlep_radio_session *radio_session;
 
-  avl_for_each_element(dlep_if_get_tree(true), interf, interf._node) {
-    if (strcmp(interf->interf.l2_ifname, if_name) == 0) {
-      avl_for_each_element(&interf->interf.session_tree, radio_session, _node) {
-        dlep_neighbor = dlep_session_get_local_neighbor(&radio_session->session, neighbor);
+  avl_for_each_element(dlep_if_get_tree(true), radio_interf, interf._node) {
+    if (strcmp(radio_interf->interf.l2_ifname, if_name) == 0) {
+      avl_for_each_element(&radio_interf->interf.session_tree, radio_session, _node) {
+        dlep_neighbor = dlep_session_add_local_neighbor(&radio_session->session, neighbor);
         if (dlep_neighbor) {
           _add_prefix(&dlep_neighbor->_ip_prefix_modification, prefix, add);
         }
