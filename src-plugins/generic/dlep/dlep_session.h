@@ -329,9 +329,6 @@ struct dlep_session {
 
   /*! tree of modifications which should be put into the next peer update */
   struct avl_tree _ip_prefix_modification;
-
-  /*! tree of all dlep sessions of an interface */
-  struct avl_node _node;
 };
 
 void dlep_session_init(void);

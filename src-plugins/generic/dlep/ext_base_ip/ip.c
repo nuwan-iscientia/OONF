@@ -55,6 +55,8 @@
 #include "dlep/dlep_iana.h"
 #include "dlep/dlep_extension.h"
 #include "dlep/dlep_interface.h"
+#include "dlep/radio/dlep_radio_interface.h"
+#include "dlep/radio/dlep_radio_session.h"
 #include "dlep/dlep_reader.h"
 #include "dlep/dlep_writer.h"
 
@@ -355,7 +357,7 @@ _router_process_session_update(struct dlep_extension *ext __attribute((unused)),
   /* ipv6 subnet */
   value = dlep_session_get_tlv_value(session, DLEP_IPV6_SUBNET_TLV);
   while (value) {
-    if (dlep_reader_ipv4_tlv(&ip, &add_ip, session, value)) {
+    if (dlep_reader_ipv6_tlv(&ip, &add_ip, session, value)) {
       return -1;
     }
     _process_session_ip_tlvs(session->l2_origin, l2net, &ip, add_ip);
@@ -467,13 +469,13 @@ _add_prefix(struct avl_tree *tree, struct netaddr *addr, bool add) {
 
 static void
 _modify_if_ip(const char *if_name, struct netaddr *prefix, bool add) {
-  struct dlep_if *dlep_interface;
-  struct dlep_session *session;
+  struct dlep_radio_if *interf;
+  struct dlep_radio_session *radio_session;
 
-  avl_for_each_element(dlep_if_get_tree(true), dlep_interface, _node) {
-    if (strcmp(dlep_interface->l2_ifname, if_name) == 0) {
-      avl_for_each_element(&dlep_interface->session_tree, session, _node) {
-        _add_prefix(&session->_ip_prefix_modification, prefix, add);
+  avl_for_each_element(dlep_if_get_tree(true), interf, interf._node) {
+    if (strcmp(interf->interf.l2_ifname, if_name) == 0) {
+      avl_for_each_element(&interf->interf.session_tree, radio_session, _node) {
+        _add_prefix(&radio_session->session._ip_prefix_modification, prefix, add);
       }
     }
   }
@@ -494,14 +496,14 @@ _cb_remove_if_ip(void *ptr) {
 static void
 _modify_neigh_ip(const char *if_name, struct netaddr *neighbor,
     struct netaddr *prefix, bool add) {
-  struct dlep_if *dlep_interface;
+  struct dlep_radio_if *interf;
   struct dlep_local_neighbor *dlep_neighbor;
-  struct dlep_session *session;
+  struct dlep_radio_session *radio_session;
 
-  avl_for_each_element(dlep_if_get_tree(true), dlep_interface, _node) {
-    if (strcmp(dlep_interface->l2_ifname, if_name) == 0) {
-      avl_for_each_element(&dlep_interface->session_tree, session, _node) {
-        dlep_neighbor = dlep_session_get_local_neighbor(session, neighbor);
+  avl_for_each_element(dlep_if_get_tree(true), interf, interf._node) {
+    if (strcmp(interf->interf.l2_ifname, if_name) == 0) {
+      avl_for_each_element(&interf->interf.session_tree, radio_session, _node) {
+        dlep_neighbor = dlep_session_get_local_neighbor(&radio_session->session, neighbor);
         if (dlep_neighbor) {
           _add_prefix(&dlep_neighbor->_ip_prefix_modification, prefix, add);
         }

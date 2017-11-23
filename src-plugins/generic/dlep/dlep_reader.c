@@ -219,7 +219,7 @@ dlep_reader_ipv4_subnet_tlv(struct netaddr *ipv4, bool *add,
 
   ptr = dlep_session_get_tlv_binary(session, value);
   *add = (ptr[0] & DLEP_IP_ADD) == DLEP_IP_ADD;
-  return netaddr_from_binary(ipv4, &ptr[1], 4, AF_INET);
+  return netaddr_from_binary_prefix(ipv4, &ptr[1], 4, AF_INET, ptr[5]);
 }
 
 /**
@@ -245,7 +245,7 @@ dlep_reader_ipv6_subnet_tlv(struct netaddr *ipv6, bool *add,
 
   ptr = dlep_session_get_tlv_binary(session, value);
   *add = (ptr[0] & DLEP_IP_ADD) == DLEP_IP_ADD;
-  return netaddr_from_binary(ipv6, &ptr[1], 16, AF_INET6);
+  return netaddr_from_binary_prefix(ipv6, &ptr[1], 16, AF_INET6, ptr[17]);
 }
 
 /**
