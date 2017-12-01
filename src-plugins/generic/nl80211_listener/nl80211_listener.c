@@ -251,7 +251,7 @@ static uint32_t _nl80211_multicast_group = 0;
 static struct oonf_layer2_origin _layer2_updated_origin = {
   .name = "nl80211 updated",
   .proactive = true,
-  .priority = OONF_LAYER2_ORIGIN_RELIABLE,
+  .priority = OONF_LAYER2_ORIGIN_RELIABLE + 1,
 };
 static struct oonf_layer2_origin _layer2_data_origin = {
   .name = "nl80211",
