@@ -153,30 +153,6 @@ enum _if_query {
   QUERY_COUNT,          //!< QUERY_COUNT
 };
 
-static struct _nl80211_query _if_query_ops[QUERY_COUNT] =
-{
-    [QUERY_GET_IF] = {
-        NL80211_CMD_NEW_INTERFACE,
-        nl80211_send_get_interface, nl80211_process_get_interface_result, NULL,
-    },
-    [QUERY_GET_WIPHY] = {
-        NL80211_CMD_NEW_WIPHY,
-        nl80211_send_get_wiphy, nl80211_process_get_wiphy_result, nl80211_finalize_get_wiphy,
-    },
-    [QUERY_GET_SURVEY] = {
-        NL80211_CMD_NEW_SURVEY_RESULTS,
-        nl80211_send_get_survey, nl80211_process_get_survey_result, NULL,
-    },
-    [QUERY_GET_MPP] = {
-        NL80211_CMD_NEW_MPATH,
-        nl80211_send_get_mpp, nl80211_process_get_mpp_result, NULL,
-    },
-    [QUERY_GET_STATION] = {
-        NL80211_CMD_NEW_STATION,
-        nl80211_send_get_station_dump, nl80211_process_get_station_dump_result, NULL,
-    },
-};
-
 /* prototypes */
 static void _early_cfg_init(void);
 static int _init(void);
@@ -305,6 +281,30 @@ static struct avl_tree _nl80211_if_tree;
 static struct oonf_class _nl80211_if_class = {
   .name = "nl80211 if",
   .size = sizeof(struct nl80211_if),
+};
+
+static const struct _nl80211_query _if_query_ops[QUERY_COUNT] =
+{
+    [QUERY_GET_IF] = {
+        NL80211_CMD_NEW_INTERFACE,
+        nl80211_send_get_interface, nl80211_process_get_interface_result, NULL,
+    },
+    [QUERY_GET_WIPHY] = {
+        NL80211_CMD_NEW_WIPHY,
+        nl80211_send_get_wiphy, nl80211_process_get_wiphy_result, nl80211_finalize_get_wiphy,
+    },
+    [QUERY_GET_SURVEY] = {
+        NL80211_CMD_NEW_SURVEY_RESULTS,
+        nl80211_send_get_survey, nl80211_process_get_survey_result, NULL,
+    },
+    [QUERY_GET_MPP] = {
+        NL80211_CMD_NEW_MPATH,
+        nl80211_send_get_mpp, nl80211_process_get_mpp_result, NULL,
+    },
+    [QUERY_GET_STATION] = {
+        NL80211_CMD_NEW_STATION,
+        nl80211_send_get_station_dump, nl80211_process_get_station_dump_result, NULL,
+    },
 };
 
 static void
@@ -640,16 +640,20 @@ _trigger_next_netlink_query(void) {
     return;
   }
 
-  /* calculate next interface/query */
-  _get_next_query();
+  /* calculate next interface/query, ignore interfaces that are down */
+  do {
+    _get_next_query();
+  } while (_current_query_if && !_current_query_if->if_listener.data->flags.up);
 
   if (!_current_query_if) {
     /* done with this series of queries, wait for next timer */
-    OONF_DEBUG(LOG_NL80211, "All queries done for all interfaces");
+    OONF_INFO(LOG_NL80211, "All queries done for all interfaces");
     _current_query_in_progress = false;
     return;
   }
 
+  OONF_INFO(LOG_NL80211, "Sending query %u to interface %s",
+      _current_query_number, _current_query_if->name);
   _send_netlink_message(_current_query_if,
       _current_query_number);
 }
@@ -693,7 +697,7 @@ _cb_nl_message(struct nlmsghdr *hdr) {
  */
 static void
 _cb_nl_error(uint32_t seq __attribute((unused)), int error __attribute((unused))) {
-  OONF_DEBUG(LOG_NL80211, "seq %u: Received error %d", seq, error);
+  OONF_INFO(LOG_NL80211, "seq %u: Received error %d", seq, error);
   if (_nl80211_id && _nl80211_multicast_group) {
     _trigger_next_netlink_query();
   }
@@ -704,7 +708,7 @@ _cb_nl_error(uint32_t seq __attribute((unused)), int error __attribute((unused))
  */
 static void
 _cb_nl_timeout(void) {
-  OONF_DEBUG(LOG_NL80211, "Received timeout");
+  OONF_INFO(LOG_NL80211, "Received timeout");
   if (_nl80211_id && _nl80211_multicast_group) {
     if (_if_query_ops[_current_query_number].finalize) {
       _if_query_ops[_current_query_number].finalize(_current_query_if);
@@ -719,7 +723,7 @@ _cb_nl_timeout(void) {
  */
 static void
 _cb_nl_done(uint32_t seq __attribute((unused))) {
-  OONF_DEBUG(LOG_NL80211, "%u: Received done", seq);
+  OONF_INFO(LOG_NL80211, "%u: Received done", seq);
   if (_nl80211_id && _nl80211_multicast_group) {
     if (_if_query_ops[_current_query_number].finalize) {
       _if_query_ops[_current_query_number].finalize(_current_query_if);
