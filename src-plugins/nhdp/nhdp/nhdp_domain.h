@@ -49,6 +49,7 @@
 #include "common/common_types.h"
 #include "common/list.h"
 #include "subsystems/oonf_rfc5444.h"
+#include "subsystems/oonf_layer2.h"
 
 #include "nhdp/nhdp_interfaces.h"
 #include "nhdp/nhdp_db.h"
@@ -102,6 +103,18 @@ struct nhdp_domain_metric {
 
   /*! true if metrics should not be handled by nhdp reader/writer */
   bool no_default_handling;
+
+  /*! array of layer2 interface values this metric requires */
+  const enum oonf_layer2_network_index *required_l2net_data;
+
+  /*! number of required layer2 interface values */
+  size_t required_l2net_count;
+
+  /*! array of layer2 neighbor values this metric requires */
+  const enum oonf_layer2_neighbor_index *required_l2neigh_data;
+
+  /*! number of required layer2 neighbor values */
+  size_t required_l2neigh_count;
 
   /**
    * callback to convert link metric into string representation

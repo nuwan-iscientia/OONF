@@ -298,6 +298,10 @@ static struct oonf_timer_class _hello_lost_info = {
 };
 
 /* nhdp metric handler */
+static const enum oonf_layer2_neighbor_index _required_l2neigh[] = {
+  OONF_LAYER2_NEIGH_RX_BITRATE,
+};
+
 static struct nhdp_domain_metric _datff_handler = {
   .name = OONF_FF_DAT_METRIC_SUBSYSTEM,
 
@@ -310,6 +314,9 @@ static struct nhdp_domain_metric _datff_handler = {
 
   .enable = _cb_enable_metric,
   .disable = _cb_disable_metric,
+
+  .required_l2neigh_data = _required_l2neigh,
+  .required_l2neigh_count = ARRAYSIZE(_required_l2neigh),
 };
 
 /* Temporary buffer to sort incoming link speed for median calculation */
