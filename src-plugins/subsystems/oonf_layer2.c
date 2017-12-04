@@ -82,6 +82,7 @@ DECLARE_OONF_PLUGIN(_oonf_layer2_subsystem);
 
 /* layer2 neighbor metadata */
 static const struct oonf_layer2_metadata _metadata_neigh[OONF_LAYER2_NEIGH_COUNT] = {
+  [OONF_LAYER2_NEIGH_NONE]           = { .key = "none", .type = OONF_LAYER2_NO_DATA },
   [OONF_LAYER2_NEIGH_TX_SIGNAL]      = { .key = "tx_signal", .type = OONF_LAYER2_INTEGER_DATA, .unit = "dBm", .fraction = 3 },
   [OONF_LAYER2_NEIGH_RX_SIGNAL]      = { .key = "rx_signal", .type = OONF_LAYER2_INTEGER_DATA, .unit = "dBm", .fraction = 3 },
   [OONF_LAYER2_NEIGH_TX_BITRATE]     = { .key = "tx_bitrate", .type = OONF_LAYER2_INTEGER_DATA, .unit = "bit/s" },
@@ -104,6 +105,7 @@ static const struct oonf_layer2_metadata _metadata_neigh[OONF_LAYER2_NEIGH_COUNT
 
 /* layer2 network metadata */
 static const struct oonf_layer2_metadata _metadata_net[OONF_LAYER2_NET_COUNT] = {
+  [OONF_LAYER2_NET_NONE]            = { .key = "none", .type = OONF_LAYER2_NO_DATA },
   [OONF_LAYER2_NET_FREQUENCY_1]     = { .key = "frequency1", .type = OONF_LAYER2_INTEGER_DATA , .unit = "Hz" },
   [OONF_LAYER2_NET_FREQUENCY_2]     = { .key = "frequency2", .type = OONF_LAYER2_INTEGER_DATA , .unit = "Hz" },
   [OONF_LAYER2_NET_BANDWIDTH_1]     = { .key = "bandwidth1", .type = OONF_LAYER2_INTEGER_DATA , .unit = "Hz" },
