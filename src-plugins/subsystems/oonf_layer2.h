@@ -223,9 +223,6 @@ enum oonf_layer2_data_comparator_type {
  * list of layer2 network metrics
  */
 enum oonf_layer2_network_index {
-  /*! dummy entry to keep index zero unused */
-  OONF_LAYER2_NET_NONE,
-
   /*! primary center frequency */
   OONF_LAYER2_NET_FREQUENCY_1,
 
@@ -285,9 +282,6 @@ enum oonf_layer2_network_type {
  * list of layer2 neighbor metrics
  */
 enum oonf_layer2_neighbor_index {
-  /*! dummy entry to keep index zero unused */
-  OONF_LAYER2_NEIGH_NONE,
-
   /*! outgoing signal in milli dBm */
   OONF_LAYER2_NEIGH_TX_SIGNAL,
 
