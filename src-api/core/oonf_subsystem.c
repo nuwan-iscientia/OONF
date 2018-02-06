@@ -50,10 +50,10 @@
 #include <stdlib.h>
 
 #include "common/autobuf.h"
-#include "common/common_types.h"
-#include "common/list.h"
 #include "common/avl.h"
 #include "common/avl_comp.h"
+#include "common/common_types.h"
+#include "common/list.h"
 #include "common/template.h"
 #include "config/cfg_schema.h"
 #include "core/oonf_libdata.h"
@@ -61,7 +61,8 @@
 #include "core/oonf_subsystem.h"
 
 /* constants */
-enum {
+enum
+{
   IDX_DLOPEN_LIB,
   IDX_DLOPEN_PATH,
   IDX_DLOPEN_PRE,
@@ -102,11 +103,11 @@ static bool _plugin_tree_initialized = false;
 
 /* library loading patterns */
 static struct abuf_template_data_entry _dlopen_data[] = {
-  [IDX_DLOPEN_LIB]     =  { .key = "LIB" },
-  [IDX_DLOPEN_PATH]    =  { .key = "PATH", .value = "." },
-  [IDX_DLOPEN_PRE]     =  { .key = "PRE" },
-  [IDX_DLOPEN_POST]    =  { .key = "POST" },
-  [IDX_DLOPEN_VER]     =  { .key = "VER" },
+  [IDX_DLOPEN_LIB] = { .key = "LIB" },
+  [IDX_DLOPEN_PATH] = { .key = "PATH", .value = "." },
+  [IDX_DLOPEN_PRE] = { .key = "PRE" },
+  [IDX_DLOPEN_POST] = { .key = "POST" },
+  [IDX_DLOPEN_VER] = { .key = "VER" },
 };
 
 static struct autobuf _dlopen_data_buffer;
@@ -124,12 +125,9 @@ oonf_subsystem_init(void) {
   _init_plugin_tree();
 
   /* load predefined values for dlopen templates */
-  _dlopen_data[IDX_DLOPEN_PRE].value =
-      oonf_log_get_libdata()->sharedlibrary_prefix;
-  _dlopen_data[IDX_DLOPEN_POST].value =
-      oonf_log_get_libdata()->sharedlibrary_postfix;
-  _dlopen_data[IDX_DLOPEN_VER].value =
-      oonf_log_get_libdata()->version;
+  _dlopen_data[IDX_DLOPEN_PRE].value = oonf_log_get_libdata()->sharedlibrary_prefix;
+  _dlopen_data[IDX_DLOPEN_POST].value = oonf_log_get_libdata()->sharedlibrary_postfix;
+  _dlopen_data[IDX_DLOPEN_VER].value = oonf_log_get_libdata()->version;
   return 0;
 }
 
@@ -154,8 +152,7 @@ oonf_subsystem_cleanup(void) {
  * @param subsystem pointer to subsystem
  */
 void
-oonf_subsystem_configure(struct cfg_schema *schema,
-    struct oonf_subsystem *subsystem) {
+oonf_subsystem_configure(struct cfg_schema *schema, struct oonf_subsystem *subsystem) {
   struct cfg_schema_section *schema_section;
 
   assert(subsystem->name);
@@ -164,8 +161,7 @@ oonf_subsystem_configure(struct cfg_schema *schema,
 
   /* add logging source */
   if (!subsystem->no_logging) {
-    OONF_DEBUG(LOG_SUBSYSTEMS, "(%s) Register logging source",
-        subsystem->name);
+    OONF_DEBUG(LOG_SUBSYSTEMS, "(%s) Register logging source", subsystem->name);
     subsystem->logging = oonf_log_register_source(subsystem->name);
   }
   else {
@@ -174,16 +170,14 @@ oonf_subsystem_configure(struct cfg_schema *schema,
 
   /* early configuration */
   if (subsystem->early_cfg_init) {
-    OONF_DEBUG(LOG_SUBSYSTEMS, "(%s) Call 'early_cfg_init() callback",
-        subsystem->name);
+    OONF_DEBUG(LOG_SUBSYSTEMS, "(%s) Call 'early_cfg_init() callback", subsystem->name);
     subsystem->early_cfg_init();
   }
 
   /* add schema sections to global schema */
   schema_section = subsystem->cfg_section;
   while (schema_section) {
-    OONF_DEBUG(LOG_SUBSYSTEMS, "(%s) Add configuration section %s",
-        subsystem->name, schema_section->type);
+    OONF_DEBUG(LOG_SUBSYSTEMS, "(%s) Add configuration section %s", subsystem->name, schema_section->type);
 
     cfg_schema_add_section(schema, schema_section);
     schema_section = schema_section->next_section;
@@ -196,16 +190,14 @@ oonf_subsystem_configure(struct cfg_schema *schema,
  * @param subsystem pointer to subsystem
  */
 void
-oonf_subsystem_unconfigure(struct cfg_schema *schema,
-    struct oonf_subsystem *subsystem) {
+oonf_subsystem_unconfigure(struct cfg_schema *schema, struct oonf_subsystem *subsystem) {
   struct cfg_schema_section *schema_section;
 
   OONF_INFO(LOG_SUBSYSTEMS, "Unregister subsystem %s", subsystem->name);
 
   schema_section = subsystem->cfg_section;
   while (schema_section) {
-    OONF_DEBUG(LOG_SUBSYSTEMS, "(%s) Unregister configuration section %s",
-        subsystem->name, schema_section->type);
+    OONF_DEBUG(LOG_SUBSYSTEMS, "(%s) Unregister configuration section %s", subsystem->name, schema_section->type);
     cfg_schema_remove_section(schema, schema_section);
     schema_section = schema_section->next_section;
   }
@@ -263,8 +255,7 @@ oonf_subsystem_hook(struct oonf_subsystem *plugin) {
  * @param libname library name
  */
 void
-oonf_subsystem_extract_name(
-    struct oonf_subsystem_namebuf *pluginname, const char *libname) {
+oonf_subsystem_extract_name(struct oonf_subsystem_namebuf *pluginname, const char *libname) {
   size_t start, end;
   char *ptr;
 
@@ -282,19 +273,17 @@ oonf_subsystem_extract_name(
   }
 
   /* remove (oonf/app) lib prefix */
-  if (str_startswith_nocase(&libname[start],
-      oonf_log_get_libdata()->sharedlibrary_prefix)) {
+  if (str_startswith_nocase(&libname[start], oonf_log_get_libdata()->sharedlibrary_prefix)) {
     start += strlen(oonf_log_get_libdata()->sharedlibrary_prefix);
   }
 
   /* remove (oonf/app) lib postfix */
-  if (str_endswith_nocase(&libname[start],
-      oonf_log_get_libdata()->sharedlibrary_postfix)) {
+  if (str_endswith_nocase(&libname[start], oonf_log_get_libdata()->sharedlibrary_postfix)) {
     end -= strlen(oonf_log_get_libdata()->sharedlibrary_prefix);
   }
 
-  if (end-start+1 <= sizeof(*pluginname)) {
-    memcpy(pluginname->name, &libname[start], end-start);
+  if (end - start + 1 <= sizeof(*pluginname)) {
+    memcpy(pluginname->name, &libname[start], end - start);
   }
 }
 
@@ -304,8 +293,7 @@ oonf_subsystem_extract_name(
  * @return plugin db object
  */
 struct oonf_subsystem *
-oonf_subsystem_load(const char *libname)
-{
+oonf_subsystem_load(const char *libname) {
   struct oonf_subsystem *plugin;
   void *dlhandle;
   int idx;
@@ -404,17 +392,15 @@ _init_plugin(struct oonf_subsystem *plugin) {
   /* mark plugin */
   plugin->_dependency_missing = true;
 
-  for (i=0; i<plugin->dependencies_count; i++) {
+  for (i = 0; i < plugin->dependencies_count; i++) {
     dep = oonf_subsystem_get(plugin->dependencies[i]);
     if (!dep) {
-      OONF_WARN(LOG_PLUGINS, "Dependency '%s' missing for '%s'",
-          plugin->dependencies[i], plugin->name);
+      OONF_WARN(LOG_PLUGINS, "Dependency '%s' missing for '%s'", plugin->dependencies[i], plugin->name);
       return -1;
     }
 
     if (dep->_dependency_missing) {
-      OONF_WARN(LOG_PLUGINS, "Circular dependency, '%s' is dependency of '%s'",
-          plugin->dependencies[i], plugin->name);
+      OONF_WARN(LOG_PLUGINS, "Circular dependency, '%s' is dependency of '%s'", plugin->dependencies[i], plugin->name);
       return 1;
     }
 
@@ -425,18 +411,16 @@ _init_plugin(struct oonf_subsystem *plugin) {
     }
     if (result == 1) {
       /* forward circular dependency */
-      OONF_WARN(LOG_PLUGINS, "Circular dependency, '%s' is dependency of '%s'",
-          plugin->dependencies[i], plugin->name);
+      OONF_WARN(LOG_PLUGINS, "Circular dependency, '%s' is dependency of '%s'", plugin->dependencies[i], plugin->name);
       return 1;
     }
   }
 
   plugin->_dependency_missing = false;
 
-  if (plugin->_dlhandle && !_open_plugin_template(plugin->name, plugin->_dlpath_index,
-      RTLD_LAZY | RTLD_NOLOAD | RTLD_GLOBAL)) {
-    OONF_WARN(LOG_PLUGINS, "Could not reload plugin '%s' into global namespace",
-        plugin->name);
+  if (plugin->_dlhandle &&
+      !_open_plugin_template(plugin->name, plugin->_dlpath_index, RTLD_LAZY | RTLD_NOLOAD | RTLD_GLOBAL)) {
+    OONF_WARN(LOG_PLUGINS, "Could not reload plugin '%s' into global namespace", plugin->name);
     return -1;
   }
 
@@ -469,7 +453,7 @@ _cleanup_plugin(struct oonf_subsystem *plugin) {
   /* handle reverse dependencies */
   avl_for_each_element(&oonf_plugin_tree, rdep, _node) {
     /* look for reverse dependency */
-    for (i=0; i<rdep->dependencies_count; i++) {
+    for (i = 0; i < rdep->dependencies_count; i++) {
       if (strcmp(rdep->dependencies[i], plugin->name) == 0) {
         /* found a reverse dependency */
         _cleanup_plugin(rdep);
@@ -494,8 +478,7 @@ _cleanup_plugin(struct oonf_subsystem *plugin) {
 static int
 _unload_plugin(struct oonf_subsystem *plugin, bool cleanup) {
   if (!plugin->can_cleanup && !cleanup) {
-    OONF_WARN(LOG_PLUGINS, "Plugin %s does not support unloading",
-        plugin->name);
+    OONF_WARN(LOG_PLUGINS, "Plugin %s does not support unloading", plugin->name);
     return -1;
   }
 
@@ -522,20 +505,17 @@ _open_plugin_template(const char *filename, int template, int mode) {
 
   _dlopen_data[IDX_DLOPEN_LIB].value = filename;
 
-  abuf_template_init(&table,
-      _dlopen_data, ARRAYSIZE(_dlopen_data), DLOPEN_PATTERNS[template]);
+  abuf_template_init(&table, _dlopen_data, ARRAYSIZE(_dlopen_data), DLOPEN_PATTERNS[template]);
 
   abuf_clear(&_dlopen_data_buffer);
   abuf_add_template(&_dlopen_data_buffer, &table, false);
 
   result = dlopen(abuf_getptr(&_dlopen_data_buffer), mode);
   if (!result) {
-    OONF_DEBUG(LOG_PLUGINS, "dlopen (%s,0x%x) failed: %s",
-        abuf_getptr(&_dlopen_data_buffer), mode, dlerror());
+    OONF_DEBUG(LOG_PLUGINS, "dlopen (%s,0x%x) failed: %s", abuf_getptr(&_dlopen_data_buffer), mode, dlerror());
   }
   else {
-    OONF_INFO(LOG_PLUGINS, "dlopen (%s,0x%x) succeeded\n",
-        abuf_getptr(&_dlopen_data_buffer), mode);
+    OONF_INFO(LOG_PLUGINS, "dlopen (%s,0x%x) succeeded\n", abuf_getptr(&_dlopen_data_buffer), mode);
   }
   return result;
 }
@@ -551,7 +531,7 @@ _open_plugin(const char *filename, int *idx) {
   size_t i;
 
   result = NULL;
-  for (i=0; i<ARRAYSIZE(DLOPEN_PATTERNS); i++) {
+  for (i = 0; i < ARRAYSIZE(DLOPEN_PATTERNS); i++) {
     result = _open_plugin_template(filename, i, RTLD_LAZY | RTLD_LOCAL);
     if (result) {
       *idx = i;

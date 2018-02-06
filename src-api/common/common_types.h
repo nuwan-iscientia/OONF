@@ -56,7 +56,7 @@
 
 #ifndef EXPORT
 /*! Macro to declare a function should be visible for other subsystems */
-#define EXPORT __attribute__((visibility ("default")))
+#define EXPORT __attribute__((visibility("default")))
 #endif
 
 /* give everyone an arraysize implementation */
@@ -65,7 +65,7 @@
  * @param a reference of an array (not a pointer!)
  * @returns number of elements in array
  */
-#define ARRAYSIZE(a)  (sizeof(a) / sizeof(*(a)))
+#define ARRAYSIZE(a) (sizeof(a) / sizeof(*(a)))
 #endif
 
 #ifndef STRINGIFY
@@ -89,10 +89,10 @@
 
 /* printf size_t modifiers*/
 #if defined(__GNUC__)
-#define PRINTF_SIZE_T_SPECIFIER     "zu"
+#define PRINTF_SIZE_T_SPECIFIER "zu"
 #define PRINTF_SIZE_T_HEX_SPECIFIER "zx"
-#define PRINTF_SSIZE_T_SPECIFIER    "zd"
-#define PRINTF_PTRDIFF_T_SPECIFIER  "zd"
+#define PRINTF_SSIZE_T_SPECIFIER "zd"
+#define PRINTF_PTRDIFF_T_SPECIFIER "zd"
 #else
 /* maybe someone can check what to do about LLVM/Clang? */
 #error Please implement size_t modifiers

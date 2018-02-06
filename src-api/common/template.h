@@ -46,21 +46,22 @@
 #ifndef TEMPLATE_H_
 #define TEMPLATE_H_
 
-#include "common/common_types.h"
 #include "common/autobuf.h"
+#include "common/common_types.h"
 
 /*! text name for json boolean true value */
-#define TEMPLATE_JSON_TRUE            "true"
+#define TEMPLATE_JSON_TRUE "true"
 
 /*! text name for json boolean false value */
-#define TEMPLATE_JSON_FALSE           "false"
+#define TEMPLATE_JSON_FALSE "false"
 
-enum {
+enum
+{
   /*! length of text buffer for json boolean */
   TEMPLATE_JSON_BOOL_LENGTH = 6,
 
   /*! maximum number of template keys per template */
-  TEMPLATE_MAX_KEYS         = 64
+  TEMPLATE_MAX_KEYS = 64
 };
 
 /**
@@ -117,10 +118,9 @@ struct abuf_template_storage {
   struct abuf_template_storage_entry indices[TEMPLATE_MAX_KEYS];
 };
 
-EXPORT void abuf_template_init_ext (struct abuf_template_storage *storage,
-    struct abuf_template_data *data, size_t data_count, const char *format);
-EXPORT void abuf_add_template(struct autobuf *out,
-    struct abuf_template_storage *storage, bool keys);
+EXPORT void abuf_template_init_ext(
+  struct abuf_template_storage *storage, struct abuf_template_data *data, size_t data_count, const char *format);
+EXPORT void abuf_add_template(struct autobuf *out, struct abuf_template_storage *storage, bool keys);
 
 /**
  * Helper function to initialize a template with
@@ -131,8 +131,8 @@ EXPORT void abuf_add_template(struct autobuf *out,
  * @param format format string for template generation
  */
 static INLINE void
-abuf_template_init(struct abuf_template_storage *storage,
-    struct abuf_template_data_entry *entry, size_t entry_count, const char *format) {
+abuf_template_init(struct abuf_template_storage *storage, struct abuf_template_data_entry *entry, size_t entry_count,
+  const char *format) {
   struct abuf_template_data data = { entry, entry_count };
   abuf_template_init_ext(storage, &data, 1, format);
 }

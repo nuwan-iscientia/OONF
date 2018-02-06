@@ -43,9 +43,9 @@
  * @file
  */
 
+#include "common/netaddr_acl.h"
 #include "common/common_types.h"
 #include "common/netaddr.h"
-#include "common/netaddr_acl.h"
 #include "common/string.h"
 
 static bool _is_in_array(const struct netaddr *, size_t, const struct netaddr *);
@@ -82,8 +82,7 @@ netaddr_acl_remove(struct netaddr_acl *acl) {
  * @return -1 if an error happened, 0 otherwise
  */
 int
-netaddr_acl_from_strarray(struct netaddr_acl *acl,
-    const struct const_strarray *value) {
+netaddr_acl_from_strarray(struct netaddr_acl *acl, const struct const_strarray *value) {
   size_t accept_count, reject_count;
   const char *ptr, *addr;
 
@@ -142,7 +141,7 @@ netaddr_acl_from_strarray(struct netaddr_acl *acl,
     }
     else {
       if (netaddr_from_string(&acl->accept[acl->accept_count], addr)) {
-         goto from_entry_error;
+        goto from_entry_error;
       }
       acl->accept_count++;
     }
@@ -249,7 +248,7 @@ static bool
 _is_in_array(const struct netaddr *array, size_t length, const struct netaddr *addr) {
   size_t i;
 
-  for (i=0; i<length; i++) {
+  for (i = 0; i < length; i++) {
     if (netaddr_is_in_subnet(&array[i], addr)) {
       return true;
     }

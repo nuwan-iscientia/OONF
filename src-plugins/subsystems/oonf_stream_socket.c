@@ -43,9 +43,9 @@
  * @file
  */
 
-#include <string.h>
-#include <stdlib.h>
 #include <errno.h>
+#include <stdlib.h>
+#include <string.h>
 
 #include "common/autobuf.h"
 #include "common/avl.h"
@@ -53,11 +53,11 @@
 #include "core/oonf_logging.h"
 #include "core/oonf_subsystem.h"
 #include "subsystems/oonf_class.h"
-#include "subsystems/oonf_timer.h"
 #include "subsystems/oonf_stream_socket.h"
+#include "subsystems/oonf_timer.h"
+#include "subsystems/os_fd.h"
 #include "subsystems/os_interface.h"
 #include "subsystems/os_system.h"
-#include "subsystems/os_fd.h"
 
 /* Definitions */
 #define LOG_STREAM _oonf_stream_socket_subsystem.logging
@@ -68,13 +68,11 @@ static void _cleanup(void);
 
 static void _stream_close(struct oonf_stream_session *session);
 int _apply_managed(struct oonf_stream_managed *managed);
-static int _apply_managed_socket(int af_type, struct oonf_stream_managed *managed,
-    struct oonf_stream_socket *stream, struct os_interface *os_if);
+static int _apply_managed_socket(
+  int af_type, struct oonf_stream_managed *managed, struct oonf_stream_socket *stream, struct os_interface *os_if);
 static void _cb_parse_request(struct oonf_socket_entry *);
-static struct oonf_stream_session *_create_session(
-    struct oonf_stream_socket *stream_socket, struct os_fd *sock,
-    const struct netaddr *remote_addr,
-    const union netaddr_socket *remote_socket);
+static struct oonf_stream_session *_create_session(struct oonf_stream_socket *stream_socket, struct os_fd *sock,
+  const struct netaddr *remote_addr, const union netaddr_socket *remote_socket);
 static void _cb_parse_connection(struct oonf_socket_entry *entry);
 
 static void _cb_timeout_handler(struct oonf_timer_instance *);
@@ -84,10 +82,8 @@ static int _cb_interface_listener(struct os_interface_listener *listener);
 static struct list_entity _stream_head;
 
 /* server socket */
-static struct oonf_class _connection_cookie = {
-  .name = "stream socket connection",
-  .size = sizeof(struct oonf_stream_session)
-};
+static struct oonf_class _connection_cookie = { .name = "stream socket connection",
+  .size = sizeof(struct oonf_stream_session) };
 
 static struct oonf_timer_class _connection_timeout = {
   .name = "stream socket timout",
@@ -160,29 +156,27 @@ oonf_stream_flush(struct oonf_stream_session *con) {
  * @return -1 if an error happened, 0 otherwise
  */
 int
-oonf_stream_add(struct oonf_stream_socket *stream_socket,
-    const union netaddr_socket *local) {
+oonf_stream_add(struct oonf_stream_socket *stream_socket, const union netaddr_socket *local) {
   struct netaddr_str buf;
 
   /* server socket not necessary for outgoing connections */
   if (netaddr_socket_get_port(local) != 0) {
     /* Init socket */
-    if (os_fd_getsocket(&stream_socket->scheduler_entry.fd,
-        local, true, 0, NULL, LOG_STREAM)) {
+    if (os_fd_getsocket(&stream_socket->scheduler_entry.fd, local, true, 0, NULL, LOG_STREAM)) {
       goto add_stream_error;
     }
 
     /* show that we are willing to listen */
     if (os_fd_listen(&stream_socket->scheduler_entry.fd, 1) == -1) {
-      OONF_WARN(LOG_STREAM, "tcp socket listen failed for %s: %s (%d)\n",
-          netaddr_socket_to_string(&buf, local), strerror(errno), errno);
+      OONF_WARN(LOG_STREAM, "tcp socket listen failed for %s: %s (%d)\n", netaddr_socket_to_string(&buf, local),
+        strerror(errno), errno);
       goto add_stream_error;
     }
     stream_socket->scheduler_entry.name = stream_socket->socket_name;
     stream_socket->scheduler_entry.process = _cb_parse_request;
 
-    snprintf(stream_socket->socket_name, sizeof(stream_socket->socket_name),
-        "tcp-server: %s", netaddr_socket_to_string(&buf, local));
+    snprintf(stream_socket->socket_name, sizeof(stream_socket->socket_name), "tcp-server: %s",
+      netaddr_socket_to_string(&buf, local));
     oonf_socket_add(&stream_socket->scheduler_entry);
     oonf_socket_set_read(&stream_socket->scheduler_entry, true);
   }
@@ -266,8 +260,7 @@ oonf_stream_close_all_sessions(struct oonf_stream_socket *stream_socket) {
  * @return pointer to stream session, NULL if an error happened.
  */
 struct oonf_stream_session *
-oonf_stream_connect_to(struct oonf_stream_socket *stream_socket,
-    const union netaddr_socket *remote) {
+oonf_stream_connect_to(struct oonf_stream_socket *stream_socket, const union netaddr_socket *remote) {
   struct oonf_stream_session *session;
   struct os_fd sock;
   struct netaddr remote_addr;
@@ -278,18 +271,16 @@ oonf_stream_connect_to(struct oonf_stream_socket *stream_socket,
 #endif
 
   OONF_DEBUG(LOG_STREAM, "Connect TCP socket from %s to %s",
-      netaddr_socket_to_string(&nbuf1, &stream_socket->local_socket),
-      netaddr_socket_to_string(&nbuf2, remote));
+    netaddr_socket_to_string(&nbuf1, &stream_socket->local_socket), netaddr_socket_to_string(&nbuf2, remote));
 
-  if (os_fd_getsocket(&sock,
-      &stream_socket->local_socket, true, 0, NULL, LOG_STREAM)) {
+  if (os_fd_getsocket(&sock, &stream_socket->local_socket, true, 0, NULL, LOG_STREAM)) {
     return NULL;
   }
 
   if (os_fd_connect(&sock, remote)) {
     if (errno != EINPROGRESS) {
       OONF_WARN(LOG_STREAM, "Cannot connect outgoing tcp connection to %s: %s (%d)",
-          netaddr_socket_to_string(&nbuf1, remote), strerror(errno), errno);
+        netaddr_socket_to_string(&nbuf1, remote), strerror(errno), errno);
       goto connect_to_error;
     }
     wait_for_connect = true;
@@ -329,7 +320,7 @@ oonf_stream_close(struct oonf_stream_session *session) {
     session->removed = true;
     return;
   }
-  _stream_close (session);
+  _stream_close(session);
 }
 
 /**
@@ -360,13 +351,12 @@ oonf_stream_add_managed(struct oonf_stream_managed *managed) {
  * @return -1 if an error happened, 0 otherwise.
  */
 int
-oonf_stream_apply_managed(struct oonf_stream_managed *managed,
-    struct oonf_stream_managed_config *config) {
+oonf_stream_apply_managed(struct oonf_stream_managed *managed, struct oonf_stream_managed_config *config) {
   bool if_changed;
   int result;
 
-  if_changed = strcmp(config->interface, managed->_managed_config.interface) != 0
-      || !list_is_node_added(&managed->_if_listener._node);
+  if_changed = strcmp(config->interface, managed->_managed_config.interface) != 0 ||
+               !list_is_node_added(&managed->_if_listener._node);
 
   oonf_stream_copy_managed_config(&managed->_managed_config, config);
 
@@ -388,8 +378,7 @@ oonf_stream_apply_managed(struct oonf_stream_managed *managed,
   }
 
   OONF_DEBUG(LOG_STREAM, "Apply changes for managed socket (if %s) with port %d",
-      config->interface == NULL || config->interface[0] == 0 ? "any" : config->interface,
-      config->port);
+    config->interface == NULL || config->interface[0] == 0 ? "any" : config->interface, config->port);
 
   result = _apply_managed(managed);
   if (result) {
@@ -441,8 +430,7 @@ oonf_stream_free_managed_config(struct oonf_stream_managed_config *config) {
  * @param src Source
  */
 void
-oonf_stream_copy_managed_config(struct oonf_stream_managed_config *dst,
-    struct oonf_stream_managed_config *src) {
+oonf_stream_copy_managed_config(struct oonf_stream_managed_config *dst, struct oonf_stream_managed_config *src) {
   oonf_stream_free_managed_config(dst);
 
   memcpy(dst, src, sizeof(*dst));
@@ -468,7 +456,6 @@ _stream_close(struct oonf_stream_session *session) {
 
   session->stream_socket->session_counter--;
   list_remove(&session->node);
-
 
   oonf_socket_remove(&session->scheduler_entry);
   os_fd_close(&session->scheduler_entry.fd);
@@ -513,8 +500,8 @@ _apply_managed(struct oonf_stream_managed *managed) {
  * @return -1 if an error happened, 0 otherwise.
  */
 static int
-_apply_managed_socket(int af_type, struct oonf_stream_managed *managed,
-    struct oonf_stream_socket *stream, struct os_interface *data) {
+_apply_managed_socket(
+  int af_type, struct oonf_stream_managed *managed, struct oonf_stream_socket *stream, struct os_interface *data) {
   struct netaddr_acl *bind_ip_acl;
   const struct netaddr *bind_ip;
   union netaddr_socket sock;
@@ -526,10 +513,8 @@ _apply_managed_socket(int af_type, struct oonf_stream_managed *managed,
   if (data != NULL && !data->flags.up) {
     bind_ip = NULL;
   }
-  else if (data != NULL
-      && netaddr_get_address_family(data->if_linklocal_v6) == af_type
-      && netaddr_acl_check_accept(bind_ip_acl, data->if_linklocal_v6)) {
-
+  else if (data != NULL && netaddr_get_address_family(data->if_linklocal_v6) == af_type &&
+           netaddr_acl_check_accept(bind_ip_acl, data->if_linklocal_v6)) {
     bind_ip = data->if_linklocal_v6;
   }
   else {
@@ -539,10 +524,9 @@ _apply_managed_socket(int af_type, struct oonf_stream_managed *managed,
     oonf_stream_remove(stream, true);
     return 0;
   }
-  if (netaddr_socket_init(&sock, bind_ip, managed->_managed_config.port,
-      data == NULL ? 0 : data->index)) {
-    OONF_WARN(LOG_STREAM, "Cannot create managed socket address: %s/%u",
-        netaddr_to_string(&buf, bind_ip), managed->_managed_config.port);
+  if (netaddr_socket_init(&sock, bind_ip, managed->_managed_config.port, data == NULL ? 0 : data->index)) {
+    OONF_WARN(LOG_STREAM, "Cannot create managed socket address: %s/%u", netaddr_to_string(&buf, bind_ip),
+      managed->_managed_config.port);
     return -1;
   }
 
@@ -598,8 +582,7 @@ _cb_parse_request(struct oonf_socket_entry *entry) {
   if (stream->config.acl) {
     if (!netaddr_acl_check_accept(stream->config.acl, &remote_addr)) {
       OONF_DEBUG(LOG_STREAM, "Access from %s to socket %s blocked because of ACL",
-          netaddr_to_string(&buf1, &remote_addr),
-          netaddr_socket_to_string(&buf2, &stream->local_socket));
+        netaddr_to_string(&buf1, &remote_addr), netaddr_socket_to_string(&buf2, &stream->local_socket));
       os_fd_close(&sock);
       return;
     }
@@ -615,16 +598,14 @@ _cb_parse_request(struct oonf_socket_entry *entry) {
  * @return pointer to new stream session, NULL if an error happened.
  */
 static struct oonf_stream_session *
-_create_session(struct oonf_stream_socket *stream_socket,
-    struct os_fd *sock, const struct netaddr *remote_addr,
-    const union netaddr_socket *remote_socket) {
+_create_session(struct oonf_stream_socket *stream_socket, struct os_fd *sock, const struct netaddr *remote_addr,
+  const union netaddr_socket *remote_socket) {
   struct oonf_stream_session *session;
   struct netaddr_str nbuf1, nbuf2;
 
   /* put socket into non-blocking mode */
   if (os_fd_set_nonblocking(sock)) {
-    OONF_WARN(LOG_STREAM, "Cannot set socket %d nonblocking: %s (%d)",
-        os_fd_get_fd(sock), strerror(errno), errno);
+    OONF_WARN(LOG_STREAM, "Cannot set socket %d nonblocking: %s (%d)", os_fd_get_fd(sock), strerror(errno), errno);
     return NULL;
   }
 
@@ -653,16 +634,16 @@ _create_session(struct oonf_stream_socket *stream_socket,
   session->remote_socket = *remote_socket;
 
   /* generate socket name */
-  snprintf(session->socket_name, sizeof(session->socket_name),
-      "tcp: %s,%s",
-      netaddr_socket_to_string(&nbuf1, &stream_socket->local_socket),
-      netaddr_socket_to_string(&nbuf2, &session->remote_socket));
+  snprintf(session->socket_name, sizeof(session->socket_name), "tcp: %s,%s",
+    netaddr_socket_to_string(&nbuf1, &stream_socket->local_socket),
+    netaddr_socket_to_string(&nbuf2, &session->remote_socket));
 
   if (stream_socket->session_counter < stream_socket->config.allowed_sessions) {
     /* create active session */
     session->state = STREAM_SESSION_ACTIVE;
     stream_socket->session_counter++;
-  } else {
+  }
+  else {
     /* too many sessions */
     if (stream_socket->config.create_error) {
       stream_socket->config.create_error(session, STREAM_SERVICE_UNAVAILABLE);
@@ -685,8 +666,8 @@ _create_session(struct oonf_stream_socket *stream_socket,
     }
   }
 
-  OONF_DEBUG(LOG_STREAM, "Got connection through socket %d with %s.\n",
-      os_fd_get_fd(sock), netaddr_to_string(&nbuf1, remote_addr));
+  OONF_DEBUG(LOG_STREAM, "Got connection through socket %d with %s.\n", os_fd_get_fd(sock),
+    netaddr_to_string(&nbuf1, remote_addr));
 
   list_add_tail(&stream_socket->session, &session->node);
   return session;
@@ -726,8 +707,7 @@ _cb_parse_connection(struct oonf_socket_entry *entry) {
   session = container_of(entry, typeof(*session), scheduler_entry);
   s_sock = session->stream_socket;
 
-  OONF_DEBUG(LOG_STREAM, "Parsing connection of socket %d\n",
-      os_fd_get_fd(&entry->fd));
+  OONF_DEBUG(LOG_STREAM, "Parsing connection of socket %d\n", os_fd_get_fd(&entry->fd));
 
   /* mark session and s_sock as busy */
   session->busy = true;
@@ -737,15 +717,13 @@ _cb_parse_connection(struct oonf_socket_entry *entry) {
     if (oonf_socket_is_write(entry)) {
       int value;
 
-      if(os_fd_get_socket_error(&entry->fd, &value)) {
-        OONF_WARN(LOG_STREAM, "getsockopt failed: %s (%d)",
-            strerror(errno), errno);
+      if (os_fd_get_socket_error(&entry->fd, &value)) {
+        OONF_WARN(LOG_STREAM, "getsockopt failed: %s (%d)", strerror(errno), errno);
         session->state = STREAM_SESSION_CLEANUP;
       }
       else if (value != 0) {
         OONF_WARN(LOG_STREAM, "Connection to %s failed: %s (%d)",
-            netaddr_socket_to_string(&buf, &session->remote_socket),
-            strerror(value), value);
+          netaddr_socket_to_string(&buf, &session->remote_socket), strerror(value), value);
         session->state = STREAM_SESSION_CLEANUP;
       }
       else {
@@ -769,23 +747,26 @@ _cb_parse_connection(struct oonf_socket_entry *entry) {
         /* out of memory */
         OONF_WARN(LOG_STREAM, "Out of memory for comport session input buffer");
         session->state = STREAM_SESSION_CLEANUP;
-      } else if (abuf_getlen(&session->in) > s_sock->config.maximum_input_buffer) {
+      }
+      else if (abuf_getlen(&session->in) > s_sock->config.maximum_input_buffer) {
         /* input buffer overflow */
         if (s_sock->config.create_error) {
           s_sock->config.create_error(session, STREAM_REQUEST_TOO_LARGE);
         }
         session->state = STREAM_SESSION_SEND_AND_QUIT;
-      } else {
+      }
+      else {
         /* got new input block, reset timeout */
         oonf_stream_set_timeout(session, s_sock->config.session_timeout);
       }
-    } else if (len < 0 && errno != EINTR && errno != EAGAIN && errno
-        != EWOULDBLOCK) {
+    }
+    else if (len < 0 && errno != EINTR && errno != EAGAIN && errno != EWOULDBLOCK) {
       /* error during read */
       OONF_WARN(LOG_STREAM, "Error while reading from communication stream with %s: %s (%d)\n",
-          netaddr_to_string(&buf, &session->remote_address), strerror(errno), errno);
+        netaddr_to_string(&buf, &session->remote_address), strerror(errno), errno);
       session->state = STREAM_SESSION_CLEANUP;
-    } else if (len == 0) {
+    }
+    else if (len == 0) {
       /* external s_sock closed */
       session->state = STREAM_SESSION_SEND_AND_QUIT;
 
@@ -797,8 +778,8 @@ _cb_parse_connection(struct oonf_socket_entry *entry) {
     }
   }
 
-  if (session->state == STREAM_SESSION_ACTIVE && s_sock->config.receive_data != NULL
-      && (abuf_getlen(&session->in) > 0 || session->send_first)) {
+  if (session->state == STREAM_SESSION_ACTIVE && s_sock->config.receive_data != NULL &&
+      (abuf_getlen(&session->in) > 0 || session->send_first)) {
     session->state = s_sock->config.receive_data(session);
     session->send_first = false;
   }
@@ -812,29 +793,28 @@ _cb_parse_connection(struct oonf_socket_entry *entry) {
         OONF_DEBUG(LOG_STREAM, "  send returned %d\n", len);
         abuf_pull(&session->out, len);
         oonf_stream_set_timeout(session, s_sock->config.session_timeout);
-      } else if (len < 0 && errno != EINTR && errno != EAGAIN && errno
-          != EWOULDBLOCK) {
+      }
+      else if (len < 0 && errno != EINTR && errno != EAGAIN && errno != EWOULDBLOCK) {
         OONF_WARN(LOG_STREAM, "Error while writing to communication stream with %s: %s (%d)\n",
-            netaddr_to_string(&buf, &session->remote_address), strerror(errno), errno);
+          netaddr_to_string(&buf, &session->remote_address), strerror(errno), errno);
         session->state = STREAM_SESSION_CLEANUP;
       }
-    } else {
+    }
+    else {
       OONF_DEBUG(LOG_STREAM, "  activating output in scheduler\n");
       oonf_socket_set_write(&session->scheduler_entry, true);
     }
   }
 
   /* send file if necessary */
-  if (session->state == STREAM_SESSION_SEND_AND_QUIT
-      && abuf_getlen(&session->out) == 0
-      && os_fd_is_initialized(&session->copy_fd)) {
+  if (session->state == STREAM_SESSION_SEND_AND_QUIT && abuf_getlen(&session->out) == 0 &&
+      os_fd_is_initialized(&session->copy_fd)) {
     if (oonf_socket_is_write(entry)) {
-      len = os_fd_sendfile(&entry->fd, &session->copy_fd, session->copy_bytes_sent,
-          session->copy_total_size - session->copy_bytes_sent);
+      len = os_fd_sendfile(
+        &entry->fd, &session->copy_fd, session->copy_bytes_sent, session->copy_total_size - session->copy_bytes_sent);
       if (len <= 0) {
-        OONF_WARN(LOG_STREAM, "Error while copying file to output stream (%d/%d): %s (%d)",
-            os_fd_get_fd(&entry->fd),
-            os_fd_get_fd(&session->copy_fd), strerror(errno), errno);
+        OONF_WARN(LOG_STREAM, "Error while copying file to output stream (%d/%d): %s (%d)", os_fd_get_fd(&entry->fd),
+          os_fd_get_fd(&session->copy_fd), strerror(errno), errno);
         session->state = STREAM_SESSION_CLEANUP;
       }
       else {
@@ -844,14 +824,12 @@ _cb_parse_connection(struct oonf_socket_entry *entry) {
   }
 
   /* check for buffer underrun */
-  if (session->state == STREAM_SESSION_ACTIVE
-      && abuf_getlen(&session->out) == 0
-      && s_sock->config.buffer_underrun != NULL) {
+  if (session->state == STREAM_SESSION_ACTIVE && abuf_getlen(&session->out) == 0 &&
+      s_sock->config.buffer_underrun != NULL) {
     session->state = s_sock->config.buffer_underrun(session);
   }
 
-  if (abuf_getlen(&session->out) == 0 &&
-      session->copy_bytes_sent == session->copy_total_size) {
+  if (abuf_getlen(&session->out) == 0 && session->copy_bytes_sent == session->copy_total_size) {
     /* nothing to send anymore */
     OONF_DEBUG(LOG_STREAM, "  deactivating output in scheduler\n");
     oonf_socket_set_write(&session->scheduler_entry, false);
@@ -895,9 +873,7 @@ _cb_interface_listener(struct os_interface_listener *interf) {
 
   result = _apply_managed(managed);
 
-  OONF_DEBUG(LOG_STREAM,
-      "Result from interface %s triggered socket reconfiguration: %d",
-      interf->name, result);
+  OONF_DEBUG(LOG_STREAM, "Result from interface %s triggered socket reconfiguration: %d", interf->name, result);
 
   return result;
 }

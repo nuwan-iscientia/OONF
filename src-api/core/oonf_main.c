@@ -43,10 +43,6 @@
  * @file
  */
 
-#include <sys/types.h>
-#include <sys/times.h>
-#include <sys/stat.h>
-#include <unistd.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <getopt.h>
@@ -54,6 +50,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <strings.h>
+#include <sys/stat.h>
+#include <sys/times.h>
+#include <sys/types.h>
+#include <unistd.h>
 
 #include "config/cfg_cmd.h"
 #include "config/cfg_db.h"
@@ -72,11 +72,9 @@ static int _write_pidfile(const char *);
 static void quit_signal_handler(int);
 static void hup_signal_handler(int);
 static void setup_signalhandler(void);
-static int mainloop(int argc, char **argv,
-    const struct oonf_appdata *);
+static int mainloop(int argc, char **argv, const struct oonf_appdata *);
 static void parse_early_commandline(int argc, char **argv);
-static int parse_commandline(int argc, char **argv,
-    const struct oonf_appdata *, bool reload_only);
+static int parse_commandline(int argc, char **argv, const struct oonf_appdata *, bool reload_only);
 static int display_schema(void);
 
 static bool _end_oonf_signal, _display_schema, _debug_early, _ignore_unknown;
@@ -88,7 +86,8 @@ static int (*_handle_unused_argument)(const char *) = NULL;
 /**
  * index values for additional command line options
  */
-enum argv_short_options {
+enum argv_short_options
+{
   /*! --schema option */
   argv_option_schema = 256,
 
@@ -101,54 +100,46 @@ enum argv_short_options {
 
 static struct option oonf_options[] = {
 #if !defined(REMOVE_HELPTEXT)
-  { "help",            no_argument,       0, 'h' },
+  { "help", no_argument, 0, 'h' },
 #endif
-  { "version",         no_argument,       0, 'v' },
-  { "plugin",          required_argument, 0, 'p' },
-  { "load",            required_argument, 0, 'l' },
-  { "save",            required_argument, 0, 'S' },
-  { "set",             required_argument, 0, 's' },
-  { "remove",          required_argument, 0, 'r' },
-  { "get",             optional_argument, 0, 'g' },
-  { "quit",            no_argument,       0, 'q' },
-  { "schema",          optional_argument, 0, argv_option_schema },
-  { "Xearlydebug",     no_argument,       0, argv_option_debug_early },
-  { "Xignoreunknown",  no_argument,       0, argv_option_ignore_unknown },
-  { NULL, 0,0,0 }
+  { "version", no_argument, 0, 'v' }, { "plugin", required_argument, 0, 'p' }, { "load", required_argument, 0, 'l' },
+  { "save", required_argument, 0, 'S' }, { "set", required_argument, 0, 's' }, { "remove", required_argument, 0, 'r' },
+  { "get", optional_argument, 0, 'g' }, { "quit", no_argument, 0, 'q' },
+  { "schema", optional_argument, 0, argv_option_schema }, { "Xearlydebug", no_argument, 0, argv_option_debug_early },
+  { "Xignoreunknown", no_argument, 0, argv_option_ignore_unknown }, { NULL, 0, 0, 0 }
 };
 
 #if !defined(REMOVE_HELPTEXT)
 static const char *help_text =
-    "Mandatory arguments for long options are mandatory for short options too.\n"
-    "  -h, --help                             Display this help file\n"
-    "  -v, --version                          Display the version string and the included static plugins\n"
-    "  -p, --plugin=shared-library            Load a shared library as a plugin\n"
-    "  -q, --quit                             Load plugins and validate configuration, then end\n"
-    "      --schema                           Display all allowed section types of configuration\n"
-    "              =all                       Display all allowed entries in all sections\n"
-    "              =section_type              Display all allowed entries of one configuration section\n"
-    "              =section_type.key          Display help text for configuration entry\n"
-    "  -l, --load=SOURCE                      Load configuration from a SOURCE\n"
-    "  -S, --save=TARGET                      Save configuration to a TARGET\n"
-    "  -s, --set=section_type.                Add an unnamed section to the configuration\n"
-    "           =section_type.key=value       Add a key/value pair to an unnamed section\n"
-    "           =section_type[name].          Add a named section to the configuration\n"
-    "           =section_type[name].key=value Add a key/value pair to a named section\n"
-    "  -r, --remove=section_type.             Remove all sections of a certain type\n"
-    "              =section_type.key          Remove a key in an unnamed section\n"
-    "              =section_type[name].       Remove a named section\n"
-    "              =section_type[name].key    Remove a key in a named section\n"
-    "  -g, --get                              Show all section types in database\n"
-    "           =section_type.                Show all named sections of a certain type\n"
-    "           =section_type.key             Show the value(s) of a key in an unnamed section\n"
-    "           =section_type[name].key       Show the value(s) of a key in a named section\n"
-    "\n"
-    "Expert/Experimental arguments\n"
-    "  --Xearlydebug                          Activate debugging output before configuration could be parsed\n"
-    "  --Xignoreunknown                       Ignore unknown command line arguments\n"
-    "\n"
-    "The remainder of the parameters which are no arguments are handled as interface names.\n"
-;
+  "Mandatory arguments for long options are mandatory for short options too.\n"
+  "  -h, --help                             Display this help file\n"
+  "  -v, --version                          Display the version string and the included static plugins\n"
+  "  -p, --plugin=shared-library            Load a shared library as a plugin\n"
+  "  -q, --quit                             Load plugins and validate configuration, then end\n"
+  "      --schema                           Display all allowed section types of configuration\n"
+  "              =all                       Display all allowed entries in all sections\n"
+  "              =section_type              Display all allowed entries of one configuration section\n"
+  "              =section_type.key          Display help text for configuration entry\n"
+  "  -l, --load=SOURCE                      Load configuration from a SOURCE\n"
+  "  -S, --save=TARGET                      Save configuration to a TARGET\n"
+  "  -s, --set=section_type.                Add an unnamed section to the configuration\n"
+  "           =section_type.key=value       Add a key/value pair to an unnamed section\n"
+  "           =section_type[name].          Add a named section to the configuration\n"
+  "           =section_type[name].key=value Add a key/value pair to a named section\n"
+  "  -r, --remove=section_type.             Remove all sections of a certain type\n"
+  "              =section_type.key          Remove a key in an unnamed section\n"
+  "              =section_type[name].       Remove a named section\n"
+  "              =section_type[name].key    Remove a key in a named section\n"
+  "  -g, --get                              Show all section types in database\n"
+  "           =section_type.                Show all named sections of a certain type\n"
+  "           =section_type.key             Show the value(s) of a key in an unnamed section\n"
+  "           =section_type[name].key       Show the value(s) of a key in a named section\n"
+  "\n"
+  "Expert/Experimental arguments\n"
+  "  --Xearlydebug                          Activate debugging output before configuration could be parsed\n"
+  "  --Xignoreunknown                       Ignore unknown command line arguments\n"
+  "\n"
+  "The remainder of the parameters which are no arguments are handled as interface names.\n";
 #endif
 
 /**
@@ -232,20 +223,16 @@ oonf_main(int argc, char **argv, const struct oonf_appdata *appdata) {
   /* check if we are root, otherwise stop */
   if (appdata->need_root) {
     if (geteuid() != 0) {
-      OONF_WARN(LOG_MAIN, "You must be root(uid = 0) to run %s!\n",
-          appdata->app_name);
+      OONF_WARN(LOG_MAIN, "You must be root(uid = 0) to run %s!\n", appdata->app_name);
       goto oonf_cleanup;
     }
   }
 
-  if (appdata->need_lock
-      && config_global.lockfile != NULL
-      && *config_global.lockfile != 0
-      && strcmp(config_global.lockfile, "-") != 0) {
+  if (appdata->need_lock && config_global.lockfile != NULL && *config_global.lockfile != 0 &&
+      strcmp(config_global.lockfile, "-") != 0) {
     /* create application lock */
     if (os_core_create_lockfile(config_global.lockfile)) {
-      OONF_WARN(LOG_MAIN, "Could not acquire application lock '%s'",
-          config_global.lockfile);
+      OONF_WARN(LOG_MAIN, "Could not acquire application lock '%s'", config_global.lockfile);
       goto oonf_cleanup;
     }
   }
@@ -275,9 +262,8 @@ oonf_main(int argc, char **argv, const struct oonf_appdata *appdata) {
   /* see if we need to fork */
   if (config_global.fork && !_display_schema) {
     /* tell main process that we are finished with initialization */
-    if (daemon(0,0) < 0) {
-      OONF_WARN(LOG_MAIN, "Could not fork into background: %s (%d)",
-          strerror(errno), errno);
+    if (daemon(0, 0) < 0) {
+      OONF_WARN(LOG_MAIN, "Could not fork into background: %s (%d)", strerror(errno), errno);
       goto oonf_cleanup;
     }
 
@@ -295,7 +281,8 @@ oonf_main(int argc, char **argv, const struct oonf_appdata *appdata) {
   oonf_subsystem_initiate_shutdown();
 
   /* wait for 500 ms and process socket events */
-  while(!_handle_scheduling());
+  while (!_handle_scheduling())
+    ;
 
 oonf_cleanup:
   /* free plugins */
@@ -351,9 +338,7 @@ oonf_main_set_parameter_handler(int (*parameter_handler)(const char *)) {
  */
 bool
 oonf_main_shall_stop_scheduler(void) {
-  return oonf_cfg_is_commit_set()
-        || oonf_cfg_is_reload_set()
-        || !oonf_cfg_is_running();
+  return oonf_cfg_is_commit_set() || oonf_cfg_is_reload_set() || !oonf_cfg_is_running();
 }
 
 /**
@@ -366,19 +351,17 @@ _write_pidfile(const char *filename) {
   int pid_fd;
   char buffer[16];
 
-  pid_fd = open(filename, O_WRONLY | O_CREAT | O_TRUNC,
-      S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
+  pid_fd = open(filename, O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
   if (pid_fd < 0) {
-    OONF_WARN(LOG_MAIN, "Could not open pidfile '%s': %s (%d)",
-        filename, strerror(errno), errno);
+    OONF_WARN(LOG_MAIN, "Could not open pidfile '%s': %s (%d)", filename, strerror(errno), errno);
     return -1;
   }
 
   snprintf(buffer, sizeof(buffer), "%d\n", getpid());
 
-  if (write(pid_fd, buffer, strlen(buffer)+1) < 0) {
-    OONF_WARN(LOG_MAIN, "Could not write pid %d into pidfile '%s': %s (%d)",
-        getpid(), filename, strerror(errno), errno);
+  if (write(pid_fd, buffer, strlen(buffer) + 1) < 0) {
+    OONF_WARN(
+      LOG_MAIN, "Could not write pid %d into pidfile '%s': %s (%d)", getpid(), filename, strerror(errno), errno);
     close(pid_fd);
     return -1;
   }
@@ -392,7 +375,7 @@ _write_pidfile(const char *filename) {
  * @param signo unused
  */
 static void
-quit_signal_handler(int signo __attribute__ ((unused))) {
+quit_signal_handler(int signo __attribute__((unused))) {
   oonf_cfg_exit();
 }
 
@@ -401,7 +384,7 @@ quit_signal_handler(int signo __attribute__ ((unused))) {
  * @param signo unused
  */
 static void
-hup_signal_handler(int signo __attribute__ ((unused))) {
+hup_signal_handler(int signo __attribute__((unused))) {
   oonf_cfg_trigger_reload();
 }
 
@@ -512,8 +495,7 @@ parse_early_commandline(int argc, char **argv) {
  *   exit with the returned number
  */
 static int
-parse_commandline(int argc, char **argv,
-    const struct oonf_appdata *appdata __attribute((unused)), bool reload_only) {
+parse_commandline(int argc, char **argv, const struct oonf_appdata *appdata __attribute((unused)), bool reload_only) {
   struct oonf_subsystem *plugin;
   const char *parameters;
   struct autobuf log;
@@ -538,13 +520,12 @@ parse_commandline(int argc, char **argv,
     parameters = "-hvp:ql:S:s:r:g::f:n";
   }
 
-  while (return_code == -1
-      && 0 <= (opt = getopt_long(argc, argv, parameters, oonf_options, &opt_idx))) {
+  while (return_code == -1 && 0 <= (opt = getopt_long(argc, argv, parameters, oonf_options, &opt_idx))) {
     switch (opt) {
       case 'h':
 #if !defined(REMOVE_HELPTEXT)
-        abuf_appendf(&log, "Usage: %s [OPTION]...\n%s%s%s", argv[0],
-            appdata->help_prefix, help_text, appdata->help_suffix);
+        abuf_appendf(
+          &log, "Usage: %s [OPTION]...\n%s%s%s", argv[0], appdata->help_prefix, help_text, appdata->help_suffix);
 #endif
         return_code = 0;
         break;
@@ -581,10 +562,10 @@ parse_commandline(int argc, char **argv,
         break;
 
       case 'l':
-          if (cfg_cmd_handle_load(oonf_cfg_get_instance(), db, optarg, &log)) {
-            return_code = 1;
-          }
-          break;
+        if (cfg_cmd_handle_load(oonf_cfg_get_instance(), db, optarg, &log)) {
+          return_code = 1;
+        }
+        break;
       case 'S':
         if (cfg_cmd_handle_save(oonf_cfg_get_instance(), db, optarg, &log)) {
           return_code = 1;
@@ -617,7 +598,7 @@ parse_commandline(int argc, char **argv,
 
       case '?':
       default:
-        if (!(reload_only ||_ignore_unknown)) {
+        if (!(reload_only || _ignore_unknown)) {
           abuf_appendf(&log, "Unknown parameter: '%c' (%d)\n", opt, opt);
           return_code = 1;
         }

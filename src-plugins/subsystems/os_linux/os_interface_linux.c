@@ -50,26 +50,26 @@
 #include <sys/socket.h>
 
 /* and now the rest of the includes */
-#include <linux/types.h>
+#include <errno.h>
+#include <fcntl.h>
+#include <ifaddrs.h>
 #include <linux/netlink.h>
 #include <linux/rtnetlink.h>
 #include <linux/socket.h>
-#include <sys/ioctl.h>
-#include <sys/stat.h>
-#include <sys/uio.h>
-#include <sys/types.h>
-#include <fcntl.h>
-#include <ifaddrs.h>
+#include <linux/types.h>
 #include <net/if.h>
 #include <netinet/in.h>
-#include <errno.h>
-#include <unistd.h>
+#include <sys/ioctl.h>
+#include <sys/stat.h>
 #include <sys/time.h>
+#include <sys/types.h>
+#include <sys/uio.h>
 #include <time.h>
+#include <unistd.h>
 
-#include "common/common_types.h"
 #include "common/avl.h"
 #include "common/avl_comp.h"
+#include "common/common_types.h"
 #include "common/string.h"
 #include "core/oonf_cfg.h"
 #include "core/oonf_main.h"
@@ -123,8 +123,7 @@ static void _cb_rtnetlink_timeout(void);
 static void _cb_query_error(uint32_t seq, int error);
 static void _cb_query_done(uint32_t seq);
 static void _cb_query_timeout(void);
-static void _address_finished(
-    struct os_interface_ip_change *addr, int error);
+static void _address_finished(struct os_interface_ip_change *addr, int error);
 
 static void _activate_if_routing(void);
 static void _deactivate_if_routing(void);
@@ -136,8 +135,7 @@ static void _cb_cfg_changed(void);
 
 /* subsystem configuration */
 static struct cfg_schema_entry _interface_entries[] = {
-  CFG_MAP_BOOL(os_interface, _internal.ignore_mesh, "ignore_mesh", "false",
-    "Suppress os mesh interface configuration"),
+  CFG_MAP_BOOL(os_interface, _internal.ignore_mesh, "ignore_mesh", "false", "Suppress os mesh interface configuration"),
 };
 
 static struct cfg_schema_section _interface_section = {
@@ -177,9 +175,7 @@ static struct os_system_netlink _rtnetlink_receiver = {
 
 static struct list_entity _rtnetlink_feedback;
 
-static const uint32_t _rtnetlink_mcast[] = {
-  RTNLGRP_LINK, RTNLGRP_IPV4_IFADDR, RTNLGRP_IPV6_IFADDR
-};
+static const uint32_t _rtnetlink_mcast[] = { RTNLGRP_LINK, RTNLGRP_IPV4_IFADDR, RTNLGRP_IPV6_IFADDR };
 
 static struct os_system_netlink _rtnetlink_if_query = {
   .name = "interface query",
@@ -259,7 +255,7 @@ _init(void) {
   oonf_class_add(&_interface_class);
   oonf_timer_add(&_interface_change_timer);
 
-  _is_kernel_2_6_31_or_better = os_system_linux_is_minimal_kernel(2,6,31);
+  _is_kernel_2_6_31_or_better = os_system_linux_is_minimal_kernel(2, 6, 31);
 
   return 0;
 }
@@ -297,8 +293,8 @@ _cleanup(void) {
 /**
  * Handle pre-configuration work
  */
-static
-void _early_cfg_init(void) {
+static void
+_early_cfg_init(void) {
   oonf_main_set_parameter_handler(_handle_unused_parameter);
 }
 
@@ -329,8 +325,7 @@ os_interface_linux_add(struct os_interface_listener *if_listener) {
   list_add_tail(&data->_listeners, &if_listener->_node);
 
   if (if_listener->mesh && if_listener->name != _ANY_INTERFACE) {
-    if (data->_internal.mesh_counter == 0
-        && !data->_internal.ignore_mesh) {
+    if (data->_internal.mesh_counter == 0 && !data->_internal.ignore_mesh) {
       _init_mesh(data);
     }
     data->_internal.mesh_counter++;
@@ -390,8 +385,7 @@ void
 os_interface_linux_trigger_handler(struct os_interface_listener *if_listener) {
   if_listener->_dirty = true;
   if (!oonf_timer_is_active(&if_listener->data->_change_timer)) {
-    oonf_timer_start(&if_listener->data->_change_timer,
-        OS_INTERFACE_CHANGE_TRIGGER_INTERVAL);
+    oonf_timer_start(&if_listener->data->_change_timer, OS_INTERFACE_CHANGE_TRIGGER_INTERVAL);
   }
 }
 /**
@@ -408,11 +402,9 @@ os_interface_linux_state_set(struct os_interface *os_if, bool up) {
   memset(&ifr, 0, sizeof(ifr));
   strscpy(ifr.ifr_name, os_if->name, IF_NAMESIZE);
 
-  if (ioctl(os_system_linux_linux_get_ioctl_fd(AF_INET),
-      SIOCGIFFLAGS, &ifr) < 0) {
-    OONF_WARN(LOG_OS_INTERFACE,
-        "ioctl SIOCGIFFLAGS (get flags) error on device %s: %s (%d)\n",
-        os_if->name, strerror(errno), errno);
+  if (ioctl(os_system_linux_linux_get_ioctl_fd(AF_INET), SIOCGIFFLAGS, &ifr) < 0) {
+    OONF_WARN(LOG_OS_INTERFACE, "ioctl SIOCGIFFLAGS (get flags) error on device %s: %s (%d)\n", os_if->name,
+      strerror(errno), errno);
     return -1;
   }
 
@@ -429,11 +421,9 @@ os_interface_linux_state_set(struct os_interface *os_if, bool up) {
     return 0;
   }
 
-  if (ioctl(os_system_linux_linux_get_ioctl_fd(AF_INET),
-      SIOCSIFFLAGS, &ifr) < 0) {
-    OONF_WARN(LOG_OS_INTERFACE,
-        "ioctl SIOCSIFFLAGS (set flags %s) error on device %s: %s (%d)\n",
-        up ? "up" : "down", os_if->name, strerror(errno), errno);
+  if (ioctl(os_system_linux_linux_get_ioctl_fd(AF_INET), SIOCSIFFLAGS, &ifr) < 0) {
+    OONF_WARN(LOG_OS_INTERFACE, "ioctl SIOCSIFFLAGS (set flags %s) error on device %s: %s (%d)\n", up ? "up" : "down",
+      os_if->name, strerror(errno), errno);
     return -1;
   }
   return 0;
@@ -446,8 +436,7 @@ os_interface_linux_state_set(struct os_interface *os_if, bool up) {
  *   0 otherwise
  */
 int
-os_interface_linux_address_set(
-    struct os_interface_ip_change *addr) {
+os_interface_linux_address_set(struct os_interface_ip_change *addr) {
   uint8_t buffer[UIO_MAXIOV];
   struct nlmsghdr *msg;
   struct ifaddrmsg *ifaddrreq;
@@ -473,18 +462,16 @@ os_interface_linux_address_set(
   /* set length of netlink message with ifaddrmsg payload */
   msg->nlmsg_len = NLMSG_LENGTH(sizeof(struct ifaddrmsg));
 
-  OONF_DEBUG(LOG_OS_INTERFACE, "%sset address on if %d: %s",
-      addr->set ? "" : "re", addr->if_index,
-      netaddr_to_string(&nbuf, &addr->address));
+  OONF_DEBUG(LOG_OS_INTERFACE, "%sset address on if %d: %s", addr->set ? "" : "re", addr->if_index,
+    netaddr_to_string(&nbuf, &addr->address));
 
   ifaddrreq = NLMSG_DATA(msg);
   ifaddrreq->ifa_family = netaddr_get_address_family(&addr->address);
   ifaddrreq->ifa_prefixlen = netaddr_get_prefix_length(&addr->address);
-  ifaddrreq->ifa_index= addr->if_index;
+  ifaddrreq->ifa_index = addr->if_index;
   ifaddrreq->ifa_scope = addr->scope;
 
-  if (os_system_linux_netlink_addnetaddr(&_rtnetlink_receiver,
-      msg, IFA_LOCAL, &addr->address)) {
+  if (os_system_linux_netlink_addnetaddr(&_rtnetlink_receiver, msg, IFA_LOCAL, &addr->address)) {
     return -1;
   }
 
@@ -526,8 +513,7 @@ os_interface_linux_mac_set(struct os_interface *os_if, struct netaddr *mac) {
   struct netaddr_str nbuf;
 
   if (netaddr_get_address_family(mac) != AF_MAC48) {
-    OONF_WARN(LOG_OS_INTERFACE, "Interface MAC must mac48, not %s",
-        netaddr_to_string(&nbuf, mac));
+    OONF_WARN(LOG_OS_INTERFACE, "Interface MAC must mac48, not %s", netaddr_to_string(&nbuf, mac));
     return -1;
   }
 
@@ -538,8 +524,7 @@ os_interface_linux_mac_set(struct os_interface *os_if, struct netaddr *mac) {
   netaddr_to_binary(&if_req.ifr_addr.sa_data, mac, 6);
 
   if (ioctl(os_system_linux_linux_get_ioctl_fd(AF_INET), SIOCSIFHWADDR, &if_req) < 0) {
-    OONF_WARN(LOG_OS_INTERFACE, "Could not set mac address of '%s': %s (%d)",
-        os_if->name, strerror(errno), errno);
+    OONF_WARN(LOG_OS_INTERFACE, "Could not set mac address of '%s': %s (%d)", os_if->name, strerror(errno), errno);
     return -1;
   }
   return 0;
@@ -654,9 +639,7 @@ _init_mesh(struct os_interface *os_if) {
     _activate_if_routing();
   }
 
-  _refresh_mesh(os_if,
-      &os_if->_internal._original_icmp_redirect,
-      &os_if->_internal._original_ip_spoof);
+  _refresh_mesh(os_if, &os_if->_internal._original_icmp_redirect, &os_if->_internal._original_ip_spoof);
 }
 
 static void
@@ -679,7 +662,7 @@ _refresh_mesh(struct os_interface *os_if, char *old_redirect, char *old_spoof) {
 
   if (_os_linux_writeToFile(procfile, old_redirect, '0')) {
     OONF_WARN(LOG_OS_INTERFACE, "WARNING! Could not disable ICMP redirects! "
-        "You should manually ensure that ICMP redirects are disabled!");
+                                "You should manually ensure that ICMP redirects are disabled!");
   }
 
   /* Generate the procfile name */
@@ -687,7 +670,7 @@ _refresh_mesh(struct os_interface *os_if, char *old_redirect, char *old_spoof) {
 
   if (_os_linux_writeToFile(procfile, old_spoof, '0')) {
     OONF_WARN(LOG_OS_INTERFACE, "WARNING! Could not disable the IP spoof filter! "
-        "You should mannually ensure that IP spoof filtering is disabled!");
+                                "You should mannually ensure that IP spoof filtering is disabled!");
   }
 }
 
@@ -714,19 +697,17 @@ _cleanup_mesh(struct os_interface *os_if) {
   /* Generate the procfile name */
   snprintf(procfile, sizeof(procfile), PROC_IF_REDIRECT, os_if->name);
 
-  if (_os_linux_writeToFile(procfile, NULL,
-      os_if->_internal._original_icmp_redirect) != 0) {
-    OONF_WARN(LOG_OS_INTERFACE, "Could not restore ICMP redirect flag %s to %c",
-        procfile, os_if->_internal._original_icmp_redirect);
+  if (_os_linux_writeToFile(procfile, NULL, os_if->_internal._original_icmp_redirect) != 0) {
+    OONF_WARN(LOG_OS_INTERFACE, "Could not restore ICMP redirect flag %s to %c", procfile,
+      os_if->_internal._original_icmp_redirect);
   }
 
   /* Generate the procfile name */
   snprintf(procfile, sizeof(procfile), PROC_IF_SPOOF, os_if->name);
 
-  if (_os_linux_writeToFile(procfile, NULL,
-      os_if->_internal._original_ip_spoof) != 0) {
-    OONF_WARN(LOG_OS_INTERFACE, "Could not restore IP spoof flag %s to %c",
-        procfile, os_if->_internal._original_ip_spoof);
+  if (_os_linux_writeToFile(procfile, NULL, os_if->_internal._original_ip_spoof) != 0) {
+    OONF_WARN(
+      LOG_OS_INTERFACE, "Could not restore IP spoof flag %s to %c", procfile, os_if->_internal._original_ip_spoof);
   }
 
   /* handle global ip_forward setting */
@@ -745,26 +726,26 @@ static void
 _activate_if_routing(void) {
   if (_os_linux_writeToFile(PROC_IPFORWARD_V4, &_original_ipv4_forward, '1')) {
     OONF_WARN(LOG_OS_INTERFACE, "WARNING! Could not activate ip_forward for ipv4! "
-        "You should manually ensure that ip_forward for ipv4 is activated!");
+                                "You should manually ensure that ip_forward for ipv4 is activated!");
   }
   if (os_system_is_ipv6_supported()) {
-    if(_os_linux_writeToFile(PROC_IPFORWARD_V6, &_original_ipv6_forward, '1')) {
+    if (_os_linux_writeToFile(PROC_IPFORWARD_V6, &_original_ipv6_forward, '1')) {
       OONF_WARN(LOG_OS_INTERFACE, "WARNING! Could not activate ip_forward for ipv6! "
-          "You should manually ensure that ip_forward for ipv6 is activated!");
+                                  "You should manually ensure that ip_forward for ipv6 is activated!");
     }
   }
 
   if (_os_linux_writeToFile(PROC_ALL_REDIRECT, &_original_icmp_redirect, '0')) {
     OONF_WARN(LOG_OS_INTERFACE, "WARNING! Could not disable ICMP redirects! "
-        "You should manually ensure that ICMP redirects are disabled!");
+                                "You should manually ensure that ICMP redirects are disabled!");
   }
 
   /* check kernel version and disable global rp_filter */
   if (_is_kernel_2_6_31_or_better) {
     if (_os_linux_writeToFile(PROC_ALL_SPOOF, &_original_rp_filter, '0')) {
       OONF_WARN(LOG_OS_INTERFACE, "WARNING! Could not disable global rp_filter "
-          "(necessary for kernel 2.6.31 and newer)! You should manually "
-          "ensure that rp_filter is disabled!");
+                                  "(necessary for kernel 2.6.31 and newer)! You should manually "
+                                  "ensure that rp_filter is disabled!");
     }
   }
 }
@@ -775,25 +756,21 @@ _activate_if_routing(void) {
 static void
 _deactivate_if_routing(void) {
   if (_os_linux_writeToFile(PROC_ALL_REDIRECT, NULL, _original_icmp_redirect) != 0) {
-    OONF_WARN(LOG_OS_INTERFACE,
-        "WARNING! Could not restore ICMP redirect flag %s to %c!",
-        PROC_ALL_REDIRECT, _original_icmp_redirect);
+    OONF_WARN(LOG_OS_INTERFACE, "WARNING! Could not restore ICMP redirect flag %s to %c!", PROC_ALL_REDIRECT,
+      _original_icmp_redirect);
   }
 
   if (_os_linux_writeToFile(PROC_ALL_SPOOF, NULL, _original_rp_filter)) {
-    OONF_WARN(LOG_OS_INTERFACE,
-        "WARNING! Could not restore global rp_filter flag %s to %c!",
-        PROC_ALL_SPOOF, _original_rp_filter);
+    OONF_WARN(LOG_OS_INTERFACE, "WARNING! Could not restore global rp_filter flag %s to %c!", PROC_ALL_SPOOF,
+      _original_rp_filter);
   }
 
   if (_os_linux_writeToFile(PROC_IPFORWARD_V4, NULL, _original_ipv4_forward)) {
-    OONF_WARN(LOG_OS_INTERFACE, "WARNING! Could not restore %s to %c!",
-        PROC_IPFORWARD_V4, _original_ipv4_forward);
+    OONF_WARN(LOG_OS_INTERFACE, "WARNING! Could not restore %s to %c!", PROC_IPFORWARD_V4, _original_ipv4_forward);
   }
   if (os_system_is_ipv6_supported()) {
     if (_os_linux_writeToFile(PROC_IPFORWARD_V6, NULL, _original_ipv6_forward)) {
-      OONF_WARN(LOG_OS_INTERFACE, "WARNING! Could not restore %s to %c",
-          PROC_IPFORWARD_V6, _original_ipv6_forward);
+      OONF_WARN(LOG_OS_INTERFACE, "WARNING! Could not restore %s to %c", PROC_IPFORWARD_V6, _original_ipv6_forward);
     }
   }
 }
@@ -817,33 +794,27 @@ _os_linux_writeToFile(const char *file, char *old, char value) {
   }
 
   if ((fd = open(file, O_RDWR)) < 0) {
-    OONF_WARN(LOG_OS_INTERFACE,
-      "Error, cannot open proc entry %s: %s (%d)\n",
-      file, strerror(errno), errno);
+    OONF_WARN(LOG_OS_INTERFACE, "Error, cannot open proc entry %s: %s (%d)\n", file, strerror(errno), errno);
     return -1;
   }
 
   if (read(fd, &rv, 1) != 1) {
-    OONF_WARN(LOG_OS_INTERFACE,
-      "Error, cannot read proc entry %s: %s (%d)\n",
-      file, strerror(errno), errno);
+    OONF_WARN(LOG_OS_INTERFACE, "Error, cannot read proc entry %s: %s (%d)\n", file, strerror(errno), errno);
     close(fd);
     return -1;
   }
 
   if (rv != value) {
     if (lseek(fd, SEEK_SET, 0) == -1) {
-      OONF_WARN(LOG_OS_INTERFACE,
-        "Error, cannot rewind to start on proc entry %s: %s (%d)\n",
-        file, strerror(errno), errno);
+      OONF_WARN(
+        LOG_OS_INTERFACE, "Error, cannot rewind to start on proc entry %s: %s (%d)\n", file, strerror(errno), errno);
       close(fd);
       return -1;
     }
 
     if (write(fd, &value, 1) != 1) {
-      OONF_WARN(LOG_OS_INTERFACE,
-        "Error, cannot write '%c' to proc entry %s: %s (%d)\n",
-        value, file, strerror(errno), errno);
+      OONF_WARN(
+        LOG_OS_INTERFACE, "Error, cannot write '%c' to proc entry %s: %s (%d)\n", value, file, strerror(errno), errno);
     }
 
     OONF_DEBUG(LOG_OS_INTERFACE, "Writing '%c' (was %c) to %s", value, rv, file);
@@ -960,8 +931,7 @@ static void
 _trigger_if_change_including_any(struct os_interface *os_if) {
   _trigger_if_change(os_if);
 
-  os_if = avl_find_element(
-      &_interface_data_tree, OS_INTERFACE_ANY, os_if, _node);
+  os_if = avl_find_element(&_interface_data_tree, OS_INTERFACE_ANY, os_if, _node);
   if (os_if) {
     _trigger_if_change(os_if);
   }
@@ -986,7 +956,7 @@ _link_parse_nlmsg(const char *ifname, struct nlmsghdr *msg) {
 #endif
 
   ifi_msg = NLMSG_DATA(msg);
-  ifi_attr = (struct rtattr *) IFLA_RTA(ifi_msg);
+  ifi_attr = (struct rtattr *)IFLA_RTA(ifi_msg);
   ifi_len = RTM_PAYLOAD(msg);
 
   ifdata = avl_find_element(&_interface_data_tree, ifname, ifdata, _node);
@@ -1001,13 +971,9 @@ _link_parse_nlmsg(const char *ifname, struct nlmsghdr *msg) {
   ifdata->flags.loopback = (ifi_msg->ifi_flags & IFF_LOOPBACK) != 0;
   ifdata->flags.unicast_only = (ifi_msg->ifi_flags & IFF_MULTICAST) == 0;
 
-  OONF_DEBUG(LOG_OS_INTERFACE, "Parse IFI_LINK %s (%u): %c%c%c%c%c",
-      ifname, ifi_msg->ifi_index,
-      ifdata->flags.up ? 'u' : '-',
-      ifdata->flags.promisc ? 'p' : '-',
-      ifdata->flags.pointtopoint ? 'P' : '-',
-      ifdata->flags.loopback ? 'l' : '-',
-      ifdata->flags.unicast_only ? 'U' : '-');
+  OONF_DEBUG(LOG_OS_INTERFACE, "Parse IFI_LINK %s (%u): %c%c%c%c%c", ifname, ifi_msg->ifi_index,
+    ifdata->flags.up ? 'u' : '-', ifdata->flags.promisc ? 'p' : '-', ifdata->flags.pointtopoint ? 'P' : '-',
+    ifdata->flags.loopback ? 'l' : '-', ifdata->flags.unicast_only ? 'U' : '-');
 
   ifdata->index = ifi_msg->ifi_index;
   ifdata->base_index = ifdata->index;
@@ -1016,8 +982,8 @@ _link_parse_nlmsg(const char *ifname, struct nlmsghdr *msg) {
     /* refresh mesh parameters, might be gone for LTE-sticks */
     _refresh_mesh(ifdata, NULL, NULL);
   }
-  for(; RTA_OK(ifi_attr, ifi_len); ifi_attr = RTA_NEXT(ifi_attr,ifi_len)) {
-    switch(ifi_attr->rta_type) {
+  for (; RTA_OK(ifi_attr, ifi_len); ifi_attr = RTA_NEXT(ifi_attr, ifi_len)) {
+    switch (ifi_attr->rta_type) {
       case IFLA_ADDRESS:
         netaddr_from_binary(&addr, RTA_DATA(ifi_attr), RTA_PAYLOAD(ifi_attr), AF_MAC48);
         OONF_DEBUG(LOG_OS_INTERFACE, "Link: %s", netaddr_to_string(&nbuf, &addr));
@@ -1029,20 +995,18 @@ _link_parse_nlmsg(const char *ifname, struct nlmsghdr *msg) {
       case IFLA_LINK:
         memcpy(&iflink, RTA_DATA(ifi_attr), RTA_PAYLOAD(ifi_attr));
 
-        OONF_INFO(LOG_OS_INTERFACE, "Base interface index for %s (%u): %u",
-            ifdata->name, ifdata->index, iflink);
+        OONF_INFO(LOG_OS_INTERFACE, "Base interface index for %s (%u): %u", ifdata->name, ifdata->index, iflink);
         ifdata->base_index = iflink;
         break;
       default:
-        //OONF_DEBUG(LOG_OS_INTERFACE, "ifi_attr_type: %u", ifi_attr->rta_type);
+        // OONF_DEBUG(LOG_OS_INTERFACE, "ifi_attr_type: %u", ifi_attr->rta_type);
         break;
     }
   }
 
   if (!ifdata->_link_initialized) {
     ifdata->_link_initialized = true;
-    OONF_INFO(LOG_OS_INTERFACE, "Interface %s link data initialized",
-        ifdata->name);
+    OONF_INFO(LOG_OS_INTERFACE, "Interface %s link data initialized", ifdata->name);
   }
   _trigger_if_change_including_any(ifdata);
 }
@@ -1068,38 +1032,31 @@ _update_address_shortcuts(struct os_interface *os_if) {
   os_if->if_linklocal_v6 = &NETADDR_UNSPEC;
 
   avl_for_each_element(&os_if->addresses, ip, _node) {
-    OONF_DEBUG(LOG_OS_INTERFACE, "Interface has %s",
-        netaddr_to_string(&nbuf, &ip->address));
+    OONF_DEBUG(LOG_OS_INTERFACE, "Interface has %s", netaddr_to_string(&nbuf, &ip->address));
     ipv4_ll = netaddr_is_in_subnet(&NETADDR_IPV4_LINKLOCAL, &ip->address);
     ipv6_ll = netaddr_is_in_subnet(&NETADDR_IPV6_LINKLOCAL, &ip->address);
 
-    ipv4_routable = !ipv4_ll
-        && netaddr_get_address_family(&ip->address) == AF_INET
-        && !netaddr_is_in_subnet(&NETADDR_IPV4_LOOPBACK_NET, &ip->address)
-        && !netaddr_is_in_subnet(&NETADDR_IPV4_MULTICAST, &ip->address);
-    ipv6_routable = !ipv6_ll
-        && netaddr_get_address_family(&ip->address) == AF_INET6
-        && (netaddr_is_in_subnet(&NETADDR_IPV6_ULA, &ip->address)
-            || netaddr_is_in_subnet(&NETADDR_IPV6_GLOBAL, &ip->address));
+    ipv4_routable = !ipv4_ll && netaddr_get_address_family(&ip->address) == AF_INET &&
+                    !netaddr_is_in_subnet(&NETADDR_IPV4_LOOPBACK_NET, &ip->address) &&
+                    !netaddr_is_in_subnet(&NETADDR_IPV4_MULTICAST, &ip->address);
+    ipv6_routable = !ipv6_ll && netaddr_get_address_family(&ip->address) == AF_INET6 &&
+                    (netaddr_is_in_subnet(&NETADDR_IPV6_ULA, &ip->address) ||
+                      netaddr_is_in_subnet(&NETADDR_IPV6_GLOBAL, &ip->address));
 
     if (netaddr_is_unspec(os_if->if_v4) && ipv4_routable) {
-      OONF_DEBUG(LOG_OS_INTERFACE, "IPv4 is %s",
-          netaddr_to_string(&nbuf, &ip->address));
+      OONF_DEBUG(LOG_OS_INTERFACE, "IPv4 is %s", netaddr_to_string(&nbuf, &ip->address));
       os_if->if_v4 = &ip->address;
     }
     if (netaddr_is_unspec(os_if->if_v6) && ipv6_routable) {
-      OONF_DEBUG(LOG_OS_INTERFACE, "IPv6 is %s",
-          netaddr_to_string(&nbuf, &ip->address));
+      OONF_DEBUG(LOG_OS_INTERFACE, "IPv6 is %s", netaddr_to_string(&nbuf, &ip->address));
       os_if->if_v6 = &ip->address;
     }
     if (netaddr_is_unspec(os_if->if_linklocal_v4) && ipv4_ll) {
-      OONF_DEBUG(LOG_OS_INTERFACE, "Linklocal IPv4 is %s",
-          netaddr_to_string(&nbuf, &ip->address));
+      OONF_DEBUG(LOG_OS_INTERFACE, "Linklocal IPv4 is %s", netaddr_to_string(&nbuf, &ip->address));
       os_if->if_linklocal_v4 = &ip->address;
     }
     if (netaddr_is_unspec(os_if->if_linklocal_v6) && ipv6_ll) {
-      OONF_DEBUG(LOG_OS_INTERFACE, "Linklocal IPv6 is %s",
-          netaddr_to_string(&nbuf, &ip->address));
+      OONF_DEBUG(LOG_OS_INTERFACE, "Linklocal IPv6 is %s", netaddr_to_string(&nbuf, &ip->address));
       os_if->if_linklocal_v6 = &ip->address;
     }
   }
@@ -1137,9 +1094,8 @@ _add_address(struct os_interface *os_if, struct netaddr *prefixed_addr, bool pee
     ip->interf = os_if;
   }
 
-  OONF_INFO(LOG_OS_INTERFACE, "Add address to %s%s: %s",
-      os_if->name, peer ? " (peer)" : "",
-      netaddr_to_string(&nbuf, prefixed_addr));
+  OONF_INFO(LOG_OS_INTERFACE, "Add address to %s%s: %s", os_if->name, peer ? " (peer)" : "",
+    netaddr_to_string(&nbuf, prefixed_addr));
 
   /* copy sanitized addresses */
   memcpy(&ip->address, prefixed_addr, sizeof(*prefixed_addr));
@@ -1167,9 +1123,8 @@ _remove_address(struct os_interface *os_if, struct netaddr *prefixed_addr, bool 
     return;
   }
 
-  OONF_INFO(LOG_OS_INTERFACE, "Remove address from %s%s: %s",
-      os_if->name, peer ? " (peer)" : "",
-      netaddr_to_string(&nbuf, prefixed_addr));
+  OONF_INFO(LOG_OS_INTERFACE, "Remove address from %s%s: %s", os_if->name, peer ? " (peer)" : "",
+    netaddr_to_string(&nbuf, prefixed_addr));
 
   avl_remove(tree, &ip->_node);
   oonf_class_free(&_interface_ip_class, ip);
@@ -1198,27 +1153,22 @@ _address_parse_nlmsg(const char *ifname, struct nlmsghdr *msg) {
     return;
   }
 
-  OONF_DEBUG(LOG_OS_INTERFACE, "Parse IFA_GETADDR %s (%u) (len=%u)",
-      ifname, ifa_msg->ifa_index, ifa_len);
+  OONF_DEBUG(LOG_OS_INTERFACE, "Parse IFA_GETADDR %s (%u) (len=%u)", ifname, ifa_msg->ifa_index, ifa_len);
 
   update = false;
   netaddr_invalidate(&ifa_local);
   netaddr_invalidate(&ifa_address);
 
-  for(; RTA_OK(ifa_attr, ifa_len); ifa_attr = RTA_NEXT(ifa_attr,ifa_len)) {
-    switch(ifa_attr->rta_type) {
+  for (; RTA_OK(ifa_attr, ifa_len); ifa_attr = RTA_NEXT(ifa_attr, ifa_len)) {
+    switch (ifa_attr->rta_type) {
       case IFA_ADDRESS:
-        netaddr_from_binary_prefix(&ifa_address,
-            RTA_DATA(ifa_attr), RTA_PAYLOAD(ifa_attr), 0,
-                ifa_msg->ifa_prefixlen);
+        netaddr_from_binary_prefix(&ifa_address, RTA_DATA(ifa_attr), RTA_PAYLOAD(ifa_attr), 0, ifa_msg->ifa_prefixlen);
         if (netaddr_is_unspec(&ifa_local)) {
           memcpy(&ifa_local, &ifa_address, sizeof(ifa_local));
         }
         break;
       case IFA_LOCAL:
-        netaddr_from_binary_prefix(&ifa_local,
-            RTA_DATA(ifa_attr), RTA_PAYLOAD(ifa_attr), 0,
-                ifa_msg->ifa_prefixlen);
+        netaddr_from_binary_prefix(&ifa_local, RTA_DATA(ifa_attr), RTA_PAYLOAD(ifa_attr), 0, ifa_msg->ifa_prefixlen);
         if (netaddr_is_unspec(&ifa_address)) {
           memcpy(&ifa_address, &ifa_local, sizeof(ifa_address));
         }
@@ -1255,8 +1205,7 @@ _address_parse_nlmsg(const char *ifname, struct nlmsghdr *msg) {
   if (update) {
     if (!ifdata->_addr_initialized) {
       ifdata->_addr_initialized = true;
-      OONF_INFO(LOG_OS_INTERFACE, "Interface %s address data initialized",
-          ifdata->name);
+      OONF_INFO(LOG_OS_INTERFACE, "Interface %s address data initialized", ifdata->name);
     }
     _trigger_if_change_including_any(ifdata);
   }
@@ -1273,24 +1222,22 @@ _cb_rtnetlink_message(struct nlmsghdr *hdr) {
   char ifname[IF_NAMESIZE];
 
   if (hdr->nlmsg_type == RTM_NEWLINK || hdr->nlmsg_type == RTM_DELLINK) {
-    ifi = (struct ifinfomsg *) NLMSG_DATA(hdr);
+    ifi = (struct ifinfomsg *)NLMSG_DATA(hdr);
     if (!if_indextoname(ifi->ifi_index, ifname)) {
       return;
     }
 
-    OONF_DEBUG(LOG_OS_INTERFACE, "Linkstatus of interface (%s) %d changed",
-        ifname, ifi->ifi_index);
+    OONF_DEBUG(LOG_OS_INTERFACE, "Linkstatus of interface (%s) %d changed", ifname, ifi->ifi_index);
     _link_parse_nlmsg(ifname, hdr);
   }
 
   else if (hdr->nlmsg_type == RTM_NEWADDR || hdr->nlmsg_type == RTM_DELADDR) {
-    ifa = (struct ifaddrmsg *) NLMSG_DATA(hdr);
+    ifa = (struct ifaddrmsg *)NLMSG_DATA(hdr);
     if (!if_indextoname(ifa->ifa_index, ifname)) {
       return;
     }
 
-    OONF_DEBUG(LOG_OS_INTERFACE, "Address of interface %s (%u) changed",
-        ifname, ifa->ifa_index);
+    OONF_DEBUG(LOG_OS_INTERFACE, "Address of interface %s (%u) changed", ifname, ifa->ifa_index);
     _address_parse_nlmsg(ifname, hdr);
   }
   else {
@@ -1416,8 +1363,7 @@ _process_bad_end_of_query(void) {
  * @param error error code
  */
 static void
-_cb_query_error(uint32_t seq __attribute((unused)),
-    int error __attribute((unused))) {
+_cb_query_error(uint32_t seq __attribute((unused)), int error __attribute((unused))) {
   OONF_DEBUG(LOG_OS_INTERFACE, "Received error %d for query %u", error, seq);
   _process_bad_end_of_query();
 }
@@ -1453,14 +1399,12 @@ _cb_delayed_interface_changed(struct oonf_timer_instance *timer) {
 
   data = container_of(timer, struct os_interface, _change_timer);
 
-  if (!data->flags.any
-      && (!data->_link_initialized || !data->_addr_initialized)) {
+  if (!data->flags.any && (!data->_link_initialized || !data->_addr_initialized)) {
     /* wait until we have all the data */
     return;
   }
 
-  OONF_INFO(LOG_OS_INTERFACE, "Interface %s (%u) changed",
-      data->name, data->index);
+  OONF_INFO(LOG_OS_INTERFACE, "Interface %s (%u) changed", data->name, data->index);
 
   error = false;
   list_for_each_element_safe(&data->_listeners, interf, _node, interf_it) {
@@ -1496,8 +1440,7 @@ _handle_unused_parameter(const char *arg) {
 
   ifname = cfg_get_phy_if(ifbuf, arg);
 
-  cfg_db_add_namedsection(
-      oonf_cfg_get_rawdb(), _interface_section.type, ifname);
+  cfg_db_add_namedsection(oonf_cfg_get_rawdb(), _interface_section.type, ifname);
   return 0;
 }
 
@@ -1510,8 +1453,7 @@ _cb_cfg_changed(void) {
   int result;
 
   /* get pointer to interface if available */
-  data = avl_find_element(&_interface_data_tree,
-      _interface_section.section_name, data, _node);
+  data = avl_find_element(&_interface_data_tree, _interface_section.section_name, data, _node);
 
   if (_interface_section.post && !data) {
     /* make sure interface data is available */
@@ -1523,11 +1465,10 @@ _cb_cfg_changed(void) {
 
   /* overwrite settings */
   if (data) {
-    result = cfg_schema_tobin(data, _interface_section.post,
-        _interface_entries, ARRAYSIZE(_interface_entries));
+    result = cfg_schema_tobin(data, _interface_section.post, _interface_entries, ARRAYSIZE(_interface_entries));
     if (result) {
-      OONF_WARN(LOG_OS_INTERFACE, "Could not convert %s '%s' to binary (%d)",
-          _interface_section.type, data->name, -(result+1));
+      OONF_WARN(LOG_OS_INTERFACE, "Could not convert %s '%s' to binary (%d)", _interface_section.type, data->name,
+        -(result + 1));
       return;
     }
   }
@@ -1537,8 +1478,7 @@ _cb_cfg_changed(void) {
     if (data) {
       data->_internal.configured = false;
 
-      if (!data->_internal.ignore_mesh
-         && data->_internal.mesh_counter > 0) {
+      if (!data->_internal.ignore_mesh && data->_internal.mesh_counter > 0) {
         /* reactivate mesh settings */
         _cleanup_mesh(data);
       }

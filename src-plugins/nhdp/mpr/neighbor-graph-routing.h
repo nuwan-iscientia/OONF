@@ -50,8 +50,6 @@
 
 #include "neighbor-graph.h"
 
-void mpr_calculate_neighbor_graph_routing(const struct nhdp_domain *domain,
-    struct neighbor_graph *graph);
+void mpr_calculate_neighbor_graph_routing(const struct nhdp_domain *domain, struct neighbor_graph *graph);
 
 #endif
-

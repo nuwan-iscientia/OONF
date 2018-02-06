@@ -47,24 +47,22 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "common/common_types.h"
 #include "common/avl.h"
 #include "common/avl_comp.h"
+#include "common/common_types.h"
 #include "common/string.h"
 
 #include "config/cfg.h"
-#include "config/cfg_schema.h"
 #include "config/cfg_db.h"
+#include "config/cfg_schema.h"
 
 static struct cfg_section_type *_alloc_section(struct cfg_db *, const char *);
 static void _free_sectiontype(struct cfg_section_type *);
 
-static struct cfg_named_section *_alloc_namedsection(
-    struct cfg_section_type *, const char *);
+static struct cfg_named_section *_alloc_namedsection(struct cfg_section_type *, const char *);
 static void _free_namedsection(struct cfg_named_section *);
 
-static struct cfg_entry *_alloc_entry(
-    struct cfg_named_section *, const char *);
+static struct cfg_entry *_alloc_entry(struct cfg_named_section *, const char *);
 static void _free_entry(struct cfg_entry *);
 
 /**
@@ -108,8 +106,8 @@ cfg_db_remove(struct cfg_db *db) {
  *   copy.
  */
 int
-_cfg_db_append(struct cfg_db *dst, struct cfg_db *src,
-    const char *section_type, const char *section_name, const char *entry_name) {
+_cfg_db_append(
+  struct cfg_db *dst, struct cfg_db *src, const char *section_type, const char *section_name, const char *entry_name) {
   struct cfg_section_type *section, *section_it;
   struct cfg_named_section *named, *named_it;
   struct cfg_entry *entry, *entry_it;
@@ -136,8 +134,7 @@ _cfg_db_append(struct cfg_db *dst, struct cfg_db *src,
         }
 
         strarray_for_each_element(&entry->val, ptr) {
-          if (cfg_db_set_entry_ext(
-              dst, section->type, named->name, entry->name, ptr, true, false) == NULL) {
+          if (cfg_db_set_entry_ext(dst, section->type, named->name, entry->name, ptr, true, false) == NULL) {
             return -1;
           }
         }
@@ -157,13 +154,12 @@ _cfg_db_append(struct cfg_db *dst, struct cfg_db *src,
  * @return pointer to named section, NULL if an error happened
  */
 struct cfg_named_section *
-_cfg_db_add_section(struct cfg_db *db, const char *section_type,
-    const char *section_name, bool *new_section) {
+_cfg_db_add_section(struct cfg_db *db, const char *section_type, const char *section_name, bool *new_section) {
   struct cfg_section_type *section;
   struct cfg_named_section *named = NULL;
 
   /* consistency check */
-  assert (section_type);
+  assert(section_type);
 
   *new_section = false;
 
@@ -218,8 +214,7 @@ cfg_db_remove_sectiontype(struct cfg_db *db, const char *section_type) {
  * @return pointer to named section, NULL if not found
  */
 struct cfg_named_section *
-cfg_db_find_namedsection(const struct cfg_db *db,
-    const char *section_type, const char *section_name) {
+cfg_db_find_namedsection(const struct cfg_db *db, const char *section_type, const char *section_name) {
   struct cfg_section_type *section;
   struct cfg_named_section *named = NULL;
 
@@ -241,8 +236,7 @@ cfg_db_find_namedsection(const struct cfg_db *db,
  * @return -1 if section type did not exist, 0 otherwise
  */
 int
-cfg_db_remove_namedsection(struct cfg_db *db, const char *section_type,
-    const char *section_name) {
+cfg_db_remove_namedsection(struct cfg_db *db, const char *section_type, const char *section_name) {
   struct cfg_named_section *named;
 
   named = cfg_db_find_namedsection(db, section_type, section_name);
@@ -269,9 +263,8 @@ cfg_db_remove_namedsection(struct cfg_db *db, const char *section_type,
  * @return pointer to cfg_entry, NULL if an error happened
  */
 struct cfg_entry *
-cfg_db_set_entry_ext(struct cfg_db *db, const char *section_type,
-    const char *section_name, const char *entry_name, const char *value,
-    bool append, bool front) {
+cfg_db_set_entry_ext(struct cfg_db *db, const char *section_type, const char *section_name, const char *entry_name,
+  const char *value, bool append, bool front) {
   struct cfg_entry *entry;
   struct cfg_named_section *named;
   bool new_section = false, new_entry = NULL;
@@ -327,8 +320,7 @@ set_entry_error:
  * @return pointer to configuration entry, NULL if not found
  */
 struct cfg_entry *
-cfg_db_find_entry(struct cfg_db *db,
-    const char *section_type, const char *section_name, const char *entry_name) {
+cfg_db_find_entry(struct cfg_db *db, const char *section_type, const char *section_name, const char *entry_name) {
   struct cfg_named_section *named;
   struct cfg_entry *entry = NULL;
 
@@ -349,8 +341,7 @@ cfg_db_find_entry(struct cfg_db *db,
  * @return -1 if the entry did not exist, 0 if it was removed
  */
 int
-cfg_db_remove_entry(struct cfg_db *db, const char *section_type,
-    const char *section_name, const char *entry_name) {
+cfg_db_remove_entry(struct cfg_db *db, const char *section_type, const char *section_name, const char *entry_name) {
   struct cfg_entry *entry;
 
   /* get entry */
@@ -374,8 +365,7 @@ cfg_db_remove_entry(struct cfg_db *db, const char *section_type,
  * @return string value, NULL if not found or list of values
  */
 const struct const_strarray *
-cfg_db_get_entry_value(struct cfg_db *db, const char *section_type,
-    const char *section_name, const char *entry_name) {
+cfg_db_get_entry_value(struct cfg_db *db, const char *section_type, const char *section_name, const char *entry_name) {
   struct cfg_schema_entry_key key;
   struct cfg_schema_entry *s_entry;
   struct cfg_entry *entry;
@@ -415,13 +405,12 @@ cfg_db_get_entry_value(struct cfg_db *db, const char *section_type,
  * @return value of the db entry, default from schema_entry otherwise
  */
 const struct const_strarray *
-cfg_db_get_schema_entry_value(const struct cfg_named_section *section,
-    const struct cfg_schema_entry *schema_entry) {
+cfg_db_get_schema_entry_value(const struct cfg_named_section *section, const struct cfg_schema_entry *schema_entry) {
   const struct const_strarray *value;
 
   if (section) {
-    value = cfg_db_get_entry_value(section->section_type->db,
-        section->section_type->type, section->name, schema_entry->key.entry);
+    value = cfg_db_get_entry_value(
+      section->section_type->db, section->section_type->type, section->name, schema_entry->key.entry);
     if (value) {
       return value;
     }
@@ -440,8 +429,8 @@ cfg_db_get_schema_entry_value(const struct cfg_named_section *section,
  * @return 0 if the element was removed, -1 if it wasn't there
  */
 int
-cfg_db_remove_element(struct cfg_db *db, const char *section_type,
-    const char *section_name, const char *entry_name, const char *value) {
+cfg_db_remove_element(
+  struct cfg_db *db, const char *section_type, const char *section_name, const char *entry_name, const char *value) {
   struct cfg_entry *entry;
   char *ptr;
 
@@ -490,7 +479,7 @@ _alloc_section(struct cfg_db *db, const char *type) {
 
   section->type = strdup(type);
   if (!section->type) {
-    free (section);
+    free(section);
     return NULL;
   }
 
@@ -529,8 +518,7 @@ _free_sectiontype(struct cfg_section_type *section) {
  * @return pointer to named section, NULL if allocation failed
  */
 static struct cfg_named_section *
-_alloc_namedsection(struct cfg_section_type *section,
-    const char *name) {
+_alloc_namedsection(struct cfg_section_type *section, const char *name) {
   struct cfg_named_section *named;
 
   named = calloc(1, sizeof(*section));
@@ -540,7 +528,7 @@ _alloc_namedsection(struct cfg_section_type *section,
 
   named->name = (name == NULL) ? NULL : strdup(name);
   if (!named->name && name != NULL) {
-    free (named);
+    free(named);
     return NULL;
   }
 
@@ -566,8 +554,8 @@ _free_namedsection(struct cfg_named_section *named) {
   }
 
   avl_remove(&named->section_type->names, &named->node);
-  free ((void *)named->name);
-  free (named);
+  free((void *)named->name);
+  free(named);
 }
 
 /**
@@ -578,20 +566,19 @@ _free_namedsection(struct cfg_named_section *named) {
  * @return pointer to configuration entry, NULL if allocation failed
  */
 static struct cfg_entry *
-_alloc_entry(struct cfg_named_section *named,
-    const char *name) {
+_alloc_entry(struct cfg_named_section *named, const char *name) {
   struct cfg_entry *entry;
 
   assert(name);
 
-  entry = calloc (1, sizeof(*entry));
+  entry = calloc(1, sizeof(*entry));
   if (!entry) {
     return NULL;
   }
 
   entry->name = strdup(name);
   if (!entry->name) {
-    free (entry);
+    free(entry);
     return NULL;
   }
 

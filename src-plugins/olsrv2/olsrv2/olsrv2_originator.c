@@ -55,12 +55,11 @@
 
 #include "nhdp/nhdp.h"
 
-#include "olsrv2/olsrv2_originator.h"
 #include "olsrv2/olsrv2.h"
+#include "olsrv2/olsrv2_originator.h"
 
 /* prototypes */
-static struct olsrv2_originator_set_entry *_remember_removed_originator(
-    struct netaddr *originator, uint64_t vtime);
+static struct olsrv2_originator_set_entry *_remember_removed_originator(struct netaddr *originator, uint64_t vtime);
 static void _set_originator(int af_type, struct netaddr *setting, const struct netaddr *new_originator);
 static void _cb_originator_entry_vtime(struct oonf_timer_instance *);
 static void _remove_originator_entry(struct olsrv2_originator_set_entry *entry);

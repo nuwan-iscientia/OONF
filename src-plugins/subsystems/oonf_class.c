@@ -62,8 +62,7 @@ static void _cleanup(void);
 
 static void _free_freelist(struct oonf_class *);
 static size_t _roundup(size_t);
-static const char *_cb_to_keystring(struct oonf_objectkey_str *,
-    struct oonf_class *, void *);
+static const char *_cb_to_keystring(struct oonf_objectkey_str *, struct oonf_class *, void *);
 
 /* list of memory cookies */
 static struct avl_tree _classes_tree;
@@ -97,8 +96,7 @@ _init(void) {
  * Cleanup the memory cookie system
  */
 static void
-_cleanup(void)
-{
+_cleanup(void) {
   struct oonf_class *info, *iterator;
 
   /*
@@ -114,10 +112,9 @@ _cleanup(void)
  * @param ci initialized memcookie
  */
 void
-oonf_class_add(struct oonf_class *ci)
-{
-  assert (ci->name);
-  assert (ci->name[0]);
+oonf_class_add(struct oonf_class *ci) {
+  assert(ci->name);
+  assert(ci->name[0]);
 
   /* round up size to make block extendable */
   ci->total_size = _roundup(ci->size);
@@ -135,8 +132,7 @@ oonf_class_add(struct oonf_class *ci)
   list_init_head(&ci->_free_list);
   list_init_head(&ci->_extensions);
 
-  OONF_DEBUG(LOG_CLASS, "Class %s added: %" PRINTF_SIZE_T_SPECIFIER " bytes\n",
-             ci->name, ci->total_size);
+  OONF_DEBUG(LOG_CLASS, "Class %s added: %" PRINTF_SIZE_T_SPECIFIER " bytes\n", ci->name, ci->total_size);
 }
 
 /**
@@ -144,8 +140,7 @@ oonf_class_add(struct oonf_class *ci)
  * @param ci pointer to memcookie
  */
 void
-oonf_class_remove(struct oonf_class *ci)
-{
+oonf_class_remove(struct oonf_class *ci) {
   struct oonf_class_extension *ext, *iterator;
 
   /* remove memcookie from tree */
@@ -168,8 +163,7 @@ oonf_class_remove(struct oonf_class *ci)
  * @return allocated memory
  */
 void *
-oonf_class_malloc(struct oonf_class *ci)
-{
+oonf_class_malloc(struct oonf_class *ci) {
   struct list_entity *entity;
   void *ptr;
 
@@ -191,7 +185,8 @@ oonf_class_malloc(struct oonf_class *ci)
       return NULL;
     }
     ci->_allocated++;
-  } else {
+  }
+  else {
     /*
      * There is a memory block on the free list.
      * Carve it out of the list, and clean.
@@ -212,8 +207,8 @@ oonf_class_malloc(struct oonf_class *ci)
   /* Stats keeping */
   ci->_current_usage++;
 
-  OONF_DEBUG(LOG_CLASS, "MEMORY: alloc %s, %" PRINTF_SIZE_T_SPECIFIER " bytes%s\n",
-             ci->name, ci->total_size, reuse ? ", reuse" : "");
+  OONF_DEBUG(LOG_CLASS, "MEMORY: alloc %s, %" PRINTF_SIZE_T_SPECIFIER " bytes%s\n", ci->name, ci->total_size,
+    reuse ? ", reuse" : "");
   return ptr;
 }
 
@@ -223,8 +218,7 @@ oonf_class_malloc(struct oonf_class *ci)
  * @param ptr pointer to memory block
  */
 void
-oonf_class_free(struct oonf_class *ci, void *ptr)
-{
+oonf_class_free(struct oonf_class *ci, void *ptr) {
   struct list_entity *item;
 #ifdef OONF_LOG_DEBUG_INFO
   bool reuse = false;
@@ -235,8 +229,7 @@ oonf_class_free(struct oonf_class *ci, void *ptr)
    * point. Keep at least ten percent of the active used blocks or at least
    * ten blocks on the free list.
    */
-  if (ci->_free_list_size < ci->min_free_count
-      || (ci->_free_list_size < ci->_current_usage / 10)) {
+  if (ci->_free_list_size < ci->min_free_count || (ci->_free_list_size < ci->_current_usage / 10)) {
     item = ptr;
 
     list_add_tail(&ci->_free_list, item);
@@ -245,8 +238,8 @@ oonf_class_free(struct oonf_class *ci, void *ptr)
 #ifdef OONF_LOG_DEBUG_INFO
     reuse = true;
 #endif
-  } else {
-
+  }
+  else {
     /* No interest in reusing memory. */
     free(ptr);
   }
@@ -254,8 +247,8 @@ oonf_class_free(struct oonf_class *ci, void *ptr)
   /* Stats keeping */
   ci->_current_usage--;
 
-  OONF_DEBUG(LOG_CLASS, "MEMORY: free %s, %"PRINTF_SIZE_T_SPECIFIER" bytes%s\n",
-             ci->name, ci->size, reuse ? ", reuse" : "");
+  OONF_DEBUG(
+    LOG_CLASS, "MEMORY: free %s, %" PRINTF_SIZE_T_SPECIFIER " bytes%s\n", ci->name, ci->size, reuse ? ", reuse" : "");
 }
 
 /**
@@ -275,14 +268,12 @@ oonf_class_extension_add(struct oonf_class_extension *ext) {
 
   c = avl_find_element(&_classes_tree, ext->class_name, c, _node);
   if (c == NULL) {
-    OONF_WARN(LOG_CLASS, "Unknown class %s for extension %s",
-        ext->class_name, ext->ext_name);
+    OONF_WARN(LOG_CLASS, "Unknown class %s for extension %s", ext->class_name, ext->ext_name);
     return -1;
   }
 
   if (c->_allocated != 0 && ext->size > 0) {
-    OONF_WARN(LOG_CLASS, "Class %s is already in use and cannot be extended",
-        c->name);
+    OONF_WARN(LOG_CLASS, "Class %s is already in use and cannot be extended", c->name);
     return -1;
   }
 
@@ -299,9 +290,10 @@ oonf_class_extension_add(struct oonf_class_extension *ext) {
     /* calculate new size */
     c->total_size = _roundup(c->total_size + ext->size);
 
-    OONF_DEBUG(LOG_CLASS, "Class %s extended: %" PRINTF_SIZE_T_SPECIFIER " bytes,"
-        " '%s' has offset %" PRINTF_SIZE_T_SPECIFIER " and length %" PRINTF_SIZE_T_SPECIFIER "\n",
-        c->name, c->total_size, ext->ext_name, ext->_offset, ext->size);
+    OONF_DEBUG(LOG_CLASS,
+      "Class %s extended: %" PRINTF_SIZE_T_SPECIFIER " bytes,"
+      " '%s' has offset %" PRINTF_SIZE_T_SPECIFIER " and length %" PRINTF_SIZE_T_SPECIFIER "\n",
+      c->name, c->total_size, ext->ext_name, ext->_offset, ext->size);
   }
 
   return 0;
@@ -332,8 +324,7 @@ oonf_class_event(struct oonf_class *c, void *ptr, enum oonf_class_event evt) {
   struct oonf_objectkey_str buf;
 #endif
 
-  OONF_DEBUG(LOG_CLASS, "Fire '%s' event for %s",
-      OONF_CLASS_EVENT_NAME[evt], c->to_keystring(&buf, c, ptr));
+  OONF_DEBUG(LOG_CLASS, "Fire '%s' event for %s", OONF_CLASS_EVENT_NAME[evt], c->to_keystring(&buf, c, ptr));
   list_for_each_element(&c->_extensions, ext, _node) {
     if (evt == OONF_OBJECT_ADDED && ext->cb_add != NULL) {
       OONF_DEBUG(LOG_CLASS, "Fire listener %s", ext->ext_name);
@@ -406,10 +397,8 @@ _free_freelist(struct oonf_class *ci) {
  * @return pointer to target buffer
  */
 static const char *
-_cb_to_keystring(struct oonf_objectkey_str *buf,
-    struct oonf_class *class, void *ptr) {
-  snprintf(buf->buf, sizeof(*buf), "%s::0x%"PRINTF_SIZE_T_HEX_SPECIFIER,
-      class->name, (size_t)ptr);
+_cb_to_keystring(struct oonf_objectkey_str *buf, struct oonf_class *class, void *ptr) {
+  snprintf(buf->buf, sizeof(*buf), "%s::0x%" PRINTF_SIZE_T_HEX_SPECIFIER, class->name, (size_t)ptr);
 
   return buf->buf;
 }

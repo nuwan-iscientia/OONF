@@ -56,8 +56,8 @@
  * @param source source IP value to copy
  */
 void
-os_routing_generic_init_half_os_route_key(struct netaddr *ipany,
-    struct netaddr *specific, const struct netaddr *source) {
+os_routing_generic_init_half_os_route_key(
+  struct netaddr *ipany, struct netaddr *specific, const struct netaddr *source) {
   memcpy(specific, source, sizeof(*source));
   switch (netaddr_get_address_family(source)) {
     case AF_INET:

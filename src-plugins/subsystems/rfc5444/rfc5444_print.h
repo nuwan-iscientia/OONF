@@ -45,8 +45,8 @@
 #ifndef PRINT_RFC5444_H_
 #define PRINT_RFC5444_H_
 
-#include "common/common_types.h"
 #include "common/autobuf.h"
+#include "common/common_types.h"
 #include "rfc5444_reader.h"
 
 /**
@@ -75,13 +75,10 @@ struct rfc5444_print_session {
   struct rfc5444_reader *_reader;
 };
 
-EXPORT void rfc5444_print_add(
-    struct rfc5444_print_session *, struct rfc5444_reader *reader);
-EXPORT void rfc5444_print_remove(
-    struct rfc5444_print_session *session);
+EXPORT void rfc5444_print_add(struct rfc5444_print_session *, struct rfc5444_reader *reader);
+EXPORT void rfc5444_print_remove(struct rfc5444_print_session *session);
 
-EXPORT enum rfc5444_result rfc5444_print_direct(
-    struct autobuf *out, void *buffer, size_t length);
+EXPORT enum rfc5444_result rfc5444_print_direct(struct autobuf *out, void *buffer, size_t length);
 
 EXPORT int rfc5444_print_raw(struct autobuf *out, void *buffer, size_t length);
 

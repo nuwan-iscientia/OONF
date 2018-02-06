@@ -65,10 +65,8 @@
  * @return -1 if an error happened, 0 otherwise
  */
 int
-os_fd_generic_getsocket(struct os_fd *sock,
-    const union netaddr_socket *bind_to,
-    bool tcp, size_t recvbuf, const struct os_interface *os_if,
-    enum oonf_log_source log_src __attribute__((unused))) {
+os_fd_generic_getsocket(struct os_fd *sock, const union netaddr_socket *bind_to, bool tcp, size_t recvbuf,
+  const struct os_interface *os_if, enum oonf_log_source log_src __attribute__((unused))) {
   int s;
   s = socket(bind_to->std.sa_family, tcp ? SOCK_STREAM : SOCK_DGRAM, 0);
   if (s < 0) {

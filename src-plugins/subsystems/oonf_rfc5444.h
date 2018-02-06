@@ -46,17 +46,17 @@
 #ifndef OONF_RFC5444_H_
 #define OONF_RFC5444_H_
 
-#include "common/common_types.h"
 #include "common/avl.h"
+#include "common/common_types.h"
 #include "common/netaddr.h"
+#include "subsystems/oonf_duplicate_set.h"
+#include "subsystems/oonf_packet_socket.h"
+#include "subsystems/oonf_timer.h"
 #include "subsystems/rfc5444/rfc5444.h"
 #include "subsystems/rfc5444/rfc5444_context.h"
 #include "subsystems/rfc5444/rfc5444_iana.h"
 #include "subsystems/rfc5444/rfc5444_reader.h"
 #include "subsystems/rfc5444/rfc5444_writer.h"
-#include "subsystems/oonf_duplicate_set.h"
-#include "subsystems/oonf_packet_socket.h"
-#include "subsystems/oonf_timer.h"
 
 /*! subsystem identifier */
 #define OONF_RFC5444_SUBSYSTEM "rfc5444"
@@ -64,7 +64,8 @@
 /**
  * suggested priorities for RFC5444 readers
  */
-enum {
+enum
+{
   RFC5444_VALIDATOR_PRIORITY = -256,
   RFC5444_MAIN_PARSER_PRIORITY = 0,
   RFC5444_LQ_PARSER_PRIORITY = 64,
@@ -74,7 +75,8 @@ enum {
 /*! Configuration section for global mesh settings */
 #define CFG_RFC5444_SECTION "mesh"
 
-enum {
+enum
+{
   /*! Maximum buffer size for address TLVs before splitting */
   RFC5444_ADDRTLV_BUFFER = 65536,
 };
@@ -83,13 +85,13 @@ enum {
 #define RFC5444_UNICAST_INTERFACE OS_INTERFACE_ANY
 
 /*! memory class for rfc5444 protocol */
-#define RFC5444_CLASS_PROTOCOL  "RFC5444 protocol"
+#define RFC5444_CLASS_PROTOCOL "RFC5444 protocol"
 
 /*! memory class for rfc5444 interface */
 #define RFC5444_CLASS_INTERFACE "RFC5444 interface"
 
 /*! memory class for rfc5444 target */
-#define RFC5444_CLASS_TARGET    "RFC5444 target"
+#define RFC5444_CLASS_TARGET "RFC5444 target"
 
 struct oonf_rfc5444_target;
 
@@ -218,8 +220,7 @@ struct oonf_rfc5444_interface_listener {
    * @param l this interface listener
    * @param changed true if a socket had to be reconfigured
    */
-  void (*cb_interface_changed)(
-      struct oonf_rfc5444_interface_listener *l, bool changed);
+  void (*cb_interface_changed)(struct oonf_rfc5444_interface_listener *l, bool changed);
 
   /*! backpointer to rfc5444 interface */
   struct oonf_rfc5444_interface *interface;
@@ -260,41 +261,32 @@ struct oonf_rfc5444_target {
   uint8_t _packet_buffer[RFC5444_MAX_PACKET_SIZE];
 };
 
-EXPORT struct oonf_rfc5444_protocol *oonf_rfc5444_add_protocol(
-    const char *name, bool fixed_local_port);
+EXPORT struct oonf_rfc5444_protocol *oonf_rfc5444_add_protocol(const char *name, bool fixed_local_port);
 EXPORT void oonf_rfc5444_remove_protocol(struct oonf_rfc5444_protocol *);
-EXPORT void oonf_rfc5444_reconfigure_protocol(
-    struct oonf_rfc5444_protocol *, uint16_t port, int ip_proto);
+EXPORT void oonf_rfc5444_reconfigure_protocol(struct oonf_rfc5444_protocol *, uint16_t port, int ip_proto);
 EXPORT struct oonf_rfc5444_protocol *oonf_rfc5444_get_default_protocol(void);
 
 EXPORT struct oonf_rfc5444_interface *oonf_rfc5444_add_interface(
-    struct oonf_rfc5444_protocol *protocol,
-    struct oonf_rfc5444_interface_listener *, const char *name);
-EXPORT void oonf_rfc5444_remove_interface(struct oonf_rfc5444_interface *,
-    struct oonf_rfc5444_interface_listener *);
+  struct oonf_rfc5444_protocol *protocol, struct oonf_rfc5444_interface_listener *, const char *name);
+EXPORT void oonf_rfc5444_remove_interface(struct oonf_rfc5444_interface *, struct oonf_rfc5444_interface_listener *);
 EXPORT void oonf_rfc5444_reconfigure_interface(
-    struct oonf_rfc5444_interface *interf, struct oonf_packet_managed_config *config);
+  struct oonf_rfc5444_interface *interf, struct oonf_packet_managed_config *config);
 EXPORT struct oonf_rfc5444_target *oonf_rfc5444_add_target(
-    struct oonf_rfc5444_interface *interface, struct netaddr *dst);
+  struct oonf_rfc5444_interface *interface, struct netaddr *dst);
 EXPORT void oonf_rfc5444_remove_target(struct oonf_rfc5444_target *target);
-EXPORT void oonf_rfc5444_send_target_data(struct oonf_rfc5444_target *target,
-    const void *ptr, size_t len);
-EXPORT void oonf_rfc5444_send_interface_data(struct oonf_rfc5444_interface *interf,
-    const struct netaddr *dst, const void *ptr, size_t len);
+EXPORT void oonf_rfc5444_send_target_data(struct oonf_rfc5444_target *target, const void *ptr, size_t len);
+EXPORT void oonf_rfc5444_send_interface_data(
+  struct oonf_rfc5444_interface *interf, const struct netaddr *dst, const void *ptr, size_t len);
 
-EXPORT uint64_t oonf_rfc5444_interface_set_aggregation(
-    struct oonf_rfc5444_interface *interf, uint64_t aggregation);
+EXPORT uint64_t oonf_rfc5444_interface_set_aggregation(struct oonf_rfc5444_interface *interf, uint64_t aggregation);
 
 EXPORT const union netaddr_socket *oonf_rfc5444_interface_get_local_socket(
-    struct oonf_rfc5444_interface *rfc5444_if, int af_type);
-EXPORT const union netaddr_socket *oonf_rfc5444_target_get_local_socket(
-    struct oonf_rfc5444_target *target);
+  struct oonf_rfc5444_interface *rfc5444_if, int af_type);
+EXPORT const union netaddr_socket *oonf_rfc5444_target_get_local_socket(struct oonf_rfc5444_target *target);
 
-EXPORT enum rfc5444_result oonf_rfc5444_send_if(
-    struct oonf_rfc5444_target *, uint8_t msgid);
+EXPORT enum rfc5444_result oonf_rfc5444_send_if(struct oonf_rfc5444_target *, uint8_t msgid);
 EXPORT enum rfc5444_result oonf_rfc5444_send_all(
-    struct oonf_rfc5444_protocol *protocol,
-    uint8_t msgid, uint8_t addr_len, rfc5444_writer_targetselector useIf);
+  struct oonf_rfc5444_protocol *protocol, uint8_t msgid, uint8_t addr_len, rfc5444_writer_targetselector useIf);
 
 EXPORT void oonf_rfc5444_block_output(bool block);
 
@@ -304,8 +296,7 @@ EXPORT void oonf_rfc5444_block_output(bool block);
  * @return RFC5444 interface, NULL if not found
  */
 static INLINE struct oonf_rfc5444_interface *
-oonf_rfc5444_get_interface(
-    struct oonf_rfc5444_protocol *protocol, const char *name) {
+oonf_rfc5444_get_interface(struct oonf_rfc5444_protocol *protocol, const char *name) {
   struct oonf_rfc5444_interface *interf;
   return avl_find_element(&protocol->_interface_tree, name, interf, _node);
 }
@@ -327,7 +318,7 @@ oonf_rfc5444_flush_target(struct oonf_rfc5444_target *target, bool force) {
  */
 static INLINE struct oonf_rfc5444_target *
 oonf_rfc5444_get_target_from_writer(struct rfc5444_writer *writer) {
-  assert (writer->msg_target);
+  assert(writer->msg_target);
 
   return container_of(writer->msg_target, struct oonf_rfc5444_target, rfc5444_target);
 }
@@ -356,8 +347,7 @@ oonf_rfc5444_get_core_if_listener(struct oonf_rfc5444_interface *interf) {
  * @return true if the target (address family type) socket is active
  */
 static INLINE bool
-oonf_rfc5444_is_interface_active(
-    struct oonf_rfc5444_interface *interface, int af_type) {
+oonf_rfc5444_is_interface_active(struct oonf_rfc5444_interface *interface, int af_type) {
   return oonf_packet_managed_is_active(&interface->_socket, af_type);
 }
 
@@ -368,8 +358,7 @@ oonf_rfc5444_is_interface_active(
 static INLINE bool
 oonf_rfc5444_is_target_active(struct oonf_rfc5444_target *target) {
   return target != NULL &&
-      oonf_packet_managed_is_active(&target->interface->_socket,
-      netaddr_get_address_family(&target->dst));
+         oonf_packet_managed_is_active(&target->interface->_socket, netaddr_get_address_family(&target->dst));
 }
 
 /**

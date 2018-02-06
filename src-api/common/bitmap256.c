@@ -57,7 +57,7 @@ bool
 bitmap256_is_subset(struct bitmap256 *set, struct bitmap256 *subset) {
   size_t i;
 
-  for (i=0; i<ARRAYSIZE(set->b); i++) {
+  for (i = 0; i < ARRAYSIZE(set->b); i++) {
     if (set->b[i] != (set->b[i] | subset->b[i])) {
       return false;
     }

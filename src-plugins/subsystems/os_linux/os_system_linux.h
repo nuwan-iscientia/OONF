@@ -133,18 +133,14 @@ struct os_system_netlink {
 EXPORT bool os_system_linux_is_ipv6_supported(void);
 
 EXPORT bool os_system_linux_is_minimal_kernel(int v1, int v2, int v3);
-EXPORT int os_system_linux_netlink_add(struct os_system_netlink *,
-    int protocol);
+EXPORT int os_system_linux_netlink_add(struct os_system_netlink *, int protocol);
 EXPORT void os_system_linux_netlink_remove(struct os_system_netlink *);
-EXPORT int os_system_linux_netlink_send(struct os_system_netlink *fd,
-    struct nlmsghdr *nl_hdr);
-EXPORT int os_system_linux_netlink_add_mc(struct os_system_netlink *,
-    const uint32_t *groups, size_t groupcount);
-EXPORT int os_system_linux_netlink_drop_mc(struct os_system_netlink *,
-    const int *groups, size_t groupcount);
+EXPORT int os_system_linux_netlink_send(struct os_system_netlink *fd, struct nlmsghdr *nl_hdr);
+EXPORT int os_system_linux_netlink_add_mc(struct os_system_netlink *, const uint32_t *groups, size_t groupcount);
+EXPORT int os_system_linux_netlink_drop_mc(struct os_system_netlink *, const int *groups, size_t groupcount);
 
-EXPORT int os_system_linux_netlink_addreq(struct os_system_netlink *nl,
-    struct nlmsghdr *n, int type, const void *data, int len);
+EXPORT int os_system_linux_netlink_addreq(
+  struct os_system_netlink *nl, struct nlmsghdr *n, int type, const void *data, int len);
 
 EXPORT int os_system_linux_linux_get_ioctl_fd(int af_type);
 
@@ -165,10 +161,9 @@ os_system_is_ipv6_supported(void) {
  * @return -1 if an error happened, 0 otherwise
  */
 static INLINE int
-os_system_linux_netlink_addnetaddr(struct os_system_netlink *nl, struct nlmsghdr *n,
-    int type, const struct netaddr *addr) {
-  return os_system_linux_netlink_addreq(
-      nl, n, type, netaddr_get_binptr(addr), netaddr_get_maxprefix(addr)/8);
+os_system_linux_netlink_addnetaddr(
+  struct os_system_netlink *nl, struct nlmsghdr *n, int type, const struct netaddr *addr) {
+  return os_system_linux_netlink_addreq(nl, n, type, netaddr_get_binptr(addr), netaddr_get_maxprefix(addr) / 8);
 }
 
 #endif /* OS_SYSTEM_LINUX_H_ */

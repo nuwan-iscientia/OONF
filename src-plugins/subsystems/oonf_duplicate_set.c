@@ -47,8 +47,8 @@
 #include "common/avl_comp.h"
 #include "common/common_types.h"
 #include "common/netaddr.h"
-#include "rfc5444/rfc5444.h"
 #include "core/oonf_subsystem.h"
+#include "rfc5444/rfc5444.h"
 #include "subsystems/oonf_class.h"
 #include "subsystems/oonf_timer.h"
 
@@ -61,9 +61,9 @@
 static int _init(void);
 static void _cleanup(void);
 
-static enum oonf_duplicate_result _test(struct oonf_duplicate_set *,
-    struct oonf_duplicate_entry *, uint64_t seqno, bool set);
-static int _avl_cmp_dupkey(const void *, const void*);
+static enum oonf_duplicate_result _test(
+  struct oonf_duplicate_set *, struct oonf_duplicate_entry *, uint64_t seqno, bool set);
+static int _avl_cmp_dupkey(const void *, const void *);
 
 static void _cb_vtime(struct oonf_timer_instance *);
 static void _remove_duplicate_entry(struct oonf_duplicate_entry *entry);
@@ -80,12 +80,12 @@ static struct oonf_class _dupset_class = {
 
 /* dupset result names */
 static const char *OONF_DUPSET_RESULT_STR[] = {
-  [OONF_DUPSET_TOO_OLD]   = "too old",
+  [OONF_DUPSET_TOO_OLD] = "too old",
   [OONF_DUPSET_DUPLICATE] = "duplicate",
-  [OONF_DUPSET_CURRENT]   = "current",
-  [OONF_DUPSET_NEW]       = "new",
-  [OONF_DUPSET_NEWEST]    = "newest",
-  [OONF_DUPSET_FIRST]     = "first",
+  [OONF_DUPSET_CURRENT] = "current",
+  [OONF_DUPSET_NEW] = "new",
+  [OONF_DUPSET_NEWEST] = "newest",
+  [OONF_DUPSET_FIRST] = "first",
 };
 
 /* subsystem definition */
@@ -105,7 +105,7 @@ DECLARE_OONF_PLUGIN(_oonf_duplicate_set_subsystem);
 
 /* math constants for different sizes */
 static const int64_t _mask_values[] = {
-  [OONF_DUPSET_8BIT]  = 255ull,
+  [OONF_DUPSET_8BIT] = 255ull,
   [OONF_DUPSET_16BIT] = 65535ull,
   [OONF_DUPSET_32BIT] = 4294967295ull,
 };
@@ -141,9 +141,9 @@ oonf_duplicate_set_add(struct oonf_duplicate_set *set, enum oonf_dupset_type typ
   avl_init(&set->_tree, _avl_cmp_dupkey, false);
 
   if (type != OONF_DUPSET_64BIT) {
-    set->_mask   = _mask_values[type];
+    set->_mask = _mask_values[type];
     set->_offset = set->_mask + 1;
-    set->_limit  = set->_mask / 2;
+    set->_limit = set->_mask / 2;
   }
 }
 
@@ -174,8 +174,9 @@ oonf_duplicate_set_remove(struct oonf_duplicate_set *set) {
  *   if the sequence number is newer than the newest in the set
  */
 enum oonf_duplicate_result
-oonf_duplicate_entry_add(struct oonf_duplicate_set *set, uint8_t msg_type,
-    struct netaddr *originator, uint64_t seqno, uint64_t vtime) {
+oonf_duplicate_entry_add(
+  struct oonf_duplicate_set *set, uint8_t msg_type, struct netaddr *originator, uint64_t seqno, uint64_t vtime)
+{
   struct oonf_duplicate_entry *entry;
   struct oonf_duplicate_entry_key key;
   enum oonf_duplicate_result result;
@@ -217,9 +218,8 @@ oonf_duplicate_entry_add(struct oonf_duplicate_set *set, uint8_t msg_type,
   else {
     result = _test(set, entry, seqno, true);
   }
-  OONF_DEBUG(LOG_DUPLICATE_SET, "Test/Add msgtype %u, originator %s, seqno %"PRIu64": %s",
-      msg_type, netaddr_to_string(&nbuf, originator), seqno,
-      OONF_DUPSET_RESULT_STR[result]);
+  OONF_DEBUG(LOG_DUPLICATE_SET, "Test/Add msgtype %u, originator %s, seqno %" PRIu64 ": %s", msg_type,
+    netaddr_to_string(&nbuf, originator), seqno, OONF_DUPSET_RESULT_STR[result]);
 
   if (oonf_duplicate_is_new(result)) {
     /* reset validity timer */
@@ -240,8 +240,8 @@ oonf_duplicate_entry_add(struct oonf_duplicate_set *set, uint8_t msg_type,
  *   if the sequence number is newer than the newest in the set
  */
 enum oonf_duplicate_result
-oonf_duplicate_test(struct oonf_duplicate_set *set, uint8_t msg_type,
-    struct netaddr *originator, uint64_t seqno) {
+oonf_duplicate_test(struct oonf_duplicate_set *set, uint8_t msg_type, struct netaddr *originator, uint64_t seqno)
+{
   struct oonf_duplicate_entry *entry;
   struct oonf_duplicate_entry_key key;
   enum oonf_duplicate_result result;
@@ -262,9 +262,8 @@ oonf_duplicate_test(struct oonf_duplicate_set *set, uint8_t msg_type,
     result = _test(set, entry, seqno, false);
   }
 
-  OONF_DEBUG(LOG_DUPLICATE_SET, "Test msgtype %u, originator %s, seqno %"PRIu64": %s",
-      msg_type, netaddr_to_string(&nbuf, originator), seqno,
-      OONF_DUPSET_RESULT_STR[result]);
+  OONF_DEBUG(LOG_DUPLICATE_SET, "Test msgtype %u, originator %s, seqno %" PRIu64 ": %s", msg_type,
+    netaddr_to_string(&nbuf, originator), seqno, OONF_DUPSET_RESULT_STR[result]);
 
   return result;
 }
@@ -274,9 +273,9 @@ _seqno_difference(struct oonf_duplicate_set *set, uint64_t seqno1, uint64_t seqn
   uint64_t diff;
   int64_t reldiff;
 
-  diff = seqno1-seqno2;
+  diff = seqno1 - seqno2;
 
-  reldiff = (int64_t) diff;
+  reldiff = (int64_t)diff;
   if (set->_mask) {
     reldiff &= set->_mask;
 
@@ -299,9 +298,8 @@ _seqno_difference(struct oonf_duplicate_set *set, uint64_t seqno1, uint64_t seqn
  *   if the sequence number is newer than the newest in the set
  */
 enum oonf_duplicate_result
-_test(struct oonf_duplicate_set *dupset,
-    struct oonf_duplicate_entry *entry,
-    uint64_t seqno, bool set) {
+_test(struct oonf_duplicate_set *dupset, struct oonf_duplicate_entry *entry, uint64_t seqno, bool set)
+{
   int64_t diff;
 
   if (seqno == entry->current) {
@@ -330,7 +328,7 @@ _test(struct oonf_duplicate_set *dupset,
   entry->too_old_count = 0;
 
   if (diff <= 0) {
-    uint32_t bitmask = 1 << ((uint32_t) (-diff));
+    uint32_t bitmask = 1 << ((uint32_t)(-diff));
 
     if ((entry->history & bitmask) != 0) {
       return OONF_DUPSET_DUPLICATE;
@@ -399,8 +397,8 @@ _cb_vtime(struct oonf_timer_instance *ptr) {
 #endif
 
   entry = container_of(ptr, struct oonf_duplicate_entry, _vtime);
-  OONF_DEBUG(LOG_DUPLICATE_SET, "Duplicate entry timed out: %s/%u",
-      netaddr_to_string(&nbuf, &entry->key.addr), entry->key.msg_type);
+  OONF_DEBUG(LOG_DUPLICATE_SET, "Duplicate entry timed out: %s/%u", netaddr_to_string(&nbuf, &entry->key.addr),
+    entry->key.msg_type);
 
   _remove_duplicate_entry(entry);
 }

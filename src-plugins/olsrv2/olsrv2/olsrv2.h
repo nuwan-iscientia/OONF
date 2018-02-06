@@ -75,11 +75,9 @@ EXPORT uint64_t olsrv2_get_tc_interval(void);
 EXPORT uint64_t olsrv2_get_tc_validity(void);
 EXPORT bool olsrv2_is_nhdp_routable(struct netaddr *addr);
 EXPORT bool olsrv2_is_routable(struct netaddr *addr);
-EXPORT bool olsrv2_mpr_shall_process(
-    struct rfc5444_reader_tlvblock_context *, uint64_t vtime);
+EXPORT bool olsrv2_mpr_shall_process(struct rfc5444_reader_tlvblock_context *, uint64_t vtime);
 EXPORT bool olsrv2_mpr_shall_forwarding(
-    struct rfc5444_reader_tlvblock_context *context,
-    struct netaddr *source_address, uint64_t vtime);
+  struct rfc5444_reader_tlvblock_context *context, struct netaddr *source_address, uint64_t vtime);
 EXPORT void olsrv2_generate_tcs(bool);
 EXPORT uint64_t olsrv2_set_tc_interval(uint64_t new_interval);
 EXPORT uint64_t olsrv2_set_tc_validity(uint64_t new_interval);

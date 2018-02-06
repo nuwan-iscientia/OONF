@@ -46,9 +46,9 @@
 #include <assert.h>
 #include <ctype.h>
 #include <errno.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <stdio.h>
 
 #include "common/string.h"
 
@@ -56,8 +56,9 @@
  * @param size minimum size of block
  * @return rounded up block size of STRARRAY_BLOCKSIZE
  */
-static INLINE size_t STRARRAY_MEMSIZE(const size_t size) {
-  return (size + STRARRAY_BLOCKSIZE-1) & (~(STRARRAY_BLOCKSIZE - 1));
+static INLINE size_t
+STRARRAY_MEMSIZE(const size_t size) {
+  return (size + STRARRAY_BLOCKSIZE - 1) & (~(STRARRAY_BLOCKSIZE - 1));
 }
 
 /**
@@ -70,15 +71,14 @@ static INLINE size_t STRARRAY_MEMSIZE(const size_t size) {
  * @return pointer to target buffer
  */
 char *
-strscpy(char *dest, const char *src, size_t size)
-{
+strscpy(char *dest, const char *src, size_t size) {
   if (dest == NULL || src == NULL || size == 0) {
     return dest;
   }
 
   /* src does not need to be null terminated */
-  strncpy(dest, src, size-1);
-  dest[size-1] = 0;
+  strncpy(dest, src, size - 1);
+  dest[size - 1] = 0;
 
   return dest;
 }
@@ -96,8 +96,7 @@ strscpy(char *dest, const char *src, size_t size)
  * @return pointer to target buffer
  */
 char *
-strscat(char *dest, const char *src, size_t size)
-{
+strscat(char *dest, const char *src, size_t size) {
   size_t l;
 
   if (dest == NULL || src == NULL || size == 0 || *src == 0) {
@@ -117,7 +116,7 @@ strscat(char *dest, const char *src, size_t size)
  * @return pointer to first non-whitespace character in string
  */
 char *
-str_trim (char *ptr) {
+str_trim(char *ptr) {
   size_t len;
 
   if (!ptr) {
@@ -148,7 +147,7 @@ str_trim (char *ptr) {
  * @return pointer to the string behind the word, NULL if no match
  */
 const char *
-str_hasnextword (const char *buffer, const char *word) {
+str_hasnextword(const char *buffer, const char *word) {
   /* sanity check */
   if (buffer == NULL) {
     return NULL;
@@ -183,7 +182,7 @@ str_hasnextword (const char *buffer, const char *word) {
  * @return pointer to next word behind the copied word
  */
 const char *
-str_cpynextword (char *dst, const char *src, size_t len) {
+str_cpynextword(char *dst, const char *src, size_t len) {
   size_t i;
 
   /* sanity check */
@@ -199,7 +198,7 @@ str_cpynextword (char *dst, const char *src, size_t len) {
 
   /* copy next word */
   i = 0;
-  while (*src != 0 && !isblank(*src) && i < len-1) {
+  while (*src != 0 && !isblank(*src) && i < len - 1) {
     dst[i++] = *src++;
   }
 
@@ -226,7 +225,7 @@ str_cpynextword (char *dst, const char *src, size_t len) {
  * @return pointer to next word behind the skipped word
  */
 const char *
-str_skipnextword (const char *src) {
+str_skipnextword(const char *src) {
   /* sanity check */
   if (src == NULL) {
     return NULL;
@@ -391,8 +390,7 @@ strarray_prepend(struct strarray *array, const char *string) {
  * @param resize array afterwards
  */
 void
-strarray_remove_ext(struct strarray *array,
-    char *element, bool resize) {
+strarray_remove_ext(struct strarray *array, char *element, bool resize) {
   char *ptr1;
   size_t len;
 
@@ -436,7 +434,7 @@ strarray_get_count(const struct strarray *array) {
   char *ptr;
 
   strarray_for_each_element(array, ptr) {
-    count ++;
+    count++;
   }
   return count;
 }
@@ -455,7 +453,7 @@ strarray_get(const struct strarray *array, size_t idx) {
     if (count == idx) {
       return ptr;
     }
-    count ++;
+    count++;
   }
   return NULL;
 }

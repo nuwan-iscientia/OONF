@@ -46,9 +46,9 @@
 #include <errno.h>
 #include <unistd.h>
 
-#include "common/common_types.h"
 #include "common/avl.h"
 #include "common/avl_comp.h"
+#include "common/common_types.h"
 #include "common/netaddr.h"
 
 #include "subsystems/oonf_class.h"
@@ -187,8 +187,7 @@ dlep_router_add_interface(const char *ifname) {
     return NULL;
   }
 
-  if (dlep_if_add(&interface->interf, ifname,
-      &_l2_origin, &_l2_default_origin, LOG_DLEP_ROUTER, false)) {
+  if (dlep_if_add(&interface->interf, ifname, &_l2_origin, &_l2_default_origin, LOG_DLEP_ROUTER, false)) {
     oonf_class_free(&_router_if_class, interface);
     return NULL;
   }
@@ -210,7 +209,7 @@ dlep_router_remove_interface(struct dlep_router_if *interface) {
   dlep_if_remove(&interface->interf);
 
   /* remove session */
-  free (interface->interf.session.cfg.peer_type);
+  free(interface->interf.session.cfg.peer_type);
   oonf_class_free(&_router_if_class, interface);
 }
 
@@ -236,16 +235,14 @@ dlep_router_apply_interface_settings(struct dlep_router_if *interf) {
   if (!netaddr_is_unspec(&interf->connect_to_addr)) {
     os_if = interf->interf.session.l2_listener.data;
 
-    OONF_DEBUG(LOG_DLEP_ROUTER, "Connect directly to [%s]:%d",
-        netaddr_to_string(&nbuf, &interf->connect_to_addr),
-        interf->connect_to_port);
+    OONF_DEBUG(LOG_DLEP_ROUTER, "Connect directly to [%s]:%d", netaddr_to_string(&nbuf, &interf->connect_to_addr),
+      interf->connect_to_port);
 
     result = os_interface_get_prefix_from_dst(&interf->connect_to_addr, os_if);
     if (result) {
       /* initialize local and remote socket */
       netaddr_socket_init(&local, &result->address, 0, os_if->index);
-      netaddr_socket_init(&remote,
-          &interf->connect_to_addr, interf->connect_to_port, os_if->index);
+      netaddr_socket_init(&remote, &interf->connect_to_addr, interf->connect_to_port, os_if->index);
 
       dlep_router_add_session(interf, &local, &remote);
     }

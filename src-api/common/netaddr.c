@@ -44,96 +44,90 @@
  */
 
 #include <ctype.h>
+#include <net/if.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <net/if.h>
 
 #include "common/common_types.h"
-#include "common/string.h"
 #include "common/netaddr.h"
+#include "common/string.h"
 
-static char *_mac_to_string(char *dst, size_t dst_size,
-    const void *bin, size_t bin_size, char separator);
-static char *_uuid_to_string(char *dst, size_t dst_size,
-    const void *bin, size_t bin_size);
-static int _bin_from_hex(void *bin, size_t bin_size,
-    const char *src, char separator);
-static int _uuid_from_string(void *bin, size_t bin_size,
-    const char *src);
+static char *_mac_to_string(char *dst, size_t dst_size, const void *bin, size_t bin_size, char separator);
+static char *_uuid_to_string(char *dst, size_t dst_size, const void *bin, size_t bin_size);
+static int _bin_from_hex(void *bin, size_t bin_size, const char *src, char separator);
+static int _uuid_from_string(void *bin, size_t bin_size, const char *src);
 static int _subnetmask_to_prefixlen(const char *src);
 static int _read_hexdigit(const char c);
-static bool _binary_is_in_subnet(const struct netaddr *subnet,
-    const void *bin);
+static bool _binary_is_in_subnet(const struct netaddr *subnet, const void *bin);
 
 /* predefined network prefixes */
 
 /*! unspecified network address */
-const struct netaddr NETADDR_UNSPEC = { {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}, AF_UNSPEC, 0 };
+const struct netaddr NETADDR_UNSPEC = { { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }, AF_UNSPEC, 0 };
 
 /*! IPv4 default prefix */
-const struct netaddr NETADDR_IPV4_ANY = { {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}, AF_INET, 0 };
+const struct netaddr NETADDR_IPV4_ANY = { { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }, AF_INET, 0 };
 
 /*! IPv6 default prefix */
-const struct netaddr NETADDR_IPV6_ANY = { {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}, AF_INET6, 0 };
+const struct netaddr NETADDR_IPV6_ANY = { { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }, AF_INET6, 0 };
 
 /*! IPv4 NULL address */
-const struct netaddr NETADDR_IPV4_BINDTO_ANY = { {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}, AF_INET, 32 };
+const struct netaddr NETADDR_IPV4_BINDTO_ANY = { { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }, AF_INET, 32 };
 
 /*! IPv6 NULL address */
-const struct netaddr NETADDR_IPV6_BINDTO_ANY = { {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}, AF_INET6, 128 };
+const struct netaddr NETADDR_IPV6_BINDTO_ANY = { { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }, AF_INET6, 128 };
 
 /*! IPv4 multicast prefix */
-const struct netaddr NETADDR_IPV4_MULTICAST = { { 224,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}, AF_INET, 4 };
+const struct netaddr NETADDR_IPV4_MULTICAST = { { 224, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }, AF_INET, 4 };
 
 /*! IPv6 multicast prefix */
-const struct netaddr NETADDR_IPV6_MULTICAST = { { 0xff,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}, AF_INET6, 8 };
+const struct netaddr NETADDR_IPV6_MULTICAST = { { 0xff, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }, AF_INET6, 8 };
 
 /*! IPv4 linklocal prefix */
-const struct netaddr NETADDR_IPV4_LINKLOCAL = { { 169,254,0,0,0,0,0,0,0,0,0,0,0,0,0,0}, AF_INET, 16 };
+const struct netaddr NETADDR_IPV4_LINKLOCAL = { { 169, 254, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }, AF_INET, 16 };
 
 /*! IPv6 linklocal prefix */
-const struct netaddr NETADDR_IPV6_LINKLOCAL = { { 0xfe,0x80,0,0,0,0,0,0,0,0,0,0,0,0,0,0}, AF_INET6, 10 };
+const struct netaddr NETADDR_IPV6_LINKLOCAL = { { 0xfe, 0x80, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }, AF_INET6,
+  10 };
 
 /*! IPv6 unique local prefix */
-const struct netaddr NETADDR_IPV6_ULA = { { 0xfc,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}, AF_INET6, 7 };
+const struct netaddr NETADDR_IPV6_ULA = { { 0xfc, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }, AF_INET6, 7 };
 
 /*! IPv6 routable prefix */
-const struct netaddr NETADDR_IPV6_GLOBAL = { { 0x20,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}, AF_INET6, 3 };
+const struct netaddr NETADDR_IPV6_GLOBAL = { { 0x20, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }, AF_INET6, 3 };
 
 /*! IPv6 ipv4-compatible prefix */
-const struct netaddr NETADDR_IPV6_IPV4COMPATIBLE = { {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}, AF_INET6, 96 };
+const struct netaddr NETADDR_IPV6_IPV4COMPATIBLE = { { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }, AF_INET6, 96 };
 
 /*! IPv6 ipv4-mapped prefix */
-const struct netaddr NETADDR_IPV6_IPV4MAPPED = { {0,0,0,0,0,0,0,0,0,0,0xff,0xff,0,0,0,0}, AF_INET6, 96 };
+const struct netaddr NETADDR_IPV6_IPV4MAPPED = { { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0xff, 0xff, 0, 0, 0, 0 }, AF_INET6,
+  96 };
 
 /*! IPv4 loopback prefix */
-const struct netaddr NETADDR_IPV4_LOOPBACK_NET = { {127,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0}, AF_INET, 8 };
+const struct netaddr NETADDR_IPV4_LOOPBACK_NET = { { 127, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }, AF_INET, 8 };
 
 /*! IPv6 loopback address */
-const struct netaddr NETADDR_IPV6_LOOPBACK = { {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1}, AF_INET6, 128 };
+const struct netaddr NETADDR_IPV6_LOOPBACK = { { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1 }, AF_INET6, 128 };
 
 /*! Ethernet broadcast */
-const struct netaddr NETADDR_MAC48_BROADCAST = { {0xff,0xff,0xff,0xff,0xff,0xff,0,0,0,0,0,0,0,0,0,0}, AF_MAC48, 48 };
+const struct netaddr NETADDR_MAC48_BROADCAST = { { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
+  AF_MAC48, 48 };
 
 /*! socket for binding to any IPv4 address */
-const union netaddr_socket NETADDR_SOCKET_IPV4_ANY = {
-  .v4 = {
-      .sin_family = AF_INET,
-      .sin_port = 0,
-      .sin_addr.s_addr = 0,
-  }
-};
+const union netaddr_socket NETADDR_SOCKET_IPV4_ANY = { .v4 = {
+                                                         .sin_family = AF_INET,
+                                                         .sin_port = 0,
+                                                         .sin_addr.s_addr = 0,
+                                                       } };
 
 /*! socket for binding to any IPv6 address */
-const union netaddr_socket NETADDR_SOCKET_IPV6_ANY = {
-  .v6 = {
-      .sin6_family = AF_INET6,
-      .sin6_port = 0,
-      .sin6_addr.s6_addr32 = { 0,0,0,0 },
-      .sin6_scope_id = 0,
-  }
-};
+const union netaddr_socket NETADDR_SOCKET_IPV6_ANY = { .v6 = {
+                                                         .sin6_family = AF_INET6,
+                                                         .sin6_port = 0,
+                                                         .sin6_addr.s6_addr32 = { 0, 0, 0, 0 },
+                                                         .sin6_scope_id = 0,
+                                                       } };
 
 /* List of predefined address prefixes */
 static const struct {
@@ -160,9 +154,7 @@ static const struct {
  *     of the binary data, -1 otherwise
  */
 int
-netaddr_from_binary_prefix(struct netaddr *dst, const void *binary,
-    size_t len, uint8_t addr_type, uint8_t prefix_len) {
-
+netaddr_from_binary_prefix(struct netaddr *dst, const void *binary, size_t len, uint8_t addr_type, uint8_t prefix_len) {
   memset(dst->_addr, 0, sizeof(dst->_addr));
 
   if (addr_type != 0) {
@@ -174,16 +166,16 @@ netaddr_from_binary_prefix(struct netaddr *dst, const void *binary,
         dst->_type = AF_INET;
         break;
       case 6:
-        dst->_type  = AF_MAC48;
+        dst->_type = AF_MAC48;
         break;
       case 8:
-        dst->_type  = AF_EUI64;
+        dst->_type = AF_EUI64;
         break;
       case 16:
-        dst->_type  = AF_INET6;
+        dst->_type = AF_INET6;
         break;
       default:
-        dst->_type  = AF_UNSPEC;
+        dst->_type = AF_UNSPEC;
         if (len > 16) {
           len = 16;
         }
@@ -237,7 +229,7 @@ netaddr_from_socket(struct netaddr *dst, const union netaddr_socket *src) {
     memcpy(dst->_addr, &src->v4.sin_addr, 4);
     dst->_prefix_len = 32;
   }
-  else if (src->std.sa_family == AF_INET6){
+  else if (src->std.sa_family == AF_INET6) {
     /* ipv6 */
     memcpy(dst->_addr, &src->v6.sin6_addr, 16);
     dst->_prefix_len = 128;
@@ -278,7 +270,7 @@ netaddr_to_socket(union netaddr_socket *dst, const struct netaddr *src) {
   }
 
   /* copy address type */
-  dst->std.sa_family= src->_type;
+  dst->std.sa_family = src->_type;
   return 0;
 }
 
@@ -312,8 +304,7 @@ netaddr_to_autobuf(struct autobuf *abuf, const struct netaddr *src) {
  * @return -1 if an error happened, 0 otherwise
  */
 int
-netaddr_create_host_bin(struct netaddr *host, const struct netaddr *netmask,
-    const void *number, size_t num_length) {
+netaddr_create_host_bin(struct netaddr *host, const struct netaddr *netmask, const void *number, size_t num_length) {
   size_t host_index, number_index;
   uint8_t host_part_length;
   const uint8_t *number_byte;
@@ -336,9 +327,9 @@ netaddr_create_host_bin(struct netaddr *host, const struct netaddr *netmask,
   }
 
   /* calculate starting byte in host and number */
-  host_part_length = (host->_prefix_len - netmask->_prefix_len + 7)/8;
+  host_part_length = (host->_prefix_len - netmask->_prefix_len + 7) / 8;
   if (host_part_length > num_length) {
-    host_index = host->_prefix_len/8 - num_length;
+    host_index = host->_prefix_len / 8 - num_length;
     number_index = 0;
   }
   else {
@@ -369,8 +360,8 @@ netaddr_create_host_bin(struct netaddr *host, const struct netaddr *netmask,
  * @return -1 if an error happened, 0 otherwise
  */
 int
-netaddr_create_prefix(struct netaddr *prefix, const struct netaddr *host,
-    const struct netaddr *netmask, bool truncate) {
+netaddr_create_prefix(
+  struct netaddr *prefix, const struct netaddr *host, const struct netaddr *netmask, bool truncate) {
   int len, maxlen;
   if (host->_type != netmask->_type || host->_type == AF_UNSPEC) {
     return -1;
@@ -387,7 +378,7 @@ netaddr_create_prefix(struct netaddr *prefix, const struct netaddr *host,
     memcpy(&prefix->_addr[0], &host->_addr[0], 16);
   }
 
-  for (len=0; len<maxlen; len++) {
+  for (len = 0; len < maxlen; len++) {
     if (truncate) {
       prefix->_addr[len] = host->_addr[len] & netmask->_addr[len];
     }
@@ -471,8 +462,7 @@ netaddr_truncate(struct netaddr *dst, const struct netaddr *src) {
  * @return 0 if successful read binary data, -1 otherwise
  */
 int
-netaddr_socket_init(union netaddr_socket *combined, const struct netaddr *addr,
-    uint16_t port, unsigned if_index) {
+netaddr_socket_init(union netaddr_socket *combined, const struct netaddr *addr, uint16_t port, unsigned if_index) {
   /* initialize memory block */
   memset(combined, 0, sizeof(*combined));
 
@@ -523,9 +513,8 @@ netaddr_socket_get_port(const union netaddr_socket *sock) {
  * @return pointer to target buffer
  */
 const char *
-netaddr_to_prefixstring(struct netaddr_str *dst,
-    const struct netaddr *src, bool forceprefix) {
-  static const char * NONE = "-";
+netaddr_to_prefixstring(struct netaddr_str *dst, const struct netaddr *src, bool forceprefix) {
+  static const char *NONE = "-";
   const char *result = NULL;
   int maxprefix;
 
@@ -589,7 +578,7 @@ netaddr_from_string(struct netaddr *dst, const char *src) {
   }
 
   /* handle string representations of prefixes */
-  for (i=0; i<ARRAYSIZE(_known_prefixes); i++) {
+  for (i = 0; i < ARRAYSIZE(_known_prefixes); i++) {
     if (strcasecmp(src, _known_prefixes[i].name) == 0) {
       memcpy(dst, _known_prefixes[i].prefix, sizeof(*dst));
       return 0;
@@ -638,11 +627,13 @@ netaddr_from_string(struct netaddr *dst, const char *src) {
 
   if (*ptr2) {
     /* split strings */
-    while (isspace(*ptr2)) *ptr2++ = 0;
+    while (isspace(*ptr2))
+      *ptr2++ = 0;
     if (*ptr2 == '/') {
       *ptr2++ = 0;
     }
-    while (isspace(*ptr2)) *ptr2++ = 0;
+    while (isspace(*ptr2))
+      *ptr2++ = 0;
 
     if (*ptr2 == 0) {
       /* prefixlength is missing */
@@ -659,9 +650,8 @@ netaddr_from_string(struct netaddr *dst, const char *src) {
   }
 
   /* use dst->prefix_len as storage for maximum prefixlen */
-  if ((colon_count == 5 || minus_count == 5)
-      && (colon_count == 0 || minus_count == 0)
-      && !has_point && !has_coloncolon) {
+  if ((colon_count == 5 || minus_count == 5) && (colon_count == 0 || minus_count == 0) && !has_point &&
+      !has_coloncolon) {
     dst->_type = AF_MAC48;
     dst->_prefix_len = 48;
     if (colon_count > 0) {
@@ -728,23 +718,19 @@ netaddr_socket_to_string(struct netaddr_str *dst, const union netaddr_socket *sr
   struct netaddr_str buf;
 
   if (src->std.sa_family == AF_INET) {
-    snprintf(dst->buf, sizeof(*dst), "%s:%d",
-        inet_ntop(AF_INET, &src->v4.sin_addr, buf.buf, sizeof(buf)),
-        ntohs(src->v4.sin_port));
+    snprintf(dst->buf, sizeof(*dst), "%s:%d", inet_ntop(AF_INET, &src->v4.sin_addr, buf.buf, sizeof(buf)),
+      ntohs(src->v4.sin_port));
   }
   else if (src->std.sa_family == AF_INET6) {
     if (src->v6.sin6_scope_id) {
       char scope_buf[IF_NAMESIZE];
 
-      snprintf(dst->buf, sizeof(*dst), "[%s]:%d%%%s",
-          inet_ntop(AF_INET6, &src->v6.sin6_addr, buf.buf, sizeof(buf)),
-          ntohs(src->v6.sin6_port),
-          if_indextoname(src->v6.sin6_scope_id, scope_buf));
+      snprintf(dst->buf, sizeof(*dst), "[%s]:%d%%%s", inet_ntop(AF_INET6, &src->v6.sin6_addr, buf.buf, sizeof(buf)),
+        ntohs(src->v6.sin6_port), if_indextoname(src->v6.sin6_scope_id, scope_buf));
     }
     else {
-      snprintf(dst->buf, sizeof(*dst), "[%s]:%d",
-          inet_ntop(AF_INET6, &src->v6.sin6_addr, buf.buf, sizeof(buf)),
-          ntohs(src->v6.sin6_port));
+      snprintf(dst->buf, sizeof(*dst), "[%s]:%d", inet_ntop(AF_INET6, &src->v6.sin6_addr, buf.buf, sizeof(buf)),
+        ntohs(src->v6.sin6_port));
     }
   }
   else {
@@ -824,8 +810,7 @@ netaddr_cmp_to_socket(const struct netaddr *a1, const union netaddr_socket *a2) 
  * @return true if matches, false otherwise
  */
 bool
-netaddr_isequal_binary(const struct netaddr *addr,
-    const void *bin, size_t len, uint16_t af, uint8_t prefix_len) {
+netaddr_isequal_binary(const struct netaddr *addr, const void *bin, size_t len, uint16_t af, uint8_t prefix_len) {
   uint32_t addr_len;
 
   if (addr->_type != af || addr->_prefix_len != prefix_len) {
@@ -849,10 +834,8 @@ netaddr_isequal_binary(const struct netaddr *addr,
  * @return true if part of the prefix, false otherwise
  */
 bool
-netaddr_binary_is_in_subnet(const struct netaddr *subnet,
-    const void *bin, size_t len, uint8_t af_family) {
-  if (subnet->_type != af_family
-      || netaddr_get_maxprefix(subnet) != len * 8) {
+netaddr_binary_is_in_subnet(const struct netaddr *subnet, const void *bin, size_t len, uint8_t af_family) {
+  if (subnet->_type != af_family || netaddr_get_maxprefix(subnet) != len * 8) {
     return false;
   }
   return _binary_is_in_subnet(subnet, bin);
@@ -866,8 +849,7 @@ netaddr_binary_is_in_subnet(const struct netaddr *subnet,
  * @return true if addr is part of subnet, false otherwise
  */
 bool
-netaddr_is_in_subnet(const struct netaddr *subnet,
-    const struct netaddr *addr) {
+netaddr_is_in_subnet(const struct netaddr *subnet, const struct netaddr *addr) {
   if (subnet->_type != addr->_type) {
     return false;
   }
@@ -910,15 +892,13 @@ netaddr_get_af_maxprefix(uint32_t af_type) {
  * @return
  */
 const char *
-inet_ntop(int af, const void *src, char *dst, socklen_t cnt)
-{
+inet_ntop(int af, const void *src, char *dst, socklen_t cnt) {
   if (af == AF_INET) {
     struct sockaddr_in in;
     memset(&in, 0, sizeof(in));
     in.sin_family = AF_INET;
     memcpy(&in.sin_addr, src, sizeof(struct in_addr));
-    getnameinfo((struct sockaddr *)&in, sizeof(struct sockaddr_in),
-        dst, cnt, NULL, 0, NI_NUMERICHOST);
+    getnameinfo((struct sockaddr *)&in, sizeof(struct sockaddr_in), dst, cnt, NULL, 0, NI_NUMERICHOST);
     return dst;
   }
   else if (af == AF_INET6) {
@@ -926,8 +906,7 @@ inet_ntop(int af, const void *src, char *dst, socklen_t cnt)
     memset(&in, 0, sizeof(in));
     in.sin6_family = AF_INET6;
     memcpy(&in.sin6_addr, src, sizeof(struct in_addr6));
-    getnameinfo((struct sockaddr *)&in, sizeof(struct sockaddr_in6),
-        dst, cnt, NULL, 0, NI_NUMERICHOST);
+    getnameinfo((struct sockaddr *)&in, sizeof(struct sockaddr_in6), dst, cnt, NULL, 0, NI_NUMERICHOST);
     return dst;
   }
   return NULL;
@@ -943,8 +922,7 @@ inet_ntop(int af, const void *src, char *dst, socklen_t cnt)
  * @return
  */
 int
-inet_pton(int af, const char *src, void *dst)
-{
+inet_pton(int af, const char *src, void *dst) {
   struct addrinfo hints, *res;
   union netaddr_socket *sock;
 
@@ -956,8 +934,7 @@ inet_pton(int af, const char *src, void *dst)
   hints.ai_family = af;
   hints.ai_flags = AI_NUMERICHOST;
 
-  if (getaddrinfo(src, NULL, &hints, &res) != 0)
-  {
+  if (getaddrinfo(src, NULL, &hints, &res) != 0) {
     return -1;
   }
 
@@ -990,8 +967,7 @@ inet_pton(int af, const char *src, void *dst)
  * @return pointer to target buffer, NULL if an error happened
  */
 static char *
-_mac_to_string(char *dst, size_t dst_size, const void *bin,
-    size_t bin_size, char separator) {
+_mac_to_string(char *dst, size_t dst_size, const void *bin, size_t bin_size, char separator) {
   static const char hex[] = "0123456789abcdef";
   char *last_separator, *_dst;
   const uint8_t *_bin;
@@ -1022,7 +998,7 @@ _mac_to_string(char *dst, size_t dst_size, const void *bin,
     bin_size--;
 
     /* calculate remaining destination size */
-    dst_size-=2;
+    dst_size -= 2;
   }
 
   *last_separator = 0;
@@ -1053,16 +1029,16 @@ _uuid_to_string(char *dst, size_t dst_size, const void *src, size_t src_size) {
 
   _src = src;
   _dst = dst;
-  for (i=0; i<ARRAYSIZE(max_group_len); i++) {
-    if (!_mac_to_string(_dst, dst_size, _src, max_group_len[i]/2, 0)) {
+  for (i = 0; i < ARRAYSIZE(max_group_len); i++) {
+    if (!_mac_to_string(_dst, dst_size, _src, max_group_len[i] / 2, 0)) {
       return NULL;
     }
 
-    _src += (max_group_len[i]/2);
+    _src += (max_group_len[i] / 2);
     _dst += (max_group_len[i]);
     dst_size -= max_group_len[i];
 
-    if (i < ARRAYSIZE(max_group_len)-1) {
+    if (i < ARRAYSIZE(max_group_len) - 1) {
       *_dst++ = '-';
       dst_size--;
     }
@@ -1096,7 +1072,7 @@ _bin_from_hex(void *bin, size_t bin_size, const char *src, char separator) {
       num = (num << 4) + digit_2;
       src++;
     }
-    *_bin++ = (uint8_t) num;
+    *_bin++ = (uint8_t)num;
 
     bin_size--;
 
@@ -1122,14 +1098,14 @@ _bin_from_hex(void *bin, size_t bin_size, const char *src, char separator) {
 static int
 _uuid_from_string(void *bin, size_t bin_size, const char *src) {
   static const size_t max_group_len[5] = { 8, 4, 4, 4, 12 };
-  char buffer[32+4+1];
+  char buffer[32 + 4 + 1];
   char *current_group, *next_group, *_bin;
   size_t i;
 
   if (bin_size < 16) {
     return -1;
   }
-  if (strlen(src) > 32+4) {
+  if (strlen(src) > 32 + 4) {
     return -1;
   }
 
@@ -1137,13 +1113,13 @@ _uuid_from_string(void *bin, size_t bin_size, const char *src) {
 
   _bin = bin;
   current_group = buffer;
-  for (i=0; i<ARRAYSIZE(max_group_len); i++) {
+  for (i = 0; i < ARRAYSIZE(max_group_len); i++) {
     next_group = strchr(current_group, '-');
     if (next_group) {
       /* zero terminate current group */
       *next_group++ = 0;
     }
-    else if (i != ARRAYSIZE(max_group_len)-1) {
+    else if (i != ARRAYSIZE(max_group_len) - 1) {
       /* not enough components */
       return -1;
     }
@@ -1154,12 +1130,12 @@ _uuid_from_string(void *bin, size_t bin_size, const char *src) {
     }
 
     /* parse data, we expect a precise number of hex-numbers */
-    if (_bin_from_hex(_bin, max_group_len[i]/2, current_group, 0)) {
+    if (_bin_from_hex(_bin, max_group_len[i] / 2, current_group, 0)) {
       return -1;
     }
 
     current_group = next_group;
-    _bin = _bin + max_group_len[i]/2;
+    _bin = _bin + max_group_len[i] / 2;
   }
   return 0;
 }
@@ -1240,8 +1216,7 @@ _binary_is_in_subnet(const struct netaddr *subnet, const void *bin) {
 
   /* compare bits if necessary */
   if (bit_length != 0) {
-    return (subnet->_addr[byte_length] >> (8 - bit_length))
-        == (_bin[byte_length] >> (8 - bit_length));
+    return (subnet->_addr[byte_length] >> (8 - bit_length)) == (_bin[byte_length] >> (8 - bit_length));
   }
   return true;
 }

@@ -46,9 +46,9 @@
 #include <errno.h>
 #include <stdio.h>
 
-#include "common/common_types.h"
 #include "common/autobuf.h"
 #include "common/avl.h"
+#include "common/common_types.h"
 #include "config/cfg_schema.h"
 #include "core/oonf_cfg.h"
 #include "core/oonf_logging.h"
@@ -106,18 +106,13 @@ static void _cb_remove_nhdp_interface(void *);
 static void _cb_address_finished(struct os_interface_ip_change *, int);
 static void _cb_update_timer(struct oonf_timer_instance *);
 static int _get_current_if_ipv4_addresscount(
-    struct os_interface *os_if,
-    struct netaddr *ll4_addr, struct netaddr *current_ll4);
-static void _generate_default_address(
-    struct _nhdp_if_autoll4 *auto_ll4, const struct netaddr *ipv6_ll);
+  struct os_interface *os_if, struct netaddr *ll4_addr, struct netaddr *current_ll4);
+static void _generate_default_address(struct _nhdp_if_autoll4 *auto_ll4, const struct netaddr *ipv6_ll);
 
-static void _commit_address(struct _nhdp_if_autoll4 *auto_ll4
-    , struct netaddr *addr, bool set);
+static void _commit_address(struct _nhdp_if_autoll4 *auto_ll4, struct netaddr *addr, bool set);
 uint16_t _calculate_host_part(const struct netaddr *addr);
-static bool _is_address_collision(
-    struct netaddr *auto_ll4, struct netaddr *addr);
-static bool _nhdp_if_has_collision(
-    struct nhdp_interface *nhdp_if, struct netaddr *addr);
+static bool _is_address_collision(struct netaddr *auto_ll4, struct netaddr *addr);
+static bool _nhdp_if_has_collision(struct nhdp_interface *nhdp_if, struct netaddr *addr);
 static void _cb_ifaddr_change(void *);
 static void _cb_laddr_change(void *);
 static void _cb_2hop_change(void *);
@@ -125,10 +120,10 @@ static void _cb_if_cfg_changed(void);
 
 /* plugin declaration */
 static struct cfg_schema_entry _interface_entries[] = {
-  CFG_MAP_BOOL(_nhdp_if_autoll4, active, "auto_ll4", "true",
-      "Controls autogeneration of IPv4 linklocal IPs on interface."),
+  CFG_MAP_BOOL(
+    _nhdp_if_autoll4, active, "auto_ll4", "true", "Controls autogeneration of IPv4 linklocal IPs on interface."),
   CFG_MAP_CLOCK(_nhdp_if_autoll4, startup_delay, "autoll4_startup_delay", "10",
-      "Startup time until first auto-configured IPv4 linklocal should be selected."),
+    "Startup time until first auto-configured IPv4 linklocal should be selected."),
 };
 
 static struct cfg_schema_section _interface_section = {
@@ -231,8 +226,7 @@ _initiate_shutdown(void) {
 
   /* cleanup plugin specific data for interfaces that still exist */
   avl_for_each_element_safe(nhdp_interface_get_tree(), nhdp_if, _node, nhdp_if_it) {
-    OONF_DEBUG(LOG_AUTO_LL4, "initiate cleanup if: %s",
-        nhdp_interface_get_if_listener(nhdp_if)->data->name);
+    OONF_DEBUG(LOG_AUTO_LL4, "initiate cleanup if: %s", nhdp_interface_get_if_listener(nhdp_if)->data->name);
     _cb_remove_nhdp_interface(nhdp_if);
   }
   oonf_class_extension_remove(&_nhdp_2hop_listener);
@@ -338,14 +332,11 @@ _cb_address_finished(struct os_interface_ip_change *os_addr, int error) {
   }
 
   OONF_DEBUG(LOG_AUTO_LL4, "Got feedback from netlink for %s address %s on if %s: %s (%d)",
-      os_addr->set ? "setting" : "resetting",
-          netaddr_to_string(&nbuf, &os_addr->address),
-          if_indextoname(os_addr->if_index, ibuf),
-          strerror(error), error);
+    os_addr->set ? "setting" : "resetting", netaddr_to_string(&nbuf, &os_addr->address),
+    if_indextoname(os_addr->if_index, ibuf), strerror(error), error);
 
   if (error) {
-    if ((os_addr->set && error != EEXIST)
-        || (!os_addr->set && error != EADDRNOTAVAIL)) {
+    if ((os_addr->set && error != EEXIST) || (!os_addr->set && error != EADDRNOTAVAIL)) {
       /* try again */
       oonf_timer_set(&auto_ll4->update_timer, 1000);
       return;
@@ -379,8 +370,7 @@ _cb_ifaddr_change(void *ptr) {
     /* request delayed address check */
     oonf_timer_set(&auto_ll4->update_timer, 1);
 
-    OONF_DEBUG(LOG_AUTO_LL4, "Interface address changed: %s",
-        netaddr_to_string(&nbuf, &ifaddr->if_addr));
+    OONF_DEBUG(LOG_AUTO_LL4, "Interface address changed: %s", netaddr_to_string(&nbuf, &ifaddr->if_addr));
   }
 }
 
@@ -410,8 +400,7 @@ _cb_laddr_change(void *ptr) {
     /* request delayed address check */
     oonf_timer_set(&auto_ll4->update_timer, 1);
 
-    OONF_DEBUG(LOG_AUTO_LL4, "Link address changed: %s",
-        netaddr_to_string(&nbuf, &laddr->link_addr));
+    OONF_DEBUG(LOG_AUTO_LL4, "Link address changed: %s", netaddr_to_string(&nbuf, &laddr->link_addr));
   }
 }
 
@@ -441,8 +430,7 @@ _cb_2hop_change(void *ptr) {
     /* request delayed address check */
     oonf_timer_set(&auto_ll4->update_timer, 1);
 
-    OONF_DEBUG(LOG_AUTO_LL4, "2Hop address changed: %s",
-        netaddr_to_string(&nbuf, &l2hop->twohop_addr));
+    OONF_DEBUG(LOG_AUTO_LL4, "2Hop address changed: %s", netaddr_to_string(&nbuf, &l2hop->twohop_addr));
   }
 }
 
@@ -477,8 +465,7 @@ _cb_update_timer(struct oonf_timer_instance *ptr) {
 
   /* ignore loopback */
   if (os_if->flags.loopback || !os_if->flags.up) {
-    OONF_DEBUG(LOG_AUTO_LL4, "Ignore interface %s: its loopback or down",
-        os_if->name);
+    OONF_DEBUG(LOG_AUTO_LL4, "Ignore interface %s: its loopback or down", os_if->name);
     return;
   }
 
@@ -486,8 +473,7 @@ _cb_update_timer(struct oonf_timer_instance *ptr) {
   count = _get_current_if_ipv4_addresscount(os_if, &current_ll4, &auto_ll4->auto_ll4_addr);
 
   if (!auto_ll4->active) {
-    if (auto_ll4->plugin_generated && count == 1
-        && netaddr_cmp(&current_ll4, &auto_ll4->auto_ll4_addr) == 0) {
+    if (auto_ll4->plugin_generated && count == 1 && netaddr_cmp(&current_ll4, &auto_ll4->auto_ll4_addr) == 0) {
       /* remove our configured address, the user set a different one */
       _commit_address(auto_ll4, &current_ll4, false);
       OONF_DEBUG(LOG_AUTO_LL4, "Remove LL4, user has selected his own address");
@@ -497,8 +483,7 @@ _cb_update_timer(struct oonf_timer_instance *ptr) {
   }
 
   if (count > 1) {
-    if (auto_ll4->plugin_generated &&
-        netaddr_cmp(&current_ll4, &auto_ll4->auto_ll4_addr) == 0) {
+    if (auto_ll4->plugin_generated && netaddr_cmp(&current_ll4, &auto_ll4->auto_ll4_addr) == 0) {
       /* remove our configured address, the user set a different one */
       _commit_address(auto_ll4, &current_ll4, false);
       OONF_DEBUG(LOG_AUTO_LL4, "Remove LL4, user has selected his own address");
@@ -530,27 +515,24 @@ _cb_update_timer(struct oonf_timer_instance *ptr) {
       return;
     }
     hash = htons((rnd % (256 * 254)) + 256);
-    netaddr_create_host_bin(&auto_ll4->auto_ll4_addr,
-        &NETADDR_IPV4_LINKLOCAL, &hash, sizeof(hash));
+    netaddr_create_host_bin(&auto_ll4->auto_ll4_addr, &NETADDR_IPV4_LINKLOCAL, &hash, sizeof(hash));
   }
 
   if (netaddr_cmp(&auto_ll4->auto_ll4_addr, &current_ll4) == 0) {
     /* nothing to do */
-    OONF_DEBUG(LOG_AUTO_LL4, "Done (interface %s already has ll %s)",
-        os_if->name, netaddr_to_string(&nbuf, &current_ll4));
+    OONF_DEBUG(
+      LOG_AUTO_LL4, "Done (interface %s already has ll %s)", os_if->name, netaddr_to_string(&nbuf, &current_ll4));
     return;
   }
 
   if (netaddr_get_address_family(&current_ll4) != AF_UNSPEC) {
     /* remove current ipv4 linklocal address */
-    OONF_DEBUG(LOG_AUTO_LL4, "Remove old LL4 %s",
-        netaddr_to_string(&nbuf, &current_ll4));
+    OONF_DEBUG(LOG_AUTO_LL4, "Remove old LL4 %s", netaddr_to_string(&nbuf, &current_ll4));
     _commit_address(auto_ll4, &current_ll4, false);
   }
   else {
     /* set new ipv4 linklocal address */
-    OONF_DEBUG(LOG_AUTO_LL4, "Set new LL4 %s",
-        netaddr_to_string(&nbuf, &auto_ll4->auto_ll4_addr));
+    OONF_DEBUG(LOG_AUTO_LL4, "Set new LL4 %s", netaddr_to_string(&nbuf, &auto_ll4->auto_ll4_addr));
     _commit_address(auto_ll4, &auto_ll4->auto_ll4_addr, true);
   }
 }
@@ -579,12 +561,10 @@ _generate_default_address(struct _nhdp_if_autoll4 *auto_ll4, const struct netadd
    * generate the address between
    * 169.254.1.0 and 169.254.254.255
    */
-  netaddr_create_host_bin(&auto_ll4->auto_ll4_addr, &NETADDR_IPV4_LINKLOCAL,
-      &host_part, sizeof(host_part));
+  netaddr_create_host_bin(&auto_ll4->auto_ll4_addr, &NETADDR_IPV4_LINKLOCAL, &host_part, sizeof(host_part));
 
-  OONF_DEBUG(LOG_AUTO_LL4, "IPv6 ll %s => IPv4 ll %s",
-      netaddr_to_string(&nbuf1, ipv6_ll),
-      netaddr_to_string(&nbuf2, &auto_ll4->auto_ll4_addr));
+  OONF_DEBUG(LOG_AUTO_LL4, "IPv6 ll %s => IPv4 ll %s", netaddr_to_string(&nbuf1, ipv6_ll),
+    netaddr_to_string(&nbuf2, &auto_ll4->auto_ll4_addr));
 }
 
 /**
@@ -597,8 +577,7 @@ _generate_default_address(struct _nhdp_if_autoll4 *auto_ll4, const struct netadd
  * @return number of IPv4 addresses on interface
  */
 static int
-_get_current_if_ipv4_addresscount(struct os_interface *os_if,
-    struct netaddr *ll4_addr, struct netaddr *current_ll4) {
+_get_current_if_ipv4_addresscount(struct os_interface *os_if, struct netaddr *ll4_addr, struct netaddr *current_ll4) {
   struct os_interface_ip *ip;
   bool match;
   int count;
@@ -612,19 +591,15 @@ _get_current_if_ipv4_addresscount(struct os_interface *os_if,
   match = false;
 
   avl_for_each_element(&os_if->addresses, ip, _node) {
-    OONF_DEBUG(LOG_AUTO_LL4, "Interface %s (%u) has address %s %s",
-        os_if->name, os_if->index,
-        netaddr_to_string(&nbuf1, &ip->address),
-        netaddr_to_string(&nbuf2, os_if->if_linklocal_v6)
-        );
+    OONF_DEBUG(LOG_AUTO_LL4, "Interface %s (%u) has address %s %s", os_if->name, os_if->index,
+      netaddr_to_string(&nbuf1, &ip->address), netaddr_to_string(&nbuf2, os_if->if_linklocal_v6));
 
     if (netaddr_get_address_family(&ip->address) == AF_INET) {
       /* count IPv4 addresses */
       count++;
 
       /* copy one IPv4 link-local address, if possible the current one */
-      if (!match
-          && netaddr_is_in_subnet(&NETADDR_IPV4_LINKLOCAL, &ip->address)) {
+      if (!match && netaddr_is_in_subnet(&NETADDR_IPV4_LINKLOCAL, &ip->address)) {
         memcpy(ll4_addr, &ip->address, sizeof(*ll4_addr));
 
         if (netaddr_cmp(&ip->address, current_ll4) == 0) {
@@ -652,10 +627,9 @@ _commit_address(struct _nhdp_if_autoll4 *auto_ll4, struct netaddr *addr, bool se
   memcpy(&auto_ll4->os_addr.address, addr, sizeof(*addr));
   auto_ll4->os_addr.set = set;
 
-  OONF_INFO(LOG_AUTO_LL4, "%s address %s on interface %s (%u)",
-      auto_ll4->os_addr.set ? "Set" : "Remove",
-      netaddr_to_string(&nbuf, &auto_ll4->os_addr.address),
-      if_indextoname(auto_ll4->os_addr.if_index, ibuf), auto_ll4->os_addr.if_index);
+  OONF_INFO(LOG_AUTO_LL4, "%s address %s on interface %s (%u)", auto_ll4->os_addr.set ? "Set" : "Remove",
+    netaddr_to_string(&nbuf, &auto_ll4->os_addr.address), if_indextoname(auto_ll4->os_addr.if_index, ibuf),
+    auto_ll4->os_addr.if_index);
 
   /* remember if the plugin set/reset the address */
   auto_ll4->plugin_generated = set;
@@ -716,8 +690,8 @@ _is_address_collision(struct netaddr *auto_ll4, struct netaddr *addr) {
   uint16_t hostpart;
   const char *ptr;
 
-  OONF_DEBUG(LOG_AUTO_LL4, "Check %s for collision with address %s",
-      netaddr_to_string(&nbuf1, auto_ll4), netaddr_to_string(&nbuf2, addr));
+  OONF_DEBUG(LOG_AUTO_LL4, "Check %s for collision with address %s", netaddr_to_string(&nbuf1, auto_ll4),
+    netaddr_to_string(&nbuf2, addr));
 
   if (netaddr_get_address_family(addr) == AF_INET) {
     if (netaddr_cmp(auto_ll4, addr) == 0) {
@@ -728,7 +702,7 @@ _is_address_collision(struct netaddr *auto_ll4, struct netaddr *addr) {
   else {
     hostpart = _calculate_host_part(addr);
     ptr = netaddr_get_binptr(auto_ll4);
-    if (memcmp(ptr+2, &hostpart, 2) == 0) {
+    if (memcmp(ptr + 2, &hostpart, 2) == 0) {
       OONF_DEBUG(LOG_AUTO_LL4, "Collision with hashed IPv6!");
       return true;
     }
@@ -744,8 +718,7 @@ _is_address_collision(struct netaddr *auto_ll4, struct netaddr *addr) {
  * @return number between 256 (.1.0) and 65279 (.254.255)
  */
 uint16_t
-_calculate_host_part(const struct netaddr *addr)
-{
+_calculate_host_part(const struct netaddr *addr) {
   uint32_t hash, i;
   const char *key;
   size_t len;
@@ -761,8 +734,7 @@ _calculate_host_part(const struct netaddr *addr)
    * address are the source of the two-byte host part
    * of the auto-configuredIP.
    */
-  for(hash = i = 0; i < len; ++i)
-  {
+  for (hash = i = 0; i < len; ++i) {
     hash += key[i];
     hash += (hash << 10);
     hash ^= (hash >> 6);
@@ -819,8 +791,7 @@ _cb_if_cfg_changed(void) {
   }
 
   /* get configuration */
-  if (cfg_schema_tobin(auto_ll4, _interface_section.post,
-      _interface_entries, ARRAYSIZE(_interface_entries))) {
+  if (cfg_schema_tobin(auto_ll4, _interface_section.post, _interface_entries, ARRAYSIZE(_interface_entries))) {
     return;
   }
 

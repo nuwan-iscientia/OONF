@@ -49,21 +49,21 @@
 
 static const char *_rfc7182_hashes[RFC7182_ICV_HASH_COUNT] = {
   [RFC7182_ICV_HASH_IDENTITY] = "identity",
-  [RFC7182_ICV_HASH_SHA_1]    = "sha1",
-  [RFC7182_ICV_HASH_SHA_224]  = "sha224",
-  [RFC7182_ICV_HASH_SHA_256]  = "sha256",
-  [RFC7182_ICV_HASH_SHA_384]  = "sha384",
-  [RFC7182_ICV_HASH_SHA_512]  = "sha512",
+  [RFC7182_ICV_HASH_SHA_1] = "sha1",
+  [RFC7182_ICV_HASH_SHA_224] = "sha224",
+  [RFC7182_ICV_HASH_SHA_256] = "sha256",
+  [RFC7182_ICV_HASH_SHA_384] = "sha384",
+  [RFC7182_ICV_HASH_SHA_512] = "sha512",
 };
 
 static const char *_rfc7182_crypt[RFC7182_ICV_CRYPT_COUNT] = {
   [RFC7182_ICV_CRYPT_IDENTITY] = "identity",
-  [RFC7182_ICV_CRYPT_RSA]      = "rsa",
-  [RFC7182_ICV_CRYPT_DSA]      = "dsa",
-  [RFC7182_ICV_CRYPT_HMAC]     = "hmac",
-  [RFC7182_ICV_CRYPT_3DES]     = "3des",
-  [RFC7182_ICV_CRYPT_AES]      = "aes",
-  [RFC7182_ICV_CRYPT_ECDSA]    = "ecdsa",
+  [RFC7182_ICV_CRYPT_RSA] = "rsa",
+  [RFC7182_ICV_CRYPT_DSA] = "dsa",
+  [RFC7182_ICV_CRYPT_HMAC] = "hmac",
+  [RFC7182_ICV_CRYPT_3DES] = "3des",
+  [RFC7182_ICV_CRYPT_AES] = "aes",
+  [RFC7182_ICV_CRYPT_ECDSA] = "ecdsa",
 };
 
 /**
@@ -113,10 +113,11 @@ rfc7182_get_crypto(void) {
  * @return rfc7182 hash-id
  */
 enum rfc7182_icv_hash
-rfc7182_get_hash_id(const char *name) {
+rfc7182_get_hash_id(const char *name)
+{
   size_t i;
 
-  for (i=0; i<ARRAYSIZE(_rfc7182_hashes); i++) {
+  for (i = 0; i < ARRAYSIZE(_rfc7182_hashes); i++) {
     if (strcasecmp(_rfc7182_hashes[i], name) == 0) {
       return i;
     }
@@ -129,10 +130,11 @@ rfc7182_get_hash_id(const char *name) {
  * @return rfc7182 crypto-id
  */
 enum rfc7182_icv_crypt
-rfc7182_get_crypt_id(const char *name) {
+rfc7182_get_crypt_id(const char *name)
+{
   size_t i;
 
-  for (i=0; i<ARRAYSIZE(_rfc7182_crypt); i++) {
+  for (i = 0; i < ARRAYSIZE(_rfc7182_crypt); i++) {
     if (strcasecmp(_rfc7182_crypt[i], name) == 0) {
       return i;
     }

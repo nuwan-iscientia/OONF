@@ -45,19 +45,18 @@
 
 #include <stdlib.h>
 
-#include "common/common_types.h"
 #include "common/avl.h"
 #include "common/avl_comp.h"
+#include "common/common_types.h"
 
 #include "subsystems/oonf_layer2.h"
 
+#include "dlep/dlep_extension.h"
 #include "dlep/dlep_reader.h"
 #include "dlep/dlep_session.h"
 #include "dlep/dlep_writer.h"
-#include "dlep/dlep_extension.h"
 
-static int _process_interface_specific_update(
-    struct dlep_extension *ext, struct dlep_session *session);
+static int _process_interface_specific_update(struct dlep_extension *ext, struct dlep_session *session);
 
 static struct avl_tree _extension_tree;
 
@@ -77,7 +76,7 @@ dlep_extension_init(void) {
  */
 void
 dlep_extension_cleanup(void) {
-  free (_id_array);
+  free(_id_array);
   _id_array = NULL;
   _id_array_length = 0;
 }
@@ -132,12 +131,12 @@ dlep_extension_get_tree(void) {
  * @param proc_count number of processing handlers
  */
 void
-dlep_extension_add_processing(struct dlep_extension *ext, bool radio,
-    struct dlep_extension_implementation *processing, size_t proc_count) {
-  size_t i,j;
+dlep_extension_add_processing(
+  struct dlep_extension *ext, bool radio, struct dlep_extension_implementation *processing, size_t proc_count) {
+  size_t i, j;
 
-  for (j=0; j<proc_count; j++) {
-    for (i=0; i<ext->signal_count; i++) {
+  for (j = 0; j < proc_count; j++) {
+    for (i = 0; i < ext->signal_count; i++) {
       if (ext->signals[i].id == processing[j].id) {
         if (radio) {
           ext->signals[i].process_radio = processing[j].process;
@@ -172,8 +171,7 @@ dlep_extension_get_ids(uint16_t *length) {
  * @return -1 if an error happened, 0 otherwise
  */
 int
-dlep_extension_router_process_session_init_ack(
-    struct dlep_extension *ext, struct dlep_session *session) {
+dlep_extension_router_process_session_init_ack(struct dlep_extension *ext, struct dlep_session *session) {
   if (session->restrict_signal != DLEP_SESSION_INITIALIZATION_ACK) {
     /* ignore unless we are in initialization mode */
     return 0;
@@ -189,8 +187,7 @@ dlep_extension_router_process_session_init_ack(
  * @return -1 if an error happened, 0 otherwise
  */
 int
-dlep_extension_router_process_session_update(
-    struct dlep_extension *ext, struct dlep_session *session) {
+dlep_extension_router_process_session_update(struct dlep_extension *ext, struct dlep_session *session) {
   if (session->restrict_signal != DLEP_ALL_SIGNALS) {
     /* ignore unless we have an established session */
     return 0;
@@ -207,8 +204,7 @@ dlep_extension_router_process_session_update(
  * @return -1 if an error happened, 0 otherwise
  */
 int
-dlep_extension_router_process_destination(
-    struct dlep_extension *ext, struct dlep_session *session) {
+dlep_extension_router_process_destination(struct dlep_extension *ext, struct dlep_session *session) {
   struct oonf_layer2_net *l2net;
   struct oonf_layer2_neigh *l2neigh;
   struct netaddr mac;
@@ -235,8 +231,7 @@ dlep_extension_router_process_destination(
 
   result = dlep_reader_map_l2neigh_data(l2neigh->data, session, ext);
   if (result) {
-    OONF_INFO(session->log_source, "tlv mapping for extension %d failed: %d",
-        ext->id, result);
+    OONF_INFO(session->log_source, "tlv mapping for extension %d failed: %d", ext->id, result);
     return result;
   }
   return 0;
@@ -252,8 +247,7 @@ dlep_extension_router_process_destination(
  */
 int
 dlep_extension_radio_write_session_init_ack(
-    struct dlep_extension *ext, struct dlep_session *session,
-    const struct netaddr *neigh __attribute__((unused))) {
+  struct dlep_extension *ext, struct dlep_session *session, const struct netaddr *neigh __attribute__((unused))) {
   const struct oonf_layer2_metadata *meta;
   struct oonf_layer2_net *l2net;
   struct oonf_layer2_data *l2data;
@@ -270,7 +264,7 @@ dlep_extension_radio_write_session_init_ack(
   }
 
   /* adding default neighbor data for mandatory values */
-  for (i=0; i<ext->neigh_mapping_count; i++) {
+  for (i = 0; i < ext->neigh_mapping_count; i++) {
     if (!ext->neigh_mapping[i].mandatory) {
       continue;
     }
@@ -278,16 +272,14 @@ dlep_extension_radio_write_session_init_ack(
     neigh_idx = ext->neigh_mapping[i].layer2;
     l2data = &l2net->neighdata[neigh_idx];
 
-
     if (!oonf_layer2_data_has_value(l2data)) {
       meta = oonf_layer2_neigh_metadata_get(neigh_idx);
-      oonf_layer2_data_set(l2data, session->l2_default_origin,
-          meta->type, &ext->neigh_mapping[i].default_value);
+      oonf_layer2_data_set(l2data, session->l2_default_origin, meta->type, &ext->neigh_mapping[i].default_value);
     }
   }
 
   /* adding default interface data for mandatory values */
-  for (i=0; i<ext->if_mapping_count; i++) {
+  for (i = 0; i < ext->if_mapping_count; i++) {
     if (!ext->if_mapping[i].mandatory) {
       continue;
     }
@@ -297,27 +289,23 @@ dlep_extension_radio_write_session_init_ack(
 
     if (!oonf_layer2_data_has_value(l2data)) {
       meta = oonf_layer2_net_metadata_get(net_idx);
-      oonf_layer2_data_set(l2data, session->l2_default_origin,
-          meta->type, &ext->if_mapping[i].default_value);
+      oonf_layer2_data_set(l2data, session->l2_default_origin, meta->type, &ext->if_mapping[i].default_value);
     }
   }
 
   /* write default metric values */
   OONF_DEBUG(session->log_source, "Mapping default neighbor data (%s) to TLVs", l2net->name);
-  result = dlep_writer_map_l2neigh_data(&session->writer, ext,
-      l2net->neighdata, NULL);
+  result = dlep_writer_map_l2neigh_data(&session->writer, ext, l2net->neighdata, NULL);
   if (result) {
-    OONF_WARN(session->log_source, "tlv mapping for extension %d failed: %d",
-        ext->id, result);
+    OONF_WARN(session->log_source, "tlv mapping for extension %d failed: %d", ext->id, result);
     return result;
   }
 
   /* write network wide data */
   OONF_DEBUG(session->log_source, "Mapping if data (%s) to TLVs", l2net->name);
   result = dlep_writer_map_l2net_data(&session->writer, ext, l2net->data);
-  if(result) {
-    OONF_WARN(session->log_source, "tlv mapping for extension %d failed: %d",
-        ext->id, result);
+  if (result) {
+    OONF_WARN(session->log_source, "tlv mapping for extension %d failed: %d", ext->id, result);
     return result;
   }
   return 0;
@@ -333,8 +321,7 @@ dlep_extension_radio_write_session_init_ack(
  */
 int
 dlep_extension_radio_write_session_update(
-    struct dlep_extension *ext, struct dlep_session *session,
-    const struct netaddr *neigh __attribute__((unused))) {
+  struct dlep_extension *ext, struct dlep_session *session, const struct netaddr *neigh __attribute__((unused))) {
   struct oonf_layer2_net *l2net;
   int result;
 
@@ -344,19 +331,15 @@ dlep_extension_radio_write_session_update(
     return -1;
   }
 
-  result = dlep_writer_map_l2neigh_data(&session->writer, ext,
-      l2net->neighdata, NULL);
+  result = dlep_writer_map_l2neigh_data(&session->writer, ext, l2net->neighdata, NULL);
   if (result) {
-    OONF_WARN(session->log_source, "tlv mapping for extension %d failed: %d",
-        ext->id, result);
+    OONF_WARN(session->log_source, "tlv mapping for extension %d failed: %d", ext->id, result);
     return result;
   }
 
-  result = dlep_writer_map_l2net_data(&session->writer, ext,
-      l2net->data);
+  result = dlep_writer_map_l2net_data(&session->writer, ext, l2net->data);
   if (result) {
-    OONF_WARN(session->log_source, "tlv mapping for extension %d failed: %d",
-        ext->id, result);
+    OONF_WARN(session->log_source, "tlv mapping for extension %d failed: %d", ext->id, result);
     return result;
   }
   return 0;
@@ -371,25 +354,27 @@ dlep_extension_radio_write_session_update(
  * @return -1 if an error happened, 0 otherwise
  */
 int
-dlep_extension_radio_write_destination(struct dlep_extension *ext,
-    struct dlep_session *session, const struct netaddr *neigh) {
+dlep_extension_radio_write_destination(
+  struct dlep_extension *ext, struct dlep_session *session, const struct netaddr *neigh) {
   struct oonf_layer2_neigh *l2neigh;
   struct netaddr_str nbuf;
   int result;
 
   l2neigh = dlep_session_get_local_l2_neighbor(session, neigh);
   if (!l2neigh) {
-    OONF_WARN(session->log_source, "Could not find l2neigh "
-        "for neighbor %s", netaddr_to_string(&nbuf, neigh));
+    OONF_WARN(session->log_source,
+      "Could not find l2neigh "
+      "for neighbor %s",
+      netaddr_to_string(&nbuf, neigh));
     return -1;
   }
 
-  result = dlep_writer_map_l2neigh_data(&session->writer, ext,
-      l2neigh->data, l2neigh->network->neighdata);
+  result = dlep_writer_map_l2neigh_data(&session->writer, ext, l2neigh->data, l2neigh->network->neighdata);
   if (result) {
-    OONF_WARN(session->log_source, "tlv mapping for extension %d"
-        " and neighbor %s failed: %d",
-        ext->id, netaddr_to_string(&nbuf, neigh), result);
+    OONF_WARN(session->log_source,
+      "tlv mapping for extension %d"
+      " and neighbor %s failed: %d",
+      ext->id, netaddr_to_string(&nbuf, neigh), result);
     return result;
   }
   return 0;
@@ -403,8 +388,7 @@ dlep_extension_radio_write_destination(struct dlep_extension *ext,
  * @return -1 if an error happened, 0 otherwise
  */
 static int
-_process_interface_specific_update(
-    struct dlep_extension *ext, struct dlep_session *session) {
+_process_interface_specific_update(struct dlep_extension *ext, struct dlep_session *session) {
   struct oonf_layer2_net *l2net;
   int result;
 
@@ -416,15 +400,13 @@ _process_interface_specific_update(
 
   result = dlep_reader_map_l2neigh_data(l2net->neighdata, session, ext);
   if (result) {
-    OONF_INFO(session->log_source, "tlv mapping for extension %d failed: %d",
-        ext->id, result);
+    OONF_INFO(session->log_source, "tlv mapping for extension %d failed: %d", ext->id, result);
     return result;
   }
 
   result = dlep_reader_map_l2net_data(l2net->data, session, ext);
   if (result) {
-    OONF_INFO(session->log_source, "tlv mapping for extension %d failed: %d",
-        ext->id, result);
+    OONF_INFO(session->log_source, "tlv mapping for extension %d failed: %d", ext->id, result);
     return result;
   }
   return 0;

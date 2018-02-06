@@ -57,7 +57,8 @@
 /**
  * duplicate set constants
  */
-enum {
+enum
+{
   /**
    * number of consecutive 'too old' sequence numbers before
    * algorithm resets
@@ -68,7 +69,8 @@ enum {
 /**
  * results of a duplicate check
  */
-enum oonf_duplicate_result {
+enum oonf_duplicate_result
+{
   /*! much older than cached number */
   OONF_DUPSET_TOO_OLD,
 
@@ -113,7 +115,7 @@ struct oonf_duplicate_entry_key {
   struct netaddr addr;
 
   /*! message type of sequence number, mostly RFC5444 */
-  uint8_t  msg_type;
+  uint8_t msg_type;
 };
 
 /**
@@ -145,7 +147,8 @@ struct oonf_duplicate_entry {
 /**
  * bitwidth of duplicate set
  */
-enum oonf_dupset_type {
+enum oonf_dupset_type
+{
   /*! 8 bit duplicate set */
   OONF_DUPSET_8BIT,
 
@@ -163,12 +166,10 @@ EXPORT void oonf_duplicate_set_add(struct oonf_duplicate_set *, enum oonf_dupset
 EXPORT void oonf_duplicate_set_remove(struct oonf_duplicate_set *);
 
 EXPORT enum oonf_duplicate_result oonf_duplicate_entry_add(
-    struct oonf_duplicate_set *, uint8_t msg_type,
-    struct netaddr *, uint64_t seqno, uint64_t vtime);
+  struct oonf_duplicate_set *, uint8_t msg_type, struct netaddr *, uint64_t seqno, uint64_t vtime);
 
 EXPORT enum oonf_duplicate_result oonf_duplicate_test(
-    struct oonf_duplicate_set *, uint8_t msg_type,
-    struct netaddr *, uint64_t seqno);
+  struct oonf_duplicate_set *, uint8_t msg_type, struct netaddr *, uint64_t seqno);
 
 EXPORT const char *oonf_duplicate_get_result_str(enum oonf_duplicate_result);
 
@@ -179,9 +180,7 @@ EXPORT const char *oonf_duplicate_get_result_str(enum oonf_duplicate_result);
  */
 static INLINE bool
 oonf_duplicate_is_new(enum oonf_duplicate_result result) {
-  return result == OONF_DUPSET_NEW
-      || result == OONF_DUPSET_NEWEST
-      || result == OONF_DUPSET_FIRST;
+  return result == OONF_DUPSET_NEW || result == OONF_DUPSET_NEWEST || result == OONF_DUPSET_FIRST;
 }
 
 #endif /* OONF_DUPLICATE_SET_H_ */

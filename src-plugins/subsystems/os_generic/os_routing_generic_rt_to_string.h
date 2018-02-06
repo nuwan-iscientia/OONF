@@ -11,7 +11,6 @@
 #include "common/common_types.h"
 #include "subsystems/os_routing.h"
 
-const char *os_routing_generic_rt_to_string(
-    struct os_route_str *buf, const struct os_route_parameter *route_parameter);
+const char *os_routing_generic_rt_to_string(struct os_route_str *buf, const struct os_route_parameter *route_parameter);
 
 #endif /* _OS_GENERIC_OS_ROUTING_GENERIC_RT_TO_STRING_H_ */

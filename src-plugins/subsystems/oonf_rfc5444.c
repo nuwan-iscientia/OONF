@@ -43,18 +43,18 @@
  * @file
  */
 
-#include "common/common_types.h"
 #include "common/avl.h"
 #include "common/avl_comp.h"
+#include "common/common_types.h"
 #include "config/cfg_db.h"
 #include "config/cfg_schema.h"
+#include "core/oonf_logging.h"
+#include "core/oonf_subsystem.h"
+#include "core/os_core.h"
 #include "rfc5444/rfc5444_iana.h"
 #include "rfc5444/rfc5444_print.h"
 #include "rfc5444/rfc5444_reader.h"
 #include "rfc5444/rfc5444_writer.h"
-#include "core/oonf_logging.h"
-#include "core/oonf_subsystem.h"
-#include "core/os_core.h"
 #include "subsystems/oonf_class.h"
 #include "subsystems/oonf_duplicate_set.h"
 #include "subsystems/oonf_packet_socket.h"
@@ -91,38 +91,32 @@ struct _rfc5444_if_config {
 static int _init(void);
 static void _cleanup(void);
 
-static struct oonf_rfc5444_target *_create_target(
-    struct oonf_rfc5444_interface *, struct netaddr *dst, bool unicast);
+static struct oonf_rfc5444_target *_create_target(struct oonf_rfc5444_interface *, struct netaddr *dst, bool unicast);
 static void _destroy_target(struct oonf_rfc5444_target *);
-static void _print_packet_to_buffer(enum oonf_log_source source,
-    union netaddr_socket *sock, struct oonf_rfc5444_interface *interf,
-    const uint8_t *ptr, size_t len, const char *success, const char *error);
+static void _print_packet_to_buffer(enum oonf_log_source source, union netaddr_socket *sock,
+  struct oonf_rfc5444_interface *interf, const uint8_t *ptr, size_t len, const char *success, const char *error);
 
-static void _cb_receive_data(struct oonf_packet_socket *,
-      union netaddr_socket *from, void *ptr, size_t length);
-static void _cb_send_unicast_packet(
-    struct rfc5444_writer *, struct rfc5444_writer_target *, void *, size_t);
-static void _cb_send_multicast_packet(
-    struct rfc5444_writer *, struct rfc5444_writer_target *, void *, size_t);
-static void _cb_forward_message(struct rfc5444_reader_tlvblock_context *context,
-    const uint8_t *buffer, size_t length);
+static void _cb_receive_data(struct oonf_packet_socket *, union netaddr_socket *from, void *ptr, size_t length);
+static void _cb_send_unicast_packet(struct rfc5444_writer *, struct rfc5444_writer_target *, void *, size_t);
+static void _cb_send_multicast_packet(struct rfc5444_writer *, struct rfc5444_writer_target *, void *, size_t);
+static void _cb_forward_message(struct rfc5444_reader_tlvblock_context *context, const uint8_t *buffer, size_t length);
 static void _cb_msggen_notifier(struct rfc5444_writer_target *);
 
 static bool _cb_single_target_selector(struct rfc5444_writer *, struct rfc5444_writer_target *, void *);
-static bool _cb_filtered_targets_selector(struct rfc5444_writer *writer,
-    struct rfc5444_writer_target *rfc5444_target, void *ptr);
+static bool _cb_filtered_targets_selector(
+  struct rfc5444_writer *writer, struct rfc5444_writer_target *rfc5444_target, void *ptr);
 
 static struct rfc5444_reader_addrblock_entry *_alloc_addrblock_entry(void);
 static struct rfc5444_reader_tlvblock_entry *_alloc_tlvblock_entry(void);
 static struct rfc5444_writer_address *_alloc_address_entry(void);
 static struct rfc5444_writer_addrtlv *_alloc_addrtlv_entry(void);
-static void _free_addrblock_entry(struct rfc5444_reader_addrblock_entry* addrblock);
+static void _free_addrblock_entry(struct rfc5444_reader_addrblock_entry *addrblock);
 static void _free_tlvblock_entry(struct rfc5444_reader_tlvblock_entry *tlvblock);
 static void _free_address_entry(struct rfc5444_writer_address *);
 static void _free_addrtlv_entry(struct rfc5444_writer_addrtlv *);
 
 static void _cb_add_seqno(struct rfc5444_writer *, struct rfc5444_writer_target *);
-static void _cb_aggregation_event (struct oonf_timer_instance *);
+static void _cb_aggregation_event(struct oonf_timer_instance *);
 
 static void _cb_cfg_rfc5444_changed(void);
 static void _cb_cfg_interface_changed(void);
@@ -176,10 +170,10 @@ static struct oonf_timer_class _aggregation_timer = {
 
 /* configuration settings for handler */
 static struct cfg_schema_entry _rfc5444_entries[] = {
-  CFG_MAP_INT32_MINMAX(_rfc5444_config, port, "port", RFC5444_MANET_UDP_PORT_TXT,
-    "UDP port for RFC5444 interface", 0, 1, 65535),
-  CFG_MAP_INT32_MINMAX(_rfc5444_config, ip_proto, "ip_proto", RFC5444_MANET_IPPROTO_TXT,
-    "IP protocol for RFC5444 interface", 0, 1, 255),
+  CFG_MAP_INT32_MINMAX(
+    _rfc5444_config, port, "port", RFC5444_MANET_UDP_PORT_TXT, "UDP port for RFC5444 interface", 0, 1, 65535),
+  CFG_MAP_INT32_MINMAX(
+    _rfc5444_config, ip_proto, "ip_proto", RFC5444_MANET_IPPROTO_TXT, "IP protocol for RFC5444 interface", 0, 1, 255),
 };
 
 static struct cfg_schema_section _rfc5444_section = {
@@ -191,21 +185,22 @@ static struct cfg_schema_section _rfc5444_section = {
 };
 
 static struct cfg_schema_entry _interface_entries[] = {
-  CFG_MAP_ACL_V46(_rfc5444_if_config, sock.acl, "acl", ACL_DEFAULT_ACCEPT,
-    "Access control list for RFC5444 interface"),
+  CFG_MAP_ACL_V46(_rfc5444_if_config, sock.acl, "acl", ACL_DEFAULT_ACCEPT, "Access control list for RFC5444 interface"),
   CFG_MAP_ACL_V46(_rfc5444_if_config, sock.bindto, "bindto",
-      "-127.0.0.0/8\0" "fe80::/10\0" "-::/0\0" ACL_FIRST_ACCEPT "\0" ACL_DEFAULT_ACCEPT,
+    "-127.0.0.0/8\0"
+    "fe80::/10\0"
+    "-::/0\0" ACL_FIRST_ACCEPT "\0" ACL_DEFAULT_ACCEPT,
     "Bind RFC5444 socket to an address matching this filter (both IPv4 and IPv6)"),
   CFG_MAP_NETADDR_V4(_rfc5444_if_config, sock.multicast_v4, "multicast_v4", RFC5444_MANET_MULTICAST_V4_TXT,
     "ipv4 multicast address of this socket", false, true),
   CFG_MAP_NETADDR_V6(_rfc5444_if_config, sock.multicast_v6, "multicast_v6", RFC5444_MANET_MULTICAST_V6_TXT,
     "ipv6 multicast address of this socket", false, true),
-  CFG_MAP_INT32_MINMAX(_rfc5444_if_config, sock.dscp, "dscp", "192",
-    "DSCP field for outgoing UDP protocol traffic", 0, 0, 255),
-  CFG_MAP_BOOL(_rfc5444_if_config, sock.rawip, "rawip", "false",
-    "True if a raw IP socket should be used, false to use UDP"),
-  CFG_MAP_INT32_MINMAX(_rfc5444_if_config, sock.ttl_multicast, "multicast_ttl", "1",
-    "TTL value of outgoing multicast traffic", 0, 1, 255),
+  CFG_MAP_INT32_MINMAX(
+    _rfc5444_if_config, sock.dscp, "dscp", "192", "DSCP field for outgoing UDP protocol traffic", 0, 0, 255),
+  CFG_MAP_BOOL(
+    _rfc5444_if_config, sock.rawip, "rawip", "false", "True if a raw IP socket should be used, false to use UDP"),
+  CFG_MAP_INT32_MINMAX(
+    _rfc5444_if_config, sock.ttl_multicast, "multicast_ttl", "1", "TTL value of outgoing multicast traffic", 0, 1, 255),
   CFG_MAP_CLOCK(_rfc5444_if_config, aggregation_interval, "aggregation_interval", "0.100",
     "Interval in seconds for message aggregation"),
 
@@ -264,8 +259,7 @@ static struct avl_tree _protocol_tree;
 static struct oonf_rfc5444_protocol *_rfc5444_protocol = NULL;
 static struct oonf_rfc5444_interface *_rfc5444_unicast = NULL;
 
-static const struct const_strarray _unicast_bindto_acl_value =
-    STRARRAY_INIT("0.0.0.0\0::");
+static const struct const_strarray _unicast_bindto_acl_value = STRARRAY_INIT("0.0.0.0\0::");
 
 /* subsystem definition */
 static const char *_dependencies[] = {
@@ -315,8 +309,7 @@ _init(void) {
   }
 
   oonf_class_add(&_interface_memcookie);
-  _rfc5444_unicast = oonf_rfc5444_add_interface(
-      _rfc5444_protocol, NULL, RFC5444_UNICAST_INTERFACE);
+  _rfc5444_unicast = oonf_rfc5444_add_interface(_rfc5444_protocol, NULL, RFC5444_UNICAST_INTERFACE);
   if (_rfc5444_unicast == NULL) {
     _cleanup();
     return -1;
@@ -390,11 +383,12 @@ _cleanup(void) {
  * @param msgid id of created message
  * @return return code of rfc5444 writer
  */
-enum rfc5444_result oonf_rfc5444_send_if(
-    struct oonf_rfc5444_target *target, uint8_t msgid) {
+enum rfc5444_result
+oonf_rfc5444_send_if(struct oonf_rfc5444_target *target, uint8_t msgid)
+{
   uint8_t addr_len;
 
-  #ifdef OONF_LOG_INFO
+#ifdef OONF_LOG_INFO
   struct netaddr_str buf;
 #endif
 
@@ -404,13 +398,12 @@ enum rfc5444_result oonf_rfc5444_send_if(
   }
 
   /* create message */
-  OONF_INFO(LOG_RFC5444, "Create message id %d for protocol %s/target %s on interface %s",
-      msgid, target->interface->protocol->name, netaddr_to_string(&buf, &target->dst),
-      target->interface->name);
+  OONF_INFO(LOG_RFC5444, "Create message id %d for protocol %s/target %s on interface %s", msgid,
+    target->interface->protocol->name, netaddr_to_string(&buf, &target->dst), target->interface->name);
 
   addr_len = netaddr_get_address_family(&target->dst) == AF_INET ? 4 : 16;
-  return rfc5444_writer_create_message(&target->interface->protocol->writer,
-      msgid, addr_len, _cb_single_target_selector, target);
+  return rfc5444_writer_create_message(
+    &target->interface->protocol->writer, msgid, addr_len, _cb_single_target_selector, target);
 }
 
 /**
@@ -422,13 +415,13 @@ enum rfc5444_result oonf_rfc5444_send_if(
  * @return return code of rfc5444 writer
  */
 enum rfc5444_result
-oonf_rfc5444_send_all(struct oonf_rfc5444_protocol *protocol,
-    uint8_t msgid, uint8_t addr_len, rfc5444_writer_targetselector useIf) {
+oonf_rfc5444_send_all(
+  struct oonf_rfc5444_protocol *protocol, uint8_t msgid, uint8_t addr_len, rfc5444_writer_targetselector useIf)
+{
   /* create message */
   OONF_INFO(LOG_RFC5444, "Create message id %d", msgid);
 
-  return rfc5444_writer_create_message(&protocol->writer,
-      msgid, addr_len, _cb_filtered_targets_selector, useIf);
+  return rfc5444_writer_create_message(&protocol->writer, msgid, addr_len, _cb_filtered_targets_selector, useIf);
 }
 
 /**
@@ -475,8 +468,7 @@ oonf_rfc5444_add_protocol(const char *name, bool fixed_local_port) {
     avl_init(&protocol->_interface_tree, avl_comp_strcasecmp, false);
   }
 
-  OONF_INFO(LOG_RFC5444, "Add protocol %s (refcount was %d)",
-      name, protocol->_refcount);
+  OONF_INFO(LOG_RFC5444, "Add protocol %s (refcount was %d)", name, protocol->_refcount);
 
   /* keep track of reference count */
   protocol->_refcount++;
@@ -492,8 +484,7 @@ void
 oonf_rfc5444_remove_protocol(struct oonf_rfc5444_protocol *protocol) {
   struct oonf_rfc5444_interface *interf, *i_it;
 
-  OONF_INFO(LOG_RFC5444, "Remove protocol %s (refcount was %d)",
-      protocol->name, protocol->_refcount);
+  OONF_INFO(LOG_RFC5444, "Remove protocol %s (refcount was %d)", protocol->name, protocol->_refcount);
 
   if (protocol->_refcount > 1) {
     /* There are still users left for this protocol */
@@ -525,8 +516,7 @@ oonf_rfc5444_remove_protocol(struct oonf_rfc5444_protocol *protocol) {
  * @param ip_proto ip protocol number in host byteorder
  */
 void
-oonf_rfc5444_reconfigure_protocol(
-    struct oonf_rfc5444_protocol *protocol, uint16_t port, int ip_proto) {
+oonf_rfc5444_reconfigure_protocol(struct oonf_rfc5444_protocol *protocol, uint16_t port, int ip_proto) {
   struct oonf_rfc5444_interface *interf;
 
   /* nothing to do? */
@@ -534,8 +524,7 @@ oonf_rfc5444_reconfigure_protocol(
     return;
   }
 
-  OONF_INFO(LOG_RFC5444, "Reconfigure protocol %s to port %u and ip-protocol %d",
-      protocol->name, port, ip_proto);
+  OONF_INFO(LOG_RFC5444, "Reconfigure protocol %s to port %u and ip-protocol %d", protocol->name, port, ip_proto);
 
   /* store protocol port */
   protocol->port = port;
@@ -567,8 +556,8 @@ oonf_rfc5444_get_default_protocol(void) {
  * @return pointer to rfc5444 interface instance, NULL if out of memory
  */
 struct oonf_rfc5444_interface *
-oonf_rfc5444_add_interface(struct oonf_rfc5444_protocol *protocol,
-    struct oonf_rfc5444_interface_listener *listener, const char *name) {
+oonf_rfc5444_add_interface(
+  struct oonf_rfc5444_protocol *protocol, struct oonf_rfc5444_interface_listener *listener, const char *name) {
   struct oonf_rfc5444_interface *interf;
   uint16_t rnd;
 
@@ -598,7 +587,7 @@ oonf_rfc5444_add_interface(struct oonf_rfc5444_protocol *protocol,
     avl_init(&interf->_target_tree, avl_comp_netaddr, false);
 
     /* initialize socket config */
-    memcpy (&interf->_socket.config, &_socket_config, sizeof(_socket_config));
+    memcpy(&interf->_socket.config, &_socket_config, sizeof(_socket_config));
     interf->_socket.config.user = interf;
     interf->_socket.cb_settings_change = _cb_interface_changed;
 
@@ -618,8 +607,7 @@ oonf_rfc5444_add_interface(struct oonf_rfc5444_protocol *protocol,
     protocol->_refcount++;
   }
 
-  OONF_INFO(LOG_RFC5444, "Add interface %s to protocol %s (refcount was %d)",
-      name, protocol->name, interf->_refcount);
+  OONF_INFO(LOG_RFC5444, "Add interface %s to protocol %s (refcount was %d)", name, protocol->name, interf->_refcount);
 
   /* increase reference count */
   interf->_refcount += 1;
@@ -638,12 +626,11 @@ oonf_rfc5444_add_interface(struct oonf_rfc5444_protocol *protocol,
  * @param listener pointer to interface listener, NULL if none
  */
 void
-oonf_rfc5444_remove_interface(struct oonf_rfc5444_interface *interf,
-    struct oonf_rfc5444_interface_listener *listener) {
+oonf_rfc5444_remove_interface(struct oonf_rfc5444_interface *interf, struct oonf_rfc5444_interface_listener *listener) {
   struct oonf_rfc5444_target *target, *t_it;
 
-  OONF_INFO(LOG_RFC5444, "Remove interface %s from protocol %s (refcount was %d)",
-      interf->name, interf->protocol->name, interf->_refcount);
+  OONF_INFO(LOG_RFC5444, "Remove interface %s from protocol %s (refcount was %d)", interf->name, interf->protocol->name,
+    interf->_refcount);
 
   if (interf->_refcount > 1) {
     /* still users left for this interface */
@@ -693,8 +680,7 @@ oonf_rfc5444_remove_interface(struct oonf_rfc5444_interface *interf,
  *  configuration
  */
 void
-oonf_rfc5444_reconfigure_interface(struct oonf_rfc5444_interface *interf,
-    struct oonf_packet_managed_config *config) {
+oonf_rfc5444_reconfigure_interface(struct oonf_rfc5444_interface *interf, struct oonf_packet_managed_config *config) {
   struct oonf_rfc5444_target *target, *old;
   uint16_t port;
   struct netaddr_str buf;
@@ -704,8 +690,7 @@ oonf_rfc5444_reconfigure_interface(struct oonf_rfc5444_interface *interf,
     oonf_packet_copy_managed_config(&interf->_socket_config, config);
 
     /* overwrite interface name */
-    strscpy(interf->_socket_config.interface, interf->name,
-        sizeof(interf->_socket_config.interface));
+    strscpy(interf->_socket_config.interface, interf->name, sizeof(interf->_socket_config.interface));
   }
   else {
     config = &interf->_socket_config;
@@ -732,9 +717,8 @@ oonf_rfc5444_reconfigure_interface(struct oonf_rfc5444_interface *interf,
     }
   }
 
-  OONF_INFO(LOG_RFC5444, "Reconfigure RFC5444 interface %s to port %u/%u and protocol %d",
-      interf->name, interf->_socket_config.port, interf->_socket_config.multicast_port,
-      interf->_socket_config.protocol);
+  OONF_INFO(LOG_RFC5444, "Reconfigure RFC5444 interface %s to port %u/%u and protocol %d", interf->name,
+    interf->_socket_config.port, interf->_socket_config.multicast_port, interf->_socket_config.protocol);
 
   if (strcmp(interf->name, RFC5444_UNICAST_INTERFACE) == 0) {
     /* unicast interface */
@@ -742,8 +726,7 @@ oonf_rfc5444_reconfigure_interface(struct oonf_rfc5444_interface *interf,
     netaddr_invalidate(&interf->_socket_config.multicast_v6);
     interf->_socket_config.port = port;
     interf->_socket_config.interface[0] = 0;
-    netaddr_acl_from_strarray(&interf->_socket_config.bindto,
-        &_unicast_bindto_acl_value);
+    netaddr_acl_from_strarray(&interf->_socket_config.bindto, &_unicast_bindto_acl_value);
   }
 
   if (port == 0) {
@@ -767,7 +750,7 @@ oonf_rfc5444_reconfigure_interface(struct oonf_rfc5444_interface *interf,
     target = _create_target(interf, &config->multicast_v4, false);
     if (target == NULL) {
       OONF_WARN(LOG_RFC5444, "Could not create multicast target %s for interface %s",
-          netaddr_to_string(&buf, &config->multicast_v4), interf->name);
+        netaddr_to_string(&buf, &config->multicast_v4), interf->name);
       interf->multicast4 = old;
       old = NULL;
     }
@@ -791,7 +774,7 @@ oonf_rfc5444_reconfigure_interface(struct oonf_rfc5444_interface *interf,
     target = _create_target(interf, &config->multicast_v6, false);
     if (target == NULL) {
       OONF_WARN(LOG_RFC5444, "Could not create multicast socket %s for interface %s",
-          netaddr_to_string(&buf, &config->multicast_v6), interf->name);
+        netaddr_to_string(&buf, &config->multicast_v6), interf->name);
       interf->multicast6 = old;
       old = NULL;
     }
@@ -813,8 +796,7 @@ oonf_rfc5444_reconfigure_interface(struct oonf_rfc5444_interface *interf,
  * @return old aggregation interval, 0 if configured value was used
  */
 uint64_t
-oonf_rfc5444_interface_set_aggregation(
-    struct oonf_rfc5444_interface *interf, uint64_t aggregation) {
+oonf_rfc5444_interface_set_aggregation(struct oonf_rfc5444_interface *interf, uint64_t aggregation) {
   uint64_t old;
 
   old = interf->overwrite_aggregation_interval;
@@ -829,8 +811,7 @@ oonf_rfc5444_interface_set_aggregation(
  * @return pointer to target, NULL if out of memory
  */
 struct oonf_rfc5444_target *
-oonf_rfc5444_add_target(struct oonf_rfc5444_interface *interf,
-    struct netaddr *dst) {
+oonf_rfc5444_add_target(struct oonf_rfc5444_interface *interf, struct netaddr *dst) {
   struct oonf_rfc5444_target *target;
 #ifdef OONF_LOG_INFO
   struct netaddr_str nbuf;
@@ -849,7 +830,7 @@ oonf_rfc5444_add_target(struct oonf_rfc5444_interface *interf,
   }
 
   OONF_INFO(LOG_RFC5444, "Add target %s to interface %s on protocol %s (refcount was %d)",
-      netaddr_to_string(&nbuf, dst), interf->name, interf->protocol->name, target->_refcount);
+    netaddr_to_string(&nbuf, dst), interf->name, interf->protocol->name, target->_refcount);
 
   /* increase interface refcount */
   interf->_refcount++;
@@ -867,8 +848,8 @@ oonf_rfc5444_remove_target(struct oonf_rfc5444_target *target) {
 #endif
 
   OONF_INFO(LOG_RFC5444, "Remove target %s from interface %s on protocol %s (refcount was %d)",
-      netaddr_to_string(&nbuf, &target->dst),
-      target->interface->name, target->interface->protocol->name, target->_refcount);
+    netaddr_to_string(&nbuf, &target->dst), target->interface->name, target->interface->protocol->name,
+    target->_refcount);
 
   if (target->_refcount > 1) {
     /* target still in use */
@@ -893,27 +874,22 @@ oonf_rfc5444_remove_target(struct oonf_rfc5444_target *target) {
  * @param len length of data
  */
 void
-oonf_rfc5444_send_target_data(struct oonf_rfc5444_target *target,
-    const void *ptr, size_t len) {
+oonf_rfc5444_send_target_data(struct oonf_rfc5444_target *target, const void *ptr, size_t len) {
   union netaddr_socket sock;
   struct os_interface_listener *interf;
 
   interf = oonf_rfc5444_get_core_if_listener(target->interface);
-  netaddr_socket_init(&sock, &target->dst, target->interface->protocol->port,
-      interf->data->index);
+  netaddr_socket_init(&sock, &target->dst, target->interface->protocol->port, interf->data->index);
 
-  _print_packet_to_buffer(LOG_RFC5444_W, &sock, target->interface, ptr, len,
-      "Outgoing RFC5444 packet to",
-      "Error while parsing outgoing RFC5444 packet to");
+  _print_packet_to_buffer(LOG_RFC5444_W, &sock, target->interface, ptr, len, "Outgoing RFC5444 packet to",
+    "Error while parsing outgoing RFC5444 packet to");
 
   if (_block_output) {
     OONF_DEBUG(LOG_RFC5444, "Output blocked");
     return;
   }
-  if (target == target->interface->multicast4
-      || target == target->interface->multicast6) {
-    oonf_packet_send_managed_multicast(&target->interface->_socket,
-        ptr, len, netaddr_get_address_family(&target->dst));
+  if (target == target->interface->multicast4 || target == target->interface->multicast6) {
+    oonf_packet_send_managed_multicast(&target->interface->_socket, ptr, len, netaddr_get_address_family(&target->dst));
   }
   else {
     oonf_packet_send_managed(&target->interface->_socket, &sock, ptr, len);
@@ -928,28 +904,24 @@ oonf_rfc5444_send_target_data(struct oonf_rfc5444_target *target,
  * @param len length of data
  */
 void
-oonf_rfc5444_send_interface_data(struct oonf_rfc5444_interface *interf,
-    const struct netaddr *dst, const void *ptr, size_t len) {
+oonf_rfc5444_send_interface_data(
+  struct oonf_rfc5444_interface *interf, const struct netaddr *dst, const void *ptr, size_t len) {
   union netaddr_socket sock;
   struct os_interface_listener *os_interf;
 
   os_interf = oonf_rfc5444_get_core_if_listener(interf);
-  netaddr_socket_init(&sock, dst, interf->protocol->port,
-      os_interf->data->index);
+  netaddr_socket_init(&sock, dst, interf->protocol->port, os_interf->data->index);
 
-  _print_packet_to_buffer(LOG_RFC5444_W, &sock, interf, ptr, len,
-      "Outgoing RFC5444 packet to",
-      "Error while parsing outgoing RFC5444 packet to");
+  _print_packet_to_buffer(LOG_RFC5444_W, &sock, interf, ptr, len, "Outgoing RFC5444 packet to",
+    "Error while parsing outgoing RFC5444 packet to");
 
   if (_block_output) {
     OONF_DEBUG(LOG_RFC5444, "Output blocked");
     return;
   }
 
-  if (netaddr_is_in_subnet(&NETADDR_IPV4_MULTICAST, dst)
-      || netaddr_is_in_subnet(&NETADDR_IPV6_MULTICAST, dst)) {
-    oonf_packet_send_managed_multicast(&interf->_socket,
-        ptr, len, netaddr_get_address_family(dst));
+  if (netaddr_is_in_subnet(&NETADDR_IPV4_MULTICAST, dst) || netaddr_is_in_subnet(&NETADDR_IPV6_MULTICAST, dst)) {
+    oonf_packet_send_managed_multicast(&interf->_socket, ptr, len, netaddr_get_address_family(dst));
   }
   else {
     oonf_packet_send_managed(&interf->_socket, &sock, ptr, len);
@@ -974,8 +946,7 @@ oonf_rfc5444_target_get_local_socket(struct oonf_rfc5444_target *target) {
  * @return local socket corresponding to address family
  */
 const union netaddr_socket *
-oonf_rfc5444_interface_get_local_socket(
-    struct oonf_rfc5444_interface *rfc5444_if, int af_type) {
+oonf_rfc5444_interface_get_local_socket(struct oonf_rfc5444_interface *rfc5444_if, int af_type) {
   if (af_type == AF_INET) {
     return &rfc5444_if->_socket.socket_v4.local_socket;
   }
@@ -1002,8 +973,7 @@ oonf_rfc5444_block_output(bool block) {
  * @return pointer to target, NULL if out of memory
  */
 static struct oonf_rfc5444_target *
-_create_target(struct oonf_rfc5444_interface *interf,
-    struct netaddr *dst, bool unicast) {
+_create_target(struct oonf_rfc5444_interface *interf, struct netaddr *dst, bool unicast) {
   static struct oonf_rfc5444_target *target;
   uint16_t rnd;
 
@@ -1027,12 +997,10 @@ _create_target(struct oonf_rfc5444_interface *interf,
   else {
     target->rfc5444_target.sendPacket = _cb_send_multicast_packet;
   }
-  rfc5444_writer_register_target(
-      &interf->protocol->writer, &target->rfc5444_target);
+  rfc5444_writer_register_target(&interf->protocol->writer, &target->rfc5444_target);
 
   /* copy socket description */
   memcpy(&target->dst, dst, sizeof(target->dst));
-
 
   /* set interface reference */
   target->interface = interf;
@@ -1055,8 +1023,7 @@ _create_target(struct oonf_rfc5444_interface *interf,
 static void
 _destroy_target(struct oonf_rfc5444_target *target) {
   /* cleanup interface */
-  rfc5444_writer_unregister_target(
-      &target->interface->protocol->writer, &target->rfc5444_target);
+  rfc5444_writer_unregister_target(&target->interface->protocol->writer, &target->rfc5444_target);
 
   /* stop timer */
   oonf_timer_stop(&target->_aggregation);
@@ -1075,12 +1042,9 @@ _destroy_target(struct oonf_rfc5444_target *target) {
  * @param error text prefix when error happens during packet parsing
  */
 static void
-_print_packet_to_buffer(enum oonf_log_source source,
-    union netaddr_socket *sock __attribute__((unused)),
-    struct oonf_rfc5444_interface *interf __attribute__((unused)),
-    const uint8_t *ptr, size_t len,
-    const char *success __attribute__((unused)),
-    const char *error __attribute__((unused))) {
+_print_packet_to_buffer(enum oonf_log_source source, union netaddr_socket *sock __attribute__((unused)),
+  struct oonf_rfc5444_interface *interf __attribute__((unused)), const uint8_t *ptr, size_t len,
+  const char *success __attribute__((unused)), const char *error __attribute__((unused))) {
   enum rfc5444_result result;
   struct netaddr_str buf;
 
@@ -1090,13 +1054,12 @@ _print_packet_to_buffer(enum oonf_log_source source,
 
     result = rfc5444_reader_handle_packet(&_printer, ptr, len);
     if (result) {
-      OONF_WARN(source, "%s %s for printing: %s (%d)",
-          error, netaddr_socket_to_string(&buf, sock), rfc5444_strerror(result), result);
+      OONF_WARN(source, "%s %s for printing: %s (%d)", error, netaddr_socket_to_string(&buf, sock),
+        rfc5444_strerror(result), result);
       OONF_WARN_NH(source, "%s", abuf_getptr(&_printer_buffer));
     }
     else {
-      OONF_DEBUG(source, "%s %s through %s:",
-          success, netaddr_socket_to_string(&buf, sock), interf->name);
+      OONF_DEBUG(source, "%s %s through %s:", success, netaddr_socket_to_string(&buf, sock), interf->name);
 
       OONF_DEBUG_NH(source, "%s", abuf_getptr(&_printer_buffer));
     }
@@ -1110,8 +1073,7 @@ _print_packet_to_buffer(enum oonf_log_source source,
  * @param length length of incoming packet
  */
 static void
-_cb_receive_data(struct oonf_packet_socket *sock,
-      union netaddr_socket *from, void *ptr, size_t length) {
+_cb_receive_data(struct oonf_packet_socket *sock, union netaddr_socket *from, void *ptr, size_t length) {
   struct oonf_rfc5444_protocol *protocol;
   struct oonf_rfc5444_interface *interf;
   enum rfc5444_result result;
@@ -1122,8 +1084,7 @@ _cb_receive_data(struct oonf_packet_socket *sock,
   protocol = interf->protocol;
 
   if (netaddr_from_socket(&source_ip, from)) {
-    OONF_WARN(LOG_RFC5444, "Could not convert socket to address: %s",
-        netaddr_socket_to_string(&buf, from));
+    OONF_WARN(LOG_RFC5444, "Could not convert socket to address: %s", netaddr_socket_to_string(&buf, from));
     return;
   }
 
@@ -1131,26 +1092,22 @@ _cb_receive_data(struct oonf_packet_socket *sock,
   protocol->input.src_address = &source_ip;
   protocol->input.interface = interf;
 
-  protocol->input.is_multicast =
-      sock == &interf->_socket.multicast_v4
-      || sock == &interf->_socket.multicast_v6;
+  protocol->input.is_multicast = sock == &interf->_socket.multicast_v4 || sock == &interf->_socket.multicast_v6;
 
   if (strcmp(interf->name, RFC5444_UNICAST_INTERFACE) == 0 &&
-      (netaddr_is_in_subnet(&NETADDR_IPV4_LINKLOCAL, &source_ip)
-          || netaddr_is_in_subnet(&NETADDR_IPV6_LINKLOCAL, &source_ip))) {
+      (netaddr_is_in_subnet(&NETADDR_IPV4_LINKLOCAL, &source_ip) ||
+        netaddr_is_in_subnet(&NETADDR_IPV6_LINKLOCAL, &source_ip))) {
     OONF_DEBUG(LOG_RFC5444, "Ignore linklocal traffic on generic unicast interface");
     return;
   }
 
-  _print_packet_to_buffer(LOG_RFC5444_R, from, interf, ptr, length,
-      "Incoming RFC5444 packet from",
-      "Error while parsing incoming RFC5444 packet from");
+  _print_packet_to_buffer(LOG_RFC5444_R, from, interf, ptr, length, "Incoming RFC5444 packet from",
+    "Error while parsing incoming RFC5444 packet from");
 
-  result = rfc5444_reader_handle_packet(
-      &protocol->reader, ptr, length);
+  result = rfc5444_reader_handle_packet(&protocol->reader, ptr, length);
   if (result < 0) {
-    OONF_WARN(LOG_RFC5444, "Error while parsing incoming packet from %s: %s (%d)",
-        netaddr_socket_to_string(&buf, from), rfc5444_strerror(result), result);
+    OONF_WARN(LOG_RFC5444, "Error while parsing incoming packet from %s: %s (%d)", netaddr_socket_to_string(&buf, from),
+      rfc5444_strerror(result), result);
 
     abuf_clear(&_printer_buffer);
     abuf_hexdump(&_printer_buffer, "", ptr, length);
@@ -1167,8 +1124,8 @@ _cb_receive_data(struct oonf_packet_socket *sock,
  * @param len length of buffer
  */
 static void
-_cb_send_multicast_packet(struct rfc5444_writer *writer __attribute__((unused)),
-    struct rfc5444_writer_target *target, void *ptr, size_t len) {
+_cb_send_multicast_packet(
+  struct rfc5444_writer *writer __attribute__((unused)), struct rfc5444_writer_target *target, void *ptr, size_t len) {
   struct oonf_rfc5444_target *t;
   struct os_interface_listener *if_listener;
   union netaddr_socket sock;
@@ -1176,19 +1133,16 @@ _cb_send_multicast_packet(struct rfc5444_writer *writer __attribute__((unused)),
   t = container_of(target, struct oonf_rfc5444_target, rfc5444_target);
 
   if_listener = oonf_rfc5444_get_core_if_listener(t->interface);
-  netaddr_socket_init(&sock, &t->dst, t->interface->protocol->port,
-      if_listener->data->index);
+  netaddr_socket_init(&sock, &t->dst, t->interface->protocol->port, if_listener->data->index);
 
-  _print_packet_to_buffer(LOG_RFC5444_W, &sock, t->interface, ptr, len,
-      "Outgoing RFC5444 packet to",
-      "Error while parsing outgoing RFC5444 packet to");
+  _print_packet_to_buffer(LOG_RFC5444_W, &sock, t->interface, ptr, len, "Outgoing RFC5444 packet to",
+    "Error while parsing outgoing RFC5444 packet to");
 
   if (_block_output) {
     OONF_DEBUG(LOG_RFC5444, "Output blocked");
     return;
   }
-  oonf_packet_send_managed_multicast(&t->interface->_socket,
-      ptr, len, netaddr_get_address_family(&t->dst));
+  oonf_packet_send_managed_multicast(&t->interface->_socket, ptr, len, netaddr_get_address_family(&t->dst));
 }
 
 /**
@@ -1199,8 +1153,8 @@ _cb_send_multicast_packet(struct rfc5444_writer *writer __attribute__((unused)),
  * @param len length of buffer
  */
 static void
-_cb_send_unicast_packet(struct rfc5444_writer *writer __attribute__((unused)),
-    struct rfc5444_writer_target *target, void *ptr, size_t len) {
+_cb_send_unicast_packet(
+  struct rfc5444_writer *writer __attribute__((unused)), struct rfc5444_writer_target *target, void *ptr, size_t len) {
   struct oonf_rfc5444_target *t;
   union netaddr_socket sock;
   struct os_interface_listener *interf;
@@ -1208,12 +1162,10 @@ _cb_send_unicast_packet(struct rfc5444_writer *writer __attribute__((unused)),
   t = container_of(target, struct oonf_rfc5444_target, rfc5444_target);
 
   interf = oonf_rfc5444_get_core_if_listener(t->interface);
-  netaddr_socket_init(&sock, &t->dst, t->interface->protocol->port,
-      interf->data->index);
+  netaddr_socket_init(&sock, &t->dst, t->interface->protocol->port, interf->data->index);
 
-  _print_packet_to_buffer(LOG_RFC5444_W, &sock, t->interface, ptr, len,
-      "Outgoing RFC5444 packet to",
-      "Error while parsing outgoing RFC5444 packet to");
+  _print_packet_to_buffer(LOG_RFC5444_W, &sock, t->interface, ptr, len, "Outgoing RFC5444 packet to",
+    "Error while parsing outgoing RFC5444 packet to");
 
   if (_block_output) {
     OONF_DEBUG(LOG_RFC5444, "Output blocked");
@@ -1230,9 +1182,7 @@ _cb_send_unicast_packet(struct rfc5444_writer *writer __attribute__((unused)),
  * @param length length of message
  */
 static void
-_cb_forward_message(
-    struct rfc5444_reader_tlvblock_context *context,
-    const uint8_t *buffer, size_t length) {
+_cb_forward_message(struct rfc5444_reader_tlvblock_context *context, const uint8_t *buffer, size_t length) {
   struct oonf_rfc5444_protocol *protocol;
   enum rfc5444_result result;
 
@@ -1244,8 +1194,7 @@ _cb_forward_message(
 
   result = rfc5444_writer_forward_msg(&protocol->writer, context, buffer, length);
   if (result != RFC5444_OKAY && result != RFC5444_NO_MSGCREATOR) {
-    OONF_WARN(LOG_RFC5444, "Error while forwarding message: %s (%d)",
-        rfc5444_strerror(result), result);
+    OONF_WARN(LOG_RFC5444, "Error while forwarding message: %s (%d)", rfc5444_strerror(result), result);
   }
 }
 
@@ -1274,8 +1223,8 @@ _cb_msggen_notifier(struct rfc5444_writer_target *rfc5444target) {
  * @return true if target corresponds to selection
  */
 static bool
-_cb_single_target_selector(struct rfc5444_writer *writer __attribute__((unused)),
-    struct rfc5444_writer_target *target, void *ptr) {
+_cb_single_target_selector(
+  struct rfc5444_writer *writer __attribute__((unused)), struct rfc5444_writer_target *target, void *ptr) {
   struct oonf_rfc5444_target *t = ptr;
 
   return &t->rfc5444_target == target;
@@ -1289,8 +1238,7 @@ _cb_single_target_selector(struct rfc5444_writer *writer __attribute__((unused))
  * @return true if target corresponds to selection
  */
 static bool
-_cb_filtered_targets_selector(struct rfc5444_writer *writer,
-    struct rfc5444_writer_target *rfc5444_target, void *ptr) {
+_cb_filtered_targets_selector(struct rfc5444_writer *writer, struct rfc5444_writer_target *rfc5444_target, void *ptr) {
   rfc5444_writer_targetselector userUseIf;
   struct oonf_rfc5444_target *target;
 #ifdef OONF_LOG_INFO
@@ -1311,9 +1259,8 @@ _cb_filtered_targets_selector(struct rfc5444_writer *writer,
   }
 
   /* create message */
-  OONF_INFO(LOG_RFC5444, "Send message to protocol %s/target %s on interface %s",
-      target->interface->protocol->name, netaddr_to_string(&buf, &target->dst),
-      target->interface->name);
+  OONF_INFO(LOG_RFC5444, "Send message to protocol %s/target %s on interface %s", target->interface->protocol->name,
+    netaddr_to_string(&buf, &target->dst), target->interface->name);
 
   return true;
 }
@@ -1359,7 +1306,7 @@ _alloc_addrtlv_entry(void) {
  * @param addrblock addressblock to be freed
  */
 static void
-_free_addrblock_entry(struct rfc5444_reader_addrblock_entry* addrblock) {
+_free_addrblock_entry(struct rfc5444_reader_addrblock_entry *addrblock) {
   oonf_class_free(&_addrblock_memcookie, addrblock);
 }
 
@@ -1402,8 +1349,7 @@ _cb_add_seqno(struct rfc5444_writer *writer, struct rfc5444_writer_target *rfc54
 
   target = container_of(rfc5444_target, struct oonf_rfc5444_target, rfc5444_target);
 
-  seqno = target->_pktseqno_refcount > 0
-      || target->interface->protocol->_pktseqno_refcount > 0;
+  seqno = target->_pktseqno_refcount > 0 || target->interface->protocol->_pktseqno_refcount > 0;
 
   rfc5444_writer_set_pkt_header(writer, rfc5444_target, seqno);
   if (seqno) {
@@ -1417,13 +1363,12 @@ _cb_add_seqno(struct rfc5444_writer *writer, struct rfc5444_writer_target *rfc54
  * @param ptr timer instance that fired
  */
 static void
-_cb_aggregation_event (struct oonf_timer_instance *ptr) {
+_cb_aggregation_event(struct oonf_timer_instance *ptr) {
   struct oonf_rfc5444_target *target;
 
   target = container_of(ptr, struct oonf_rfc5444_target, _aggregation);
 
-  rfc5444_writer_flush(
-      &target->interface->protocol->writer, &target->rfc5444_target, false);
+  rfc5444_writer_flush(&target->interface->protocol->writer, &target->rfc5444_target, false);
 }
 
 /**
@@ -1435,18 +1380,14 @@ _cb_cfg_rfc5444_changed(void) {
   int result;
 
   memset(&config, 0, sizeof(config));
-  result = cfg_schema_tobin(&config, _rfc5444_section.post,
-      _rfc5444_entries, ARRAYSIZE(_rfc5444_entries));
+  result = cfg_schema_tobin(&config, _rfc5444_section.post, _rfc5444_entries, ARRAYSIZE(_rfc5444_entries));
   if (result) {
-    OONF_WARN(LOG_RFC5444,
-        "Could not convert "CFG_RFC5444_SECTION" to binary (%d)",
-        -(result+1));
+    OONF_WARN(LOG_RFC5444, "Could not convert " CFG_RFC5444_SECTION " to binary (%d)", -(result + 1));
     return;
   }
 
   /* apply values */
-  oonf_rfc5444_reconfigure_protocol(_rfc5444_protocol,
-      config.port, config.ip_proto);
+  oonf_rfc5444_reconfigure_protocol(_rfc5444_protocol, config.port, config.ip_proto);
 }
 
 /**
@@ -1462,8 +1403,7 @@ _cb_cfg_interface_changed(void) {
 
   ifname = cfg_get_phy_if(ifbuf, _interface_section.section_name);
 
-  interf = avl_find_element(
-      &_rfc5444_protocol->_interface_tree, ifname, interf, _node);
+  interf = avl_find_element(&_rfc5444_protocol->_interface_tree, ifname, interf, _node);
 
   if (_interface_section.post == NULL) {
     /* this section has been removed */
@@ -1474,20 +1414,16 @@ _cb_cfg_interface_changed(void) {
   }
 
   memset(&config, 0, sizeof(config));
-  result = cfg_schema_tobin(&config, _interface_section.post,
-      _interface_entries, ARRAYSIZE(_interface_entries));
+  result = cfg_schema_tobin(&config, _interface_section.post, _interface_entries, ARRAYSIZE(_interface_entries));
   if (result) {
-    OONF_WARN(LOG_RFC5444, "Could not convert %s '%s' to binary (%d)",
-        _interface_section.type, ifname, -(result+1));
+    OONF_WARN(LOG_RFC5444, "Could not convert %s '%s' to binary (%d)", _interface_section.type, ifname, -(result + 1));
     goto interface_changed_cleanup;
   }
 
   if (_interface_section.pre == NULL) {
     interf = oonf_rfc5444_add_interface(_rfc5444_protocol, NULL, ifname);
     if (interf == NULL) {
-      OONF_WARN(LOG_RFC5444,
-          "Could not generate interface '%s' for protocol '%s'",
-          ifname, _rfc5444_protocol->name);
+      OONF_WARN(LOG_RFC5444, "Could not generate interface '%s' for protocol '%s'", ifname, _rfc5444_protocol->name);
       goto interface_changed_cleanup;
     }
   }

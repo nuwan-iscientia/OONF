@@ -43,8 +43,8 @@
  * @file
  */
 
-#include "common/common_types.h"
 #include "common/avl.h"
+#include "common/common_types.h"
 
 #include "dlep/dlep_extension.h"
 #include "dlep/dlep_iana.h"
@@ -55,149 +55,149 @@
 
 /* peer initialization ack */
 static const uint16_t _session_initack_tlvs[] = {
-    DLEP_FRAMES_R_TLV,
-    DLEP_FRAMES_T_TLV,
-    DLEP_FRAMES_RETRIES_TLV,
-    DLEP_FRAMES_FAILED_TLV,
-    DLEP_BYTES_R_TLV,
-    DLEP_BYTES_T_TLV,
-    DLEP_THROUGHPUT_T_TLV,
-    DLEP_CDRR_BC_TLV,
+  DLEP_FRAMES_R_TLV,
+  DLEP_FRAMES_T_TLV,
+  DLEP_FRAMES_RETRIES_TLV,
+  DLEP_FRAMES_FAILED_TLV,
+  DLEP_BYTES_R_TLV,
+  DLEP_BYTES_T_TLV,
+  DLEP_THROUGHPUT_T_TLV,
+  DLEP_CDRR_BC_TLV,
 };
 
 /* peer update */
 static const uint16_t _peer_session_tlvs[] = {
-    DLEP_FRAMES_R_TLV,
-    DLEP_FRAMES_T_TLV,
-    DLEP_FRAMES_RETRIES_TLV,
-    DLEP_FRAMES_FAILED_TLV,
-    DLEP_BYTES_R_TLV,
-    DLEP_BYTES_T_TLV,
-    DLEP_THROUGHPUT_T_TLV,
-    DLEP_CDRR_BC_TLV,
+  DLEP_FRAMES_R_TLV,
+  DLEP_FRAMES_T_TLV,
+  DLEP_FRAMES_RETRIES_TLV,
+  DLEP_FRAMES_FAILED_TLV,
+  DLEP_BYTES_R_TLV,
+  DLEP_BYTES_T_TLV,
+  DLEP_THROUGHPUT_T_TLV,
+  DLEP_CDRR_BC_TLV,
 };
 
 /* destination up/update */
 static const uint16_t _dst_tlvs[] = {
-    DLEP_MAC_ADDRESS_TLV,
-    DLEP_FRAMES_R_TLV,
-    DLEP_FRAMES_T_TLV,
-    DLEP_FRAMES_RETRIES_TLV,
-    DLEP_FRAMES_FAILED_TLV,
-    DLEP_BYTES_R_TLV,
-    DLEP_BYTES_T_TLV,
-    DLEP_THROUGHPUT_T_TLV,
-    DLEP_CDRR_BC_TLV,
+  DLEP_MAC_ADDRESS_TLV,
+  DLEP_FRAMES_R_TLV,
+  DLEP_FRAMES_T_TLV,
+  DLEP_FRAMES_RETRIES_TLV,
+  DLEP_FRAMES_FAILED_TLV,
+  DLEP_BYTES_R_TLV,
+  DLEP_BYTES_T_TLV,
+  DLEP_THROUGHPUT_T_TLV,
+  DLEP_CDRR_BC_TLV,
 };
 static const uint16_t _dst_mandatory[] = {
-    DLEP_MAC_ADDRESS_TLV,
+  DLEP_MAC_ADDRESS_TLV,
 };
 
 /* supported signals of this extension */
 static struct dlep_extension_signal _signals[] = {
-    {
-        .id = DLEP_SESSION_INITIALIZATION_ACK,
-        .supported_tlvs = _session_initack_tlvs,
-        .supported_tlv_count = ARRAYSIZE(_session_initack_tlvs),
-        .add_radio_tlvs = dlep_extension_radio_write_session_init_ack,
-        .process_router = dlep_extension_router_process_session_init_ack,
-    },
-    {
-        .id = DLEP_SESSION_UPDATE,
-        .supported_tlvs = _peer_session_tlvs,
-        .supported_tlv_count = ARRAYSIZE(_peer_session_tlvs),
-        .add_radio_tlvs = dlep_extension_radio_write_session_update,
-        .process_router = dlep_extension_router_process_session_update,
-    },
-    {
-        .id = DLEP_DESTINATION_UP,
-        .supported_tlvs = _dst_tlvs,
-        .supported_tlv_count = ARRAYSIZE(_dst_tlvs),
-        .mandatory_tlvs = _dst_mandatory,
-        .mandatory_tlv_count = ARRAYSIZE(_dst_mandatory),
-        .add_radio_tlvs = dlep_extension_radio_write_destination,
-        .process_router = dlep_extension_router_process_destination,
-    },
-    {
-        .id = DLEP_DESTINATION_UPDATE,
-        .supported_tlvs = _dst_tlvs,
-        .supported_tlv_count = ARRAYSIZE(_dst_tlvs),
-        .mandatory_tlvs = _dst_mandatory,
-        .mandatory_tlv_count = ARRAYSIZE(_dst_mandatory),
-        .add_radio_tlvs = dlep_extension_radio_write_destination,
-        .process_router = dlep_extension_router_process_destination,
-    },
+  {
+    .id = DLEP_SESSION_INITIALIZATION_ACK,
+    .supported_tlvs = _session_initack_tlvs,
+    .supported_tlv_count = ARRAYSIZE(_session_initack_tlvs),
+    .add_radio_tlvs = dlep_extension_radio_write_session_init_ack,
+    .process_router = dlep_extension_router_process_session_init_ack,
+  },
+  {
+    .id = DLEP_SESSION_UPDATE,
+    .supported_tlvs = _peer_session_tlvs,
+    .supported_tlv_count = ARRAYSIZE(_peer_session_tlvs),
+    .add_radio_tlvs = dlep_extension_radio_write_session_update,
+    .process_router = dlep_extension_router_process_session_update,
+  },
+  {
+    .id = DLEP_DESTINATION_UP,
+    .supported_tlvs = _dst_tlvs,
+    .supported_tlv_count = ARRAYSIZE(_dst_tlvs),
+    .mandatory_tlvs = _dst_mandatory,
+    .mandatory_tlv_count = ARRAYSIZE(_dst_mandatory),
+    .add_radio_tlvs = dlep_extension_radio_write_destination,
+    .process_router = dlep_extension_router_process_destination,
+  },
+  {
+    .id = DLEP_DESTINATION_UPDATE,
+    .supported_tlvs = _dst_tlvs,
+    .supported_tlv_count = ARRAYSIZE(_dst_tlvs),
+    .mandatory_tlvs = _dst_mandatory,
+    .mandatory_tlv_count = ARRAYSIZE(_dst_mandatory),
+    .add_radio_tlvs = dlep_extension_radio_write_destination,
+    .process_router = dlep_extension_router_process_destination,
+  },
 };
 
 /* supported TLVs of this extension */
 static struct dlep_extension_tlv _tlvs[] = {
-    { DLEP_FRAMES_R_TLV, 8, 8 },
-    { DLEP_FRAMES_T_TLV, 8, 8 },
-    { DLEP_FRAMES_RETRIES_TLV, 8, 8 },
-    { DLEP_FRAMES_FAILED_TLV, 8, 8 },
-    { DLEP_BYTES_R_TLV, 8, 8 },
-    { DLEP_BYTES_T_TLV, 8, 8 },
-    { DLEP_THROUGHPUT_T_TLV, 8,8 },
-    { DLEP_CDRR_BC_TLV, 8,8 },
+  { DLEP_FRAMES_R_TLV, 8, 8 },
+  { DLEP_FRAMES_T_TLV, 8, 8 },
+  { DLEP_FRAMES_RETRIES_TLV, 8, 8 },
+  { DLEP_FRAMES_FAILED_TLV, 8, 8 },
+  { DLEP_BYTES_R_TLV, 8, 8 },
+  { DLEP_BYTES_T_TLV, 8, 8 },
+  { DLEP_THROUGHPUT_T_TLV, 8, 8 },
+  { DLEP_CDRR_BC_TLV, 8, 8 },
 };
 
 static struct dlep_neighbor_mapping _neigh_mappings[] = {
-    {
-        .dlep          = DLEP_FRAMES_R_TLV,
-        .layer2        = OONF_LAYER2_NEIGH_RX_FRAMES,
-        .length        = 8,
-        .from_tlv      = dlep_reader_map_identity,
-        .to_tlv        = dlep_writer_map_identity,
-    },
-    {
-        .dlep          = DLEP_FRAMES_T_TLV,
-        .layer2        = OONF_LAYER2_NEIGH_TX_FRAMES,
-        .length        = 8,
-        .from_tlv      = dlep_reader_map_identity,
-        .to_tlv        = dlep_writer_map_identity,
-    },
-    {
-        .dlep          = DLEP_FRAMES_RETRIES_TLV,
-        .layer2        = OONF_LAYER2_NEIGH_TX_RETRIES,
-        .length        = 8,
-        .from_tlv      = dlep_reader_map_identity,
-        .to_tlv        = dlep_writer_map_identity,
-    },
-    {
-        .dlep          = DLEP_FRAMES_FAILED_TLV,
-        .layer2        = OONF_LAYER2_NEIGH_TX_FAILED,
-        .length        = 8,
-        .from_tlv      = dlep_reader_map_identity,
-        .to_tlv        = dlep_writer_map_identity,
-    },
-    {
-        .dlep          = DLEP_BYTES_R_TLV,
-        .layer2        = OONF_LAYER2_NEIGH_RX_BYTES,
-        .length        = 8,
-        .from_tlv      = dlep_reader_map_identity,
-        .to_tlv        = dlep_writer_map_identity,
-    },
-    {
-        .dlep          = DLEP_BYTES_T_TLV,
-        .layer2        = OONF_LAYER2_NEIGH_TX_BYTES,
-        .length        = 8,
-        .from_tlv      = dlep_reader_map_identity,
-        .to_tlv        = dlep_writer_map_identity,
-    },
-    {
-        .dlep          = DLEP_THROUGHPUT_T_TLV,
-        .layer2        = OONF_LAYER2_NEIGH_TX_THROUGHPUT,
-        .length        = 8,
-        .from_tlv      = dlep_reader_map_identity,
-        .to_tlv        = dlep_writer_map_identity,
-    },
-    {
-        .dlep          = DLEP_CDRR_BC_TLV,
-        .layer2        = OONF_LAYER2_NEIGH_RX_BC_BITRATE,
-        .length        = 8,
-        .from_tlv      = dlep_reader_map_identity,
-        .to_tlv        = dlep_writer_map_identity,
-    },
+  {
+    .dlep = DLEP_FRAMES_R_TLV,
+    .layer2 = OONF_LAYER2_NEIGH_RX_FRAMES,
+    .length = 8,
+    .from_tlv = dlep_reader_map_identity,
+    .to_tlv = dlep_writer_map_identity,
+  },
+  {
+    .dlep = DLEP_FRAMES_T_TLV,
+    .layer2 = OONF_LAYER2_NEIGH_TX_FRAMES,
+    .length = 8,
+    .from_tlv = dlep_reader_map_identity,
+    .to_tlv = dlep_writer_map_identity,
+  },
+  {
+    .dlep = DLEP_FRAMES_RETRIES_TLV,
+    .layer2 = OONF_LAYER2_NEIGH_TX_RETRIES,
+    .length = 8,
+    .from_tlv = dlep_reader_map_identity,
+    .to_tlv = dlep_writer_map_identity,
+  },
+  {
+    .dlep = DLEP_FRAMES_FAILED_TLV,
+    .layer2 = OONF_LAYER2_NEIGH_TX_FAILED,
+    .length = 8,
+    .from_tlv = dlep_reader_map_identity,
+    .to_tlv = dlep_writer_map_identity,
+  },
+  {
+    .dlep = DLEP_BYTES_R_TLV,
+    .layer2 = OONF_LAYER2_NEIGH_RX_BYTES,
+    .length = 8,
+    .from_tlv = dlep_reader_map_identity,
+    .to_tlv = dlep_writer_map_identity,
+  },
+  {
+    .dlep = DLEP_BYTES_T_TLV,
+    .layer2 = OONF_LAYER2_NEIGH_TX_BYTES,
+    .length = 8,
+    .from_tlv = dlep_reader_map_identity,
+    .to_tlv = dlep_writer_map_identity,
+  },
+  {
+    .dlep = DLEP_THROUGHPUT_T_TLV,
+    .layer2 = OONF_LAYER2_NEIGH_TX_THROUGHPUT,
+    .length = 8,
+    .from_tlv = dlep_reader_map_identity,
+    .to_tlv = dlep_writer_map_identity,
+  },
+  {
+    .dlep = DLEP_CDRR_BC_TLV,
+    .layer2 = OONF_LAYER2_NEIGH_RX_BC_BITRATE,
+    .length = 8,
+    .from_tlv = dlep_reader_map_identity,
+    .to_tlv = dlep_writer_map_identity,
+  },
 };
 
 /* DLEP base extension, radio side */

@@ -43,9 +43,9 @@
  * @file
  */
 
-#include "common/common_types.h"
 #include "common/avl.h"
 #include "common/avl_comp.h"
+#include "common/common_types.h"
 #include "common/netaddr.h"
 #include "common/netaddr_acl.h"
 
@@ -78,14 +78,11 @@ static void _call_stop_handler(struct oonf_telnet_data *data);
 static void _cb_config_changed(void);
 static int _cb_telnet_init(struct oonf_stream_session *);
 static void _cb_telnet_cleanup(struct oonf_stream_session *);
-static void _cb_telnet_create_error(struct oonf_stream_session *,
-    enum oonf_stream_errors);
-static enum oonf_stream_session_state _cb_telnet_receive_data(
-    struct oonf_stream_session *);
-static enum oonf_telnet_result _telnet_handle_command(
-    struct oonf_telnet_data *);
+static void _cb_telnet_create_error(struct oonf_stream_session *, enum oonf_stream_errors);
+static enum oonf_stream_session_state _cb_telnet_receive_data(struct oonf_stream_session *);
+static enum oonf_telnet_result _telnet_handle_command(struct oonf_telnet_data *);
 static struct oonf_telnet_command *_check_telnet_command_acl(
-    struct oonf_telnet_data *data, struct oonf_telnet_command *cmd);
+  struct oonf_telnet_data *data, struct oonf_telnet_command *cmd);
 
 static void _cb_telnet_repeat_timer(struct oonf_timer_instance *data);
 static enum oonf_telnet_result _cb_telnet_quit(struct oonf_telnet_data *data);
@@ -96,16 +93,15 @@ static enum oonf_telnet_result _cb_telnet_timeout(struct oonf_telnet_data *data)
 
 /* configuration of telnet server */
 static struct cfg_schema_entry _telnet_entries[] = {
-  CFG_MAP_ACL_V46(_telnet_config, osmc.acl,
-      "acl", ACL_DEFAULT_ACCEPT, "Access control list for telnet interface"),
-  CFG_MAP_ACL(_telnet_config, osmc.bindto,
-      "bindto", "127.0.0.1\0" "::1\0" ACL_DEFAULT_REJECT, "Allowed addressed to bind telnet socket to"),
-  CFG_MAP_INT32_MINMAX(_telnet_config, osmc.port,
-      "port", "2009", "Network port for telnet interface", 0, 1, 65535),
-  CFG_MAP_INT32_MINMAX(_telnet_config, allowed_sessions,
-      "allowed_sessions", "3", "Maximum number of allowed simultaneous sessions",0, 3, 1024),
-  CFG_MAP_CLOCK(_telnet_config, timeout,
-      "timeout", "120000", "Time until a telnet session is closed when idle"),
+  CFG_MAP_ACL_V46(_telnet_config, osmc.acl, "acl", ACL_DEFAULT_ACCEPT, "Access control list for telnet interface"),
+  CFG_MAP_ACL(_telnet_config, osmc.bindto, "bindto",
+    "127.0.0.1\0"
+    "::1\0" ACL_DEFAULT_REJECT,
+    "Allowed addressed to bind telnet socket to"),
+  CFG_MAP_INT32_MINMAX(_telnet_config, osmc.port, "port", "2009", "Network port for telnet interface", 0, 1, 65535),
+  CFG_MAP_INT32_MINMAX(_telnet_config, allowed_sessions, "allowed_sessions", "3",
+    "Maximum number of allowed simultaneous sessions", 0, 3, 1024),
+  CFG_MAP_CLOCK(_telnet_config, timeout, "timeout", "120000", "Time until a telnet session is closed when idle"),
 };
 
 static struct cfg_schema_section _telnet_section = {
@@ -121,13 +117,10 @@ static struct cfg_schema_section _telnet_section = {
 static struct oonf_telnet_command _builtin[] = {
   TELNET_CMD("quit", _cb_telnet_quit, "Ends telnet session"),
   TELNET_CMD("exit", _cb_telnet_quit, "Ends telnet session"),
-  TELNET_CMD("help", _cb_telnet_help,
-      "help: Display the online help text and a list of commands"),
+  TELNET_CMD("help", _cb_telnet_help, "help: Display the online help text and a list of commands"),
   TELNET_CMD("echo", _cb_telnet_echo, "echo <string>: Prints a string"),
-  TELNET_CMD("repeat", _cb_telnet_repeat,
-      "repeat <seconds> <command>: Repeats a telnet command every X seconds"),
-  TELNET_CMD("timeout", _cb_telnet_timeout,
-      "timeout <seconds> :Sets telnet session timeout"),
+  TELNET_CMD("repeat", _cb_telnet_repeat, "repeat <seconds> <command>: Repeats a telnet command every X seconds"),
+  TELNET_CMD("timeout", _cb_telnet_timeout, "timeout <seconds> :Sets telnet session timeout"),
 };
 
 /* subsystem definition */
@@ -159,15 +152,16 @@ static struct oonf_timer_class _telnet_repeat_timerinfo = {
 };
 
 static struct oonf_stream_managed _telnet_managed = {
-  .config = {
-    .session_timeout = 120000, /* 120 seconds */
-    .allowed_sessions = 3,
-    .memcookie = &_telnet_memcookie,
-    .init_session = _cb_telnet_init,
-    .cleanup_session = _cb_telnet_cleanup,
-    .receive_data = _cb_telnet_receive_data,
-    .create_error = _cb_telnet_create_error,
-  },
+  .config =
+    {
+      .session_timeout = 120000, /* 120 seconds */
+      .allowed_sessions = 3,
+      .memcookie = &_telnet_memcookie,
+      .init_session = _cb_telnet_init,
+      .cleanup_session = _cb_telnet_cleanup,
+      .receive_data = _cb_telnet_receive_data,
+      .create_error = _cb_telnet_create_error,
+    },
 };
 
 static struct avl_tree _telnet_cmd_tree;
@@ -181,13 +175,13 @@ _init(void) {
   size_t i;
 
   oonf_class_add(&_telnet_memcookie);
-  oonf_timer_add(&_telnet_repeat_timerinfo );
+  oonf_timer_add(&_telnet_repeat_timerinfo);
 
   oonf_stream_add_managed(&_telnet_managed);
 
   /* initialize telnet commands */
   avl_init(&_telnet_cmd_tree, _avl_comp_strcmdword, false);
-  for (i=0; i<ARRAYSIZE(_builtin); i++) {
+  for (i = 0; i < ARRAYSIZE(_builtin); i++) {
     oonf_telnet_add(&_builtin[i]);
   }
   return 0;
@@ -249,8 +243,8 @@ oonf_telnet_stop(struct oonf_telnet_data *data, bool print_prompt) {
  * @return result of telnet command
  */
 enum oonf_telnet_result
-oonf_telnet_execute(const char *cmd, const char *para,
-    struct autobuf *out, struct netaddr *remote) {
+oonf_telnet_execute(const char *cmd, const char *para, struct autobuf *out, struct netaddr *remote)
+{
   struct oonf_telnet_cleanup *handler, *it;
   struct oonf_telnet_session session;
   enum oonf_telnet_result result;
@@ -297,7 +291,7 @@ _avl_comp_strcmdword(const void *ptr1, const void *ptr2) {
     }
   } while (*txt1++ != 0 && *txt2++ != 0);
 
-  if ((*txt1==' ' && *txt2==0) || (*txt1==0 && *txt2==' ')) {
+  if ((*txt1 == ' ' && *txt2 == 0) || (*txt1 == 0 && *txt2 == ' ')) {
     diff = 0;
   }
   return diff;
@@ -357,9 +351,8 @@ _cb_telnet_cleanup(struct oonf_stream_session *session) {
  * @param error TCP error code to generate
  */
 static void
-_cb_telnet_create_error(struct oonf_stream_session *session,
-    enum oonf_stream_errors error) {
-  switch(error) {
+_cb_telnet_create_error(struct oonf_stream_session *session, enum oonf_stream_errors error) {
+  switch (error) {
     case STREAM_REQUEST_TOO_LARGE:
       abuf_puts(&session->out, "Input buffer overflow, ending connection\n");
       break;
@@ -457,8 +450,7 @@ _cb_telnet_receive_data(struct oonf_stream_session *session) {
       _call_stop_handler(&telnet_session->data);
 
       if (strlen(cmd) != 0) {
-        OONF_DEBUG(LOG_TELNET, "Processing telnet command: '%s' '%s'",
-            cmd, para);
+        OONF_DEBUG(LOG_TELNET, "Processing telnet command: '%s' '%s'", cmd, para);
 
         if (para != NULL && strcmp(para, "help") == 0) {
           /* switch command and parameter to allow "<cmd> help" variant */
@@ -491,8 +483,7 @@ _cb_telnet_receive_data(struct oonf_stream_session *session) {
           default:
             /* reset stream */
             abuf_setlen(&session->out, len);
-            abuf_appendf(&session->out,
-                "Error in autobuffer during command '%s'.\n", cmd);
+            abuf_appendf(&session->out, "Error in autobuffer during command '%s'.\n", cmd);
             break;
         }
         /* put an empty line behind each command */
@@ -518,8 +509,7 @@ _cb_telnet_receive_data(struct oonf_stream_session *session) {
   oonf_stream_set_timeout(session, telnet_session->data.timeout_value);
 
   /* print prompt */
-  if (processedCommand && session->state == STREAM_SESSION_ACTIVE
-      && telnet_session->data.show_echo) {
+  if (processedCommand && session->state == STREAM_SESSION_ACTIVE && telnet_session->data.show_echo) {
     abuf_puts(&session->out, "> ");
   }
 
@@ -545,9 +535,8 @@ _telnet_handle_command(struct oonf_telnet_data *data) {
     return _TELNET_RESULT_UNKNOWN_COMMAND;
   }
 
-  OONF_INFO(LOG_TELNET, "Executing command from %s: %s %s",
-      netaddr_to_string(&buf, data->remote), data->command,
-      data->parameter == NULL ? "" : data->parameter);
+  OONF_INFO(LOG_TELNET, "Executing command from %s: %s %s", netaddr_to_string(&buf, data->remote), data->command,
+    data->parameter == NULL ? "" : data->parameter);
   return cmd->handler(data);
 }
 
@@ -559,8 +548,7 @@ _telnet_handle_command(struct oonf_telnet_data *data) {
  * @return telnet command object or NULL if not found or forbidden
  */
 static struct oonf_telnet_command *
-_check_telnet_command_acl(struct oonf_telnet_data *data,
-    struct oonf_telnet_command *cmd) {
+_check_telnet_command_acl(struct oonf_telnet_data *data, struct oonf_telnet_command *cmd) {
 #ifdef OONF_LOG_DEBUG_INFO
   struct netaddr_str buf;
 #endif
@@ -570,8 +558,8 @@ _check_telnet_command_acl(struct oonf_telnet_data *data,
   }
 
   if (!netaddr_acl_check_accept(cmd->acl, data->remote)) {
-    OONF_DEBUG(LOG_TELNET, "Blocked telnet command '%s' to '%s' because of acl",
-        cmd->command, netaddr_to_string(&buf, data->remote));
+    OONF_DEBUG(LOG_TELNET, "Blocked telnet command '%s' to '%s' because of acl", cmd->command,
+      netaddr_to_string(&buf, data->remote));
     return NULL;
   }
   return cmd;
@@ -599,7 +587,7 @@ _cb_telnet_help(struct oonf_telnet_data *data) {
   if (data->parameter != NULL && data->parameter[0] != 0) {
     cmd = avl_find_element(&_telnet_cmd_tree, data->parameter, cmd, _node);
     if (cmd) {
-        cmd = _check_telnet_command_acl(data, cmd);
+      cmd = _check_telnet_command_acl(data, cmd);
     }
     if (cmd == NULL) {
       abuf_appendf(data->out, "No help text found for command: %s\n", data->parameter);
@@ -634,9 +622,7 @@ _cb_telnet_help(struct oonf_telnet_data *data) {
  */
 static enum oonf_telnet_result
 _cb_telnet_echo(struct oonf_telnet_data *data) {
-
-  if (abuf_appendf(data->out, "%s\n",
-      data->parameter == NULL ? "" : data->parameter) < 0) {
+  if (abuf_appendf(data->out, "%s\n", data->parameter == NULL ? "" : data->parameter) < 0) {
     return TELNET_RESULT_INTERNAL_ERROR;
   }
   return TELNET_RESULT_ACTIVE;
@@ -725,7 +711,7 @@ _cb_telnet_repeat(struct oonf_telnet_data *data) {
     return TELNET_RESULT_ACTIVE;
   }
 
-  data->stop_timer.class= &_telnet_repeat_timerinfo;
+  data->stop_timer.class = &_telnet_repeat_timerinfo;
   oonf_timer_start(&data->stop_timer, (uint64_t)MSEC_PER_SEC * interval);
 
   data->stop_handler = _cb_telnet_repeat_stophandler;
@@ -760,8 +746,7 @@ _cb_config_changed(void) {
 
   /* generate binary config */
   memset(&config, 0, sizeof(config));
-  if (cfg_schema_tobin(&config, _telnet_section.post,
-      _telnet_entries, ARRAYSIZE(_telnet_entries))) {
+  if (cfg_schema_tobin(&config, _telnet_section.post, _telnet_entries, ARRAYSIZE(_telnet_entries))) {
     /* error in conversion */
     OONF_WARN(LOG_TELNET, "Cannot map telnet config to binary data");
     goto apply_config_failed;

@@ -44,9 +44,9 @@
  */
 
 #include <errno.h>
-#include <sys/socket.h>
 #include <netinet/in.h>
 #include <netinet/ip.h>
+#include <sys/socket.h>
 
 #include "common/common_types.h"
 #include "subsystems/os_fd.h"
@@ -62,12 +62,12 @@
 int
 os_fd_generic_set_dscp(struct os_fd *sock, int dscp, bool ipv6) {
   if (ipv6) {
-    if (setsockopt(sock->fd, IPPROTO_IPV6, IPV6_TCLASS, (char *) &dscp, sizeof(dscp)) < 0 ) {
+    if (setsockopt(sock->fd, IPPROTO_IPV6, IPV6_TCLASS, (char *)&dscp, sizeof(dscp)) < 0) {
       return -1;
     }
   }
   else {
-    if (setsockopt(sock->fd, IPPROTO_IP, IP_TOS, (char *) &dscp, sizeof(dscp)) < 0 ) {
+    if (setsockopt(sock->fd, IPPROTO_IP, IP_TOS, (char *)&dscp, sizeof(dscp)) < 0) {
       return -1;
     }
   }

@@ -48,19 +48,20 @@
 
 #include "common/common_types.h"
 #include "common/list.h"
-#include "subsystems/oonf_rfc5444.h"
 #include "subsystems/oonf_layer2.h"
+#include "subsystems/oonf_rfc5444.h"
 
-#include "nhdp/nhdp_interfaces.h"
 #include "nhdp/nhdp_db.h"
+#include "nhdp/nhdp_interfaces.h"
 
 /*! memory class for nhdp domain */
-#define NHDP_CLASS_DOMAIN             "nhdp_domain"
+#define NHDP_CLASS_DOMAIN "nhdp_domain"
 
 /**
  * NHDP domain constants
  */
-enum {
+enum
+{
   /*! maximum length of metric name */
   NHDP_DOMAIN_METRIC_MAXLEN = 16,
 
@@ -131,8 +132,7 @@ struct nhdp_domain_metric {
    * @param hopcount hopcount of path
    * @return pointer to buffer
    */
-  const char *(*path_to_string)(struct nhdp_metric_str *buf,
-      uint32_t cost,  uint8_t hopcount);
+  const char *(*path_to_string)(struct nhdp_metric_str *buf, uint32_t cost, uint8_t hopcount);
 
   /*! conversion of internal metric data into string */
   /**
@@ -141,8 +141,7 @@ struct nhdp_domain_metric {
    * @param lnk nhdp link
    * @return pointer to buffer
    */
-  const char *(*internal_link_to_string)(
-      struct nhdp_metric_str *buf, struct nhdp_link *lnk);
+  const char *(*internal_link_to_string)(struct nhdp_metric_str *buf, struct nhdp_link *lnk);
 
   /**
    * callback to enable metric
@@ -245,17 +244,17 @@ struct nhdp_domain {
  * listener for NHDP domain updates
  */
 struct nhdp_domain_listener {
-    /**
-     * Callback to inform about a NHDP neighbor MPR update
-     * @param domain NHDP domain of which the MPR set changed
-     */
-    void (*mpr_update)(struct nhdp_domain *domain);
+  /**
+   * Callback to inform about a NHDP neighbor MPR update
+   * @param domain NHDP domain of which the MPR set changed
+   */
+  void (*mpr_update)(struct nhdp_domain *domain);
 
-    /**
-     * Callback to inform about a NHDP neighbor metric update
-     * @param domain NHDP domain of which the metric changed
-     */
-    void (*metric_update)(struct nhdp_domain *domain);
+  /**
+   * Callback to inform about a NHDP neighbor metric update
+   * @param domain NHDP domain of which the metric changed
+   */
+  void (*metric_update)(struct nhdp_domain *domain);
 
   /*! hook into global domain updater list */
   struct list_entity _node;
@@ -272,8 +271,7 @@ struct nhdp_domain_metric_postprocessor {
    * @param new_metric new metric value
    * @return processed new metric value
    */
-  uint32_t (*process_in_metric)(struct nhdp_domain *domain,
-      struct nhdp_link *lnk, uint32_t new_metric);
+  uint32_t (*process_in_metric)(struct nhdp_domain *domain, struct nhdp_link *lnk, uint32_t new_metric);
 
   /*! hook into global domain metric postprocessor list */
   struct list_entity _node;
@@ -284,8 +282,8 @@ void nhdp_domain_cleanup(void);
 
 EXPORT size_t nhdp_domain_get_count(void);
 EXPORT struct nhdp_domain *nhdp_domain_add(uint8_t ext);
-EXPORT struct nhdp_domain *nhdp_domain_configure(uint8_t ext,
-    const char *metric_name, const char *mpr_name, uint8_t willingness);
+EXPORT struct nhdp_domain *nhdp_domain_configure(
+  uint8_t ext, const char *metric_name, const char *mpr_name, uint8_t willingness);
 
 EXPORT int nhdp_domain_metric_add(struct nhdp_domain_metric *);
 EXPORT void nhdp_domain_metric_remove(struct nhdp_domain_metric *);
@@ -296,45 +294,34 @@ EXPORT void nhdp_domain_mpr_remove(struct nhdp_domain_mpr *);
 EXPORT void nhdp_domain_listener_add(struct nhdp_domain_listener *);
 EXPORT void nhdp_domain_listener_remove(struct nhdp_domain_listener *);
 
-EXPORT void nhdp_domain_metric_postprocessor_add(
-    struct nhdp_domain_metric_postprocessor *);
-EXPORT void nhdp_domain_metric_postprocessor_remove(
-    struct nhdp_domain_metric_postprocessor *);
+EXPORT void nhdp_domain_metric_postprocessor_add(struct nhdp_domain_metric_postprocessor *);
+EXPORT void nhdp_domain_metric_postprocessor_remove(struct nhdp_domain_metric_postprocessor *);
 EXPORT struct nhdp_domain *nhdp_domain_get_by_ext(uint8_t);
 
 EXPORT void nhdp_domain_init_link(struct nhdp_link *);
 EXPORT void nhdp_domain_init_l2hop(struct nhdp_l2hop *);
 EXPORT void nhdp_domain_init_neighbor(struct nhdp_neighbor *);
 
-EXPORT void nhdp_domain_process_metric_linktlv(struct nhdp_domain *,
-    struct nhdp_link *lnk, const uint8_t *value);
-EXPORT void nhdp_domain_process_metric_2hoptlv(struct nhdp_domain *d,
-    struct nhdp_l2hop *l2hop, const uint8_t *value);
+EXPORT void nhdp_domain_process_metric_linktlv(struct nhdp_domain *, struct nhdp_link *lnk, const uint8_t *value);
+EXPORT void nhdp_domain_process_metric_2hoptlv(struct nhdp_domain *d, struct nhdp_l2hop *l2hop, const uint8_t *value);
 
 EXPORT size_t nhdp_domain_process_mprtypes_tlv(
-    uint8_t *mprtypes, size_t mprtypes_size,
-    struct rfc5444_reader_tlvblock_entry *tlv);
-EXPORT void nhdp_domain_process_mpr_tlv(uint8_t *mprtypes, size_t mprtypes_size,
-    struct nhdp_link *, struct rfc5444_reader_tlvblock_entry *tlv);
+  uint8_t *mprtypes, size_t mprtypes_size, struct rfc5444_reader_tlvblock_entry *tlv);
+EXPORT void nhdp_domain_process_mpr_tlv(
+  uint8_t *mprtypes, size_t mprtypes_size, struct nhdp_link *, struct rfc5444_reader_tlvblock_entry *tlv);
 EXPORT void nhdp_domain_process_willingness_tlv(
-    uint8_t *mpr_types, size_t mprtypes_size,
-    struct rfc5444_reader_tlvblock_entry *tlv);
+  uint8_t *mpr_types, size_t mprtypes_size, struct rfc5444_reader_tlvblock_entry *tlv);
 EXPORT void nhdp_domain_store_willingness(struct nhdp_link *);
-EXPORT size_t nhdp_domain_encode_mprtypes_tlvvalue(
-    uint8_t *mprtypes, size_t mprtypes_size);
-EXPORT size_t nhdp_domain_encode_mpr_tlvvalue(
-    uint8_t *tlvvalue, size_t tlvsize, struct nhdp_link *);
-EXPORT size_t nhdp_domain_encode_willingness_tlvvalue(
-    uint8_t *tlvvalue, size_t tlvsize);
+EXPORT size_t nhdp_domain_encode_mprtypes_tlvvalue(uint8_t *mprtypes, size_t mprtypes_size);
+EXPORT size_t nhdp_domain_encode_mpr_tlvvalue(uint8_t *tlvvalue, size_t tlvsize, struct nhdp_link *);
+EXPORT size_t nhdp_domain_encode_willingness_tlvvalue(uint8_t *tlvvalue, size_t tlvsize);
 
 EXPORT bool nhdp_domain_set_incoming_metric(
-    struct nhdp_domain_metric *metric, struct nhdp_link *lnk, uint32_t metric_in);
-EXPORT bool nhdp_domain_recalculate_metrics(
-    struct nhdp_domain *domain, struct nhdp_neighbor *neigh);
+  struct nhdp_domain_metric *metric, struct nhdp_link *lnk, uint32_t metric_in);
+EXPORT bool nhdp_domain_recalculate_metrics(struct nhdp_domain *domain, struct nhdp_neighbor *neigh);
 
 EXPORT bool nhdp_domain_node_is_mpr(void);
-EXPORT void nhdp_domain_delayed_mpr_recalculation(
-    struct nhdp_domain *domain, struct nhdp_neighbor *neigh);
+EXPORT void nhdp_domain_delayed_mpr_recalculation(struct nhdp_domain *domain, struct nhdp_neighbor *neigh);
 EXPORT void nhdp_domain_recalculate_mpr(void);
 
 EXPORT struct list_entity *nhdp_domain_get_list(void);
@@ -359,8 +346,7 @@ nhdp_domain_get_linkdata(const struct nhdp_domain *domain, struct nhdp_link *lnk
  * @return domain data of specified neighbor
  */
 static INLINE struct nhdp_neighbor_domaindata *
-nhdp_domain_get_neighbordata(
-    const struct nhdp_domain *domain, struct nhdp_neighbor *neigh) {
+nhdp_domain_get_neighbordata(const struct nhdp_domain *domain, struct nhdp_neighbor *neigh) {
   return &neigh->_domaindata[domain->index];
 }
 
@@ -370,11 +356,9 @@ nhdp_domain_get_neighbordata(
  * @return domain data of specified twohop neighbor
  */
 static INLINE struct nhdp_l2hop_domaindata *
-nhdp_domain_get_l2hopdata(
-    const struct nhdp_domain *domain, struct nhdp_l2hop *l2hop) {
+nhdp_domain_get_l2hopdata(const struct nhdp_domain *domain, struct nhdp_l2hop *l2hop) {
   return &l2hop->_domaindata[domain->index];
 }
-
 
 /**
  * @param buf pointer to metric output buffer
@@ -383,8 +367,7 @@ nhdp_domain_get_l2hopdata(
  * @return pointer to string representation of metric
  */
 static INLINE const char *
-nhdp_domain_get_link_metric_value(struct nhdp_metric_str *buf,
-    const struct nhdp_domain *domain, uint32_t metric) {
+nhdp_domain_get_link_metric_value(struct nhdp_metric_str *buf, const struct nhdp_domain *domain, uint32_t metric) {
   return domain->metric->link_to_string(buf, metric);
 }
 
@@ -396,8 +379,8 @@ nhdp_domain_get_link_metric_value(struct nhdp_metric_str *buf,
  * @return pointer to string representation of metric
  */
 static INLINE const char *
-nhdp_domain_get_path_metric_value(struct nhdp_metric_str *buf,
-    const struct nhdp_domain *domain, uint32_t metric, uint8_t hopcount) {
+nhdp_domain_get_path_metric_value(
+  struct nhdp_metric_str *buf, const struct nhdp_domain *domain, uint32_t metric, uint8_t hopcount) {
   return domain->metric->path_to_string(buf, metric, hopcount);
 }
 
@@ -408,8 +391,8 @@ nhdp_domain_get_path_metric_value(struct nhdp_metric_str *buf,
  * @return pointer to string internal representation of metric
  */
 static INLINE const char *
-nhdp_domain_get_internal_link_metric_value(struct nhdp_metric_str *buf,
-    const struct nhdp_domain_metric *metric, struct nhdp_link *lnk) {
+nhdp_domain_get_internal_link_metric_value(
+  struct nhdp_metric_str *buf, const struct nhdp_domain_metric *metric, struct nhdp_link *lnk) {
   return metric->internal_link_to_string(buf, lnk);
 }
 

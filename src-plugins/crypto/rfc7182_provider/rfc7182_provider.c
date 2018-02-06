@@ -43,9 +43,9 @@
  * @file
  */
 
-#include "common/common_types.h"
 #include "common/avl.h"
 #include "common/avl_comp.h"
+#include "common/common_types.h"
 #include "core/oonf_subsystem.h"
 #include "subsystems/oonf_class.h"
 #include "subsystems/rfc5444/rfc5444_iana.h"
@@ -57,22 +57,14 @@
 /* prototypes */
 static int _init(void);
 static void _cleanup(void);
-static int _cb_identity_hash(struct rfc7182_hash *hash,
-    void *dst, size_t *dst_len, const void *src, size_t src_len);
-static int _cb_identity_crypt(struct rfc7182_crypt *crypt,
-    void *dst, size_t *dst_len, const void *src, size_t src_len,
-    const void *key, size_t key_len);
+static int _cb_identity_hash(struct rfc7182_hash *hash, void *dst, size_t *dst_len, const void *src, size_t src_len);
+static int _cb_identity_crypt(struct rfc7182_crypt *crypt, void *dst, size_t *dst_len, const void *src, size_t src_len,
+  const void *key, size_t key_len);
 
-static bool _cb_validate_by_sign(
-    struct rfc7182_crypt *, struct rfc7182_hash *,
-    const void *encrypted, size_t encrypted_length,
-    const void *src, size_t src_len,
-    const void *key, size_t key_len);
-static int _cb_sign_by_crypthash(
-    struct rfc7182_crypt *crypt, struct rfc7182_hash *hash,
-      void *dst, size_t *dst_len,
-      const void *src, size_t src_len,
-      const void *key, size_t key_len);
+static bool _cb_validate_by_sign(struct rfc7182_crypt *, struct rfc7182_hash *, const void *encrypted,
+  size_t encrypted_length, const void *src, size_t src_len, const void *key, size_t key_len);
+static int _cb_sign_by_crypthash(struct rfc7182_crypt *crypt, struct rfc7182_hash *hash, void *dst, size_t *dst_len,
+  const void *src, size_t src_len, const void *key, size_t key_len);
 
 /* plugin declaration */
 static const char *_dependencies[] = {
@@ -227,7 +219,7 @@ rfc7182_remove_crypt(struct rfc7182_crypt *crypt) {
  * @return tree of crypto functions
  */
 struct avl_tree *
-rfc7182_get_crypt_tree(void){
+rfc7182_get_crypt_tree(void) {
   return &_crypt_functions;
 }
 
@@ -242,8 +234,8 @@ rfc7182_get_crypt_tree(void){
  * @return -1 if an error happened, 0 otherwise
  */
 static int
-_cb_identity_hash(struct rfc7182_hash *hash __attribute__((unused)),
-    void *dst, size_t *dst_len, const void *src, size_t src_len) {
+_cb_identity_hash(
+  struct rfc7182_hash *hash __attribute__((unused)), void *dst, size_t *dst_len, const void *src, size_t src_len) {
   *dst_len = src_len;
   memcpy(dst, src, src_len);
   return 0;
@@ -260,11 +252,8 @@ _cb_identity_hash(struct rfc7182_hash *hash __attribute__((unused)),
  * @return -1 if an error happened, 0 otherwise
  */
 static int
-_cb_identity_crypt(struct rfc7182_crypt *crypt __attribute((unused)),
-    void *dst, size_t *dst_len,
-    const void *src, size_t src_len,
-    const void *key __attribute((unused)),
-    size_t key_len __attribute((unused))) {
+_cb_identity_crypt(struct rfc7182_crypt *crypt __attribute((unused)), void *dst, size_t *dst_len, const void *src,
+  size_t src_len, const void *key __attribute((unused)), size_t key_len __attribute((unused))) {
   /* just copy */
   *dst_len = src_len;
   memcpy(dst, src, src_len);
@@ -274,22 +263,19 @@ _cb_identity_crypt(struct rfc7182_crypt *crypt __attribute((unused)),
 /**
  * Callback to check a signature by generating a local signature
  * with the 'crypto' callback and then comparing both.
-   * @param crypt this crypto definition
-   * @param hash the definition of the hash
-   * @param encrypted pointer to encrypted signature
-   * @param encrypted_length length of encrypted signature
-   * @param src unsigned original data
-   * @param src_len length of original data
-   * @param key key material for signature
-   * @param key_len length of key material
-   * @return true if signature matches, false otherwise
+ * @param crypt this crypto definition
+ * @param hash the definition of the hash
+ * @param encrypted pointer to encrypted signature
+ * @param encrypted_length length of encrypted signature
+ * @param src unsigned original data
+ * @param src_len length of original data
+ * @param key key material for signature
+ * @param key_len length of key material
+ * @return true if signature matches, false otherwise
  */
 static bool
-_cb_validate_by_sign(
-    struct rfc7182_crypt *crypt, struct rfc7182_hash *hash,
-    const void *encrypted, size_t encrypted_length,
-    const void *src, size_t src_len,
-    const void *key, size_t key_len) {
+_cb_validate_by_sign(struct rfc7182_crypt *crypt, struct rfc7182_hash *hash, const void *encrypted,
+  size_t encrypted_length, const void *src, size_t src_len, const void *key, size_t key_len) {
   size_t crypt_length;
   int result;
 
@@ -302,9 +288,10 @@ _cb_validate_by_sign(
 
   /* compare length of both signatures */
   if (crypt_length != encrypted_length) {
-    OONF_INFO(LOG_RFC7182_PROVIDER, "signature has wrong length: "
-        "%"PRINTF_SIZE_T_SPECIFIER" != %"PRINTF_SIZE_T_SPECIFIER,
-        crypt_length, encrypted_length);
+    OONF_INFO(LOG_RFC7182_PROVIDER,
+      "signature has wrong length: "
+      "%" PRINTF_SIZE_T_SPECIFIER " != %" PRINTF_SIZE_T_SPECIFIER,
+      crypt_length, encrypted_length);
     return -1;
   }
 
@@ -318,9 +305,8 @@ _cb_validate_by_sign(
 }
 
 static int
-_cb_sign_by_crypthash(struct rfc7182_crypt *crypt, struct rfc7182_hash *hash,
-    void *dst, size_t *dst_len, const void *src, size_t src_len,
-    const void *key, size_t key_len) {
+_cb_sign_by_crypthash(struct rfc7182_crypt *crypt, struct rfc7182_hash *hash, void *dst, size_t *dst_len,
+  const void *src, size_t src_len, const void *key, size_t key_len) {
   size_t hashed_length;
 
   hashed_length = sizeof(_crypt_buffer);

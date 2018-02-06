@@ -103,9 +103,7 @@ olsrv2_lan_cleanup(void) {
  * @return pointer to lan entry, NULL if out of memory
  */
 struct olsrv2_lan_entry *
-olsrv2_lan_add(struct nhdp_domain *domain,
-    const struct os_route_key *prefix,
-    uint32_t metric, uint8_t distance) {
+olsrv2_lan_add(struct nhdp_domain *domain, const struct os_route_key *prefix, uint32_t metric, uint8_t distance) {
   struct olsrv2_lan_entry *entry;
   struct olsrv2_lan_domaindata *lan_data;
   uint8_t tmp_dist;
@@ -126,7 +124,7 @@ olsrv2_lan_add(struct nhdp_domain *domain,
     entry->same_distance = true;
 
     /* initialize linkcost */
-    for (i=0; i<NHDP_MAXIMUM_DOMAINS; i++) {
+    for (i = 0; i < NHDP_MAXIMUM_DOMAINS; i++) {
       entry->_domaindata[i].outgoing_metric = RFC7181_METRIC_INFINITE;
     }
   }
@@ -139,7 +137,7 @@ olsrv2_lan_add(struct nhdp_domain *domain,
 
   tmp_dist = 0;
   entry->same_distance = true;
-  for (i=0; i<NHDP_MAXIMUM_DOMAINS; i++) {
+  for (i = 0; i < NHDP_MAXIMUM_DOMAINS; i++) {
     lan_data = &entry->_domaindata[i];
     if (lan_data->active) {
       if (tmp_dist == 0) {
@@ -162,8 +160,7 @@ olsrv2_lan_add(struct nhdp_domain *domain,
  * @param domain NHDP domain for data
  */
 void
-olsrv2_lan_remove(struct nhdp_domain *domain,
-    const struct os_route_key *prefix) {
+olsrv2_lan_remove(struct nhdp_domain *domain, const struct os_route_key *prefix) {
   struct olsrv2_lan_entry *entry;
   struct olsrv2_lan_domaindata *lan_data;
   int i;
@@ -177,7 +174,7 @@ olsrv2_lan_remove(struct nhdp_domain *domain,
   lan_data->active = false;
   olsrv2_routing_domain_changed(domain, true);
 
-  for (i=0; i<NHDP_MAXIMUM_DOMAINS; i++) {
+  for (i = 0; i < NHDP_MAXIMUM_DOMAINS; i++) {
     if (entry->_domaindata[i].active) {
       /* entry is still in use */
       return;

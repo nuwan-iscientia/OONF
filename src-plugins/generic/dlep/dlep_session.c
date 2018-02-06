@@ -43,57 +43,56 @@
  * @file
  */
 
-#include "common/common_types.h"
 #include "common/avl.h"
 #include "common/avl_comp.h"
+#include "common/common_types.h"
 #include "core/oonf_logging.h"
 #include "subsystems/oonf_class.h"
 #include "subsystems/oonf_stream_socket.h"
 #include "subsystems/oonf_timer.h"
 
 #include "dlep/dlep_extension.h"
-#include "dlep/dlep_writer.h"
 #include "dlep/dlep_session.h"
+#include "dlep/dlep_writer.h"
 
 /**
  * internal constants of DLEP session
  */
-enum {
+enum
+{
   /*! size increase step for DLEP value storage */
   SESSION_VALUE_STEP = 128,
 };
 
 static int _update_allowed_tlvs(struct dlep_session *session);
-static enum dlep_parser_error _parse_tlvstream(
-    struct dlep_session *session, const uint8_t *buffer, size_t length);
-static enum dlep_parser_error _check_mandatory(struct dlep_session *session,
-    struct dlep_extension *ext, int32_t signal_type);
-static enum dlep_parser_error _check_duplicate(struct dlep_session *session,
-    struct dlep_extension *ext, int32_t signal_type);
-static enum dlep_parser_error _call_extension_processing(struct dlep_session *parser,
-    struct dlep_extension *ext, int32_t signal_type);
-static struct dlep_parser_tlv *_add_session_tlv(
-    struct dlep_session_parser *parser, uint16_t id);
-static enum dlep_parser_error _handle_extension(struct dlep_session *session,
-    struct dlep_extension *ext, uint32_t signal_type);
-static enum dlep_parser_error _process_tlvs(struct dlep_session *,
-    int32_t signal_type, uint16_t signal_length, const uint8_t *tlvs);
+static enum dlep_parser_error _parse_tlvstream(struct dlep_session *session, const uint8_t *buffer, size_t length);
+static enum dlep_parser_error _check_mandatory(
+  struct dlep_session *session, struct dlep_extension *ext, int32_t signal_type);
+static enum dlep_parser_error _check_duplicate(
+  struct dlep_session *session, struct dlep_extension *ext, int32_t signal_type);
+static enum dlep_parser_error _call_extension_processing(
+  struct dlep_session *parser, struct dlep_extension *ext, int32_t signal_type);
+static struct dlep_parser_tlv *_add_session_tlv(struct dlep_session_parser *parser, uint16_t id);
+static enum dlep_parser_error _handle_extension(
+  struct dlep_session *session, struct dlep_extension *ext, uint32_t signal_type);
+static enum dlep_parser_error _process_tlvs(
+  struct dlep_session *, int32_t signal_type, uint16_t signal_length, const uint8_t *tlvs);
 static void _send_terminate(struct dlep_session *session);
 static void _cb_destination_timeout(struct oonf_timer_instance *);
 
 static struct oonf_class _tlv_class = {
-    .name = "dlep reader tlv",
-    .size = sizeof(struct dlep_parser_tlv),
+  .name = "dlep reader tlv",
+  .size = sizeof(struct dlep_parser_tlv),
 };
 
 static struct oonf_class _local_neighbor_class = {
-    .name = "dlep neighbor",
-    .size = sizeof(struct dlep_local_neighbor),
+  .name = "dlep neighbor",
+  .size = sizeof(struct dlep_local_neighbor),
 };
 
 static struct oonf_timer_class _destination_ack_class = {
-    .name = "dlep destination ack",
-    .callback = _cb_destination_timeout,
+  .name = "dlep destination ack",
+  .callback = _cb_destination_timeout,
 };
 
 /**
@@ -119,11 +118,9 @@ dlep_session_init(void) {
  * @return -1 if an error happened, 0 otherwise
  */
 int
-dlep_session_add(struct dlep_session *session, const char *l2_ifname,
-    const struct oonf_layer2_origin *l2_origin,
-    const struct oonf_layer2_origin *l2_default_origin,
-    struct autobuf *out, bool radio,
-    enum oonf_log_source log_source) {
+dlep_session_add(struct dlep_session *session, const char *l2_ifname, const struct oonf_layer2_origin *l2_origin,
+  const struct oonf_layer2_origin *l2_default_origin, struct autobuf *out, bool radio,
+  enum oonf_log_source log_source) {
   struct dlep_session_parser *parser;
   struct dlep_extension *ext;
   int32_t i;
@@ -144,52 +141,45 @@ dlep_session_add(struct dlep_session *session, const char *l2_ifname,
 
   /* get interface listener to lock interface */
   if (!os_interface_add(&session->l2_listener)) {
-    OONF_WARN(session->log_source,
-        "Cannot activate interface listener for %s", l2_ifname);
+    OONF_WARN(session->log_source, "Cannot activate interface listener for %s", l2_ifname);
     dlep_session_remove(session);
     return -1;
   }
 
   /* allocate memory for the pointers */
-  parser->extensions = calloc(
-      dlep_extension_get_tree()->count, sizeof(struct dlep_extension *));
+  parser->extensions = calloc(dlep_extension_get_tree()->count, sizeof(struct dlep_extension *));
   if (!parser->extensions) {
-    OONF_WARN(session->log_source,
-        "Cannot allocate extension buffer for %s", l2_ifname);
+    OONF_WARN(session->log_source, "Cannot allocate extension buffer for %s", l2_ifname);
     dlep_session_remove(session);
     return -1;
   }
 
   /* remember the sessions */
-  parser->extension_count =  dlep_extension_get_tree()->count;
+  parser->extension_count = dlep_extension_get_tree()->count;
 
-  parser->values = calloc(SESSION_VALUE_STEP,
-      sizeof(struct dlep_parser_value));
+  parser->values = calloc(SESSION_VALUE_STEP, sizeof(struct dlep_parser_value));
   if (!parser->values) {
-    OONF_WARN(session->log_source,
-        "Cannot allocate values buffer for %s", l2_ifname);
+    OONF_WARN(session->log_source, "Cannot allocate values buffer for %s", l2_ifname);
     dlep_session_remove(session);
     return -1;
   }
 
   i = 0;
-  avl_for_each_element( dlep_extension_get_tree(), ext, _node) {
+  avl_for_each_element(dlep_extension_get_tree(), ext, _node) {
     OONF_DEBUG(session->log_source, "Add extension %d to session", ext->id);
     parser->extensions[i] = ext;
     i++;
   }
 
   if (_update_allowed_tlvs(session)) {
-    OONF_WARN(session->log_source,
-        "Could not update allowed TLVs for %s", l2_ifname);
+    OONF_WARN(session->log_source, "Could not update allowed TLVs for %s", l2_ifname);
     dlep_session_remove(session);
     return -1;
   }
 
   avl_init(&session->_ip_prefix_modification, avl_comp_netaddr, false);
 
-  OONF_INFO(session->log_source, "Add session on %s",
-      session->l2_listener.name);
+  OONF_INFO(session->log_source, "Add session on %s", session->l2_listener.name);
   return 0;
 }
 
@@ -205,9 +195,8 @@ dlep_session_remove(struct dlep_session *session) {
   struct netaddr_str nbuf;
 #endif
 
-  OONF_DEBUG(session->log_source, "Remove session if %s to %s",
-      session->l2_listener.name,
-      netaddr_socket_to_string(&nbuf, &session->remote_socket));
+  OONF_DEBUG(session->log_source, "Remove session if %s to %s", session->l2_listener.name,
+    netaddr_socket_to_string(&nbuf, &session->remote_socket));
 
   os_interface_remove(&session->l2_listener);
 
@@ -220,10 +209,10 @@ dlep_session_remove(struct dlep_session *session) {
   oonf_timer_stop(&session->local_event_timer);
   oonf_timer_stop(&session->remote_heartbeat_timeout);
 
-  free (parser->extensions);
+  free(parser->extensions);
   parser->extensions = NULL;
 
-  free (parser->values);
+  free(parser->values);
   parser->values = NULL;
 }
 
@@ -234,8 +223,7 @@ dlep_session_remove(struct dlep_session *session) {
 void
 dlep_session_terminate(struct dlep_session *session) {
   if (session->restrict_signal != DLEP_ALL_SIGNALS) {
-    dlep_session_generate_signal(
-        session, DLEP_SESSION_TERMINATION, NULL);
+    dlep_session_generate_signal(session, DLEP_SESSION_TERMINATION, NULL);
     session->cb_send_buffer(session, 0);
   }
   session->restrict_signal = DLEP_SESSION_TERMINATION_ACK;
@@ -249,8 +237,7 @@ dlep_session_terminate(struct dlep_session *session) {
  * @return -1 if an error happened, 0 otherwise
  */
 int
-dlep_session_update_extensions(struct dlep_session *session,
-    const uint8_t *extvalues, size_t extcount) {
+dlep_session_update_extensions(struct dlep_session *session, const uint8_t *extvalues, size_t extcount) {
   struct dlep_extension **ext_array, *ext;
   size_t count, i;
   uint16_t extid;
@@ -259,8 +246,8 @@ dlep_session_update_extensions(struct dlep_session *session,
 
   /* keep entry a few entries untouched, these are the base extensions */
   count = DLEP_EXTENSION_BASE_COUNT;
-  for (i=0; i<extcount; i++) {
-    memcpy(&extid, &extvalues[i*2], sizeof(extid));
+  for (i = 0; i < extcount; i++) {
+    memcpy(&extid, &extvalues[i * 2], sizeof(extid));
 
     if (dlep_extension_get(ntohs(extid))) {
       count++;
@@ -269,8 +256,7 @@ dlep_session_update_extensions(struct dlep_session *session,
   }
 
   if (count != session->parser.extension_count) {
-    ext_array = realloc(session->parser.extensions,
-        sizeof(struct dlep_extension *) * count);
+    ext_array = realloc(session->parser.extensions, sizeof(struct dlep_extension *) * count);
     if (!ext_array) {
       return -1;
     }
@@ -280,8 +266,8 @@ dlep_session_update_extensions(struct dlep_session *session,
   }
 
   count = DLEP_EXTENSION_BASE_COUNT;
-  for (i=0; i<extcount; i++) {
-    memcpy(&extid, &extvalues[i*2], sizeof(extid));
+  for (i = 0; i < extcount; i++) {
+    memcpy(&extid, &extvalues[i * 2], sizeof(extid));
     if ((ext = dlep_extension_get(ntohs(extid)))) {
       session->parser.extensions[count] = ext;
       count++;
@@ -298,17 +284,14 @@ dlep_session_update_extensions(struct dlep_session *session,
  * @return new TCP session state
  */
 enum oonf_stream_session_state
-dlep_session_process_tcp(struct oonf_stream_session *tcp_session,
-    struct dlep_session *session) {
+dlep_session_process_tcp(struct oonf_stream_session *tcp_session, struct dlep_session *session)
+{
   ssize_t processed;
 
-  OONF_DEBUG(session->log_source,
-      "Process TCP buffer of %" PRINTF_SIZE_T_SPECIFIER " bytes",
-      abuf_getlen(&tcp_session->in));
+  OONF_DEBUG(
+    session->log_source, "Process TCP buffer of %" PRINTF_SIZE_T_SPECIFIER " bytes", abuf_getlen(&tcp_session->in));
 
-  processed = dlep_session_process_buffer(session,
-      abuf_getptr(&tcp_session->in),
-      abuf_getlen(&tcp_session->in), false);
+  processed = dlep_session_process_buffer(session, abuf_getptr(&tcp_session->in), abuf_getlen(&tcp_session->in), false);
 
   if (processed < 0) {
     /* session is most likely invalid now */
@@ -319,15 +302,13 @@ dlep_session_process_tcp(struct oonf_stream_session *tcp_session,
     return STREAM_SESSION_CLEANUP;
   }
 
-  OONF_DEBUG(session->log_source,
-    "Processed %" PRINTF_SSIZE_T_SPECIFIER " bytes", processed);
+  OONF_DEBUG(session->log_source, "Processed %" PRINTF_SSIZE_T_SPECIFIER " bytes", processed);
 
   abuf_pull(&tcp_session->in, processed);
 
   if (abuf_getlen(session->writer.out) > 0) {
-    OONF_DEBUG(session->log_source,
-        "Trigger sending %" PRINTF_SIZE_T_SPECIFIER " bytes",
-        abuf_getlen(session->writer.out));
+    OONF_DEBUG(
+      session->log_source, "Trigger sending %" PRINTF_SIZE_T_SPECIFIER " bytes", abuf_getlen(session->writer.out));
 
     /* send answer */
     oonf_stream_flush(tcp_session);
@@ -348,22 +329,24 @@ dlep_session_process_tcp(struct oonf_stream_session *tcp_session,
  *   can be removed, -1 if an error happened
  */
 ssize_t
-dlep_session_process_buffer(
-    struct dlep_session *session, const void *buffer, size_t length, bool is_udp) {
+dlep_session_process_buffer(struct dlep_session *session, const void *buffer, size_t length, bool is_udp) {
   ssize_t result, offset;
   const char *ptr;
 
   offset = 0;
   ptr = buffer;
 
-  OONF_DEBUG(session->log_source, "Processing buffer of"
-      " %" PRINTF_SIZE_T_SPECIFIER " bytes", length);
+  OONF_DEBUG(session->log_source,
+    "Processing buffer of"
+    " %" PRINTF_SIZE_T_SPECIFIER " bytes",
+    length);
   while (length > 0) {
-    OONF_DEBUG(session->log_source, "Processing message at offset"
-        " %" PRINTF_SSIZE_T_SPECIFIER, offset);
+    OONF_DEBUG(session->log_source,
+      "Processing message at offset"
+      " %" PRINTF_SSIZE_T_SPECIFIER,
+      offset);
 
-    if ((result = dlep_session_process_signal(
-        session, &ptr[offset], length, is_udp)) <= 0){
+    if ((result = dlep_session_process_signal(session, &ptr[offset], length, is_udp)) <= 0) {
       if (result < 0) {
         return result;
       }
@@ -388,8 +371,7 @@ dlep_session_process_buffer(
  *   negative to return a parser result enum
  */
 ssize_t
-dlep_session_process_signal(struct dlep_session *session,
-    const void *ptr, size_t length, bool is_udp) {
+dlep_session_process_signal(struct dlep_session *session, const void *ptr, size_t length, bool is_udp) {
   enum dlep_parser_error result;
   uint16_t original_signal_type;
   int32_t signal_type;
@@ -403,10 +385,10 @@ dlep_session_process_signal(struct dlep_session *session,
 
   if (length < 4) {
     /* not enough data for a signal type */
-    OONF_DEBUG(session->log_source, "Not enough data to process"
-        " signal from %s (%" PRINTF_SIZE_T_SPECIFIER" bytes)",
-        netaddr_socket_to_string(&nbuf, &session->remote_socket),
-        length);
+    OONF_DEBUG(session->log_source,
+      "Not enough data to process"
+      " signal from %s (%" PRINTF_SIZE_T_SPECIFIER " bytes)",
+      netaddr_socket_to_string(&nbuf, &session->remote_socket), length);
 
     return 0;
   }
@@ -425,31 +407,28 @@ dlep_session_process_signal(struct dlep_session *session,
 
   if (length < (size_t)signal_length + 4u) {
     /* not enough data for signal */
-    OONF_DEBUG(session->log_source, "Not enough data to process"
-        " signal %u (length %u) from %s"
-        " (%" PRINTF_SIZE_T_SPECIFIER" bytes)",
-        signal_type, signal_length,
-        netaddr_socket_to_string(&nbuf, &session->remote_socket),
-        length);
+    OONF_DEBUG(session->log_source,
+      "Not enough data to process"
+      " signal %u (length %u) from %s"
+      " (%" PRINTF_SIZE_T_SPECIFIER " bytes)",
+      signal_type, signal_length, netaddr_socket_to_string(&nbuf, &session->remote_socket), length);
     return 0;
   }
 
   OONF_DEBUG_HEX(session->log_source, buffer, signal_length + 4,
-      "Process signal %d from %s (%" PRINTF_SIZE_T_SPECIFIER" bytes)",
-      signal_type,
-      netaddr_socket_to_string(&nbuf, &session->remote_socket),
-      length);
+    "Process signal %d from %s (%" PRINTF_SIZE_T_SPECIFIER " bytes)", signal_type,
+    netaddr_socket_to_string(&nbuf, &session->remote_socket), length);
 
-  if (session->restrict_signal != DLEP_ALL_SIGNALS
-      && session->restrict_signal != signal_type) {
-    OONF_DEBUG(session->log_source, "Signal should have been %d,"
-        " drop session", session->restrict_signal);
+  if (session->restrict_signal != DLEP_ALL_SIGNALS && session->restrict_signal != signal_type) {
+    OONF_DEBUG(session->log_source,
+      "Signal should have been %d,"
+      " drop session",
+      session->restrict_signal);
     /* we only accept a single type and we got the wrong one */
     return -1;
   }
 
-  result = _process_tlvs(session,
-      signal_type, signal_length, &buffer[4]);
+  result = _process_tlvs(session, signal_type, signal_length, &buffer[4]);
 
   if (result == DLEP_NEW_PARSER_TERMINDATED) {
     /* session is now invalid, end parser */
@@ -474,8 +453,7 @@ dlep_session_process_signal(struct dlep_session *session,
  * @return pointer to dlep neighbor, NULL if out of memory
  */
 struct dlep_local_neighbor *
-dlep_session_add_local_neighbor(struct dlep_session *session,
-    const struct netaddr *neigh) {
+dlep_session_add_local_neighbor(struct dlep_session *session, const struct netaddr *neigh) {
   struct dlep_local_neighbor *local;
   if ((local = dlep_session_get_local_neighbor(session, neigh))) {
     return local;
@@ -497,7 +475,6 @@ dlep_session_add_local_neighbor(struct dlep_session *session,
   /* initialize backpointer */
   local->session = session;
 
-
   avl_init(&local->_ip_prefix_modification, avl_comp_netaddr, false);
 
   return local;
@@ -509,8 +486,7 @@ dlep_session_add_local_neighbor(struct dlep_session *session,
  * @param local DLEP neighbor
  */
 void
-dlep_session_remove_local_neighbor(struct dlep_session *session,
-    struct dlep_local_neighbor *local) {
+dlep_session_remove_local_neighbor(struct dlep_session *session, struct dlep_local_neighbor *local) {
   avl_remove(&session->local_neighbor_tree, &local->_node);
   oonf_timer_stop(&local->_ack_timeout);
   oonf_class_free(&_local_neighbor_class, local);
@@ -523,8 +499,7 @@ dlep_session_remove_local_neighbor(struct dlep_session *session,
  * @return layer2 neighbor, NULL if not found
  */
 struct oonf_layer2_neigh *
-dlep_session_get_local_l2_neighbor(struct dlep_session *session,
-    const struct netaddr *neigh) {
+dlep_session_get_local_l2_neighbor(struct dlep_session *session, const struct netaddr *neigh) {
   struct dlep_local_neighbor *dlep_neigh;
   struct oonf_layer2_neigh *l2neigh;
   struct oonf_layer2_net *l2net;
@@ -534,23 +509,22 @@ dlep_session_get_local_l2_neighbor(struct dlep_session *session,
 
   dlep_neigh = dlep_session_get_local_neighbor(session, neigh);
   if (!dlep_neigh) {
-    OONF_INFO(session->log_source, "Could not find local neighbor for %s",
-        netaddr_to_string(&nbuf1, neigh));
+    OONF_INFO(session->log_source, "Could not find local neighbor for %s", netaddr_to_string(&nbuf1, neigh));
     return NULL;
   }
 
   l2net = oonf_layer2_net_get(session->l2_listener.name);
   if (!l2net) {
-    OONF_DEBUG(session->log_source, "Could not find l2net %s for new neighbor",
-        session->l2_listener.name);
+    OONF_DEBUG(session->log_source, "Could not find l2net %s for new neighbor", session->l2_listener.name);
     return NULL;
   }
 
   l2neigh = oonf_layer2_neigh_get(l2net, &dlep_neigh->neigh_addr);
   if (!l2neigh) {
-    OONF_INFO(session->log_source, "Could not find l2neigh "
-        "for neighbor %s (%s)", netaddr_to_string(&nbuf1, neigh),
-        netaddr_to_string(&nbuf2, &dlep_neigh->neigh_addr));
+    OONF_INFO(session->log_source,
+      "Could not find l2neigh "
+      "for neighbor %s (%s)",
+      netaddr_to_string(&nbuf1, neigh), netaddr_to_string(&nbuf2, &dlep_neigh->neigh_addr));
     return NULL;
   }
   return l2neigh;
@@ -567,14 +541,16 @@ dlep_session_get_l2_from_neighbor(struct dlep_local_neighbor *dlep_neigh) {
   l2net = oonf_layer2_net_get(dlep_neigh->session->l2_listener.name);
   if (!l2net) {
     OONF_DEBUG(dlep_neigh->session->log_source, "Could not find l2net %s for new neighbor",
-        dlep_neigh->session->l2_listener.name);
+      dlep_neigh->session->l2_listener.name);
     return NULL;
   }
 
   l2neigh = oonf_layer2_neigh_get(l2net, &dlep_neigh->neigh_addr);
   if (!l2neigh) {
-    OONF_INFO(dlep_neigh->session->log_source, "Could not find l2neigh "
-        "for neighbor %s", netaddr_to_string(&nbuf, &dlep_neigh->neigh_addr));
+    OONF_INFO(dlep_neigh->session->log_source,
+      "Could not find l2neigh "
+      "for neighbor %s",
+      netaddr_to_string(&nbuf, &dlep_neigh->neigh_addr));
     return NULL;
   }
   return l2neigh;
@@ -589,44 +565,39 @@ dlep_session_get_l2_from_neighbor(struct dlep_local_neighbor *dlep_neigh) {
  * @return -1 if an error happened, 0 otherwise
  */
 static int
-_generate_signal(struct dlep_session *session, int32_t signal,
-    const struct netaddr *neighbor) {
+_generate_signal(struct dlep_session *session, int32_t signal, const struct netaddr *neighbor) {
   struct dlep_extension *ext;
-  size_t e,s;
+  size_t e, s;
 
   size_t len;
 #ifdef OONF_LOG_DEBUG_INFO
   struct netaddr_str nbuf1, nbuf2;
 #endif
 
-  OONF_DEBUG(session->log_source, "Generate signal %u for %s on %s (%s)",
-      signal, netaddr_to_string(&nbuf1, neighbor),
-      session->l2_listener.name,
-      netaddr_socket_to_string(&nbuf2, &session->remote_socket));
+  OONF_DEBUG(session->log_source, "Generate signal %u for %s on %s (%s)", signal, netaddr_to_string(&nbuf1, neighbor),
+    session->l2_listener.name, netaddr_socket_to_string(&nbuf2, &session->remote_socket));
 
   len = abuf_getlen(session->writer.out);
 
   /* generate signal, mask out UDP/TCP difference */
   dlep_writer_start_signal(&session->writer, signal & 65535);
-  for (e=0; e<session->parser.extension_count; e++) {
+  for (e = 0; e < session->parser.extension_count; e++) {
     ext = session->parser.extensions[e];
 
-    for (s=0; s<ext->signal_count; s++) {
+    for (s = 0; s < ext->signal_count; s++) {
       if (ext->signals[s].id != signal) {
         continue;
       }
 
       if (session->radio && ext->signals[s].add_radio_tlvs) {
-        OONF_DEBUG(session->log_source,
-            "Add tlvs for radio extension %d", ext->id);
+        OONF_DEBUG(session->log_source, "Add tlvs for radio extension %d", ext->id);
         if (ext->signals[s].add_radio_tlvs(ext, session, neighbor)) {
           abuf_setlen(session->writer.out, len);
           return -1;
         }
       }
       else if (!session->radio && ext->signals[s].add_router_tlvs) {
-        OONF_DEBUG(session->log_source,
-            "Add tlvs for router extension %d", ext->id);
+        OONF_DEBUG(session->log_source, "Add tlvs for router extension %d", ext->id);
         if (ext->signals[s].add_router_tlvs(ext, session, neighbor)) {
           abuf_setlen(session->writer.out, len);
           return -1;
@@ -636,9 +607,8 @@ _generate_signal(struct dlep_session *session, int32_t signal,
     }
   }
 
-  OONF_DEBUG(session->log_source, "generated %"
-      PRINTF_SIZE_T_SPECIFIER " bytes",
-      abuf_getlen(session->writer.out) - len);
+  OONF_DEBUG(
+    session->log_source, "generated %" PRINTF_SIZE_T_SPECIFIER " bytes", abuf_getlen(session->writer.out) - len);
   return 0;
 }
 
@@ -651,8 +621,7 @@ _generate_signal(struct dlep_session *session, int32_t signal,
  * @return -1 if an error happened, 0 otherwise
  */
 int
-dlep_session_generate_signal(struct dlep_session *session, int32_t signal,
-    const struct netaddr *neighbor) {
+dlep_session_generate_signal(struct dlep_session *session, int32_t signal, const struct netaddr *neighbor) {
   if (_generate_signal(session, signal, neighbor)) {
     OONF_WARN(session->log_source, "Could not generate signal %u", signal);
     return -1;
@@ -671,9 +640,8 @@ dlep_session_generate_signal(struct dlep_session *session, int32_t signal,
  * @return -1 if an error happened, 0 otherwise
  */
 int
-dlep_session_generate_signal_status(struct dlep_session *session,
-    int32_t signal, const struct netaddr *neighbor,
-    enum dlep_status status, const char *msg) {
+dlep_session_generate_signal_status(struct dlep_session *session, int32_t signal, const struct netaddr *neighbor,
+  enum dlep_status status, const char *msg) {
   if (_generate_signal(session, signal, neighbor)) {
     OONF_WARN(session->log_source, "Could not generate signal %u", signal);
     return -1;
@@ -692,8 +660,7 @@ dlep_session_generate_signal_status(struct dlep_session *session,
  * @return DLEP value, NULL if not found
  */
 struct dlep_parser_value *
-dlep_session_get_tlv_value(
-    struct dlep_session *session, uint16_t tlvtype) {
+dlep_session_get_tlv_value(struct dlep_session *session, uint16_t tlvtype) {
   struct dlep_parser_tlv *tlv;
   struct dlep_parser_value *value;
 
@@ -752,11 +719,11 @@ _update_allowed_tlvs(struct dlep_session *session) {
         tlv->length_min = ext->tlvs[t].length_min;
         tlv->length_max = ext->tlvs[t].length_max;
       }
-      else if (
-          tlv->length_min != ext->tlvs[t].length_min
-          || tlv->length_max != ext->tlvs[t].length_max) {
-        OONF_WARN(session->log_source, "Two extensions conflict about"
-            " tlv %u minimal/maximum length", id);
+      else if (tlv->length_min != ext->tlvs[t].length_min || tlv->length_max != ext->tlvs[t].length_max) {
+        OONF_WARN(session->log_source,
+          "Two extensions conflict about"
+          " tlv %u minimal/maximum length",
+          id);
         return -1;
       }
 
@@ -783,8 +750,7 @@ _update_allowed_tlvs(struct dlep_session *session) {
  * @return dlep parser error, 0 of everything is fine
  */
 static enum dlep_parser_error
-_handle_extension(struct dlep_session *session,
-    struct dlep_extension *ext, uint32_t signal_type) {
+_handle_extension(struct dlep_session *session, struct dlep_extension *ext, uint32_t signal_type) {
   enum dlep_parser_error result;
   bool active;
   size_t e;
@@ -792,7 +758,7 @@ _handle_extension(struct dlep_session *session,
   active = false;
 
   /* only handle active extensions */
-  for (e=0; e<session->parser.extension_count; e++) {
+  for (e = 0; e < session->parser.extension_count; e++) {
     if (session->parser.extensions[e] == ext) {
       active = true;
       break;
@@ -813,8 +779,7 @@ _handle_extension(struct dlep_session *session,
   }
 
   if ((result = _call_extension_processing(session, ext, signal_type))) {
-    OONF_DEBUG(session->log_source,
-        "extension processing failed: %d", result);
+    OONF_DEBUG(session->log_source, "extension processing failed: %d", result);
     return result;
   }
 
@@ -830,8 +795,7 @@ _handle_extension(struct dlep_session *session,
  * @return dlep parser status
  */
 static enum dlep_parser_error
-_process_tlvs(struct dlep_session *session,
-    int32_t signal_type, uint16_t signal_length, const uint8_t *tlvs) {
+_process_tlvs(struct dlep_session *session, int32_t signal_type, uint16_t signal_length, const uint8_t *tlvs) {
   enum dlep_parser_error result;
   struct dlep_extension *ext;
 
@@ -856,8 +820,7 @@ _process_tlvs(struct dlep_session *session,
  */
 static void
 _send_terminate(struct dlep_session *session) {
-  if (session->restrict_signal != DLEP_UDP_PEER_DISCOVERY
-      && session->restrict_signal != DLEP_UDP_PEER_OFFER) {
+  if (session->restrict_signal != DLEP_UDP_PEER_DISCOVERY && session->restrict_signal != DLEP_UDP_PEER_OFFER) {
     dlep_session_generate_signal(session, DLEP_SESSION_TERMINATION, NULL);
 
     session->restrict_signal = DLEP_SESSION_TERMINATION_ACK;
@@ -887,8 +850,7 @@ _cb_destination_timeout(struct oonf_timer_instance *ptr) {
  * @return DLEP parser status
  */
 static enum dlep_parser_error
-_parse_tlvstream(struct dlep_session *session,
-    const uint8_t *buffer, size_t length) {
+_parse_tlvstream(struct dlep_session *session, const uint8_t *buffer, size_t length) {
   struct dlep_session_parser *parser;
   struct dlep_parser_tlv *tlv;
   struct dlep_parser_value *value;
@@ -922,33 +884,33 @@ _parse_tlvstream(struct dlep_session *session,
     tlv_length = ntohs(tlv_length);
 
     if (idx + tlv_length > length) {
-      OONF_WARN(session->log_source, "TLV %u incomplete: "
-          "%"PRINTF_SIZE_T_SPECIFIER" > %"PRINTF_SIZE_T_SPECIFIER,
-          tlv_type, idx + tlv_length, length);
+      OONF_WARN(session->log_source,
+        "TLV %u incomplete: "
+        "%" PRINTF_SIZE_T_SPECIFIER " > %" PRINTF_SIZE_T_SPECIFIER,
+        tlv_type, idx + tlv_length, length);
       return DLEP_NEW_PARSER_INCOMPLETE_TLV;
     }
 
     /* check if tlv is supported */
     tlv = dlep_parser_get_tlv(parser, tlv_type);
     if (!tlv) {
-      OONF_INFO(session->log_source, "Unsupported TLV %u",
-          tlv_type);
+      OONF_INFO(session->log_source, "Unsupported TLV %u", tlv_type);
       return DLEP_NEW_PARSER_UNSUPPORTED_TLV;
     }
 
     /* check length */
     if (tlv->length_max < tlv_length || tlv->length_min > tlv_length) {
-      OONF_WARN(session->log_source, "TLV %u has wrong size,"
-          " %d is not between %u and %u",
-          tlv_type, tlv_length, tlv->length_min, tlv->length_max);
+      OONF_WARN(session->log_source,
+        "TLV %u has wrong size,"
+        " %d is not between %u and %u",
+        tlv_type, tlv_length, tlv->length_min, tlv->length_max);
       return DLEP_NEW_PARSER_ILLEGAL_TLV_LENGTH;
     }
 
     /* check if we need to allocate more space for value pointers */
     if (parser->value_max_count == tlv_count) {
       /* allocate more */
-      value = realloc(parser->values,
-          sizeof(*value) * (tlv_count + SESSION_VALUE_STEP));
+      value = realloc(parser->values, sizeof(*value) * (tlv_count + SESSION_VALUE_STEP));
       if (!value) {
         return DLEP_NEW_PARSER_OUT_OF_MEMORY;
       }
@@ -973,7 +935,7 @@ _parse_tlvstream(struct dlep_session *session,
       value = &parser->values[tlv->tlv_last];
       value->tlv_next = tlv_count;
     }
-    tlv->tlv_last  = tlv_count;
+    tlv->tlv_last = tlv_count;
     tlv_count++;
 
     idx += tlv_length;
@@ -990,12 +952,11 @@ _parse_tlvstream(struct dlep_session *session,
  * @return dlep parser status
  */
 static enum dlep_parser_error
-_check_mandatory(struct dlep_session *session,
-    struct dlep_extension *ext, int32_t signal_type) {
+_check_mandatory(struct dlep_session *session, struct dlep_extension *ext, int32_t signal_type) {
   struct dlep_session_parser *parser;
   struct dlep_parser_tlv *tlv;
   struct dlep_extension_signal *extsig;
-  size_t s,t;
+  size_t s, t;
 
   parser = &session->parser;
 
@@ -1014,16 +975,18 @@ _check_mandatory(struct dlep_session *session,
   for (t = 0; t < extsig->mandatory_tlv_count; t++) {
     tlv = dlep_parser_get_tlv(parser, extsig->mandatory_tlvs[t]);
     if (!tlv) {
-      OONF_WARN(session->log_source, "Could not find tlv data for"
-          " mandatory TLV %u in extension %d",
-          extsig->mandatory_tlvs[t], ext->id);
+      OONF_WARN(session->log_source,
+        "Could not find tlv data for"
+        " mandatory TLV %u in extension %d",
+        extsig->mandatory_tlvs[t], ext->id);
       return DLEP_NEW_PARSER_INTERNAL_ERROR;
     }
 
     if (tlv->tlv_first == -1) {
-      OONF_WARN(session->log_source, "Missing mandatory TLV"
-          " %u in extension %d",
-          extsig->mandatory_tlvs[t], ext->id);
+      OONF_WARN(session->log_source,
+        "Missing mandatory TLV"
+        " %u in extension %d",
+        extsig->mandatory_tlvs[t], ext->id);
       return DLEP_NEW_PARSER_MISSING_MANDATORY_TLV;
     }
   }
@@ -1038,8 +1001,7 @@ _check_mandatory(struct dlep_session *session,
  * @return dlep parser status
  */
 static enum dlep_parser_error
-_check_duplicate(struct dlep_session *session,
-    struct dlep_extension *ext, int32_t signal_type) {
+_check_duplicate(struct dlep_session *session, struct dlep_extension *ext, int32_t signal_type) {
   struct dlep_session_parser *parser;
   struct dlep_parser_tlv *tlv;
   struct dlep_extension_signal *extsig;
@@ -1075,8 +1037,10 @@ _check_duplicate(struct dlep_session *session,
       }
     }
     if (!okay) {
-      OONF_WARN(session->log_source, "Duplicate not allowed"
-          " for TLV %u in extension %d", tlv->id, ext->id);
+      OONF_WARN(session->log_source,
+        "Duplicate not allowed"
+        " for TLV %u in extension %d",
+        tlv->id, ext->id);
       return DLEP_NEW_PARSER_DUPLICATE_TLV;
     }
   }
@@ -1091,26 +1055,23 @@ _check_duplicate(struct dlep_session *session,
  * @return dlep parser status
  */
 static enum dlep_parser_error
-_call_extension_processing(struct dlep_session *session,
-    struct dlep_extension *ext, int32_t signal_type) {
+_call_extension_processing(struct dlep_session *session, struct dlep_extension *ext, int32_t signal_type) {
   size_t s;
 
-  for (s=0; s<ext->signal_count; s++) {
+  for (s = 0; s < ext->signal_count; s++) {
     if (ext->signals[s].id != signal_type) {
       continue;
     }
 
     if (session->radio) {
       if (ext->signals[s].process_radio(ext, session)) {
-        OONF_DEBUG(session->log_source,
-            "Error in radio signal processing of extension '%s'", ext->name);
+        OONF_DEBUG(session->log_source, "Error in radio signal processing of extension '%s'", ext->name);
         return -1;
       }
     }
     else {
       if (ext->signals[s].process_router(ext, session)) {
-        OONF_DEBUG(session->log_source,
-            "Error in router signal processing of extension '%s'", ext->name);
+        OONF_DEBUG(session->log_source, "Error in router signal processing of extension '%s'", ext->name);
         return -1;
       }
     }
@@ -1137,7 +1098,7 @@ _add_session_tlv(struct dlep_session_parser *parser, uint16_t id) {
   tlv->id = id;
   tlv->_node.key = &tlv->id;
   tlv->tlv_first = -1;
-  tlv->tlv_last  = -1;
+  tlv->tlv_last = -1;
 
   avl_insert(&parser->allowed_tlvs, &tlv->_node);
   return tlv;

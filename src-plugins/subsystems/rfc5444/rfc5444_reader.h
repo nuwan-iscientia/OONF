@@ -46,16 +46,17 @@
 #ifndef RFC5444_PARSER_H_
 #define RFC5444_PARSER_H_
 
-#include "common/common_types.h"
 #include "common/avl.h"
 #include "common/bitmap256.h"
+#include "common/common_types.h"
 #include "common/netaddr.h"
 #include "rfc5444_context.h"
 
 /**
  * type of context for a rfc5444_reader_tlvblock_context
  */
-enum rfc5444_reader_tlvblock_context_type {
+enum rfc5444_reader_tlvblock_context_type
+{
   RFC5444_CONTEXT_PACKET,
   RFC5444_CONTEXT_MESSAGE,
   RFC5444_CONTEXT_ADDRESS
@@ -340,8 +341,7 @@ struct rfc5444_reader_tlvblock_consumer {
    * @param dropped true if the context will be dropped
    * @return rfc5444 result
    */
-  enum rfc5444_result (*end_callback)(
-      struct rfc5444_reader_tlvblock_context *context, bool dropped);
+  enum rfc5444_result (*end_callback)(struct rfc5444_reader_tlvblock_context *context, bool dropped);
 
   /**
    * Callback triggered once for each tlv in context
@@ -349,8 +349,8 @@ struct rfc5444_reader_tlvblock_consumer {
    * @param context packet, message or address context
    * @return rfc5444 result
    */
-  enum rfc5444_result (*tlv_callback)(struct rfc5444_reader_tlvblock_entry *entry,
-      struct rfc5444_reader_tlvblock_context *context);
+  enum rfc5444_result (*tlv_callback)(
+    struct rfc5444_reader_tlvblock_entry *entry, struct rfc5444_reader_tlvblock_context *context);
 
   /**
    * Callback triggered when all requested TLVs have been parser
@@ -365,8 +365,7 @@ struct rfc5444_reader_tlvblock_consumer {
    * @param context packet, message or address context
    * @return rfc5444 result
    */
-  enum rfc5444_result (*block_callback_failed_constraints)(
-      struct rfc5444_reader_tlvblock_context *context);
+  enum rfc5444_result (*block_callback_failed_constraints)(struct rfc5444_reader_tlvblock_context *context);
 };
 
 /**
@@ -385,20 +384,19 @@ struct rfc5444_reader {
    * @param buffer pointer to message
    * @param length length of message
    */
-  void (*forward_message)(struct rfc5444_reader_tlvblock_context *context,
-      const uint8_t *buffer, size_t length);
+  void (*forward_message)(struct rfc5444_reader_tlvblock_context *context, const uint8_t *buffer, size_t length);
 
   /**
    * Callback to allocate a tlvblock entry
    * @return tlvblock entry, NULL if out of memory
    */
-  struct rfc5444_reader_tlvblock_entry* (*malloc_tlvblock_entry)(void);
+  struct rfc5444_reader_tlvblock_entry *(*malloc_tlvblock_entry)(void);
 
   /**
    * Callback to allocate an addressblock entry
    * @return addressblock entry, NULL if out of memory
    */
-  struct rfc5444_reader_addrblock_entry* (*malloc_addrblock_entry)(void);
+  struct rfc5444_reader_addrblock_entry *(*malloc_addrblock_entry)(void);
 
   /**
    * Free a tlvblock entry
@@ -416,20 +414,15 @@ struct rfc5444_reader {
 EXPORT void rfc5444_reader_init(struct rfc5444_reader *);
 EXPORT void rfc5444_reader_cleanup(struct rfc5444_reader *);
 EXPORT void rfc5444_reader_add_packet_consumer(struct rfc5444_reader *parser,
-    struct rfc5444_reader_tlvblock_consumer *consumer,
-    struct rfc5444_reader_tlvblock_consumer_entry *entries, size_t entrycount);
-EXPORT void rfc5444_reader_add_message_consumer(struct rfc5444_reader *,
-    struct rfc5444_reader_tlvblock_consumer *,
-    struct rfc5444_reader_tlvblock_consumer_entry *,
-    size_t entrycount);
+  struct rfc5444_reader_tlvblock_consumer *consumer, struct rfc5444_reader_tlvblock_consumer_entry *entries,
+  size_t entrycount);
+EXPORT void rfc5444_reader_add_message_consumer(struct rfc5444_reader *, struct rfc5444_reader_tlvblock_consumer *,
+  struct rfc5444_reader_tlvblock_consumer_entry *, size_t entrycount);
 
-EXPORT void rfc5444_reader_remove_packet_consumer(
-    struct rfc5444_reader *, struct rfc5444_reader_tlvblock_consumer *);
-EXPORT void rfc5444_reader_remove_message_consumer(
-    struct rfc5444_reader *, struct rfc5444_reader_tlvblock_consumer *);
+EXPORT void rfc5444_reader_remove_packet_consumer(struct rfc5444_reader *, struct rfc5444_reader_tlvblock_consumer *);
+EXPORT void rfc5444_reader_remove_message_consumer(struct rfc5444_reader *, struct rfc5444_reader_tlvblock_consumer *);
 
-EXPORT int rfc5444_reader_handle_packet(
-    struct rfc5444_reader *parser, const uint8_t *buffer, size_t length);
+EXPORT int rfc5444_reader_handle_packet(struct rfc5444_reader *parser, const uint8_t *buffer, size_t length);
 
 /**
  * Call to set the do-not-forward flag in message context

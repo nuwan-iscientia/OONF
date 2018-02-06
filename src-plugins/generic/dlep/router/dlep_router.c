@@ -46,17 +46,17 @@
 #include <errno.h>
 #include <unistd.h>
 
-#include "common/common_types.h"
 #include "common/avl.h"
 #include "common/avl_comp.h"
+#include "common/common_types.h"
 #include "common/netaddr.h"
 
 #include "config/cfg_schema.h"
 #include "core/oonf_subsystem.h"
 #include "subsystems/oonf_class.h"
 #include "subsystems/oonf_layer2.h"
-#include "subsystems/oonf_stream_socket.h"
 #include "subsystems/oonf_packet_socket.h"
+#include "subsystems/oonf_stream_socket.h"
 #include "subsystems/oonf_timer.h"
 
 #include "dlep/dlep_iana.h"
@@ -87,24 +87,23 @@ static struct cfg_schema_entry _router_entries[] = {
   CFG_MAP_ACL_V46(dlep_router_if, interf.udp_config.bindto, "discovery_bindto", "224.0.0.1\0fe80::/10",
     "Filter to determine the binding of the UDP discovery socket"),
 
-  CFG_MAP_CLOCK_MIN(dlep_router_if, interf.session.cfg.discovery_interval,
-    "discovery_interval", "1.000",
+  CFG_MAP_CLOCK_MIN(dlep_router_if, interf.session.cfg.discovery_interval, "discovery_interval", "1.000",
     "Interval in seconds between two discovery beacons", 1000),
-  CFG_MAP_CLOCK_MINMAX(dlep_router_if, interf.session.cfg.heartbeat_interval,
-      "heartbeat_interval", "1.000",
+  CFG_MAP_CLOCK_MINMAX(dlep_router_if, interf.session.cfg.heartbeat_interval, "heartbeat_interval", "1.000",
     "Interval in seconds between two heartbeat signals", 1000, 65535000),
 
   CFG_MAP_BOOL(dlep_router_if, interf.single_session, "single_session", "true",
-      "Restrict DLEP router to single session per interface"),
+    "Restrict DLEP router to single session per interface"),
 
   CFG_MAP_STRING_ARRAY(dlep_router_if, interf.udp_config.interface, "datapath_if", "",
-      "Overwrite datapath interface for incoming dlep traffic, used for"
-      " receiving DLEP data through out-of-band channel.", IF_NAMESIZE),
+    "Overwrite datapath interface for incoming dlep traffic, used for"
+    " receiving DLEP data through out-of-band channel.",
+    IF_NAMESIZE),
 
   CFG_MAP_NETADDR_V46(dlep_router_if, connect_to_addr, "connect_to", "-",
-      "IP to directly connect to a known DLEP radio TCP socket", false, true),
+    "IP to directly connect to a known DLEP radio TCP socket", false, true),
   CFG_MAP_INT32_MINMAX(dlep_router_if, connect_to_port, "connect_to_port", "1",
-      "TCP port to directly connect to a known DLEP radio TCP socket", 0, 1, 65535),
+    "TCP port to directly connect to a known DLEP radio TCP socket", 0, 1, 65535),
 };
 
 static struct cfg_schema_section _router_section = {
@@ -203,22 +202,18 @@ _cb_config_changed(void) {
   }
 
   /* read configuration */
-  if (cfg_schema_tobin(interface, _router_section.post,
-      _router_entries, ARRAYSIZE(_router_entries))) {
-    OONF_WARN(LOG_DLEP_ROUTER, "Could not convert "
-        OONF_DLEP_ROUTER_SUBSYSTEM " config to bin");
+  if (cfg_schema_tobin(interface, _router_section.post, _router_entries, ARRAYSIZE(_router_entries))) {
+    OONF_WARN(LOG_DLEP_ROUTER, "Could not convert " OONF_DLEP_ROUTER_SUBSYSTEM " config to bin");
     return;
   }
 
   /* use section name as default for datapath interface */
   if (!interface->interf.udp_config.interface[0]) {
-    strscpy(interface->interf.udp_config.interface,
-        _router_section.section_name,
-        sizeof(interface->interf.udp_config.interface));
+    strscpy(interface->interf.udp_config.interface, _router_section.section_name,
+      sizeof(interface->interf.udp_config.interface));
   }
   else {
-    cfg_get_phy_if(interface->interf.udp_config.interface,
-        interface->interf.udp_config.interface);
+    cfg_get_phy_if(interface->interf.udp_config.interface, interface->interf.udp_config.interface);
   }
 
   /* apply settings */

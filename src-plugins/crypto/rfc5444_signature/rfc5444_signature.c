@@ -43,15 +43,15 @@
  * @file
  */
 
-#include "common/common_types.h"
 #include "common/avl.h"
 #include "common/avl_comp.h"
+#include "common/common_types.h"
 #include "core/oonf_subsystem.h"
+#include "rfc7182_provider/rfc7182_provider.h"
 #include "subsystems/oonf_class.h"
 #include "subsystems/oonf_rfc5444.h"
 #include "subsystems/rfc5444/rfc5444_reader.h"
 #include "subsystems/rfc5444/rfc5444_writer.h"
-#include "rfc7182_provider/rfc7182_provider.h"
 
 #include "rfc5444_signature/rfc5444_signature.h"
 
@@ -61,12 +61,10 @@
 static int _init(void);
 static void _cleanup(void);
 static enum rfc5444_result _cb_signature_tlv(struct rfc5444_reader_tlvblock_context *context);
-static int _cb_add_signature(struct rfc5444_writer_postprocessor *processor,
-    struct rfc5444_writer_target *target, struct rfc5444_writer_message *msg,
-    uint8_t *data, size_t *data_size);
+static int _cb_add_signature(struct rfc5444_writer_postprocessor *processor, struct rfc5444_writer_target *target,
+  struct rfc5444_writer_message *msg, uint8_t *data, size_t *data_size);
 
-static size_t _remove_signature_data(uint8_t *dst,
-    const struct rfc5444_reader_tlvblock_context *context);
+static size_t _remove_signature_data(uint8_t *dst, const struct rfc5444_reader_tlvblock_context *context);
 
 static void _cb_hash_added(void *ptr);
 static void _cb_hash_removed(void *ptr);
@@ -75,13 +73,10 @@ static void _cb_crypt_removed(void *ptr);
 static void _handle_postprocessor(struct rfc5444_signature *sig);
 
 static int _avl_cmp_signatures(const void *, const void *);
-static const void *_cb_get_empty_keyid(
-    struct rfc5444_signature *sig, size_t *len);
-static enum rfc5444_sigid_check _cb_sigid_okay(
-    struct rfc5444_signature *sig, const void *id, size_t len);
+static const void *_cb_get_empty_keyid(struct rfc5444_signature *sig, size_t *len);
+static enum rfc5444_sigid_check _cb_sigid_okay(struct rfc5444_signature *sig, const void *id, size_t len);
 
-static bool _cb_is_matching_signature(
-    struct rfc5444_writer_postprocessor *processor, int msg_type);
+static bool _cb_is_matching_signature(struct rfc5444_writer_postprocessor *processor, int msg_type);
 
 /* plugin declaration */
 static const char *_dependencies[] = {
@@ -151,15 +146,13 @@ static struct oonf_class_extension _crypt_listener = {
  */
 static int
 _init(void) {
-   _protocol = oonf_rfc5444_add_protocol(RFC5444_PROTOCOL, true);
+  _protocol = oonf_rfc5444_add_protocol(RFC5444_PROTOCOL, true);
   if (_protocol == NULL) {
     return -1;
   }
 
-  rfc5444_reader_add_message_consumer(&_protocol->reader,
-      &_signature_msg_consumer, &_msg_signature_tlv, 1);
-  rfc5444_reader_add_packet_consumer(&_protocol->reader,
-      &_signature_pkt_consumer, &_pkt_signature_tlv, 1);
+  rfc5444_reader_add_message_consumer(&_protocol->reader, &_signature_msg_consumer, &_msg_signature_tlv, 1);
+  rfc5444_reader_add_packet_consumer(&_protocol->reader, &_signature_pkt_consumer, &_pkt_signature_tlv, 1);
   avl_init(&_sig_tree, _avl_cmp_signatures, true);
 
   oonf_class_extension_add(&_hash_listener);
@@ -178,10 +171,8 @@ _cleanup(void) {
     rfc5444_sig_remove(sig);
   }
 
-  rfc5444_reader_remove_message_consumer(
-      &_protocol->reader, &_signature_msg_consumer);
-  rfc5444_reader_remove_packet_consumer(
-      &_protocol->reader, &_signature_pkt_consumer);
+  rfc5444_reader_remove_message_consumer(&_protocol->reader, &_signature_msg_consumer);
+  rfc5444_reader_remove_packet_consumer(&_protocol->reader, &_signature_pkt_consumer);
   oonf_rfc5444_remove_protocol(_protocol);
 
   oonf_class_extension_remove(&_hash_listener);
@@ -223,8 +214,7 @@ rfc5444_sig_add(struct rfc5444_signature *sig) {
  */
 void
 rfc5444_sig_remove(struct rfc5444_signature *sig) {
-  rfc5444_writer_unregister_postprocessor(
-      &_protocol->writer, &sig->_postprocessor);
+  rfc5444_writer_unregister_postprocessor(&_protocol->writer, &sig->_postprocessor);
   avl_remove(&_sig_tree, &sig->_node);
 }
 
@@ -278,21 +268,17 @@ _cb_signature_tlv(struct rfc5444_reader_tlvblock_context *context) {
     return RFC5444_OKAY;
   }
 
-  OONF_DEBUG(LOG_RFC5444_SIG,
-      "Start checking signature for message type %d", msg_type);
+  OONF_DEBUG(LOG_RFC5444_SIG, "Start checking signature for message type %d", msg_type);
 
   for (tlv = sig_tlv->tlv; tlv; tlv = tlv->next_entry) {
-    if (tlv->type_ext != RFC7182_ICV_EXT_CRYPTHASH
-        && tlv->type_ext != RFC7182_ICV_EXT_SRCSPEC_CRYPTHASH) {
+    if (tlv->type_ext != RFC7182_ICV_EXT_CRYPTHASH && tlv->type_ext != RFC7182_ICV_EXT_SRCSPEC_CRYPTHASH) {
       /* unknown subtype, just ignore */
-      OONF_INFO(LOG_RFC5444_SIG, "Signature with unknown ext-type: %u",
-          tlv->type_ext);
+      OONF_INFO(LOG_RFC5444_SIG, "Signature with unknown ext-type: %u", tlv->type_ext);
       continue;
     }
     if (tlv->length < 4) {
       /* not enough bytes for valid signature */
-      OONF_INFO(LOG_RFC5444_SIG, "Signature tlv too short: %u bytes",
-          tlv->length);
+      OONF_INFO(LOG_RFC5444_SIG, "Signature tlv too short: %u bytes", tlv->length);
       continue;
     }
 
@@ -302,27 +288,23 @@ _cb_signature_tlv(struct rfc5444_reader_tlvblock_context *context) {
 
     if (tlv->length <= 3 + key_id_len) {
       /* not enouOONF_LOG_DEBUG_INFOgh bytes for valid signature */
-      OONF_INFO_HEX(LOG_RFC5444_SIG, tlv->single_value, tlv->length,
-          "Signature tlv %u/%u too short: %u bytes",
-          tlv->single_value[0], tlv->single_value[1], tlv->length);
+      OONF_INFO_HEX(LOG_RFC5444_SIG, tlv->single_value, tlv->length, "Signature tlv %u/%u too short: %u bytes",
+        tlv->single_value[0], tlv->single_value[1], tlv->length);
       continue;
     }
 
     /* assemble static message buffer */
     if (tlv->type_ext == RFC7182_ICV_EXT_SRCSPEC_CRYPTHASH) {
-      OONF_DEBUG(LOG_RFC5444_SIG, "incoming src IP: %s",
-          netaddr_to_string(&nbuf, _protocol->input_address));
+      OONF_DEBUG(LOG_RFC5444_SIG, "incoming src IP: %s", netaddr_to_string(&nbuf, _protocol->input_address));
 
       /* copy source address into buffer */
-      netaddr_to_binary(_static_message_buffer, _protocol->input_address,
-          sizeof(_static_message_buffer));
+      netaddr_to_binary(_static_message_buffer, _protocol->input_address, sizeof(_static_message_buffer));
       static_length = netaddr_get_binlength(_protocol->input_address);
     }
     else {
       static_length = 0;
     }
-    memcpy(&_static_message_buffer[static_length], tlv->single_value,
-        3 + key_id_len);
+    memcpy(&_static_message_buffer[static_length], tlv->single_value, 3 + key_id_len);
     static_length += 3 + key_id_len;
 
     static_data = &_static_message_buffer[static_length];
@@ -345,7 +327,7 @@ _cb_signature_tlv(struct rfc5444_reader_tlvblock_context *context) {
       if (check == RFC5444_SIGID_IGNORE) {
         /* signature wants to ignore this TLV */
         continue;
-       }
+      }
       if (check == RFC5444_SIGID_DROP) {
         /* signature wants us to drop this context */
         OONF_INFO(LOG_RFC5444_SIG, "Dropped message because of wrong key-id");
@@ -357,13 +339,11 @@ _cb_signature_tlv(struct rfc5444_reader_tlvblock_context *context) {
 
       /* check signature */
       key = sig->getCryptoKey(sig, &key_length);
-      sig->verified = sig->crypt->validate(sig->crypt, sig->hash,
-          &tlv->single_value[3+key_id_len], tlv->length - 3 - key_id_len,
-          _static_message_buffer, static_length,
-          key, key_length);
+      sig->verified = sig->crypt->validate(sig->crypt, sig->hash, &tlv->single_value[3 + key_id_len],
+        tlv->length - 3 - key_id_len, _static_message_buffer, static_length, key, key_length);
 
-      OONF_DEBUG(LOG_RFC5444_SIG, "Checked signature hash=%d/crypt=%d: %s",
-          sig->key.hash_function, sig->key.crypt_function, sig->verified ? "check" : "bad");
+      OONF_DEBUG(LOG_RFC5444_SIG, "Checked signature hash=%d/crypt=%d: %s", sig->key.hash_function,
+        sig->key.crypt_function, sig->verified ? "check" : "bad");
     }
   }
 
@@ -371,14 +351,14 @@ _cb_signature_tlv(struct rfc5444_reader_tlvblock_context *context) {
   avl_for_each_element(&_sig_tree, sig, _node) {
     if (!sig->verified && sig->_must_be_verified) {
       OONF_INFO(LOG_RFC5444_SIG, "Dropped %s because bad/missing signature",
-          msg_type == RFC5444_WRITER_PKT_POSTPROCESSOR ? "packet" : "message");
+        msg_type == RFC5444_WRITER_PKT_POSTPROCESSOR ? "packet" : "message");
       return drop_value;
     }
   }
 
   if (sig_to_verify) {
-    OONF_INFO(LOG_RFC5444_SIG, "%s signature valid!",
-        msg_type == RFC5444_WRITER_PKT_POSTPROCESSOR ? "packet" : "message");
+    OONF_INFO(
+      LOG_RFC5444_SIG, "%s signature valid!", msg_type == RFC5444_WRITER_PKT_POSTPROCESSOR ? "packet" : "message");
   }
   return RFC5444_OKAY;
 }
@@ -393,9 +373,8 @@ _cb_signature_tlv(struct rfc5444_reader_tlvblock_context *context) {
  * @return -1 if an error happened, 0 otherwise
  */
 static int
-_cb_add_signature(struct rfc5444_writer_postprocessor *processor,
-    struct rfc5444_writer_target *target, struct rfc5444_writer_message *msg,
-    uint8_t *data, size_t *data_size) {
+_cb_add_signature(struct rfc5444_writer_postprocessor *processor, struct rfc5444_writer_target *target,
+  struct rfc5444_writer_message *msg, uint8_t *data, size_t *data_size) {
   struct rfc5444_signature *sig;
   struct oonf_rfc5444_target *oonf_target;
   const union netaddr_socket *local_socket;
@@ -420,8 +399,7 @@ _cb_add_signature(struct rfc5444_writer_postprocessor *processor,
     OONF_INFO(LOG_RFC5444_SIG, "Add signature data to packet");
   }
   else {
-    OONF_INFO(LOG_RFC5444_SIG, "Add signature data to message %u",
-        msg->type);
+    OONF_INFO(LOG_RFC5444_SIG, "Add signature data to message %u", msg->type);
   }
   oonf_target = oonf_rfc5444_get_target_from_rfc5444_target(target);
 
@@ -434,8 +412,7 @@ _cb_add_signature(struct rfc5444_writer_postprocessor *processor,
     if (netaddr_from_socket(&srcaddr, local_socket)) {
       return -1;
     }
-    OONF_DEBUG(LOG_RFC5444_SIG, "outgoing src IP: %s",
-        netaddr_to_string(&nbuf, &srcaddr));
+    OONF_DEBUG(LOG_RFC5444_SIG, "outgoing src IP: %s", netaddr_to_string(&nbuf, &srcaddr));
 
     netaddr_to_binary(_static_message_buffer, &srcaddr, sizeof(_static_message_buffer));
     idx = netaddr_get_binlength(&srcaddr);
@@ -477,8 +454,8 @@ _cb_add_signature(struct rfc5444_writer_postprocessor *processor,
       tlvblock++;
     }
     if (msg->has_seqno) {
-      idx+=2;
-      tlvblock+=2;
+      idx += 2;
+      tlvblock += 2;
     }
   }
   else {
@@ -496,17 +473,17 @@ _cb_add_signature(struct rfc5444_writer_postprocessor *processor,
   /* calculate encrypted hash value */
   crypt_len = sizeof(_crypt_buffer);
   key = sig->getCryptoKey(sig, &key_size);
-  if (sig->crypt->sign(sig->crypt, sig->hash, _crypt_buffer, &crypt_len,
-      _static_message_buffer, hash_buffer_size,
-      key, key_size)) {
+  if (sig->crypt->sign(
+        sig->crypt, sig->hash, _crypt_buffer, &crypt_len, _static_message_buffer, hash_buffer_size, key, key_size)) {
     OONF_WARN(LOG_RFC5444_SIG, "Signature generation failed");
     return -1;
   }
 
   if (crypt_len > sig->crypt->getSignSize(sig->crypt, sig->hash)) {
-    OONF_WARN(LOG_RFC5444_SIG, "Signature too long: "
-        "%"PRINTF_SIZE_T_SPECIFIER" > %"PRINTF_SIZE_T_SPECIFIER,
-        crypt_len, sig->crypt->getSignSize(sig->crypt, sig->hash));
+    OONF_WARN(LOG_RFC5444_SIG,
+      "Signature too long: "
+      "%" PRINTF_SIZE_T_SPECIFIER " > %" PRINTF_SIZE_T_SPECIFIER,
+      crypt_len, sig->crypt->getSignSize(sig->crypt, sig->hash));
     return -1;
   }
 
@@ -516,7 +493,7 @@ _cb_add_signature(struct rfc5444_writer_postprocessor *processor,
   /* tlv with type extension and (extended) value */
   sig_tlv_size = 4 + sig_size;
   if (sig_size > 255) {
-    sig_tlv_size ++;
+    sig_tlv_size++;
   }
 
   if (msg == NULL && (data[0] & RFC5444_PKT_FLAG_TLV) == 0) {
@@ -524,8 +501,7 @@ _cb_add_signature(struct rfc5444_writer_postprocessor *processor,
     data[0] |= RFC5444_PKT_FLAG_TLV;
 
     /* add space for signature tlv and tlv block */
-    memmove(tlvblock + 2 + sig_tlv_size,
-        tlvblock, *data_size - (tlvblock - data));
+    memmove(tlvblock + 2 + sig_tlv_size, tlvblock, *data_size - (tlvblock - data));
 
     /* add two bytes for new tlv-block header */
     *data_size += 2;
@@ -536,8 +512,7 @@ _cb_add_signature(struct rfc5444_writer_postprocessor *processor,
   }
   else {
     /* add space for signature tlv */
-    memmove(tlvblock + 2 + sig_tlv_size,
-        tlvblock + 2, *data_size - (tlvblock + 2 - data));
+    memmove(tlvblock + 2 + sig_tlv_size, tlvblock + 2, *data_size - (tlvblock + 2 - data));
   }
   /* write new tlvblock size */
   tlvblock_size = (256 * tlvblock[0] + tlvblock[1]);
@@ -548,8 +523,7 @@ _cb_add_signature(struct rfc5444_writer_postprocessor *processor,
   /* write signature TLV header */
   *tlvblock++ = RFC7182_MSGTLV_ICV;
   if (sig_size > 255) {
-    *tlvblock++ = RFC5444_TLV_FLAG_TYPEEXT |
-        RFC5444_TLV_FLAG_VALUE | RFC5444_TLV_FLAG_EXTVALUE;
+    *tlvblock++ = RFC5444_TLV_FLAG_TYPEEXT | RFC5444_TLV_FLAG_VALUE | RFC5444_TLV_FLAG_EXTVALUE;
   }
   else {
     *tlvblock++ = RFC5444_TLV_FLAG_TYPEEXT | RFC5444_TLV_FLAG_VALUE;
@@ -644,7 +618,6 @@ _remove_signature_data(uint8_t *dst, const struct rfc5444_reader_tlvblock_contex
   }
   dst_ptr = dst;
 
-
   /* copy pakcet/message header */
   memcpy(dst_ptr, src_ptr, len);
 
@@ -665,8 +638,8 @@ _remove_signature_data(uint8_t *dst, const struct rfc5444_reader_tlvblock_contex
   blocklen = 256 * src_ptr[0] + src_ptr[1];
 
   /* skip over message tlv block header, we write the number later */
-  src_ptr +=2;
-  dst_ptr +=2;
+  src_ptr += 2;
+  dst_ptr += 2;
 
   /* loop over message tlvs */
   len = blocklen;
@@ -681,7 +654,7 @@ _remove_signature_data(uint8_t *dst, const struct rfc5444_reader_tlvblock_contex
       /* TLV has a value field */
       if (src_ptr[1] & RFC5444_TLV_FLAG_EXTVALUE) {
         /* 2-byte value */
-        tlvlen += (256 * src_ptr[tlvlen]) + src_ptr[tlvlen+1] + 2;
+        tlvlen += (256 * src_ptr[tlvlen]) + src_ptr[tlvlen + 1] + 2;
       }
       else {
         /* 1-byte value */
@@ -710,7 +683,7 @@ _remove_signature_data(uint8_t *dst, const struct rfc5444_reader_tlvblock_contex
   else {
     /* remove empty packet tlvblock and fix flags */
     dst_ptr -= 2;
-    dst[0] &= ~ RFC5444_PKT_FLAG_TLV;
+    dst[0] &= ~RFC5444_PKT_FLAG_TLV;
   }
 
   /* copy rest of data */
@@ -718,7 +691,7 @@ _remove_signature_data(uint8_t *dst, const struct rfc5444_reader_tlvblock_contex
   memcpy(dst_ptr, src_ptr, len);
 
   /* calculate data length */
-  len =  dst_ptr - dst + len;
+  len = dst_ptr - dst + len;
   if (context->type == RFC5444_CONTEXT_MESSAGE) {
     /* overwrite message length */
     dst[2] = len / 256;
@@ -795,14 +768,11 @@ _handle_postprocessor(struct rfc5444_signature *sig) {
   registered = avl_is_node_added(&sig->_postprocessor._node);
 
   if (!registered && sig->hash != NULL && sig->crypt != NULL) {
-    sig->_postprocessor.allocate_space =
-        sig->crypt->getSignSize(sig->crypt, sig->hash);
-    rfc5444_writer_register_postprocessor(
-        &_protocol->writer, &sig->_postprocessor);
+    sig->_postprocessor.allocate_space = sig->crypt->getSignSize(sig->crypt, sig->hash);
+    rfc5444_writer_register_postprocessor(&_protocol->writer, &sig->_postprocessor);
   }
   else if (registered && (sig->hash == NULL || sig->crypt == NULL)) {
-    rfc5444_writer_unregister_postprocessor(
-              &_protocol->writer, &sig->_postprocessor);
+    rfc5444_writer_unregister_postprocessor(&_protocol->writer, &sig->_postprocessor);
   }
 }
 
@@ -824,8 +794,7 @@ _avl_cmp_signatures(const void *k1, const void *k2) {
  * @return pointer to key-id
  */
 static const void *
-_cb_get_empty_keyid(
-    struct rfc5444_signature *sig __attribute__((unused)), size_t *len) {
+_cb_get_empty_keyid(struct rfc5444_signature *sig __attribute__((unused)), size_t *len) {
   static const char *id = "";
 
   *len = 0;
@@ -842,14 +811,13 @@ _cb_get_empty_keyid(
  * @return okay, ignore or drop
  */
 static enum rfc5444_sigid_check
-_cb_sigid_okay(struct rfc5444_signature *sig __attribute__((unused)),
-    const void *id __attribute((unused)), size_t len __attribute((unused))) {
+_cb_sigid_okay(struct rfc5444_signature *sig __attribute__((unused)), const void *id __attribute((unused)),
+  size_t len __attribute((unused))) {
   return RFC5444_SIGID_OKAY;
 }
 
 static bool
-_cb_is_matching_signature(
-    struct rfc5444_writer_postprocessor *processor, int msg_type) {
+_cb_is_matching_signature(struct rfc5444_writer_postprocessor *processor, int msg_type) {
   struct rfc5444_signature *sig;
 
   sig = container_of(processor, struct rfc5444_signature, _postprocessor);

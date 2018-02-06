@@ -53,17 +53,15 @@
  * number with iso prefix.
  */
 struct isonumber_str {
-    /*! buffer for longest possibloe iso prefixed number */
-    char buf[48];
+  /*! buffer for longest possibloe iso prefixed number */
+  char buf[48];
 };
 
-EXPORT const char *isonumber_from_u64(struct isonumber_str *out,
-    uint64_t number, const char *unit, int fraction, bool raw);
-EXPORT const char *isonumber_from_s64(struct isonumber_str *out,
-    int64_t number, const char *unit, int fraction, bool raw);
-EXPORT int isonumber_to_u64(
-    uint64_t *dst, const char *iso, int fractions);
-EXPORT int isonumber_to_s64(
-    int64_t *dst, const char *iso, int fractions);
+EXPORT const char *isonumber_from_u64(
+  struct isonumber_str *out, uint64_t number, const char *unit, int fraction, bool raw);
+EXPORT const char *isonumber_from_s64(
+  struct isonumber_str *out, int64_t number, const char *unit, int fraction, bool raw);
+EXPORT int isonumber_to_u64(uint64_t *dst, const char *iso, int fractions);
+EXPORT int isonumber_to_s64(int64_t *dst, const char *iso, int fractions);
 
 #endif /* ISONUMBER_H_ */

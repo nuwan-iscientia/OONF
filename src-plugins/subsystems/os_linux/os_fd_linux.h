@@ -47,10 +47,10 @@
 #define OS_FD_LINUX_H_
 
 #include <sys/epoll.h>
-#include <unistd.h>
-#include <sys/types.h>
 #include <sys/sendfile.h>
 #include <sys/socket.h>
+#include <sys/types.h>
+#include <unistd.h>
 
 #include "subsystems/os_fd.h"
 #include "subsystems/os_generic/os_fd_generic_configsocket.h"
@@ -63,7 +63,8 @@
 /*! name of the loopback interface */
 #define IF_LOOPBACK_NAME "lo"
 
-enum os_fd_flags {
+enum os_fd_flags
+{
   OS_FD_ACTIVE = 1,
 };
 
@@ -94,8 +95,7 @@ struct os_fd_select {
 
 /** declare non-inline linux-specific functions */
 EXPORT int os_fd_linux_event_wait(struct os_fd_select *);
-EXPORT int os_fd_linux_event_socket_modify(struct os_fd_select *sel,
-    struct os_fd *sock);
+EXPORT int os_fd_linux_event_socket_modify(struct os_fd_select *sel, struct os_fd *sock);
 EXPORT uint8_t *os_fd_linux_skip_rawsocket_prefix(uint8_t *ptr, ssize_t *len, int af_type);
 
 /**
@@ -121,8 +121,8 @@ os_fd_event_wait(struct os_fd_select *sel) {
  * @return -1 if an error happened, 0 otherwise
  */
 static INLINE int
-os_fd_getsocket(struct os_fd *sock, const union netaddr_socket *bindto, bool tcp,
-    size_t recvbuf, const struct os_interface *os_if, enum oonf_log_source log_src) {
+os_fd_getsocket(struct os_fd *sock, const union netaddr_socket *bindto, bool tcp, size_t recvbuf,
+  const struct os_interface *os_if, enum oonf_log_source log_src) {
   return os_fd_generic_getsocket(sock, bindto, tcp, recvbuf, os_if, log_src);
 }
 
@@ -138,8 +138,8 @@ os_fd_getsocket(struct os_fd *sock, const union netaddr_socket *bindto, bool tcp
  * @return -1 if an error happened, 0 otherwise
  */
 static INLINE int
-os_fd_getrawsocket(struct os_fd *sock, const union netaddr_socket *bindto, int protocol,
-    size_t recvbuf, const struct os_interface *os_if, enum oonf_log_source log_src) {
+os_fd_getrawsocket(struct os_fd *sock, const union netaddr_socket *bindto, int protocol, size_t recvbuf,
+  const struct os_interface *os_if, enum oonf_log_source log_src) {
   return os_fd_generic_getrawsocket(sock, bindto, protocol, recvbuf, os_if, log_src);
 }
 
@@ -155,8 +155,8 @@ os_fd_getrawsocket(struct os_fd *sock, const union netaddr_socket *bindto, int p
  * @return -1 if an error happened, 0 otherwise
  */
 static INLINE int
-os_fd_configsocket(struct os_fd *sock, const union netaddr_socket *bindto,
-    size_t recvbuf, bool rawip, const struct os_interface *os_if, enum oonf_log_source log_src) {
+os_fd_configsocket(struct os_fd *sock, const union netaddr_socket *bindto, size_t recvbuf, bool rawip,
+  const struct os_interface *os_if, enum oonf_log_source log_src) {
   return os_fd_generic_configsocket(sock, bindto, recvbuf, rawip, os_if, log_src);
 }
 
@@ -180,8 +180,8 @@ os_fd_set_nonblocking(struct os_fd *sock) {
  * @return -1 if an error happened, 0 otherwise
  */
 static INLINE int
-os_fd_join_mcast_recv(struct os_fd *sock, const struct netaddr *multicast,
-    const struct os_interface *os_if, enum oonf_log_source log_src) {
+os_fd_join_mcast_recv(
+  struct os_fd *sock, const struct netaddr *multicast, const struct os_interface *os_if, enum oonf_log_source log_src) {
   return os_fd_generic_join_mcast_recv(sock, multicast, os_if, log_src);
 }
 
@@ -197,8 +197,8 @@ os_fd_join_mcast_recv(struct os_fd *sock, const struct netaddr *multicast,
  * @return -1 if an error happened, 0 otherwise
  */
 static INLINE int
-os_fd_join_mcast_send(struct os_fd *sock, const struct netaddr *multicast,
-    const struct os_interface *os_if, bool loop, uint8_t ttl, enum oonf_log_source log_src) {
+os_fd_join_mcast_send(struct os_fd *sock, const struct netaddr *multicast, const struct os_interface *os_if, bool loop,
+  uint8_t ttl, enum oonf_log_source log_src) {
   return os_fd_generic_join_mcast_send(sock, multicast, os_if, loop, ttl, log_src);
 }
 /**
@@ -287,11 +287,11 @@ os_fd_copy(struct os_fd *dst, struct os_fd *from) {
  * @return -1 if an error happened, 0 otherwise
  */
 static INLINE int
-os_fd_close(struct os_fd *fd ) {
+os_fd_close(struct os_fd *fd) {
   int result = 0;
-  if ( fd->fd != -1) {
-    result = close( fd->fd);
-        fd->fd = -1;
+  if (fd->fd != -1) {
+    result = close(fd->fd);
+    fd->fd = -1;
   }
   return result;
 }
@@ -314,7 +314,7 @@ os_fd_listen(struct os_fd *fd, int n) {
  */
 static INLINE int
 os_fd_event_add(struct os_fd_select *sel) {
-  memset (sel, 0, sizeof(*sel));
+  memset(sel, 0, sizeof(*sel));
   sel->_epoll_fd = epoll_create1(EPOLL_CLOEXEC);
   return sel->_epoll_fd < 0 ? -1 : 0;
 }
@@ -340,7 +340,7 @@ static INLINE int
 os_fd_event_socket_add(struct os_fd_select *sel, struct os_fd *sock) {
   struct epoll_event event;
 
-  memset(&event,0,sizeof(event));
+  memset(&event, 0, sizeof(event));
 
   event.events = 0;
   event.data.ptr = sock;
@@ -356,8 +356,7 @@ os_fd_event_socket_add(struct os_fd_select *sel, struct os_fd *sock) {
  * @return -1 if an error happened, 0 otherwise
  */
 static INLINE int
-os_fd_event_socket_read(struct os_fd_select *sel,
-    struct os_fd *sock, bool want_read) {
+os_fd_event_socket_read(struct os_fd_select *sel, struct os_fd *sock, bool want_read) {
   if (want_read) {
     sock->wanted_events |= EPOLLIN;
   }
@@ -386,8 +385,7 @@ os_fd_event_is_read(struct os_fd *sock) {
  * @return -1 if an error happened, 0 otherwise
  */
 static INLINE int
-os_fd_event_socket_write(struct os_fd_select *sel,
-    struct os_fd *sock, bool want_write) {
+os_fd_event_socket_write(struct os_fd_select *sel, struct os_fd *sock, bool want_write) {
   if (want_write) {
     sock->wanted_events |= EPOLLOUT;
   }
@@ -468,8 +466,7 @@ os_fd_connect(struct os_fd *sockfd, const union netaddr_socket *remote) {
  * @return result of accept() call
  */
 static INLINE int
-os_fd_accept(struct os_fd *client,
-    struct os_fd *server, union netaddr_socket *incoming) {
+os_fd_accept(struct os_fd *client, struct os_fd *server, union netaddr_socket *incoming) {
   socklen_t len = sizeof(*incoming);
   int fd;
 
@@ -503,8 +500,7 @@ os_fd_get_socket_error(struct os_fd *sockfd, int *value) {
 static INLINE ssize_t
 os_fd_sendto(struct os_fd *sock, const void *buf, size_t length, const union netaddr_socket *dst, bool dont_route) {
   if (dst) {
-    return sendto(sock->fd, buf, length,
-        dont_route ? MSG_DONTROUTE : 0, &dst->std, sizeof(*dst));
+    return sendto(sock->fd, buf, length, dont_route ? MSG_DONTROUTE : 0, &dst->std, sizeof(*dst));
   }
   else {
     return send(sock->fd, buf, length, dont_route ? MSG_DONTROUTE : 0);
@@ -523,7 +519,7 @@ os_fd_sendto(struct os_fd *sock, const void *buf, size_t length, const union net
  */
 static INLINE ssize_t
 os_fd_recvfrom(struct os_fd *sockfd, void *buf, size_t length, union netaddr_socket *source,
-    const struct os_interface *interf __attribute__((unused))) {
+  const struct os_interface *interf __attribute__((unused))) {
   socklen_t len = sizeof(*source);
   if (source) {
     return recvfrom(sockfd->fd, buf, length, 0, &source->std, &len);

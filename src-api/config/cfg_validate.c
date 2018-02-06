@@ -46,15 +46,15 @@
 #include <errno.h>
 #include <stdio.h>
 
-#include "common/common_types.h"
 #include "common/autobuf.h"
 #include "common/bitmap256.h"
+#include "common/common_types.h"
 #include "common/isonumber.h"
 #include "common/netaddr.h"
 #include "common/netaddr_acl.h"
 
-#include "config/cfg_validate.h"
 #include "config/cfg.h"
+#include "config/cfg_validate.h"
 
 /**
  * Validate if a value against a specific printable string
@@ -66,16 +66,17 @@
  * @return 0 if value is valid, -1 otherwise
  */
 int
-cfg_validate_printable(struct autobuf *out, const char *section_name,
-    const char *entry_name, const char *value, size_t len) {
+cfg_validate_printable(
+  struct autobuf *out, const char *section_name, const char *entry_name, const char *value, size_t len) {
   if (cfg_validate_strlen(out, section_name, entry_name, value, len)) {
     return -1;
   }
   if (!str_is_printable(value)) {
     /* not a printable ascii character */
-    cfg_append_printable_line(out, "Value '%s' for entry '%s'"
-        " in section %s has non-printable characters",
-        value, entry_name, section_name);
+    cfg_append_printable_line(out,
+      "Value '%s' for entry '%s'"
+      " in section %s has non-printable characters",
+      value, entry_name, section_name);
     return -1;
   }
   return 0;
@@ -91,12 +92,13 @@ cfg_validate_printable(struct autobuf *out, const char *section_name,
  * @return 0 if value is valid, -1 otherwise
  */
 int
-cfg_validate_strlen(struct autobuf *out, const char *section_name,
-    const char *entry_name, const char *value, size_t len) {
+cfg_validate_strlen(
+  struct autobuf *out, const char *section_name, const char *entry_name, const char *value, size_t len) {
   if (strlen(value) > len) {
-    cfg_append_printable_line(out, "Value '%s' for entry '%s'"
-        " in section %s is longer than %"PRINTF_SIZE_T_SPECIFIER" characters",
-        value, entry_name, section_name, len);
+    cfg_append_printable_line(out,
+      "Value '%s' for entry '%s'"
+      " in section %s is longer than %" PRINTF_SIZE_T_SPECIFIER " characters",
+      value, entry_name, section_name, len);
     return -1;
   }
   return 0;
@@ -113,19 +115,18 @@ cfg_validate_strlen(struct autobuf *out, const char *section_name,
  * @return 0 if value is valid, -1 otherwise
  */
 int
-cfg_validate_choice(struct autobuf *out, const char *section_name,
-    const char *entry_name, const char *value,
-    const char *(*callback)(size_t idx, const void *ptr),
-    size_t choices_count, const void *ptr) {
+cfg_validate_choice(struct autobuf *out, const char *section_name, const char *entry_name, const char *value,
+  const char *(*callback)(size_t idx, const void *ptr), size_t choices_count, const void *ptr) {
   int i;
   i = cfg_get_choice_index(value, callback, choices_count, ptr);
   if (i >= 0) {
     return 0;
   }
 
-  cfg_append_printable_line(out, "Unknown value '%s'"
-      " for entry '%s' in section %s",
-      value, entry_name, section_name);
+  cfg_append_printable_line(out,
+    "Unknown value '%s'"
+    " for entry '%s' in section %s",
+    value, entry_name, section_name);
   return -1;
 }
 
@@ -142,26 +143,24 @@ cfg_validate_choice(struct autobuf *out, const char *section_name,
  * @return 0 if value is valid, -1 otherwise
  */
 int
-cfg_validate_int(struct autobuf *out, const char *section_name,
-    const char *entry_name, const char *value, int64_t min, int64_t max,
-    uint16_t bytelen, uint16_t fraction) {
+cfg_validate_int(struct autobuf *out, const char *section_name, const char *entry_name, const char *value, int64_t min,
+  int64_t max, uint16_t bytelen, uint16_t fraction) {
   int64_t i, min64, max64;
   struct isonumber_str hbuf;
 
   if (isonumber_to_s64(&i, value, fraction)) {
     if (fraction) {
-      cfg_append_printable_line(out, "Value '%s' for entry '%s'"
-          " in section %s is not a fractional %d-byte integer"
-          " with a maximum of %d fractional digits",
-          value, entry_name,
-          section_name,
-          bytelen, fraction);
+      cfg_append_printable_line(out,
+        "Value '%s' for entry '%s'"
+        " in section %s is not a fractional %d-byte integer"
+        " with a maximum of %d fractional digits",
+        value, entry_name, section_name, bytelen, fraction);
     }
     else {
-      cfg_append_printable_line(out, "Value '%s' for entry '%s'"
-          " in section %s is not a %d-byte integer.",
-          value, entry_name,
-          section_name, bytelen);
+      cfg_append_printable_line(out,
+        "Value '%s' for entry '%s'"
+        " in section %s is not a %d-byte integer.",
+        value, entry_name, section_name, bytelen);
     }
     return -1;
   }
@@ -170,24 +169,24 @@ cfg_validate_int(struct autobuf *out, const char *section_name,
   max64 = INT64_MAX >> (8 * (8 - bytelen));
 
   if (i < min64 || i > max64) {
-    cfg_append_printable_line(out, "Value '%s' for entry '%s' in section %s is "
-        "too %s for a %d-hyte integer with %d fractional digits",
-        value, entry_name, section_name,
-        i < min ? "small" : "large", bytelen, fraction);
+    cfg_append_printable_line(out,
+      "Value '%s' for entry '%s' in section %s is "
+      "too %s for a %d-hyte integer with %d fractional digits",
+      value, entry_name, section_name, i < min ? "small" : "large", bytelen, fraction);
   }
 
   if (i < min) {
-    cfg_append_printable_line(out, "Value '%s' for entry '%s' in section %s is "
-        "smaller than %s",
-        value, entry_name, section_name,
-        isonumber_from_s64(&hbuf, min, "", fraction, true));
+    cfg_append_printable_line(out,
+      "Value '%s' for entry '%s' in section %s is "
+      "smaller than %s",
+      value, entry_name, section_name, isonumber_from_s64(&hbuf, min, "", fraction, true));
     return -1;
   }
   if (i > max) {
-    cfg_append_printable_line(out, "Value '%s' for entry '%s' in section %s is "
-        "larger than %s",
-        value, entry_name, section_name,
-        isonumber_from_s64(&hbuf, min, "", fraction, true));
+    cfg_append_printable_line(out,
+      "Value '%s' for entry '%s' in section %s is "
+      "larger than %s",
+      value, entry_name, section_name, isonumber_from_s64(&hbuf, min, "", fraction, true));
     return -1;
   }
   return 0;
@@ -205,17 +204,17 @@ cfg_validate_int(struct autobuf *out, const char *section_name,
  * @return 0 if value is valid, -1 otherwise
  */
 int
-cfg_validate_netaddr(struct autobuf *out, const char *section_name,
-    const char *entry_name, const char *value,
-    bool prefix, const int8_t *af_types, size_t af_types_count) {
+cfg_validate_netaddr(struct autobuf *out, const char *section_name, const char *entry_name, const char *value,
+  bool prefix, const int8_t *af_types, size_t af_types_count) {
   struct netaddr addr;
   uint8_t max_prefix;
   size_t i;
 
   if (netaddr_from_string(&addr, value)) {
-    cfg_append_printable_line(out, "Value '%s' for entry '%s'"
-        " in section %s is no valid network address",
-        value, entry_name, section_name);
+    cfg_append_printable_line(out,
+      "Value '%s' for entry '%s'"
+      " in section %s is no valid network address",
+      value, entry_name, section_name);
     return -1;
   }
 
@@ -223,28 +222,31 @@ cfg_validate_netaddr(struct autobuf *out, const char *section_name,
 
   /* check prefix length */
   if (netaddr_get_prefix_length(&addr) > max_prefix) {
-    cfg_append_printable_line(out, "Value '%s' for entry '%s'"
-        " in section %s has an illegal prefix length",
-        value, entry_name, section_name);
+    cfg_append_printable_line(out,
+      "Value '%s' for entry '%s'"
+      " in section %s has an illegal prefix length",
+      value, entry_name, section_name);
     return -1;
   }
   if (!prefix && netaddr_get_prefix_length(&addr) != max_prefix) {
-    cfg_append_printable_line(out, "Value '%s' for entry '%s'"
-        " in section %s must be a single address, not a prefix",
-        value, entry_name, section_name);
+    cfg_append_printable_line(out,
+      "Value '%s' for entry '%s'"
+      " in section %s must be a single address, not a prefix",
+      value, entry_name, section_name);
     return -1;
   }
 
-  for (i=0; i<af_types_count; i++) {
+  for (i = 0; i < af_types_count; i++) {
     if (af_types[i] == netaddr_get_address_family(&addr)) {
       return 0;
     }
   }
 
   /* at least one condition was set, but no one matched */
-  cfg_append_printable_line(out, "Value '%s' for entry '%s'"
-      " in section '%s' is wrong address type",
-      value, entry_name, section_name);
+  cfg_append_printable_line(out,
+    "Value '%s' for entry '%s'"
+    " in section '%s' is wrong address type",
+    value, entry_name, section_name);
   return -1;
 }
 
@@ -260,9 +262,8 @@ cfg_validate_netaddr(struct autobuf *out, const char *section_name,
  * @return 0 if value is valid, -1 otherwise
  */
 int
-cfg_validate_acl(struct autobuf *out, const char *section_name,
-    const char *entry_name, const char *value,
-    bool prefix, const int8_t *af_types, size_t af_types_count) {
+cfg_validate_acl(struct autobuf *out, const char *section_name, const char *entry_name, const char *value, bool prefix,
+  const int8_t *af_types, size_t af_types_count) {
   struct netaddr_acl dummy;
 
   if (netaddr_acl_handle_keywords(&dummy, value) == 0) {
@@ -270,12 +271,10 @@ cfg_validate_acl(struct autobuf *out, const char *section_name,
   }
 
   if (*value == '+' || *value == '-') {
-    return cfg_validate_netaddr(out, section_name, entry_name, &value[1],
-        prefix, af_types, af_types_count);
+    return cfg_validate_netaddr(out, section_name, entry_name, &value[1], prefix, af_types, af_types_count);
   }
 
-  return cfg_validate_netaddr(out, section_name, entry_name, value,
-      prefix, af_types, af_types_count);
+  return cfg_validate_netaddr(out, section_name, entry_name, value, prefix, af_types, af_types_count);
 }
 
 /**
@@ -287,8 +286,7 @@ cfg_validate_acl(struct autobuf *out, const char *section_name,
  * @return 0 if value is valid, -1 otherwise
  */
 int
-cfg_validate_bitmap256(struct autobuf *out,
-    const char *section_name, const char *entry_name, const char *value){
+cfg_validate_bitmap256(struct autobuf *out, const char *section_name, const char *entry_name, const char *value) {
   int num;
   char *end;
 
@@ -299,11 +297,11 @@ cfg_validate_bitmap256(struct autobuf *out,
   errno = 0;
   num = strtol(value, &end, 10);
   if (errno != 0 || *end != 0 || num < -255 || num > 255) {
-    cfg_append_printable_line(out, "Value '%s' for entry '%s'"
-        " in section %s must be a '" BITMAP256_ALL "', '" BITMAP256_NONE
-        "' or a number between 0 and 255"
-        " (with optional '-' in front of the number)",
-        value, entry_name, section_name);
+    cfg_append_printable_line(out,
+      "Value '%s' for entry '%s'"
+      " in section %s must be a '" BITMAP256_ALL "', '" BITMAP256_NONE "' or a number between 0 and 255"
+      " (with optional '-' in front of the number)",
+      value, entry_name, section_name);
     return -1;
   }
   return 0;
@@ -321,46 +319,41 @@ cfg_validate_bitmap256(struct autobuf *out,
  * @return 0 if value is valid, -1 otherwise
  */
 int
-cfg_validate_tokens(struct autobuf *out,
-    const char *section_name, const char *entry_name, const char *value,
-    struct cfg_schema_entry *entries, size_t entry_count,
-    struct cfg_schema_token_customizer *custom) {
+cfg_validate_tokens(struct autobuf *out, const char *section_name, const char *entry_name, const char *value,
+  struct cfg_schema_entry *entries, size_t entry_count, struct cfg_schema_token_customizer *custom) {
   char buffer[256];
   char section_name_entry[32];
   const char *ptr;
   size_t i;
 
   if (str_countwords(value) < entry_count) {
-    cfg_append_printable_line(out, "Missing token for entry '%s'"
-        " in section %s. At least %"PRINTF_SIZE_T_SPECIFIER" tokens"
-        " expected. Tokens must be separated by whitespaces.",
-        entry_name, section_name, entry_count);
+    cfg_append_printable_line(out,
+      "Missing token for entry '%s'"
+      " in section %s. At least %" PRINTF_SIZE_T_SPECIFIER " tokens"
+      " expected. Tokens must be separated by whitespaces.",
+      entry_name, section_name, entry_count);
     return -1;
   }
-  snprintf(section_name_entry, sizeof(section_name_entry), "%s.%s",
-      section_name, entry_name);
+  snprintf(section_name_entry, sizeof(section_name_entry), "%s.%s", section_name, entry_name);
 
   /* check each token */
   ptr = value;
-  for (i=0; i<entry_count-1; i++) {
+  for (i = 0; i < entry_count - 1; i++) {
     ptr = str_cpynextword(buffer, ptr, sizeof(buffer));
 
     /* see if token is valid */
-    if (entries[i].cb_validate(&entries[i], section_name_entry,
-        buffer, out)) {
+    if (entries[i].cb_validate(&entries[i], section_name_entry, buffer, out)) {
       return -1;
     }
   }
 
   /* see if the rest of the value is a valid "last" token */
-  if (entries[i].cb_validate(&entries[entry_count-1],
-      section_name_entry, ptr, out)) {
+  if (entries[i].cb_validate(&entries[entry_count - 1], section_name_entry, ptr, out)) {
     return -1;
   }
 
   if (custom && custom->cb_validator) {
-    return custom->cb_validator(out, section_name, entry_name,
-        value, entries, entry_count);
+    return custom->cb_validator(out, section_name, entry_name, value, entries, entry_count);
   }
   return 0;
 }

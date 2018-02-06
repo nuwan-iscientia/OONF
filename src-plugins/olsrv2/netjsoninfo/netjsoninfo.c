@@ -43,8 +43,8 @@
  * @file
  */
 
-#include "common/common_types.h"
 #include "common/autobuf.h"
+#include "common/common_types.h"
 #include "common/json.h"
 
 #include "core/oonf_logging.h"
@@ -68,16 +68,16 @@
 #define LOG_NETJSONINFO olsrv2_netjsoninfo.logging
 
 /*! name of filter command */
-#define JSON_NAME_FILTER    "filter"
+#define JSON_NAME_FILTER "filter"
 
 /*! name of graph command/json-object */
-#define JSON_NAME_GRAPH     "graph"
+#define JSON_NAME_GRAPH "graph"
 
 /*! name of route command/json-object */
-#define JSON_NAME_ROUTE     "route"
+#define JSON_NAME_ROUTE "route"
 
 /*! name of domain command/json-object */
-#define JSON_NAME_DOMAIN    "domain"
+#define JSON_NAME_DOMAIN "domain"
 
 /*! Text buffer for a domain id string */
 struct domain_id_str {
@@ -87,12 +87,13 @@ struct domain_id_str {
 
 /*! Text buffer for a node id string */
 struct _node_id_str {
-    /*! string buffer */
+  /*! string buffer */
   char buf[256];
 };
 
 /*! types of nodes known to olsrv2 netjson graph */
-enum netjson_node_type {
+enum netjson_node_type
+{
   /*! the local node itself */
   NETJSON_NODE_LOCAL,
 
@@ -107,7 +108,8 @@ enum netjson_node_type {
 };
 
 /*! types of edges known to olsrv2 netjson graph */
-enum netjson_edge_type {
+enum netjson_edge_type
+{
   /*! outgoing edge of the local router */
   NETJSON_EDGE_LOCAL,
 
@@ -125,39 +127,29 @@ enum netjson_edge_type {
 static int _init(void);
 static void _cleanup(void);
 
-static void _print_graph(struct json_session *session,
-    struct nhdp_domain *domain, int af_type);
-static void _create_graph_json(
-    struct json_session *session, const char *filter);
-static void _print_routing_tree(struct json_session *session,
-    struct nhdp_domain *domain, int af_type);
-static void _create_route_json(
-    struct json_session *session, const char *filter);
-static void _create_domain_json(
-    struct json_session *session);
-static void _create_error_json(struct json_session *session,
-    const char *message, const char *parameter);
-static enum oonf_telnet_result _cb_netjsoninfo(
-    struct oonf_telnet_data *con);
-static void _print_json_string(
-    struct json_session *session, const char *key, const char *value);
-static void _print_json_number(
-    struct json_session *session, const char *key, uint64_t value);
-static void _print_json_netaddr(struct json_session *session,
-    const char *key, const struct netaddr *addr);
+static void _print_graph(struct json_session *session, struct nhdp_domain *domain, int af_type);
+static void _create_graph_json(struct json_session *session, const char *filter);
+static void _print_routing_tree(struct json_session *session, struct nhdp_domain *domain, int af_type);
+static void _create_route_json(struct json_session *session, const char *filter);
+static void _create_domain_json(struct json_session *session);
+static void _create_error_json(struct json_session *session, const char *message, const char *parameter);
+static enum oonf_telnet_result _cb_netjsoninfo(struct oonf_telnet_data *con);
+static void _print_json_string(struct json_session *session, const char *key, const char *value);
+static void _print_json_number(struct json_session *session, const char *key, uint64_t value);
+static void _print_json_netaddr(struct json_session *session, const char *key, const struct netaddr *addr);
 
 /* telnet command of this plugin */
 static struct oonf_telnet_command _telnet_commands[] = {
-    TELNET_CMD(OONF_NETJSONINFO_SUBSYSTEM, _cb_netjsoninfo,
-        "The command has three main commands (route, graph, domain) and a"
-        " 'filter' prefix for route/graph. You can use any combination of the"
-        " three main commands (space separated) to generate a NetworkCollection"
-        " with the information of the main commands for all known domains.\n"
-        "> netjsoninfo route graph\n"
-        "The filter prefix use an id (which can be queried by 'domain') to output"
-        " a single domain of route/graph without the NetworkCollection object"
-        " around it. The domain_id's are ipv4_<domain_number> and ipv6_<domain_number>.\n"
-        "> netjsoninfo filter route ipv4_0\n"),
+  TELNET_CMD(OONF_NETJSONINFO_SUBSYSTEM, _cb_netjsoninfo,
+    "The command has three main commands (route, graph, domain) and a"
+    " 'filter' prefix for route/graph. You can use any combination of the"
+    " three main commands (space separated) to generate a NetworkCollection"
+    " with the information of the main commands for all known domains.\n"
+    "> netjsoninfo route graph\n"
+    "The filter prefix use an id (which can be queried by 'domain') to output"
+    " a single domain of route/graph without the NetworkCollection object"
+    " around it. The domain_id's are ipv4_<domain_number> and ipv6_<domain_number>.\n"
+    "> netjsoninfo filter route ipv4_0\n"),
 };
 
 /* plugin declaration */
@@ -221,10 +213,8 @@ _get_other_af_type(int af_type) {
  * @return pointer to output buffer
  */
 static const char *
-_create_domain_id(struct domain_id_str *buf,
-    struct nhdp_domain *domain, int af_type) {
-  snprintf(buf->buf, sizeof(*buf), "%s_%u",
-      af_type == AF_INET ? "ipv4" : "ipv6", domain->ext);
+_create_domain_id(struct domain_id_str *buf, struct nhdp_domain *domain, int af_type) {
+  snprintf(buf->buf, sizeof(*buf), "%s_%u", af_type == AF_INET ? "ipv4" : "ipv6", domain->ext);
   return buf->buf;
 }
 
@@ -236,9 +226,7 @@ _create_domain_id(struct domain_id_str *buf,
  * @return pointer to output buffer
  */
 static const char *
-_get_node_id(struct _node_id_str *buf,
-    const struct netaddr *originator,
-    const struct netaddr *addr) {
+_get_node_id(struct _node_id_str *buf, const struct netaddr *originator, const struct netaddr *addr) {
   struct netaddr_str nbuf1, nbuf2;
 
   netaddr_to_string(&nbuf1, originator);
@@ -272,8 +260,7 @@ _get_node_id_me(struct _node_id_str *buf, int af_family) {
  * @return pointer to output buffer
  */
 static const char *
-_get_tc_node_id(struct _node_id_str *buf,
-    const struct olsrv2_tc_node *node) {
+_get_tc_node_id(struct _node_id_str *buf, const struct olsrv2_tc_node *node) {
   return _get_node_id(buf, &node->target.prefix.dst, NULL);
 }
 
@@ -284,10 +271,8 @@ _get_tc_node_id(struct _node_id_str *buf,
  * @return pointer to output buffer
  */
 static const char *
-_get_tc_endpoint_id(struct _node_id_str *buf,
-    const struct olsrv2_tc_attachment *attachment) {
-  return _get_node_id(buf, &attachment->src->target.prefix.dst,
-      &attachment->dst->target.prefix.dst);
+_get_tc_endpoint_id(struct _node_id_str *buf, const struct olsrv2_tc_attachment *attachment) {
+  return _get_node_id(buf, &attachment->src->target.prefix.dst, &attachment->dst->target.prefix.dst);
 }
 
 /**
@@ -297,13 +282,11 @@ _get_tc_endpoint_id(struct _node_id_str *buf,
  * @return pointer to output buffer
  */
 static const char *
-_get_tc_lan_id(struct _node_id_str *buf,
-    const struct olsrv2_lan_entry *lan) {
+_get_tc_lan_id(struct _node_id_str *buf, const struct olsrv2_lan_entry *lan) {
   int af_family;
 
   af_family = netaddr_get_address_family(&lan->prefix.dst);
-  return _get_node_id(buf, olsrv2_originator_get(af_family),
-      &lan->prefix.dst);
+  return _get_node_id(buf, olsrv2_originator_get(af_family), &lan->prefix.dst);
 }
 
 /**
@@ -313,8 +296,7 @@ _get_tc_lan_id(struct _node_id_str *buf,
  * @return pointer to output buffer
  */
 static const char *
-_get_nhdp_neighbor_id(struct _node_id_str *buf,
-    const struct nhdp_neighbor *neigh) {
+_get_nhdp_neighbor_id(struct _node_id_str *buf, const struct nhdp_neighbor *neigh) {
   return _get_node_id(buf, &neigh->originator, NULL);
 }
 
@@ -327,9 +309,8 @@ _get_nhdp_neighbor_id(struct _node_id_str *buf,
  * @param type netjson node type
  */
 static void
-_print_graph_node(struct json_session *session, const struct _node_id_str *id,
-    const char *label, const struct netaddr *originator,
-    const struct netaddr *dualstack, enum netjson_node_type type) {
+_print_graph_node(struct json_session *session, const struct _node_id_str *id, const char *label,
+  const struct netaddr *originator, const struct netaddr *dualstack, enum netjson_node_type type) {
   struct _node_id_str originator_id, dualstack_id;
 
   ;
@@ -341,15 +322,12 @@ _print_graph_node(struct json_session *session, const struct _node_id_str *id,
 
   json_start_object(session, "properties");
   if (originator) {
-    _print_json_string(session, "router_id",
-        _get_node_id(&originator_id, originator, NULL));
+    _print_json_string(session, "router_id", _get_node_id(&originator_id, originator, NULL));
     _print_json_netaddr(session, "router_addr", originator);
   }
   if (dualstack) {
-    _print_json_string(session, "dualstack_id",
-        _get_node_id(&dualstack_id, dualstack, NULL));
+    _print_json_string(session, "dualstack_id", _get_node_id(&dualstack_id, dualstack, NULL));
     _print_json_netaddr(session, "dualstack_addr", dualstack);
-
   }
 
   switch (type) {
@@ -389,8 +367,7 @@ _print_graph_node_me(struct json_session *session, int af_family) {
   netaddr_to_string(&nbuf1, olsrv2_originator_get(af_family));
 
   dualstack = olsrv2_originator_get(_get_other_af_type(af_family));
-  _print_graph_node(session, &ebuf1, nbuf1.buf,
-      olsrv2_originator_get(af_family), dualstack, NETJSON_NODE_LOCAL);
+  _print_graph_node(session, &ebuf1, nbuf1.buf, olsrv2_originator_get(af_family), dualstack, NETJSON_NODE_LOCAL);
 }
 
 /**
@@ -399,8 +376,7 @@ _print_graph_node_me(struct json_session *session, int af_family) {
  * @param node tc node
  */
 static void
-_print_graph_node_tc(
-    struct json_session *session, const struct olsrv2_tc_node *node) {
+_print_graph_node_tc(struct json_session *session, const struct olsrv2_tc_node *node) {
   const struct netaddr *dualstack;
   struct _node_id_str ebuf;
   struct netaddr_str nbuf1;
@@ -414,8 +390,7 @@ _print_graph_node_tc(
   if (neigh && neigh->dualstack_partner) {
     dualstack = &neigh->dualstack_partner->originator;
   }
-  _print_graph_node(session, &ebuf, nbuf1.buf,
-      &node->target.prefix.dst, dualstack, NETJSON_NODE_ROUTERS);
+  _print_graph_node(session, &ebuf, nbuf1.buf, &node->target.prefix.dst, dualstack, NETJSON_NODE_ROUTERS);
 }
 
 /**
@@ -424,8 +399,7 @@ _print_graph_node_tc(
  * @param attachment tc attachment
  */
 static void
-_print_graph_node_attached(struct json_session *session,
-    const struct olsrv2_tc_attachment *attachment) {
+_print_graph_node_attached(struct json_session *session, const struct olsrv2_tc_attachment *attachment) {
   struct _node_id_str ebuf;
   struct netaddr_str nbuf1, nbuf2;
 
@@ -437,8 +411,7 @@ _print_graph_node_attached(struct json_session *session,
 
   snprintf(labelbuf, sizeof(labelbuf), "%s - %s", nbuf1.buf, nbuf2.buf);
 
-  _print_graph_node(session, &ebuf, labelbuf,
-      &attachment->src->target.prefix.dst, NULL, NETJSON_NODE_ATTACHED);
+  _print_graph_node(session, &ebuf, labelbuf, &attachment->src->target.prefix.dst, NULL, NETJSON_NODE_ATTACHED);
 }
 
 /**
@@ -447,8 +420,7 @@ _print_graph_node_attached(struct json_session *session,
  * @param lan locally attached network
  */
 static void
-_print_graph_node_lan(struct json_session *session,
-    const struct olsrv2_lan_entry *lan) {
+_print_graph_node_lan(struct json_session *session, const struct olsrv2_lan_entry *lan) {
   const struct netaddr *originator;
   struct netaddr_str nbuf1, nbuf2;
   struct _node_id_str ebuf;
@@ -465,8 +437,7 @@ _print_graph_node_lan(struct json_session *session,
 
   snprintf(labelbuf, sizeof(labelbuf), "%s - %s", nbuf1.buf, nbuf2.buf);
 
-  _print_graph_node(session, &ebuf, labelbuf,
-      originator, NULL, NETJSON_NODE_LAN);
+  _print_graph_node(session, &ebuf, labelbuf, originator, NULL, NETJSON_NODE_LAN);
 }
 
 /**
@@ -477,8 +448,8 @@ _print_graph_node_lan(struct json_session *session,
  * @param outgoing neighbor link is on outgoing dijkstra tree
  */
 static void
-_print_edge_links(struct json_session *session,
-    struct nhdp_domain *domain, struct nhdp_neighbor *neigh, bool outgoing) {
+_print_edge_links(
+  struct json_session *session, struct nhdp_domain *domain, struct nhdp_neighbor *neigh, bool outgoing) {
   struct nhdp_link *lnk;
   struct nhdp_link *best_link;
   struct nhdp_metric_str mbuf;
@@ -498,25 +469,20 @@ _print_edge_links(struct json_session *session,
 
     json_start_object(session, NULL);
 
-    _print_json_string(session, "interface",
-        nhdp_interface_get_name(lnk->local_if));
+    _print_json_string(session, "interface", nhdp_interface_get_name(lnk->local_if));
 
-    _print_json_netaddr(session, "source_addr",
-        nhdp_interface_get_socket_address(lnk->local_if, af_type));
+    _print_json_netaddr(session, "source_addr", nhdp_interface_get_socket_address(lnk->local_if, af_type));
     _print_json_netaddr(session, "target_addr", &lnk->if_addr);
 
     cost = nhdp_domain_get_linkdata(domain, lnk)->metric.out;
     _print_json_number(session, "cost", cost);
-    _print_json_string(session, "cost_text",
-        nhdp_domain_get_link_metric_value(&mbuf, domain, cost));
+    _print_json_string(session, "cost_text", nhdp_domain_get_link_metric_value(&mbuf, domain, cost));
 
     cost = nhdp_domain_get_linkdata(domain, lnk)->metric.in;
     _print_json_number(session, "in_cost", cost);
-    _print_json_string(session, "in_text",
-        nhdp_domain_get_link_metric_value(&mbuf, domain, cost));
+    _print_json_string(session, "in_text", nhdp_domain_get_link_metric_value(&mbuf, domain, cost));
 
-    _print_json_string(session, "outgoing_tree",
-        json_getbool(outgoing && best_link == lnk));
+    _print_json_string(session, "outgoing_tree", json_getbool(outgoing && best_link == lnk));
 
     json_end_object(session);
   }
@@ -541,13 +507,9 @@ _print_edge_links(struct json_session *session,
  *   NULL if no direct neighbor edge
  */
 static void
-_print_graph_edge(struct json_session *session,
-    struct nhdp_domain *domain,
-    const struct _node_id_str *src, const struct _node_id_str *dst,
-    const struct netaddr *src_addr, const struct netaddr *dst_addr,
-    uint32_t out, uint32_t in, uint8_t hopcount,
-    bool outgoing_tree, enum netjson_edge_type type,
-    struct nhdp_neighbor *neigh) {
+_print_graph_edge(struct json_session *session, struct nhdp_domain *domain, const struct _node_id_str *src,
+  const struct _node_id_str *dst, const struct netaddr *src_addr, const struct netaddr *dst_addr, uint32_t out,
+  uint32_t in, uint8_t hopcount, bool outgoing_tree, enum netjson_edge_type type, struct nhdp_neighbor *neigh) {
   struct nhdp_metric_str mbuf;
 
   if (out > RFC7181_METRIC_MAX) {
@@ -559,17 +521,14 @@ _print_graph_edge(struct json_session *session,
   _print_json_string(session, "target", dst->buf);
 
   _print_json_number(session, "cost", out);
-  _print_json_string(session, "cost_text",
-      nhdp_domain_get_link_metric_value(&mbuf, domain, out));
+  _print_json_string(session, "cost_text", nhdp_domain_get_link_metric_value(&mbuf, domain, out));
 
   json_start_object(session, "properties");
   if (in >= RFC7181_METRIC_MIN && in <= RFC7181_METRIC_MAX) {
     _print_json_number(session, "in_cost", in);
-    _print_json_string(session, "in_text",
-        nhdp_domain_get_link_metric_value(&mbuf, domain, in));
+    _print_json_string(session, "in_text", nhdp_domain_get_link_metric_value(&mbuf, domain, in));
   }
-  _print_json_string(session, "outgoing_tree",
-      json_getbool(outgoing_tree));
+  _print_json_string(session, "outgoing_tree", json_getbool(outgoing_tree));
 
   if (src_addr) {
     _print_json_netaddr(session, "source_addr", src_addr);
@@ -613,8 +572,7 @@ _print_graph_edge(struct json_session *session,
  * @param af_type address family type
  */
 static void
-_print_graph(struct json_session *session,
-    struct nhdp_domain *domain, int af_type) {
+_print_graph(struct json_session *session, struct nhdp_domain *domain, int af_type) {
   struct os_route_key routekey;
   const struct netaddr *originator, *dualstack;
   struct nhdp_neighbor *neigh;
@@ -651,16 +609,13 @@ _print_graph(struct json_session *session,
   _print_json_string(session, "router_id", _get_node_id_me(&node_id1, af_type));
 
   _print_json_string(session, "metric", domain->metric->name);
-  _print_json_string(session, "topology_id",
-      _create_domain_id(&dbuf, domain, af_type));
+  _print_json_string(session, "topology_id", _create_domain_id(&dbuf, domain, af_type));
 
   json_start_object(session, "properties");
   _print_json_netaddr(session, "router_addr", originator);
   if (dualstack) {
-    _print_json_string(session, "dualstack_id",
-        _get_node_id_me(&node_id1, other_af));
-    _print_json_string(session, "dualstack_topology",
-        _create_domain_id(&dbuf, domain, other_af));
+    _print_json_string(session, "dualstack_id", _get_node_id_me(&node_id1, other_af));
+    _print_json_string(session, "dualstack_topology", _create_domain_id(&dbuf, domain, other_af));
     _print_json_netaddr(session, "dualstack_addr", dualstack);
   }
   json_end_object(session);
@@ -672,8 +627,7 @@ _print_graph(struct json_session *session,
 
   /* locally attached networks */
   avl_for_each_element(olsrv2_lan_get_tree(), lan, _node) {
-    if (netaddr_get_address_family(&lan->prefix.dst) == af_type
-        && olsrv2_lan_get_domaindata(domain, lan)->active) {
+    if (netaddr_get_address_family(&lan->prefix.dst) == af_type && olsrv2_lan_get_domaindata(domain, lan)->active) {
       _print_graph_node_lan(session, lan);
     }
   }
@@ -703,44 +657,35 @@ _print_graph(struct json_session *session,
   _get_node_id_me(&node_id1, af_type);
 
   avl_for_each_element(nhdp_db_get_neigh_originator_tree(), neigh, _originator_node) {
-    if (netaddr_get_address_family(&neigh->originator) == af_type
-        && neigh->symmetric > 0) {
+    if (netaddr_get_address_family(&neigh->originator) == af_type && neigh->symmetric > 0) {
       os_routing_init_sourcespec_prefix(&routekey, &neigh->originator);
 
       rt_entry = avl_find_element(rt_tree, &routekey, rt_entry, _node);
-      outgoing = rt_entry != NULL
-          && netaddr_cmp(&rt_entry->last_originator, originator) == 0;
+      outgoing = rt_entry != NULL && netaddr_cmp(&rt_entry->last_originator, originator) == 0;
 
       _get_nhdp_neighbor_id(&node_id2, neigh);
 
-      _print_graph_edge(session, domain,
-          &node_id1, &node_id2, originator, &neigh->originator,
-          nhdp_domain_get_neighbordata(domain, neigh)->metric.out,
-          nhdp_domain_get_neighbordata(domain, neigh)->metric.in,
-          0, outgoing, NETJSON_EDGE_LOCAL, neigh);
+      _print_graph_edge(session, domain, &node_id1, &node_id2, originator, &neigh->originator,
+        nhdp_domain_get_neighbordata(domain, neigh)->metric.out, nhdp_domain_get_neighbordata(domain, neigh)->metric.in,
+        0, outgoing, NETJSON_EDGE_LOCAL, neigh);
 
-      _print_graph_edge(session, domain,
-          &node_id2, &node_id1, &neigh->originator, originator,
-          nhdp_domain_get_neighbordata(domain, neigh)->metric.in,
-          nhdp_domain_get_neighbordata(domain, neigh)->metric.out,
-          0, false, NETJSON_EDGE_ROUTERS, NULL);
+      _print_graph_edge(session, domain, &node_id2, &node_id1, &neigh->originator, originator,
+        nhdp_domain_get_neighbordata(domain, neigh)->metric.in, nhdp_domain_get_neighbordata(domain, neigh)->metric.out,
+        0, false, NETJSON_EDGE_ROUTERS, NULL);
     }
   }
 
   /* print local endpoints */
   avl_for_each_element(olsrv2_lan_get_tree(), lan, _node) {
-    if (netaddr_get_address_family(&lan->prefix.dst) == af_type
-        && olsrv2_lan_get_domaindata(domain, lan)->active) {
+    if (netaddr_get_address_family(&lan->prefix.dst) == af_type && olsrv2_lan_get_domaindata(domain, lan)->active) {
       rt_entry = avl_find_element(rt_tree, &lan->prefix, rt_entry, _node);
       outgoing = rt_entry == NULL;
 
       _get_tc_lan_id(&node_id2, lan);
 
-      _print_graph_edge(session, domain,
-          &node_id1, &node_id2, originator, &lan->prefix.dst,
-          olsrv2_lan_get_domaindata(domain, lan)->outgoing_metric, 0,
-          olsrv2_lan_get_domaindata(domain, lan)->distance,
-          outgoing, NETJSON_EDGE_LAN, NULL);
+      _print_graph_edge(session, domain, &node_id1, &node_id2, originator, &lan->prefix.dst,
+        olsrv2_lan_get_domaindata(domain, lan)->outgoing_metric, 0, olsrv2_lan_get_domaindata(domain, lan)->distance,
+        outgoing, NETJSON_EDGE_LAN, NULL);
     }
   }
 
@@ -757,15 +702,13 @@ _print_graph(struct json_session *session,
           }
 
           rt_entry = avl_find_element(rt_tree, &edge->dst->target.prefix, rt_entry, _node);
-          outgoing = rt_entry != NULL
-              && netaddr_cmp(&rt_entry->last_originator, &node->target.prefix.dst) == 0;
+          outgoing = rt_entry != NULL && netaddr_cmp(&rt_entry->last_originator, &node->target.prefix.dst) == 0;
 
           _get_tc_node_id(&node_id2, edge->dst);
 
-          _print_graph_edge(session, domain,
-              &node_id1, &node_id2, &node->target.prefix.dst, &edge->dst->target.prefix.dst,
-              edge->cost[domain->index], edge->inverse->cost[domain->index],
-              0, outgoing, NETJSON_EDGE_ROUTERS, NULL);
+          _print_graph_edge(session, domain, &node_id1, &node_id2, &node->target.prefix.dst,
+            &edge->dst->target.prefix.dst, edge->cost[domain->index], edge->inverse->cost[domain->index], 0, outgoing,
+            NETJSON_EDGE_ROUTERS, NULL);
         }
       }
     }
@@ -778,15 +721,13 @@ _print_graph(struct json_session *session,
 
       avl_for_each_element(&node->_attached_networks, attached, _src_node) {
         rt_entry = avl_find_element(rt_tree, &attached->dst->target.prefix, rt_entry, _node);
-         outgoing = rt_entry != NULL
-             && netaddr_cmp(&rt_entry->originator, &node->target.prefix.dst) == 0;
+        outgoing = rt_entry != NULL && netaddr_cmp(&rt_entry->originator, &node->target.prefix.dst) == 0;
 
-         _get_tc_endpoint_id(&node_id2, attached);
+        _get_tc_endpoint_id(&node_id2, attached);
 
-        _print_graph_edge(session, domain,
-            &node_id1, &node_id2, &node->target.prefix.dst, &attached->dst->target.prefix.dst,
-            attached->cost[domain->index], 0,
-            attached->distance[domain->index], outgoing, NETJSON_EDGE_ATTACHED, NULL);
+        _print_graph_edge(session, domain, &node_id1, &node_id2, &node->target.prefix.dst,
+          &attached->dst->target.prefix.dst, attached->cost[domain->index], 0, attached->distance[domain->index],
+          outgoing, NETJSON_EDGE_ATTACHED, NULL);
       }
     }
   }
@@ -801,18 +742,15 @@ _print_graph(struct json_session *session,
  * @param filter domain filter
  */
 static void
-_create_graph_json(struct json_session *session,
-    const char *filter) {
+_create_graph_json(struct json_session *session, const char *filter) {
   struct nhdp_domain *domain;
   struct domain_id_str dbuf;
 
   list_for_each_element(nhdp_domain_get_list(), domain, _node) {
-    if (filter == NULL
-        || strcmp(_create_domain_id(&dbuf, domain, AF_INET), filter) == 0) {
+    if (filter == NULL || strcmp(_create_domain_id(&dbuf, domain, AF_INET), filter) == 0) {
       _print_graph(session, domain, AF_INET);
     }
-    if (filter == NULL
-        || strcmp(_create_domain_id(&dbuf, domain, AF_INET6), filter) == 0) {
+    if (filter == NULL || strcmp(_create_domain_id(&dbuf, domain, AF_INET6), filter) == 0) {
       _print_graph(session, domain, AF_INET6);
     }
   }
@@ -825,8 +763,7 @@ _create_graph_json(struct json_session *session,
  * @param af_type address family
  */
 static void
-_print_routing_tree(struct json_session *session,
-    struct nhdp_domain *domain, int af_type) {
+_print_routing_tree(struct json_session *session, struct nhdp_domain *domain, int af_type) {
   struct olsrv2_routing_entry *rtentry;
   const struct netaddr *originator;
   char ibuf[IF_NAMESIZE];
@@ -849,8 +786,7 @@ _print_routing_tree(struct json_session *session,
   _get_node_id_me(&idbuf, af_type);
   _print_json_string(session, "router_id", idbuf.buf);
   _print_json_string(session, "metric", domain->metric->name);
-  _print_json_string(session, "topology_id",
-      _create_domain_id(&dbuf, domain, af_type));
+  _print_json_string(session, "topology_id", _create_domain_id(&dbuf, domain, af_type));
 
   json_start_object(session, "properties");
   _print_json_netaddr(session, "router_addr", originator);
@@ -873,9 +809,8 @@ _print_routing_tree(struct json_session *session,
 
       _print_json_string(session, "device", if_indextoname(rtentry->route.p.if_index, ibuf));
       _print_json_number(session, "cost", rtentry->path_cost);
-      _print_json_string(session, "cost_text",
-          nhdp_domain_get_path_metric_value(
-              &mbuf, domain, rtentry->path_cost, rtentry->path_hops));
+      _print_json_string(
+        session, "cost_text", nhdp_domain_get_path_metric_value(&mbuf, domain, rtentry->path_cost, rtentry->path_hops));
 
       json_start_object(session, "properties");
       if (!netaddr_is_unspec(&rtentry->originator)) {
@@ -911,12 +846,10 @@ _create_route_json(struct json_session *session, const char *filter) {
   struct domain_id_str dbuf;
 
   list_for_each_element(nhdp_domain_get_list(), domain, _node) {
-    if (filter == NULL
-        || strcmp(_create_domain_id(&dbuf, domain, AF_INET), filter) == 0) {
+    if (filter == NULL || strcmp(_create_domain_id(&dbuf, domain, AF_INET), filter) == 0) {
       _print_routing_tree(session, domain, AF_INET);
     }
-    if (filter == NULL
-        || strcmp(_create_domain_id(&dbuf, domain, AF_INET6), filter) == 0) {
+    if (filter == NULL || strcmp(_create_domain_id(&dbuf, domain, AF_INET6), filter) == 0) {
       _print_routing_tree(session, domain, AF_INET6);
     }
   }
@@ -944,8 +877,7 @@ _create_domain_json(struct json_session *session) {
     if (!netaddr_is_unspec(originator_v4)) {
       json_start_object(session, NULL);
 
-      _print_json_string(session, "id",
-          _create_domain_id(&dbuf, domain, AF_INET));
+      _print_json_string(session, "id", _create_domain_id(&dbuf, domain, AF_INET));
       _print_json_number(session, "number", domain->ext);
       _print_json_netaddr(session, "router_id", originator_v4);
       _print_json_string(session, "metric", domain->metric->name);
@@ -957,8 +889,7 @@ _create_domain_json(struct json_session *session) {
     if (!netaddr_is_unspec(originator_v6)) {
       json_start_object(session, NULL);
 
-      _print_json_string(session, "id",
-          _create_domain_id(&dbuf, domain, AF_INET6));
+      _print_json_string(session, "id", _create_domain_id(&dbuf, domain, AF_INET6));
       _print_json_number(session, "number", domain->ext);
       _print_json_netaddr(session, "router_id", originator_v6);
       _print_json_string(session, "metric", domain->metric->name);
@@ -979,8 +910,7 @@ _create_domain_json(struct json_session *session) {
  * @param parameter error parameter
  */
 static void
-_create_error_json(struct json_session *session,
-    const char *message, const char *parameter) {
+_create_error_json(struct json_session *session, const char *message, const char *parameter) {
   json_start_object(session, NULL);
 
   _print_json_string(session, "type", "Error");
@@ -991,8 +921,7 @@ _create_error_json(struct json_session *session,
 }
 
 static const char *
-_handle_netjson_object(struct json_session *session,
-    const char *parameter, bool filter, bool *error) {
+_handle_netjson_object(struct json_session *session, const char *parameter, bool filter, bool *error) {
   const char *ptr;
 
   if ((ptr = str_hasnextword(parameter, JSON_NAME_GRAPH))) {
@@ -1001,8 +930,7 @@ _handle_netjson_object(struct json_session *session,
   else if ((ptr = str_hasnextword(parameter, JSON_NAME_ROUTE))) {
     _create_route_json(session, filter ? ptr : NULL);
   }
-  else if (!filter
-      && (ptr = str_hasnextword(parameter, JSON_NAME_DOMAIN))) {
+  else if (!filter && (ptr = str_hasnextword(parameter, JSON_NAME_DOMAIN))) {
     _create_domain_json(session);
   }
   else {
@@ -1018,9 +946,7 @@ _handle_filter(struct json_session *session, const char *parameter) {
 
   _handle_netjson_object(session, parameter, true, &error);
   if (error) {
-    _create_error_json(session,
-        "Could not parse sub-command for netjsoninfo",
-        parameter);
+    _create_error_json(session, "Could not parse sub-command for netjsoninfo", parameter);
   }
 }
 
@@ -1040,9 +966,7 @@ _handle_collection(struct json_session *session, const char *parameter) {
   }
 
   if (error) {
-    _create_error_json(session,
-        "Could not parse sub-command for netjsoninfo",
-        parameter);
+    _create_error_json(session, "Could not parse sub-command for netjsoninfo", parameter);
   }
 
   json_end_array(session);

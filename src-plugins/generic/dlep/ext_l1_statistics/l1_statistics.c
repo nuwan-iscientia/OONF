@@ -43,8 +43,8 @@
  * @file
  */
 
-#include "common/common_types.h"
 #include "common/avl.h"
+#include "common/common_types.h"
 
 #include "dlep/dlep_extension.h"
 #include "dlep/dlep_iana.h"
@@ -53,202 +53,191 @@
 
 #include "dlep/ext_l1_statistics/l1_statistics.h"
 
-static int dlep_reader_map_array(struct oonf_layer2_data *data,
-    const struct oonf_layer2_metadata *meta,
-    struct dlep_session *session, uint16_t dlep_tlv,
-    enum oonf_layer2_network_index l2idx);
-static int dlep_reader_map_frequency(struct oonf_layer2_data *data,
-    const struct oonf_layer2_metadata *meta,
-    struct dlep_session *session, uint16_t dlep_tlv);
-static int dlep_reader_map_bandwidth(struct oonf_layer2_data *data,
-    const struct oonf_layer2_metadata *meta,
-    struct dlep_session *session, uint16_t dlep_tlv);
+static int dlep_reader_map_array(struct oonf_layer2_data *data, const struct oonf_layer2_metadata *meta,
+  struct dlep_session *session, uint16_t dlep_tlv, enum oonf_layer2_network_index l2idx);
+static int dlep_reader_map_frequency(struct oonf_layer2_data *data, const struct oonf_layer2_metadata *meta,
+  struct dlep_session *session, uint16_t dlep_tlv);
+static int dlep_reader_map_bandwidth(struct oonf_layer2_data *data, const struct oonf_layer2_metadata *meta,
+  struct dlep_session *session, uint16_t dlep_tlv);
 
-static int dlep_writer_map_array(struct dlep_writer *writer,
-    struct oonf_layer2_data *data,
-    const struct oonf_layer2_metadata *meta,
-    uint16_t tlv, uint16_t length,
-    enum oonf_layer2_network_index l2idx);
-static int dlep_writer_map_frequency(struct dlep_writer *writer,
-    struct oonf_layer2_data *data,
-    const struct oonf_layer2_metadata *meta,
-    uint16_t tlv, uint16_t length);
-static int dlep_writer_map_bandwidth(struct dlep_writer *writer,
-    struct oonf_layer2_data *data,
-    const struct oonf_layer2_metadata *meta,
-    uint16_t tlv, uint16_t length);
+static int dlep_writer_map_array(struct dlep_writer *writer, struct oonf_layer2_data *data,
+  const struct oonf_layer2_metadata *meta, uint16_t tlv, uint16_t length, enum oonf_layer2_network_index l2idx);
+static int dlep_writer_map_frequency(struct dlep_writer *writer, struct oonf_layer2_data *data,
+  const struct oonf_layer2_metadata *meta, uint16_t tlv, uint16_t length);
+static int dlep_writer_map_bandwidth(struct dlep_writer *writer, struct oonf_layer2_data *data,
+  const struct oonf_layer2_metadata *meta, uint16_t tlv, uint16_t length);
 
 /* peer initialization ack */
 static const uint16_t _session_initack_tlvs[] = {
-    DLEP_FREQUENCY_TLV,
-    DLEP_BANDWIDTH_TLV,
-    DLEP_NOISE_LEVEL_TLV,
-    DLEP_CHANNEL_ACTIVE_TLV,
-    DLEP_CHANNEL_BUSY_TLV,
-    DLEP_CHANNEL_RX_TLV,
-    DLEP_CHANNEL_TX_TLV,
-    DLEP_SIGNAL_RX_TLV,
-    DLEP_SIGNAL_TX_TLV,
+  DLEP_FREQUENCY_TLV,
+  DLEP_BANDWIDTH_TLV,
+  DLEP_NOISE_LEVEL_TLV,
+  DLEP_CHANNEL_ACTIVE_TLV,
+  DLEP_CHANNEL_BUSY_TLV,
+  DLEP_CHANNEL_RX_TLV,
+  DLEP_CHANNEL_TX_TLV,
+  DLEP_SIGNAL_RX_TLV,
+  DLEP_SIGNAL_TX_TLV,
 };
 static const uint16_t _session_initack_mandatory[] = {
-    DLEP_FREQUENCY_TLV,
-    DLEP_BANDWIDTH_TLV,
+  DLEP_FREQUENCY_TLV,
+  DLEP_BANDWIDTH_TLV,
 };
 
 /* peer update */
 static const uint16_t _peer_update_tlvs[] = {
-    DLEP_FREQUENCY_TLV,
-    DLEP_BANDWIDTH_TLV,
-    DLEP_NOISE_LEVEL_TLV,
-    DLEP_CHANNEL_ACTIVE_TLV,
-    DLEP_CHANNEL_BUSY_TLV,
-    DLEP_CHANNEL_RX_TLV,
-    DLEP_CHANNEL_TX_TLV,
-    DLEP_SIGNAL_RX_TLV,
-    DLEP_SIGNAL_TX_TLV,
+  DLEP_FREQUENCY_TLV,
+  DLEP_BANDWIDTH_TLV,
+  DLEP_NOISE_LEVEL_TLV,
+  DLEP_CHANNEL_ACTIVE_TLV,
+  DLEP_CHANNEL_BUSY_TLV,
+  DLEP_CHANNEL_RX_TLV,
+  DLEP_CHANNEL_TX_TLV,
+  DLEP_SIGNAL_RX_TLV,
+  DLEP_SIGNAL_TX_TLV,
 };
 
 /* destination up/update */
 static const uint16_t _dst_tlvs[] = {
-    DLEP_MAC_ADDRESS_TLV,
-    DLEP_SIGNAL_RX_TLV,
-    DLEP_SIGNAL_TX_TLV,
+  DLEP_MAC_ADDRESS_TLV,
+  DLEP_SIGNAL_RX_TLV,
+  DLEP_SIGNAL_TX_TLV,
 };
 static const uint16_t _dst_mandatory[] = {
-    DLEP_MAC_ADDRESS_TLV,
+  DLEP_MAC_ADDRESS_TLV,
 };
 
 /* supported signals of this extension */
 static struct dlep_extension_signal _signals[] = {
-    {
-        .id = DLEP_SESSION_INITIALIZATION_ACK,
-        .supported_tlvs = _session_initack_tlvs,
-        .supported_tlv_count = ARRAYSIZE(_session_initack_tlvs),
-        .mandatory_tlvs = _session_initack_mandatory,
-        .mandatory_tlv_count = ARRAYSIZE(_session_initack_mandatory),
-        .add_radio_tlvs = dlep_extension_radio_write_session_init_ack,
-        .process_router = dlep_extension_router_process_session_init_ack,
-    },
-    {
-        .id = DLEP_SESSION_UPDATE,
-        .supported_tlvs = _peer_update_tlvs,
-        .supported_tlv_count = ARRAYSIZE(_peer_update_tlvs),
-        .add_radio_tlvs = dlep_extension_radio_write_session_update,
-        .process_router = dlep_extension_router_process_session_update,
-    },
-    {
-        .id = DLEP_DESTINATION_UP,
-        .supported_tlvs = _dst_tlvs,
-        .supported_tlv_count = ARRAYSIZE(_dst_tlvs),
-        .mandatory_tlvs = _dst_mandatory,
-        .mandatory_tlv_count = ARRAYSIZE(_dst_mandatory),
-        .add_radio_tlvs = dlep_extension_radio_write_destination,
-        .process_router = dlep_extension_router_process_destination,
-    },
-    {
-        .id = DLEP_DESTINATION_UPDATE,
-        .supported_tlvs = _dst_tlvs,
-        .supported_tlv_count = ARRAYSIZE(_dst_tlvs),
-        .mandatory_tlvs = _dst_mandatory,
-        .mandatory_tlv_count = ARRAYSIZE(_dst_mandatory),
-        .add_radio_tlvs = dlep_extension_radio_write_destination,
-        .process_router = dlep_extension_router_process_destination,
-    },
+  {
+    .id = DLEP_SESSION_INITIALIZATION_ACK,
+    .supported_tlvs = _session_initack_tlvs,
+    .supported_tlv_count = ARRAYSIZE(_session_initack_tlvs),
+    .mandatory_tlvs = _session_initack_mandatory,
+    .mandatory_tlv_count = ARRAYSIZE(_session_initack_mandatory),
+    .add_radio_tlvs = dlep_extension_radio_write_session_init_ack,
+    .process_router = dlep_extension_router_process_session_init_ack,
+  },
+  {
+    .id = DLEP_SESSION_UPDATE,
+    .supported_tlvs = _peer_update_tlvs,
+    .supported_tlv_count = ARRAYSIZE(_peer_update_tlvs),
+    .add_radio_tlvs = dlep_extension_radio_write_session_update,
+    .process_router = dlep_extension_router_process_session_update,
+  },
+  {
+    .id = DLEP_DESTINATION_UP,
+    .supported_tlvs = _dst_tlvs,
+    .supported_tlv_count = ARRAYSIZE(_dst_tlvs),
+    .mandatory_tlvs = _dst_mandatory,
+    .mandatory_tlv_count = ARRAYSIZE(_dst_mandatory),
+    .add_radio_tlvs = dlep_extension_radio_write_destination,
+    .process_router = dlep_extension_router_process_destination,
+  },
+  {
+    .id = DLEP_DESTINATION_UPDATE,
+    .supported_tlvs = _dst_tlvs,
+    .supported_tlv_count = ARRAYSIZE(_dst_tlvs),
+    .mandatory_tlvs = _dst_mandatory,
+    .mandatory_tlv_count = ARRAYSIZE(_dst_mandatory),
+    .add_radio_tlvs = dlep_extension_radio_write_destination,
+    .process_router = dlep_extension_router_process_destination,
+  },
 };
 
 /* supported TLVs of this extension */
 static struct dlep_extension_tlv _tlvs[] = {
-    { DLEP_FREQUENCY_TLV, 8, 16 },
-    { DLEP_BANDWIDTH_TLV, 8, 16 },
-    { DLEP_NOISE_LEVEL_TLV, 4, 4 },
-    { DLEP_CHANNEL_ACTIVE_TLV, 8, 8 },
-    { DLEP_CHANNEL_BUSY_TLV, 8, 8 },
-    { DLEP_CHANNEL_RX_TLV, 8, 8 },
-    { DLEP_CHANNEL_TX_TLV, 8, 8 },
-    { DLEP_SIGNAL_RX_TLV, 4, 4 },
-    { DLEP_SIGNAL_TX_TLV, 4, 4 },
+  { DLEP_FREQUENCY_TLV, 8, 16 },
+  { DLEP_BANDWIDTH_TLV, 8, 16 },
+  { DLEP_NOISE_LEVEL_TLV, 4, 4 },
+  { DLEP_CHANNEL_ACTIVE_TLV, 8, 8 },
+  { DLEP_CHANNEL_BUSY_TLV, 8, 8 },
+  { DLEP_CHANNEL_RX_TLV, 8, 8 },
+  { DLEP_CHANNEL_TX_TLV, 8, 8 },
+  { DLEP_SIGNAL_RX_TLV, 4, 4 },
+  { DLEP_SIGNAL_TX_TLV, 4, 4 },
 };
 
 static struct dlep_neighbor_mapping _neigh_mappings[] = {
-    {
-        .dlep          = DLEP_SIGNAL_RX_TLV,
-        .layer2        = OONF_LAYER2_NEIGH_RX_SIGNAL,
-        .length        = 4,
+  {
+    .dlep = DLEP_SIGNAL_RX_TLV,
+    .layer2 = OONF_LAYER2_NEIGH_RX_SIGNAL,
+    .length = 4,
 
-        .from_tlv      = dlep_reader_map_identity,
-        .to_tlv        = dlep_writer_map_identity,
-    },
-    {
-        .dlep          = DLEP_SIGNAL_TX_TLV,
-        .layer2        = OONF_LAYER2_NEIGH_TX_SIGNAL,
-        .length        = 4,
+    .from_tlv = dlep_reader_map_identity,
+    .to_tlv = dlep_writer_map_identity,
+  },
+  {
+    .dlep = DLEP_SIGNAL_TX_TLV,
+    .layer2 = OONF_LAYER2_NEIGH_TX_SIGNAL,
+    .length = 4,
 
-        .from_tlv      = dlep_reader_map_identity,
-        .to_tlv        = dlep_writer_map_identity,
-    },
+    .from_tlv = dlep_reader_map_identity,
+    .to_tlv = dlep_writer_map_identity,
+  },
 };
 
 static struct dlep_network_mapping _net_mappings[] = {
-    {
-        .dlep          = DLEP_FREQUENCY_TLV,
-        .layer2        = OONF_LAYER2_NET_FREQUENCY_1,
-        .length        = 8,
+  {
+    .dlep = DLEP_FREQUENCY_TLV,
+    .layer2 = OONF_LAYER2_NET_FREQUENCY_1,
+    .length = 8,
 
-        .mandatory     = true,
+    .mandatory = true,
 
-        .from_tlv      = dlep_reader_map_frequency,
-        .to_tlv        = dlep_writer_map_frequency,
-    },
-    {
-        .dlep          = DLEP_BANDWIDTH_TLV,
-        .layer2        = OONF_LAYER2_NET_BANDWIDTH_1,
-        .length        = 8,
+    .from_tlv = dlep_reader_map_frequency,
+    .to_tlv = dlep_writer_map_frequency,
+  },
+  {
+    .dlep = DLEP_BANDWIDTH_TLV,
+    .layer2 = OONF_LAYER2_NET_BANDWIDTH_1,
+    .length = 8,
 
-        .mandatory     = true,
+    .mandatory = true,
 
-        .from_tlv      = dlep_reader_map_bandwidth,
-        .to_tlv        = dlep_writer_map_bandwidth,
-    },
-    {
-        .dlep          = DLEP_NOISE_LEVEL_TLV,
-        .layer2        = OONF_LAYER2_NET_NOISE,
-        .length        = 4,
+    .from_tlv = dlep_reader_map_bandwidth,
+    .to_tlv = dlep_writer_map_bandwidth,
+  },
+  {
+    .dlep = DLEP_NOISE_LEVEL_TLV,
+    .layer2 = OONF_LAYER2_NET_NOISE,
+    .length = 4,
 
-        .from_tlv      = dlep_reader_map_identity,
-        .to_tlv        = dlep_writer_map_identity,
-    },
-    {
-        .dlep          = DLEP_CHANNEL_ACTIVE_TLV,
-        .layer2        = OONF_LAYER2_NET_CHANNEL_ACTIVE,
-        .length        = 8,
+    .from_tlv = dlep_reader_map_identity,
+    .to_tlv = dlep_writer_map_identity,
+  },
+  {
+    .dlep = DLEP_CHANNEL_ACTIVE_TLV,
+    .layer2 = OONF_LAYER2_NET_CHANNEL_ACTIVE,
+    .length = 8,
 
-        .from_tlv      = dlep_reader_map_identity,
-        .to_tlv        = dlep_writer_map_identity,
-    },
-    {
-        .dlep          = DLEP_CHANNEL_BUSY_TLV,
-        .layer2        = OONF_LAYER2_NET_CHANNEL_BUSY,
-        .length        = 8,
+    .from_tlv = dlep_reader_map_identity,
+    .to_tlv = dlep_writer_map_identity,
+  },
+  {
+    .dlep = DLEP_CHANNEL_BUSY_TLV,
+    .layer2 = OONF_LAYER2_NET_CHANNEL_BUSY,
+    .length = 8,
 
-        .from_tlv      = dlep_reader_map_identity,
-        .to_tlv        = dlep_writer_map_identity,
-    },
-    {
-        .dlep          = DLEP_CHANNEL_RX_TLV,
-        .layer2        = OONF_LAYER2_NET_CHANNEL_RX,
-        .length        = 8,
+    .from_tlv = dlep_reader_map_identity,
+    .to_tlv = dlep_writer_map_identity,
+  },
+  {
+    .dlep = DLEP_CHANNEL_RX_TLV,
+    .layer2 = OONF_LAYER2_NET_CHANNEL_RX,
+    .length = 8,
 
-        .from_tlv      = dlep_reader_map_identity,
-        .to_tlv        = dlep_writer_map_identity,
-    },
-    {
-        .dlep          = DLEP_CHANNEL_TX_TLV,
-        .layer2        = OONF_LAYER2_NET_CHANNEL_TX,
-        .length        = 8,
+    .from_tlv = dlep_reader_map_identity,
+    .to_tlv = dlep_writer_map_identity,
+  },
+  {
+    .dlep = DLEP_CHANNEL_TX_TLV,
+    .layer2 = OONF_LAYER2_NET_CHANNEL_TX,
+    .length = 8,
 
-        .from_tlv      = dlep_reader_map_identity,
-        .to_tlv        = dlep_writer_map_identity,
-    },
+    .from_tlv = dlep_reader_map_identity,
+    .to_tlv = dlep_writer_map_identity,
+  },
 };
 
 /* DLEP base extension, radio side */
@@ -286,14 +275,12 @@ dlep_l1_statistics_init(void) {
  * @return -1 if an error happened, 0 otherwise
  */
 static int
-dlep_reader_map_array(struct oonf_layer2_data *data,
-    const struct oonf_layer2_metadata *meta __attribute__((unused)),
-    struct dlep_session *session, uint16_t dlep_tlv,
-    enum oonf_layer2_network_index l2idx) {
+dlep_reader_map_array(struct oonf_layer2_data *data, const struct oonf_layer2_metadata *meta __attribute__((unused)),
+  struct dlep_session *session, uint16_t dlep_tlv, enum oonf_layer2_network_index l2idx) {
   struct dlep_parser_value *value;
   int64_t l2value;
   const uint8_t *dlepvalue;
-  uint64_t tmp64[2] = { 0,0 };
+  uint64_t tmp64[2] = { 0, 0 };
 
   value = dlep_session_get_tlv_value(session, dlep_tlv);
   if (!value) {
@@ -345,11 +332,9 @@ dlep_reader_map_array(struct oonf_layer2_data *data,
  * @return -1 if an error happened, 0 otherwise
  */
 static int
-dlep_reader_map_frequency(struct oonf_layer2_data *data,
-    const struct oonf_layer2_metadata *meta,
-    struct dlep_session *session, uint16_t dlep_tlv) {
-  return dlep_reader_map_array(data, meta, session, dlep_tlv,
-      OONF_LAYER2_NET_FREQUENCY_1);
+dlep_reader_map_frequency(struct oonf_layer2_data *data, const struct oonf_layer2_metadata *meta,
+  struct dlep_session *session, uint16_t dlep_tlv) {
+  return dlep_reader_map_array(data, meta, session, dlep_tlv, OONF_LAYER2_NET_FREQUENCY_1);
 }
 
 /**
@@ -361,11 +346,9 @@ dlep_reader_map_frequency(struct oonf_layer2_data *data,
  * @return -1 if an error happened, 0 otherwise
  */
 static int
-dlep_reader_map_bandwidth(struct oonf_layer2_data *data,
-    const struct oonf_layer2_metadata *meta,
-    struct dlep_session *session, uint16_t dlep_tlv) {
-  return dlep_reader_map_array(data, meta, session, dlep_tlv,
-      OONF_LAYER2_NET_BANDWIDTH_1);
+dlep_reader_map_bandwidth(struct oonf_layer2_data *data, const struct oonf_layer2_metadata *meta,
+  struct dlep_session *session, uint16_t dlep_tlv) {
+  return dlep_reader_map_array(data, meta, session, dlep_tlv, OONF_LAYER2_NET_BANDWIDTH_1);
 }
 
 /**
@@ -379,11 +362,8 @@ dlep_reader_map_bandwidth(struct oonf_layer2_data *data,
  * @return -1 if an error happened, 0 otherwise
  */
 int
-dlep_writer_map_array(struct dlep_writer *writer,
-    struct oonf_layer2_data *data,
-    const struct oonf_layer2_metadata *meta,
-    uint16_t tlv, uint16_t length,
-    enum oonf_layer2_network_index l2idx) {
+dlep_writer_map_array(struct dlep_writer *writer, struct oonf_layer2_data *data,
+  const struct oonf_layer2_metadata *meta, uint16_t tlv, uint16_t length, enum oonf_layer2_network_index l2idx) {
   struct oonf_layer2_data *data2;
   int64_t l2value;
   uint64_t tmp64[2];
@@ -398,12 +378,10 @@ dlep_writer_map_array(struct dlep_writer *writer,
   if (length == 16) {
     switch (l2idx) {
       case OONF_LAYER2_NET_FREQUENCY_1:
-        data2 = data +
-          (OONF_LAYER2_NET_FREQUENCY_2 - OONF_LAYER2_NET_FREQUENCY_1);
+        data2 = data + (OONF_LAYER2_NET_FREQUENCY_2 - OONF_LAYER2_NET_FREQUENCY_1);
         break;
       case OONF_LAYER2_NET_BANDWIDTH_1:
-        data2 = data +
-          (OONF_LAYER2_NET_BANDWIDTH_2 - OONF_LAYER2_NET_BANDWIDTH_1);
+        data2 = data + (OONF_LAYER2_NET_BANDWIDTH_2 - OONF_LAYER2_NET_BANDWIDTH_1);
         break;
       default:
         return -1;
@@ -433,12 +411,9 @@ dlep_writer_map_array(struct dlep_writer *writer,
  * @return -1 if an error happened, 0 otherwise
  */
 static int
-dlep_writer_map_frequency(struct dlep_writer *writer,
-    struct oonf_layer2_data *data,
-    const struct oonf_layer2_metadata *meta,
-    uint16_t tlv, uint16_t length) {
-  return dlep_writer_map_array(writer, data, meta, tlv, length,
-      OONF_LAYER2_NET_FREQUENCY_1);
+dlep_writer_map_frequency(struct dlep_writer *writer, struct oonf_layer2_data *data,
+  const struct oonf_layer2_metadata *meta, uint16_t tlv, uint16_t length) {
+  return dlep_writer_map_array(writer, data, meta, tlv, length, OONF_LAYER2_NET_FREQUENCY_1);
 }
 
 /**
@@ -450,10 +425,7 @@ dlep_writer_map_frequency(struct dlep_writer *writer,
  * @return -1 if an error happened, 0 otherwise
  */
 static int
-dlep_writer_map_bandwidth(struct dlep_writer *writer,
-    struct oonf_layer2_data *data,
-    const struct oonf_layer2_metadata *meta,
-    uint16_t tlv, uint16_t length) {
-  return dlep_writer_map_array(writer, data, meta, tlv, length,
-      OONF_LAYER2_NET_BANDWIDTH_1);
+dlep_writer_map_bandwidth(struct dlep_writer *writer, struct oonf_layer2_data *data,
+  const struct oonf_layer2_metadata *meta, uint16_t tlv, uint16_t length) {
+  return dlep_writer_map_array(writer, data, meta, tlv, length, OONF_LAYER2_NET_BANDWIDTH_1);
 }

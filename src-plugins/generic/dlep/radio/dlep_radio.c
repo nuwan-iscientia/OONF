@@ -46,9 +46,9 @@
 #include <errno.h>
 #include <unistd.h>
 
-#include "common/common_types.h"
 #include "common/avl.h"
 #include "common/avl_comp.h"
+#include "common/common_types.h"
 #include "common/netaddr.h"
 
 #include "config/cfg_schema.h"
@@ -76,7 +76,7 @@ static void _cb_config_changed(void);
 /* configuration */
 static struct cfg_schema_entry _radio_entries[] = {
   CFG_MAP_STRING_ARRAY(dlep_radio_if, interf.udp_config.interface, "datapath_if", "",
-     "Name of interface to talk to dlep router (default is section name)", IF_NAMESIZE),
+    "Name of interface to talk to dlep router (default is section name)", IF_NAMESIZE),
 
   CFG_MAP_STRING(dlep_radio_if, interf.session.cfg.peer_type, "peer_type", "OONF DLEP Radio",
     "Identification string of DLEP radio endpoint"),
@@ -85,26 +85,23 @@ static struct cfg_schema_entry _radio_entries[] = {
     DLEP_WELL_KNOWN_MULTICAST_ADDRESS, "IPv4 address to send discovery UDP packet to", false, false),
   CFG_MAP_NETADDR_V6(dlep_radio_if, interf.udp_config.multicast_v6, "discovery_mc_v6",
     DLEP_WELL_KNOWN_MULTICAST_ADDRESS_6, "IPv6 address to send discovery UDP packet to", false, false),
-  CFG_MAP_INT32_MINMAX(dlep_radio_if, interf.udp_config.port, "discovery_port",
-    DLEP_WELL_KNOWN_MULTICAST_PORT_TXT, "UDP port for discovery packets", 0, 1, 65535),
+  CFG_MAP_INT32_MINMAX(dlep_radio_if, interf.udp_config.port, "discovery_port", DLEP_WELL_KNOWN_MULTICAST_PORT_TXT,
+    "UDP port for discovery packets", 0, 1, 65535),
   CFG_MAP_ACL_V46(dlep_radio_if, interf.udp_config.bindto, "discovery_bindto", "fe80::/10",
     "Filter to determine the binding of the UDP discovery socket"),
 
-  CFG_MAP_INT32_MINMAX(dlep_radio_if, tcp_config.port, "session_port",
-      DLEP_WELL_KNOWN_SESSION_PORT_TXT, "Server port for DLEP tcp sessions", 0, 1, 65535),
+  CFG_MAP_INT32_MINMAX(dlep_radio_if, tcp_config.port, "session_port", DLEP_WELL_KNOWN_SESSION_PORT_TXT,
+    "Server port for DLEP tcp sessions", 0, 1, 65535),
   CFG_MAP_ACL_V46(dlep_radio_if, tcp_config.bindto, "session_bindto", "224.0.0.1\0fe80::/10",
-      "Filter to determine the binding of the TCP server socket"),
-  CFG_MAP_CLOCK_MINMAX(dlep_radio_if, interf.session.cfg.heartbeat_interval,
-      "heartbeat_interval", "1.000",
-      "Interval in seconds between two heartbeat signals", 1000, 65535 * 1000),
+    "Filter to determine the binding of the TCP server socket"),
+  CFG_MAP_CLOCK_MINMAX(dlep_radio_if, interf.session.cfg.heartbeat_interval, "heartbeat_interval", "1.000",
+    "Interval in seconds between two heartbeat signals", 1000, 65535 * 1000),
 
-  CFG_MAP_BOOL(dlep_radio_if, interf.single_session, "single_session", "true",
-      "Connect only to a single router"),
+  CFG_MAP_BOOL(dlep_radio_if, interf.single_session, "single_session", "true", "Connect only to a single router"),
 
   CFG_MAP_BOOL(dlep_radio_if, interf.session.cfg.send_proxied, "proxied", "true",
-      "Report 802.11s proxied mac address for neighbors"),
-  CFG_MAP_BOOL(dlep_radio_if, interf.session.cfg.send_neighbors, "not_proxied", "false",
-      "Report direct neighbors"),
+    "Report 802.11s proxied mac address for neighbors"),
+  CFG_MAP_BOOL(dlep_radio_if, interf.session.cfg.send_neighbors, "not_proxied", "false", "Report direct neighbors"),
 };
 
 static struct cfg_schema_section _radio_section = {
@@ -205,11 +202,9 @@ _cb_config_changed(void) {
   }
 
   /* read configuration */
-  error = cfg_schema_tobin(interface, _radio_section.post,
-      _radio_entries, ARRAYSIZE(_radio_entries));
+  error = cfg_schema_tobin(interface, _radio_section.post, _radio_entries, ARRAYSIZE(_radio_entries));
   if (error) {
-    OONF_WARN(LOG_DLEP_RADIO, "Could not convert "
-        OONF_DLEP_RADIO_SUBSYSTEM " config to bin (%d)", error);
+    OONF_WARN(LOG_DLEP_RADIO, "Could not convert " OONF_DLEP_RADIO_SUBSYSTEM " config to bin (%d)", error);
     return;
   }
 
@@ -217,12 +212,10 @@ _cb_config_changed(void) {
     strscpy(interface->interf.udp_config.interface, ifname, IF_NAMESIZE);
   }
   else {
-    cfg_get_phy_if(interface->interf.udp_config.interface,
-        interface->interf.udp_config.interface);
+    cfg_get_phy_if(interface->interf.udp_config.interface, interface->interf.udp_config.interface);
   }
   /* apply interface name also to TCP socket */
-  strscpy(interface->tcp_config.interface,
-      interface->interf.udp_config.interface, IF_NAMESIZE);
+  strscpy(interface->tcp_config.interface, interface->interf.udp_config.interface, IF_NAMESIZE);
 
   /* apply settings */
   dlep_radio_apply_interface_settings(interface);

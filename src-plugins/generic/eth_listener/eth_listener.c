@@ -43,12 +43,12 @@
  * @file
  */
 
+#include <errno.h>
 #include <linux/sockios.h>
 #include <net/if.h>
 #include <sys/ioctl.h>
-#include <sys/types.h>
 #include <sys/socket.h>
-#include <errno.h>
+#include <sys/types.h>
 #include <unistd.h>
 
 #include "common/common_types.h"
@@ -82,8 +82,8 @@ static void _cb_config_changed(void);
 
 /* configuration */
 static struct cfg_schema_entry _eth_entries[] = {
-  CFG_MAP_CLOCK_MIN(_eth_config, interval, "interval", "60.0",
-      "Interval between two linklayer information updates", 100),
+  CFG_MAP_CLOCK_MIN(
+    _eth_config, interval, "interval", "60.0", "Interval between two linklayer information updates", 100),
 };
 
 static struct cfg_schema_section _eth_section = {
@@ -123,9 +123,7 @@ static struct oonf_timer_class _transmission_timer_info = {
   .periodic = true,
 };
 
-static struct oonf_timer_instance _transmission_timer = {
-  .class = &_transmission_timer_info
-};
+static struct oonf_timer_instance _transmission_timer = { .class = &_transmission_timer_info };
 
 static struct oonf_layer2_origin _l2_origin = {
   .name = "ethernet listener",
@@ -137,7 +135,7 @@ static int _ioctl_sock;
 
 static int
 _init(void) {
-  _ioctl_sock = socket(AF_INET,SOCK_DGRAM,0);
+  _ioctl_sock = socket(AF_INET, SOCK_DGRAM, 0);
   if (_ioctl_sock == -1) {
     OONF_WARN(LOG_ETH, "Could not open ioctl socket");
     return -1;
@@ -188,8 +186,8 @@ _cb_transmission_event(struct oonf_timer_instance *ptr __attribute((unused))) {
       /* get name of base interface */
       if (if_indextoname(os_if->base_index, req.ifr_name) == NULL) {
         /* do not use WARN, maybe the base-index is not available in this namespace */
-        OONF_DEBUG(LOG_ETH, "Could not get interface name of index %u: %s (%d)",
-            os_if->base_index, strerror(errno), errno);
+        OONF_DEBUG(
+          LOG_ETH, "Could not get interface name of index %u: %s (%d)", os_if->base_index, strerror(errno), errno);
         continue;
       }
     }
@@ -222,23 +220,18 @@ _cb_transmission_event(struct oonf_timer_instance *ptr __attribute((unused))) {
     }
 
     /* set corresponding database entries */
-    OONF_DEBUG(LOG_ETH, "Set default link speed of interface %s to %s",
-        os_if->name,
-        isonumber_from_s64(&ibuf, ethspeed, "bit/s", 0, false));
+    OONF_DEBUG(LOG_ETH, "Set default link speed of interface %s to %s", os_if->name,
+      isonumber_from_s64(&ibuf, ethspeed, "bit/s", 0, false));
 
-    oonf_layer2_data_set_int64(&l2net->neighdata[OONF_LAYER2_NEIGH_RX_BITRATE],
-        &_l2_origin, ethspeed);
-    oonf_layer2_data_set_int64(&l2net->neighdata[OONF_LAYER2_NEIGH_TX_BITRATE],
-        &_l2_origin, ethspeed);
+    oonf_layer2_data_set_int64(&l2net->neighdata[OONF_LAYER2_NEIGH_RX_BITRATE], &_l2_origin, ethspeed);
+    oonf_layer2_data_set_int64(&l2net->neighdata[OONF_LAYER2_NEIGH_TX_BITRATE], &_l2_origin, ethspeed);
   }
 }
 
 static void
 _cb_config_changed(void) {
-  if (cfg_schema_tobin(&_config, _eth_section.post,
-      _eth_entries, ARRAYSIZE(_eth_entries))) {
-    OONF_WARN(LOG_ETH, "Could not convert "
-        OONF_ETH_LISTENER_SUBSYSTEM " config to bin");
+  if (cfg_schema_tobin(&_config, _eth_section.post, _eth_entries, ARRAYSIZE(_eth_entries))) {
+    OONF_WARN(LOG_ETH, "Could not convert " OONF_ETH_LISTENER_SUBSYSTEM " config to bin");
     return;
   }
 

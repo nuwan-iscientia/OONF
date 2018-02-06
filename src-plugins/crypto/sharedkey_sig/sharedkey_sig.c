@@ -43,16 +43,16 @@
  * @file
  */
 
-#include "common/common_types.h"
 #include "common/avl.h"
 #include "common/avl_comp.h"
 #include "common/bitmap256.h"
+#include "common/common_types.h"
 #include "config/cfg_schema.h"
 #include "core/oonf_subsystem.h"
-#include "subsystems/oonf_class.h"
-#include "subsystems/rfc5444/rfc5444_iana.h"
-#include "subsystems/oonf_rfc5444.h"
 #include "rfc5444_signature/rfc5444_signature.h"
+#include "subsystems/oonf_class.h"
+#include "subsystems/oonf_rfc5444.h"
+#include "subsystems/rfc5444/rfc5444_iana.h"
 
 #include "sharedkey_sig/sharedkey_sig.h"
 
@@ -100,8 +100,7 @@ static void _early_cfg_init(void);
 static int _init(void);
 static void _cleanup(void);
 
-static enum rfc5444_sigid_check _cb_verify_id(
-    struct rfc5444_signature *sig, const void *id, size_t len);
+static enum rfc5444_sigid_check _cb_verify_id(struct rfc5444_signature *sig, const void *id, size_t len);
 static bool _cb_is_matching_signature(struct rfc5444_signature *sig, int msg_type);
 static const void *_cb_getCryptoKey(struct rfc5444_signature *sig, size_t *length);
 static const void *_cb_getKeyId(struct rfc5444_signature *sig, size_t *length);
@@ -113,7 +112,8 @@ static void _remove_sig(struct sharedkey_signature *sig);
 static void _cb_config_changed(void);
 
 /* shared key signature subsystem definition */
-enum {
+enum
+{
   IDX_CFG_KEY,
   IDX_CFG_ID,
   IDX_CFG_MSG,
@@ -123,27 +123,23 @@ enum {
   IDX_CFG_HASH,
   IDX_CFG_CRYPTO,
 };
-static const char *_dummy[] = {""};
+static const char *_dummy[] = { "" };
 
 static struct cfg_schema_entry _sharedkey_entries[] = {
-  [IDX_CFG_KEY] = CFG_MAP_STRING_ARRAY(sharedkey_signature, key, "key", NULL,
-      "Key for signature cryptofunction", 256),
-  [IDX_CFG_ID] = CFG_MAP_STRING_ARRAY(sharedkey_signature, id, "id", "",
-      "Key ID for signature", 256),
-  [IDX_CFG_MSG] = CFG_MAP_BITMAP256(sharedkey_signature, msgtype, "msgtype",
-      BITMAP256_NONE, "Array of message-types to sign"),
-  [IDX_CFG_PACKET] = CFG_MAP_BOOL(sharedkey_signature, packet, "packet", "false",
-      "Set to true to create a packet level rfc7182 signature"),
+  [IDX_CFG_KEY] = CFG_MAP_STRING_ARRAY(sharedkey_signature, key, "key", NULL, "Key for signature cryptofunction", 256),
+  [IDX_CFG_ID] = CFG_MAP_STRING_ARRAY(sharedkey_signature, id, "id", "", "Key ID for signature", 256),
+  [IDX_CFG_MSG] =
+    CFG_MAP_BITMAP256(sharedkey_signature, msgtype, "msgtype", BITMAP256_NONE, "Array of message-types to sign"),
+  [IDX_CFG_PACKET] = CFG_MAP_BOOL(
+    sharedkey_signature, packet, "packet", "false", "Set to true to create a packet level rfc7182 signature"),
   [IDX_CFG_SRCSPEC] = CFG_MAP_BOOL(sharedkey_signature, source_specific, "source_specific", "false",
-      "Set to true to include source-ip address into signature"),
+    "Set to true to include source-ip address into signature"),
   [IDX_CFG_DROP] = CFG_MAP_BOOL(sharedkey_signature, drop_if_invalid, "drop_if_invalid", "true",
-      "Drop message/packet if signature cannot be validated"),
-  [IDX_CFG_HASH] = CFG_MAP_CHOICE(sharedkey_signature, hash, "hash", "sha256",
-      "Select the hash to be used for the signature generation",
-      _dummy),
+    "Drop message/packet if signature cannot be validated"),
+  [IDX_CFG_HASH] = CFG_MAP_CHOICE(
+    sharedkey_signature, hash, "hash", "sha256", "Select the hash to be used for the signature generation", _dummy),
   [IDX_CFG_CRYPTO] = CFG_MAP_CHOICE(sharedkey_signature, crypt, "crypt", "hmac",
-      "Select the crypto-function to be used for the signature generation",
-      _dummy),
+    "Select the crypto-function to be used for the signature generation", _dummy),
 };
 
 static struct cfg_schema_section _sharedkey_section = {
@@ -188,15 +184,11 @@ static struct avl_tree _sig_tree;
 static void
 _early_cfg_init(void) {
   /* we cannot do this statically because we draw the data from another subsystem */
-  _sharedkey_entries[IDX_CFG_HASH].validate_param[0].ptr =
-      rfc7182_get_hashes();
-  _sharedkey_entries[IDX_CFG_HASH].validate_param[1].s =
-      RFC7182_ICV_HASH_COUNT;
+  _sharedkey_entries[IDX_CFG_HASH].validate_param[0].ptr = rfc7182_get_hashes();
+  _sharedkey_entries[IDX_CFG_HASH].validate_param[1].s = RFC7182_ICV_HASH_COUNT;
 
-  _sharedkey_entries[IDX_CFG_CRYPTO].validate_param[0].ptr =
-      rfc7182_get_crypto();
-  _sharedkey_entries[IDX_CFG_CRYPTO].validate_param[1].s =
-      RFC7182_ICV_CRYPT_COUNT;
+  _sharedkey_entries[IDX_CFG_CRYPTO].validate_param[0].ptr = rfc7182_get_crypto();
+  _sharedkey_entries[IDX_CFG_CRYPTO].validate_param[1].s = RFC7182_ICV_CRYPT_COUNT;
 }
 
 /**
@@ -287,9 +279,8 @@ _cb_verify_id(struct rfc5444_signature *sig, const void *id, size_t len) {
     result = memcmp(id, sk_sig->id, len) == 0;
   }
 
-  OONF_DEBUG_HEX(LOG_SHAREDKEY_SIG, id, len,
-      "verify id %s = %s: %s",
-      sk_sig->name, sk_sig->id, result ? "true" : "false");
+  OONF_DEBUG_HEX(
+    LOG_SHAREDKEY_SIG, id, len, "verify id %s = %s: %s", sk_sig->name, sk_sig->id, result ? "true" : "false");
   return result ? RFC5444_SIGID_OKAY : RFC5444_SIGID_DROP;
 }
 
@@ -305,16 +296,13 @@ _cb_is_matching_signature(struct rfc5444_signature *sig, int msg_type) {
 
   sk_sig = container_of(sig, struct sharedkey_signature, _signature);
   if (msg_type == RFC5444_WRITER_PKT_POSTPROCESSOR) {
-    OONF_DEBUG(LOG_SHAREDKEY_SIG, "is packet signature %s: %s",
-        sk_sig->name, sk_sig->packet ? "true" : "false");
+    OONF_DEBUG(LOG_SHAREDKEY_SIG, "is packet signature %s: %s", sk_sig->name, sk_sig->packet ? "true" : "false");
 
     return sk_sig->packet;
   }
 
-  OONF_DEBUG_HEX(LOG_SHAREDKEY_SIG, &sk_sig->msgtype, sizeof(sk_sig->msgtype),
-      "is message (type=%u) signature %s: %s",
-      msg_type, sk_sig->name,
-      bitmap256_get(&sk_sig->msgtype, msg_type) ? "true" : "false");
+  OONF_DEBUG_HEX(LOG_SHAREDKEY_SIG, &sk_sig->msgtype, sizeof(sk_sig->msgtype), "is message (type=%u) signature %s: %s",
+    msg_type, sk_sig->name, bitmap256_get(&sk_sig->msgtype, msg_type) ? "true" : "false");
 
   return bitmap256_get(&sk_sig->msgtype, msg_type);
 }
@@ -331,8 +319,7 @@ _cb_getCryptoKey(struct rfc5444_signature *sig, size_t *length) {
 
   sk_sig = container_of(sig, struct sharedkey_signature, _signature);
 
-  OONF_DEBUG(LOG_SHAREDKEY_SIG, "getcryptokey %s: %s",
-      sk_sig->name, sk_sig->key);
+  OONF_DEBUG(LOG_SHAREDKEY_SIG, "getcryptokey %s: %s", sk_sig->name, sk_sig->key);
 
   *length = strlen(sk_sig->key);
   return sk_sig->key;
@@ -350,8 +337,7 @@ _cb_getKeyId(struct rfc5444_signature *sig, size_t *length) {
 
   sk_sig = container_of(sig, struct sharedkey_signature, _signature);
 
-  OONF_DEBUG(LOG_SHAREDKEY_SIG, "getkeyid %s: %s",
-      sk_sig->name, sk_sig->id);
+  OONF_DEBUG(LOG_SHAREDKEY_SIG, "getkeyid %s: %s", sk_sig->name, sk_sig->id);
 
   *length = strlen(sk_sig->id);
   return sk_sig->id;
@@ -381,10 +367,8 @@ _cb_config_changed(void) {
     return;
   }
 
-  if (cfg_schema_tobin(sig, _sharedkey_section.post,
-      _sharedkey_entries, ARRAYSIZE(_sharedkey_entries))) {
-    OONF_WARN(LOG_SHAREDKEY_SIG, "Cannot convert configuration for "
-        OONF_SHAREDKEY_SIG_SUBSYSTEM);
+  if (cfg_schema_tobin(sig, _sharedkey_section.post, _sharedkey_entries, ARRAYSIZE(_sharedkey_entries))) {
+    OONF_WARN(LOG_SHAREDKEY_SIG, "Cannot convert configuration for " OONF_SHAREDKEY_SIG_SUBSYSTEM);
     return;
   }
 

@@ -138,7 +138,8 @@ struct cfg_entry {
  *   will be used as the iterator variable
  * @param safeit helper reference of of named section variable
  */
-#define CFG_FOR_ALL_SECTION_NAMES(s_type, s_name, safeit) avl_for_each_element_safe(&s_type->names, s_name, node, safeit)
+#define CFG_FOR_ALL_SECTION_NAMES(s_type, s_name, safeit)                                                              \
+  avl_for_each_element_safe(&s_type->names, s_name, node, safeit)
 
 /**
  * Iterate over all entries in a named section.
@@ -152,35 +153,32 @@ struct cfg_entry {
 
 EXPORT struct cfg_db *cfg_db_add(void);
 EXPORT void cfg_db_remove(struct cfg_db *);
-EXPORT int _cfg_db_append(struct cfg_db *dst, struct cfg_db *src,
-    const char *section_type, const char *section_name, const char *entry_name);
+EXPORT int _cfg_db_append(
+  struct cfg_db *dst, struct cfg_db *src, const char *section_type, const char *section_name, const char *entry_name);
 
 EXPORT struct cfg_named_section *_cfg_db_add_section(
-    struct cfg_db *, const char *section_type, const char *section_name,
-    bool *new_section);
+  struct cfg_db *, const char *section_type, const char *section_name, bool *new_section);
 
 EXPORT int cfg_db_remove_sectiontype(struct cfg_db *, const char *section_type);
 
 EXPORT struct cfg_named_section *cfg_db_find_namedsection(
-    const struct cfg_db *, const char *section_type, const char *section_name);
-EXPORT int cfg_db_remove_namedsection(struct cfg_db *db, const char *section_type,
-    const char *section_name);
+  const struct cfg_db *, const char *section_type, const char *section_name);
+EXPORT int cfg_db_remove_namedsection(struct cfg_db *db, const char *section_type, const char *section_name);
 
-EXPORT struct cfg_entry *cfg_db_set_entry_ext(struct cfg_db *db, const char *section_type,
-    const char *section_name, const char *entry_name, const char *value,
-    bool append, bool front);
+EXPORT struct cfg_entry *cfg_db_set_entry_ext(struct cfg_db *db, const char *section_type, const char *section_name,
+  const char *entry_name, const char *value, bool append, bool front);
 
-EXPORT struct cfg_entry *cfg_db_find_entry(struct cfg_db *db,
-    const char *section_type, const char *section_name, const char *entry_name);
-EXPORT int cfg_db_remove_entry(struct cfg_db *, const char *section_type,
-    const char *section_name, const char *entry_name);
-EXPORT const struct const_strarray *cfg_db_get_entry_value(struct cfg_db *db,
-    const char *section_type, const char *section_name, const char *entry_name);
+EXPORT struct cfg_entry *cfg_db_find_entry(
+  struct cfg_db *db, const char *section_type, const char *section_name, const char *entry_name);
+EXPORT int cfg_db_remove_entry(
+  struct cfg_db *, const char *section_type, const char *section_name, const char *entry_name);
+EXPORT const struct const_strarray *cfg_db_get_entry_value(
+  struct cfg_db *db, const char *section_type, const char *section_name, const char *entry_name);
 EXPORT const struct const_strarray *cfg_db_get_schema_entry_value(
-    const struct cfg_named_section *section, const struct cfg_schema_entry *entry);
+  const struct cfg_named_section *section, const struct cfg_schema_entry *entry);
 
-EXPORT int cfg_db_remove_element(struct cfg_db *, const char *section_type,
-    const char *section_name, const char *entry_name, const char *value);
+EXPORT int cfg_db_remove_element(
+  struct cfg_db *, const char *section_type, const char *section_name, const char *entry_name, const char *value);
 
 /**
  * Link a configuration schema to a database
@@ -238,8 +236,7 @@ cfg_db_copy(struct cfg_db *dst, struct cfg_db *src) {
  *   copy.
  */
 static INLINE int
-cfg_db_copy_sectiontype(struct cfg_db *dst, struct cfg_db *src,
-    const char *section_type) {
+cfg_db_copy_sectiontype(struct cfg_db *dst, struct cfg_db *src, const char *section_type) {
   return _cfg_db_append(dst, src, section_type, NULL, NULL);
 }
 
@@ -256,8 +253,7 @@ cfg_db_copy_sectiontype(struct cfg_db *dst, struct cfg_db *src,
  *   copy.
  */
 static INLINE int
-cfg_db_copy_namedsection(struct cfg_db *dst, struct cfg_db *src,
-    const char *section_type, const char *section_name) {
+cfg_db_copy_namedsection(struct cfg_db *dst, struct cfg_db *src, const char *section_type, const char *section_name) {
   return _cfg_db_append(dst, src, section_type, section_name, NULL);
 }
 
@@ -274,8 +270,8 @@ cfg_db_copy_namedsection(struct cfg_db *dst, struct cfg_db *src,
  *   copy.
  */
 static INLINE int
-cfg_db_copy_entry(struct cfg_db *dst, struct cfg_db *src,
-    const char *section_type, const char *section_name, const char *entry_name) {
+cfg_db_copy_entry(
+  struct cfg_db *dst, struct cfg_db *src, const char *section_type, const char *section_name, const char *entry_name) {
   return _cfg_db_append(dst, src, section_type, section_name, entry_name);
 }
 
@@ -365,8 +361,7 @@ cfg_db_get_unnamed_section(const struct cfg_section_type *stype) {
  * @return pointer to named section, NULL if an error happened
  */
 static INLINE struct cfg_named_section *
-cfg_db_add_namedsection(struct cfg_db *db,
-    const char *section_type, const char *section_name) {
+cfg_db_add_namedsection(struct cfg_db *db, const char *section_type, const char *section_name) {
   bool dummy;
   return _cfg_db_add_section(db, section_type, section_name, &dummy);
 }
@@ -395,11 +390,9 @@ cfg_db_add_unnamedsection(struct cfg_db *db, const char *section_type) {
  * @return pointer to cfg_entry, NULL if an error happened
  */
 static INLINE struct cfg_entry *
-cfg_db_set_entry(struct cfg_db *db, const char *section_type,
-    const char *section_name, const char *entry_name, const char *value,
-    bool append) {
-  return cfg_db_set_entry_ext(db, section_type, section_name, entry_name,
-      value, append, true);
+cfg_db_set_entry(struct cfg_db *db, const char *section_type, const char *section_name, const char *entry_name,
+  const char *value, bool append) {
+  return cfg_db_set_entry_ext(db, section_type, section_name, entry_name, value, append, true);
 }
 
 /**
@@ -411,8 +404,8 @@ cfg_db_set_entry(struct cfg_db *db, const char *section_type,
  * @param value entry value
  */
 static INLINE struct cfg_entry *
-cfg_db_overwrite_entry(struct cfg_db *db, const char *section_type,
-    const char *section_name, const char *entry_name, const char *value) {
+cfg_db_overwrite_entry(
+  struct cfg_db *db, const char *section_type, const char *section_name, const char *entry_name, const char *value) {
   return cfg_db_set_entry(db, section_type, section_name, entry_name, value, false);
 }
 
@@ -425,8 +418,8 @@ cfg_db_overwrite_entry(struct cfg_db *db, const char *section_type,
  * @param value entry value
  */
 static INLINE struct cfg_entry *
-cfg_db_add_entry(struct cfg_db *db, const char *section_type,
-    const char *section_name, const char *entry_name, const char *value) {
+cfg_db_add_entry(
+  struct cfg_db *db, const char *section_type, const char *section_name, const char *entry_name, const char *value) {
   return cfg_db_set_entry(db, section_type, section_name, entry_name, value, true);
 }
 
@@ -438,7 +431,6 @@ static INLINE bool
 cfg_db_is_multipart_entry(struct cfg_entry *entry) {
   return strarray_get(&entry->val, 1) != NULL;
 }
-
 
 /**
  * Counts the number of list items of a configuration entry

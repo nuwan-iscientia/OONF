@@ -49,22 +49,22 @@
 #include <string.h>
 
 #include "common/common_types.h"
-#include "config/cfg_schema.h"
-#include "config/cfg_db.h"
 #include "config/cfg.h"
+#include "config/cfg_db.h"
+#include "config/cfg_schema.h"
 
 #include "core/oonf_cfg.h"
 #include "core/oonf_logging.h"
 #include "core/oonf_logging_cfg.h"
 
 /*! configuration section for logging definition */
-#define LOG_SECTION     "log"
+#define LOG_SECTION "log"
 
 /*! configuration entry for debug level logging */
 #define LOG_DEBUG_ENTRY "debug"
 
 /*! configuration entry for info level logging */
-#define LOG_INFO_ENTRY  "info"
+#define LOG_INFO_ENTRY "info"
 
 /*! configuration entry for activating stderr logging */
 #define LOG_STDERR_ENTRY "stderr"
@@ -73,22 +73,19 @@
 #define LOG_SYSLOG_ENTRY "syslog"
 
 /*! configuration entry for activating file logging */
-#define LOG_FILE_ENTRY   "file"
+#define LOG_FILE_ENTRY "file"
 
 /* prototype for configuration change handler */
 static void _cb_logcfg_apply(void);
-static void _apply_log_setting(struct cfg_named_section *named,
-    const char *entry_name, enum oonf_log_severity severity);
+static void _apply_log_setting(
+  struct cfg_named_section *named, const char *entry_name, enum oonf_log_severity severity);
 
 /* define logging configuration template */
 static struct cfg_schema_entry _logging_entries[] = {
   /* the next three parameters are configured to a different list during runtime */
-  CFG_VALIDATE_LOGSOURCE(LOG_DEBUG_ENTRY, "",
-      "Set logging sources that display debug, info and warnings",
-      .list = true),
-  CFG_VALIDATE_LOGSOURCE(LOG_INFO_ENTRY, "",
-      "Set logging sources that display info and warnings",
-      .list = true),
+  CFG_VALIDATE_LOGSOURCE(
+    LOG_DEBUG_ENTRY, "", "Set logging sources that display debug, info and warnings", .list = true),
+  CFG_VALIDATE_LOGSOURCE(LOG_INFO_ENTRY, "", "Set logging sources that display info and warnings", .list = true),
 
   CFG_VALIDATE_BOOL(LOG_STDERR_ENTRY, "false", "Set to true to activate logging to stderr"),
   CFG_VALIDATE_BOOL(LOG_SYSLOG_ENTRY, "false", "Set to true to activate logging to syslog"),
@@ -104,15 +101,9 @@ static struct cfg_schema_section _logging_section = {
 
 /* global logger configuration */
 static uint8_t _logging_cfg[LOG_MAXIMUM_SOURCES];
-static struct oonf_log_handler_entry _stderr_handler = {
-  .handler = oonf_log_stderr
-};
-static struct oonf_log_handler_entry _syslog_handler = {
-  .handler = oonf_log_syslog
-};
-static struct oonf_log_handler_entry _file_handler = {
-  .handler = oonf_log_file
-};
+static struct oonf_log_handler_entry _stderr_handler = { .handler = oonf_log_stderr };
+static struct oonf_log_handler_entry _syslog_handler = { .handler = oonf_log_syslog };
+static struct oonf_log_handler_entry _file_handler = { .handler = oonf_log_file };
 
 /**
  * Initialize logging configuration
@@ -231,8 +222,7 @@ oonf_logcfg_apply(struct cfg_db *db) {
   oonf_log_updatemask();
 
   if (file_errno) {
-    OONF_WARN(LOG_MAIN, "Cannot open file '%s' for logging: %s (%d)",
-        file_name, strerror(file_errno), file_errno);
+    OONF_WARN(LOG_MAIN, "Cannot open file '%s' for logging: %s (%d)", file_name, strerror(file_errno), file_errno);
     return 1;
   }
 
@@ -250,19 +240,20 @@ oonf_logcfg_apply(struct cfg_db *db) {
  * @return 0 if validation found no problems, -1 otherwise
  */
 int
-oonf_logcfg_schema_validate(const struct cfg_schema_entry *entry,
-    const char *section_name, const char *value, struct autobuf *out) {
+oonf_logcfg_schema_validate(
+  const struct cfg_schema_entry *entry, const char *section_name, const char *value, struct autobuf *out) {
   int i;
 
-  for (i=0; i<LOG_MAXIMUM_SOURCES; i++) {
+  for (i = 0; i < LOG_MAXIMUM_SOURCES; i++) {
     if (LOG_SOURCE_NAMES[i] != 0 && strcasecmp(value, LOG_SOURCE_NAMES[i]) == 0) {
       return 0;
     }
   }
 
-  cfg_append_printable_line(out, "Unknown value '%s'"
-      " for entry '%s' in section %s",
-      value, entry->key.entry, section_name);
+  cfg_append_printable_line(out,
+    "Unknown value '%s'"
+    " for entry '%s' in section %s",
+    value, entry->key.entry, section_name);
   return -1;
 }
 
@@ -274,17 +265,14 @@ oonf_logcfg_schema_validate(const struct cfg_schema_entry *entry,
  * @param out pointer to autobuffer for validator output
  */
 void
-oonf_logcfg_schema_help(
-    const struct cfg_schema_entry *entry __attribute__((unused)),
-    struct autobuf *out) {
+oonf_logcfg_schema_help(const struct cfg_schema_entry *entry __attribute__((unused)), struct autobuf *out) {
   size_t i;
 
   cfg_append_printable_line(out, "    Parameter must be on of the following list:");
 
   abuf_puts(out, "    ");
-  for (i=0; i<oonf_log_get_sourcecount(); i++) {
-    abuf_appendf(out, "%s'%s'",
-        i==0 ? "" : ", ", LOG_SOURCE_NAMES[i]);
+  for (i = 0; i < oonf_log_get_sourcecount(); i++) {
+    abuf_appendf(out, "%s'%s'", i == 0 ? "" : ", ", LOG_SOURCE_NAMES[i]);
   }
   abuf_puts(out, "\n");
 }
@@ -296,8 +284,7 @@ oonf_logcfg_schema_help(
  * @param severity severity level corresponding severity level
  */
 static void
-_apply_log_setting(struct cfg_named_section *named,
-    const char *entry_name, enum oonf_log_severity severity) {
+_apply_log_setting(struct cfg_named_section *named, const char *entry_name, enum oonf_log_severity severity) {
   struct cfg_entry *entry;
   char *ptr;
   size_t i;
@@ -305,7 +292,7 @@ _apply_log_setting(struct cfg_named_section *named,
   entry = cfg_db_get_entry(named, entry_name);
   if (entry) {
     strarray_for_each_element(&entry->val, ptr) {
-      for (i=0; i<oonf_log_get_sourcecount(); i++) {
+      for (i = 0; i < oonf_log_get_sourcecount(); i++) {
         if (strcasecmp(ptr, LOG_SOURCE_NAMES[i]) == 0) {
           oonf_log_mask_set(_logging_cfg, i, severity);
         }

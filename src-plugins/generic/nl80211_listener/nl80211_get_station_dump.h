@@ -46,9 +46,10 @@
 #ifndef NL80211_GET_STATION_DUMP_H_
 #define NL80211_GET_STATION_DUMP_H_
 
-void nl80211_send_get_station_dump(struct os_system_netlink *nl,
-    struct nlmsghdr *nl_msg, struct genlmsghdr *hdr, struct nl80211_if *interf);
-void nl80211_process_get_station_dump_result(
-    struct nl80211_if *interf, struct nlmsghdr*);
+#include "nl80211_listener/nl80211_listener.h"
+
+void nl80211_send_get_station_dump(
+  struct os_system_netlink *nl, struct nlmsghdr *nl_msg, struct genlmsghdr *hdr, struct nl80211_if *interf);
+void nl80211_process_get_station_dump_result(struct nl80211_if *interf, struct nlmsghdr *);
 
 #endif /* NL80211_GET_STATION_DUMP_H_ */

@@ -45,15 +45,15 @@
 
 #include <errno.h>
 #include <fcntl.h>
-#include <unistd.h>
 #include <linux/if_tun.h>
-#include <sys/types.h>
-#include <sys/stat.h>
 #include <sys/ioctl.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <unistd.h>
 
-#include "common/common_types.h"
 #include "common/avl.h"
 #include "common/avl_comp.h"
+#include "common/common_types.h"
 #include "core/oonf_subsystem.h"
 #include "subsystems/os_vif.h"
 
@@ -64,8 +64,7 @@ static int _init(void);
 static void _cleanup(void);
 
 /* subsystem definition */
-static const char *_dependencies[0] = {
-};
+static const char *_dependencies[0] = {};
 
 static struct oonf_subsystem _oonf_os_vif_subsystem = {
   .name = OONF_OS_VIF_SUBSYSTEM,
@@ -125,8 +124,7 @@ os_vif_linux_open(struct os_fd *sock, struct os_vif *vif) {
 
   fd = open("/dev/net/tun", O_RDWR);
   if (fd < 0) {
-    OONF_WARN(LOG_OS_VIF, "Cannot open virtual interface device: %s (%d)",
-        strerror(errno), errno);
+    OONF_WARN(LOG_OS_VIF, "Cannot open virtual interface device: %s (%d)", strerror(errno), errno);
     return -1;
   }
 
@@ -140,8 +138,7 @@ os_vif_linux_open(struct os_fd *sock, struct os_vif *vif) {
   if_req.ifr_flags = flag | IFF_NO_PI;
 
   if (ioctl(fd, TUNSETIFF, (void *)&if_req) < 0) {
-    OONF_WARN(LOG_OS_VIF, "Cannot set mode of virtual interface device: %s (%d)",
-        strerror(errno), errno);
+    OONF_WARN(LOG_OS_VIF, "Cannot set mode of virtual interface device: %s (%d)", strerror(errno), errno);
     close(fd);
     return -1;
   }

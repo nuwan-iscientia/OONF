@@ -43,15 +43,15 @@
  * @file
  */
 
-#include <sys/types.h>
-#include <sys/stat.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <stdio.h>
+#include <sys/stat.h>
+#include <sys/types.h>
 
+#include "common/autobuf.h"
 #include "common/common_types.h"
 #include "common/isonumber.h"
-#include "common/autobuf.h"
 #include "core/oonf_cfg.h"
 #include "core/oonf_logging.h"
 #include "core/oonf_subsystem.h"
@@ -67,7 +67,8 @@
 #include "ff_dat_metric/ff_dat_metric.h"
 
 /* Definitions */
-enum {
+enum
+{
   DAT_SAMPLING_COUNT = 32,
 };
 
@@ -160,30 +161,22 @@ static void _cb_nhdpif_added(void *);
 static void _cb_nhdpif_removed(void *);
 
 static void _cb_dat_sampling(struct oonf_timer_instance *);
-static void _calculate_link_neighborhood(struct nhdp_link *lnk,
-    struct link_datff_data *ldata);
+static void _calculate_link_neighborhood(struct nhdp_link *lnk, struct link_datff_data *ldata);
 static int _calculate_dynamic_loss_exponent(int link_neigborhood);
-static uint32_t _apply_packet_loss(
-    struct ff_dat_if_config *ifconfig, struct nhdp_link *lnk,
-    struct link_datff_data *ldata,
-    uint32_t metric, uint32_t received, uint32_t total);
+static uint32_t _apply_packet_loss(struct ff_dat_if_config *ifconfig, struct nhdp_link *lnk,
+  struct link_datff_data *ldata, uint32_t metric, uint32_t received, uint32_t total);
 
 static void _cb_hello_lost(struct oonf_timer_instance *);
 
-static bool _shall_process_packet(
-    struct nhdp_interface *, struct ff_dat_if_config *ifconfig);
+static bool _shall_process_packet(struct nhdp_interface *, struct ff_dat_if_config *ifconfig);
 
-static enum rfc5444_result _cb_process_packet(
-      struct rfc5444_reader_tlvblock_context *context);
+static enum rfc5444_result _cb_process_packet(struct rfc5444_reader_tlvblock_context *context);
 
 static void _reset_missed_hello_timer(struct link_datff_data *);
 
-static const char *_link_to_string(
-    struct nhdp_metric_str *buf, uint32_t metric);
-static const char *_path_to_string(
-    struct nhdp_metric_str *buf, uint32_t metric, uint8_t hopcount);
-static const char *_int_link_to_string(struct nhdp_metric_str *,
-    struct nhdp_link *);
+static const char *_link_to_string(struct nhdp_metric_str *buf, uint32_t metric);
+static const char *_path_to_string(struct nhdp_metric_str *buf, uint32_t metric, uint8_t hopcount);
+static const char *_int_link_to_string(struct nhdp_metric_str *, struct nhdp_link *);
 
 static void _cb_cfg_changed(void);
 
@@ -192,7 +185,8 @@ static void _cb_cfg_changed(void);
 /**
  * loss scaling options
  */
-enum idx_loss_scaling {
+enum idx_loss_scaling
+{
   /*! linear loss scaling */
   IDX_LOSS_LINEAR,
 
@@ -206,22 +200,20 @@ enum idx_loss_scaling {
   IDX_LOSS_DYNAMIC,
 };
 static const char *LOSS_SCALING[] = {
-  [IDX_LOSS_LINEAR]    = "linear",
+  [IDX_LOSS_LINEAR] = "linear",
   [IDX_LOSS_QUADRATIC] = "quadratic",
-  [IDX_LOSS_CUBIC]     = "cubic",
-  [IDX_LOSS_DYNAMIC]   = "dynamic",
+  [IDX_LOSS_CUBIC] = "cubic",
+  [IDX_LOSS_DYNAMIC] = "dynamic",
 };
 
 static struct cfg_schema_entry _datff_entries[] = {
   CFG_MAP_BOOL(ff_dat_if_config, ett, "ffdat_airtime", "true",
-      "Activates the handling of linkspeed within the metric, set to false to"
-      " downgrade to ETX metric"),
+    "Activates the handling of linkspeed within the metric, set to false to"
+    " downgrade to ETX metric"),
   CFG_MAP_CHOICE(ff_dat_if_config, loss_exponent, "ffdat_loss_exponent", "linear",
-      "scaling of the packet loss influence on the metric", LOSS_SCALING),
-  CFG_MAP_BOOL(ff_dat_if_config, mic, "ffdat_mic", "false",
-      "Activates the MIC penalty-factor for link metrics"),
-  CFG_MAP_BOOL(ff_dat_if_config, accept_unicast, "ffdat_unicast", "false",
-      "Include unicast into metric calculation"),
+    "scaling of the packet loss influence on the metric", LOSS_SCALING),
+  CFG_MAP_BOOL(ff_dat_if_config, mic, "ffdat_mic", "false", "Activates the MIC penalty-factor for link metrics"),
+  CFG_MAP_BOOL(ff_dat_if_config, accept_unicast, "ffdat_unicast", "false", "Include unicast into metric calculation"),
 };
 
 /* Subsystem definition */
@@ -332,9 +324,8 @@ enum oonf_log_source LOG_FF_DAT_RAW;
 static void
 _early_cfg_init(void) {
   LOG_FF_DAT = _nhdp_ffdat_subsystem.logging;
-  LOG_FF_DAT_RAW = oonf_log_register_source(OONF_FF_DAT_METRIC_SUBSYSTEM"_raw");
+  LOG_FF_DAT_RAW = oonf_log_register_source(OONF_FF_DAT_METRIC_SUBSYSTEM "_raw");
 }
-
 
 /**
  * Initialize plugin
@@ -444,7 +435,7 @@ _cb_link_added(void *ptr) {
   memset(data, 0, sizeof(*data));
   // data->contains_data = false;
 
-  for (i = 0; i<ARRAYSIZE(data->buckets); i++) {
+  for (i = 0; i < ARRAYSIZE(data->buckets); i++) {
     data->buckets[i].total = 1;
     // data->buckets[i].scaled_speed = 0;
   }
@@ -562,7 +553,7 @@ _get_median_rx_linkspeed(struct link_datff_data *ldata) {
   size_t i;
 
   zero_count = 0;
-  for (i=0; i<ARRAYSIZE(ldata->buckets); i++) {
+  for (i = 0; i < ARRAYSIZE(ldata->buckets); i++) {
     _rx_sort_array[i] = ldata->buckets[i].scaled_speed;
     if (_rx_sort_array[i] == 0) {
       zero_count++;
@@ -576,7 +567,7 @@ _get_median_rx_linkspeed(struct link_datff_data *ldata) {
 
   qsort(_rx_sort_array, ARRAYSIZE(ldata->buckets), sizeof(int), _int_comparator);
 
-  return _rx_sort_array[zero_count + window/2];
+  return _rx_sort_array[zero_count + window / 2];
 }
 
 /**
@@ -592,8 +583,7 @@ _get_raw_rx_linkspeed(const char *ifname, struct nhdp_link *lnk) {
   struct oonf_layer2_neigh *l2neigh;
   const struct oonf_layer2_data *rx_bitrate_entry;
 
-  rx_bitrate_entry = oonf_layer2_neigh_query(
-      ifname, &lnk->remote_mac, OONF_LAYER2_NEIGH_RX_BITRATE);
+  rx_bitrate_entry = oonf_layer2_neigh_query(ifname, &lnk->remote_mac, OONF_LAYER2_NEIGH_RX_BITRATE);
   if (rx_bitrate_entry) {
     return oonf_layer2_data_get_int64(rx_bitrate_entry, 0);
   }
@@ -640,11 +630,10 @@ _get_scaled_rx_linkspeed(struct ff_dat_if_config *ifconfig, struct nhdp_link *ln
   /* get local interface data  */
   os_if = nhdp_interface_get_if_listener(lnk->local_if)->data;
 
-  raw_rx_rate =  _get_raw_rx_linkspeed(os_if->name, lnk);
+  raw_rx_rate = _get_raw_rx_linkspeed(os_if->name, lnk);
   if (raw_rx_rate < 0) {
-    OONF_INFO(LOG_FF_DAT, "Datarate for link %s (%s) not available",
-        netaddr_to_string(&nbuf, &lnk->if_addr),
-        nhdp_interface_get_name(lnk->local_if));
+    OONF_INFO(LOG_FF_DAT, "Datarate for link %s (%s) not available", netaddr_to_string(&nbuf, &lnk->if_addr),
+      nhdp_interface_get_name(lnk->local_if));
     return 1;
   }
 
@@ -654,15 +643,13 @@ _get_scaled_rx_linkspeed(struct ff_dat_if_config *ifconfig, struct nhdp_link *ln
     rx_rate++;
   }
   if (rx_rate < 1) {
-    OONF_DEBUG(LOG_FF_DAT, "Datarate for link %s (%s) too small: %"PRId64" / %"PRId64,
-        netaddr_to_string(&nbuf, &lnk->if_addr),
-        nhdp_interface_get_name(lnk->local_if), rx_rate, raw_rx_rate);
+    OONF_DEBUG(LOG_FF_DAT, "Datarate for link %s (%s) too small: %" PRId64 " / %" PRId64,
+      netaddr_to_string(&nbuf, &lnk->if_addr), nhdp_interface_get_name(lnk->local_if), rx_rate, raw_rx_rate);
     return 1;
   }
   if (rx_rate > DATFF_LINKSPEED_RANGE) {
-    OONF_DEBUG(LOG_FF_DAT, "Datarate for link %s (%s) too large: %"PRId64" / %"PRId64,
-        netaddr_to_string(&nbuf, &lnk->if_addr),
-        nhdp_interface_get_name(lnk->local_if), rx_rate, raw_rx_rate);
+    OONF_DEBUG(LOG_FF_DAT, "Datarate for link %s (%s) too large: %" PRId64 " / %" PRId64,
+      netaddr_to_string(&nbuf, &lnk->if_addr), nhdp_interface_get_name(lnk->local_if), rx_rate, raw_rx_rate);
 
     return DATFF_LINKSPEED_RANGE;
   }
@@ -705,36 +692,32 @@ _cb_dat_sampling(struct oonf_timer_instance *ptr) {
     received = 0;
 
     /* calculate metric */
-    for (i=0; i<ARRAYSIZE(ldata->buckets); i++) {
+    for (i = 0; i < ARRAYSIZE(ldata->buckets); i++) {
       received += ldata->buckets[i].received;
       total += ldata->buckets[i].total;
     }
 
     if (ldata->missed_hellos > 0) {
-      missing_intervals = (ldata->missed_hellos * ldata->hello_interval)
-          / lnk->local_if->refresh_interval;
+      missing_intervals = (ldata->missed_hellos * ldata->hello_interval) / lnk->local_if->refresh_interval;
       if (missing_intervals > ARRAYSIZE(ldata->buckets)) {
         received = 0;
       }
       else {
-        received = (received * (ARRAYSIZE(ldata->buckets) - missing_intervals))
-            / ARRAYSIZE(ldata->buckets);
+        received = (received * (ARRAYSIZE(ldata->buckets) - missing_intervals)) / ARRAYSIZE(ldata->buckets);
       }
     }
 
     /* update link speed */
     ldata->buckets[ldata->activePtr].scaled_speed = _get_scaled_rx_linkspeed(ifconfig, lnk);
 
-    OONF_DEBUG(LOG_FF_DAT, "Query incoming linkspeed for link %s: %"PRIu64,
-        netaddr_to_string(&nbuf, &lnk->if_addr),
-        (uint64_t)(ldata->buckets[ldata->activePtr].scaled_speed) * DATFF_LINKSPEED_MINIMUM);
+    OONF_DEBUG(LOG_FF_DAT, "Query incoming linkspeed for link %s: %" PRIu64, netaddr_to_string(&nbuf, &lnk->if_addr),
+      (uint64_t)(ldata->buckets[ldata->activePtr].scaled_speed) * DATFF_LINKSPEED_MINIMUM);
 
     /* get median scaled link speed and apply it to metric */
     rx_bitrate = _get_median_rx_linkspeed(ldata);
     if (rx_bitrate > DATFF_LINKSPEED_RANGE) {
-      OONF_WARN(LOG_FF_DAT, "Metric overflow %s (%s): %d",
-          netaddr_to_string(&nbuf, &lnk->if_addr),
-          nhdp_interface_get_name(lnk->local_if), rx_bitrate);
+      OONF_WARN(LOG_FF_DAT, "Metric overflow %s (%s): %d", netaddr_to_string(&nbuf, &lnk->if_addr),
+        nhdp_interface_get_name(lnk->local_if), rx_bitrate);
       metric = 1;
     }
     else {
@@ -742,8 +725,7 @@ _cb_dat_sampling(struct oonf_timer_instance *ptr) {
     }
 
     /* calculate frame loss, use discrete values */
-    if (total == 0 || received == 0
-        || received * DATFF_FRAME_SUCCESS_RANGE <= total) {
+    if (total == 0 || received == 0 || received * DATFF_FRAME_SUCCESS_RANGE <= total) {
       metric *= DATFF_FRAME_SUCCESS_RANGE;
     }
     else {
@@ -753,37 +735,33 @@ _cb_dat_sampling(struct oonf_timer_instance *ptr) {
     /* convert into something that can be transmitted over the network */
     if (metric > RFC7181_METRIC_MAX) {
       /* give the metric an upper bound */
-      OONF_INFO(LOG_FF_DAT, "Metric overflow %s (%s): %"PRIu64,
-          netaddr_to_string(&nbuf, &lnk->if_addr),
-          nhdp_interface_get_name(lnk->local_if), metric);
+      OONF_INFO(LOG_FF_DAT, "Metric overflow %s (%s): %" PRIu64, netaddr_to_string(&nbuf, &lnk->if_addr),
+        nhdp_interface_get_name(lnk->local_if), metric);
       metric_value = RFC7181_METRIC_MAX;
     }
     else if (metric < RFC7181_METRIC_MIN) {
-      OONF_WARN(LOG_FF_DAT, "Metric underflow %s (%s): %"PRIu64,
-          netaddr_to_string(&nbuf, &lnk->if_addr),
-          nhdp_interface_get_name(lnk->local_if), metric);
+      OONF_WARN(LOG_FF_DAT, "Metric underflow %s (%s): %" PRIu64, netaddr_to_string(&nbuf, &lnk->if_addr),
+        nhdp_interface_get_name(lnk->local_if), metric);
       metric_value = RFC7181_METRIC_MIN;
     }
-    else if(!rfc7181_metric_encode(&encoded_metric, metric)) {
+    else if (!rfc7181_metric_encode(&encoded_metric, metric)) {
       metric_value = rfc7181_metric_decode(&encoded_metric);
     }
     else {
       /* metric encoding failed */
-      OONF_WARN(LOG_FF_DAT, "Metric encoding failed for link %s (%s): %"PRIu64,
-          netaddr_to_string(&nbuf, &lnk->if_addr),
-          nhdp_interface_get_name(lnk->local_if), metric);
+      OONF_WARN(LOG_FF_DAT, "Metric encoding failed for link %s (%s): %" PRIu64,
+        netaddr_to_string(&nbuf, &lnk->if_addr), nhdp_interface_get_name(lnk->local_if), metric);
       metric_value = RFC7181_METRIC_MAX;
     }
 
     /* set metric for incoming link */
-    nhdp_domain_set_incoming_metric(
-        &_datff_handler, lnk, metric_value);
+    nhdp_domain_set_incoming_metric(&_datff_handler, lnk, metric_value);
 
-    OONF_DEBUG(LOG_FF_DAT, "New sampling rate for link %s (%s):"
-        " %d/%d = %u (speed=%"PRIu64 ")\n",
-        netaddr_to_string(&nbuf, &lnk->if_addr),
-        nhdp_interface_get_name(lnk->local_if),
-        received, total, metric_value, (uint64_t)(rx_bitrate) * DATFF_LINKSPEED_MINIMUM);
+    OONF_DEBUG(LOG_FF_DAT,
+      "New sampling rate for link %s (%s):"
+      " %d/%d = %u (speed=%" PRIu64 ")\n",
+      netaddr_to_string(&nbuf, &lnk->if_addr), nhdp_interface_get_name(lnk->local_if), received, total, metric_value,
+      (uint64_t)(rx_bitrate)*DATFF_LINKSPEED_MINIMUM);
 
     /* update rolling buffer */
     ldata->activePtr++;
@@ -793,7 +771,7 @@ _cb_dat_sampling(struct oonf_timer_instance *ptr) {
     ldata->buckets[ldata->activePtr].received = 0;
     ldata->buckets[ldata->activePtr].total = 0;
   }
-oonf_timer_set(&ifconfig->_sampling_timer, nhdp_if->refresh_interval);
+  oonf_timer_set(&ifconfig->_sampling_timer, nhdp_if->refresh_interval);
 }
 
 /**
@@ -812,9 +790,9 @@ _calculate_link_neighborhood(struct nhdp_link *lnk, struct link_datff_data *data
 
   /* links twohop neighbors */
   avl_for_each_element(&lnk->_2hop, l2hop, _link_node) {
-    if (l2hop->same_interface
-        && !avl_find_element(&lnk->local_if->_link_addresses, &l2hop->twohop_addr, laddr, _if_node)) {
-      count ++;
+    if (l2hop->same_interface &&
+        !avl_find_element(&lnk->local_if->_link_addresses, &l2hop->twohop_addr, laddr, _if_node)) {
+      count++;
     }
   }
 
@@ -850,9 +828,8 @@ _calculate_dynamic_loss_exponent(int link_neigborhood) {
  * @return metric including linkspeed and packet loss
  */
 static uint32_t
-_apply_packet_loss(struct ff_dat_if_config *ifconfig, struct nhdp_link *lnk,
-    struct link_datff_data *ldata, uint32_t metric,
-    uint32_t received, uint32_t total) {
+_apply_packet_loss(struct ff_dat_if_config *ifconfig, struct nhdp_link *lnk, struct link_datff_data *ldata,
+  uint32_t metric, uint32_t received, uint32_t total) {
   int64_t success_scaled_by_1000;
   int loss_exponent;
   int64_t tmp_metric;
@@ -864,9 +841,8 @@ _apply_packet_loss(struct ff_dat_if_config *ifconfig, struct nhdp_link *lnk,
     success_scaled_by_1000 = (((int64_t)DATFF_FRAME_SUCCESS_RANGE * 1000ll) * received) / total;
   }
 
-  if (success_scaled_by_1000 >= ldata->last_packet_success_rate - 750
-      && success_scaled_by_1000 <= ldata->last_packet_success_rate + 750
-      ) {
+  if (success_scaled_by_1000 >= ldata->last_packet_success_rate - 750 &&
+      success_scaled_by_1000 <= ldata->last_packet_success_rate + 750) {
     /* keep old loss rate */
     success_scaled_by_1000 = ldata->last_packet_success_rate;
   }
@@ -992,7 +968,7 @@ _cb_process_packet(struct rfc5444_reader_tlvblock_context *context) {
     struct netaddr_str buf;
 
     OONF_WARN(LOG_FF_DAT, "Neighbor %s does not send packet sequence numbers, cannot collect datff data!",
-        netaddr_socket_to_string(&buf, _protocol->input.src_socket));
+      netaddr_socket_to_string(&buf, _protocol->input.src_socket));
     return RFC5444_OKAY;
   }
 
@@ -1016,11 +992,8 @@ _cb_process_packet(struct rfc5444_reader_tlvblock_context *context) {
   }
 
   /* log raw metric data */
-  OONF_DEBUG(LOG_FF_DAT_RAW, "%s %s %u %d\n",
-          oonf_clock_toIntervalString(&timebuf, oonf_clock_getNow()),
-          netaddr_to_string(&nbuf, &laddr->link_addr),
-          context->pkt_seqno,
-          _get_scaled_rx_linkspeed(ifconfig, laddr->link));
+  OONF_DEBUG(LOG_FF_DAT_RAW, "%s %s %u %d\n", oonf_clock_toIntervalString(&timebuf, oonf_clock_getNow()),
+    netaddr_to_string(&nbuf, &laddr->link_addr), context->pkt_seqno, _get_scaled_rx_linkspeed(ifconfig, laddr->link));
 
   /* get link and its dat data */
   lnk = laddr->link;
@@ -1074,8 +1047,7 @@ _link_to_string(struct nhdp_metric_str *buf, uint32_t metric) {
   uint64_t value;
 
   if (metric < DATFF_LINKCOST_MINIMUM) {
-    value = (uint32_t)DATFF_LINKSPEED_MINIMUM
-        * (uint32_t)DATFF_LINKSPEED_RANGE;
+    value = (uint32_t)DATFF_LINKSPEED_MINIMUM * (uint32_t)DATFF_LINKSPEED_RANGE;
   }
   else if (metric > DATFF_LINKCOST_MAXIMUM) {
     strscpy(buf->buf, "infinite", sizeof(*buf));
@@ -1084,8 +1056,7 @@ _link_to_string(struct nhdp_metric_str *buf, uint32_t metric) {
   else {
     value = (uint32_t)(DATFF_LINKSPEED_MINIMUM) * (uint32_t)(DATFF_LINKSPEED_RANGE) / metric;
   }
-  isonumber_from_u64((struct isonumber_str *)buf,
-      value, "bit/s", 0, false);
+  isonumber_from_u64((struct isonumber_str *)buf, value, "bit/s", 0, false);
   return buf->buf;
 }
 
@@ -1103,8 +1074,7 @@ _path_to_string(struct nhdp_metric_str *buf, uint32_t metric, uint8_t hopcount) 
     /* prevent division by zero */
     hopcount = 1;
   }
-  snprintf(buf->buf, sizeof(*buf), "%s (%u hops)",
-      _link_to_string(&mbuf, metric / hopcount), hopcount);
+  snprintf(buf->buf, sizeof(*buf), "%s (%u hops)", _link_to_string(&mbuf, metric / hopcount), hopcount);
   return buf->buf;
 }
 
@@ -1122,16 +1092,16 @@ _int_link_to_string(struct nhdp_metric_str *buf, struct nhdp_link *lnk) {
 
   ldata = oonf_class_get_extension(&_link_extenstion, lnk);
 
-  for (i=0; i<ARRAYSIZE(ldata->buckets); i++) {
+  for (i = 0; i < ARRAYSIZE(ldata->buckets); i++) {
     received += ldata->buckets[i].received;
     total += ldata->buckets[i].total;
   }
 
-  snprintf(buf->buf, sizeof(*buf), "p_recv=%"PRId64",p_total=%"PRId64","
-      "speed=%"PRId64",success=%"PRId64",missed_hello=%d,lastseq=%u,lneigh=%d",
-      received, total, (int64_t)_get_median_rx_linkspeed(ldata) * (int64_t)1024,
-      ldata->last_packet_success_rate, ldata->missed_hellos,
-      ldata->last_seq_nr, ldata->link_neigborhood);
+  snprintf(buf->buf, sizeof(*buf),
+    "p_recv=%" PRId64 ",p_total=%" PRId64 ","
+    "speed=%" PRId64 ",success=%" PRId64 ",missed_hello=%d,lastseq=%u,lneigh=%d",
+    received, total, (int64_t)_get_median_rx_linkspeed(ldata) * (int64_t)1024, ldata->last_packet_success_rate,
+    ldata->missed_hellos, ldata->last_seq_nr, ldata->link_neigborhood);
   return buf->buf;
 }
 
@@ -1178,10 +1148,8 @@ _cb_cfg_changed(void) {
     return;
   }
 
-  if (cfg_schema_tobin(ifconfig, _datff_section.post,
-      _datff_entries, ARRAYSIZE(_datff_entries))) {
-    OONF_WARN(LOG_FF_DAT, "Cannot convert configuration for "
-        OONF_FF_DAT_METRIC_SUBSYSTEM);
+  if (cfg_schema_tobin(ifconfig, _datff_section.post, _datff_entries, ARRAYSIZE(_datff_entries))) {
+    OONF_WARN(LOG_FF_DAT, "Cannot convert configuration for " OONF_FF_DAT_METRIC_SUBSYSTEM);
     return;
   }
 

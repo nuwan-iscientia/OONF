@@ -99,26 +99,22 @@ static void _cleanup(void);
 static struct _routemodifier *_get_modifier(const char *name);
 static void _destroy_modifier(struct _routemodifier *);
 
-static bool _cb_rt_filter(
-    struct nhdp_domain *, struct os_route_parameter *, bool set);
+static bool _cb_rt_filter(struct nhdp_domain *, struct os_route_parameter *, bool set);
 static void _cb_cfg_changed(void);
 
 /* plugin declaration */
 static struct cfg_schema_entry _modifier_entries[] = {
-  CFG_MAP_INT32_MINMAX(_routemodifier, domain, "domain", "0",
-      "Routing domain id for filter", 0, 0, 255),
-  CFG_MAP_ACL(_routemodifier, filter, "matches",
-      ACL_FIRST_REJECT "\0" ACL_DEFAULT_REJECT,
-      "Ip addresses the filter should be applied to"),
+  CFG_MAP_INT32_MINMAX(_routemodifier, domain, "domain", "0", "Routing domain id for filter", 0, 0, 255),
+  CFG_MAP_ACL(_routemodifier, filter, "matches", ACL_FIRST_REJECT "\0" ACL_DEFAULT_REJECT,
+    "Ip addresses the filter should be applied to"),
   CFG_MAP_INT32_MINMAX(_routemodifier, prefix_length, "prefix_length", "-1",
-      "Prefix length the filter should be applied to, -1 for any prefix length",
-      0, -1, 128),
-  CFG_MAP_INT32_MINMAX(_routemodifier, table, "table", "0",
-      "Set routing table of matching routes to this value", 0, 0, 255),
-  CFG_MAP_INT32_MINMAX(_routemodifier, protocol, "protocol", "0",
-      "Set routing protocol of matching routes to this value", 0, 0, 255),
-  CFG_MAP_INT32_MINMAX(_routemodifier, distance, "metric", "0",
-      "Set routing metric of matching routes to this value", 0, 0, INT32_MAX),
+    "Prefix length the filter should be applied to, -1 for any prefix length", 0, -1, 128),
+  CFG_MAP_INT32_MINMAX(
+    _routemodifier, table, "table", "0", "Set routing table of matching routes to this value", 0, 0, 255),
+  CFG_MAP_INT32_MINMAX(
+    _routemodifier, protocol, "protocol", "0", "Set routing protocol of matching routes to this value", 0, 0, 255),
+  CFG_MAP_INT32_MINMAX(
+    _routemodifier, distance, "metric", "0", "Set routing metric of matching routes to this value", 0, 0, INT32_MAX),
 };
 
 static struct cfg_schema_section _modifier_section = {
@@ -198,8 +194,7 @@ _cleanup(void) {
  * @return always true (we never drop a route)
  */
 static bool
-_cb_rt_filter(struct nhdp_domain *domain,
-    struct os_route_parameter *route_param, bool set __attribute__((unused))) {
+_cb_rt_filter(struct nhdp_domain *domain, struct os_route_parameter *route_param, bool set __attribute__((unused))) {
   struct _routemodifier *modifier;
 #ifdef OONF_LOG_DEBUG_INFO
   struct netaddr_str nbuf;
@@ -212,8 +207,7 @@ _cb_rt_filter(struct nhdp_domain *domain,
     }
 
     /* check prefix length */
-    if (modifier->prefix_length != -1
-        && modifier->prefix_length != netaddr_get_prefix_length(&route_param->key.dst)) {
+    if (modifier->prefix_length != -1 && modifier->prefix_length != netaddr_get_prefix_length(&route_param->key.dst)) {
       continue;
     }
 
@@ -225,17 +219,17 @@ _cb_rt_filter(struct nhdp_domain *domain,
     /* apply modifiers */
     if (modifier->table) {
       OONF_DEBUG(LOG_ROUTE_MODIFIER, "Modify routing table for route to %s: %d",
-          netaddr_to_string(&nbuf, &route_param->key.dst), modifier->table);
+        netaddr_to_string(&nbuf, &route_param->key.dst), modifier->table);
       route_param->table = modifier->table;
     }
     if (modifier->protocol) {
       OONF_DEBUG(LOG_ROUTE_MODIFIER, "Modify routing protocol for route to %s: %d",
-          netaddr_to_string(&nbuf, &route_param->key.dst), modifier->protocol);
+        netaddr_to_string(&nbuf, &route_param->key.dst), modifier->protocol);
       route_param->protocol = modifier->protocol;
     }
     if (modifier->distance) {
       OONF_DEBUG(LOG_ROUTE_MODIFIER, "Modify routing distance for route to %s: %d",
-          netaddr_to_string(&nbuf, &route_param->key.dst), modifier->distance);
+        netaddr_to_string(&nbuf, &route_param->key.dst), modifier->distance);
       route_param->metric = modifier->distance;
     }
     break;
@@ -301,11 +295,9 @@ _cb_cfg_changed(void) {
     return;
   }
 
-  if (cfg_schema_tobin(modifier, _modifier_section.post,
-      _modifier_entries, ARRAYSIZE(_modifier_entries))) {
-    OONF_WARN(LOG_ROUTE_MODIFIER,
-        "Could not convert configuration data of section '%s'",
-        _modifier_section.section_name);
+  if (cfg_schema_tobin(modifier, _modifier_section.post, _modifier_entries, ARRAYSIZE(_modifier_entries))) {
+    OONF_WARN(
+      LOG_ROUTE_MODIFIER, "Could not convert configuration data of section '%s'", _modifier_section.section_name);
 
     if (_modifier_section.pre == NULL) {
       _destroy_modifier(modifier);

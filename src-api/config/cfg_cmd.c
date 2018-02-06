@@ -43,15 +43,15 @@
  * @file
  */
 
+#include <regex.h>
 #include <stdlib.h>
 #include <strings.h>
-#include <regex.h>
 
 #include "common/autobuf.h"
 #include "common/common_types.h"
-#include "config/cfg_io.h"
 #include "config/cfg_cmd.h"
 #include "config/cfg_help.h"
+#include "config/cfg_io.h"
 
 /**
  *  contains data parsing logic */
@@ -69,10 +69,8 @@ struct _parsed_argument {
   char *entry_value;
 };
 
-static int _print_schema_section(struct autobuf *log, struct cfg_db *db,
-    const char *section);
-static int _print_schema_entry(struct autobuf *log, struct cfg_db *db,
-    const char *section, const char *entry);
+static int _print_schema_section(struct autobuf *log, struct cfg_db *db, const char *section);
+static int _print_schema_entry(struct autobuf *log, struct cfg_db *db, const char *section, const char *entry);
 static int _do_parse_arg(char *arg, struct _parsed_argument *pa, struct autobuf *log);
 
 /**
@@ -84,8 +82,8 @@ static int _do_parse_arg(char *arg, struct _parsed_argument *pa, struct autobuf 
  * @return 0 if succeeded, -1 otherwise
  */
 int
-cfg_cmd_handle_set(struct cfg_instance *instance __attribute__((unused)),
-    struct cfg_db *db, const char *arg, struct autobuf *log) {
+cfg_cmd_handle_set(
+  struct cfg_instance *instance __attribute__((unused)), struct cfg_db *db, const char *arg, struct autobuf *log) {
   struct _parsed_argument pa;
   char *ptr;
   bool dummy;
@@ -104,8 +102,7 @@ cfg_cmd_handle_set(struct cfg_instance *instance __attribute__((unused)),
   }
 
   if (pa.entry_value != NULL) {
-    if (cfg_db_set_entry(db, pa.section_type,
-        pa.section_name, pa.entry_key, pa.entry_value, true)) {
+    if (cfg_db_set_entry(db, pa.section_type, pa.section_name, pa.entry_key, pa.entry_value, true)) {
       result = 0;
     }
     else {
@@ -121,8 +118,7 @@ cfg_cmd_handle_set(struct cfg_instance *instance __attribute__((unused)),
   }
 
   /* set section */
-  if (NULL == _cfg_db_add_section(db,
-      pa.section_type, pa.section_name, &dummy)) {
+  if (NULL == _cfg_db_add_section(db, pa.section_type, pa.section_name, &dummy)) {
     cfg_append_printable_line(log, "Cannot create section: '%s'\n", arg);
     goto handle_set_cleanup;
   }
@@ -142,8 +138,8 @@ handle_set_cleanup:
  * @return 0 if succeeded, -1 otherwise
  */
 int
-cfg_cmd_handle_remove(struct cfg_instance *instance __attribute__((unused)),
-    struct cfg_db *db, const char *arg, struct autobuf *log) {
+cfg_cmd_handle_remove(
+  struct cfg_instance *instance __attribute__((unused)), struct cfg_db *db, const char *arg, struct autobuf *log) {
   struct _parsed_argument pa;
   char *ptr;
   int result;
@@ -204,8 +200,8 @@ handle_remove_cleanup:
  * @return 0 if succeeded, -1 otherwise
  */
 int
-cfg_cmd_handle_get(struct cfg_instance *instance __attribute__((unused)),
-    struct cfg_db *db, const char *arg, struct autobuf *log) {
+cfg_cmd_handle_get(
+  struct cfg_instance *instance __attribute__((unused)), struct cfg_db *db, const char *arg, struct autobuf *log) {
   struct cfg_section_type *type, *type_it;
   struct cfg_named_section *named, *named_it;
   struct cfg_entry *entry, *entry_it;
@@ -240,8 +236,7 @@ cfg_cmd_handle_get(struct cfg_instance *instance __attribute__((unused)),
   }
 
   if (pa.entry_key != NULL) {
-    if (NULL == (entry = cfg_db_find_entry(db,
-        pa.section_type, pa.section_name, pa.entry_key))) {
+    if (NULL == (entry = cfg_db_find_entry(db, pa.section_type, pa.section_name, pa.entry_key))) {
       cfg_append_printable_line(log, "Cannot find data for entry: '%s'\n", arg);
       goto handle_get_cleanup;
     }
@@ -298,8 +293,7 @@ handle_get_cleanup:
  * @return 0 if succeeded, -1 otherwise
  */
 int
-cfg_cmd_handle_load(struct cfg_instance *instance, struct cfg_db *db,
-    const char *arg, struct autobuf *log) {
+cfg_cmd_handle_load(struct cfg_instance *instance, struct cfg_db *db, const char *arg, struct autobuf *log) {
   struct cfg_db *temp_db;
 
   temp_db = cfg_io_load(instance, arg, log);
@@ -319,8 +313,7 @@ cfg_cmd_handle_load(struct cfg_instance *instance, struct cfg_db *db,
  * @return 0 if succeeded, -1 otherwise
  */
 int
-cfg_cmd_handle_save(struct cfg_instance *instance, struct cfg_db *db,
-    const char *arg, struct autobuf *log) {
+cfg_cmd_handle_save(struct cfg_instance *instance, struct cfg_db *db, const char *arg, struct autobuf *log) {
   return cfg_io_save(instance, arg, db, log);
 }
 
@@ -332,8 +325,7 @@ cfg_cmd_handle_save(struct cfg_instance *instance, struct cfg_db *db,
  * @return 0 if succeeded, -1 otherwise
  */
 int
-cfg_cmd_handle_schema(struct cfg_db *db,
-    const char *arg, struct autobuf *log) {
+cfg_cmd_handle_schema(struct cfg_db *db, const char *arg, struct autobuf *log) {
   struct cfg_schema_section *s_section;
   char *copy, *ptr;
   int result;
@@ -345,18 +337,14 @@ cfg_cmd_handle_schema(struct cfg_db *db,
 
   if (arg == NULL || *arg == 0) {
     abuf_puts(log, "List of section types:\n"
-        "(use this command with the types as parameter for more information)\n");
+                   "(use this command with the types as parameter for more information)\n");
     avl_for_each_element(&db->schema->sections, s_section, _section_node) {
       if (!s_section->_section_node.follower) {
-        cfg_append_printable_line(log, CFG_HELP_INDENT_PREFIX "%s (%s)%s%s",
-            s_section->type,
-            CFG_SCHEMA_SECTIONMODE[s_section->mode],
-            s_section->help ? ": " : "",
-            s_section->help ? s_section->help : "");
+        cfg_append_printable_line(log, CFG_HELP_INDENT_PREFIX "%s (%s)%s%s", s_section->type,
+          CFG_SCHEMA_SECTIONMODE[s_section->mode], s_section->help ? ": " : "", s_section->help ? s_section->help : "");
       }
       else if (s_section->help) {
-        cfg_append_printable_line(log,
-            CFG_HELP_INDENT_PREFIX CFG_HELP_INDENT_PREFIX "%s", s_section->help);
+        cfg_append_printable_line(log, CFG_HELP_INDENT_PREFIX CFG_HELP_INDENT_PREFIX "%s", s_section->help);
       }
     }
     return 0;
@@ -395,7 +383,7 @@ cfg_cmd_handle_schema(struct cfg_db *db,
     result = _print_schema_entry(log, db, copy, ptr);
   }
 
-  free (copy);
+  free(copy);
   return result;
 }
 
@@ -415,8 +403,8 @@ _print_schema_section(struct autobuf *log, struct cfg_db *db, const char *sectio
   }
 
   if (s_entry->_parent->mode == CFG_SSMODE_NAMED_WITH_DEFAULT) {
-    cfg_append_printable_line(log, "Section '%s' has default name '%s'",
-        s_entry->_parent->type, s_entry->_parent->def_name);
+    cfg_append_printable_line(
+      log, "Section '%s' has default name '%s'", s_entry->_parent->type, s_entry->_parent->def_name);
   }
 
   if (s_entry->_parent->help) {
@@ -433,15 +421,12 @@ _print_schema_section(struct autobuf *log, struct cfg_db *db, const char *sectio
     }
 
     if (!s_entry_it->_node.follower) {
-      cfg_append_printable_line(log, CFG_HELP_INDENT_PREFIX "%s%s%s",
-          s_entry_it->key.entry,
-          strarray_is_empty_c(&s_entry_it->def) ? " (mandatory)" : "",
-              s_entry_it->list ? " (list)" : "");
+      cfg_append_printable_line(log, CFG_HELP_INDENT_PREFIX "%s%s%s", s_entry_it->key.entry,
+        strarray_is_empty_c(&s_entry_it->def) ? " (mandatory)" : "", s_entry_it->list ? " (list)" : "");
     }
 #if !defined(REMOVE_HELPTEXT)
     if (s_entry_it->help) {
-      cfg_append_printable_line(log,
-          CFG_HELP_INDENT_PREFIX CFG_HELP_INDENT_PREFIX "%s", s_entry_it->help);
+      cfg_append_printable_line(log, CFG_HELP_INDENT_PREFIX CFG_HELP_INDENT_PREFIX "%s", s_entry_it->help);
     }
 #endif
   }
@@ -449,8 +434,7 @@ _print_schema_section(struct autobuf *log, struct cfg_db *db, const char *sectio
 }
 
 static int
-_print_schema_entry(struct autobuf *log, struct cfg_db *db,
-    const char *section, const char *entry) {
+_print_schema_entry(struct autobuf *log, struct cfg_db *db, const char *section, const char *entry) {
   struct cfg_schema_entry *s_entry_it, *s_entry_first, *s_entry_last;
   struct cfg_schema_entry_key key;
   const char *c_ptr;
@@ -464,26 +448,22 @@ _print_schema_entry(struct autobuf *log, struct cfg_db *db,
   avl_for_each_elements_with_key(&db->schema->entries, s_entry_it, _node, s_entry_first, &key) {
     if (s_entry_it == s_entry_first) {
       /* print type/parameter */
-      cfg_append_printable_line(log, CFG_HELP_INDENT_PREFIX "%s%s%s",
-          s_entry_it->key.entry,
-          strarray_is_empty_c(&s_entry_it->def) ? " (mandatory)" : "",
-              s_entry_it->list ? " (list)" : "");
+      cfg_append_printable_line(log, CFG_HELP_INDENT_PREFIX "%s%s%s", s_entry_it->key.entry,
+        strarray_is_empty_c(&s_entry_it->def) ? " (mandatory)" : "", s_entry_it->list ? " (list)" : "");
 
       /* print defaults */
       if (!strarray_is_empty_c(&s_entry_it->def)) {
         cfg_append_printable_line(log, CFG_HELP_INDENT_PREFIX "Default value:");
         strarray_for_each_element(&s_entry_it->def, c_ptr) {
-          cfg_append_printable_line(log,
-              CFG_HELP_INDENT_PREFIX CFG_HELP_INDENT_PREFIX "'%s'", c_ptr);
+          cfg_append_printable_line(log, CFG_HELP_INDENT_PREFIX CFG_HELP_INDENT_PREFIX "'%s'", c_ptr);
         }
       }
     }
 
     if (s_entry_it->cb_valhelp) {
       /* print validator help if different from last validator */
-      if (s_entry_last == NULL || s_entry_last->cb_valhelp != s_entry_it->cb_valhelp
-          || memcmp(&s_entry_last->validate_param, &s_entry_it->validate_param,
-              sizeof(s_entry_it->validate_param)) != 0) {
+      if (s_entry_last == NULL || s_entry_last->cb_valhelp != s_entry_it->cb_valhelp ||
+          memcmp(&s_entry_last->validate_param, &s_entry_it->validate_param, sizeof(s_entry_it->validate_param)) != 0) {
         s_entry_it->cb_valhelp(s_entry_it, log);
         s_entry_last = s_entry_it;
       }
@@ -497,8 +477,7 @@ _print_schema_entry(struct autobuf *log, struct cfg_db *db,
       if (s_entry_it == s_entry_first) {
         abuf_puts(log, CFG_HELP_INDENT_PREFIX "Description:\n");
       }
-      cfg_append_printable_line(log,
-          CFG_HELP_INDENT_PREFIX CFG_HELP_INDENT_PREFIX "%s", s_entry_it->help);
+      cfg_append_printable_line(log, CFG_HELP_INDENT_PREFIX CFG_HELP_INDENT_PREFIX "%s", s_entry_it->help);
     }
   }
 #endif

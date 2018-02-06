@@ -46,8 +46,8 @@
 #ifndef OONF_TELNET_H_
 #define OONF_TELNET_H_
 
-#include "common/common_types.h"
 #include "common/avl.h"
+#include "common/common_types.h"
 #include "common/list.h"
 #include "common/netaddr.h"
 #include "common/netaddr_acl.h"
@@ -59,7 +59,8 @@
 /**
  * telnet session status
  */
-enum oonf_telnet_result {
+enum oonf_telnet_result
+{
   /*! active and waiting for the next command */
   TELNET_RESULT_ACTIVE,
 
@@ -157,9 +158,11 @@ struct oonf_telnet_session {
  * @param helptext help text for command
  * @param args additional arguments
  */
-#define TELNET_CMD(cmd, cb, helptext, args...) { .command = (cmd), .handler = (cb), .help = helptext, ##args }
+#define TELNET_CMD(cmd, cb, helptext, args...)                                                                         \
+  { .command = (cmd), .handler = (cb), .help = helptext, ##args }
 #else
-#define TELNET_CMD(cmd, cb, helptext, args...) { .command = (cmd), .handler = (cb), .help = "", ##args }
+#define TELNET_CMD(cmd, cb, helptext, args...)                                                                         \
+  { .command = (cmd), .handler = (cb), .help = "", ##args }
 #endif
 
 /**
@@ -199,8 +202,7 @@ EXPORT void oonf_telnet_remove(struct oonf_telnet_command *command);
 EXPORT void oonf_telnet_stop(struct oonf_telnet_data *data, bool print_prompt);
 
 EXPORT enum oonf_telnet_result oonf_telnet_execute(
-    const char *cmd, const char *para,
-    struct autobuf *out, struct netaddr *remote);
+  const char *cmd, const char *para, struct autobuf *out, struct netaddr *remote);
 
 /**
  * Add a cleanup handler to a telnet session
@@ -208,8 +210,7 @@ EXPORT enum oonf_telnet_result oonf_telnet_execute(
  * @param cleanup pointer to initialized cleanup handler
  */
 static INLINE void
-oonf_telnet_add_cleanup(struct oonf_telnet_data *data,
-    struct oonf_telnet_cleanup *cleanup) {
+oonf_telnet_add_cleanup(struct oonf_telnet_data *data, struct oonf_telnet_cleanup *cleanup) {
   cleanup->data = data;
   list_add_tail(&data->cleanup_list, &cleanup->node);
 }
@@ -233,8 +234,7 @@ oonf_telnet_flush_session(struct oonf_telnet_data *data) {
   struct oonf_telnet_session *session;
 
   session = container_of(data, struct oonf_telnet_session, data);
-  if (session->session.state != STREAM_SESSION_INACTIVE
-      && session->session.state != STREAM_SESSION_CLEANUP) {
+  if (session->session.state != STREAM_SESSION_INACTIVE && session->session.state != STREAM_SESSION_CLEANUP) {
     oonf_stream_flush(&session->session);
   }
 }

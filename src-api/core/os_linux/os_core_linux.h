@@ -46,14 +46,14 @@
 #ifndef OS_CORE_LINUX_H_
 #define OS_CORE_LINUX_H_
 
-#include <sys/time.h>
 #include <stdlib.h>
+#include <sys/time.h>
 
-#include "core/os_generic/os_core_generic_syslog.h"
 #include "core/os_core.h"
+#include "core/os_generic/os_core_generic_syslog.h"
 
 /*! default folder for Linux lockfile */
-#define OS_CORE_LOCKFILE_FOLDER        "/var/run/"
+#define OS_CORE_LOCKFILE_FOLDER "/var/run/"
 
 EXPORT int os_core_linux_get_random(void *dst, size_t length);
 EXPORT int os_core_linux_create_lockfile(const char *path);

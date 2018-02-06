@@ -58,7 +58,10 @@
 #include "nhdp/nhdp_domain.h"
 
 /*! minimum time between two dijkstra calculations in milliseconds */
-enum { OLSRv2_DIJKSTRA_RATE_LIMITATION = 1000 };
+enum
+{
+  OLSRv2_DIJKSTRA_RATE_LIMITATION = 1000
+};
 
 /**
  * representation of a node in the dijkstra tree
@@ -173,7 +176,7 @@ struct olsrv2_routing_filter {
    * @param route_param operation system route parameters
    * @return true if route should still be set/removed, false if it should be ignored
    */
-  bool (*filter)(struct nhdp_domain *domain , struct os_route_parameter *route_param, bool set);
+  bool (*filter)(struct nhdp_domain *domain, struct os_route_parameter *route_param, bool set);
 
   /*! node to hold all routing filters together */
   struct list_entity _node;
@@ -183,24 +186,20 @@ int olsrv2_routing_init(void);
 void olsrv2_routing_initiate_shutdown(void);
 void olsrv2_routing_cleanup(void);
 
-void olsrv2_routing_dijkstra_node_init(
-    struct olsrv2_dijkstra_node *, const struct netaddr *originator);
+void olsrv2_routing_dijkstra_node_init(struct olsrv2_dijkstra_node *, const struct netaddr *originator);
 
 EXPORT uint16_t olsrv2_routing_get_ansn(void);
 EXPORT void olsrv2_routing_force_ansn_increment(uint16_t increment);
 
-EXPORT void olsrv2_routing_set_domain_parameter(struct nhdp_domain *domain,
-    struct olsrv2_routing_domain *parameter);
+EXPORT void olsrv2_routing_set_domain_parameter(struct nhdp_domain *domain, struct olsrv2_routing_domain *parameter);
 
-EXPORT void olsrv2_routing_domain_changed(
-    struct nhdp_domain *domain, bool autoupdate_ansn);
+EXPORT void olsrv2_routing_domain_changed(struct nhdp_domain *domain, bool autoupdate_ansn);
 EXPORT void olsrv2_routing_force_update(bool skip_wait);
 EXPORT void olsrv2_routing_trigger_update(void);
 
 EXPORT void olsrv2_routing_freeze_routes(bool freeze);
 
-EXPORT const struct olsrv2_routing_domain *
-    olsrv2_routing_get_parameters(struct nhdp_domain *);
+EXPORT const struct olsrv2_routing_domain *olsrv2_routing_get_parameters(struct nhdp_domain *);
 
 EXPORT struct avl_tree *olsrv2_routing_get_tree(struct nhdp_domain *domain);
 EXPORT struct list_entity *olsrv2_routing_get_filter_list(void);

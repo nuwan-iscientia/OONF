@@ -50,9 +50,9 @@
 #define DISALLOW_CONSUMER_CONTEXT_DROP false
 
 /*! keep track of state of packet writer and prevent bad API calls */
-#define WRITER_STATE_MACHINE           true
+#define WRITER_STATE_MACHINE true
 
 /*! clear buffers for packet generation after usage */
-#define DEBUG_CLEANUP                  false
+#define DEBUG_CLEANUP false
 
 #endif /* RFC5444_API_CONFIG_H_ */

@@ -82,64 +82,73 @@ DECLARE_OONF_PLUGIN(_oonf_layer2_subsystem);
 
 /* layer2 neighbor metadata */
 static const struct oonf_layer2_metadata _metadata_neigh[OONF_LAYER2_NEIGH_COUNT] = {
-  [OONF_LAYER2_NEIGH_TX_SIGNAL]      = { .key = "tx_signal", .type = OONF_LAYER2_INTEGER_DATA, .unit = "dBm", .fraction = 3 },
-  [OONF_LAYER2_NEIGH_RX_SIGNAL]      = { .key = "rx_signal", .type = OONF_LAYER2_INTEGER_DATA, .unit = "dBm", .fraction = 3 },
-  [OONF_LAYER2_NEIGH_TX_BITRATE]     = { .key = "tx_bitrate", .type = OONF_LAYER2_INTEGER_DATA, .unit = "bit/s" },
-  [OONF_LAYER2_NEIGH_RX_BITRATE]     = { .key = "rx_bitrate", .type = OONF_LAYER2_INTEGER_DATA, .unit = "bit/s" },
-  [OONF_LAYER2_NEIGH_RX_BC_BITRATE]  = { .key = "rx_bc_bitrate", .type = OONF_LAYER2_INTEGER_DATA, .unit = "bit/s" },
+  [OONF_LAYER2_NEIGH_TX_SIGNAL] = { .key = "tx_signal",
+    .type = OONF_LAYER2_INTEGER_DATA,
+    .unit = "dBm",
+    .fraction = 3 },
+  [OONF_LAYER2_NEIGH_RX_SIGNAL] = { .key = "rx_signal",
+    .type = OONF_LAYER2_INTEGER_DATA,
+    .unit = "dBm",
+    .fraction = 3 },
+  [OONF_LAYER2_NEIGH_TX_BITRATE] = { .key = "tx_bitrate", .type = OONF_LAYER2_INTEGER_DATA, .unit = "bit/s" },
+  [OONF_LAYER2_NEIGH_RX_BITRATE] = { .key = "rx_bitrate", .type = OONF_LAYER2_INTEGER_DATA, .unit = "bit/s" },
+  [OONF_LAYER2_NEIGH_RX_BC_BITRATE] = { .key = "rx_bc_bitrate", .type = OONF_LAYER2_INTEGER_DATA, .unit = "bit/s" },
   [OONF_LAYER2_NEIGH_TX_MAX_BITRATE] = { .key = "tx_max_bitrate", .type = OONF_LAYER2_INTEGER_DATA, .unit = "bit/s" },
   [OONF_LAYER2_NEIGH_RX_MAX_BITRATE] = { .key = "rx_max_bitrate", .type = OONF_LAYER2_INTEGER_DATA, .unit = "bit/s" },
-  [OONF_LAYER2_NEIGH_TX_BYTES]       = { .key = "tx_bytes", .type = OONF_LAYER2_INTEGER_DATA, .unit = "byte" },
-  [OONF_LAYER2_NEIGH_RX_BYTES]       = { .key = "rx_bytes", .type = OONF_LAYER2_INTEGER_DATA, .unit = "byte" },
-  [OONF_LAYER2_NEIGH_TX_FRAMES]      = { .key = "tx_frames", .type = OONF_LAYER2_INTEGER_DATA },
-  [OONF_LAYER2_NEIGH_RX_FRAMES]      = { .key = "rx_frames", .type = OONF_LAYER2_INTEGER_DATA  },
-  [OONF_LAYER2_NEIGH_TX_THROUGHPUT]  = { .key = "tx_throughput", .type = OONF_LAYER2_INTEGER_DATA , .unit = "bit/s" },
-  [OONF_LAYER2_NEIGH_TX_RETRIES]     = { .key = "tx_retries", .type = OONF_LAYER2_INTEGER_DATA },
-  [OONF_LAYER2_NEIGH_TX_FAILED]      = { .key = "tx_failed", .type = OONF_LAYER2_INTEGER_DATA  },
-  [OONF_LAYER2_NEIGH_LATENCY]        = { .key = "latency", .type = OONF_LAYER2_INTEGER_DATA , .unit = "s", .fraction = 6 },
-  [OONF_LAYER2_NEIGH_RESOURCES]      = { .key = "resources", .type = OONF_LAYER2_INTEGER_DATA  },
-  [OONF_LAYER2_NEIGH_TX_RLQ]         = { .key = "tx_rlq", .type = OONF_LAYER2_INTEGER_DATA  },
-  [OONF_LAYER2_NEIGH_RX_RLQ]         = { .key = "rx_rlq", .type = OONF_LAYER2_INTEGER_DATA  },
+  [OONF_LAYER2_NEIGH_TX_BYTES] = { .key = "tx_bytes", .type = OONF_LAYER2_INTEGER_DATA, .unit = "byte" },
+  [OONF_LAYER2_NEIGH_RX_BYTES] = { .key = "rx_bytes", .type = OONF_LAYER2_INTEGER_DATA, .unit = "byte" },
+  [OONF_LAYER2_NEIGH_TX_FRAMES] = { .key = "tx_frames", .type = OONF_LAYER2_INTEGER_DATA },
+  [OONF_LAYER2_NEIGH_RX_FRAMES] = { .key = "rx_frames", .type = OONF_LAYER2_INTEGER_DATA },
+  [OONF_LAYER2_NEIGH_TX_THROUGHPUT] = { .key = "tx_throughput", .type = OONF_LAYER2_INTEGER_DATA, .unit = "bit/s" },
+  [OONF_LAYER2_NEIGH_TX_RETRIES] = { .key = "tx_retries", .type = OONF_LAYER2_INTEGER_DATA },
+  [OONF_LAYER2_NEIGH_TX_FAILED] = { .key = "tx_failed", .type = OONF_LAYER2_INTEGER_DATA },
+  [OONF_LAYER2_NEIGH_LATENCY] = { .key = "latency", .type = OONF_LAYER2_INTEGER_DATA, .unit = "s", .fraction = 6 },
+  [OONF_LAYER2_NEIGH_RESOURCES] = { .key = "resources", .type = OONF_LAYER2_INTEGER_DATA },
+  [OONF_LAYER2_NEIGH_TX_RLQ] = { .key = "tx_rlq", .type = OONF_LAYER2_INTEGER_DATA },
+  [OONF_LAYER2_NEIGH_RX_RLQ] = { .key = "rx_rlq", .type = OONF_LAYER2_INTEGER_DATA },
 };
 
 /* layer2 network metadata */
 static const struct oonf_layer2_metadata _metadata_net[OONF_LAYER2_NET_COUNT] = {
-  [OONF_LAYER2_NET_FREQUENCY_1]     = { .key = "frequency1", .type = OONF_LAYER2_INTEGER_DATA , .unit = "Hz" },
-  [OONF_LAYER2_NET_FREQUENCY_2]     = { .key = "frequency2", .type = OONF_LAYER2_INTEGER_DATA , .unit = "Hz" },
-  [OONF_LAYER2_NET_BANDWIDTH_1]     = { .key = "bandwidth1", .type = OONF_LAYER2_INTEGER_DATA , .unit = "Hz" },
-  [OONF_LAYER2_NET_BANDWIDTH_2]     = { .key = "bandwidth2", .type = OONF_LAYER2_INTEGER_DATA , .unit = "Hz" },
-  [OONF_LAYER2_NET_NOISE]           = { .key = "noise", .type = OONF_LAYER2_INTEGER_DATA , .unit="dBm", .fraction = 3 },
-  [OONF_LAYER2_NET_CHANNEL_ACTIVE]  = { .key = "ch_active", .type = OONF_LAYER2_INTEGER_DATA , .unit="s", .fraction = 9 },
-  [OONF_LAYER2_NET_CHANNEL_BUSY]    = { .key = "ch_busy", .type = OONF_LAYER2_INTEGER_DATA , .unit="s", .fraction = 9 },
-  [OONF_LAYER2_NET_CHANNEL_RX]      = { .key = "ch_rx", .type = OONF_LAYER2_INTEGER_DATA , .unit="s", .fraction = 9 },
-  [OONF_LAYER2_NET_CHANNEL_TX]      = { .key = "ch_tx", .type = OONF_LAYER2_INTEGER_DATA , .unit="s", .fraction = 9 },
-  [OONF_LAYER2_NET_MTU]             = { .key = "mtu", .type = OONF_LAYER2_INTEGER_DATA , .unit="byte" },
-  [OONF_LAYER2_NET_MCS_BY_PROBING]  = { .key = "mcs_by_probing", .type = OONF_LAYER2_BOOLEAN_DATA },
+  [OONF_LAYER2_NET_FREQUENCY_1] = { .key = "frequency1", .type = OONF_LAYER2_INTEGER_DATA, .unit = "Hz" },
+  [OONF_LAYER2_NET_FREQUENCY_2] = { .key = "frequency2", .type = OONF_LAYER2_INTEGER_DATA, .unit = "Hz" },
+  [OONF_LAYER2_NET_BANDWIDTH_1] = { .key = "bandwidth1", .type = OONF_LAYER2_INTEGER_DATA, .unit = "Hz" },
+  [OONF_LAYER2_NET_BANDWIDTH_2] = { .key = "bandwidth2", .type = OONF_LAYER2_INTEGER_DATA, .unit = "Hz" },
+  [OONF_LAYER2_NET_NOISE] = { .key = "noise", .type = OONF_LAYER2_INTEGER_DATA, .unit = "dBm", .fraction = 3 },
+  [OONF_LAYER2_NET_CHANNEL_ACTIVE] = { .key = "ch_active",
+    .type = OONF_LAYER2_INTEGER_DATA,
+    .unit = "s",
+    .fraction = 9 },
+  [OONF_LAYER2_NET_CHANNEL_BUSY] = { .key = "ch_busy", .type = OONF_LAYER2_INTEGER_DATA, .unit = "s", .fraction = 9 },
+  [OONF_LAYER2_NET_CHANNEL_RX] = { .key = "ch_rx", .type = OONF_LAYER2_INTEGER_DATA, .unit = "s", .fraction = 9 },
+  [OONF_LAYER2_NET_CHANNEL_TX] = { .key = "ch_tx", .type = OONF_LAYER2_INTEGER_DATA, .unit = "s", .fraction = 9 },
+  [OONF_LAYER2_NET_MTU] = { .key = "mtu", .type = OONF_LAYER2_INTEGER_DATA, .unit = "byte" },
+  [OONF_LAYER2_NET_MCS_BY_PROBING] = { .key = "mcs_by_probing", .type = OONF_LAYER2_BOOLEAN_DATA },
   [OONF_LAYER2_NET_RX_ONLY_UNICAST] = { .key = "rx_only_unicast", .type = OONF_LAYER2_BOOLEAN_DATA },
   [OONF_LAYER2_NET_TX_ONLY_UNICAST] = { .key = "tx_only_unicast", .type = OONF_LAYER2_BOOLEAN_DATA },
 };
 
 static const char *_network_type[OONF_LAYER2_TYPE_COUNT] = {
   [OONF_LAYER2_TYPE_UNDEFINED] = "undefined",
-  [OONF_LAYER2_TYPE_WIRELESS]  = "wireless",
-  [OONF_LAYER2_TYPE_ETHERNET]  = "ethernet",
-  [OONF_LAYER2_TYPE_TUNNEL]    = "tunnel",
+  [OONF_LAYER2_TYPE_WIRELESS] = "wireless",
+  [OONF_LAYER2_TYPE_ETHERNET] = "ethernet",
+  [OONF_LAYER2_TYPE_TUNNEL] = "tunnel",
 };
 
 static const char *_data_comparators[OONF_LAYER2_DATA_CMP_COUNT] = {
-  [OONF_LAYER2_DATA_CMP_EQUALS]            = "==",
-  [OONF_LAYER2_DATA_CMP_NOT_EQUALS]        = "!=",
-  [OONF_LAYER2_DATA_CMP_LESSER]            = "<",
-  [OONF_LAYER2_DATA_CMP_LESSER_OR_EQUALS]  = "<=",
-  [OONF_LAYER2_DATA_CMP_GREATER]           = ">",
+  [OONF_LAYER2_DATA_CMP_EQUALS] = "==",
+  [OONF_LAYER2_DATA_CMP_NOT_EQUALS] = "!=",
+  [OONF_LAYER2_DATA_CMP_LESSER] = "<",
+  [OONF_LAYER2_DATA_CMP_LESSER_OR_EQUALS] = "<=",
+  [OONF_LAYER2_DATA_CMP_GREATER] = ">",
   [OONF_LAYER2_DATA_CMP_GREATER_OR_EQUALS] = ">=",
 };
 
 static const char *_data_types[OONF_LAYER2_DATA_TYPE_COUNT] = {
-  [OONF_LAYER2_NO_DATA]       = "none",
-  [OONF_LAYER2_INTEGER_DATA]  = "integer",
-  [OONF_LAYER2_BOOLEAN_DATA]  = "boolean",
-  [OONF_LAYER2_NETWORK_DATA]  = "network",
+  [OONF_LAYER2_NO_DATA] = "none",
+  [OONF_LAYER2_INTEGER_DATA] = "integer",
+  [OONF_LAYER2_BOOLEAN_DATA] = "boolean",
+  [OONF_LAYER2_NETWORK_DATA] = "network",
 };
 
 /* infrastructure for l2net/l2neigh tree */
@@ -243,14 +252,13 @@ oonf_layer2_origin_remove(struct oonf_layer2_origin *origin) {
  * @return -1 if an error happened, 0 otherwise
  */
 int
-oonf_layer2_data_parse_string(union oonf_layer2_value *value,
-    const struct oonf_layer2_metadata *meta, const char *input) {
+oonf_layer2_data_parse_string(
+  union oonf_layer2_value *value, const struct oonf_layer2_metadata *meta, const char *input) {
   memset(value, 0, sizeof(*value));
 
   switch (meta->type) {
     case OONF_LAYER2_INTEGER_DATA:
-      return isonumber_to_s64(
-          &value->integer, input, meta->fraction);
+      return isonumber_to_s64(&value->integer, input, meta->fraction);
 
     case OONF_LAYER2_BOOLEAN_DATA:
       if (!cfg_is_bool(input)) {
@@ -274,15 +282,13 @@ oonf_layer2_data_parse_string(union oonf_layer2_value *value,
  * @return pointer to output buffer, NULL if an error happened
  */
 const char *
-oonf_layer2_data_to_string(char *buffer, size_t length,
-    const struct oonf_layer2_data *data,
-    const struct oonf_layer2_metadata *meta, bool raw) {
+oonf_layer2_data_to_string(
+  char *buffer, size_t length, const struct oonf_layer2_data *data, const struct oonf_layer2_metadata *meta, bool raw) {
   struct isonumber_str iso_str;
 
   switch (meta->type) {
     case OONF_LAYER2_INTEGER_DATA:
-      if (!isonumber_from_s64(&iso_str, data->_value.integer,
-          meta->unit, meta->fraction, raw)) {
+      if (!isonumber_from_s64(&iso_str, data->_value.integer, meta->unit, meta->fraction, raw)) {
         return NULL;
       }
       return strscpy(buffer, iso_str.buf, length);
@@ -304,18 +310,13 @@ oonf_layer2_data_to_string(char *buffer, size_t length,
  * @return true if data changed, false otherwise
  */
 bool
-oonf_layer2_data_set(struct oonf_layer2_data *l2data,
-    const struct oonf_layer2_origin *origin,
-    enum oonf_layer2_data_type type,
-    const union oonf_layer2_value *input) {
+oonf_layer2_data_set(struct oonf_layer2_data *l2data, const struct oonf_layer2_origin *origin,
+  enum oonf_layer2_data_type type, const union oonf_layer2_value *input) {
   bool changed = false;
 
-  if (l2data->_type == OONF_LAYER2_NO_DATA
-      || l2data->_origin == NULL
-      || l2data->_origin == origin
-      || l2data->_origin->priority < origin->priority) {
-    changed = l2data->_type != type
-        || memcmp(&l2data->_value, input, sizeof(*input)) != 0;
+  if (l2data->_type == OONF_LAYER2_NO_DATA || l2data->_origin == NULL || l2data->_origin == origin ||
+      l2data->_origin->priority < origin->priority) {
+    changed = l2data->_type != type || memcmp(&l2data->_value, input, sizeof(*input)) != 0;
     memcpy(&l2data->_value, input, sizeof(*input));
     l2data->_type = type;
     l2data->_origin = origin;
@@ -332,10 +333,8 @@ oonf_layer2_data_set(struct oonf_layer2_data *l2data,
  *   (e.g. comparing different types of data)
  */
 bool
-oonf_layer2_data_compare(const union oonf_layer2_value *left,
-    const union oonf_layer2_value *right,
-    enum oonf_layer2_data_comparator_type comparator,
-    enum oonf_layer2_data_type data_type) {
+oonf_layer2_data_compare(const union oonf_layer2_value *left, const union oonf_layer2_value *right,
+  enum oonf_layer2_data_comparator_type comparator, enum oonf_layer2_data_type data_type) {
   int result;
 
   switch (data_type) {
@@ -351,17 +350,14 @@ oonf_layer2_data_compare(const union oonf_layer2_value *left,
       }
       break;
     case OONF_LAYER2_BOOLEAN_DATA:
-      result = memcmp(&left->boolean, &right->boolean,
-          sizeof(left->boolean));
+      result = memcmp(&left->boolean, &right->boolean, sizeof(left->boolean));
       break;
     case OONF_LAYER2_NETWORK_DATA:
-      result = memcmp(&left->addr, &right->addr,
-                sizeof(left->addr));
+      result = memcmp(&left->addr, &right->addr, sizeof(left->addr));
       break;
     default:
       return false;
   }
-
 
   switch (comparator) {
     case OONF_LAYER2_DATA_CMP_EQUALS:
@@ -387,10 +383,11 @@ oonf_layer2_data_compare(const union oonf_layer2_value *left,
  * @return comparator type
  */
 enum oonf_layer2_data_comparator_type
-oonf_layer2_data_get_comparator(const char *string) {
+oonf_layer2_data_get_comparator(const char *string)
+{
   enum oonf_layer2_data_comparator_type i;
 
-  for (i=0; i<OONF_LAYER2_DATA_CMP_COUNT; i++) {
+  for (i = 0; i < OONF_LAYER2_DATA_CMP_COUNT; i++) {
     if (strcmp(string, _data_comparators[i]) == 0) {
       return i;
     }
@@ -469,19 +466,18 @@ oonf_layer2_net_add(const char *ifname) {
  * @return true if a value was removed, false otherwise
  */
 bool
-oonf_layer2_net_cleanup(struct oonf_layer2_net *l2net,
-    const struct oonf_layer2_origin *origin, bool cleanup_neigh) {
+oonf_layer2_net_cleanup(struct oonf_layer2_net *l2net, const struct oonf_layer2_origin *origin, bool cleanup_neigh) {
   struct oonf_layer2_neigh *l2neigh;
   bool changed = false;
   int i;
 
-  for (i=0; i<OONF_LAYER2_NET_COUNT; i++) {
+  for (i = 0; i < OONF_LAYER2_NET_COUNT; i++) {
     if (l2net->data[i]._origin == origin) {
       oonf_layer2_data_reset(&l2net->data[i]);
       changed = true;
     }
   }
-  for (i=0; i<OONF_LAYER2_NEIGH_COUNT; i++) {
+  for (i = 0; i < OONF_LAYER2_NEIGH_COUNT; i++) {
     if (l2net->neighdata[i]._origin == origin) {
       oonf_layer2_data_reset(&l2net->neighdata[i]);
       changed = true;
@@ -504,8 +500,7 @@ oonf_layer2_net_cleanup(struct oonf_layer2_net *l2net,
  * @return true if something changed, false otherwise
  */
 bool
-oonf_layer2_net_remove(struct oonf_layer2_net *l2net,
-    const struct oonf_layer2_origin *origin) {
+oonf_layer2_net_remove(struct oonf_layer2_net *l2net, const struct oonf_layer2_origin *origin) {
   struct oonf_layer2_neigh *l2neigh, *l2neigh_it;
   bool changed = false;
 
@@ -544,14 +539,14 @@ oonf_layer2_net_commit(struct oonf_layer2_net *l2net) {
     return false;
   }
 
-  for (i=0; i<OONF_LAYER2_NET_COUNT; i++) {
+  for (i = 0; i < OONF_LAYER2_NET_COUNT; i++) {
     if (oonf_layer2_data_has_value(&l2net->data[i])) {
       oonf_class_event(&_l2network_class, l2net, OONF_OBJECT_CHANGED);
       return false;
     }
   }
 
-  for (i=0; i<OONF_LAYER2_NEIGH_COUNT; i++) {
+  for (i = 0; i < OONF_LAYER2_NEIGH_COUNT; i++) {
     if (oonf_layer2_data_has_value(&l2net->neighdata[i])) {
       oonf_class_event(&_l2network_class, l2net, OONF_OBJECT_CHANGED);
       return false;
@@ -570,26 +565,25 @@ oonf_layer2_net_commit(struct oonf_layer2_net *l2net) {
  * @param old_origin old origin to overwrite
  */
 void
-oonf_layer2_net_relabel(struct oonf_layer2_net *l2net,
-    const struct oonf_layer2_origin *new_origin,
-    const struct oonf_layer2_origin *old_origin) {
+oonf_layer2_net_relabel(struct oonf_layer2_net *l2net, const struct oonf_layer2_origin *new_origin,
+  const struct oonf_layer2_origin *old_origin) {
   struct oonf_layer2_neigh *l2neigh;
   struct oonf_layer2_peer_address *peer_ip;
   size_t i;
 
-  for (i=0; i<OONF_LAYER2_NET_COUNT; i++) {
+  for (i = 0; i < OONF_LAYER2_NET_COUNT; i++) {
     if (oonf_layer2_data_get_origin(&l2net->data[i]) == old_origin) {
       oonf_layer2_data_set_origin(&l2net->data[i], new_origin);
     }
   }
 
-  for (i=0; i<OONF_LAYER2_NEIGH_COUNT; i++) {
+  for (i = 0; i < OONF_LAYER2_NEIGH_COUNT; i++) {
     if (oonf_layer2_data_get_origin(&l2net->neighdata[i]) == old_origin) {
       oonf_layer2_data_set_origin(&l2net->neighdata[i], new_origin);
     }
   }
 
-  avl_for_each_element(&l2net->local_peer_ips, peer_ip,_net_node) {
+  avl_for_each_element(&l2net->local_peer_ips, peer_ip, _net_node) {
     if (peer_ip->origin == old_origin) {
       peer_ip->origin = new_origin;
     }
@@ -608,8 +602,8 @@ oonf_layer2_net_relabel(struct oonf_layer2_net *l2net,
  * @return layer2 ip address object, NULL if out of memory
  */
 struct oonf_layer2_peer_address *
-oonf_layer2_net_add_ip(struct oonf_layer2_net *l2net,
-    const struct oonf_layer2_origin *origin, const struct netaddr *ip) {
+oonf_layer2_net_add_ip(
+  struct oonf_layer2_net *l2net, const struct oonf_layer2_origin *origin, const struct netaddr *ip) {
   struct oonf_layer2_peer_address *l2addr;
 
   l2addr = oonf_layer2_net_get_local_ip(l2net, ip);
@@ -646,8 +640,7 @@ oonf_layer2_net_add_ip(struct oonf_layer2_net *l2net,
  * @return 0 if IP was removed, -1 if it was registered to a different origin
  */
 int
-oonf_layer2_net_remove_ip(
-    struct oonf_layer2_peer_address *ip, const struct oonf_layer2_origin *origin) {
+oonf_layer2_net_remove_ip(struct oonf_layer2_peer_address *ip, const struct oonf_layer2_origin *origin) {
   if (ip->origin != origin) {
     return -1;
   }
@@ -679,8 +672,7 @@ oonf_layer2_net_get_best_neighbor_match(const struct netaddr *addr) {
   avl_for_each_element(&_oonf_layer2_net_tree, l2net, _node) {
     avl_for_each_element(&l2net->neighbors, l2neigh, _node) {
       avl_for_each_element(&l2neigh->remote_neighbor_ips, l2addr, _neigh_node) {
-        if (netaddr_is_in_subnet(&l2addr->ip, addr)
-            && netaddr_get_prefix_length(&l2addr->ip) < prefix_length) {
+        if (netaddr_is_in_subnet(&l2addr->ip, addr) && netaddr_get_prefix_length(&l2addr->ip) < prefix_length) {
           best_match = l2addr;
           prefix_length = netaddr_get_prefix_length(&l2addr->ip);
         }
@@ -697,12 +689,10 @@ oonf_layer2_net_get_best_neighbor_match(const struct netaddr *addr) {
  * @return layer-2 neighbor object
  */
 struct oonf_layer2_neigh *
-oonf_layer2_neigh_add(struct oonf_layer2_net *l2net,
-    const struct netaddr *neigh) {
+oonf_layer2_neigh_add(struct oonf_layer2_net *l2net, const struct netaddr *neigh) {
   struct oonf_layer2_neigh *l2neigh;
 
-  if (netaddr_get_address_family(neigh) != AF_MAC48
-      && netaddr_get_address_family(neigh) != AF_EUI64) {
+  if (netaddr_get_address_family(neigh) != AF_MAC48 && netaddr_get_address_family(neigh) != AF_EUI64) {
     return NULL;
   }
 
@@ -738,12 +728,11 @@ oonf_layer2_neigh_add(struct oonf_layer2_net *l2net,
  * @return true if a value was resetted, false otherwise
  */
 bool
-oonf_layer2_neigh_cleanup(struct oonf_layer2_neigh *l2neigh,
-    const struct oonf_layer2_origin *origin) {
+oonf_layer2_neigh_cleanup(struct oonf_layer2_neigh *l2neigh, const struct oonf_layer2_origin *origin) {
   bool changed = false;
   int i;
 
-  for (i=0; i<OONF_LAYER2_NEIGH_COUNT; i++) {
+  for (i = 0; i < OONF_LAYER2_NEIGH_COUNT; i++) {
     if (l2neigh->data[i]._origin == origin) {
       oonf_layer2_data_reset(&l2neigh->data[i]);
       changed = true;
@@ -751,7 +740,6 @@ oonf_layer2_neigh_cleanup(struct oonf_layer2_neigh *l2neigh,
   }
   return changed;
 }
-
 
 /**
  * Remove all information of a certain originator from a layer-2 neighbor
@@ -761,8 +749,7 @@ oonf_layer2_neigh_cleanup(struct oonf_layer2_neigh *l2neigh,
  * @return true if something was change, false otherwise
  */
 bool
-oonf_layer2_neigh_remove(struct oonf_layer2_neigh *l2neigh,
-    const struct oonf_layer2_origin *origin) {
+oonf_layer2_neigh_remove(struct oonf_layer2_neigh *l2neigh, const struct oonf_layer2_origin *origin) {
   struct oonf_layer2_destination *l2dst, *l2dst_it;
   struct oonf_layer2_neighbor_address *l2ip, *l2ip_it;
 
@@ -810,7 +797,7 @@ oonf_layer2_neigh_commit(struct oonf_layer2_neigh *l2neigh) {
     return false;
   }
 
-  for (i=0; i<OONF_LAYER2_NEIGH_COUNT; i++) {
+  for (i = 0; i < OONF_LAYER2_NEIGH_COUNT; i++) {
     if (oonf_layer2_data_has_value(&l2neigh->data[i])) {
       oonf_class_event(&_l2neighbor_class, l2neigh, OONF_OBJECT_CHANGED);
       return false;
@@ -828,14 +815,13 @@ oonf_layer2_neigh_commit(struct oonf_layer2_neigh *l2neigh) {
  * @param old_origin old origin to overwrite
  */
 void
-oonf_layer2_neigh_relabel(struct oonf_layer2_neigh *l2neigh,
-    const struct oonf_layer2_origin *new_origin,
-    const struct oonf_layer2_origin *old_origin) {
+oonf_layer2_neigh_relabel(struct oonf_layer2_neigh *l2neigh, const struct oonf_layer2_origin *new_origin,
+  const struct oonf_layer2_origin *old_origin) {
   struct oonf_layer2_neighbor_address *neigh_ip;
   struct oonf_layer2_destination *l2dst;
   size_t i;
 
-  for (i=0; i<OONF_LAYER2_NEIGH_COUNT; i++) {
+  for (i = 0; i < OONF_LAYER2_NEIGH_COUNT; i++) {
     if (oonf_layer2_data_get_origin(&l2neigh->data[i]) == old_origin) {
       oonf_layer2_data_set_origin(&l2neigh->data[i], new_origin);
     }
@@ -862,8 +848,8 @@ oonf_layer2_neigh_relabel(struct oonf_layer2_neigh *l2neigh,
  * @return layer2 ip address object, NULL if out of memory
  */
 struct oonf_layer2_neighbor_address *
-oonf_layer2_neigh_add_ip(struct oonf_layer2_neigh *l2neigh,
-    const struct oonf_layer2_origin *origin, const struct netaddr *ip) {
+oonf_layer2_neigh_add_ip(
+  struct oonf_layer2_neigh *l2neigh, const struct oonf_layer2_origin *origin, const struct netaddr *ip) {
   struct oonf_layer2_neighbor_address *l2addr;
 
   l2addr = oonf_layer2_neigh_get_remote_ip(l2neigh, ip);
@@ -899,8 +885,7 @@ oonf_layer2_neigh_add_ip(struct oonf_layer2_neigh *l2neigh,
  * @return 0 if IP was removed, -1 if it was registered to a different origin
  */
 int
-oonf_layer2_neigh_remove_ip(
-    struct oonf_layer2_neighbor_address *ip, const struct oonf_layer2_origin *origin) {
+oonf_layer2_neigh_remove_ip(struct oonf_layer2_neighbor_address *ip, const struct oonf_layer2_origin *origin) {
   if (ip->origin != origin) {
     return -1;
   }
@@ -922,9 +907,8 @@ oonf_layer2_neigh_remove_ip(
  * @return layer2 destination, NULL if out of memory
  */
 struct oonf_layer2_destination *
-oonf_layer2_destination_add(struct oonf_layer2_neigh *l2neigh,
-    const struct netaddr *destination,
-    const struct oonf_layer2_origin *origin) {
+oonf_layer2_destination_add(
+  struct oonf_layer2_neigh *l2neigh, const struct netaddr *destination, const struct oonf_layer2_origin *origin) {
   struct oonf_layer2_destination *l2dst;
 
   l2dst = oonf_layer2_destination_get(l2neigh, destination);
@@ -975,8 +959,7 @@ oonf_layer2_destination_remove(struct oonf_layer2_destination *l2dst) {
  * @return pointer to linklayer data, NULL if no value available
  */
 const struct oonf_layer2_data *
-oonf_layer2_neigh_query(const char *ifname,
-    const struct netaddr *l2neigh_addr, enum oonf_layer2_neighbor_index idx) {
+oonf_layer2_neigh_query(const char *ifname, const struct netaddr *l2neigh_addr, enum oonf_layer2_neighbor_index idx) {
   struct oonf_layer2_net *l2net;
   struct oonf_layer2_neigh *l2neigh;
   struct oonf_layer2_data *data;
@@ -1011,8 +994,7 @@ oonf_layer2_neigh_query(const char *ifname,
  * @return pointer to linklayer data, NULL if no value available
  */
 const struct oonf_layer2_data *
-oonf_layer2_neigh_get_data(const struct oonf_layer2_neigh *l2neigh,
-    enum oonf_layer2_neighbor_index idx) {
+oonf_layer2_neigh_get_data(const struct oonf_layer2_neigh *l2neigh, enum oonf_layer2_neighbor_index idx) {
   const struct oonf_layer2_data *data;
 
   data = &l2neigh->data[idx];

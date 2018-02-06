@@ -52,8 +52,8 @@
 #include "common/common_types.h"
 #include "common/list.h"
 #include "common/netaddr.h"
-#include "subsystems/os_interface.h"
 #include "core/oonf_logging.h"
+#include "subsystems/os_interface.h"
 #include "subsystems/os_system.h"
 
 /*! subsystem identifier */
@@ -79,29 +79,35 @@ struct os_route_str;
 struct os_route_str {
   /*! text buffer for maximum length of representation */
   char buf[
-           /* header */
-           1+
-           /* src-ip */
-           8 + sizeof(struct netaddr_str)
-           /* gw */
-           + 4 + sizeof(struct netaddr_str)
-           /* dst [type] */
-           + 5 + sizeof(struct netaddr_str)
-           /* src-prefix */
-           + 12 + sizeof(struct netaddr_str)
-           /* metric */
-           + 7+11
-           /* table, protocol */
-           +6+4 +9+4
-           +3 + IF_NAMESIZE + 2 + 10 + 2
-           /* footer and 0-byte */
-           + 2];
+    /* header */
+    1 +
+    /* src-ip */
+    8 +
+    sizeof(struct netaddr_str)
+    /* gw */
+    + 4 +
+    sizeof(struct netaddr_str)
+    /* dst [type] */
+    + 5 +
+    sizeof(struct netaddr_str)
+    /* src-prefix */
+    + 12 +
+    sizeof(struct netaddr_str)
+    /* metric */
+    + 7 +
+    11
+    /* table, protocol */
+    + 6 + 4 + 9 + 4 + 3 + IF_NAMESIZE + 2 + 10 +
+    2
+    /* footer and 0-byte */
+    + 2];
 };
 
 /**
  * types of kernel routes
  */
-enum os_route_type {
+enum os_route_type
+{
   OS_ROUTE_UNDEFINED,
   OS_ROUTE_UNICAST,
   OS_ROUTE_LOCAL,
@@ -214,19 +220,15 @@ static INLINE bool os_routing_is_in_progress(struct os_route *);
 static INLINE void os_routing_listener_add(struct os_route_listener *);
 static INLINE void os_routing_listener_remove(struct os_route_listener *);
 
-static INLINE const char *os_routing_to_string(
-    struct os_route_str *buf, const struct os_route_parameter *route_param);
+static INLINE const char *os_routing_to_string(struct os_route_str *buf, const struct os_route_parameter *route_param);
 
 static INLINE void os_routing_init_wildcard_route(struct os_route *);
 
 static INLINE void os_routing_init_half_os_route_key(
-    struct netaddr *any, struct netaddr *specific,
-    const struct netaddr *source);
+  struct netaddr *any, struct netaddr *specific, const struct netaddr *source);
 
-static INLINE void os_routing_init_sourcespec_prefix(
-    struct os_route_key *prefix, const struct netaddr *destination);
-static INLINE void os_routing_init_sourcespec_src_prefix(
-    struct os_route_key *prefix, const struct netaddr *source);
+static INLINE void os_routing_init_sourcespec_prefix(struct os_route_key *prefix, const struct netaddr *destination);
+static INLINE void os_routing_init_sourcespec_src_prefix(struct os_route_key *prefix, const struct netaddr *source);
 
 /* AVL comparators are a special case so we don't do the INLINE trick here */
 EXPORT int os_routing_avl_cmp_route_key(const void *, const void *);

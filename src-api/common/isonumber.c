@@ -50,9 +50,8 @@
 #include "common/isonumber.h"
 #include "common/string.h"
 
-static const char *_isonumber_u64_to_string(char *out,
-    size_t out_len, uint64_t number, const char *unit, size_t fraction,
-    bool raw);
+static const char *_isonumber_u64_to_string(
+  char *out, size_t out_len, uint64_t number, const char *unit, size_t fraction, bool raw);
 
 /**
  * Converts an unsigned 64 bit integer into a human readable number
@@ -69,10 +68,8 @@ static const char *_isonumber_u64_to_string(char *out,
  * @return pointer to converted string
  */
 const char *
-isonumber_from_u64(struct isonumber_str *out,
-    uint64_t number, const char *unit, int fraction, bool raw) {
-  return _isonumber_u64_to_string(
-      out->buf, sizeof(*out), number, unit, fraction, raw);
+isonumber_from_u64(struct isonumber_str *out, uint64_t number, const char *unit, int fraction, bool raw) {
+  return _isonumber_u64_to_string(out->buf, sizeof(*out), number, unit, fraction, raw);
 }
 
 /**
@@ -90,8 +87,7 @@ isonumber_from_u64(struct isonumber_str *out,
  * @return pointer to converted string
  */
 const char *
-isonumber_from_s64(struct isonumber_str *out,
-    int64_t number, const char *unit, int fraction, bool raw) {
+isonumber_from_s64(struct isonumber_str *out, int64_t number, const char *unit, int fraction, bool raw) {
   char *outbuf = out->buf;
   uint64_t num;
   size_t len;
@@ -100,7 +96,7 @@ isonumber_from_s64(struct isonumber_str *out,
   if (number == INT64_MIN) {
     *outbuf++ = '-';
     len--;
-    num = 1ull<<63;
+    num = 1ull << 63;
   }
   else if (number < 0) {
     *outbuf++ = '-';
@@ -111,8 +107,7 @@ isonumber_from_s64(struct isonumber_str *out,
     num = (uint64_t)number;
   }
 
-  if (_isonumber_u64_to_string(
-      outbuf, len, num, unit, fraction, raw)) {
+  if (_isonumber_u64_to_string(outbuf, len, num, unit, fraction, raw)) {
     return out->buf;
   }
   return NULL;
@@ -184,7 +179,7 @@ isonumber_to_u64(uint64_t *dst, const char *iso, int fraction) {
   frac = 0;
   if (*next == '.') {
     next++;
-    while (*next >='0' && *next <='9') {
+    while (*next >= '0' && *next <= '9') {
       num *= 10;
       num += (*next - '0');
       frac++;
@@ -193,7 +188,7 @@ isonumber_to_u64(uint64_t *dst, const char *iso, int fraction) {
   }
   while (frac < fraction) {
     num *= 10;
-    frac ++;
+    frac++;
   }
 
   /* handle spaces */
@@ -250,8 +245,7 @@ isonumber_to_u64(uint64_t *dst, const char *iso, int fraction) {
  * @return pointer to output buffer, NULL if an error happened
  */
 static const char *
-_isonumber_u64_to_string(char *out, size_t out_len,
-    uint64_t number, const char *unit, size_t fraction, bool raw) {
+_isonumber_u64_to_string(char *out, size_t out_len, uint64_t number, const char *unit, size_t fraction, bool raw) {
   static const char symbol_large[] = " kMGTPE";
   static const char symbol_small[] = " munpfa";
   uint64_t multiplier, print, n;
@@ -275,15 +269,14 @@ _isonumber_u64_to_string(char *out, size_t out_len,
   }
   else {
     unit_modifier = symbol_small;
-    while (!raw && *unit_modifier != 0 && number < multiplier
-        && multiplier >= 1000) {
+    while (!raw && *unit_modifier != 0 && number < multiplier && multiplier >= 1000) {
       multiplier /= 1000;
       unit_modifier++;
     }
   }
 
   /* print whole */
-  if ((result = snprintf(out, out_len, "%"PRIu64, number / multiplier)) < 0) {
+  if ((result = snprintf(out, out_len, "%" PRIu64, number / multiplier)) < 0) {
     return NULL;
   }
 

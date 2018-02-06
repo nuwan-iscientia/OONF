@@ -46,12 +46,9 @@
 #ifndef OS_ROUTING_LINUX_H_
 #define OS_ROUTING_LINUX_H_
 
-#include "common/common_types.h"
 #include "common/avl.h"
+#include "common/common_types.h"
 #include "common/list.h"
-
-#include "subsystems/os_generic/os_routing_generic_rt_to_string.h"
-#include "subsystems/os_generic/os_routing_generic_init_half_route_key.h"
 
 /**
  * linux specifc data for changing a kernel route
@@ -72,6 +69,9 @@ struct os_route_listener_internal {
   struct list_entity _node;
 };
 
+#include "subsystems/os_generic/os_routing_generic_init_half_route_key.h"
+#include "subsystems/os_generic/os_routing_generic_rt_to_string.h"
+
 EXPORT bool os_routing_linux_supports_source_specific(int af_family);
 EXPORT int os_routing_linux_set(struct os_route *, bool set, bool del_similar);
 EXPORT int os_routing_linux_query(struct os_route *);
@@ -81,8 +81,7 @@ EXPORT bool os_routing_linux_is_in_progress(struct os_route *);
 EXPORT void os_routing_linux_listener_add(struct os_route_listener *);
 EXPORT void os_routing_linux_listener_remove(struct os_route_listener *);
 
-EXPORT const char *os_routing_linux_to_string(
-    struct os_route_str *buf, const struct os_route_parameter *route_param);
+EXPORT const char *os_routing_linux_to_string(struct os_route_str *buf, const struct os_route_parameter *route_param);
 
 EXPORT void os_routing_linux_init_wildcard_route(struct os_route *);
 
@@ -176,8 +175,7 @@ os_routing_init_wildcard_route(struct os_route *route) {
  * @return pointer to string buffer, NULL if an error happened
  */
 static INLINE const char *
-os_routing_to_string(
-    struct os_route_str *buf, const struct os_route_parameter *route_param) {
+os_routing_to_string(struct os_route_str *buf, const struct os_route_parameter *route_param) {
   return os_routing_generic_rt_to_string(buf, route_param);
 }
 
@@ -189,9 +187,7 @@ os_routing_to_string(
  * @param source source IP value to copy
  */
 static INLINE void
-os_routing_init_half_os_route_key(
-    struct netaddr *any, struct netaddr *specific,
-    const struct netaddr *source) {
+os_routing_init_half_os_route_key(struct netaddr *any, struct netaddr *specific, const struct netaddr *source) {
   return os_routing_generic_init_half_os_route_key(any, specific, source);
 }
 
@@ -203,8 +199,7 @@ os_routing_init_half_os_route_key(
  * @param destination destination prefix
  */
 static INLINE void
-os_routing_init_sourcespec_prefix(struct os_route_key *prefix,
-    const struct netaddr *destination) {
+os_routing_init_sourcespec_prefix(struct os_route_key *prefix, const struct netaddr *destination) {
   os_routing_generic_init_half_os_route_key(&prefix->src, &prefix->dst, destination);
 }
 
@@ -216,8 +211,7 @@ os_routing_init_sourcespec_prefix(struct os_route_key *prefix,
  * @param source source prefix
  */
 static INLINE void
-os_routing_init_sourcespec_src_prefix(struct os_route_key *prefix,
-    const struct netaddr *source) {
+os_routing_init_sourcespec_src_prefix(struct os_route_key *prefix, const struct netaddr *source) {
   os_routing_init_half_os_route_key(&prefix->dst, &prefix->src, source);
 }
 

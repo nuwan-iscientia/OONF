@@ -51,8 +51,8 @@ struct nhdp_link;
 struct nhdp_l2hop;
 struct nhdp_laddr;
 
-#include "common/common_types.h"
 #include "common/avl.h"
+#include "common/common_types.h"
 #include "common/list.h"
 #include "common/netaddr.h"
 #include "subsystems/oonf_rfc5444.h"
@@ -61,16 +61,16 @@ struct nhdp_laddr;
 #include "nhdp/nhdp.h"
 
 /*! memory class for NHDP links */
-#define NHDP_CLASS_LINK             "nhdp_link"
+#define NHDP_CLASS_LINK "nhdp_link"
 
 /*! memory class for NHDP link address */
-#define NHDP_CLASS_LINK_ADDRESS     "nhdp_laddr"
+#define NHDP_CLASS_LINK_ADDRESS "nhdp_laddr"
 
 /*! memory class for NHDP 2hop link */
-#define NHDP_CLASS_LINK_2HOP        "nhdp_l2hop"
+#define NHDP_CLASS_LINK_2HOP "nhdp_l2hop"
 
 /*! memory class for NHDP neighbor */
-#define NHDP_CLASS_NEIGHBOR         "nhdp_neighbor"
+#define NHDP_CLASS_NEIGHBOR "nhdp_neighbor"
 
 /*! memory class for NHDP neighbor address */
 #define NHDP_CLASS_NEIGHBOR_ADDRESS "nhdp_naddr"
@@ -78,24 +78,26 @@ struct nhdp_laddr;
 /**
  * link status of NHDP neighbors
  */
-enum nhdp_link_status {
+enum nhdp_link_status
+{
   /*! link is pending */
-  NHDP_LINK_PENDING   = -1,
+  NHDP_LINK_PENDING = -1,
 
   /*! link is lost */
-  NHDP_LINK_LOST      = RFC6130_LINKSTATUS_LOST,
+  NHDP_LINK_LOST = RFC6130_LINKSTATUS_LOST,
 
   /*! link is symmetric */
   NHDP_LINK_SYMMETRIC = RFC6130_LINKSTATUS_SYMMETRIC,
 
   /*! link has been heard */
-  NHDP_LINK_HEARD     = RFC6130_LINKSTATUS_HEARD,
+  NHDP_LINK_HEARD = RFC6130_LINKSTATUS_HEARD,
 };
 
 /**
  * NHDP db constants
  */
-enum {
+enum
+{
   /*! maximum text length of link status */
   NHDP_LINK_STATUS_TXTLENGTH = 10
 };
@@ -390,11 +392,10 @@ EXPORT uint32_t nhdp_db_neighbor_get_set_id(void);
 EXPORT struct nhdp_link *nhdp_db_link_add(struct nhdp_neighbor *ipv4, struct nhdp_interface *ipv6);
 EXPORT void nhdp_db_link_remove(struct nhdp_link *);
 EXPORT void nhdp_db_link_set_unsymmetric(struct nhdp_link *lnk);
-EXPORT struct nhdp_laddr *nhdp_db_link_addr_add(struct nhdp_link *, const struct netaddr*);
+EXPORT struct nhdp_laddr *nhdp_db_link_addr_add(struct nhdp_link *, const struct netaddr *);
 EXPORT void nhdp_db_link_addr_remove(struct nhdp_laddr *);
 EXPORT void nhdp_db_link_addr_move(struct nhdp_link *, struct nhdp_laddr *);
-EXPORT struct nhdp_l2hop *nhdp_db_link_2hop_add(
-    struct nhdp_link *, const struct netaddr *);
+EXPORT struct nhdp_l2hop *nhdp_db_link_2hop_add(struct nhdp_link *, const struct netaddr *);
 EXPORT void nhdp_db_link_2hop_remove(struct nhdp_l2hop *);
 EXPORT void nhdp_db_link_connect_dualstack(struct nhdp_link *ipv4, struct nhdp_link *ipv6);
 EXPORT void nhdp_db_link_disconnect_dualstack(struct nhdp_link *lnk);
@@ -457,8 +458,7 @@ ndhp_db_link_2hop_get(const struct nhdp_link *lnk, const struct netaddr *addr) {
  * @param vtime validity time in milliseconds
  */
 static INLINE void
-nhdp_db_link_set_vtime(
-    struct nhdp_link *lnk, uint64_t vtime) {
+nhdp_db_link_set_vtime(struct nhdp_link *lnk, uint64_t vtime) {
   oonf_timer_set(&lnk->vtime, vtime);
 }
 
@@ -468,8 +468,7 @@ nhdp_db_link_set_vtime(
  * @param htime heard time in milliseconds
  */
 static INLINE void
-nhdp_db_link_set_heardtime(
-    struct nhdp_link *lnk, uint64_t htime) {
+nhdp_db_link_set_heardtime(struct nhdp_link *lnk, uint64_t htime) {
   oonf_timer_set(&lnk->heard_time, htime);
 }
 
@@ -479,8 +478,7 @@ nhdp_db_link_set_heardtime(
  * @param stime symmetric time in milliseconds
  */
 static INLINE void
-nhdp_db_link_set_symtime(
-    struct nhdp_link *lnk, uint64_t stime) {
+nhdp_db_link_set_symtime(struct nhdp_link *lnk, uint64_t stime) {
   oonf_timer_set(&lnk->sym_time, stime);
   nhdp_db_link_update_status(lnk);
 }
@@ -491,8 +489,7 @@ nhdp_db_link_set_symtime(
  * @param vtime new validity time
  */
 static INLINE void
-nhdp_db_link_2hop_set_vtime(
-    struct nhdp_l2hop *l2hop, uint64_t vtime) {
+nhdp_db_link_2hop_set_vtime(struct nhdp_l2hop *l2hop, uint64_t vtime) {
   oonf_timer_set(&l2hop->_vtime, vtime);
 }
 
@@ -541,8 +538,7 @@ nhdp_db_link_is_dualstack(const struct nhdp_link *lnk) {
  */
 static INLINE bool
 nhdp_db_link_is_dualstack_type(const struct nhdp_link *lnk, int af_type) {
-  return nhdp_db_link_is_dualstack(lnk)
-      && netaddr_get_address_family(&lnk->neigh->originator) == af_type;
+  return nhdp_db_link_is_dualstack(lnk) && netaddr_get_address_family(&lnk->neigh->originator) == af_type;
 }
 
 /**
@@ -571,8 +567,7 @@ nhdp_db_link_is_ipv6_dualstack(const struct nhdp_link *lnk) {
  */
 static INLINE bool
 nhdp_db_neighbor_is_dualstack_type(const struct nhdp_neighbor *neigh, int af_type) {
-  return neigh->dualstack_partner != NULL
-      && netaddr_get_address_family(&neigh->originator) == af_type;
+  return neigh->dualstack_partner != NULL && netaddr_get_address_family(&neigh->originator) == af_type;
 }
 
 /**

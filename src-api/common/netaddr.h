@@ -46,12 +46,11 @@
 #ifndef NETADDR_H_
 #define NETADDR_H_
 
-
 #ifndef _WIN32
 #include <arpa/inet.h>
+#include <net/if.h>
 #include <netinet/if_ether.h>
 #include <netinet/ip.h>
-#include <net/if.h>
 #else
 #include <winsock2.h>
 #include <ws2tcpip.h>
@@ -62,10 +61,11 @@
 #include <assert.h>
 #include <string.h>
 
-#include "common/common_types.h"
 #include "common/autobuf.h"
+#include "common/common_types.h"
 
-enum {
+enum
+{
   /*! address family for 48-bit mac address */
   AF_MAC48 = AF_MAX + 1,
 
@@ -76,16 +76,17 @@ enum {
   AF_UUID = AF_MAX + 3,
 };
 
-enum {
+enum
+{
   /*! maximum length of a network address in octets */
   NETADDR_MAX_LENGTH = 16
 };
 
 /*! text name for IPv4_ANY prefix */
-#define NETADDR_STR_ANY4       "any4"
+#define NETADDR_STR_ANY4 "any4"
 
 /*! text name for IPv6 ANY prefix */
-#define NETADDR_STR_ANY6       "any6"
+#define NETADDR_STR_ANY6 "any6"
 
 /*! text name for IPv4 linklocal prefix */
 #define NETADDR_STR_LINKLOCAL4 "linklocal4"
@@ -94,7 +95,7 @@ enum {
 #define NETADDR_STR_LINKLOCAL6 "linklocal6"
 
 /*! text name for IPv6 unique local prefix */
-#define NETADDR_STR_ULA        "ula"
+#define NETADDR_STR_ULA "ula"
 
 /**
  * Representation of an address including address type
@@ -135,7 +136,8 @@ union netaddr_socket {
  * INET_ADDRSTRLEN and INET6_ADDRSTRLEN have been defined
  * in netinet/in.h, which has been included by this file
  */
-enum {
+enum
+{
   MAC48_ADDRSTRLEN = 18,
   MAC48_PREFIXSTRLEN = MAC48_ADDRSTRLEN + 3,
   EUI64_ADDRSTRLEN = 24,
@@ -150,7 +152,7 @@ enum {
  */
 struct netaddr_str {
   /*! buffer for maximum length netaddr string representation */
-  char buf[INET6_ADDRSTRLEN+16];
+  char buf[INET6_ADDRSTRLEN + 16];
 };
 
 EXPORT extern const struct netaddr NETADDR_UNSPEC;
@@ -175,33 +177,30 @@ EXPORT extern const struct netaddr NETADDR_MAC48_BROADCAST;
 EXPORT extern const union netaddr_socket NETADDR_SOCKET_IPV4_ANY;
 EXPORT extern const union netaddr_socket NETADDR_SOCKET_IPV6_ANY;
 
-EXPORT int netaddr_from_binary_prefix(struct netaddr *dst,
-    const void *binary, size_t len, uint8_t addr_type, uint8_t prefix_len);
+EXPORT int netaddr_from_binary_prefix(
+  struct netaddr *dst, const void *binary, size_t len, uint8_t addr_type, uint8_t prefix_len);
 EXPORT int netaddr_to_binary(void *dst, const struct netaddr *src, size_t len);
 EXPORT int netaddr_from_socket(struct netaddr *dst, const union netaddr_socket *src);
 EXPORT int netaddr_to_socket(union netaddr_socket *dst, const struct netaddr *src);
 EXPORT int netaddr_to_autobuf(struct autobuf *, const struct netaddr *src);
-EXPORT int netaddr_create_host_bin(struct netaddr *host, const struct netaddr *netmask,
-    const void *number, size_t num_length);
-EXPORT int netaddr_create_prefix(struct netaddr *prefix, const struct netaddr *host,
-    const struct netaddr *netmask, bool truncate);
+EXPORT int netaddr_create_host_bin(
+  struct netaddr *host, const struct netaddr *netmask, const void *number, size_t num_length);
+EXPORT int netaddr_create_prefix(
+  struct netaddr *prefix, const struct netaddr *host, const struct netaddr *netmask, bool truncate);
 EXPORT void netaddr_truncate(struct netaddr *dst, const struct netaddr *src);
 
-EXPORT int netaddr_socket_init(union netaddr_socket *combined,
-    const struct netaddr *addr, uint16_t port, unsigned if_index);
+EXPORT int netaddr_socket_init(
+  union netaddr_socket *combined, const struct netaddr *addr, uint16_t port, unsigned if_index);
 EXPORT uint16_t netaddr_socket_get_port(const union netaddr_socket *sock);
-EXPORT const char *netaddr_to_prefixstring(
-    struct netaddr_str *dst, const struct netaddr *src, bool forceprefix);
+EXPORT const char *netaddr_to_prefixstring(struct netaddr_str *dst, const struct netaddr *src, bool forceprefix);
 EXPORT int netaddr_from_string(struct netaddr *, const char *) __attribute__((warn_unused_result));
 EXPORT const char *netaddr_socket_to_string(struct netaddr_str *, const union netaddr_socket *);
 
 EXPORT int netaddr_cmp_to_socket(const struct netaddr *, const union netaddr_socket *);
-EXPORT bool netaddr_isequal_binary(const struct netaddr *addr,
-    const void *bin, size_t len, uint16_t af, uint8_t prefix_len);
-EXPORT bool netaddr_is_in_subnet(const struct netaddr *subnet,
-    const struct netaddr *addr);
-EXPORT bool netaddr_binary_is_in_subnet(const struct netaddr *subnet,
-    const void *bin, size_t len, uint8_t af_family);
+EXPORT bool netaddr_isequal_binary(
+  const struct netaddr *addr, const void *bin, size_t len, uint16_t af, uint8_t prefix_len);
+EXPORT bool netaddr_is_in_subnet(const struct netaddr *subnet, const struct netaddr *addr);
+EXPORT bool netaddr_binary_is_in_subnet(const struct netaddr *subnet, const void *bin, size_t len, uint8_t af_family);
 
 EXPORT uint8_t netaddr_get_af_maxprefix(const uint32_t);
 
@@ -209,8 +208,8 @@ EXPORT int netaddr_avlcmp(const void *, const void *);
 EXPORT int netaddr_socket_avlcmp(const void *, const void *);
 
 #ifdef WIN32
-EXPORT const char *inet_ntop(int af, const void* src, char* dst, int cnt);
-EXPORT int inet_pton(int af, const char *cp, void * buf);
+EXPORT const char *inet_ntop(int af, const void *src, char *dst, int cnt);
+EXPORT int inet_pton(int af, const char *cp, void *buf);
 #endif
 
 /**
@@ -291,10 +290,8 @@ netaddr_to_string(struct netaddr_str *dst, const struct netaddr *src) {
  * @return -1 if an error happened, 0 otherwise
  */
 static INLINE int
-netaddr_create_host(struct netaddr *host, const struct netaddr *netmask,
-    const struct netaddr *host_number) {
-  return netaddr_create_host_bin(host, netmask, host_number->_addr,
-      netaddr_get_maxprefix(host_number)/8);
+netaddr_create_host(struct netaddr *host, const struct netaddr *netmask, const struct netaddr *host_number) {
+  return netaddr_create_host_bin(host, netmask, host_number->_addr, netaddr_get_maxprefix(host_number) / 8);
 }
 
 /**
@@ -333,8 +330,7 @@ netaddr_extract_ipv4_compatible(struct netaddr *dst, const struct netaddr *src) 
  * @return 0 if successful read binary data, -1 otherwise
  */
 static INLINE int
-netaddr_from_binary(struct netaddr *dst, const void *binary,
-    size_t len, uint8_t addr_type) {
+netaddr_from_binary(struct netaddr *dst, const void *binary, size_t len, uint8_t addr_type) {
   return netaddr_from_binary_prefix(dst, binary, len, addr_type, 255);
 }
 

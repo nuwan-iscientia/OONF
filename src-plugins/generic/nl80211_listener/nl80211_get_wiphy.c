@@ -71,20 +71,20 @@
 #include <sys/socket.h>
 
 /* and now the rest of the includes */
-#include <linux/types.h>
-#include <linux/netlink.h>
-#include <linux/genetlink.h>
 #include "nl80211.h"
+#include <linux/genetlink.h>
+#include <linux/netlink.h>
+#include <linux/types.h>
 #include <netlink/attr.h>
-#include <netlink/msg.h>
 #include <netlink/genl/genl.h>
+#include <netlink/msg.h>
 
 #include "common/common_types.h"
 #include "subsystems/os_system.h"
 
+#include "nl80211_listener/nl80211_get_wiphy.h"
 #include "nl80211_listener/nl80211_internal.h"
 #include "nl80211_listener/nl80211_listener.h"
-#include "nl80211_listener/nl80211_get_wiphy.h"
 
 /**
  * object to store rate info table entry
@@ -97,10 +97,8 @@ struct rate_info {
   uint16_t sgi;
 };
 
-static uint64_t _get_max_bitrate(
-    struct nl80211_if *interf, uint8_t *mcs, bool ht20_sgi, bool ht40_sgi);
-static void _process_ht_mcs_array(struct nl80211_if *interf, uint8_t *mcs,
-    bool ht20_sgi, bool ht40_sgi);
+static uint64_t _get_max_bitrate(struct nl80211_if *interf, uint8_t *mcs, bool ht20_sgi, bool ht40_sgi);
+static void _process_ht_mcs_array(struct nl80211_if *interf, uint8_t *mcs, bool ht20_sgi, bool ht40_sgi);
 static void _process_vht_mcs_array(struct nl80211_if *interf, uint8_t *mcs);
 
 /*
@@ -108,25 +106,82 @@ static void _process_vht_mcs_array(struct nl80211_if *interf, uint8_t *mcs);
  * for 20 MHz channels.
  */
 static struct rate_info _mcs_table_80211n_20[77] = {
-  {   65,   72 },  {  130,  144 },  {  195,  217 },  {  260,  289 },
-  {  390,  433 },  {  520,  578 },  {  585,  650 },  {  650,  722 },
-  {  130,  144 },  {  260,  289 },  {  390,  433 },  {  520,  578 },
-  {  780,  867 },  { 1040, 1156 },  { 1170, 1300 },  { 1300, 1444 },
-  {  195,  217 },  {  390,  433 },  {  585,  650 },  {  780,  867 },
-  { 1170, 1300 },  { 1560, 1733 },  { 1755, 1950 },  { 1950, 2167 },
-  {  260,  289 },  {  520,  578 },  {  780,  867 },  { 1040, 1156 },
-  { 1560, 1733 },  { 2080, 2311 },  { 2340, 2600 },  { 2600, 2889 },
-  {    0,    0 },  {  390,  433 },  {  520,  578 },  {  650,  722 },
-  {  585,  650 },  {  780,  867 },  {  975, 1083 },  {  520,  578 },
-  {  650,  722 },  {  650,  722 },  {  780,  867 },  {  910, 1011 },
-  {  910, 1011 },  { 1040, 1156 },  {  780,  867 },  {  975, 1083 },
-  {  975, 1083 },  { 1170, 1300 },  { 1365, 1517 },  { 1365, 1517 },
-  { 1560, 1733 },  {  650,  722 },  {  780,  867 },  {  910, 1011 },
-  {  780,  867 },  {  910, 1011 },  { 1040, 1156 },  { 1170, 1300 },
-  { 1040, 1156 },  { 1170, 1300 },  { 1300, 1444 },  { 1300, 1444 },
-  { 1430, 1589 },  {  975, 1083 },  { 1170, 1300 },  { 1365, 1517 },
-  { 1170, 1300 },  { 1365, 1517 },  { 1560, 1733 },  { 1755, 1950 },
-  { 1560, 1733 },  { 1755, 1950 },  { 1950, 2167 },  { 1950, 2167 },
+  { 65, 72 },
+  { 130, 144 },
+  { 195, 217 },
+  { 260, 289 },
+  { 390, 433 },
+  { 520, 578 },
+  { 585, 650 },
+  { 650, 722 },
+  { 130, 144 },
+  { 260, 289 },
+  { 390, 433 },
+  { 520, 578 },
+  { 780, 867 },
+  { 1040, 1156 },
+  { 1170, 1300 },
+  { 1300, 1444 },
+  { 195, 217 },
+  { 390, 433 },
+  { 585, 650 },
+  { 780, 867 },
+  { 1170, 1300 },
+  { 1560, 1733 },
+  { 1755, 1950 },
+  { 1950, 2167 },
+  { 260, 289 },
+  { 520, 578 },
+  { 780, 867 },
+  { 1040, 1156 },
+  { 1560, 1733 },
+  { 2080, 2311 },
+  { 2340, 2600 },
+  { 2600, 2889 },
+  { 0, 0 },
+  { 390, 433 },
+  { 520, 578 },
+  { 650, 722 },
+  { 585, 650 },
+  { 780, 867 },
+  { 975, 1083 },
+  { 520, 578 },
+  { 650, 722 },
+  { 650, 722 },
+  { 780, 867 },
+  { 910, 1011 },
+  { 910, 1011 },
+  { 1040, 1156 },
+  { 780, 867 },
+  { 975, 1083 },
+  { 975, 1083 },
+  { 1170, 1300 },
+  { 1365, 1517 },
+  { 1365, 1517 },
+  { 1560, 1733 },
+  { 650, 722 },
+  { 780, 867 },
+  { 910, 1011 },
+  { 780, 867 },
+  { 910, 1011 },
+  { 1040, 1156 },
+  { 1170, 1300 },
+  { 1040, 1156 },
+  { 1170, 1300 },
+  { 1300, 1444 },
+  { 1300, 1444 },
+  { 1430, 1589 },
+  { 975, 1083 },
+  { 1170, 1300 },
+  { 1365, 1517 },
+  { 1170, 1300 },
+  { 1365, 1517 },
+  { 1560, 1733 },
+  { 1755, 1950 },
+  { 1560, 1733 },
+  { 1755, 1950 },
+  { 1950, 2167 },
+  { 1950, 2167 },
   { 2145, 2383 },
 };
 
@@ -135,25 +190,82 @@ static struct rate_info _mcs_table_80211n_20[77] = {
  * for 40 MHz channels.
  */
 static struct rate_info _mcs_table_80211n_40[77] = {
-  {  135,  150 },  {  270,  300 },  {  405,  450 },  {  540,  600 },
-  {  810,  900 },  { 1080, 1200 },  { 1215, 1350 },  { 1350, 1500 },
-  {  270,  300 },  {  540,  600 },  {  810,  900 },  { 1080, 1200 },
-  { 1620, 1800 },  { 2160, 2400 },  { 2430, 2700 },  { 2700, 3000 },
-  {  405,  450 },  {  810,  900 },  { 1215, 1350 },  { 1620, 1800 },
-  { 2430, 2700 },  { 3240, 3600 },  { 3645, 4050 },  { 4050, 4500 },
-  {  540,  600 },  { 1080, 1200 },  { 1620, 1800 },  { 2160, 2400 },
-  { 3240, 3600 },  { 4320, 4800 },  { 4860, 5400 },  { 5400, 6000 },
-  {   60,   67 },  {  810,  900 },  { 1080, 1200 },  { 1350, 1500 },
-  { 1215, 1350 },  { 1620, 1800 },  { 2025, 2250 },  { 1080, 1200 },
-  { 1350, 1500 },  { 1350, 1500 },  { 1620, 1800 },  { 1890, 2100 },
-  { 1890, 2100 },  { 2160, 2400 },  { 1620, 1800 },  { 2025, 2250 },
-  { 2025, 2250 },  { 2430, 2700 },  { 2835, 3150 },  { 2835, 3150 },
-  { 3240, 3600 },  { 1350, 1500 },  { 1620, 1800 },  { 1890, 2100 },
-  { 1620, 1800 },  { 1890, 2100 },  { 2160, 2400 },  { 2430, 2700 },
-  { 2160, 2400 },  { 2430, 2700 },  { 2700, 3000 },  { 2700, 3000 },
-  { 2970, 3300 },  { 2025, 2250 },  { 2430, 2700 },  { 2835, 3150 },
-  { 2430, 2700 },  { 2835, 3150 },  { 3240, 3600 },  { 3645, 4050 },
-  { 3240, 3600 },  { 3645, 4050 },  { 4050, 4500 },  { 4050, 4500 },
+  { 135, 150 },
+  { 270, 300 },
+  { 405, 450 },
+  { 540, 600 },
+  { 810, 900 },
+  { 1080, 1200 },
+  { 1215, 1350 },
+  { 1350, 1500 },
+  { 270, 300 },
+  { 540, 600 },
+  { 810, 900 },
+  { 1080, 1200 },
+  { 1620, 1800 },
+  { 2160, 2400 },
+  { 2430, 2700 },
+  { 2700, 3000 },
+  { 405, 450 },
+  { 810, 900 },
+  { 1215, 1350 },
+  { 1620, 1800 },
+  { 2430, 2700 },
+  { 3240, 3600 },
+  { 3645, 4050 },
+  { 4050, 4500 },
+  { 540, 600 },
+  { 1080, 1200 },
+  { 1620, 1800 },
+  { 2160, 2400 },
+  { 3240, 3600 },
+  { 4320, 4800 },
+  { 4860, 5400 },
+  { 5400, 6000 },
+  { 60, 67 },
+  { 810, 900 },
+  { 1080, 1200 },
+  { 1350, 1500 },
+  { 1215, 1350 },
+  { 1620, 1800 },
+  { 2025, 2250 },
+  { 1080, 1200 },
+  { 1350, 1500 },
+  { 1350, 1500 },
+  { 1620, 1800 },
+  { 1890, 2100 },
+  { 1890, 2100 },
+  { 2160, 2400 },
+  { 1620, 1800 },
+  { 2025, 2250 },
+  { 2025, 2250 },
+  { 2430, 2700 },
+  { 2835, 3150 },
+  { 2835, 3150 },
+  { 3240, 3600 },
+  { 1350, 1500 },
+  { 1620, 1800 },
+  { 1890, 2100 },
+  { 1620, 1800 },
+  { 1890, 2100 },
+  { 2160, 2400 },
+  { 2430, 2700 },
+  { 2160, 2400 },
+  { 2430, 2700 },
+  { 2700, 3000 },
+  { 2700, 3000 },
+  { 2970, 3300 },
+  { 2025, 2250 },
+  { 2430, 2700 },
+  { 2835, 3150 },
+  { 2430, 2700 },
+  { 2835, 3150 },
+  { 3240, 3600 },
+  { 3645, 4050 },
+  { 3240, 3600 },
+  { 3645, 4050 },
+  { 4050, 4500 },
+  { 4050, 4500 },
   { 4455, 4950 },
 };
 
@@ -165,8 +277,8 @@ static struct rate_info _mcs_table_80211n_40[77] = {
  * @param interf nl80211 listener interface
  */
 void
-nl80211_send_get_wiphy(struct os_system_netlink *nl,
-    struct nlmsghdr *nl_msg, struct genlmsghdr *hdr, struct nl80211_if *interf) {
+nl80211_send_get_wiphy(
+  struct os_system_netlink *nl, struct nlmsghdr *nl_msg, struct genlmsghdr *hdr, struct nl80211_if *interf) {
   /* clear maximum data rates */
   interf->max_rx = 0;
   interf->max_tx = 0;
@@ -175,12 +287,10 @@ nl80211_send_get_wiphy(struct os_system_netlink *nl,
   nl_msg->nlmsg_flags |= NLM_F_DUMP;
 
   /* add "split wiphy dump" flag */
-  os_system_linux_netlink_addreq(nl, nl_msg, NL80211_ATTR_SPLIT_WIPHY_DUMP,
-      NULL, 0);
+  os_system_linux_netlink_addreq(nl, nl_msg, NL80211_ATTR_SPLIT_WIPHY_DUMP, NULL, 0);
 
   /* add interface index to the request */
-  os_system_linux_netlink_addreq(nl, nl_msg, NL80211_ATTR_WIPHY,
-      &interf->wifi_phy_if, sizeof(interf->wifi_phy_if));
+  os_system_linux_netlink_addreq(nl, nl_msg, NL80211_ATTR_WIPHY, &interf->wifi_phy_if, sizeof(interf->wifi_phy_if));
 
   OONF_DEBUG(LOG_NL80211, "Send GET_WIPHY to phydev %d", interf->wifi_phy_if);
 }
@@ -191,8 +301,7 @@ nl80211_send_get_wiphy(struct os_system_netlink *nl,
  * @param interf nl80211 listener interface
  */
 void
-nl80211_process_get_wiphy_result(struct nl80211_if *interf,
-    struct nlmsghdr *hdr) {
+nl80211_process_get_wiphy_result(struct nl80211_if *interf, struct nlmsghdr *hdr) {
   struct genlmsghdr *gnlh;
   struct nlattr *tb_msg[NL80211_ATTR_MAX + 1];
   struct nlattr *tb_band[NL80211_BAND_ATTR_MAX + 1];
@@ -202,8 +311,7 @@ nl80211_process_get_wiphy_result(struct nl80211_if *interf,
 
   gnlh = nlmsg_data(hdr);
 
-  nla_parse(tb_msg, NL80211_ATTR_MAX, genlmsg_attrdata(gnlh, 0),
-      genlmsg_attrlen(gnlh, 0), NULL);
+  nla_parse(tb_msg, NL80211_ATTR_MAX, genlmsg_attrdata(gnlh, 0), genlmsg_attrlen(gnlh, 0), NULL);
 
   if (tb_msg[NL80211_ATTR_WIPHY]) {
     interf->wifi_phy_if = nla_get_u32(tb_msg[NL80211_ATTR_WIPHY]);
@@ -217,8 +325,7 @@ nl80211_process_get_wiphy_result(struct nl80211_if *interf,
 
   if (tb_msg[NL80211_ATTR_WIPHY_BANDS]) {
     nla_for_each_nested(nl_band, tb_msg[NL80211_ATTR_WIPHY_BANDS], rem_band) {
-      nla_parse(tb_band, NL80211_BAND_ATTR_MAX, nla_data(nl_band),
-          nla_len(nl_band), NULL);
+      nla_parse(tb_band, NL80211_BAND_ATTR_MAX, nla_data(nl_band), nla_len(nl_band), NULL);
 
       if (tb_band[NL80211_BAND_ATTR_HT_CAPA]) {
         uint16_t cap = nla_get_u16(tb_band[NL80211_BAND_ATTR_HT_CAPA]);
@@ -231,15 +338,12 @@ nl80211_process_get_wiphy_result(struct nl80211_if *interf,
         }
       }
 
-      if (tb_band[NL80211_BAND_ATTR_HT_MCS_SET] &&
-          nla_len(tb_band[NL80211_BAND_ATTR_HT_MCS_SET]) == 16) {
-        _process_ht_mcs_array(interf,
-            nla_data(tb_band[NL80211_BAND_ATTR_HT_MCS_SET]), ht20_sgi, ht40_sgi);
+      if (tb_band[NL80211_BAND_ATTR_HT_MCS_SET] && nla_len(tb_band[NL80211_BAND_ATTR_HT_MCS_SET]) == 16) {
+        _process_ht_mcs_array(interf, nla_data(tb_band[NL80211_BAND_ATTR_HT_MCS_SET]), ht20_sgi, ht40_sgi);
       }
 
       if (tb_band[NL80211_BAND_ATTR_VHT_MCS_SET]) {
-        _process_vht_mcs_array(interf,
-            nla_data(tb_band[NL80211_BAND_ATTR_VHT_MCS_SET]));
+        _process_vht_mcs_array(interf, nla_data(tb_band[NL80211_BAND_ATTR_VHT_MCS_SET]));
       }
     }
   }
@@ -252,16 +356,14 @@ nl80211_process_get_wiphy_result(struct nl80211_if *interf,
 void
 nl80211_finalize_get_wiphy(struct nl80211_if *interf) {
   if (interf->max_rx) {
-    OONF_DEBUG(LOG_NL80211, "Maximum rx rate for %s: %"PRId64,
-        interf->name, interf->max_rx);
-    interf->ifdata_changed |= nl80211_change_l2net_neighbor_default(
-        interf->l2net, OONF_LAYER2_NEIGH_RX_MAX_BITRATE, interf->max_rx);
+    OONF_DEBUG(LOG_NL80211, "Maximum rx rate for %s: %" PRId64, interf->name, interf->max_rx);
+    interf->ifdata_changed |=
+      nl80211_change_l2net_neighbor_default(interf->l2net, OONF_LAYER2_NEIGH_RX_MAX_BITRATE, interf->max_rx);
   }
   if (interf->max_tx) {
-    OONF_DEBUG(LOG_NL80211, "Maximum tx rate for %s: %"PRId64,
-        interf->name, interf->max_tx);
-    interf->ifdata_changed |= nl80211_change_l2net_neighbor_default(
-        interf->l2net, OONF_LAYER2_NEIGH_TX_MAX_BITRATE, interf->max_tx);
+    OONF_DEBUG(LOG_NL80211, "Maximum tx rate for %s: %" PRId64, interf->name, interf->max_tx);
+    interf->ifdata_changed |=
+      nl80211_change_l2net_neighbor_default(interf->l2net, OONF_LAYER2_NEIGH_TX_MAX_BITRATE, interf->max_tx);
   }
 }
 
@@ -308,12 +410,11 @@ _get_max_bitrate(struct nl80211_if *interf, uint8_t *mcs, bool ht20_sgi, bool ht
 
   max_rate = 0;
   for (mcs_bit = 0; mcs_bit <= 76; mcs_bit++) {
-    unsigned int mcs_octet = mcs_bit/8;
+    unsigned int mcs_octet = mcs_bit / 8;
     unsigned int MCS_RATE_BIT = 1 << mcs_bit % 8;
 
-    if((mcs[mcs_octet] & MCS_RATE_BIT)) {
-      OONF_DEBUG(LOG_NL80211, "%s supports rate MCS %d",
-          interf->name, mcs_bit);
+    if ((mcs[mcs_octet] & MCS_RATE_BIT)) {
+      OONF_DEBUG(LOG_NL80211, "%s supports rate MCS %d", interf->name, mcs_bit);
 
       if (ht20) {
         rate_info = &_mcs_table_80211n_20[mcs_bit];
@@ -340,15 +441,13 @@ _get_max_bitrate(struct nl80211_if *interf, uint8_t *mcs, bool ht20_sgi, bool ht
  * @param ht40_sgi true if ht40 supports short guard interval
  */
 static void
-_process_ht_mcs_array(struct nl80211_if *interf, uint8_t *mcs,
-    bool ht20_sgi, bool ht40_sgi) {
+_process_ht_mcs_array(struct nl80211_if *interf, uint8_t *mcs, bool ht20_sgi, bool ht40_sgi) {
   uint64_t max_rx_supp_data_rate;
   uint64_t rate_tx, rate_rx;
 
   max_rx_supp_data_rate = (mcs[10] | ((mcs[11] & 0x3) << 8));
 
-  rate_tx = 1024ull * 1024ull
-      * _get_max_bitrate(interf, mcs, ht20_sgi, ht40_sgi) / 10ull;
+  rate_tx = 1024ull * 1024ull * _get_max_bitrate(interf, mcs, ht20_sgi, ht40_sgi) / 10ull;
 
   /*
    * this is a shortcut, because we don't want to deal with different

@@ -51,7 +51,6 @@
 void os_core_generic_syslog_init(const char *appname);
 void os_core_generic_syslog_cleanup(void);
 
-EXPORT void os_core_generic_syslog(
-    enum oonf_log_severity severity, const char *msg);
+EXPORT void os_core_generic_syslog(enum oonf_log_severity severity, const char *msg);
 
 #endif /* OS_CORE_GENERIC_SYSLOG_H_ */

@@ -46,9 +46,9 @@
 #include <errno.h>
 #include <unistd.h>
 
-#include "common/common_types.h"
 #include "common/avl.h"
 #include "common/avl_comp.h"
+#include "common/common_types.h"
 #include "common/netaddr.h"
 
 #include "subsystems/oonf_class.h"
@@ -99,8 +99,7 @@ dlep_router_session_cleanup(void) {
  * @return dlep router session, NULL if not found
  */
 struct dlep_router_session *
-dlep_router_get_session(struct dlep_router_if *interf,
-    union netaddr_socket *remote) {
+dlep_router_get_session(struct dlep_router_if *interf, union netaddr_socket *remote) {
   struct dlep_router_session *session;
 
   return avl_find_element(&interf->interf.session_tree, remote, session, _node);
@@ -114,16 +113,17 @@ dlep_router_get_session(struct dlep_router_if *interf,
  * @return dlep router session, NULL if not found
  */
 struct dlep_router_session *
-dlep_router_add_session(struct dlep_router_if *interf,
-    union netaddr_socket *local, union netaddr_socket *remote) {
+dlep_router_add_session(struct dlep_router_if *interf, union netaddr_socket *local, union netaddr_socket *remote) {
   struct dlep_router_session *router_session;
   struct dlep_extension *ext;
   struct netaddr_str nbuf1, nbuf2;
 
   router_session = dlep_router_get_session(interf, remote);
   if (router_session) {
-    OONF_DEBUG(LOG_DLEP_ROUTER, "use existing instance on"
-        " %s for %s", interf->interf.l2_ifname, netaddr_socket_to_string(&nbuf1, remote));
+    OONF_DEBUG(LOG_DLEP_ROUTER,
+      "use existing instance on"
+      " %s for %s",
+      interf->interf.l2_ifname, netaddr_socket_to_string(&nbuf1, remote));
     return router_session;
   }
 
@@ -145,14 +145,12 @@ dlep_router_add_session(struct dlep_router_if *interf,
   router_session->tcp.config.cleanup_socket = _cb_socket_terminated;
   router_session->tcp.config.receive_data = _cb_tcp_receive_data;
 
-  OONF_DEBUG(LOG_DLEP_ROUTER, "Connect DLEP session from %s to %s",
-      netaddr_socket_to_string(&nbuf1, local),
-      netaddr_socket_to_string(&nbuf2, remote));
+  OONF_DEBUG(LOG_DLEP_ROUTER, "Connect DLEP session from %s to %s", netaddr_socket_to_string(&nbuf1, local),
+    netaddr_socket_to_string(&nbuf2, remote));
 
   if (oonf_stream_add(&router_session->tcp, local)) {
-    OONF_WARN(LOG_DLEP_ROUTER,
-        "Could not open TCP client for local address %s",
-        netaddr_socket_to_string(&nbuf1, local));
+    OONF_WARN(
+      LOG_DLEP_ROUTER, "Could not open TCP client for local address %s", netaddr_socket_to_string(&nbuf1, local));
     dlep_router_remove_session(router_session);
     return NULL;
   }
@@ -160,26 +158,21 @@ dlep_router_add_session(struct dlep_router_if *interf,
   /* open stream */
   router_session->stream = oonf_stream_connect_to(&router_session->tcp, remote);
   if (!router_session->stream) {
-    OONF_WARN(LOG_DLEP_ROUTER,
-        "Could not open TCP client on from %s to %s",
-        netaddr_socket_to_string(&nbuf1, local),
-        netaddr_socket_to_string(&nbuf2, remote));
+    OONF_WARN(LOG_DLEP_ROUTER, "Could not open TCP client on from %s to %s", netaddr_socket_to_string(&nbuf1, local),
+      netaddr_socket_to_string(&nbuf2, remote));
     dlep_router_remove_session(router_session);
     return NULL;
   }
 
-  if (dlep_session_add(&router_session->session,
-      interf->interf.l2_ifname, interf->interf.session.l2_origin,
-      interf->interf.session.l2_default_origin,
-      &router_session->stream->out, false, LOG_DLEP_ROUTER)) {
+  if (dlep_session_add(&router_session->session, interf->interf.l2_ifname, interf->interf.session.l2_origin,
+        interf->interf.session.l2_default_origin, &router_session->stream->out, false, LOG_DLEP_ROUTER)) {
     dlep_router_remove_session(router_session);
     return NULL;
   }
   router_session->session.restrict_signal = DLEP_SESSION_INITIALIZATION_ACK;
   router_session->session.cb_send_buffer = _cb_send_buffer;
   router_session->session.cb_end_session = _cb_end_session;
-  memcpy(&router_session->session.cfg, &interf->interf.session.cfg,
-      sizeof(router_session->session.cfg));
+  memcpy(&router_session->session.cfg, &interf->interf.session.cfg, sizeof(router_session->session.cfg));
 
   /* initialize back pointer */
   router_session->interface = interf;
@@ -236,8 +229,7 @@ _cb_tcp_lost(struct oonf_stream_session *tcp_session) {
 
   router_session = container_of(tcp_session->stream_socket, struct dlep_router_session, tcp);
 
-  OONF_DEBUG(LOG_DLEP_ROUTER, "Lost tcp session to %s",
-      netaddr_socket_to_string(&nbuf, &tcp_session->remote_socket));
+  OONF_DEBUG(LOG_DLEP_ROUTER, "Lost tcp session to %s", netaddr_socket_to_string(&nbuf, &tcp_session->remote_socket));
 
   avl_for_each_element(dlep_extension_get_tree(), ext, _node) {
     if (ext->cb_session_cleanup_router) {
@@ -250,8 +242,7 @@ _cb_tcp_lost(struct oonf_stream_session *tcp_session) {
 
   /* remove from session tree of interface */
   if (avl_is_node_added(&router_session->_node)) {
-    avl_remove(&router_session->interface->interf.session_tree,
-        &router_session->_node);
+    avl_remove(&router_session->interface->interf.session_tree, &router_session->_node);
   }
 }
 
@@ -275,17 +266,14 @@ _cb_tcp_receive_data(struct oonf_stream_session *tcp_session) {
  * @param af_family address family
  */
 static void
-_cb_send_buffer(struct dlep_session *session,
-    int af_family __attribute((unused))) {
+_cb_send_buffer(struct dlep_session *session, int af_family __attribute((unused))) {
   struct dlep_router_session *router_session;
 
   if (!abuf_getlen(session->writer.out)) {
     return;
   }
 
-  OONF_DEBUG(session->log_source, "Send buffer %"
-      PRINTF_SIZE_T_SPECIFIER " bytes",
-      abuf_getlen(session->writer.out));
+  OONF_DEBUG(session->log_source, "Send buffer %" PRINTF_SIZE_T_SPECIFIER " bytes", abuf_getlen(session->writer.out));
 
   /* get pointer to radio interface */
   router_session = container_of(session, struct dlep_router_session, session);

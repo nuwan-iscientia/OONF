@@ -50,8 +50,8 @@ struct nhdp_interface;
 struct nhdp_interface_addr;
 struct nhdp_interface_domaindata;
 
-#include "common/common_types.h"
 #include "common/avl.h"
+#include "common/common_types.h"
 #include "common/list.h"
 #include "common/netaddr.h"
 #include "common/netaddr_acl.h"
@@ -62,7 +62,7 @@ struct nhdp_interface_domaindata;
 #include "nhdp/nhdp_db.h"
 
 /*! memory class for NHDP interface */
-#define NHDP_CLASS_INTERFACE         "nhdp_interf"
+#define NHDP_CLASS_INTERFACE "nhdp_interf"
 
 /*! memory class for NHDP interface address */
 #define NHDP_CLASS_INTERFACE_ADDRESS "nhdp_iaddr"
@@ -194,10 +194,8 @@ EXPORT void nhdp_interface_update_status(struct nhdp_interface *);
 EXPORT struct avl_tree *nhdp_interface_get_tree(void);
 EXPORT struct avl_tree *nhdp_interface_get_address_tree(void);
 
-EXPORT uint64_t nhdp_interface_set_hello_interval(
-    struct nhdp_interface *interf, uint64_t new_interval);
-EXPORT uint64_t nhdp_set_hello_validity(
-    struct nhdp_interface *interf, uint64_t new_interval);
+EXPORT uint64_t nhdp_interface_set_hello_interval(struct nhdp_interface *interf, uint64_t new_interval);
+EXPORT uint64_t nhdp_set_hello_validity(struct nhdp_interface *interf, uint64_t new_interval);
 
 /**
  * @param name interface name
@@ -248,8 +246,7 @@ nhdp_interface_addr_global_get(const struct netaddr *addr) {
  * @param lnk nhdp link
  */
 static INLINE void
-nhdp_interface_add_link(struct nhdp_interface *interf,
-    struct nhdp_link *lnk) {
+nhdp_interface_add_link(struct nhdp_interface *interf, struct nhdp_link *lnk) {
   lnk->local_if = interf;
 
   list_add_tail(&interf->_links, &lnk->_if_node);
@@ -271,8 +268,7 @@ nhdp_interface_remove_link(struct nhdp_link *lnk) {
  * @param twohop twohop link
  */
 static INLINE void
-nhdp_interface_add_l2hop(struct nhdp_interface *interf,
-    struct nhdp_l2hop *twohop) {
+nhdp_interface_add_l2hop(struct nhdp_interface *interf, struct nhdp_l2hop *twohop) {
   twohop->_if_node.key = &twohop->twohop_addr;
   avl_insert(&interf->_if_twohops, &twohop->_if_node);
 }
@@ -322,8 +318,7 @@ nhdp_interface_get_link_addr(const struct nhdp_interface *interf, const struct n
  * @return corresponding nhdp link, NULL if not found
  */
 static INLINE struct nhdp_link *
-nhdp_interface_link_get_by_originator(
-    const struct nhdp_interface *interf, const struct netaddr *originator) {
+nhdp_interface_link_get_by_originator(const struct nhdp_interface *interf, const struct netaddr *originator) {
   struct nhdp_link *lnk;
   return avl_find_element(&interf->_link_originators, originator, lnk, _originator_node);
 }
@@ -343,8 +338,7 @@ nhdp_interface_get_if_listener(struct nhdp_interface *nhdp_if) {
  * @return socket address of NHDP interface
  */
 static INLINE const struct netaddr *
-nhdp_interface_get_socket_address(
-    struct nhdp_interface *nhdp_if, int af_family) {
+nhdp_interface_get_socket_address(struct nhdp_interface *nhdp_if, int af_family) {
   switch (af_family) {
     case AF_INET:
       return &nhdp_if->local_ipv4;
@@ -354,6 +348,5 @@ nhdp_interface_get_socket_address(
       return &NETADDR_UNSPEC;
   }
 }
-
 
 #endif /* NHDP_INTERFACES_H_ */

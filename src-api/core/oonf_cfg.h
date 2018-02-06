@@ -46,8 +46,8 @@
 #ifndef OONF_CFG_H_
 #define OONF_CFG_H_
 
-#include "common/common_types.h"
 #include "common/autobuf.h"
+#include "common/common_types.h"
 #include "common/list.h"
 #include "common/netaddr.h"
 #include "config/cfg_schema.h"
@@ -80,10 +80,10 @@ struct oonf_config_global {
 };
 
 /*! section types for configuration */
-#define CFG_SECTION_GLOBAL   "global"
+#define CFG_SECTION_GLOBAL "global"
 
 /*! name of parameter in 'global' section to load plugins */
-#define CFG_GLOBAL_PLUGIN    "plugin"
+#define CFG_GLOBAL_PLUGIN "plugin"
 
 extern struct oonf_config_global config_global;
 
@@ -106,8 +106,7 @@ EXPORT int oonf_cfg_get_argc(void);
 EXPORT char **oonf_cfg_get_argv(void);
 
 /* do not use this in plugins */
-int oonf_cfg_init(int argc, char **argv,
-    const char *) __attribute__((warn_unused_result));
+int oonf_cfg_init(int argc, char **argv, const char *) __attribute__((warn_unused_result));
 void oonf_cfg_cleanup(void);
 int oonf_cfg_load_subsystems(void) __attribute__((warn_unused_result));
 struct oonf_subsystem *oonf_cfg_load_subsystem(const char *name);

@@ -51,12 +51,10 @@
 #include "nhdp/nhdp_hysteresis.h"
 
 /* prototypes */
-static void _update_hysteresis(struct nhdp_link *lnk,
-    struct rfc5444_reader_tlvblock_context *context);
+static void _update_hysteresis(struct nhdp_link *lnk, struct rfc5444_reader_tlvblock_context *context);
 static bool _is_pending(struct nhdp_link *);
 static bool _is_lost(struct nhdp_link *);
-static const char * _to_string(struct nhdp_hysteresis_str *buf,
-    struct nhdp_link *lnk);
+static const char *_to_string(struct nhdp_hysteresis_str *buf, struct nhdp_link *lnk);
 
 /* default handler */
 static struct nhdp_hysteresis_handler _handler = {
@@ -92,7 +90,6 @@ nhdp_hysteresis_get_handler(void) {
   return nhdp_hysteresis;
 }
 
-
 /**
  * Dummy function for hysteresis update (does nothing)
  * @param lnk NHDP link
@@ -100,7 +97,7 @@ nhdp_hysteresis_get_handler(void) {
  */
 static void
 _update_hysteresis(struct nhdp_link *lnk __attribute__((unused)),
-    struct rfc5444_reader_tlvblock_context *context __attribute__((unused))) {
+  struct rfc5444_reader_tlvblock_context *context __attribute__((unused))) {
   /* do nothing */
   return;
 }
@@ -133,8 +130,7 @@ _is_lost(struct nhdp_link *lnk __attribute__((unused))) {
  * @return always returns pointer to empty string
  */
 static const char *
-_to_string(struct nhdp_hysteresis_str *buf,
-    struct nhdp_link *lnk __attribute__((unused))) {
+_to_string(struct nhdp_hysteresis_str *buf, struct nhdp_link *lnk __attribute__((unused))) {
   buf->buf[0] = 0;
   return buf->buf;
 }

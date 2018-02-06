@@ -46,8 +46,8 @@
 #ifndef OS_VIF_H_
 #define OS_VIF_H_
 
-#include "common/common_types.h"
 #include "common/avl.h"
+#include "common/common_types.h"
 
 #include "subsystems/os_fd.h"
 
@@ -66,7 +66,8 @@ struct os_vif;
 /**
  * types of virtual interfaces
  */
-enum vif_type {
+enum vif_type
+{
   /*! IP level virtual interface */
   OS_VIF_IP,
 

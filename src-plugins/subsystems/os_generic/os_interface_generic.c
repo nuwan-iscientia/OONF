@@ -5,18 +5,15 @@
  *      Author: rogge
  */
 
-#include "common/common_types.h"
 #include "common/avl.h"
+#include "common/common_types.h"
 #include "subsystems/os_interface.h"
 
-static const struct netaddr *_get_fixed_prefix(
-    int af_type, struct netaddr_acl *filter);
+static const struct netaddr *_get_fixed_prefix(int af_type, struct netaddr_acl *filter);
 static const struct netaddr *_get_exact_match_bindaddress(
-    int af_type, struct netaddr_acl *filter,
-    struct os_interface *os_if);
+  int af_type, struct netaddr_acl *filter, struct os_interface *os_if);
 static const struct netaddr *_get_matching_bindaddress(
-    int af_type, struct netaddr_acl *filter,
-    struct os_interface *os_if);
+  int af_type, struct netaddr_acl *filter, struct os_interface *os_if);
 
 /**
  * Calculate the IP address a socket should bind to
@@ -27,8 +24,7 @@ static const struct netaddr *_get_matching_bindaddress(
  * @return pointer to address, NULL if no valid address was found
  */
 const struct netaddr *
-os_interface_generic_get_bindaddress(int af_type,
-    struct netaddr_acl *filter, struct os_interface *os_if) {
+os_interface_generic_get_bindaddress(int af_type, struct netaddr_acl *filter, struct os_interface *os_if) {
   const struct netaddr *result;
 
   result = NULL;
@@ -85,8 +81,7 @@ os_interface_generic_get_data_by_ifindex(unsigned ifindex) {
  * @return network prefix (including full host), NULL if not found
  */
 const struct os_interface_ip *
-os_interface_generic_get_prefix_from_dst(
-    struct netaddr *destination, struct os_interface *os_if) {
+os_interface_generic_get_prefix_from_dst(struct netaddr *destination, struct os_interface *os_if) {
   const struct os_interface_ip *ip;
 
   if (os_if == NULL) {
@@ -134,8 +129,7 @@ _get_fixed_prefix(int af_type, struct netaddr_acl *filter) {
   if (filter->accept_count == 2) {
     second = &filter->accept[1];
 
-    if (netaddr_get_address_family(first) ==
-        netaddr_get_address_family(second)) {
+    if (netaddr_get_address_family(first) == netaddr_get_address_family(second)) {
       /* must be two different address families */
       return NULL;
     }
@@ -164,8 +158,7 @@ _get_fixed_prefix(int af_type, struct netaddr_acl *filter) {
  * @return pointer to address to bind socket to, NULL if no match
  */
 static const struct netaddr *
-_get_exact_match_bindaddress(int af_type, struct netaddr_acl *filter,
-    struct os_interface *os_if) {
+_get_exact_match_bindaddress(int af_type, struct netaddr_acl *filter, struct os_interface *os_if) {
   struct os_interface_ip *ip;
   const struct netaddr *result;
   size_t i;
@@ -181,7 +174,7 @@ _get_exact_match_bindaddress(int af_type, struct netaddr_acl *filter,
   }
 
   /* run through all filters */
-  for (i=0; i<filter->accept_count; i++) {
+  for (i = 0; i < filter->accept_count; i++) {
     /* look for maximum prefix length filters */
     if (netaddr_get_prefix_length(&filter->accept[i]) != netaddr_get_af_maxprefix(af_type)) {
       continue;
@@ -208,8 +201,7 @@ _get_exact_match_bindaddress(int af_type, struct netaddr_acl *filter,
  * @return pointer to address to bind socket to, NULL if no match
  */
 static const struct netaddr *
-_get_matching_bindaddress(int af_type, struct netaddr_acl *filter,
-    struct os_interface *os_if) {
+_get_matching_bindaddress(int af_type, struct netaddr_acl *filter, struct os_interface *os_if) {
   struct os_interface_ip *ip;
   const struct netaddr *result;
 

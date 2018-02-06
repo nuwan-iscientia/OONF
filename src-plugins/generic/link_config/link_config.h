@@ -49,7 +49,8 @@
 /*! subsystem identifier */
 #define OONF_LINK_CONFIG_SUBSYSTEM "link_config"
 
-enum {
+enum
+{
   OONF_LINK_CONFIG_REWRITE_DELAY = 1000,
 };
 

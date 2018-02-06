@@ -45,8 +45,8 @@
 
 #include <stdio.h>
 
-#include "common/common_types.h"
 #include "common/autobuf.h"
+#include "common/common_types.h"
 #include "common/netaddr.h"
 #include "common/netaddr_acl.h"
 #include "common/string.h"
@@ -71,14 +71,12 @@ static void _cleanup(void);
 static enum oonf_telnet_result _cb_layer2info(struct oonf_telnet_data *con);
 static enum oonf_telnet_result _cb_layer2info_help(struct oonf_telnet_data *con);
 
-static void _initialize_if_data_values(struct oonf_viewer_template *template,
-    struct oonf_layer2_data *data);
+static void _initialize_if_data_values(struct oonf_viewer_template *template, struct oonf_layer2_data *data);
 static void _initialize_if_origin_values(struct oonf_layer2_data *data);
 static void _initialize_if_values(struct oonf_layer2_net *net);
 static void _initialize_if_ip_values(struct oonf_layer2_peer_address *peer_ip);
 
-static void _initialize_neigh_data_values(struct oonf_viewer_template *template,
-    struct oonf_layer2_data *data);
+static void _initialize_neigh_data_values(struct oonf_viewer_template *template, struct oonf_layer2_data *data);
 static void _initialize_neigh_origin_values(struct oonf_layer2_data *data);
 static void _initialize_neigh_values(struct oonf_layer2_neigh *neigh);
 static void _initialize_neigh_ip_values(struct oonf_layer2_neighbor_address *neigh_addr);
@@ -97,133 +95,132 @@ static int _cb_create_text_dst(struct oonf_viewer_template *);
  */
 
 /*! template key for interface name */
-#define KEY_IF                          "if"
+#define KEY_IF "if"
 
 /*! template key for interface index */
-#define KEY_IF_INDEX                    "if_index"
+#define KEY_IF_INDEX "if_index"
 
 /*! template key for interface type */
-#define KEY_IF_TYPE                     "if_type"
+#define KEY_IF_TYPE "if_type"
 
 /*! template key for DLEP interface */
-#define KEY_IF_DLEP                     "if_dlep"
+#define KEY_IF_DLEP "if_dlep"
 
 /*! template key for interface identifier */
-#define KEY_IF_IDENT                    "if_ident"
+#define KEY_IF_IDENT "if_ident"
 
 /*! template key for interface address identifier */
-#define KEY_IF_IDENT_ADDR               "if_ident_addr"
+#define KEY_IF_IDENT_ADDR "if_ident_addr"
 
 /*! template key for local interface address */
-#define KEY_IF_LOCAL_ADDR               "if_local_addr"
+#define KEY_IF_LOCAL_ADDR "if_local_addr"
 
 /*! template key for last time interface was active */
-#define KEY_IF_LASTSEEN                 "if_lastseen"
+#define KEY_IF_LASTSEEN "if_lastseen"
 
 /*! template key for IP/prefixes of the local radio/model */
-#define KEY_IF_PEER_IP                  "if_peer_ip"
+#define KEY_IF_PEER_IP "if_peer_ip"
 
 /*! template key for IP/prefixes origin of the local radio/model */
-#define KEY_IF_PEER_IP_ORIGIN           "if_peer_ip_origin"
+#define KEY_IF_PEER_IP_ORIGIN "if_peer_ip_origin"
 
 /*! template key for neighbor address */
-#define KEY_NEIGH_ADDR                  "neigh_addr"
+#define KEY_NEIGH_ADDR "neigh_addr"
 
 /*! template key for last time neighbor was active */
-#define KEY_NEIGH_LASTSEEN              "neigh_lastseen"
+#define KEY_NEIGH_LASTSEEN "neigh_lastseen"
 
 /*! template key for IP/prefixes of the neighbors remote router */
-#define KEY_NEIGH_REMOTE_IP             "neigh_remote_ip"
+#define KEY_NEIGH_REMOTE_IP "neigh_remote_ip"
 
 /*! template key for IP/prefixes origin of the neighbors remote router */
-#define KEY_NEIGH_REMOTE_IP_ORIGIN      "neigh_remote_ip_origin"
+#define KEY_NEIGH_REMOTE_IP_ORIGIN "neigh_remote_ip_origin"
 
 /*! template key for destination address */
-#define KEY_DST_ADDR                    "dst_addr"
+#define KEY_DST_ADDR "dst_addr"
 
 /*! template key for destination origin */
-#define KEY_DST_ORIGIN                  "dst_origin"
-
+#define KEY_DST_ORIGIN "dst_origin"
 
 /*! string prefix for all interface keys */
-#define KEY_IF_PREFIX                   "if_"
+#define KEY_IF_PREFIX "if_"
 
 /*! string prefix for all neighbor keys */
-#define KEY_NEIGH_PREFIX                "neigh_"
+#define KEY_NEIGH_PREFIX "neigh_"
 
 /*! string suffix for all data originators */
-#define KEY_ORIGIN_SUFFIX               "_origin"
+#define KEY_ORIGIN_SUFFIX "_origin"
 
 /*
  * buffer space for values that will be assembled
  * into the output of the plugin
  */
-static char                             _value_if[IF_NAMESIZE];
-static char                             _value_if_index[12];
-static char                             _value_if_type[16];
-static char                             _value_if_dlep[TEMPLATE_JSON_BOOL_LENGTH];
-static char                             _value_if_ident[33];
-static struct netaddr_str               _value_if_ident_addr;
-static struct netaddr_str               _value_if_local_addr;
-static struct isonumber_str             _value_if_lastseen;
-static struct netaddr_str               _value_if_peer_ip;
-static char                             _value_if_peer_ip_origin[IF_NAMESIZE];
-static char                             _value_if_data[OONF_LAYER2_NET_COUNT][64];
-static char                             _value_if_origin[OONF_LAYER2_NET_COUNT][IF_NAMESIZE];
-static struct netaddr_str               _value_neigh_addr;
-static struct isonumber_str             _value_neigh_lastseen;
-static struct netaddr_str               _value_neigh_remote_ip;
-static char                             _value_neigh_remote_ip_origin[IF_NAMESIZE];
-static char                             _value_neigh_data[OONF_LAYER2_NEIGH_COUNT][64];
-static char                             _value_neigh_origin[OONF_LAYER2_NEIGH_COUNT][IF_NAMESIZE];
+static char _value_if[IF_NAMESIZE];
+static char _value_if_index[12];
+static char _value_if_type[16];
+static char _value_if_dlep[TEMPLATE_JSON_BOOL_LENGTH];
+static char _value_if_ident[33];
+static struct netaddr_str _value_if_ident_addr;
+static struct netaddr_str _value_if_local_addr;
+static struct isonumber_str _value_if_lastseen;
+static struct netaddr_str _value_if_peer_ip;
+static char _value_if_peer_ip_origin[IF_NAMESIZE];
+static char _value_if_data[OONF_LAYER2_NET_COUNT][64];
+static char _value_if_origin[OONF_LAYER2_NET_COUNT][IF_NAMESIZE];
+static struct netaddr_str _value_neigh_addr;
+static struct isonumber_str _value_neigh_lastseen;
+static struct netaddr_str _value_neigh_remote_ip;
+static char _value_neigh_remote_ip_origin[IF_NAMESIZE];
+static char _value_neigh_data[OONF_LAYER2_NEIGH_COUNT][64];
+static char _value_neigh_origin[OONF_LAYER2_NEIGH_COUNT][IF_NAMESIZE];
 
-static struct netaddr_str               _value_dst_addr;
-static char                             _value_dst_origin[IF_NAMESIZE];
+static struct netaddr_str _value_dst_addr;
+static char _value_dst_origin[IF_NAMESIZE];
 
 /* definition of the template data entries for JSON and table output */
 static struct abuf_template_data_entry _tde_if_key[] = {
-    { KEY_IF, _value_if, true },
-    { KEY_IF_INDEX, _value_if_index, false },
-    { KEY_IF_LOCAL_ADDR, _value_if_local_addr.buf, true },
+  { KEY_IF, _value_if, true },
+  { KEY_IF_INDEX, _value_if_index, false },
+  { KEY_IF_LOCAL_ADDR, _value_if_local_addr.buf, true },
 };
 
 static struct abuf_template_data_entry _tde_if[] = {
-    { KEY_IF_TYPE, _value_if_type, true },
-    { KEY_IF_DLEP, _value_if_dlep, true },
-    { KEY_IF_IDENT, _value_if_ident, true },
-    { KEY_IF_IDENT_ADDR, _value_if_ident_addr.buf, true },
-    { KEY_IF_LASTSEEN, _value_if_lastseen.buf, false },
+  { KEY_IF_TYPE, _value_if_type, true },
+  { KEY_IF_DLEP, _value_if_dlep, true },
+  { KEY_IF_IDENT, _value_if_ident, true },
+  { KEY_IF_IDENT_ADDR, _value_if_ident_addr.buf, true },
+  { KEY_IF_LASTSEEN, _value_if_lastseen.buf, false },
 };
 
 static struct abuf_template_data_entry _tde_if_peer_ip[] = {
-    { KEY_IF_PEER_IP, _value_if_peer_ip.buf, true },
-    { KEY_IF_PEER_IP_ORIGIN, _value_if_peer_ip_origin, true },
+  { KEY_IF_PEER_IP, _value_if_peer_ip.buf, true },
+  { KEY_IF_PEER_IP_ORIGIN, _value_if_peer_ip_origin, true },
 };
 
 static struct abuf_template_data_entry _tde_if_data[OONF_LAYER2_NET_COUNT];
 static struct abuf_template_data_entry _tde_if_origin[OONF_LAYER2_NET_COUNT];
 
 static struct abuf_template_data_entry _tde_neigh_key[] = {
-    { KEY_NEIGH_ADDR, _value_neigh_addr.buf, true },
+  { KEY_NEIGH_ADDR, _value_neigh_addr.buf, true },
 };
 
 static struct abuf_template_data_entry _tde_neigh[] = {
-    { KEY_NEIGH_LASTSEEN, _value_neigh_lastseen.buf, false },
+  { KEY_NEIGH_LASTSEEN, _value_neigh_lastseen.buf, false },
 };
 
 static struct abuf_template_data_entry _tde_neigh_remote_ip[] = {
-    { KEY_NEIGH_REMOTE_IP, _value_neigh_remote_ip.buf, true },
-    { KEY_NEIGH_REMOTE_IP_ORIGIN, _value_neigh_remote_ip_origin, true },
+  { KEY_NEIGH_REMOTE_IP, _value_neigh_remote_ip.buf, true },
+  { KEY_NEIGH_REMOTE_IP_ORIGIN, _value_neigh_remote_ip_origin, true },
 };
 
 static struct abuf_template_data_entry _tde_neigh_data[OONF_LAYER2_NEIGH_COUNT];
 static struct abuf_template_data_entry _tde_neigh_origin[OONF_LAYER2_NEIGH_COUNT];
 
 static struct abuf_template_data_entry _tde_dst_key[] = {
-    { KEY_DST_ADDR, _value_dst_addr.buf, true },
+  { KEY_DST_ADDR, _value_dst_addr.buf, true },
 };
 static struct abuf_template_data_entry _tde_dst[] = {
-    { KEY_DST_ORIGIN, _value_dst_origin, true },
+  { KEY_DST_ORIGIN, _value_dst_origin, true },
 };
 
 static struct abuf_template_storage _template_storage;
@@ -231,83 +228,82 @@ static struct autobuf _key_storage;
 
 /* Template Data objects (contain one or more Template Data Entries) */
 static struct abuf_template_data _td_if[] = {
-    { _tde_if_key, ARRAYSIZE(_tde_if_key) },
-    { _tde_if, ARRAYSIZE(_tde_if) },
-    { _tde_if_data, ARRAYSIZE(_tde_if_data) },
-    { _tde_if_origin, ARRAYSIZE(_tde_if_origin) },
+  { _tde_if_key, ARRAYSIZE(_tde_if_key) },
+  { _tde_if, ARRAYSIZE(_tde_if) },
+  { _tde_if_data, ARRAYSIZE(_tde_if_data) },
+  { _tde_if_origin, ARRAYSIZE(_tde_if_origin) },
 };
 static struct abuf_template_data _td_if_ips[] = {
-    { _tde_if_key, ARRAYSIZE(_tde_if_key) },
-    { _tde_if_peer_ip, ARRAYSIZE(_tde_if_peer_ip) },
+  { _tde_if_key, ARRAYSIZE(_tde_if_key) },
+  { _tde_if_peer_ip, ARRAYSIZE(_tde_if_peer_ip) },
 };
 static struct abuf_template_data _td_neigh[] = {
-    { _tde_if_key, ARRAYSIZE(_tde_if_key) },
-    { _tde_neigh_key, ARRAYSIZE(_tde_neigh_key) },
-    { _tde_neigh, ARRAYSIZE(_tde_neigh) },
-    { _tde_neigh_data, ARRAYSIZE(_tde_neigh_data) },
-    { _tde_neigh_origin, ARRAYSIZE(_tde_neigh_origin) },
+  { _tde_if_key, ARRAYSIZE(_tde_if_key) },
+  { _tde_neigh_key, ARRAYSIZE(_tde_neigh_key) },
+  { _tde_neigh, ARRAYSIZE(_tde_neigh) },
+  { _tde_neigh_data, ARRAYSIZE(_tde_neigh_data) },
+  { _tde_neigh_origin, ARRAYSIZE(_tde_neigh_origin) },
 };
 static struct abuf_template_data _td_neigh_ips[] = {
-    { _tde_if_key, ARRAYSIZE(_tde_if_key) },
-    { _tde_neigh_key, ARRAYSIZE(_tde_neigh_key) },
-    { _tde_neigh_remote_ip, ARRAYSIZE(_tde_neigh_remote_ip) },
+  { _tde_if_key, ARRAYSIZE(_tde_if_key) },
+  { _tde_neigh_key, ARRAYSIZE(_tde_neigh_key) },
+  { _tde_neigh_remote_ip, ARRAYSIZE(_tde_neigh_remote_ip) },
 };
 static struct abuf_template_data _td_default[] = {
-    { _tde_if_key, ARRAYSIZE(_tde_if_key) },
-    { _tde_neigh_data, ARRAYSIZE(_tde_neigh_data) },
-    { _tde_neigh_origin, ARRAYSIZE(_tde_neigh_origin) },
+  { _tde_if_key, ARRAYSIZE(_tde_if_key) },
+  { _tde_neigh_data, ARRAYSIZE(_tde_neigh_data) },
+  { _tde_neigh_origin, ARRAYSIZE(_tde_neigh_origin) },
 };
 static struct abuf_template_data _td_dst[] = {
-    { _tde_if_key, ARRAYSIZE(_tde_if_key) },
-    { _tde_neigh_key, ARRAYSIZE(_tde_neigh_key) },
-    { _tde_dst_key, ARRAYSIZE(_tde_dst_key) },
-    { _tde_dst, ARRAYSIZE(_tde_dst) },
+  { _tde_if_key, ARRAYSIZE(_tde_if_key) },
+  { _tde_neigh_key, ARRAYSIZE(_tde_neigh_key) },
+  { _tde_dst_key, ARRAYSIZE(_tde_dst_key) },
+  { _tde_dst, ARRAYSIZE(_tde_dst) },
 };
 
 /* OONF viewer templates (based on Template Data arrays) */
 static struct oonf_viewer_template _templates[] = {
-    {
-        .data = _td_if,
-        .data_size = ARRAYSIZE(_td_if),
-        .json_name = "interface",
-        .cb_function = _cb_create_text_interface,
-    },
-    {
-        .data = _td_if_ips,
-        .data_size = ARRAYSIZE(_td_if_ips),
-        .json_name = "interface_ip",
-        .cb_function = _cb_create_text_interface_ip,
-    },
-    {
-        .data = _td_neigh,
-        .data_size = ARRAYSIZE(_td_neigh),
-        .json_name = "neighbor",
-        .cb_function = _cb_create_text_neighbor,
-    },
-    {
-        .data = _td_neigh_ips,
-        .data_size = ARRAYSIZE(_td_neigh_ips),
-        .json_name = "neighbor_ip",
-        .cb_function = _cb_create_text_neighbor_ip,
-    },
-    {
-        .data = _td_default,
-        .data_size = ARRAYSIZE(_td_default),
-        .json_name = "default",
-        .cb_function = _cb_create_text_default,
-    },
-    {
-        .data = _td_dst,
-        .data_size = ARRAYSIZE(_td_dst),
-        .json_name = "destination",
-        .cb_function = _cb_create_text_dst,
-    },
+  {
+    .data = _td_if,
+    .data_size = ARRAYSIZE(_td_if),
+    .json_name = "interface",
+    .cb_function = _cb_create_text_interface,
+  },
+  {
+    .data = _td_if_ips,
+    .data_size = ARRAYSIZE(_td_if_ips),
+    .json_name = "interface_ip",
+    .cb_function = _cb_create_text_interface_ip,
+  },
+  {
+    .data = _td_neigh,
+    .data_size = ARRAYSIZE(_td_neigh),
+    .json_name = "neighbor",
+    .cb_function = _cb_create_text_neighbor,
+  },
+  {
+    .data = _td_neigh_ips,
+    .data_size = ARRAYSIZE(_td_neigh_ips),
+    .json_name = "neighbor_ip",
+    .cb_function = _cb_create_text_neighbor_ip,
+  },
+  {
+    .data = _td_default,
+    .data_size = ARRAYSIZE(_td_default),
+    .json_name = "default",
+    .cb_function = _cb_create_text_default,
+  },
+  {
+    .data = _td_dst,
+    .data_size = ARRAYSIZE(_td_dst),
+    .json_name = "destination",
+    .cb_function = _cb_create_text_dst,
+  },
 };
 
 /* telnet command of this plugin */
 static struct oonf_telnet_command _telnet_commands[] = {
-    TELNET_CMD(OONF_LAYER2INFO_SUBSYSTEM, _cb_layer2info,
-        "", .help_handler = _cb_layer2info_help),
+  TELNET_CMD(OONF_LAYER2INFO_SUBSYSTEM, _cb_layer2info, "", .help_handler = _cb_layer2info_help),
 };
 
 /* plugin declaration */
@@ -339,9 +335,8 @@ _init(void) {
 
   abuf_init(&_key_storage);
 
-  for (i=0; i<OONF_LAYER2_NET_COUNT; i++) {
-    _tde_if_data[i].key =
-        abuf_getptr(&_key_storage) + abuf_getlen(&_key_storage);
+  for (i = 0; i < OONF_LAYER2_NET_COUNT; i++) {
+    _tde_if_data[i].key = abuf_getptr(&_key_storage) + abuf_getlen(&_key_storage);
     _tde_if_data[i].value = _value_if_data[i];
     _tde_if_data[i].string = true;
 
@@ -349,8 +344,7 @@ _init(void) {
     abuf_puts(&_key_storage, oonf_layer2_net_metadata_get(i)->key);
     abuf_memcpy(&_key_storage, "\0", 1);
 
-    _tde_if_origin[i].key =
-        abuf_getptr(&_key_storage) + abuf_getlen(&_key_storage);
+    _tde_if_origin[i].key = abuf_getptr(&_key_storage) + abuf_getlen(&_key_storage);
     _tde_if_origin[i].value = _value_if_origin[i];
     _tde_if_origin[i].string = true;
 
@@ -360,9 +354,8 @@ _init(void) {
     abuf_memcpy(&_key_storage, "\0", 1);
   }
 
-  for (i=0; i<OONF_LAYER2_NEIGH_COUNT; i++) {
-    _tde_neigh_data[i].key =
-        abuf_getptr(&_key_storage) + abuf_getlen(&_key_storage);
+  for (i = 0; i < OONF_LAYER2_NEIGH_COUNT; i++) {
+    _tde_neigh_data[i].key = abuf_getptr(&_key_storage) + abuf_getlen(&_key_storage);
     _tde_neigh_data[i].value = _value_neigh_data[i];
     _tde_neigh_data[i].string = true;
 
@@ -370,8 +363,7 @@ _init(void) {
     abuf_puts(&_key_storage, oonf_layer2_neigh_metadata_get(i)->key);
     abuf_memcpy(&_key_storage, "\0", 1);
 
-    _tde_neigh_origin[i].key =
-        abuf_getptr(&_key_storage) + abuf_getlen(&_key_storage);
+    _tde_neigh_origin[i].key = abuf_getptr(&_key_storage) + abuf_getlen(&_key_storage);
     _tde_neigh_origin[i].value = _value_neigh_origin[i];
     _tde_neigh_origin[i].string = true;
 
@@ -402,9 +394,8 @@ _cleanup(void) {
  */
 static enum oonf_telnet_result
 _cb_layer2info(struct oonf_telnet_data *con) {
-  return oonf_viewer_telnet_handler(con->out, &_template_storage,
-      OONF_LAYER2INFO_SUBSYSTEM, con->parameter,
-      _templates, ARRAYSIZE(_templates));
+  return oonf_viewer_telnet_handler(
+    con->out, &_template_storage, OONF_LAYER2INFO_SUBSYSTEM, con->parameter, _templates, ARRAYSIZE(_templates));
 }
 
 /**
@@ -414,8 +405,8 @@ _cb_layer2info(struct oonf_telnet_data *con) {
  */
 static enum oonf_telnet_result
 _cb_layer2info_help(struct oonf_telnet_data *con) {
-  return oonf_viewer_telnet_help(con->out, OONF_LAYER2INFO_SUBSYSTEM,
-      con->parameter, _templates, ARRAYSIZE(_templates));
+  return oonf_viewer_telnet_help(
+    con->out, OONF_LAYER2INFO_SUBSYSTEM, con->parameter, _templates, ARRAYSIZE(_templates));
 }
 
 /**
@@ -436,8 +427,7 @@ _initialize_if_values(struct oonf_layer2_net *net) {
   strscpy(_value_if_dlep, json_getbool(net->if_dlep), TEMPLATE_JSON_BOOL_LENGTH);
 
   if (net->last_seen) {
-    oonf_clock_toIntervalString(&_value_if_lastseen,
-        -oonf_clock_get_relative(net->last_seen));
+    oonf_clock_toIntervalString(&_value_if_lastseen, -oonf_clock_get_relative(net->last_seen));
   }
   else {
     _value_if_lastseen.buf[0] = 0;
@@ -451,8 +441,7 @@ _initialize_if_values(struct oonf_layer2_net *net) {
 static void
 _initialize_if_ip_values(struct oonf_layer2_peer_address *peer_ip) {
   netaddr_to_string(&_value_if_peer_ip, &peer_ip->ip);
-  strscpy(_value_if_peer_ip_origin, peer_ip->origin->name,
-      sizeof(_value_if_peer_ip_origin));
+  strscpy(_value_if_peer_ip_origin, peer_ip->origin->name, sizeof(_value_if_peer_ip_origin));
 }
 
 /**
@@ -461,15 +450,13 @@ _initialize_if_ip_values(struct oonf_layer2_peer_address *peer_ip) {
  * @param data array of data objects
  */
 static void
-_initialize_if_data_values(struct oonf_viewer_template *template,
-    struct oonf_layer2_data *data) {
+_initialize_if_data_values(struct oonf_viewer_template *template, struct oonf_layer2_data *data) {
   size_t i;
 
   memset(_value_if_data, 0, sizeof(_value_if_data));
 
-  for (i=0; i<OONF_LAYER2_NET_COUNT; i++) {
-    oonf_layer2_net_data_to_string(_value_if_data[i], sizeof(_value_if_data[i]),
-        &data[i], i, template->create_raw);
+  for (i = 0; i < OONF_LAYER2_NET_COUNT; i++) {
+    oonf_layer2_net_data_to_string(_value_if_data[i], sizeof(_value_if_data[i]), &data[i], i, template->create_raw);
   }
 }
 
@@ -483,7 +470,7 @@ _initialize_if_origin_values(struct oonf_layer2_data *data) {
 
   memset(_value_if_origin, 0, sizeof(_value_if_origin));
 
-  for (i=0; i<OONF_LAYER2_NET_COUNT; i++) {
+  for (i = 0; i < OONF_LAYER2_NET_COUNT; i++) {
     if (oonf_layer2_data_has_value(&data[i])) {
       strscpy(_value_if_origin[i], oonf_layer2_data_get_origin(&data[i])->name, IF_NAMESIZE);
     }
@@ -499,8 +486,7 @@ _initialize_neigh_values(struct oonf_layer2_neigh *neigh) {
   netaddr_to_string(&_value_neigh_addr, &neigh->addr);
 
   if (neigh->last_seen) {
-    oonf_clock_toIntervalString(&_value_neigh_lastseen,
-        -oonf_clock_get_relative(neigh->last_seen));
+    oonf_clock_toIntervalString(&_value_neigh_lastseen, -oonf_clock_get_relative(neigh->last_seen));
   }
   else {
     _value_neigh_lastseen.buf[0] = 0;
@@ -514,8 +500,7 @@ _initialize_neigh_values(struct oonf_layer2_neigh *neigh) {
 static void
 _initialize_neigh_ip_values(struct oonf_layer2_neighbor_address *neigh_addr) {
   netaddr_to_string(&_value_neigh_remote_ip, &neigh_addr->ip);
-  strscpy(_value_neigh_remote_ip_origin, neigh_addr->origin->name,
-      sizeof(_value_neigh_remote_ip_origin));
+  strscpy(_value_neigh_remote_ip_origin, neigh_addr->origin->name, sizeof(_value_neigh_remote_ip_origin));
 }
 
 /**
@@ -524,15 +509,14 @@ _initialize_neigh_ip_values(struct oonf_layer2_neighbor_address *neigh_addr) {
  * @param data array of data objects
  */
 static void
-_initialize_neigh_data_values(struct oonf_viewer_template *template,
-    struct oonf_layer2_data *data) {
+_initialize_neigh_data_values(struct oonf_viewer_template *template, struct oonf_layer2_data *data) {
   size_t i;
 
   memset(_value_neigh_data, 0, sizeof(_value_neigh_data));
 
-  for (i=0; i<OONF_LAYER2_NEIGH_COUNT; i++) {
-    oonf_layer2_neigh_data_to_string(_value_neigh_data[i], sizeof(_value_neigh_data[i]),
-        &data[i], i, template->create_raw);
+  for (i = 0; i < OONF_LAYER2_NEIGH_COUNT; i++) {
+    oonf_layer2_neigh_data_to_string(
+      _value_neigh_data[i], sizeof(_value_neigh_data[i]), &data[i], i, template->create_raw);
   }
 }
 
@@ -546,7 +530,7 @@ _initialize_neigh_origin_values(struct oonf_layer2_data *data) {
 
   memset(_value_neigh_origin, 0, sizeof(_value_neigh_origin));
 
-  for (i=0; i<OONF_LAYER2_NEIGH_COUNT; i++) {
+  for (i = 0; i < OONF_LAYER2_NEIGH_COUNT; i++) {
     if (oonf_layer2_data_has_value(&data[i])) {
       strscpy(_value_neigh_origin[i], oonf_layer2_data_get_origin(&data[i])->name, IF_NAMESIZE);
     }
@@ -707,4 +691,3 @@ _cb_create_text_dst(struct oonf_viewer_template *template) {
   }
   return 0;
 }
-

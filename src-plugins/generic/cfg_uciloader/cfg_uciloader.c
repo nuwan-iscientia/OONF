@@ -46,17 +46,17 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <string.h>
-#include <unistd.h>
-#include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/types.h>
+#include <unistd.h>
 
 #include <uci.h>
 #undef container_of
 
-#include "common/common_types.h"
 #include "common/autobuf.h"
-#include "config/cfg_io.h"
+#include "common/common_types.h"
 #include "config/cfg.h"
+#include "config/cfg_io.h"
 #include "core/oonf_subsystem.h"
 
 #include "core/oonf_cfg.h"
@@ -67,7 +67,8 @@ static void _early_cfg_init(void);
 static void _cleanup(void);
 
 static struct cfg_db *_cb_uci_load(const char *param, struct autobuf *log);
-static int _load_section(struct uci_section *sec, struct cfg_db *db, const char *type, const char *name, struct autobuf *log);
+static int _load_section(
+  struct uci_section *sec, struct cfg_db *db, const char *type, const char *name, struct autobuf *log);
 
 static int _get_phy_ifname(char *phy_ifname, const char *ifname);
 
@@ -93,8 +94,7 @@ static struct cfg_io _cfg_io_uci = {
  * Callback to hook plugin into configuration system.
  */
 static void
-_early_cfg_init(void)
-{
+_early_cfg_init(void) {
   cfg_io_add(oonf_cfg_get_instance(), &_cfg_io_uci);
   cfg_set_ifname_handler(_get_phy_ifname);
 }
@@ -103,8 +103,7 @@ _early_cfg_init(void)
  * Destructor of plugin
  */
 static void
-_cleanup(void)
-{
+_cleanup(void) {
   cfg_io_remove(oonf_cfg_get_instance(), &_cfg_io_uci);
   cfg_set_ifname_handler(NULL);
 }
@@ -214,8 +213,8 @@ _load_section(struct uci_section *sec, struct cfg_db *db, const char *type, cons
   }
 
   if (!db_section) {
-    cfg_append_printable_line(log, "Could not allocate configuration section (%s/%s)",
-        db_section->section_type->type, db_section->name);
+    cfg_append_printable_line(
+      log, "Could not allocate configuration section (%s/%s)", db_section->section_type->type, db_section->name);
     return -1;
   }
 
@@ -225,22 +224,20 @@ _load_section(struct uci_section *sec, struct cfg_db *db, const char *type, cons
       continue;
     }
 
-    switch(opt->type) {
+    switch (opt->type) {
       case UCI_TYPE_STRING:
-        if (!cfg_db_add_entry(db, db_section->section_type->type,
-            db_section->name, opt->e.name, opt->v.string)) {
+        if (!cfg_db_add_entry(db, db_section->section_type->type, db_section->name, opt->e.name, opt->v.string)) {
           cfg_append_printable_line(log, "Could not allocate configuration entry (%s/%s/%s)='%s'",
-              db_section->section_type->type, db_section->name, opt->e.name, opt->v.string);
-                return -1;
+            db_section->section_type->type, db_section->name, opt->e.name, opt->v.string);
+          return -1;
         };
         break;
       case UCI_TYPE_LIST:
         uci_foreach_element(&opt->v.list, i) {
-          if (!cfg_db_add_entry(db, db_section->section_type->type,
-              db_section->name, opt->e.name, i->name)) {
+          if (!cfg_db_add_entry(db, db_section->section_type->type, db_section->name, opt->e.name, i->name)) {
             cfg_append_printable_line(log, "Could not allocate configuration entry (%s/%s/%s)='%s'",
-                db_section->section_type->type, db_section->name, opt->e.name, i->name);
-                  return -1;
+              db_section->section_type->type, db_section->name, opt->e.name, i->name);
+            return -1;
           };
         }
         break;

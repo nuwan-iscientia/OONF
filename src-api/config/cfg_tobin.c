@@ -7,8 +7,8 @@
 
 #include <errno.h>
 
-#include "common/common_types.h"
 #include "common/bitmap256.h"
+#include "common/common_types.h"
 #include "common/isonumber.h"
 #include "common/netaddr.h"
 #include "common/netaddr_acl.h"
@@ -54,8 +54,7 @@ cfg_tobin_strptr(void *reference, size_t bin_size, const struct const_strarray *
  * @return 0 if conversion succeeded, -1 otherwise.
  */
 int
-cfg_tobin_strarray(void *reference, size_t bin_size,
-    const struct const_strarray *value, size_t array_size) {
+cfg_tobin_strarray(void *reference, size_t bin_size, const struct const_strarray *value, size_t array_size) {
   char *ptr;
 
   if (bin_size < array_size) {
@@ -80,10 +79,8 @@ cfg_tobin_strarray(void *reference, size_t bin_size,
  * @return 0 if conversion succeeded, -1 otherwise.
  */
 int
-cfg_tobin_choice(void *reference, size_t bin_size,
-    const struct const_strarray *value,
-    const char *(*callback)(size_t idx, const void *ptr),
-    size_t choices_count, const void *ptr) {
+cfg_tobin_choice(void *reference, size_t bin_size, const struct const_strarray *value,
+  const char *(*callback)(size_t idx, const void *ptr), size_t choices_count, const void *ptr) {
   int *result;
 
   if (bin_size != sizeof(int)) {
@@ -92,8 +89,7 @@ cfg_tobin_choice(void *reference, size_t bin_size,
 
   result = (int *)reference;
 
-  *result = cfg_get_choice_index(strarray_get_first_c(value),
-      callback, choices_count, ptr);
+  *result = cfg_get_choice_index(strarray_get_first_c(value), callback, choices_count, ptr);
   return 0;
 }
 
@@ -108,8 +104,7 @@ cfg_tobin_choice(void *reference, size_t bin_size,
  * @return 0 if conversion succeeded, -1 otherwise.
  */
 int
-cfg_tobin_int(void *reference, size_t bin_size,
-    const struct const_strarray *value, int fractions, size_t int_size) {
+cfg_tobin_int(void *reference, size_t bin_size, const struct const_strarray *value, int fractions, size_t int_size) {
   int64_t i;
   int result;
 
@@ -142,8 +137,7 @@ cfg_tobin_int(void *reference, size_t bin_size,
  * @return 0 if conversion succeeded, -1 otherwise.
  */
 int
-cfg_tobin_netaddr(void *reference, size_t bin_size,
-    const struct const_strarray *value) {
+cfg_tobin_netaddr(void *reference, size_t bin_size, const struct const_strarray *value) {
   struct netaddr *ptr;
 
   if (bin_size != sizeof(*ptr)) {
@@ -164,8 +158,7 @@ cfg_tobin_netaddr(void *reference, size_t bin_size,
  * @return -1 if an error happened, 0 otherwise
  */
 int
-cfg_tobin_acl(void *reference, size_t bin_size,
-     const struct const_strarray *value) {
+cfg_tobin_acl(void *reference, size_t bin_size, const struct const_strarray *value) {
   struct netaddr_acl *ptr;
 
   if (bin_size != sizeof(*ptr)) {
@@ -187,8 +180,7 @@ cfg_tobin_acl(void *reference, size_t bin_size,
  * @return -1 if an error happened, 0 otherwise
  */
 int
-cfg_tobin_bitmap256(void *reference, size_t bin_size,
-     const struct const_strarray *value) {
+cfg_tobin_bitmap256(void *reference, size_t bin_size, const struct const_strarray *value) {
   struct bitmap256 *bitmap;
   const char *ptr;
   int idx;
@@ -233,8 +225,7 @@ cfg_tobin_bitmap256(void *reference, size_t bin_size,
  * @return 0 if conversion succeeded, -1 otherwise.
  */
 int
-cfg_tobin_bool(void *reference, size_t bin_size,
-    const struct const_strarray *value) {
+cfg_tobin_bool(void *reference, size_t bin_size, const struct const_strarray *value) {
   bool *ptr;
 
   if (bin_size != sizeof(*ptr)) {
@@ -256,8 +247,7 @@ cfg_tobin_bool(void *reference, size_t bin_size,
  * @return 0 if conversion succeeded, -1 otherwise.
  */
 int
-cfg_tobin_stringlist(void *reference, size_t bin_size,
-    const struct const_strarray *value) {
+cfg_tobin_stringlist(void *reference, size_t bin_size, const struct const_strarray *value) {
   struct strarray *array;
 
   if (bin_size != sizeof(*array)) {
@@ -284,10 +274,8 @@ cfg_tobin_stringlist(void *reference, size_t bin_size,
  * @return 0 if conversion succeeded, -1 otherwise.
  */
 int
-cfg_tobin_tokens(void *reference,
-    const char *value,
-    struct cfg_schema_entry *entries, size_t entry_count,
-    struct cfg_schema_token_customizer *custom) {
+cfg_tobin_tokens(void *reference, const char *value, struct cfg_schema_entry *entries, size_t entry_count,
+  struct cfg_schema_token_customizer *custom) {
   struct const_strarray parameter;
   const char *next_token;
   char buffer[256];
@@ -298,7 +286,7 @@ cfg_tobin_tokens(void *reference,
   next_token = value;
 
   parameter.value = buffer;
-  for (i=0; i<entry_count-1; i++) {
+  for (i = 0; i < entry_count - 1; i++) {
     if (!next_token) {
       return -1;
     }
@@ -314,7 +302,7 @@ cfg_tobin_tokens(void *reference,
 
   if (next_token) {
     /* we have data for the last entry left */
-    i = entry_count-1;
+    i = entry_count - 1;
 
     parameter.value = next_token;
     parameter.length = strlen(next_token) + 1;
@@ -331,4 +319,3 @@ cfg_tobin_tokens(void *reference,
   }
   return 0;
 }
-

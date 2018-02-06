@@ -55,7 +55,8 @@
 /**
  * define scope of address on interface
  */
-enum os_addr_scope {
+enum os_addr_scope
+{
   /* linklocal scope */
   OS_ADDR_SCOPE_LINK = RT_SCOPE_LINK,
   /*! global scope */

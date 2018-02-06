@@ -46,9 +46,9 @@
 #ifndef OONF_SOCKET_H_
 #define OONF_SOCKET_H_
 
+#include "common/avl.h"
 #include "common/common_types.h"
 #include "common/list.h"
-#include "common/avl.h"
 #include "common/netaddr_acl.h"
 #include "subsystems/os_fd.h"
 
@@ -69,7 +69,7 @@ struct oonf_socket_entry {
    * Callback when read or write event happens to socket
    * @param fd file descriptor of socket
    */
-  void (*process) (struct oonf_socket_entry *entry);
+  void (*process)(struct oonf_socket_entry *entry);
 
   /*! usage counter, will be increased every times the socket receives data */
   uint32_t _stat_recv;
@@ -89,10 +89,8 @@ struct oonf_socket_entry {
 
 EXPORT void oonf_socket_add(struct oonf_socket_entry *);
 EXPORT void oonf_socket_remove(struct oonf_socket_entry *);
-EXPORT void oonf_socket_set_read(
-    struct oonf_socket_entry *entry, bool event_read);
-EXPORT void oonf_socket_set_write(
-    struct oonf_socket_entry *entry, bool event_write);
+EXPORT void oonf_socket_set_read(struct oonf_socket_entry *entry, bool event_read);
+EXPORT void oonf_socket_set_write(struct oonf_socket_entry *entry, bool event_write);
 EXPORT struct list_entity *oonf_socket_get_list(void);
 
 /**
@@ -148,6 +146,5 @@ static INLINE uint32_t
 oonf_socket_get_long(struct oonf_socket_entry *sock) {
   return sock->_stat_long;
 }
-
 
 #endif /* OONF_SOCKET_H_ */

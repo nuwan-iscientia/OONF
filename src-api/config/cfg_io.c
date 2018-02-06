@@ -60,8 +60,8 @@
 #include "config/cfg.h"
 #include "config/cfg_io.h"
 
-static struct cfg_io *_find_io(struct cfg_instance *instance,
-    const char *url, const char **io_param, struct autobuf *log);
+static struct cfg_io *_find_io(
+  struct cfg_instance *instance, const char *url, const char **io_param, struct autobuf *log);
 
 /**
  * Add a new io-handler to the registry. Name of io handler
@@ -71,7 +71,7 @@ static struct cfg_io *_find_io(struct cfg_instance *instance,
  */
 void
 cfg_io_add(struct cfg_instance *instance, struct cfg_io *io) {
-  assert (io->name);
+  assert(io->name);
   io->node.key = io->name;
   avl_insert(&instance->io_tree, &io->node);
 }
@@ -100,8 +100,7 @@ cfg_io_remove(struct cfg_instance *instance, struct cfg_io *io) {
  * @return pointer to configuration database, NULL if an error happened
  */
 struct cfg_db *
-cfg_io_load(struct cfg_instance *instance,
-    const char *url, struct autobuf *log) {
+cfg_io_load(struct cfg_instance *instance, const char *url, struct autobuf *log) {
   struct cfg_io *io;
   const char *io_param = NULL;
 
@@ -130,8 +129,7 @@ cfg_io_load(struct cfg_instance *instance,
  * @return 0 if data was stored, -1 if an error happened
  */
 int
-cfg_io_save(struct cfg_instance *instance,
-    const char *url, struct cfg_db *src, struct autobuf *log) {
+cfg_io_save(struct cfg_instance *instance, const char *url, struct cfg_db *src, struct autobuf *log) {
   struct cfg_io *io;
   const char *io_param = NULL;
 
@@ -160,8 +158,7 @@ cfg_io_save(struct cfg_instance *instance,
  *   happened
  */
 static struct cfg_io *
-_find_io(struct cfg_instance *instance,
-    const char *url, const char **io_param, struct autobuf *log) {
+_find_io(struct cfg_instance *instance, const char *url, const char **io_param, struct autobuf *log) {
   struct cfg_io *io = NULL;
   const char *ptr1;
 

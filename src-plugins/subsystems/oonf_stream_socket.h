@@ -46,16 +46,16 @@
 #ifndef OONF_STREAM_SOCKET_H_
 #define OONF_STREAM_SOCKET_H_
 
-#include "common/common_types.h"
 #include "common/autobuf.h"
+#include "common/common_types.h"
 #include "common/list.h"
 #include "common/netaddr.h"
 #include "common/netaddr_acl.h"
 
 #include "subsystems/oonf_class.h"
-#include "subsystems/os_interface.h"
 #include "subsystems/oonf_socket.h"
 #include "subsystems/oonf_timer.h"
+#include "subsystems/os_interface.h"
 
 /*! subsystem identifier */
 #define OONF_STREAM_SUBSYSTEM "stream_socket"
@@ -63,7 +63,8 @@
 /**
  * TCP session states
  */
-enum oonf_stream_session_state {
+enum oonf_stream_session_state
+{
   /*! tcp session has not been initialized */
   STREAM_SESSION_INACTIVE,
 
@@ -80,7 +81,8 @@ enum oonf_stream_session_state {
 /**
  * generic stream errors useful for HTTP and telnet
  */
-enum oonf_stream_errors {
+enum oonf_stream_errors
+{
   /*! remote endpoint is not permitted to use service */
   STREAM_REQUEST_FORBIDDEN = 403,
 
@@ -115,7 +117,7 @@ struct oonf_stream_session {
   struct os_fd copy_fd;
 
   /*! name of socket */
-  char socket_name[sizeof(struct netaddr_str)*2 + 10];
+  char socket_name[sizeof(struct netaddr_str) * 2 + 10];
 
   /*! number of bytes already copied in file upload */
   size_t copy_bytes_sent;
@@ -213,8 +215,7 @@ struct oonf_stream_config {
    * @param session stream session
    * @param error tcp stream error code
    */
-  void (*create_error)(
-      struct oonf_stream_session *session, enum oonf_stream_errors error);
+  void (*create_error)(struct oonf_stream_session *session, enum oonf_stream_errors error);
 
   /**
    * Callback that is called every times no data has been written
@@ -222,8 +223,7 @@ struct oonf_stream_config {
    * @param stream stream session
    * @return stream session status code
    */
-  enum oonf_stream_session_state (*receive_data)(
-      struct oonf_stream_session *stream);
+  enum oonf_stream_session_state (*receive_data)(struct oonf_stream_session *stream);
 
   /*
    * Called when we could write to the buffer but it is empty
@@ -234,8 +234,7 @@ struct oonf_stream_config {
    * @param session stream session
    * @return stream session status code
    */
-  enum oonf_stream_session_state (*buffer_underrun)(
-      struct oonf_stream_session *session);
+  enum oonf_stream_session_state (*buffer_underrun)(struct oonf_stream_session *session);
 };
 
 /**
@@ -262,7 +261,7 @@ struct oonf_stream_socket {
   struct oonf_stream_managed *managed;
 
   /*! name of socket */
-  char socket_name[sizeof(struct netaddr_str)+14];
+  char socket_name[sizeof(struct netaddr_str) + 14];
 
   /*! number of currently active sessions */
   int32_t session_counter;
@@ -314,26 +313,22 @@ struct oonf_stream_managed {
   struct os_interface_listener _if_listener;
 };
 
-EXPORT int oonf_stream_add(struct oonf_stream_socket *,
-    const union netaddr_socket *local);
+EXPORT int oonf_stream_add(struct oonf_stream_socket *, const union netaddr_socket *local);
 EXPORT void oonf_stream_remove(struct oonf_stream_socket *, bool force);
 EXPORT void oonf_stream_close_all_sessions(struct oonf_stream_socket *stream_socket);
 EXPORT struct oonf_stream_session *oonf_stream_connect_to(
-    struct oonf_stream_socket *, const union netaddr_socket *remote);
+  struct oonf_stream_socket *, const union netaddr_socket *remote);
 EXPORT void oonf_stream_flush(struct oonf_stream_session *con);
 
-EXPORT void oonf_stream_set_timeout(
-    struct oonf_stream_session *con, uint64_t timeout);
+EXPORT void oonf_stream_set_timeout(struct oonf_stream_session *con, uint64_t timeout);
 EXPORT void oonf_stream_close(struct oonf_stream_session *con);
 
 EXPORT void oonf_stream_add_managed(struct oonf_stream_managed *);
-EXPORT int oonf_stream_apply_managed(struct oonf_stream_managed *,
-    struct oonf_stream_managed_config *);
+EXPORT int oonf_stream_apply_managed(struct oonf_stream_managed *, struct oonf_stream_managed_config *);
 EXPORT void oonf_stream_remove_managed(struct oonf_stream_managed *, bool force);
-EXPORT void oonf_stream_close_all_managed_sessions(
-    struct oonf_stream_managed *managed);
-EXPORT void oonf_stream_copy_managed_config(struct oonf_stream_managed_config *dst,
-    struct oonf_stream_managed_config *src);
+EXPORT void oonf_stream_close_all_managed_sessions(struct oonf_stream_managed *managed);
+EXPORT void oonf_stream_copy_managed_config(
+  struct oonf_stream_managed_config *dst, struct oonf_stream_managed_config *src);
 EXPORT void oonf_stream_free_managed_config(struct oonf_stream_managed_config *config);
 
 #endif /* OONF_STREAM_SOCKET_H_ */

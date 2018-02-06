@@ -46,13 +46,13 @@
 #ifndef DLEP_RADIO_INTERFACE_H_
 #define DLEP_RADIO_INTERFACE_H_
 
-#include "common/common_types.h"
 #include "common/avl.h"
+#include "common/common_types.h"
 #include "subsystems/oonf_packet_socket.h"
 #include "subsystems/oonf_stream_socket.h"
 
-#include "dlep/dlep_session.h"
 #include "dlep/dlep_interface.h"
+#include "dlep/dlep_session.h"
 
 /**
  * DLEP radio session

@@ -46,14 +46,15 @@
 #ifndef COMMON_STRING_H_
 #define COMMON_STRING_H_
 
+#include <ctype.h>
 #include <stdlib.h>
 #include <string.h>
 #include <strings.h>
-#include <ctype.h>
 
 #include "common/common_types.h"
 
-enum {
+enum
+{
   /*! block size for allocated string arrays */
   STRARRAY_BLOCKSIZE = 64
 };
@@ -62,7 +63,8 @@ enum {
  * Macro to statically initialize a string array
  * @param str string array representation
  */
-#define STRARRAY_INIT(str) { .value = (str), .length = sizeof(str) }
+#define STRARRAY_INIT(str)                                                                                             \
+  { .value = (str), .length = sizeof(str) }
 
 /**
  * Represents a string or an array of strings
@@ -85,19 +87,19 @@ struct strarray {
  * Constant value variant of strarray
  */
 struct const_strarray {
-    /*! pointer to the first string */
+  /*! pointer to the first string */
   const char *value;
 
   /*! total length of all strings including zero-bytes */
   size_t length;
 };
 
-EXPORT char *strscpy (char *dest, const char *src, size_t size);
-EXPORT char *strscat (char *dest, const char *src, size_t size);
-EXPORT char *str_trim (char *ptr);
-EXPORT const char *str_hasnextword (const char *buffer, const char *word);
-EXPORT const char *str_cpynextword (char *dst, const char *buffer, size_t len);
-EXPORT const char *str_skipnextword (const char *src);
+EXPORT char *strscpy(char *dest, const char *src, size_t size);
+EXPORT char *strscat(char *dest, const char *src, size_t size);
+EXPORT char *str_trim(char *ptr);
+EXPORT const char *str_hasnextword(const char *buffer, const char *word);
+EXPORT const char *str_cpynextword(char *dst, const char *buffer, size_t len);
+EXPORT const char *str_skipnextword(const char *src);
 EXPORT size_t str_countwords(const char *src);
 
 EXPORT bool str_is_printable(const char *value);
@@ -118,7 +120,7 @@ EXPORT int strarray_cmp(const struct strarray *a1, const struct strarray *a2);
  */
 static INLINE bool
 str_char_is_printable(char c) {
-  unsigned char uc = (unsigned char) c;
+  unsigned char uc = (unsigned char)c;
   return !(uc < 32 || uc == 127 || uc == 255);
 }
 
@@ -156,7 +158,7 @@ str_endswith(const char *string, const char *pattern) {
   s_len = strlen(string);
   p_len = strlen(pattern);
 
-  return s_len > p_len && strcmp(&string[s_len-p_len], pattern) == 0;
+  return s_len > p_len && strcmp(&string[s_len - p_len], pattern) == 0;
 }
 
 /**
@@ -173,7 +175,7 @@ str_endswith_nocase(const char *string, const char *pattern) {
   s_len = strlen(string);
   p_len = strlen(pattern);
 
-  return s_len > p_len && strcasecmp(&string[s_len-p_len], pattern) == 0;
+  return s_len > p_len && strcasecmp(&string[s_len - p_len], pattern) == 0;
 }
 
 /**
@@ -206,7 +208,6 @@ static INLINE size_t
 strarray_get_count_c(const struct const_strarray *array) {
   return strarray_get_count((const struct strarray *)array);
 }
-
 
 /**
  * Initialize string array object
@@ -319,8 +320,7 @@ strarray_get_next_safe(const struct strarray *array, char *current) {
  *   NULL if there is no further string
  */
 static INLINE const char *
-strarray_get_next_safe_c(const struct const_strarray *array,
-    const char *current) {
+strarray_get_next_safe_c(const struct const_strarray *array, const char *current) {
   const char *next;
 
   next = current + strlen(current) + 1;
@@ -349,6 +349,8 @@ strarray_cmp_c(const struct const_strarray *a1, const struct const_strarray *a2)
  * @param array pointer to strarray object
  * @param charptr pointer to loop variable
  */
-#define strarray_for_each_element(array, charptr) for (charptr = (array)->value; charptr != NULL && (size_t)charptr < (size_t)(array)->value + (array)->length; charptr += strlen(charptr) + 1)
+#define strarray_for_each_element(array, charptr)                                                                      \
+  for (charptr = (array)->value; charptr != NULL && (size_t)charptr < (size_t)(array)->value + (array)->length;        \
+       charptr += strlen(charptr) + 1)
 
 #endif

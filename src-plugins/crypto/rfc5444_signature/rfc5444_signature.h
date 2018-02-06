@@ -46,13 +46,14 @@
 #ifndef RFC5444_SIGNATURE_H_
 #define RFC5444_SIGNATURE_H_
 
-#include "common/common_types.h"
 #include "common/avl.h"
-#include "subsystems/rfc5444/rfc5444_writer.h"
-#include "subsystems/oonf_rfc5444.h"
+#include "common/common_types.h"
 #include "rfc7182_provider/rfc7182_provider.h"
+#include "subsystems/oonf_rfc5444.h"
+#include "subsystems/rfc5444/rfc5444_writer.h"
 
-enum {
+enum
+{
   RFC5444_SIG_MAX_HASHSIZE = RFC5444_MAX_PACKET_SIZE,
   RFC5444_SIG_MAX_CRYPTSIZE = RFC5444_MAX_PACKET_SIZE,
 };
@@ -62,16 +63,17 @@ enum {
  */
 struct rfc5444_signature_key {
   /*! hash function id */
-  uint8_t  hash_function;
+  uint8_t hash_function;
 
   /*! crypto function id */
-  uint8_t  crypt_function;
+  uint8_t crypt_function;
 };
 
 /**
  * results for signature id check
  */
-enum rfc5444_sigid_check {
+enum rfc5444_sigid_check
+{
   /*! signature id is okay */
   RFC5444_SIGID_OKAY,
 
@@ -99,8 +101,7 @@ struct rfc5444_signature {
    * @param len length of key id
    * @return okay, ignore or drop
    */
-  enum rfc5444_sigid_check (*verify_id)(
-      struct rfc5444_signature *sig, const void *id, size_t len);
+  enum rfc5444_sigid_check (*verify_id)(struct rfc5444_signature *sig, const void *id, size_t len);
 
   /**
    * checks if signature applies to a message/packet

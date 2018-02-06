@@ -83,18 +83,14 @@ static void _cleanup(void);
 static void _cb_cfg_olsrv2_lan_changed(void);
 
 static struct cfg_schema_entry _olsrv2_lan_entries[] = {
-  CFG_MAP_NETADDR_V46(_lan_data, prefix.dst, "prefix", "",
-      "locally attached network prefix", true, false),
-  CFG_MAP_INT32_MINMAX(_lan_data, extension, "domain", "-1",
-      "domain for this LAN entry, -1 for all domains",
-      0, -1, 255),
-  CFG_MAP_NETADDR_V6(_lan_data, prefix.src, "source_prefix", "-",
-      "source prefix for lan (source specific routing)", true, true),
-  CFG_MAP_INT32_MINMAX(_lan_data, metric, "metric", "2",
-      "metric value for this LAN entry",
-      0, RFC7181_METRIC_MIN, RFC7181_METRIC_MAX),
-  CFG_MAP_INT32_MINMAX(_lan_data, distance, "distance", "1",
-      "routing table distance for this LAN entry", 0, 1, 255),
+  CFG_MAP_NETADDR_V46(_lan_data, prefix.dst, "prefix", "", "locally attached network prefix", true, false),
+  CFG_MAP_INT32_MINMAX(
+    _lan_data, extension, "domain", "-1", "domain for this LAN entry, -1 for all domains", 0, -1, 255),
+  CFG_MAP_NETADDR_V6(
+    _lan_data, prefix.src, "source_prefix", "-", "source prefix for lan (source specific routing)", true, true),
+  CFG_MAP_INT32_MINMAX(
+    _lan_data, metric, "metric", "2", "metric value for this LAN entry", 0, RFC7181_METRIC_MIN, RFC7181_METRIC_MAX),
+  CFG_MAP_INT32_MINMAX(_lan_data, distance, "distance", "1", "routing table distance for this LAN entry", 0, 1, 255),
 };
 
 static struct cfg_schema_section _olsrv2_lan_section = {
@@ -189,24 +185,19 @@ _cb_cfg_olsrv2_lan_changed(void) {
   struct _lan_data data;
 
   if (_olsrv2_lan_section.pre) {
-    if (cfg_schema_tobin(&data, _olsrv2_lan_section.pre,
-        _olsrv2_lan_entries, ARRAYSIZE(_olsrv2_lan_entries))) {
-      OONF_WARN(LOG_OLSRV2_LAN, "Could not convert section %s to binary",
-          _olsrv2_lan_section.type);
+    if (cfg_schema_tobin(&data, _olsrv2_lan_section.pre, _olsrv2_lan_entries, ARRAYSIZE(_olsrv2_lan_entries))) {
+      OONF_WARN(LOG_OLSRV2_LAN, "Could not convert section %s to binary", _olsrv2_lan_section.type);
       return;
     }
 
     _apply_lan_data(&data, false);
   }
   if (_olsrv2_lan_section.post) {
-    if (cfg_schema_tobin(&data, _olsrv2_lan_section.post,
-        _olsrv2_lan_entries, ARRAYSIZE(_olsrv2_lan_entries))) {
-      OONF_WARN(LOG_OLSRV2_LAN, "Could not convert section %s to binary",
-          _olsrv2_lan_section.type);
+    if (cfg_schema_tobin(&data, _olsrv2_lan_section.post, _olsrv2_lan_entries, ARRAYSIZE(_olsrv2_lan_entries))) {
+      OONF_WARN(LOG_OLSRV2_LAN, "Could not convert section %s to binary", _olsrv2_lan_section.type);
       return;
     }
 
     _apply_lan_data(&data, true);
   }
 }
-

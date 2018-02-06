@@ -71,19 +71,19 @@
 #include <sys/socket.h>
 
 /* and now the rest of the includes */
-#include <linux/types.h>
-#include <linux/netlink.h>
-#include <linux/genetlink.h>
 #include "nl80211.h"
+#include <linux/genetlink.h>
+#include <linux/netlink.h>
+#include <linux/types.h>
 #include <netlink/attr.h>
-#include <netlink/msg.h>
 #include <netlink/genl/genl.h>
+#include <netlink/msg.h>
 
 #include "common/common_types.h"
 #include "subsystems/os_system.h"
 
-#include "nl80211_listener/nl80211_listener.h"
 #include "nl80211_listener/nl80211_get_survey.h"
+#include "nl80211_listener/nl80211_listener.h"
 
 /**
  * Send a netlink message to get the nl80211 survey dump
@@ -93,16 +93,15 @@
  * @param interf nl80211 listener interface
  */
 void
-nl80211_send_get_survey(struct os_system_netlink *nl, struct nlmsghdr *nl_msg,
-    struct genlmsghdr *hdr, struct nl80211_if *interf) {
+nl80211_send_get_survey(
+  struct os_system_netlink *nl, struct nlmsghdr *nl_msg, struct genlmsghdr *hdr, struct nl80211_if *interf) {
   int if_index = nl80211_get_if_baseindex(interf);
 
   hdr->cmd = NL80211_CMD_GET_SURVEY;
   nl_msg->nlmsg_flags |= NLM_F_DUMP;
 
   /* add interface index to the request */
-  os_system_linux_netlink_addreq(nl, nl_msg, NL80211_ATTR_IFINDEX,
-      &if_index, sizeof(if_index));
+  os_system_linux_netlink_addreq(nl, nl_msg, NL80211_ATTR_IFINDEX, &if_index, sizeof(if_index));
 }
 
 /**
@@ -123,8 +122,7 @@ nl80211_process_get_survey_result(struct nl80211_if *interf, struct nlmsghdr *hd
 
   gnlh = nlmsg_data(hdr);
 
-  nla_parse(tb, NL80211_ATTR_MAX, genlmsg_attrdata(gnlh, 0),
-      genlmsg_attrlen(gnlh, 0), NULL);
+  nla_parse(tb, NL80211_ATTR_MAX, genlmsg_attrdata(gnlh, 0), genlmsg_attrlen(gnlh, 0), NULL);
 
   if (nl80211_get_if_baseindex(interf) != nla_get_u32(tb[NL80211_ATTR_IFINDEX])) {
     /* wrong interface ? */
@@ -136,9 +134,7 @@ nl80211_process_get_survey_result(struct nl80211_if *interf, struct nlmsghdr *hd
     return;
   }
 
-  if (nla_parse_nested(sinfo, NL80211_SURVEY_INFO_MAX,
-           tb[NL80211_ATTR_SURVEY_INFO],
-           survey_policy)) {
+  if (nla_parse_nested(sinfo, NL80211_SURVEY_INFO_MAX, tb[NL80211_ATTR_SURVEY_INFO], survey_policy)) {
     /* no nested survey data */
     return;
   }
@@ -150,19 +146,16 @@ nl80211_process_get_survey_result(struct nl80211_if *interf, struct nlmsghdr *hd
 
   if (sinfo[NL80211_SURVEY_INFO_NOISE]) {
     interf->ifdata_changed |= nl80211_change_l2net_data(
-        interf->l2net, OONF_LAYER2_NET_NOISE,
-        1000ll * (int8_t)nla_get_u8(sinfo[NL80211_SURVEY_INFO_NOISE]));
+      interf->l2net, OONF_LAYER2_NET_NOISE, 1000ll * (int8_t)nla_get_u8(sinfo[NL80211_SURVEY_INFO_NOISE]));
   }
 
   if (sinfo[NL80211_SURVEY_INFO_CHANNEL_TIME]) {
-    interf->ifdata_changed |= nl80211_change_l2net_data(
-        interf->l2net, OONF_LAYER2_NET_CHANNEL_ACTIVE,
-        1000000ll * (int64_t)nla_get_u64(sinfo[NL80211_SURVEY_INFO_CHANNEL_TIME]));
+    interf->ifdata_changed |= nl80211_change_l2net_data(interf->l2net, OONF_LAYER2_NET_CHANNEL_ACTIVE,
+      1000000ll * (int64_t)nla_get_u64(sinfo[NL80211_SURVEY_INFO_CHANNEL_TIME]));
   }
   if (sinfo[NL80211_SURVEY_INFO_CHANNEL_TIME_BUSY]) {
-    interf->ifdata_changed |= nl80211_change_l2net_data(
-        interf->l2net, OONF_LAYER2_NET_CHANNEL_BUSY,
-            1000000ll * (int64_t)nla_get_u64(sinfo[NL80211_SURVEY_INFO_CHANNEL_TIME_BUSY]));
+    interf->ifdata_changed |= nl80211_change_l2net_data(interf->l2net, OONF_LAYER2_NET_CHANNEL_BUSY,
+      1000000ll * (int64_t)nla_get_u64(sinfo[NL80211_SURVEY_INFO_CHANNEL_TIME_BUSY]));
   }
 #if 0
   /* I have no clue what this is */
@@ -173,13 +166,11 @@ nl80211_process_get_survey_result(struct nl80211_if *interf, struct nlmsghdr *hd
   }
 #endif
   if (sinfo[NL80211_SURVEY_INFO_CHANNEL_TIME_RX]) {
-    interf->ifdata_changed |= nl80211_change_l2net_data(
-        interf->l2net, OONF_LAYER2_NET_CHANNEL_RX,
-            1000000ll * (int64_t)nla_get_u64(sinfo[NL80211_SURVEY_INFO_CHANNEL_TIME_RX]));
+    interf->ifdata_changed |= nl80211_change_l2net_data(interf->l2net, OONF_LAYER2_NET_CHANNEL_RX,
+      1000000ll * (int64_t)nla_get_u64(sinfo[NL80211_SURVEY_INFO_CHANNEL_TIME_RX]));
   }
   if (sinfo[NL80211_SURVEY_INFO_CHANNEL_TIME_TX]) {
-    interf->ifdata_changed |= nl80211_change_l2net_data(
-        interf->l2net, OONF_LAYER2_NET_CHANNEL_TX,
-            1000000ll * (int64_t)nla_get_u64(sinfo[NL80211_SURVEY_INFO_CHANNEL_TIME_TX]));
+    interf->ifdata_changed |= nl80211_change_l2net_data(interf->l2net, OONF_LAYER2_NET_CHANNEL_TX,
+      1000000ll * (int64_t)nla_get_u64(sinfo[NL80211_SURVEY_INFO_CHANNEL_TIME_TX]));
   }
 }

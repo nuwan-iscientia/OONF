@@ -59,7 +59,7 @@
 #define OONF_OS_INTERFACE_SUBSYSTEM "os_interface"
 
 /*! interface configuration section name */
-#define CFG_OSIF_SCHEMA_INTERFACE_SECTION_INIT      .type = "interface", .mode = CFG_SSMODE_NAMED
+#define CFG_OSIF_SCHEMA_INTERFACE_SECTION_INIT .type = "interface", .mode = CFG_SSMODE_NAMED
 
 /* include os-specific headers */
 #if defined(__linux__)
@@ -258,14 +258,12 @@ static INLINE int os_interface_mac_set(struct os_interface *interf, struct netad
 static INLINE int os_interface_address_set(struct os_interface_ip_change *addr);
 static INLINE void os_interface_address_interrupt(struct os_interface_ip_change *addr);
 
-static INLINE struct os_interface *os_interface_get_data_by_ifindex(
-    unsigned ifindex);
-static INLINE  struct os_interface *os_interface_get_data_by_ifbaseindex(
-    unsigned ifindex);
-static INLINE  const struct netaddr *os_interface_get_bindaddress(int af_type,
-    struct netaddr_acl *filter, struct os_interface *ifdata);
-static INLINE  const struct os_interface_ip *os_interface_get_prefix_from_dst(
-    struct netaddr *destination, struct os_interface *ifdata);
+static INLINE struct os_interface *os_interface_get_data_by_ifindex(unsigned ifindex);
+static INLINE struct os_interface *os_interface_get_data_by_ifbaseindex(unsigned ifindex);
+static INLINE const struct netaddr *os_interface_get_bindaddress(
+  int af_type, struct netaddr_acl *filter, struct os_interface *ifdata);
+static INLINE const struct os_interface_ip *os_interface_get_prefix_from_dst(
+  struct netaddr *destination, struct os_interface *ifdata);
 
 /**
  * @param ifname name of an interface

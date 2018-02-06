@@ -43,22 +43,22 @@
  * @file
  */
 
-#include <unistd.h>
 #include <assert.h>
+#include <errno.h>
 #include <stdlib.h>
 #include <string.h>
-#include <errno.h>
+#include <unistd.h>
 
 #include "common/avl.h"
 #include "common/avl_comp.h"
-#include "subsystems/oonf_clock.h"
 #include "core/oonf_logging.h"
 #include "core/oonf_main.h"
 #include "core/oonf_subsystem.h"
-#include "subsystems/oonf_timer.h"
-#include "subsystems/os_fd.h"
-#include "subsystems/os_clock.h"
+#include "subsystems/oonf_clock.h"
 #include "subsystems/oonf_socket.h"
+#include "subsystems/oonf_timer.h"
+#include "subsystems/os_clock.h"
+#include "subsystems/os_fd.h"
 
 /* Definitions */
 #define LOG_SOCKET _oonf_socket_subsystem.logging
@@ -118,8 +118,7 @@ _init(void) {
  * This will close and free all sockets.
  */
 static void
-_cleanup(void)
-{
+_cleanup(void) {
   struct oonf_socket_entry *entry, *iterator;
 
   list_for_each_element_safe(&_socket_head, entry, _node, iterator) {
@@ -143,13 +142,11 @@ _initiate_shutdown(void) {
  * @param entry pointer to initialized socket entry
  */
 void
-oonf_socket_add(struct oonf_socket_entry *entry)
-{
-  OONF_DEBUG(LOG_SOCKET, "Adding socket entry %d to scheduler\n",
-      os_fd_get_fd(&entry->fd));
+oonf_socket_add(struct oonf_socket_entry *entry) {
+  OONF_DEBUG(LOG_SOCKET, "Adding socket entry %d to scheduler\n", os_fd_get_fd(&entry->fd));
 
-  assert (entry->name);
-  assert (entry->name[0]);
+  assert(entry->name);
+  assert(entry->name[0]);
 
   list_add_before(&_socket_head, &entry->_node);
   os_fd_event_socket_add(&_socket_events, &entry->fd);
@@ -160,11 +157,9 @@ oonf_socket_add(struct oonf_socket_entry *entry)
  * @param entry pointer to socket entry
  */
 void
-oonf_socket_remove(struct oonf_socket_entry *entry)
-{
+oonf_socket_remove(struct oonf_socket_entry *entry) {
   if (list_is_node_added(&entry->_node)) {
-    OONF_DEBUG(LOG_SOCKET, "Removing socket entry %d\n",
-        os_fd_get_fd(&entry->fd));
+    OONF_DEBUG(LOG_SOCKET, "Removing socket entry %d\n", os_fd_get_fd(&entry->fd));
 
     list_remove(&entry->_node);
     os_fd_event_socket_remove(&_socket_events, &entry->fd);
@@ -210,8 +205,7 @@ _shall_end_scheduler(void) {
  * @return -1 if an error happened, 0 otherwise
  */
 int
-_handle_scheduling(void)
-{
+_handle_scheduling(void) {
   struct oonf_socket_entry *sock_entry = NULL;
   struct os_fd *sock;
   uint64_t next_event;
@@ -251,10 +245,10 @@ _handle_scheduling(void)
       n = os_fd_event_wait(&_socket_events);
     } while (n == -1 && errno == EINTR);
 
-    if (n == 0) {               /* timeout! */
+    if (n == 0) { /* timeout! */
       return 0;
     }
-    if (n < 0) {              /* Did something go wrong? */
+    if (n < 0) { /* Did something go wrong? */
       OONF_WARN(LOG_SOCKET, "select error: %s (%d)", strerror(errno), errno);
       return -1;
     }
@@ -266,21 +260,18 @@ _handle_scheduling(void)
 
     OONF_DEBUG(LOG_SOCKET, "Got %d events", n);
 
-    for (i=0; i<n; i++) {
+    for (i = 0; i < n; i++) {
       sock = os_fd_event_get(&_socket_events, i);
 
-      if (os_fd_event_is_read(sock)
-          || os_fd_event_is_write(sock)) {
+      if (os_fd_event_is_read(sock) || os_fd_event_is_write(sock)) {
         sock_entry = container_of(sock, typeof(*sock_entry), fd);
         if (sock_entry->process == NULL) {
           continue;
         }
 
-        OONF_DEBUG(LOG_SOCKET, "Socket '%s' (%d) triggered (read=%s, write=%s)",
-            sock_entry->name,
-            os_fd_get_fd(&sock_entry->fd),
-            os_fd_event_is_read(sock) ? "true" : "false",
-                os_fd_event_is_write(sock) ? "true" : "false");
+        OONF_DEBUG(LOG_SOCKET, "Socket '%s' (%d) triggered (read=%s, write=%s)", sock_entry->name,
+          os_fd_get_fd(&sock_entry->fd), os_fd_event_is_read(sock) ? "true" : "false",
+          os_fd_event_is_write(sock) ? "true" : "false");
 
         /* handle statistics */
         if (os_fd_event_is_read(sock)) {
@@ -294,9 +285,8 @@ _handle_scheduling(void)
         os_clock_gettime64(&end_time);
 
         if (end_time - start_time > OONF_TIMER_SLICE) {
-          OONF_WARN(LOG_SOCKET, "Socket '%s' (%d) scheduling took %"PRIu64" ms",
-              sock_entry->name,
-              os_fd_get_fd(&sock_entry->fd), end_time - start_time);
+          OONF_WARN(LOG_SOCKET, "Socket '%s' (%d) scheduling took %" PRIu64 " ms", sock_entry->name,
+            os_fd_get_fd(&sock_entry->fd), end_time - start_time);
           sock_entry->_stat_long++;
         }
       }

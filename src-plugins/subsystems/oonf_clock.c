@@ -52,8 +52,8 @@
 #include "common/common_types.h"
 #include "common/isonumber.h"
 
-#include "config/cfg_schema.h"
 #include "config/cfg.h"
+#include "config/cfg_schema.h"
 
 #include "core/oonf_logging.h"
 #include "core/oonf_subsystem.h"
@@ -107,8 +107,7 @@ _init(void) {
  * @return -1 if an error happened, 0 otherwise
  */
 int
-oonf_clock_update(void)
-{
+oonf_clock_update(void) {
   uint64_t now;
   if (os_clock_gettime64(&now)) {
     OONF_WARN(LOG_CLOCK, "OS clock is not working: %s (%d)\n", strerror(errno), errno);
@@ -137,14 +136,12 @@ oonf_clock_getNow(void) {
  * @return buffer to a formatted system time string.
  */
 const char *
-oonf_clock_toClockString(struct isonumber_str *buf, uint64_t clk)
-{
+oonf_clock_toClockString(struct isonumber_str *buf, uint64_t clk) {
   uint64_t msec = clk % MSEC_PER_SEC;
   uint64_t sec = clk / MSEC_PER_SEC;
 
-  snprintf(buf->buf, sizeof(*buf),
-      "%"PRIu64":%02"PRIu64":%02"PRIu64".%03"PRIu64"",
-      sec / 3600, (sec % 3600) / 60, (sec % 60), msec);
+  snprintf(buf->buf, sizeof(*buf), "%" PRIu64 ":%02" PRIu64 ":%02" PRIu64 ".%03" PRIu64 "", sec / 3600,
+    (sec % 3600) / 60, (sec % 60), msec);
 
   return buf->buf;
 }

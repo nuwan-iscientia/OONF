@@ -49,10 +49,10 @@
 #include <sys/socket.h>
 
 /* and now the rest of the includes */
-#include <linux/types.h>
-#include <linux/netlink.h>
-#include <linux/genetlink.h>
 #include "nl80211.h"
+#include <linux/genetlink.h>
+#include <linux/netlink.h>
+#include <linux/types.h>
 #include <netlink/attr.h>
 #include <netlink/msg.h>
 #include <sys/uio.h>
@@ -110,27 +110,28 @@ struct _nl80211_query {
    * @param hdr generic message header
    * @param interf netlink interface
    */
-  void (* send)(struct os_system_netlink *nl, struct nlmsghdr *nl_msg,
-      struct genlmsghdr *hdr, struct nl80211_if *interf);
+  void (*send)(
+    struct os_system_netlink *nl, struct nlmsghdr *nl_msg, struct genlmsghdr *hdr, struct nl80211_if *interf);
 
   /**
    * Callback to process incoming netlink data
    * @param interf netlink interface
    * @param hdr netlink message header
    */
-  void (* process)(struct nl80211_if *interf, struct nlmsghdr *hdr);
+  void (*process)(struct nl80211_if *interf, struct nlmsghdr *hdr);
 
   /**
    * Finalize the processing of the netlink query
    * @param interf netlink interface
    */
-  void (* finalize)(struct nl80211_if *interf);
+  void (*finalize)(struct nl80211_if *interf);
 };
 
 /**
  * Index number for nl80211 configuration entries
  */
-enum _nl80211_cfg_idx {
+enum _nl80211_cfg_idx
+{
   IDX_INTERVAL,
   IDX_INTERFACES,
   IDX_MC_RATE,
@@ -139,18 +140,19 @@ enum _nl80211_cfg_idx {
 /**
  * index numbers for netlink queries done by listener
  */
-enum _if_query {
-  QUERY_START       = 0,//!< QUERY_START
-  QUERY_GET_IF      = 0,//!< QUERY_GET_IF
-  QUERY_GET_WIPHY   = 1,//!< QUERY_GET_WIPHY
-  QUERY_GET_SURVEY  = 2,//!< QUERY_GET_SURVEY
-  QUERY_GET_MPP     = 3,//!< QUERY_GET_MPP
-  QUERY_GET_STATION = 4,//!< QUERY_GET_STATION
-  QUERY_END         = 5,//!< QUERY_END
+enum _if_query
+{
+  QUERY_START = 0,       //!< QUERY_START
+  QUERY_GET_IF = 0,      //!< QUERY_GET_IF
+  QUERY_GET_WIPHY = 1,   //!< QUERY_GET_WIPHY
+  QUERY_GET_SURVEY = 2,  //!< QUERY_GET_SURVEY
+  QUERY_GET_MPP = 3,     //!< QUERY_GET_MPP
+  QUERY_GET_STATION = 4, //!< QUERY_GET_STATION
+  QUERY_END = 5,         //!< QUERY_END
 
-  QUERY_GET_FAMILY  = 6,//!< QUERY_GET_FAMILY
+  QUERY_GET_FAMILY = 6, //!< QUERY_GET_FAMILY
 
-  QUERY_COUNT,          //!< QUERY_COUNT
+  QUERY_COUNT, //!< QUERY_COUNT
 };
 
 /* prototypes */
@@ -173,7 +175,6 @@ static void _cb_nl_error(uint32_t seq, int error);
 static void _cb_nl_timeout(void);
 static void _cb_nl_done(uint32_t seq);
 
-
 /* configuration */
 static struct cfg_schema_section _if_section = {
   CFG_OSIF_SCHEMA_INTERFACE_SECTION_INIT,
@@ -184,13 +185,12 @@ static struct cfg_schema_section _if_section = {
 };
 
 static struct cfg_schema_entry _nl80211_entries[] = {
-  [IDX_INTERVAL] = CFG_MAP_CLOCK_MIN(_nl80211_config, interval, "interval", "1.0",
-      "Interval between two linklayer information updates", 100),
-  [IDX_INTERFACES] = CFG_VALIDATE_PRINTABLE_LEN("if", "",
-      "List of additional interfaces to read nl80211 data from",
-      IF_NAMESIZE, .list=true),
+  [IDX_INTERVAL] = CFG_MAP_CLOCK_MIN(
+    _nl80211_config, interval, "interval", "1.0", "Interval between two linklayer information updates", 100),
+  [IDX_INTERFACES] = CFG_VALIDATE_PRINTABLE_LEN(
+    "if", "", "List of additional interfaces to read nl80211 data from", IF_NAMESIZE, .list = true),
   [IDX_MC_RATE] = CFG_MAP_BOOL(_nl80211_config, report_multicast_rate, "report_mc_rate", "false",
-      "Activate to write the multicast/broadcast speed into the layer2 database"),
+    "Activate to write the multicast/broadcast speed into the layer2 database"),
 };
 
 static struct cfg_schema_section _nl80211_section = {
@@ -240,7 +240,7 @@ static struct os_system_netlink _netlink_handler = {
 };
 
 /* buffer for outgoing netlink message */
-static uint32_t _nl_msgbuffer[UIO_MAXIOV/4];
+static uint32_t _nl_msgbuffer[UIO_MAXIOV / 4];
 static struct nlmsghdr *_nl_msg = (void *)_nl_msgbuffer;
 
 /* netlink nl80211 identification */
@@ -271,9 +271,7 @@ static struct oonf_timer_class _transmission_timer_info = {
   .periodic = true,
 };
 
-static struct oonf_timer_instance _transmission_timer = {
-  .class = &_transmission_timer_info
-};
+static struct oonf_timer_instance _transmission_timer = { .class = &_transmission_timer_info };
 
 /* nl80211_if handling */
 static struct avl_tree _nl80211_if_tree;
@@ -283,27 +281,41 @@ static struct oonf_class _nl80211_if_class = {
   .size = sizeof(struct nl80211_if),
 };
 
-static const struct _nl80211_query _if_query_ops[QUERY_COUNT] =
-{
-    [QUERY_GET_IF] = {
-        NL80211_CMD_NEW_INTERFACE,
-        nl80211_send_get_interface, nl80211_process_get_interface_result, NULL,
+static const struct _nl80211_query _if_query_ops[QUERY_COUNT] = {
+  [QUERY_GET_IF] =
+    {
+      NL80211_CMD_NEW_INTERFACE,
+      nl80211_send_get_interface,
+      nl80211_process_get_interface_result,
+      NULL,
     },
-    [QUERY_GET_WIPHY] = {
-        NL80211_CMD_NEW_WIPHY,
-        nl80211_send_get_wiphy, nl80211_process_get_wiphy_result, nl80211_finalize_get_wiphy,
+  [QUERY_GET_WIPHY] =
+    {
+      NL80211_CMD_NEW_WIPHY,
+      nl80211_send_get_wiphy,
+      nl80211_process_get_wiphy_result,
+      nl80211_finalize_get_wiphy,
     },
-    [QUERY_GET_SURVEY] = {
-        NL80211_CMD_NEW_SURVEY_RESULTS,
-        nl80211_send_get_survey, nl80211_process_get_survey_result, NULL,
+  [QUERY_GET_SURVEY] =
+    {
+      NL80211_CMD_NEW_SURVEY_RESULTS,
+      nl80211_send_get_survey,
+      nl80211_process_get_survey_result,
+      NULL,
     },
-    [QUERY_GET_MPP] = {
-        NL80211_CMD_NEW_MPATH,
-        nl80211_send_get_mpp, nl80211_process_get_mpp_result, NULL,
+  [QUERY_GET_MPP] =
+    {
+      NL80211_CMD_NEW_MPATH,
+      nl80211_send_get_mpp,
+      nl80211_process_get_mpp_result,
+      NULL,
     },
-    [QUERY_GET_STATION] = {
-        NL80211_CMD_NEW_STATION,
-        nl80211_send_get_station_dump, nl80211_process_get_station_dump_result, NULL,
+  [QUERY_GET_STATION] =
+    {
+      NL80211_CMD_NEW_STATION,
+      nl80211_send_get_station_dump,
+      nl80211_process_get_station_dump_result,
+      NULL,
     },
 };
 
@@ -376,8 +388,7 @@ nl80211_add_dst(struct oonf_layer2_neigh *l2neigh, const struct netaddr *dstmac)
  * @return true if value changed, false otherwise
  */
 bool
-nl80211_change_l2net_data(struct oonf_layer2_net *l2net,
-    enum oonf_layer2_network_index idx, uint64_t value) {
+nl80211_change_l2net_data(struct oonf_layer2_net *l2net, enum oonf_layer2_network_index idx, uint64_t value) {
   return oonf_layer2_data_set_int64(&l2net->data[idx], &_layer2_updated_origin, value);
 }
 
@@ -389,8 +400,8 @@ nl80211_change_l2net_data(struct oonf_layer2_net *l2net,
  * @return true if value changed, false otherwise
  */
 bool
-nl80211_change_l2net_neighbor_default(struct oonf_layer2_net *l2net,
-    enum oonf_layer2_neighbor_index idx, uint64_t value) {
+nl80211_change_l2net_neighbor_default(
+  struct oonf_layer2_net *l2net, enum oonf_layer2_neighbor_index idx, uint64_t value) {
   return oonf_layer2_data_set_int64(&l2net->neighdata[idx], &_layer2_updated_origin, value);
 }
 
@@ -412,8 +423,7 @@ nl80211_cleanup_l2neigh_data(struct oonf_layer2_neigh *l2neigh) {
  * @return true if value changed, false otherwise
  */
 bool
-nl80211_change_l2neigh_data(struct oonf_layer2_neigh *l2neigh,
-    enum oonf_layer2_neighbor_index idx, uint64_t value) {
+nl80211_change_l2neigh_data(struct oonf_layer2_neigh *l2neigh, enum oonf_layer2_neighbor_index idx, uint64_t value) {
   return oonf_layer2_data_set_int64(&l2neigh->data[idx], &_layer2_updated_origin, value);
 }
 
@@ -604,18 +614,17 @@ _get_next_query(void) {
       /* commit interface data */
       if (_current_query_if->ifdata_changed) {
         /* set fixed flags for nl80211 data */
-        oonf_layer2_data_set_bool(&_current_query_if->l2net->data[OONF_LAYER2_NET_MCS_BY_PROBING], &_layer2_updated_origin, true);
+        oonf_layer2_data_set_bool(
+          &_current_query_if->l2net->data[OONF_LAYER2_NET_MCS_BY_PROBING], &_layer2_updated_origin, true);
 
         /* cleanup old data and relable new one, then commit everything */
         oonf_layer2_net_cleanup(_current_query_if->l2net, &_layer2_data_origin, true);
-        oonf_layer2_net_relabel(_current_query_if->l2net,
-            &_layer2_data_origin, &_layer2_updated_origin);
+        oonf_layer2_net_relabel(_current_query_if->l2net, &_layer2_data_origin, &_layer2_updated_origin);
         oonf_layer2_net_commit(_current_query_if->l2net);
         _current_query_if->ifdata_changed = false;
       }
 
-      _current_query_if = avl_next_element_safe(
-          &_nl80211_if_tree, _current_query_if, _node);
+      _current_query_if = avl_next_element_safe(&_nl80211_if_tree, _current_query_if, _node);
       _current_query_number = QUERY_START;
     }
   }
@@ -652,10 +661,8 @@ _trigger_next_netlink_query(void) {
     return;
   }
 
-  OONF_INFO(LOG_NL80211, "Sending query %u to interface %s",
-      _current_query_number, _current_query_if->name);
-  _send_netlink_message(_current_query_if,
-      _current_query_number);
+  OONF_INFO(LOG_NL80211, "Sending query %u to interface %s", _current_query_number, _current_query_if->name);
+  _send_netlink_message(_current_query_if, _current_query_number);
 }
 
 /**
@@ -668,8 +675,7 @@ _cb_nl_message(struct nlmsghdr *hdr) {
 
   gen_hdr = NLMSG_DATA(hdr);
   if (hdr->nlmsg_type == GENL_ID_CTRL && gen_hdr->cmd == CTRL_CMD_NEWFAMILY) {
-    genl_process_get_family_result(hdr,
-        &_nl80211_id, &_nl80211_multicast_group);
+    genl_process_get_family_result(hdr, &_nl80211_id, &_nl80211_multicast_group);
     return;
   }
 
@@ -679,13 +685,11 @@ _cb_nl_message(struct nlmsghdr *hdr) {
   }
 
   if (gen_hdr->cmd != _if_query_ops[_current_query_number].cmd) {
-    OONF_INFO(LOG_NL80211, "Received Nl80211 command %u for query %u (should be %u)",
-        gen_hdr->cmd, _current_query_number,
-        _if_query_ops[_current_query_number].cmd);
+    OONF_INFO(LOG_NL80211, "Received Nl80211 command %u for query %u (should be %u)", gen_hdr->cmd,
+      _current_query_number, _if_query_ops[_current_query_number].cmd);
   }
   else if (_if_query_ops[_current_query_number].process) {
-    OONF_DEBUG(LOG_NL80211, "Received Nl80211 command %u for query %u",
-        gen_hdr->cmd, _current_query_number);
+    OONF_DEBUG(LOG_NL80211, "Received Nl80211 command %u for query %u", gen_hdr->cmd, _current_query_number);
     _if_query_ops[_current_query_number].process(_current_query_if, hdr);
   }
 }
@@ -741,10 +745,8 @@ _cb_config_changed(void) {
   struct nl80211_if *interf;
   const char *str;
 
-  if (cfg_schema_tobin(&_config, _nl80211_section.post,
-      _nl80211_entries, ARRAYSIZE(_nl80211_entries))) {
-    OONF_WARN(LOG_NL80211, "Could not convert "
-        OONF_NL80211_LISTENER_SUBSYSTEM " config to bin");
+  if (cfg_schema_tobin(&_config, _nl80211_section.post, _nl80211_entries, ARRAYSIZE(_nl80211_entries))) {
+    OONF_WARN(LOG_NL80211, "Could not convert " OONF_NL80211_LISTENER_SUBSYSTEM " config to bin");
     return;
   }
 
@@ -752,8 +754,7 @@ _cb_config_changed(void) {
   oonf_timer_set_ext(&_transmission_timer, 1, _config.interval);
 
   /* mark old interfaces for removal */
-  array = cfg_db_get_schema_entry_value(
-      _nl80211_section.pre, &_nl80211_entries[IDX_INTERFACES]);
+  array = cfg_db_get_schema_entry_value(_nl80211_section.pre, &_nl80211_entries[IDX_INTERFACES]);
   if (array && strarray_get_count_c(array) > 0) {
     strarray_for_each_element(array, str) {
       interf = _nl80211_if_get(str);
@@ -765,8 +766,7 @@ _cb_config_changed(void) {
   }
 
   /* create new interfaces and remove mark */
-  array = cfg_db_get_schema_entry_value(
-      _nl80211_section.post, &_nl80211_entries[IDX_INTERFACES]);
+  array = cfg_db_get_schema_entry_value(_nl80211_section.post, &_nl80211_entries[IDX_INTERFACES]);
   if (array && strarray_get_count_c(array) > 0) {
     strarray_for_each_element(array, str) {
       interf = _nl80211_if_add(str);
@@ -778,8 +778,7 @@ _cb_config_changed(void) {
     }
   }
 
-  array = cfg_db_get_schema_entry_value(
-      _nl80211_section.pre, &_nl80211_entries[IDX_INTERFACES]);
+  array = cfg_db_get_schema_entry_value(_nl80211_section.pre, &_nl80211_entries[IDX_INTERFACES]);
   if (array && strarray_get_count_c(array) > 0) {
     strarray_for_each_element(array, str) {
       interf = _nl80211_if_get(str);

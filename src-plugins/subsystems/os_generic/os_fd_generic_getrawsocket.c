@@ -50,9 +50,9 @@
 #include "common/netaddr.h"
 #include "core/oonf_logging.h"
 
-#include "subsystems/os_interface.h"
 #include "subsystems/os_fd.h"
 #include "subsystems/os_generic/os_fd_generic_getrawsocket.h"
+#include "subsystems/os_interface.h"
 
 /**
  * Creates a new raw socket and configures it
@@ -66,11 +66,8 @@
  * @return -1 if an error happened, 0 otherwise
  */
 int
-os_fd_generic_getrawsocket(struct os_fd *sock,
-    const union netaddr_socket *bind_to,
-    int protocol, size_t recvbuf, const struct os_interface *os_if,
-    enum oonf_log_source log_src __attribute__((unused))) {
-
+os_fd_generic_getrawsocket(struct os_fd *sock, const union netaddr_socket *bind_to, int protocol, size_t recvbuf,
+  const struct os_interface *os_if, enum oonf_log_source log_src __attribute__((unused))) {
   static const int zero = 0;
   int family;
 
@@ -82,7 +79,7 @@ os_fd_generic_getrawsocket(struct os_fd *sock,
   }
 
   if (family == AF_INET) {
-    if (setsockopt (sock->fd, IPPROTO_IP, IP_HDRINCL, &zero, sizeof(zero)) < 0) {
+    if (setsockopt(sock->fd, IPPROTO_IP, IP_HDRINCL, &zero, sizeof(zero)) < 0) {
       OONF_WARN(log_src, "Cannot disable IP_HDRINCL for socket: %s (%d)", strerror(errno), errno);
       os_fd_close(sock);
       return -1;

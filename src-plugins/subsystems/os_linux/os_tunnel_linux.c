@@ -45,21 +45,21 @@
 
 #define _LINUX_IP_H
 
-#include <sys/types.h>
-#include <sys/socket.h>
 #include <arpa/inet.h>
-#include <sys/ioctl.h>
+#include <errno.h>
+//#include <linux/if_tunnel.h>
+//#include <linux/ip.h>
+//#include <linux/ip6_tunnel.h>
 #include <net/if.h>
 #include <net/if_arp.h>
 #include <netinet/ip.h>
-#include <linux/ip.h>
-#include <linux/if_tunnel.h>
-#include <linux/ip6_tunnel.h>
-#include <errno.h>
+#include <sys/ioctl.h>
+#include <sys/socket.h>
+#include <sys/types.h>
 
-#include "common/common_types.h"
 #include "common/avl.h"
 #include "common/avl_comp.h"
+#include "common/common_types.h"
 #include "common/netaddr.h"
 #include "core/oonf_subsystem.h"
 #include "subsystems/os_system.h"
@@ -69,9 +69,25 @@
 #define LOG_OS_TUNNEL _oonf_os_tunnel_subsystem.logging
 
 /*
- * private copy of ip6_tnl_parm2 of linux kernel to be backward compatible
- * with older kernels
+ * private copy of linux tunnel definitions to prevent bad mixture of include files
  */
+
+#define SIOCADDTUNNEL (SIOCDEVPRIVATE + 1)
+#define SIOCDELTUNNEL (SIOCDEVPRIVATE + 2)
+
+#define IP6_TNL_F_USE_ORIG_TCLASS 0x2
+#define IP6_TNL_F_USE_ORIG_FLOWLABEL 0x4
+
+struct ip_tunnel_parm {
+  char name[IF_NAMESIZE];
+  int link;
+  uint16_t i_flags;
+  uint16_t o_flags;
+  uint32_t i_key;
+  uint32_t o_key;
+  struct iphdr iph;
+};
+
 struct my_ip6_tnl_parm2 {
   char name[IFNAMSIZ];
   int link;
@@ -83,10 +99,10 @@ struct my_ip6_tnl_parm2 {
   struct in6_addr laddr;
   struct in6_addr raddr;
 
-  uint16_t      i_flags;
-  uint16_t      o_flags;
-  uint32_t      i_key;
-  uint32_t      o_key;
+  uint16_t i_flags;
+  uint16_t o_flags;
+  uint32_t i_key;
+  uint32_t o_key;
 };
 
 /* prototypes */
@@ -99,7 +115,7 @@ static int _handle_tunnel(struct os_tunnel *tunnel, bool add);
 
 /* subsystem definition */
 static const char *_dependencies[] = {
-    OONF_OS_SYSTEM_SUBSYSTEM,
+  OONF_OS_SYSTEM_SUBSYSTEM,
 };
 
 static struct oonf_subsystem _oonf_os_tunnel_subsystem = {
@@ -111,7 +127,8 @@ static struct oonf_subsystem _oonf_os_tunnel_subsystem = {
 };
 DECLARE_OONF_PLUGIN(_oonf_os_tunnel_subsystem);
 
-enum _tunnel_if_type {
+enum _tunnel_if_type
+{
   _TUNNEL_IP_IN_IP,
   _TUNNEL_IP_IN_IP6,
   _TUNNEL_IP6_IN_IP,
@@ -214,11 +231,9 @@ _set_base_tunnel_up(enum _tunnel_if_type type) {
     memset(&ifr, 0, sizeof(ifr));
     strscpy(ifr.ifr_name, _tunnel_base_if[type], IF_NAMESIZE);
 
-    if (ioctl(os_system_linux_linux_get_ioctl_fd(AF_INET),
-        SIOCGIFFLAGS, &ifr) < 0) {
-      OONF_WARN(LOG_OS_TUNNEL,
-          "ioctl SIOCGIFFLAGS (get flags) error on device %s: %s (%d)\n",
-          _tunnel_base_if[type], strerror(errno), errno);
+    if (ioctl(os_system_linux_linux_get_ioctl_fd(AF_INET), SIOCGIFFLAGS, &ifr) < 0) {
+      OONF_WARN(LOG_OS_TUNNEL, "ioctl SIOCGIFFLAGS (get flags) error on device %s: %s (%d)\n", _tunnel_base_if[type],
+        strerror(errno), errno);
       return;
     }
 
@@ -230,11 +245,9 @@ _set_base_tunnel_up(enum _tunnel_if_type type) {
       return;
     }
 
-    if (ioctl(os_system_linux_linux_get_ioctl_fd(AF_INET),
-        SIOCSIFFLAGS, &ifr) < 0) {
-      OONF_WARN(LOG_OS_TUNNEL,
-          "ioctl SIOCSIFFLAGS (set flags up) error on device %s: %s (%d)\n",
-          _tunnel_base_if[type], strerror(errno), errno);
+    if (ioctl(os_system_linux_linux_get_ioctl_fd(AF_INET), SIOCSIFFLAGS, &ifr) < 0) {
+      OONF_WARN(LOG_OS_TUNNEL, "ioctl SIOCSIFFLAGS (set flags up) error on device %s: %s (%d)\n", _tunnel_base_if[type],
+        strerror(errno), errno);
       return;
     }
 
@@ -298,23 +311,20 @@ _handle_ipv4_tunnel(struct os_tunnel *tunnel, bool add) {
   netaddr_to_binary(&p.iph.saddr, &tunnel->p.local, sizeof(p.iph.saddr));
   netaddr_to_binary(&p.iph.daddr, &tunnel->p.remote, sizeof(p.iph.daddr));
 
-  err = ioctl(os_system_linux_linux_get_ioctl_fd(AF_INET),
-      add ? SIOCADDTUNNEL : SIOCDELTUNNEL, &ifr);
+  err = ioctl(os_system_linux_linux_get_ioctl_fd(AF_INET), add ? SIOCADDTUNNEL : SIOCDELTUNNEL, &ifr);
   if (err) {
     if (add && (errno == EEXIST)) {
       /* tunnel with this name already exists, try to remove it! */
-      err = ioctl(os_system_linux_linux_get_ioctl_fd(AF_INET),
-          SIOCDELTUNNEL, &ifr);
+      err = ioctl(os_system_linux_linux_get_ioctl_fd(AF_INET), SIOCDELTUNNEL, &ifr);
       if (err) {
-        OONF_WARN(LOG_OS_TUNNEL,
-            "Error while %s tunnel %s: tunnel already exists and could not be removed",
-            add ? "adding" : "removing", tunnel->p.tunnel_if);
+        OONF_WARN(LOG_OS_TUNNEL, "Error while %s tunnel %s: tunnel already exists and could not be removed",
+          add ? "adding" : "removing", tunnel->p.tunnel_if);
         return -1;
       }
       return _handle_ipv4_tunnel(tunnel, true);
     }
-    OONF_WARN(LOG_OS_TUNNEL, "Error while %s tunnel %s: %s (%d)",
-        add ? "adding" : "removing", tunnel->p.tunnel_if, strerror(errno), errno);
+    OONF_WARN(LOG_OS_TUNNEL, "Error while %s tunnel %s: %s (%d)", add ? "adding" : "removing", tunnel->p.tunnel_if,
+      strerror(errno), errno);
     return -1;
   }
 
@@ -363,7 +373,6 @@ _handle_ipv6_tunnel(struct os_tunnel *tunnel, bool add) {
       break;
     default:
       return -1;
-
   }
 
   /* set tunnel flags */
@@ -382,15 +391,11 @@ _handle_ipv6_tunnel(struct os_tunnel *tunnel, bool add) {
   netaddr_to_binary(&p.laddr, &tunnel->p.local, sizeof(p.laddr));
   netaddr_to_binary(&p.raddr, &tunnel->p.remote, sizeof(p.raddr));
 
-  err = ioctl(os_system_linux_linux_get_ioctl_fd(AF_INET6),
-      add ? SIOCADDTUNNEL : SIOCDELTUNNEL, &ifr);
+  err = ioctl(os_system_linux_linux_get_ioctl_fd(AF_INET6), add ? SIOCADDTUNNEL : SIOCDELTUNNEL, &ifr);
   if (err) {
-    OONF_WARN(LOG_OS_TUNNEL, "Error while %s tunnel %s (%d,%s,%s): %s (%d)",
-        add ? "add" : "remove", tunnel->p.tunnel_if,
-        tunnel->p.inner_type,
-        netaddr_to_string(&nbuf1, &tunnel->p.local),
-        netaddr_to_string(&nbuf2, &tunnel->p.remote),
-        strerror(errno), errno);
+    OONF_WARN(LOG_OS_TUNNEL, "Error while %s tunnel %s (%d,%s,%s): %s (%d)", add ? "add" : "remove",
+      tunnel->p.tunnel_if, tunnel->p.inner_type, netaddr_to_string(&nbuf1, &tunnel->p.local),
+      netaddr_to_string(&nbuf2, &tunnel->p.remote), strerror(errno), errno);
     return -1;
   }
 
@@ -413,11 +418,8 @@ _handle_tunnel(struct os_tunnel *tunnel, bool add) {
 
   af_type = netaddr_get_address_family(&tunnel->p.local);
   if (af_type != netaddr_get_address_family(&tunnel->p.remote)) {
-    OONF_WARN(LOG_OS_TUNNEL,
-        "Inconsistent tunnel endpoints for tunnel %s: local=%s remote=%s",
-        tunnel->p.tunnel_if,
-        netaddr_to_string(&nbuf1, &tunnel->p.local),
-        netaddr_to_string(&nbuf2, &tunnel->p.remote));
+    OONF_WARN(LOG_OS_TUNNEL, "Inconsistent tunnel endpoints for tunnel %s: local=%s remote=%s", tunnel->p.tunnel_if,
+      netaddr_to_string(&nbuf1, &tunnel->p.local), netaddr_to_string(&nbuf2, &tunnel->p.remote));
     return -1;
   }
 
@@ -427,8 +429,7 @@ _handle_tunnel(struct os_tunnel *tunnel, bool add) {
     case AF_INET6:
       return _handle_ipv6_tunnel(tunnel, add);
     default:
-      OONF_WARN(LOG_OS_TUNNEL, "Bad address family for tunnel %s: %u",
-          tunnel->p.tunnel_if, af_type);
+      OONF_WARN(LOG_OS_TUNNEL, "Bad address family for tunnel %s: %u", tunnel->p.tunnel_if, af_type);
       return -1;
   }
 }

@@ -49,9 +49,9 @@
 struct dlep_session;
 struct dlep_writer;
 
-#include "common/common_types.h"
-#include "common/avl.h"
 #include "common/autobuf.h"
+#include "common/avl.h"
+#include "common/common_types.h"
 #include "common/netaddr.h"
 #include "subsystems/oonf_layer2.h"
 #include "subsystems/oonf_stream_socket.h"
@@ -64,36 +64,37 @@ struct dlep_writer;
 /**
  * Return codes for DLEP parser
  */
-enum dlep_parser_error {
+enum dlep_parser_error
+{
   /*! parsing successful */
-  DLEP_NEW_PARSER_OKAY                  =  0,
+  DLEP_NEW_PARSER_OKAY = 0,
 
   /*! Signal terminates session, session is now invalid! */
-  DLEP_NEW_PARSER_TERMINDATED           = -1,
+  DLEP_NEW_PARSER_TERMINDATED = -1,
 
   /*! signal too short, incomplete TLV header */
   DLEP_NEW_PARSER_INCOMPLETE_TLV_HEADER = -2,
 
   /*! signal too short, incomplete TLV */
-  DLEP_NEW_PARSER_INCOMPLETE_TLV        = -3,
+  DLEP_NEW_PARSER_INCOMPLETE_TLV = -3,
 
   /*! TLV type is not supported by session */
-  DLEP_NEW_PARSER_UNSUPPORTED_TLV       = -4,
+  DLEP_NEW_PARSER_UNSUPPORTED_TLV = -4,
 
   /*! TLV length is not supported */
-  DLEP_NEW_PARSER_ILLEGAL_TLV_LENGTH    = -5,
+  DLEP_NEW_PARSER_ILLEGAL_TLV_LENGTH = -5,
 
   /*! mandatory TLV is missing */
   DLEP_NEW_PARSER_MISSING_MANDATORY_TLV = -6,
 
   /*! this TLV must not be used more than once */
-  DLEP_NEW_PARSER_DUPLICATE_TLV         = -7,
+  DLEP_NEW_PARSER_DUPLICATE_TLV = -7,
 
   /*! out of memory error */
-  DLEP_NEW_PARSER_OUT_OF_MEMORY         = -8,
+  DLEP_NEW_PARSER_OUT_OF_MEMORY = -8,
 
   /*! internal parser error, inconsistent data structures */
-  DLEP_NEW_PARSER_INTERNAL_ERROR        = -9,
+  DLEP_NEW_PARSER_INTERNAL_ERROR = -9,
 };
 
 /**
@@ -179,18 +180,19 @@ struct dlep_writer {
 /**
  * Status of a DLEP neighbor
  */
-enum dlep_neighbor_state {
+enum dlep_neighbor_state
+{
   /*! neighbor has not yet been used in session */
-  DLEP_NEIGHBOR_IDLE       = 0,
+  DLEP_NEIGHBOR_IDLE = 0,
 
   /*! a destination up has been sent */
-  DLEP_NEIGHBOR_UP_SENT    = 1,
+  DLEP_NEIGHBOR_UP_SENT = 1,
 
   /*! a destination up has been sent and acked */
-  DLEP_NEIGHBOR_UP_ACKED   = 2,
+  DLEP_NEIGHBOR_UP_ACKED = 2,
 
   /*! a destination down has been sent */
-  DLEP_NEIGHBOR_DOWN_SENT  = 3,
+  DLEP_NEIGHBOR_DOWN_SENT = 3,
 
   /*! a destination down has been sent and acked*/
   DLEP_NEIGHBOR_DOWN_ACKED = 4,
@@ -254,7 +256,8 @@ struct dlep_session_config {
 /**
  * Records the state of the peer regarding PEER UPDATE messages
  */
-enum dlep_peer_state {
+enum dlep_peer_state
+{
   DLEP_PEER_WAIT_FOR_INIT,
   DLEP_PEER_WAIT_FOR_UPDATE_ACK,
   DLEP_PEER_SEND_UPDATE,
@@ -300,8 +303,7 @@ struct dlep_session {
   void (*cb_end_session)(struct dlep_session *);
 
   /*! handle timeout for destination */
-  void (*cb_destination_timeout)(struct dlep_session *,
-      struct dlep_local_neighbor *);
+  void (*cb_destination_timeout)(struct dlep_session *, struct dlep_local_neighbor *);
 
   /*! log source for usage of this session */
   enum oonf_log_source log_source;
@@ -333,38 +335,25 @@ struct dlep_session {
 
 void dlep_session_init(void);
 
-int dlep_session_add(struct dlep_session *session,
-    const char *l2_ifname, const struct oonf_layer2_origin *l2_origin,
-    const struct oonf_layer2_origin *l2_default_origin,
-    struct autobuf *out, bool radio, enum oonf_log_source);
+int dlep_session_add(struct dlep_session *session, const char *l2_ifname, const struct oonf_layer2_origin *l2_origin,
+  const struct oonf_layer2_origin *l2_default_origin, struct autobuf *out, bool radio, enum oonf_log_source);
 void dlep_session_remove(struct dlep_session *session);
 void dlep_session_terminate(struct dlep_session *session);
 
-int dlep_session_update_extensions(struct dlep_session *session,
-    const uint8_t *extvalues, size_t extcount);
+int dlep_session_update_extensions(struct dlep_session *session, const uint8_t *extvalues, size_t extcount);
 enum oonf_stream_session_state dlep_session_process_tcp(
-    struct oonf_stream_session *tcp_session,
-    struct dlep_session *session);
-ssize_t dlep_session_process_buffer(
-    struct dlep_session *session, const void *buffer, size_t length, bool is_udp);
-ssize_t dlep_session_process_signal(struct dlep_session *session,
-    const void *buffer, size_t length, bool is_udp);
-int dlep_session_generate_signal(struct dlep_session *session,
-    int32_t signal, const struct netaddr *neighbor);
-int dlep_session_generate_signal_status(struct dlep_session *session,
-    int32_t signal, const struct netaddr *neighbor,
-    enum dlep_status status, const char *msg);
-struct dlep_parser_value *dlep_session_get_tlv_value(
-    struct dlep_session *session, uint16_t tlvtype);
+  struct oonf_stream_session *tcp_session, struct dlep_session *session);
+ssize_t dlep_session_process_buffer(struct dlep_session *session, const void *buffer, size_t length, bool is_udp);
+ssize_t dlep_session_process_signal(struct dlep_session *session, const void *buffer, size_t length, bool is_udp);
+int dlep_session_generate_signal(struct dlep_session *session, int32_t signal, const struct netaddr *neighbor);
+int dlep_session_generate_signal_status(struct dlep_session *session, int32_t signal, const struct netaddr *neighbor,
+  enum dlep_status status, const char *msg);
+struct dlep_parser_value *dlep_session_get_tlv_value(struct dlep_session *session, uint16_t tlvtype);
 
-struct dlep_local_neighbor *dlep_session_add_local_neighbor(
-    struct dlep_session *session, const struct netaddr *neigh);
-void dlep_session_remove_local_neighbor(
-    struct dlep_session *session, struct dlep_local_neighbor *local);
-struct oonf_layer2_neigh *dlep_session_get_local_l2_neighbor(
-    struct dlep_session *session, const struct netaddr *neigh);
-struct oonf_layer2_neigh *dlep_session_get_l2_from_neighbor(
-    struct dlep_local_neighbor *dlep_neigh);
+struct dlep_local_neighbor *dlep_session_add_local_neighbor(struct dlep_session *session, const struct netaddr *neigh);
+void dlep_session_remove_local_neighbor(struct dlep_session *session, struct dlep_local_neighbor *local);
+struct oonf_layer2_neigh *dlep_session_get_local_l2_neighbor(struct dlep_session *session, const struct netaddr *neigh);
+struct oonf_layer2_neigh *dlep_session_get_l2_from_neighbor(struct dlep_local_neighbor *dlep_neigh);
 
 /**
  * get the dlep session tlv
@@ -374,7 +363,7 @@ struct oonf_layer2_neigh *dlep_session_get_l2_from_neighbor(
  */
 static INLINE struct dlep_parser_tlv *
 dlep_parser_get_tlv(struct dlep_session_parser *parser, uint16_t tlvtype) {
-    struct dlep_parser_tlv *tlv;
+  struct dlep_parser_tlv *tlv;
   return avl_find_element(&parser->allowed_tlvs, &tlvtype, tlv, _node);
 }
 
@@ -385,8 +374,7 @@ dlep_parser_get_tlv(struct dlep_session_parser *parser, uint16_t tlvtype) {
  * @return dlep tlv value, NULL if no value available
  */
 static INLINE struct dlep_parser_value *
-dlep_session_get_tlv_first_value(struct dlep_session *session,
-    struct dlep_parser_tlv *tlv) {
+dlep_session_get_tlv_first_value(struct dlep_session *session, struct dlep_parser_tlv *tlv) {
   if (tlv->tlv_first == -1) {
     return NULL;
   }
@@ -400,8 +388,7 @@ dlep_session_get_tlv_first_value(struct dlep_session *session,
  * @return next dlep tlv value, NULL if no further values
  */
 static INLINE struct dlep_parser_value *
-dlep_session_get_next_tlv_value(struct dlep_session *session,
-    struct dlep_parser_value *value) {
+dlep_session_get_next_tlv_value(struct dlep_session *session, struct dlep_parser_value *value) {
   if (value->tlv_next == -1) {
     return NULL;
   }
@@ -415,11 +402,9 @@ dlep_session_get_next_tlv_value(struct dlep_session *session,
  * @return binary data pointer
  */
 static INLINE const uint8_t *
-dlep_parser_get_tlv_binary(struct dlep_session_parser *parser,
-    struct dlep_parser_value *value) {
+dlep_parser_get_tlv_binary(struct dlep_session_parser *parser, struct dlep_parser_value *value) {
   return &parser->tlv_ptr[value->index];
 }
-
 
 /**
  * Shortcut for getting the binary data of a TLV for a session
@@ -428,11 +413,9 @@ dlep_parser_get_tlv_binary(struct dlep_session_parser *parser,
  * @return binary data pointer
  */
 static INLINE const uint8_t *
-dlep_session_get_tlv_binary(struct dlep_session *session,
-    struct dlep_parser_value *value) {
+dlep_session_get_tlv_binary(struct dlep_session *session, struct dlep_parser_value *value) {
   return &session->parser.tlv_ptr[value->index];
 }
-
 
 /**
  * Get a DLEP neighbor
@@ -441,11 +424,9 @@ dlep_session_get_tlv_binary(struct dlep_session *session,
  * @return DLEP neighbor, NULL if not found
  */
 static INLINE struct dlep_local_neighbor *
-dlep_session_get_local_neighbor(struct dlep_session *session,
-    const struct netaddr *neigh) {
+dlep_session_get_local_neighbor(struct dlep_session *session, const struct netaddr *neigh) {
   struct dlep_local_neighbor *local;
-  return avl_find_element(&session->local_neighbor_tree,
-      neigh, local, _node);
+  return avl_find_element(&session->local_neighbor_tree, neigh, local, _node);
 }
 
 #endif /* _DLEP_SESSION_H_ */

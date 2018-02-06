@@ -46,9 +46,9 @@
 #ifndef OONF_TIMER_H_
 #define OONF_TIMER_H_
 
+#include "common/avl.h"
 #include "common/common_types.h"
 #include "common/list.h"
-#include "common/avl.h"
 
 #include "subsystems/oonf_clock.h"
 
@@ -75,7 +75,7 @@ struct oonf_timer_class {
    * Callback when timer is triggered
    * @param ptr pointer to timer instance that fired
    */
-  void (*callback) (struct oonf_timer_instance *ptr);
+  void (*callback)(struct oonf_timer_instance *ptr);
 
   /*! true if this is a class of periodic timers */
   bool periodic;

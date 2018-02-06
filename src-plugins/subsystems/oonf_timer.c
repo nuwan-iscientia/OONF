@@ -96,8 +96,7 @@ DECLARE_OONF_PLUGIN(_oonf_timer_subsystem);
  * @return always returns 0
  */
 int
-_init(void)
-{
+_init(void) {
   OONF_INFO(LOG_TIMER, "Initializing timer scheduler.\n");
 
   avl_init(&_timer_tree, _avlcomp_timer, true);
@@ -111,8 +110,7 @@ _init(void)
  * Cleanup timer scheduler, this stops and deletes all timers
  */
 static void
-_cleanup(void)
-{
+_cleanup(void) {
   struct oonf_timer_class *ti, *iterator;
 
   /* free all timerinfos */
@@ -127,9 +125,9 @@ _cleanup(void)
  */
 void
 oonf_timer_add(struct oonf_timer_class *ti) {
-  assert (ti->callback);
-  assert (ti->name);
-  assert (ti->name[0]);
+  assert(ti->callback);
+  assert(ti->name);
+  assert(ti->name[0]);
   list_add_tail(&_timer_info_list, &ti->_node);
 }
 
@@ -143,8 +141,8 @@ oonf_timer_remove(struct oonf_timer_class *info) {
   struct oonf_timer_instance *timer, *iterator;
 
   if (!list_is_node_added(&info->_node)) {
-	  /* only free node if its hooked to the timer core */
-	return;
+    /* only free node if its hooked to the timer core */
+    return;
   }
 
   avl_for_each_element_safe(&_timer_tree, timer, _node, iterator) {
@@ -163,8 +161,7 @@ oonf_timer_remove(struct oonf_timer_class *info) {
  * @param interval time between two timer events for periodic timers
  */
 void
-oonf_timer_start_ext(struct oonf_timer_instance *timer, uint64_t first, uint64_t interval)
-{
+oonf_timer_start_ext(struct oonf_timer_instance *timer, uint64_t first, uint64_t interval) {
 #ifdef OONF_LOG_DEBUG_INFO
   struct isonumber_str timebuf1;
 #endif
@@ -200,9 +197,8 @@ oonf_timer_start_ext(struct oonf_timer_instance *timer, uint64_t first, uint64_t
   /* insert into tree */
   avl_insert(&_timer_tree, &timer->_node);
 
-  OONF_DEBUG(LOG_TIMER, "TIMER: start timer '%s' firing in %s (%"PRIu64")\n",
-      timer->class->name,
-      oonf_clock_toClockString(&timebuf1, first), timer->_clock);
+  OONF_DEBUG(LOG_TIMER, "TIMER: start timer '%s' firing in %s (%" PRIu64 ")\n", timer->class->name,
+    oonf_clock_toClockString(&timebuf1, first), timer->_clock);
 }
 
 /**
@@ -210,8 +206,7 @@ oonf_timer_start_ext(struct oonf_timer_instance *timer, uint64_t first, uint64_t
  * @param timer the oonf_timer_entry that shall be removed
  */
 void
-oonf_timer_stop(struct oonf_timer_instance *timer)
-{
+oonf_timer_stop(struct oonf_timer_instance *timer) {
   if (timer->_clock == 0) {
     return;
   }
@@ -239,8 +234,7 @@ oonf_timer_stop(struct oonf_timer_instance *timer)
  * @param interval time between two timer events for periodic timers
  */
 void
-oonf_timer_set_ext(struct oonf_timer_instance *timer, uint64_t first, uint64_t interval)
-{
+oonf_timer_set_ext(struct oonf_timer_instance *timer, uint64_t first, uint64_t interval) {
   if (first == 0) {
     /* No good future time provided, kill it. */
     oonf_timer_stop(timer);
@@ -256,8 +250,7 @@ oonf_timer_set_ext(struct oonf_timer_instance *timer, uint64_t first, uint64_t i
  * Call the provided function with the context pointer.
  */
 void
-oonf_timer_walk(void)
-{
+oonf_timer_walk(void) {
   struct oonf_timer_instance *timer;
   struct oonf_timer_class *info;
   uint64_t start_time, end_time;
@@ -271,8 +264,7 @@ oonf_timer_walk(void)
       break;
     }
 
-    OONF_DEBUG(LOG_TIMER, "TIMER: fire '%s' at clocktick %" PRIu64 "\n",
-                  timer->class->name, timer->_clock);
+    OONF_DEBUG(LOG_TIMER, "TIMER: fire '%s' at clocktick %" PRIu64 "\n", timer->class->name, timer->_clock);
 
     /*
      * The timer->info pointer is invalidated by oonf_timer_stop()
@@ -295,8 +287,7 @@ oonf_timer_walk(void)
     os_clock_gettime64(&end_time);
 
     if (end_time - start_time > OONF_TIMER_SLICE) {
-      OONF_WARN(LOG_TIMER, "Timer %s scheduling took %"PRIu64" ms",
-          timer->class->name, end_time - start_time);
+      OONF_WARN(LOG_TIMER, "Timer %s scheduling took %" PRIu64 " ms", timer->class->name, end_time - start_time);
       info->_stat_long++;
     }
 
@@ -350,8 +341,7 @@ oonf_timer_get_list(void) {
  * @param rel_time relative time until timer should fire
  */
 static void
-_calc_clock(struct oonf_timer_instance *timer, uint64_t rel_time)
-{
+_calc_clock(struct oonf_timer_instance *timer, uint64_t rel_time) {
   uint64_t t = 0;
   unsigned random_jitter;
 
@@ -362,8 +352,8 @@ _calc_clock(struct oonf_timer_instance *timer, uint64_t rel_time)
     random_jitter = timer->_random / (UINT32_MAX / timer->jitter_pct);
     t = (uint64_t)random_jitter * rel_time / 100;
 
-    OONF_DEBUG(LOG_TIMER, "TIMER: jitter %u%% (%u) rel_time %" PRIu64 "ms to %" PRIu64 "ms\n",
-        timer->jitter_pct, random_jitter, rel_time, rel_time - t);
+    OONF_DEBUG(LOG_TIMER, "TIMER: jitter %u%% (%u) rel_time %" PRIu64 "ms to %" PRIu64 "ms\n", timer->jitter_pct,
+      random_jitter, rel_time, rel_time - t);
 
     rel_time -= t;
   }

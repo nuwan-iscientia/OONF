@@ -127,9 +127,8 @@ static void _cleanup(void);
 static struct _import_entry *_get_import(const char *name);
 static void _destroy_import(struct _import_entry *);
 
-static struct _imported_lan *_add_lan(struct _import_entry *,
-		struct os_route_key *key,
-		uint32_t metric, uint8_t distance);
+static struct _imported_lan *_add_lan(
+  struct _import_entry *, struct os_route_key *key, uint32_t metric, uint8_t distance);
 static void _destroy_lan(struct _imported_lan *);
 
 static void _cb_query(struct os_route *filter, struct os_route *route);
@@ -144,27 +143,25 @@ static void _cb_cfg_changed(void);
 
 /* plugin declaration */
 static struct cfg_schema_entry _import_entries[] = {
-  CFG_MAP_INT32_MINMAX(_import_entry, domain, "domain", "-1",
-      "Routing domain extension for filter, -1 for all domains", 0, -1, 255),
-  CFG_MAP_ACL(_import_entry, filter, "matches",  ACL_DEFAULT_ACCEPT,
-      "Ip addresses the filter should be applied to"
-      " (the plugin will never import loopback, linklocal or multicast IPs)"),
+  CFG_MAP_INT32_MINMAX(
+    _import_entry, domain, "domain", "-1", "Routing domain extension for filter, -1 for all domains", 0, -1, 255),
+  CFG_MAP_ACL(_import_entry, filter, "matches", ACL_DEFAULT_ACCEPT,
+    "Ip addresses the filter should be applied to"
+    " (the plugin will never import loopback, linklocal or multicast IPs)"),
   CFG_MAP_INT32_MINMAX(_import_entry, prefix_length, "prefix_length", "-1",
-      "Prefix length the filter should be applied to, -1 for any prefix length",
-      0, -1, 128),
-  CFG_MAP_STRING_ARRAY(_import_entry, ifname, "interface", "",
-      "Interface name of matching routes, empty if all interfaces", IF_NAMESIZE),
-  CFG_MAP_INT32_MINMAX(_import_entry, table, "table", "-1",
-      "Routing table of matching routes, 0 for matching all tables", 0, -1, 255),
-  CFG_MAP_INT32_MINMAX(_import_entry, protocol, "protocol", "-1",
-      "Routing protocol of matching routes, 0 for all protocols", 0, -1, 255),
-  CFG_MAP_INT32_MINMAX(_import_entry, distance, "metric", "-1",
-      "Metric of matching routes, 0 for all metrics", 0, -1, INT32_MAX),
+    "Prefix length the filter should be applied to, -1 for any prefix length", 0, -1, 128),
+  CFG_MAP_STRING_ARRAY(
+    _import_entry, ifname, "interface", "", "Interface name of matching routes, empty if all interfaces", IF_NAMESIZE),
+  CFG_MAP_INT32_MINMAX(
+    _import_entry, table, "table", "-1", "Routing table of matching routes, 0 for matching all tables", 0, -1, 255),
+  CFG_MAP_INT32_MINMAX(
+    _import_entry, protocol, "protocol", "-1", "Routing protocol of matching routes, 0 for all protocols", 0, -1, 255),
+  CFG_MAP_INT32_MINMAX(
+    _import_entry, distance, "metric", "-1", "Metric of matching routes, 0 for all metrics", 0, -1, INT32_MAX),
   CFG_MAP_INT32_MINMAX(_import_entry, routing_metric, "routing_metric", "1",
-      "Set the routing metric of an imported route to a specific value",
-	  false, RFC7181_METRIC_MIN, RFC7181_METRIC_MAX),
+    "Set the routing metric of an imported route to a specific value", false, RFC7181_METRIC_MIN, RFC7181_METRIC_MAX),
   CFG_MAP_CLOCK(_import_entry, metric_aging, "metric_aging", "0",
-      "Double the routing metric value every time interval, 0 to disable"),
+    "Double the routing metric value every time interval, 0 to disable"),
 };
 
 static struct cfg_schema_section _import_section = {
@@ -291,9 +288,7 @@ _cb_query(struct os_route *filter __attribute__((unused)), struct os_route *rout
  * @param error error code
  */
 static void
-_cb_query_finished(struct os_route *route __attribute__((unused)),
-    int error __attribute__((unused))) {
-}
+_cb_query_finished(struct os_route *route __attribute__((unused)), int error __attribute__((unused))) {}
 
 /**
  * Checks if importing the route is prevented because of safety issues
@@ -308,8 +303,7 @@ _is_allowed_to_import(const struct os_route *route) {
 
   list_for_each_element(nhdp_domain_get_list(), domain, _node) {
     rtparam = olsrv2_routing_get_parameters(domain);
-    if (rtparam->protocol == route->p.protocol
-        && rtparam->table == route->p.table) {
+    if (rtparam->protocol == route->p.protocol && rtparam->table == route->p.table) {
       /* do never set a LAN for a route tagged with an olsrv2 protocol */
       OONF_DEBUG(LOG_LAN_IMPORT, "Matches olsrv2 protocol, do not import!");
       return false;
@@ -341,12 +335,12 @@ _cb_rt_event(const struct os_route *route, bool set) {
   struct os_route_str rbuf;
 #endif
 
-  if (netaddr_is_in_subnet(&NETADDR_IPV4_MULTICAST, &route->p.key.dst)
-      || netaddr_is_in_subnet(&NETADDR_IPV4_LINKLOCAL, &route->p.key.dst)
-      || netaddr_is_in_subnet(&NETADDR_IPV4_LOOPBACK_NET, &route->p.key.dst)
-      || netaddr_is_in_subnet(&NETADDR_IPV6_MULTICAST, &route->p.key.dst)
-      || netaddr_is_in_subnet(&NETADDR_IPV6_LINKLOCAL, &route->p.key.dst)
-      || netaddr_is_in_subnet(&NETADDR_IPV6_LOOPBACK, &route->p.key.dst)) {
+  if (netaddr_is_in_subnet(&NETADDR_IPV4_MULTICAST, &route->p.key.dst) ||
+      netaddr_is_in_subnet(&NETADDR_IPV4_LINKLOCAL, &route->p.key.dst) ||
+      netaddr_is_in_subnet(&NETADDR_IPV4_LOOPBACK_NET, &route->p.key.dst) ||
+      netaddr_is_in_subnet(&NETADDR_IPV6_MULTICAST, &route->p.key.dst) ||
+      netaddr_is_in_subnet(&NETADDR_IPV6_LINKLOCAL, &route->p.key.dst) ||
+      netaddr_is_in_subnet(&NETADDR_IPV6_LOOPBACK, &route->p.key.dst)) {
     /* ignore multicast, linklocal and loopback */
     return;
   }
@@ -355,8 +349,8 @@ _cb_rt_event(const struct os_route *route, bool set) {
     return;
   }
 
-  OONF_DEBUG(LOG_LAN_IMPORT, "Received route event (%s): %s",
-      set ? "set" : "remove", os_routing_to_string(&rbuf, &route->p));
+  OONF_DEBUG(
+    LOG_LAN_IMPORT, "Received route event (%s): %s", set ? "set" : "remove", os_routing_to_string(&rbuf, &route->p));
 
   if (!_is_allowed_to_import(route)) {
     return;
@@ -366,8 +360,7 @@ _cb_rt_event(const struct os_route *route, bool set) {
     OONF_DEBUG(LOG_LAN_IMPORT, "Check for import: %s", import->name);
 
     /* check prefix length */
-    if (import->prefix_length != -1
-        && import->prefix_length != netaddr_get_prefix_length(&route->p.key.dst)) {
+    if (import->prefix_length != -1 && import->prefix_length != netaddr_get_prefix_length(&route->p.key.dst)) {
       OONF_DEBUG(LOG_LAN_IMPORT, "Bad prefix length");
       continue;
     }
@@ -474,15 +467,13 @@ _destroy_import(struct _import_entry *import) {
 }
 
 static struct _imported_lan *
-_add_lan(struct _import_entry *import,
-		struct os_route_key *key,
-		uint32_t metric, uint8_t distance) {
+_add_lan(struct _import_entry *import, struct os_route_key *key, uint32_t metric, uint8_t distance) {
   struct nhdp_domain *domain;
   struct _imported_lan *lan;
 
   lan = avl_find_element(&import->imported_lan_tree, key, lan, _node);
   if (lan) {
-	return lan;
+    return lan;
   }
 
   lan = oonf_class_malloc(&_lan_import_class);
@@ -498,9 +489,9 @@ _add_lan(struct _import_entry *import,
   lan->_aging_timer.class = &_aging_timer_class;
 
   list_for_each_element(nhdp_domain_get_list(), domain, _node) {
-	if (import->domain == -1 || import->domain == domain->ext) {
+    if (import->domain == -1 || import->domain == domain->ext) {
       olsrv2_lan_add(domain, key, metric, distance);
-	}
+    }
   }
 
   return lan;
@@ -511,9 +502,9 @@ _destroy_lan(struct _imported_lan *lan) {
   struct nhdp_domain *domain;
 
   list_for_each_element(nhdp_domain_get_list(), domain, _node) {
-	if (lan->import->domain == -1 || lan->import->domain == domain->ext) {
+    if (lan->import->domain == -1 || lan->import->domain == domain->ext) {
       olsrv2_lan_remove(domain, &lan->key);
-	}
+    }
   }
 
   avl_remove(&lan->import->imported_lan_tree, &lan->_node);
@@ -530,18 +521,18 @@ _cb_metric_aging(struct oonf_timer_instance *entry) {
   lan = container_of(entry, struct _imported_lan, _aging_timer);
   lan_entry = olsrv2_lan_get(&lan->key);
   if (lan_entry) {
-	list_for_each_element(nhdp_domain_get_list(), domain, _node) {
-	  if (lan->import->domain == -1 || lan->import->domain == domain->ext) {
-		landata = olsrv2_lan_get_domaindata(domain, lan_entry);
-		if (landata->outgoing_metric >= RFC7181_METRIC_MAX/2) {
-	      landata->outgoing_metric = RFC7181_METRIC_MAX;
-	      oonf_timer_stop(entry);
-		}
-		else {
-	      landata->outgoing_metric *= 2;
-		}
-	  }
-	}
+    list_for_each_element(nhdp_domain_get_list(), domain, _node) {
+      if (lan->import->domain == -1 || lan->import->domain == domain->ext) {
+        landata = olsrv2_lan_get_domaindata(domain, lan_entry);
+        if (landata->outgoing_metric >= RFC7181_METRIC_MAX / 2) {
+          landata->outgoing_metric = RFC7181_METRIC_MAX;
+          oonf_timer_stop(entry);
+        }
+        else {
+          landata->outgoing_metric *= 2;
+        }
+      }
+    }
   }
 }
 
@@ -565,11 +556,8 @@ _cb_cfg_changed(void) {
     return;
   }
 
-  if (cfg_schema_tobin(import, _import_section.post,
-      _import_entries, ARRAYSIZE(_import_entries))) {
-    OONF_WARN(LOG_LAN_IMPORT,
-        "Could not convert configuration data of section '%s'",
-        _import_section.section_name);
+  if (cfg_schema_tobin(import, _import_section.post, _import_entries, ARRAYSIZE(_import_entries))) {
+    OONF_WARN(LOG_LAN_IMPORT, "Could not convert configuration data of section '%s'", _import_section.section_name);
 
     if (_import_section.pre == NULL) {
       _destroy_import(import);

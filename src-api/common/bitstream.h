@@ -24,23 +24,15 @@ struct bitstream_w {
   size_t bit_offset;
 };
 
-EXPORT void bitstream_r_init(
-    struct bitstream_r *stream, const void *src, size_t bytes);
-EXPORT int bitstream_r_memcpy(
-    struct bitstream_r *stream, void *dst, size_t bytes);
-EXPORT int bitstream_r_read(
-    struct bitstream_r *stream, uint64_t *dst, int32_t bits);
-EXPORT void bitstream_r_pad(
-    struct bitstream_r *stream);
+EXPORT void bitstream_r_init(struct bitstream_r *stream, const void *src, size_t bytes);
+EXPORT int bitstream_r_memcpy(struct bitstream_r *stream, void *dst, size_t bytes);
+EXPORT int bitstream_r_read(struct bitstream_r *stream, uint64_t *dst, int32_t bits);
+EXPORT void bitstream_r_pad(struct bitstream_r *stream);
 
-EXPORT void bitstream_w_init(
-    struct bitstream_w *stream, void *buffer, size_t bytes);
-EXPORT int bitstream_w_memcpy(
-    struct bitstream_w *stream, const void *src, size_t bytes);
-EXPORT int bitstream_w_write(
-    struct bitstream_w *stream, uint64_t src, int32_t bits);
-EXPORT void bitstream_w_pad(
-    struct bitstream_w *stream);
+EXPORT void bitstream_w_init(struct bitstream_w *stream, void *buffer, size_t bytes);
+EXPORT int bitstream_w_memcpy(struct bitstream_w *stream, const void *src, size_t bytes);
+EXPORT int bitstream_w_write(struct bitstream_w *stream, uint64_t src, int32_t bits);
+EXPORT void bitstream_w_pad(struct bitstream_w *stream);
 
 /**
  * @param stream writing bitstream

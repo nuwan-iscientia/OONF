@@ -46,8 +46,8 @@
 #ifndef DLEP_ROUTER_SESSION_H_
 #define DLEP_ROUTER_SESSION_H_
 
-#include "common/common_types.h"
 #include "common/avl.h"
+#include "common/common_types.h"
 #include "common/netaddr.h"
 #include "subsystems/oonf_stream_socket.h"
 #include "subsystems/oonf_timer.h"
@@ -57,7 +57,8 @@
 /**
  * session state of a router
  */
-enum dlep_router_session_state {
+enum dlep_router_session_state
+{
   /*! session is still initializing */
   DLEP_ROUTER_SESSION_INIT,
 
@@ -91,11 +92,9 @@ struct dlep_router_session {
 void dlep_router_session_init(void);
 void dlep_router_session_cleanup(void);
 
-struct dlep_router_session *dlep_router_get_session(
-    struct dlep_router_if *interf, union netaddr_socket *remote);
+struct dlep_router_session *dlep_router_get_session(struct dlep_router_if *interf, union netaddr_socket *remote);
 struct dlep_router_session *dlep_router_add_session(
-    struct dlep_router_if *interf,
-    union netaddr_socket *local, union netaddr_socket *remote);
+  struct dlep_router_if *interf, union netaddr_socket *local, union netaddr_socket *remote);
 void dlep_router_remove_session(struct dlep_router_session *);
 
 #endif /* DLEP_ROUTER_SESSION_H_ */

@@ -71,19 +71,19 @@
 #include <sys/socket.h>
 
 /* and now the rest of the includes */
-#include <linux/types.h>
-#include <linux/netlink.h>
-#include <linux/genetlink.h>
 #include "nl80211.h"
+#include <linux/genetlink.h>
+#include <linux/netlink.h>
+#include <linux/types.h>
 #include <netlink/attr.h>
-#include <netlink/msg.h>
 #include <netlink/genl/genl.h>
+#include <netlink/msg.h>
 
 #include "common/common_types.h"
 #include "subsystems/os_system.h"
 
-#include "nl80211_listener/nl80211_listener.h"
 #include "nl80211_listener/nl80211_get_interface.h"
+#include "nl80211_listener/nl80211_listener.h"
 
 static uint64_t _get_bandwidth(uint32_t width);
 
@@ -95,15 +95,14 @@ static uint64_t _get_bandwidth(uint32_t width);
  * @param interf nl80211 listener interface
  */
 void
-nl80211_send_get_interface(struct os_system_netlink *nl,
-    struct nlmsghdr *nl_msg, struct genlmsghdr *hdr, struct nl80211_if *interf) {
+nl80211_send_get_interface(
+  struct os_system_netlink *nl, struct nlmsghdr *nl_msg, struct genlmsghdr *hdr, struct nl80211_if *interf) {
   int if_index = nl80211_get_if_baseindex(interf);
 
   hdr->cmd = NL80211_CMD_GET_INTERFACE;
 
   /* add interface index to the request */
-  os_system_linux_netlink_addreq(nl, nl_msg, NL80211_ATTR_IFINDEX,
-      &if_index, sizeof(if_index));
+  os_system_linux_netlink_addreq(nl, nl_msg, NL80211_ATTR_IFINDEX, &if_index, sizeof(if_index));
 }
 
 /**
@@ -112,19 +111,16 @@ nl80211_send_get_interface(struct os_system_netlink *nl,
  * @param hdr pointer to netlink message header
  */
 void
-nl80211_process_get_interface_result(struct nl80211_if *interf,
-    struct nlmsghdr *hdr) {
+nl80211_process_get_interface_result(struct nl80211_if *interf, struct nlmsghdr *hdr) {
   struct genlmsghdr *gnlh;
   struct nlattr *tb_msg[NL80211_ATTR_MAX + 1];
   struct oonf_layer2_neigh *l2neigh;
   uint64_t mc_rate;
 
   gnlh = nlmsg_data(hdr);
-  nla_parse(tb_msg, NL80211_ATTR_MAX, genlmsg_attrdata(gnlh, 0),
-      genlmsg_attrlen(gnlh, 0), NULL);
+  nla_parse(tb_msg, NL80211_ATTR_MAX, genlmsg_attrdata(gnlh, 0), genlmsg_attrlen(gnlh, 0), NULL);
 
-  if (!tb_msg[NL80211_ATTR_IFNAME]
-      || !tb_msg[NL80211_ATTR_WIPHY]) {
+  if (!tb_msg[NL80211_ATTR_IFNAME] || !tb_msg[NL80211_ATTR_WIPHY]) {
     /* no name or no physical interface */
     return;
   }
@@ -137,7 +133,7 @@ nl80211_process_get_interface_result(struct nl80211_if *interf,
 
     len = nla_len(tb_msg[NL80211_ATTR_SSID]);
     if (len > (int)sizeof(ssid) - 1) {
-      len = sizeof(ssid)-1;
+      len = sizeof(ssid) - 1;
     }
     memcpy(ssid, nla_data(tb_msg[NL80211_ATTR_SSID]), len);
     ssid[len] = 0;
@@ -161,8 +157,7 @@ nl80211_process_get_interface_result(struct nl80211_if *interf,
     }
     bandwidth[1] = 0;
 
-    if (tb_msg[NL80211_ATTR_CENTER_FREQ1]
-        && tb_msg[NL80211_ATTR_CENTER_FREQ2]) {
+    if (tb_msg[NL80211_ATTR_CENTER_FREQ1] && tb_msg[NL80211_ATTR_CENTER_FREQ2]) {
       freq[0] = nla_get_u32(tb_msg[NL80211_ATTR_CENTER_FREQ1]);
       freq[1] = nla_get_u32(tb_msg[NL80211_ATTR_CENTER_FREQ2]);
 
@@ -173,14 +168,10 @@ nl80211_process_get_interface_result(struct nl80211_if *interf,
     freq[0] *= 1000000ull;
     freq[1] *= 1000000ull;
 
-    interf->ifdata_changed |= nl80211_change_l2net_data(interf->l2net,
-        OONF_LAYER2_NET_FREQUENCY_1, freq[0]);
-    interf->ifdata_changed |= nl80211_change_l2net_data(interf->l2net,
-        OONF_LAYER2_NET_FREQUENCY_2, freq[1]);
-    interf->ifdata_changed |= nl80211_change_l2net_data(interf->l2net,
-        OONF_LAYER2_NET_BANDWIDTH_1, bandwidth[0]);
-    interf->ifdata_changed |= nl80211_change_l2net_data(interf->l2net,
-        OONF_LAYER2_NET_BANDWIDTH_2, bandwidth[1]);
+    interf->ifdata_changed |= nl80211_change_l2net_data(interf->l2net, OONF_LAYER2_NET_FREQUENCY_1, freq[0]);
+    interf->ifdata_changed |= nl80211_change_l2net_data(interf->l2net, OONF_LAYER2_NET_FREQUENCY_2, freq[1]);
+    interf->ifdata_changed |= nl80211_change_l2net_data(interf->l2net, OONF_LAYER2_NET_BANDWIDTH_1, bandwidth[0]);
+    interf->ifdata_changed |= nl80211_change_l2net_data(interf->l2net, OONF_LAYER2_NET_BANDWIDTH_2, bandwidth[1]);
 
     if (bandwidth[0] > 0 && nl80211_create_broadcast_neighbor()) {
       /* calculate multicast rate */

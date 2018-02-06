@@ -55,8 +55,8 @@
 #endif
 #include "common/common_types.h"
 #include "core/oonf_subsystem.h"
-#include "subsystems/rfc5444/rfc5444_iana.h"
 #include "rfc7182_provider/rfc7182_provider.h"
+#include "subsystems/rfc5444/rfc5444_iana.h"
 
 #include "hash_polarssl/hash_polarssl.h"
 
@@ -67,27 +67,17 @@ static int _init(void);
 static void _cleanup(void);
 
 #ifdef POLARSSL_SHA1_C
-static int _cb_sha1_hash(struct rfc7182_hash *hash,
-    void *dst, size_t *dst_len,
-    const void *src, size_t src_len);
+static int _cb_sha1_hash(struct rfc7182_hash *hash, void *dst, size_t *dst_len, const void *src, size_t src_len);
 #endif
 #ifdef POLARSSL_SHA1_C
-static int _cb_sha256_hash(struct rfc7182_hash *hash,
-    void *dst, size_t *dst_len,
-    const void *src, size_t src_len);
+static int _cb_sha256_hash(struct rfc7182_hash *hash, void *dst, size_t *dst_len, const void *src, size_t src_len);
 #endif
 #ifdef POLARSSL_SHA1_C
-static int _cb_sha512_hash(struct rfc7182_hash *hash,
-    void *dst, size_t *dst_len,
-    const void *src, size_t src_len);
+static int _cb_sha512_hash(struct rfc7182_hash *hash, void *dst, size_t *dst_len, const void *src, size_t src_len);
 #endif
-static size_t _cb_get_signsize(
-    struct rfc7182_crypt *crpyt, struct rfc7182_hash *hash);
-static int _cb_hmac_sign(
-    struct rfc7182_crypt *crypt, struct rfc7182_hash *hash,
-    void *dst, size_t *dst_len,
-    const void *src, size_t src_len,
-    const void *key, size_t key_len);
+static size_t _cb_get_signsize(struct rfc7182_crypt *crpyt, struct rfc7182_hash *hash);
+static int _cb_hmac_sign(struct rfc7182_crypt *crypt, struct rfc7182_hash *hash, void *dst, size_t *dst_len,
+  const void *src, size_t src_len, const void *key, size_t key_len);
 
 /* hash tomcrypt subsystem definition */
 static const char *_dependencies[] = {
@@ -156,9 +146,8 @@ _init(void) {
   size_t i;
 
   /* register hashes with rfc5444 signature API */
-  for (i=0; i<ARRAYSIZE(_hashes); i++) {
-    OONF_INFO(LOG_HASH_POLARSSL, "Add %s hash to rfc7182 API",
-        rfc7182_get_hash_name(_hashes[i].type));
+  for (i = 0; i < ARRAYSIZE(_hashes); i++) {
+    OONF_INFO(LOG_HASH_POLARSSL, "Add %s hash to rfc7182 API", rfc7182_get_hash_name(_hashes[i].type));
     rfc7182_add_hash(&_hashes[i]);
   }
 
@@ -175,7 +164,7 @@ _cleanup(void) {
   size_t i;
 
   /* register hashes with rfc5444 signature API */
-  for (i=0; i<ARRAYSIZE(_hashes); i++) {
+  for (i = 0; i < ARRAYSIZE(_hashes); i++) {
     rfc7182_remove_hash(&_hashes[i]);
   }
 
@@ -194,9 +183,7 @@ _cleanup(void) {
  * @return -1 if an error happened, 0 otherwise
  */
 static int
-_cb_sha1_hash(struct rfc7182_hash *hash,
-    void *dst, size_t *dst_len,
-    const void *src, size_t src_len) {
+_cb_sha1_hash(struct rfc7182_hash *hash, void *dst, size_t *dst_len, const void *src, size_t src_len) {
   sha1(src, (unsigned long)src_len, dst);
   *dst_len = hash->hash_length;
   return 0;
@@ -215,11 +202,8 @@ _cb_sha1_hash(struct rfc7182_hash *hash,
  * @return -1 if an error happened, 0 otherwise
  */
 static int
-_cb_sha256_hash(struct rfc7182_hash *hash,
-    void *dst, size_t *dst_len,
-    const void *src, size_t src_len) {
-  sha256(src, (unsigned long)src_len, dst,
-      hash->type == RFC7182_ICV_HASH_SHA_224 ? 1 : 0);
+_cb_sha256_hash(struct rfc7182_hash *hash, void *dst, size_t *dst_len, const void *src, size_t src_len) {
+  sha256(src, (unsigned long)src_len, dst, hash->type == RFC7182_ICV_HASH_SHA_224 ? 1 : 0);
   *dst_len = hash->hash_length;
   return 0;
 }
@@ -237,11 +221,8 @@ _cb_sha256_hash(struct rfc7182_hash *hash,
  * @return -1 if an error happened, 0 otherwise
  */
 static int
-_cb_sha512_hash(struct rfc7182_hash *hash,
-    void *dst, size_t *dst_len,
-    const void *src, size_t src_len) {
-  sha512(src, (unsigned long)src_len, dst,
-      hash->type == RFC7182_ICV_HASH_SHA_384? 1 : 0);
+_cb_sha512_hash(struct rfc7182_hash *hash, void *dst, size_t *dst_len, const void *src, size_t src_len) {
+  sha512(src, (unsigned long)src_len, dst, hash->type == RFC7182_ICV_HASH_SHA_384 ? 1 : 0);
   *dst_len = hash->hash_length;
   return 0;
 }
@@ -253,8 +234,7 @@ _cb_sha512_hash(struct rfc7182_hash *hash,
  * @return length of signature based on chosen hash
  */
 static size_t
-_cb_get_signsize(struct rfc7182_crypt *crypt __attribute__((unused)),
-    struct rfc7182_hash *hash) {
+_cb_get_signsize(struct rfc7182_crypt *crypt __attribute__((unused)), struct rfc7182_hash *hash) {
   return hash->hash_length;
 }
 
@@ -270,11 +250,8 @@ _cb_get_signsize(struct rfc7182_crypt *crypt __attribute__((unused)),
  * @return -1 if an error happened, 0 otherwise
  */
 static int
-_cb_hmac_sign(struct rfc7182_crypt *crypt __attribute__((unused)),
-    struct rfc7182_hash *hash,
-    void *dst, size_t *dst_len,
-    const void *src, size_t src_len,
-    const void *key, size_t key_len) {
+_cb_hmac_sign(struct rfc7182_crypt *crypt __attribute__((unused)), struct rfc7182_hash *hash, void *dst,
+  size_t *dst_len, const void *src, size_t src_len, const void *key, size_t key_len) {
   OONF_DEBUG_HEX(LOG_HASH_POLARSSL, src, src_len, "Calculate hash:");
 
   switch (hash->type) {

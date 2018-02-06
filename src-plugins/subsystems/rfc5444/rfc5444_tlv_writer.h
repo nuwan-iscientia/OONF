@@ -74,11 +74,10 @@ struct rfc5444_tlv_writer_data {
 /* internal functions that are not exported to the user */
 void _rfc5444_tlv_writer_init(struct rfc5444_tlv_writer_data *data, size_t max, size_t mtu);
 
-enum rfc5444_result _rfc5444_tlv_writer_add(struct rfc5444_tlv_writer_data *data,
-    uint8_t type, uint8_t exttype, const void *value, size_t length);
-enum rfc5444_result _rfc5444_tlv_writer_allocate(struct rfc5444_tlv_writer_data *data,
-    bool has_exttype, size_t length);
-enum rfc5444_result _rfc5444_tlv_writer_set(struct rfc5444_tlv_writer_data *data,
-    uint8_t type, uint8_t exttype, const void *value, size_t length);
+enum rfc5444_result _rfc5444_tlv_writer_add(
+  struct rfc5444_tlv_writer_data *data, uint8_t type, uint8_t exttype, const void *value, size_t length);
+enum rfc5444_result _rfc5444_tlv_writer_allocate(struct rfc5444_tlv_writer_data *data, bool has_exttype, size_t length);
+enum rfc5444_result _rfc5444_tlv_writer_set(
+  struct rfc5444_tlv_writer_data *data, uint8_t type, uint8_t exttype, const void *value, size_t length);
 
 #endif /* RFC5444_TLV_WRITER_H_ */

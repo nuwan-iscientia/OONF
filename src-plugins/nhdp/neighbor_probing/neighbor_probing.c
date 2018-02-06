@@ -102,21 +102,17 @@ static int _init(void);
 static void _cleanup(void);
 static void _cb_link_removed(void *);
 static void _cb_probe_link(struct oonf_timer_instance *);
-static int _cb_addMessageHeader(struct rfc5444_writer *writer,
-    struct rfc5444_writer_message *msg);
+static int _cb_addMessageHeader(struct rfc5444_writer *writer, struct rfc5444_writer_message *msg);
 static void _cb_addMessageTLVs(struct rfc5444_writer *);
 static void _cb_cfg_changed(void);
 
 /* plugin declaration */
 static struct cfg_schema_entry _probing_entries[] = {
-  CFG_MAP_CLOCK_MIN(_config, interval, "interval", "0.2",
-      "Time interval between link probing", 100),
-  CFG_MAP_INT32_MINMAX(_config, probe_size, "size", "512",
-      "Number of bytes used for neighbor probe",
-      0, 1, 1500),
+  CFG_MAP_CLOCK_MIN(_config, interval, "interval", "0.2", "Time interval between link probing", 100),
+  CFG_MAP_INT32_MINMAX(_config, probe_size, "size", "512", "Number of bytes used for neighbor probe", 0, 1, 1500),
   CFG_MAP_BOOL(_config, probe_dlep, "probe_dlep", "true",
-      "Probe DLEP interfaces in addition to wireless interfaces"
-      " if they don't support the 'need probing' flag"),
+    "Probe DLEP interfaces in addition to wireless interfaces"
+    " if they don't support the 'need probing' flag"),
 };
 
 static struct cfg_schema_section _probing_section = {
@@ -191,8 +187,7 @@ _init(void) {
     return -1;
   }
 
-  _probing_message = rfc5444_writer_register_message(
-      &_protocol->writer, RFC5444_MSGTYPE_PROBING, true);
+  _probing_message = rfc5444_writer_register_message(&_protocol->writer, RFC5444_MSGTYPE_PROBING, true);
   if (_probing_message == NULL) {
     oonf_rfc5444_remove_protocol(_protocol);
     oonf_class_extension_remove(&_link_extenstion);
@@ -202,9 +197,7 @@ _init(void) {
 
   _probing_message->addMessageHeader = _cb_addMessageHeader;
 
-  if (rfc5444_writer_register_msgcontentprovider(
-      &_protocol->writer, &_probing_msg_provider, NULL, 0)) {
-
+  if (rfc5444_writer_register_msgcontentprovider(&_protocol->writer, &_probing_msg_provider, NULL, 0)) {
     OONF_WARN(LOG_PROBING, "Count not register Probing msg contentprovider");
     rfc5444_writer_unregister_message(&_protocol->writer, _probing_message);
     oonf_rfc5444_remove_protocol(_protocol);
@@ -221,10 +214,8 @@ _init(void) {
  */
 static void
 _cleanup(void) {
-  rfc5444_writer_unregister_content_provider(
-      &_protocol->writer, &_probing_msg_provider, NULL, 0);
-  rfc5444_writer_unregister_message(
-      &_protocol->writer, _probing_message);
+  rfc5444_writer_unregister_content_provider(&_protocol->writer, &_probing_msg_provider, NULL, 0);
+  rfc5444_writer_unregister_message(&_protocol->writer, _probing_message);
   _protocol = NULL;
   oonf_timer_remove(&_probe_info);
   oonf_class_extension_remove(&_link_extenstion);
@@ -303,14 +294,12 @@ _cb_probe_link(struct oonf_timer_instance *ptr __attribute__((unused))) {
       continue;
     }
 
-    if(!_check_if_type(l2net)) {
-      OONF_DEBUG(LOG_PROBING, "Drop interface %s (not wireless)",
-          if_listener->data->name);
+    if (!_check_if_type(l2net)) {
+      OONF_DEBUG(LOG_PROBING, "Drop interface %s (not wireless)", if_listener->data->name);
       continue;
     }
 
-    OONF_DEBUG(LOG_PROBING, "Start looking for probe candidate in interface '%s'",
-        if_listener->data->name);
+    OONF_DEBUG(LOG_PROBING, "Start looking for probe candidate in interface '%s'", if_listener->data->name);
 
     list_for_each_element(&nhdp_if->_links, lnk, _if_node) {
       if (lnk->status != NHDP_LINK_SYMMETRIC) {
@@ -320,11 +309,9 @@ _cb_probe_link(struct oonf_timer_instance *ptr __attribute__((unused))) {
 
       /* get layer2 data */
       l2neigh = oonf_layer2_neigh_get(l2net, &lnk->remote_mac);
-      if (l2neigh == NULL
-          || !oonf_layer2_data_has_value(&l2neigh->data[OONF_LAYER2_NEIGH_RX_BITRATE])
-          || !oonf_layer2_data_has_value(&l2neigh->data[OONF_LAYER2_NEIGH_TX_FRAMES])) {
-        OONF_DEBUG(LOG_PROBING, "Drop link %s (missing l2 data)",
-            netaddr_to_string(&nbuf, &lnk->remote_mac));
+      if (l2neigh == NULL || !oonf_layer2_data_has_value(&l2neigh->data[OONF_LAYER2_NEIGH_RX_BITRATE]) ||
+          !oonf_layer2_data_has_value(&l2neigh->data[OONF_LAYER2_NEIGH_TX_FRAMES])) {
+        OONF_DEBUG(LOG_PROBING, "Drop link %s (missing l2 data)", netaddr_to_string(&nbuf, &lnk->remote_mac));
         continue;
       }
 
@@ -339,15 +326,13 @@ _cb_probe_link(struct oonf_timer_instance *ptr __attribute__((unused))) {
       if (last_tx_packets != ldata->last_tx_traffic) {
         /* advance timestamp */
         ldata->last_probe_check = oonf_clock_getNow();
-        OONF_DEBUG(LOG_PROBING, "Drop link %s (already has unicast traffic)",
-            netaddr_to_string(&nbuf, &l2neigh->addr));
+        OONF_DEBUG(LOG_PROBING, "Drop link %s (already has unicast traffic)", netaddr_to_string(&nbuf, &l2neigh->addr));
         continue;
       }
 
       points = oonf_clock_getNow() - ldata->last_probe_check;
 
-      OONF_DEBUG(LOG_PROBING, "Link %s has %" PRIu64 " points",
-          netaddr_to_string(&nbuf, &lnk->if_addr), points);
+      OONF_DEBUG(LOG_PROBING, "Link %s has %" PRIu64 " points", netaddr_to_string(&nbuf, &lnk->if_addr), points);
 
       if (points > best_points) {
         best_points = points;
@@ -360,15 +345,12 @@ _cb_probe_link(struct oonf_timer_instance *ptr __attribute__((unused))) {
   if (best_ldata != NULL) {
     best_ldata->last_probe_check = oonf_clock_getNow();
 
-    if (best_ldata->target == NULL
-        && netaddr_get_address_family(&best_lnk->if_addr) != AF_UNSPEC) {
-      best_ldata->target = oonf_rfc5444_add_target(
-          best_lnk->local_if->rfc5444_if.interface, &best_lnk->if_addr);
+    if (best_ldata->target == NULL && netaddr_get_address_family(&best_lnk->if_addr) != AF_UNSPEC) {
+      best_ldata->target = oonf_rfc5444_add_target(best_lnk->local_if->rfc5444_if.interface, &best_lnk->if_addr);
     }
 
     if (best_ldata->target) {
-      OONF_DEBUG(LOG_PROBING, "Send probing to %s",
-          netaddr_to_string(&nbuf, &best_ldata->target->dst));
+      OONF_DEBUG(LOG_PROBING, "Send probing to %s", netaddr_to_string(&nbuf, &best_ldata->target->dst));
 
       oonf_rfc5444_send_if(best_ldata->target, RFC5444_MSGTYPE_PROBING);
     }
@@ -376,8 +358,7 @@ _cb_probe_link(struct oonf_timer_instance *ptr __attribute__((unused))) {
 }
 
 static int
-_cb_addMessageHeader(struct rfc5444_writer *writer,
-    struct rfc5444_writer_message *msg) {
+_cb_addMessageHeader(struct rfc5444_writer *writer, struct rfc5444_writer_message *msg) {
   rfc5444_writer_set_msg_header(writer, msg, false, false, false, false);
   return RFC5444_OKAY;
 }
@@ -387,8 +368,7 @@ _cb_addMessageTLVs(struct rfc5444_writer *writer) {
   uint8_t data[1500];
 
   memset(data, 0, _probe_config.probe_size);
-  rfc5444_writer_add_messagetlv(writer, RFC5444_MSGTLV_PROBING, 0,
-      data, _probe_config.probe_size);
+  rfc5444_writer_add_messagetlv(writer, RFC5444_MSGTLV_PROBING, 0, data, _probe_config.probe_size);
 }
 
 /**
@@ -396,10 +376,8 @@ _cb_addMessageTLVs(struct rfc5444_writer *writer) {
  */
 static void
 _cb_cfg_changed(void) {
-  if (cfg_schema_tobin(&_probe_config, _probing_section.post,
-      _probing_entries, ARRAYSIZE(_probing_entries))) {
-    OONF_WARN(LOG_PROBING, "Cannot convert configuration for "
-        OONF_NEIGHBOR_PROBING_SUBSYSTEM);
+  if (cfg_schema_tobin(&_probe_config, _probing_section.post, _probing_entries, ARRAYSIZE(_probing_entries))) {
+    OONF_WARN(LOG_PROBING, "Cannot convert configuration for " OONF_NEIGHBOR_PROBING_SUBSYSTEM);
     return;
   }
 

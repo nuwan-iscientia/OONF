@@ -46,9 +46,9 @@
 #ifndef OONF_H_
 #define OONF_H_
 
-#include <string.h>
-#include <stdlib.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 #include "common/common_types.h"
 #include "config/cfg_schema.h"
@@ -63,7 +63,11 @@
  * Declaration of a subsystem. Creates a constructor that hooks the subsystem into the core.
  * @param subsystem pointer to subsystem definition
  */
-#define DECLARE_OONF_PLUGIN(subsystem) EXPORT void hookup_subsystem_ ## subsystem (void) __attribute__ ((constructor)); void hookup_subsystem_ ## subsystem (void) { oonf_subsystem_hook(&subsystem); }
+#define DECLARE_OONF_PLUGIN(subsystem)                                                                                 \
+  EXPORT void hookup_subsystem_##subsystem(void) __attribute__((constructor));                                         \
+  void hookup_subsystem_##subsystem(void) {                                                                            \
+    oonf_subsystem_hook(&subsystem);                                                                                   \
+  }
 
 /**
  * description of a subsystem of the OONF-API.
@@ -93,7 +97,7 @@ struct oonf_subsystem {
    * Other subsystems may not be initialized during this time.
    * @return -1 if an error happened, 0 otherwise
    */
-  int (*init) (void);
+  int (*init)(void);
 
   /**
    * Will be called when the application begins to shut down.
@@ -104,13 +108,13 @@ struct oonf_subsystem {
    * This allows a subsystem to send out a couple of network events
    * to shut down properly.
    */
-  void (*initiate_shutdown) (void);
+  void (*initiate_shutdown)(void);
 
   /**
    * Will be called once during the cleanup of the subsystem.
    * Other subsystems might already be cleanup up during this time.
    */
-  void (*cleanup) (void);
+  void (*cleanup)(void);
 
   /**
    * Will be called early during initialization, even before command
@@ -118,7 +122,7 @@ struct oonf_subsystem {
    * callback is meant for cfgio/cfgparser implementations to hook
    * themselves into the core.
    */
-  void (*early_cfg_init) (void);
+  void (*early_cfg_init)(void);
 
   /*! true if the subsystem can be (de)activated during runtime */
   bool can_cleanup;
@@ -168,15 +172,12 @@ void oonf_subsystem_cleanup(void);
 
 void oonf_subsystem_set_path(const char *path);
 
-void oonf_subsystem_configure(struct cfg_schema *schema,
-    struct oonf_subsystem *subsystem);
-void oonf_subsystem_unconfigure(struct cfg_schema *schema,
-    struct oonf_subsystem *subsystem);
+void oonf_subsystem_configure(struct cfg_schema *schema, struct oonf_subsystem *subsystem);
+void oonf_subsystem_unconfigure(struct cfg_schema *schema, struct oonf_subsystem *subsystem);
 
 void oonf_subsystem_initiate_unload(struct oonf_subsystem *);
 int oonf_subsystem_call_init(struct oonf_subsystem *plugin);
-void oonf_subsystem_extract_name(
-    struct oonf_subsystem_namebuf *buf, const char *libname);
+void oonf_subsystem_extract_name(struct oonf_subsystem_namebuf *buf, const char *libname);
 
 /**
  * Query for a certain subsystem name

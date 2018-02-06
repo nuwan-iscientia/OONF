@@ -53,7 +53,7 @@
 static int _init(void);
 
 /* type of clock source to be used */
-#if defined(CLOCK_MONOTONIC_RAW) || defined (CLOCK_MONOTONIC)
+#if defined(CLOCK_MONOTONIC_RAW) || defined(CLOCK_MONOTONIC)
 static int _clock_source = 0;
 #endif
 
@@ -95,7 +95,7 @@ int
 os_clock_linux_gettime64_ns(uint64_t *t64) {
   int error;
 
-#if defined(CLOCK_MONOTONIC_RAW) || defined (CLOCK_MONOTONIC)
+#if defined(CLOCK_MONOTONIC_RAW) || defined(CLOCK_MONOTONIC)
   if (_clock_source) {
     struct timespec ts;
 
@@ -121,7 +121,7 @@ os_clock_linux_gettime64(uint64_t *t64) {
   struct timeval tv;
   int error;
 
-#if defined(CLOCK_MONOTONIC_RAW) || defined (CLOCK_MONOTONIC)
+#if defined(CLOCK_MONOTONIC_RAW) || defined(CLOCK_MONOTONIC)
   if (_clock_source) {
     struct timespec ts;
 

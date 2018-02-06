@@ -48,7 +48,8 @@
 #include "common/common_types.h"
 #include "rfc5444_iana.h"
 
-enum {
+enum
+{
   /* timetlv_max = 14 * 2^28 * 1000 / 1024 = 14000 << 18 = 3 670 016 000 ms */
   RFC5497_TIMETLV_MAX = 0xdac00000,
 
@@ -76,8 +77,7 @@ struct rfc7181_metric_field {
   uint8_t b[2];
 };
 
-EXPORT uint8_t rfc5497_timetlv_get_from_vector(
-    const uint8_t *vector, size_t vector_length, uint8_t hopcount);
+EXPORT uint8_t rfc5497_timetlv_get_from_vector(const uint8_t *vector, size_t vector_length, uint8_t hopcount);
 EXPORT uint8_t rfc5497_timetlv_encode(uint64_t);
 EXPORT uint64_t rfc5497_timetlv_decode(uint8_t);
 
@@ -100,8 +100,7 @@ rfc5444_seqno_is_larger(uint16_t s1, uint16_t s2) {
    * o  S1 > S2 AND S1 - S2 < MAXVALUE/2 OR
    * o  S2 > S1 AND S2 - S1 > MAXVALUE/2
    */
-  return (s1 > s2 && (s1-s2) < (1<<15))
-      || (s2 > s1 && (s2-s1) > (1<<15));
+  return (s1 > s2 && (s1 - s2) < (1 << 15)) || (s2 > s1 && (s2 - s1) > (1 << 15));
 }
 
 /**
@@ -122,8 +121,7 @@ rfc5444_seqno_is_smaller(uint16_t s1, uint16_t s2) {
  * @return true if flag is set, false otherwise
  */
 static INLINE bool
-rfc7181_metric_has_flag(struct rfc7181_metric_field *metric,
-    enum rfc7181_linkmetric_flags flag) {
+rfc7181_metric_has_flag(struct rfc7181_metric_field *metric, enum rfc7181_linkmetric_flags flag) {
   return (metric->b[0] & (uint8_t)flag) != 0;
 }
 
@@ -133,8 +131,7 @@ rfc7181_metric_has_flag(struct rfc7181_metric_field *metric,
  * @param flag flag to set
  */
 static INLINE void
-rfc7181_metric_set_flag(struct rfc7181_metric_field *metric,
-    enum rfc7181_linkmetric_flags flag) {
+rfc7181_metric_set_flag(struct rfc7181_metric_field *metric, enum rfc7181_linkmetric_flags flag) {
   metric->b[0] |= (uint8_t)flag;
 }
 
@@ -144,8 +141,7 @@ rfc7181_metric_set_flag(struct rfc7181_metric_field *metric,
  * @param flag flag to reset
  */
 static INLINE void
-rfc7181_metric_reset_flag(struct rfc7181_metric_field *metric,
-    enum rfc7181_linkmetric_flags flag) {
+rfc7181_metric_reset_flag(struct rfc7181_metric_field *metric, enum rfc7181_linkmetric_flags flag) {
   metric->b[0] &= ~((uint8_t)flag);
 }
 

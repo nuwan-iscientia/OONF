@@ -71,20 +71,20 @@
 #include <sys/socket.h>
 
 /* and now the rest of the includes */
-#include <linux/types.h>
-#include <linux/netlink.h>
-#include <linux/genetlink.h>
 #include "nl80211.h"
+#include <linux/genetlink.h>
+#include <linux/netlink.h>
+#include <linux/types.h>
 #include <netlink/attr.h>
-#include <netlink/msg.h>
 #include <netlink/genl/genl.h>
+#include <netlink/msg.h>
 
 #include "common/common_types.h"
 #include "subsystems/os_system.h"
 
+#include "nl80211_listener/genl_get_family.h"
 #include "nl80211_listener/nl80211_internal.h"
 #include "nl80211_listener/nl80211_listener.h"
-#include "nl80211_listener/genl_get_family.h"
 
 /**
  * Send a netlink message to get the nl80211 id and multicast group
@@ -107,21 +107,20 @@ genl_send_get_family(struct nlmsghdr *nl_msg, struct genlmsghdr *hdr) {
  */
 void
 genl_process_get_family_result(struct nlmsghdr *hdr, uint32_t *nl80211_id, uint32_t *nl80211_mc) {
-  static struct nla_policy ctrl_policy[CTRL_ATTR_MAX+1] = {
-    [CTRL_ATTR_FAMILY_ID]    = { .type = NLA_U16 },
-    [CTRL_ATTR_FAMILY_NAME]  = { .type = NLA_STRING, .maxlen = GENL_NAMSIZ },
-    [CTRL_ATTR_VERSION]      = { .type = NLA_U32 },
-    [CTRL_ATTR_HDRSIZE]      = { .type = NLA_U32 },
-    [CTRL_ATTR_MAXATTR]      = { .type = NLA_U32 },
-    [CTRL_ATTR_OPS]          = { .type = NLA_NESTED },
+  static struct nla_policy ctrl_policy[CTRL_ATTR_MAX + 1] = {
+    [CTRL_ATTR_FAMILY_ID] = { .type = NLA_U16 },
+    [CTRL_ATTR_FAMILY_NAME] = { .type = NLA_STRING, .maxlen = GENL_NAMSIZ },
+    [CTRL_ATTR_VERSION] = { .type = NLA_U32 },
+    [CTRL_ATTR_HDRSIZE] = { .type = NLA_U32 },
+    [CTRL_ATTR_MAXATTR] = { .type = NLA_U32 },
+    [CTRL_ATTR_OPS] = { .type = NLA_NESTED },
     [CTRL_ATTR_MCAST_GROUPS] = { .type = NLA_NESTED },
   };
-  struct nlattr *attrs[CTRL_ATTR_MAX+1];
+  struct nlattr *attrs[CTRL_ATTR_MAX + 1];
   struct nlattr *mcgrp;
   int iterator;
 
-  if (nlmsg_parse(hdr, sizeof(struct genlmsghdr),
-      attrs, CTRL_ATTR_MAX, ctrl_policy) < 0) {
+  if (nlmsg_parse(hdr, sizeof(struct genlmsghdr), attrs, CTRL_ATTR_MAX, ctrl_policy) < 0) {
     OONF_WARN(LOG_NL80211, "Cannot parse netlink CTRL_CMD_NEWFAMILY message");
     return;
   }
@@ -135,8 +134,7 @@ genl_process_get_family_result(struct nlmsghdr *hdr, uint32_t *nl80211_id, uint3
     return;
   }
 
-  OONF_DEBUG(LOG_NL80211, "Found Netlink family '%s'\n",
-      nla_get_string(attrs[CTRL_ATTR_FAMILY_NAME]));
+  OONF_DEBUG(LOG_NL80211, "Found Netlink family '%s'\n", nla_get_string(attrs[CTRL_ATTR_FAMILY_NAME]));
 
   if (strcmp(nla_get_string(attrs[CTRL_ATTR_FAMILY_NAME]), "nl80211") != 0) {
     /* not interested in this one */
@@ -155,17 +153,14 @@ genl_process_get_family_result(struct nlmsghdr *hdr, uint32_t *nl80211_id, uint3
     struct nlattr *tb_mcgrp[CTRL_ATTR_MCAST_GRP_MAX + 1];
     uint32_t group;
 
-    nla_parse(tb_mcgrp, CTRL_ATTR_MCAST_GRP_MAX,
-        nla_data(mcgrp), nla_len(mcgrp), NULL);
+    nla_parse(tb_mcgrp, CTRL_ATTR_MCAST_GRP_MAX, nla_data(mcgrp), nla_len(mcgrp), NULL);
 
-    if (!tb_mcgrp[CTRL_ATTR_MCAST_GRP_NAME] ||
-        !tb_mcgrp[CTRL_ATTR_MCAST_GRP_ID])
+    if (!tb_mcgrp[CTRL_ATTR_MCAST_GRP_NAME] || !tb_mcgrp[CTRL_ATTR_MCAST_GRP_ID])
       continue;
 
     group = nla_get_u32(tb_mcgrp[CTRL_ATTR_MCAST_GRP_ID]);
-    OONF_DEBUG(LOG_NL80211, "Found multicast group %s: %d",
-        (char *)nla_data(tb_mcgrp[CTRL_ATTR_MCAST_GRP_NAME]),
-        group);
+    OONF_DEBUG(
+      LOG_NL80211, "Found multicast group %s: %d", (char *)nla_data(tb_mcgrp[CTRL_ATTR_MCAST_GRP_NAME]), group);
 
     if (strcmp(nla_data(tb_mcgrp[CTRL_ATTR_MCAST_GRP_NAME]), "mlme"))
       continue;

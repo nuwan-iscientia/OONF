@@ -57,7 +57,8 @@
 /**
  * Clock multiplied constants
  */
-enum {
+enum
+{
   /*! number of milliseconds in a second */
   MSEC_PER_SEC = 1000ull,
 
@@ -72,7 +73,8 @@ enum {
  * @param p_help help text for configuration entry
  * @param args variable list of additional arguments
  */
-#define CFG_VALIDATE_CLOCK(p_name, p_def, p_help, args...)                  CFG_VALIDATE_INT64_MINMAX(p_name, p_def, p_help, 3, false, 0, INT64_MAX, ##args)
+#define CFG_VALIDATE_CLOCK(p_name, p_def, p_help, args...)                                                             \
+  CFG_VALIDATE_INT64_MINMAX(p_name, p_def, p_help, 3, false, 0, INT64_MAX, ##args)
 
 /**
  * Creates a cfg_schema_entry for a clock value with defined minimum
@@ -82,7 +84,8 @@ enum {
  * @param min minimal allowed clock value
  * @param args variable list of additional arguments
  */
-#define CFG_VALIDATE_CLOCK_MIN(p_name, p_def, p_help, min, args...)         CFG_VALIDATE_INT64_MINMAX(p_name, p_def, p_help, 3, false, min, INT64_MAX, ##args)
+#define CFG_VALIDATE_CLOCK_MIN(p_name, p_def, p_help, min, args...)                                                    \
+  CFG_VALIDATE_INT64_MINMAX(p_name, p_def, p_help, 3, false, min, INT64_MAX, ##args)
 
 /**
  * Creates a cfg_schema_entry for a clock value with defined maximum
@@ -92,7 +95,8 @@ enum {
  * @param max maximal allowed clock value
  * @param args variable list of additional arguments
  */
-#define CFG_VALIDATE_CLOCK_MAX(p_name, p_def, p_help, max, args...)         CFG_VALIDATE_INT64_MINMAX(p_name, p_def, p_help, 3, false, 0, max, ##args)
+#define CFG_VALIDATE_CLOCK_MAX(p_name, p_def, p_help, max, args...)                                                    \
+  CFG_VALIDATE_INT64_MINMAX(p_name, p_def, p_help, 3, false, 0, max, ##args)
 
 /**
  * Creates a cfg_schema_entry for a clock value with minimum and maximum
@@ -103,7 +107,8 @@ enum {
  * @param max maximal allowed clock value
  * @param args variable list of additional arguments
  */
-#define CFG_VALIDATE_CLOCK_MINMAX(p_name, p_def, p_help, min, max, args...) CFG_VALIDATE_INT64_MINMAX(p_name, p_def, p_help, 3, false, min, max, ##args)
+#define CFG_VALIDATE_CLOCK_MINMAX(p_name, p_def, p_help, min, max, args...)                                            \
+  CFG_VALIDATE_INT64_MINMAX(p_name, p_def, p_help, 3, false, min, max, ##args)
 
 /**
  * Creates a cfg_schema_entry for a clock value that
@@ -116,7 +121,8 @@ enum {
  * @param p_help help text for configuration entry
  * @param args variable list of additional arguments
  */
-#define CFG_MAP_CLOCK(p_reference, p_field, p_name, p_def, p_help, args...)                  CFG_MAP_INT64_MINMAX(p_reference, p_field, p_name, p_def, p_help, 3, 0, INT64_MAX, ##args)
+#define CFG_MAP_CLOCK(p_reference, p_field, p_name, p_def, p_help, args...)                                            \
+  CFG_MAP_INT64_MINMAX(p_reference, p_field, p_name, p_def, p_help, 3, 0, INT64_MAX, ##args)
 
 /**
  * Creates a cfg_schema_entry for a clock value with minimal value that
@@ -130,7 +136,8 @@ enum {
  * @param min minimal allowed clock value
  * @param args variable list of additional arguments
  */
-#define CFG_MAP_CLOCK_MIN(p_reference, p_field, p_name, p_def, p_help, min, args...)         CFG_MAP_INT64_MINMAX(p_reference, p_field, p_name, p_def, p_help, 3, min, INT64_MAX, ##args)
+#define CFG_MAP_CLOCK_MIN(p_reference, p_field, p_name, p_def, p_help, min, args...)                                   \
+  CFG_MAP_INT64_MINMAX(p_reference, p_field, p_name, p_def, p_help, 3, min, INT64_MAX, ##args)
 
 /**
  * Creates a cfg_schema_entry for a clock value with maximal value that
@@ -144,7 +151,8 @@ enum {
  * @param max maximal allowed clock value
  * @param args variable list of additional arguments
  */
-#define CFG_MAP_CLOCK_MAX(p_reference, p_field, p_name, p_def, p_help, max, args...)         CFG_MAP_INT64_MINMAX(p_reference, p_field, p_name, p_def, p_help, 3, 0, max, ##args)
+#define CFG_MAP_CLOCK_MAX(p_reference, p_field, p_name, p_def, p_help, max, args...)                                   \
+  CFG_MAP_INT64_MINMAX(p_reference, p_field, p_name, p_def, p_help, 3, 0, max, ##args)
 
 /**
  * Creates a cfg_schema_entry for a clock value with minimal
@@ -159,7 +167,8 @@ enum {
  * @param max maximal allowed clock value
  * @param args variable list of additional arguments
  */
-#define CFG_MAP_CLOCK_MINMAX(p_reference, p_field, p_name, p_def, p_help, min, max, args...) CFG_MAP_INT64_MINMAX(p_reference, p_field, p_name, p_def, p_help, 3, min, max, ##args)
+#define CFG_MAP_CLOCK_MINMAX(p_reference, p_field, p_name, p_def, p_help, min, max, args...)                           \
+  CFG_MAP_INT64_MINMAX(p_reference, p_field, p_name, p_def, p_help, 3, min, max, ##args)
 
 EXPORT int oonf_clock_update(void) __attribute__((warn_unused_result));
 
@@ -204,8 +213,7 @@ oonf_clock_fromIntervalString(uint64_t *result, const char *string) {
  * @return absolute time when event will happen
  */
 static INLINE uint64_t
-oonf_clock_get_absolute(int64_t relative)
-{
+oonf_clock_get_absolute(int64_t relative) {
   return oonf_clock_getNow() + relative;
 }
 
@@ -216,8 +224,7 @@ oonf_clock_get_absolute(int64_t relative)
  *   happened.
  */
 static INLINE int64_t
-oonf_clock_get_relative(uint64_t absolute)
-{
+oonf_clock_get_relative(uint64_t absolute) {
   return (int64_t)absolute - (int64_t)oonf_clock_getNow();
 }
 
@@ -227,8 +234,7 @@ oonf_clock_get_relative(uint64_t absolute)
  * @return true if the event already happened, false otherwise
  */
 static INLINE bool
-oonf_clock_is_past(uint64_t absolute)
-{
+oonf_clock_is_past(uint64_t absolute) {
   return absolute < oonf_clock_getNow();
 }
 

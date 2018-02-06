@@ -47,8 +47,8 @@
 
 #include "common/common_types.h"
 #include "core/oonf_subsystem.h"
-#include "subsystems/rfc5444/rfc5444_iana.h"
 #include "rfc5444_signature/rfc5444_signature.h"
+#include "subsystems/rfc5444/rfc5444_iana.h"
 
 #include "hash_tomcrypt/hash_tomcrypt.h"
 
@@ -72,13 +72,10 @@ struct tomcrypt_hash {
 static int _init(void);
 static void _cleanup(void);
 
-static int _cb_sha_hash(struct rfc7182_hash *hash,
-    void *dst, size_t *dst_len,
-    const void *src, size_t src_len);
+static int _cb_sha_hash(struct rfc7182_hash *hash, void *dst, size_t *dst_len, const void *src, size_t src_len);
 static size_t _cb_get_cryptsize(struct rfc7182_crypt *, struct rfc7182_hash *);
-static int _cb_hmac_sign(struct rfc7182_crypt *, struct rfc7182_hash *,
-    void *dst, size_t *dst_len, const void *src, size_t src_len,
-    const void *key, size_t key_len);
+static int _cb_hmac_sign(struct rfc7182_crypt *, struct rfc7182_hash *, void *dst, size_t *dst_len, const void *src,
+  size_t src_len, const void *key, size_t key_len);
 
 /* hash tomcrypt subsystem definition */
 static const char *_dependencies[] = {
@@ -99,43 +96,48 @@ DECLARE_OONF_PLUGIN(_hash_tomcrypt_subsystem);
 /* definition for all sha1/2 hashes */
 static struct tomcrypt_hash _hashes[] = {
   {
-    .h = {
-      .type = RFC7182_ICV_HASH_SHA_1,
-      .hash = _cb_sha_hash,
-      .hash_length = 160 / 8,
-    },
+    .h =
+      {
+        .type = RFC7182_ICV_HASH_SHA_1,
+        .hash = _cb_sha_hash,
+        .hash_length = 160 / 8,
+      },
     .tomcrypt_name = "sha1",
   },
   {
-    .h = {
-      .type = RFC7182_ICV_HASH_SHA_224,
-      .hash = _cb_sha_hash,
-      .hash_length = 224 / 8,
-    },
+    .h =
+      {
+        .type = RFC7182_ICV_HASH_SHA_224,
+        .hash = _cb_sha_hash,
+        .hash_length = 224 / 8,
+      },
     .tomcrypt_name = "sha224",
   },
   {
-    .h = {
-      .type = RFC7182_ICV_HASH_SHA_256,
-      .hash = _cb_sha_hash,
-      .hash_length = 256 / 8,
-    },
+    .h =
+      {
+        .type = RFC7182_ICV_HASH_SHA_256,
+        .hash = _cb_sha_hash,
+        .hash_length = 256 / 8,
+      },
     .tomcrypt_name = "sha256",
   },
   {
-    .h = {
-      .type = RFC7182_ICV_HASH_SHA_384,
-      .hash = _cb_sha_hash,
-      .hash_length = 384 / 8,
-    },
+    .h =
+      {
+        .type = RFC7182_ICV_HASH_SHA_384,
+        .hash = _cb_sha_hash,
+        .hash_length = 384 / 8,
+      },
     .tomcrypt_name = "sha384",
   },
   {
-    .h = {
-      .type = RFC7182_ICV_HASH_SHA_512,
-      .hash = _cb_sha_hash,
-      .hash_length = 512 / 8,
-    },
+    .h =
+      {
+        .type = RFC7182_ICV_HASH_SHA_512,
+        .hash = _cb_sha_hash,
+        .hash_length = 512 / 8,
+      },
     .tomcrypt_name = "sha512",
   },
 };
@@ -163,11 +165,10 @@ _init(void) {
   register_hash(&sha512_desc);
 
   /* register hashes with rfc5444 signature API */
-  for (i=0; i<ARRAYSIZE(_hashes); i++) {
+  for (i = 0; i < ARRAYSIZE(_hashes); i++) {
     _hashes[i].idx = find_hash(_hashes[i].tomcrypt_name);
     if (_hashes[i].idx != -1) {
-      OONF_INFO(LOG_HASH_TOMCRYPT, "Add %s hash to rfc7182 API",
-          rfc7182_get_hash_name(_hashes[i].h.type));
+      OONF_INFO(LOG_HASH_TOMCRYPT, "Add %s hash to rfc7182 API", rfc7182_get_hash_name(_hashes[i].h.type));
       rfc7182_add_hash(&_hashes[i].h);
     }
   }
@@ -185,7 +186,7 @@ _cleanup(void) {
   size_t i;
 
   /* unregister hashes with rfc5444 signature API */
-  for (i=0; i<ARRAYSIZE(_hashes); i++) {
+  for (i = 0; i < ARRAYSIZE(_hashes); i++) {
     if (_hashes[i].idx != -1) {
       rfc7182_remove_hash(&_hashes[i].h);
     }
@@ -205,17 +206,13 @@ _cleanup(void) {
  * @return -1 if an error happened, 0 otherwise
  */
 static int
-_cb_sha_hash(struct rfc7182_hash *hash,
-    void *dst, size_t *dst_len,
-    const void *src, size_t src_len) {
+_cb_sha_hash(struct rfc7182_hash *hash, void *dst, size_t *dst_len, const void *src, size_t src_len) {
   struct tomcrypt_hash *tomhash;
   int result;
 
   tomhash = container_of(hash, struct tomcrypt_hash, h);
 
-  result = hash_memory(tomhash->idx,
-      src, (unsigned long)src_len,
-      dst, (unsigned long *)dst_len);
+  result = hash_memory(tomhash->idx, src, (unsigned long)src_len, dst, (unsigned long *)dst_len);
   if (result) {
     OONF_WARN(LOG_HASH_TOMCRYPT, "tomcrypt error: %s", error_to_string(result));
     return -1;
@@ -229,8 +226,7 @@ _cb_sha_hash(struct rfc7182_hash *hash,
  * @return length of signature based on chosen hash
  */
 static size_t
-_cb_get_cryptsize(struct rfc7182_crypt *crypt __attribute__((unused)),
-    struct rfc7182_hash *hash) {
+_cb_get_cryptsize(struct rfc7182_crypt *crypt __attribute__((unused)), struct rfc7182_hash *hash) {
   return hash->hash_length;
 }
 
@@ -248,21 +244,17 @@ _cb_get_cryptsize(struct rfc7182_crypt *crypt __attribute__((unused)),
  * @return -1 if an error happened, 0 otherwise
  */
 static int
-_cb_hmac_sign(struct rfc7182_crypt *crypt __attribute__((unused)),
-    struct rfc7182_hash *hash,
-    void *dst, size_t *dst_len, const void *src, size_t src_len,
-    const void *key, size_t key_len) {
+_cb_hmac_sign(struct rfc7182_crypt *crypt __attribute__((unused)), struct rfc7182_hash *hash, void *dst,
+  size_t *dst_len, const void *src, size_t src_len, const void *key, size_t key_len) {
   size_t i;
   int result;
 
   OONF_DEBUG_HEX(LOG_HASH_TOMCRYPT, src, src_len, "Calculate hash:");
 
-  for (i=0; i<ARRAYSIZE(_hashes); i++) {
+  for (i = 0; i < ARRAYSIZE(_hashes); i++) {
     if (&_hashes[i].h == hash) {
-      result = hmac_memory(_hashes[i].idx,
-          key, (unsigned long)key_len,
-          src, (unsigned long)src_len,
-          dst, (unsigned long *)dst_len);
+      result = hmac_memory(
+        _hashes[i].idx, key, (unsigned long)key_len, src, (unsigned long)src_len, dst, (unsigned long *)dst_len);
       if (result) {
         OONF_WARN(LOG_HASH_TOMCRYPT, "tomcrypt error: %s", error_to_string(result));
         return -1;

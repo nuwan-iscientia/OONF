@@ -49,7 +49,8 @@
 /*! subsystem identifier */
 #define OONF_NEIGHBOR_PROBING_SUBSYSTEM "neighbor_probing"
 
-enum {
+enum
+{
   /*! message type for probing */
   RFC5444_MSGTYPE_PROBING = 192,
 

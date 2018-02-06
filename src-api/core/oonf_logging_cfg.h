@@ -47,8 +47,8 @@
 #define OONF_LOGGING_CFG_H_
 
 #include "common/common_types.h"
-#include "config/cfg_schema.h"
 #include "config/cfg_db.h"
+#include "config/cfg_schema.h"
 
 #include "core/oonf_logging.h"
 
@@ -59,15 +59,16 @@
  * @param p_help help text for configuration entry
  * @param args variable list of additional arguments
  */
-#define CFG_VALIDATE_LOGSOURCE(p_name, p_def, p_help, args...) _CFG_VALIDATE(p_name, p_def, p_help, .cb_validate = oonf_logcfg_schema_validate, .cb_valhelp = oonf_logcfg_schema_help, ##args )
+#define CFG_VALIDATE_LOGSOURCE(p_name, p_def, p_help, args...)                                                         \
+  _CFG_VALIDATE(                                                                                                       \
+    p_name, p_def, p_help, .cb_validate = oonf_logcfg_schema_validate, .cb_valhelp = oonf_logcfg_schema_help, ##args)
 
 EXPORT void oonf_logcfg_init(void);
 EXPORT void oonf_logcfg_cleanup(void);
 EXPORT int oonf_logcfg_apply(struct cfg_db *db) __attribute__((warn_unused_result));
 
-EXPORT int oonf_logcfg_schema_validate(const struct cfg_schema_entry *entry,
-    const char *section_name, const char *value, struct autobuf *out);
-EXPORT void oonf_logcfg_schema_help(
-    const struct cfg_schema_entry *entry, struct autobuf *out);
+EXPORT int oonf_logcfg_schema_validate(
+  const struct cfg_schema_entry *entry, const char *section_name, const char *value, struct autobuf *out);
+EXPORT void oonf_logcfg_schema_help(const struct cfg_schema_entry *entry, struct autobuf *out);
 
 #endif /* OONF_LOGGING_CFG_H_ */

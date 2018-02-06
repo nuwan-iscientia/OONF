@@ -43,10 +43,10 @@
  * @file
  */
 
-#include <sys/file.h>
-#include <sys/types.h>
-#include <sys/stat.h>
 #include <fcntl.h>
+#include <sys/file.h>
+#include <sys/stat.h>
+#include <sys/types.h>
 #include <unistd.h>
 
 #include "core/os_core.h"
@@ -74,7 +74,7 @@ os_core_linux_get_random(void *dst, size_t length) {
   while (length > 0) {
     result = read(random_fd, u8ptr, length);
     if (result < 0) {
-      close (random_fd);
+      close(random_fd);
       return -1;
     }
 

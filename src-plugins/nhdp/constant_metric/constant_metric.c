@@ -46,10 +46,10 @@
 #include <errno.h>
 #include <stdio.h>
 
-#include "common/common_types.h"
 #include "common/autobuf.h"
 #include "common/avl.h"
 #include "common/avl_comp.h"
+#include "common/common_types.h"
 #include "config/cfg_schema.h"
 #include "config/cfg_tobin.h"
 #include "config/cfg_validate.h"
@@ -100,15 +100,14 @@ static void _cb_cfg_changed(void);
 
 /* plugin declaration */
 static struct cfg_schema_entry _constant_entry[] = {
-  CFG_MAP_NETADDR_V46(_linkcost, neighbor, "neighbor", "-",
-      "Originator of neighbor, '-' for all neighbors", false, true),
-  CFG_MAP_INT32_MINMAX(_linkcost, cost, "cost", "1000",
-      "Link cost to neighbor (or all neighbors)", 0,
-      RFC7181_METRIC_MIN, RFC7181_METRIC_MAX),
+  CFG_MAP_NETADDR_V46(
+    _linkcost, neighbor, "neighbor", "-", "Originator of neighbor, '-' for all neighbors", false, true),
+  CFG_MAP_INT32_MINMAX(_linkcost, cost, "cost", "1000", "Link cost to neighbor (or all neighbors)", 0,
+    RFC7181_METRIC_MIN, RFC7181_METRIC_MAX),
 };
 static struct cfg_schema_entry _constant_entries[] = {
-  CFG_VALIDATE_TOKENS("constant_metric", "", "Defines the static cost to the link to a neighbor.",
-      _constant_entry, .list=true),
+  CFG_VALIDATE_TOKENS(
+    "constant_metric", "", "Defines the static cost to the link to a neighbor.", _constant_entry, .list = true),
 };
 
 static struct cfg_schema_section _constant_section = {
@@ -255,8 +254,8 @@ _cb_set_linkcost(struct oonf_timer_instance *ptr __attribute__((unused))) {
     const char *ifname;
 
     ifname = nhdp_interface_get_name(lnk->local_if);
-    OONF_DEBUG(LOG_CONSTANT_METRIC, "Look for constant metric if=%s originator=%s",
-        ifname, netaddr_to_string(&nbuf, &lnk->neigh->originator));
+    OONF_DEBUG(LOG_CONSTANT_METRIC, "Look for constant metric if=%s originator=%s", ifname,
+      netaddr_to_string(&nbuf, &lnk->neigh->originator));
 
     if (netaddr_get_address_family(&lnk->neigh->originator) == AF_UNSPEC) {
       continue;
@@ -270,10 +269,9 @@ _cb_set_linkcost(struct oonf_timer_instance *ptr __attribute__((unused))) {
       entry = _get_linkcost(OS_INTERFACE_ANY, &lnk->neigh->originator);
     }
     if (entry == NULL && nhdp_db_link_is_dualstack(lnk)) {
-      entry = _get_linkcost(OS_INTERFACE_ANY,
-          &lnk->dualstack_partner->neigh->originator);
+      entry = _get_linkcost(OS_INTERFACE_ANY, &lnk->dualstack_partner->neigh->originator);
     }
-    if (entry == NULL)  {
+    if (entry == NULL) {
       entry = _get_linkcost(ifname, &NETADDR_UNSPEC);
     }
     if (entry == NULL) {
@@ -332,8 +330,7 @@ _cb_cfg_changed(void) {
     }
   }
 
-  array = cfg_db_get_schema_entry_value(
-      _constant_section.post, &_constant_entries[0]);
+  array = cfg_db_get_schema_entry_value(_constant_section.post, &_constant_entries[0]);
   if (!array) {
     OONF_WARN(LOG_CONSTANT_METRIC, "No link defined for static cost");
     return;
@@ -343,17 +340,16 @@ _cb_cfg_changed(void) {
     lk = oonf_class_malloc(&_linkcost_class);
     if (lk) {
       if (cfg_tobin_tokens(lk, ptr, _constant_entry, ARRAYSIZE(_constant_entry), NULL)) {
-        OONF_WARN(LOG_CONSTANT_METRIC,
-            "Could not convert value '%s' in section/key '%s/%s' to binary",
-            _constant_section.type, _constant_entries[0].key.entry, ptr);
+        OONF_WARN(LOG_CONSTANT_METRIC, "Could not convert value '%s' in section/key '%s/%s' to binary",
+          _constant_section.type, _constant_entries[0].key.entry, ptr);
       }
       else {
         strscpy(lk->if_name, _constant_section.section_name, IF_NAMESIZE);
         lk->_node.key = lk;
         avl_insert(&_linkcost_tree, &lk->_node);
 
-        OONF_DEBUG(LOG_CONSTANT_METRIC, "Add entry (%s/%s: %d)",
-            lk->if_name, netaddr_to_string(&nbuf, &lk->neighbor), lk->cost);
+        OONF_DEBUG(
+          LOG_CONSTANT_METRIC, "Add entry (%s/%s: %d)", lk->if_name, netaddr_to_string(&nbuf, &lk->neighbor), lk->cost);
       }
     }
   }

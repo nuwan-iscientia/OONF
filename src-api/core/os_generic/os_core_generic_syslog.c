@@ -43,11 +43,11 @@
  * @file
  */
 
-#include <sys/times.h>
 #include <fcntl.h>
-#include <unistd.h>
 #include <stdlib.h>
+#include <sys/times.h>
 #include <syslog.h>
+#include <unistd.h>
 
 #include "core/oonf_libdata.h"
 #include "core/oonf_logging.h"

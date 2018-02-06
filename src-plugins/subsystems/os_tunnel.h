@@ -46,8 +46,8 @@
 #ifndef OS_TUNNEL_H_
 #define OS_TUNNEL_H_
 
-#include "common/common_types.h"
 #include "common/avl.h"
+#include "common/common_types.h"
 #include "common/netaddr.h"
 
 /*! subsystem identifier */
@@ -62,7 +62,8 @@ struct os_tunnel;
 #error "Unknown operation system"
 #endif
 
-enum os_tunnel_type {
+enum os_tunnel_type
+{
   OS_TUNNEL_IPV4,
   OS_TUNNEL_IPV6,
   OS_TUNNEL_GRE,
@@ -108,7 +109,7 @@ struct os_tunnel {
   struct os_tunnel_internal _internal;
 };
 
-static INLINE  int os_tunnel_add(struct os_tunnel *);
-static INLINE  int os_tunnel_remove(struct os_tunnel *);
+static INLINE int os_tunnel_add(struct os_tunnel *);
+static INLINE int os_tunnel_remove(struct os_tunnel *);
 
 #endif /* OS_TUNNEL_H_ */

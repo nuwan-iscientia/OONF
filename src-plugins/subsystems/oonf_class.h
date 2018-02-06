@@ -46,9 +46,9 @@
 #ifndef _OONF_CLASS_H
 #define _OONF_CLASS_H
 
+#include "common/avl.h"
 #include "common/common_types.h"
 #include "common/list.h"
-#include "common/avl.h"
 
 /*! subsystem identifier */
 #define OONF_CLASS_SUBSYSTEM "class"
@@ -56,7 +56,8 @@
 /**
  * Events triggered for memory class members
  */
-enum oonf_class_event {
+enum oonf_class_event
+{
   /*! an object has changed */
   OONF_OBJECT_CHANGED,
 
@@ -98,8 +99,7 @@ struct oonf_class {
    * @param ptr pointer to object
    * @return pointer to buffer
    */
-  const char *(*to_keystring)(
-      struct oonf_objectkey_str *buf, struct oonf_class *cl, void *ptr);
+  const char *(*to_keystring)(struct oonf_objectkey_str *buf, struct oonf_class *cl, void *ptr);
 
   /*! Size of class including extensions in bytes */
   size_t total_size;
@@ -172,8 +172,7 @@ struct oonf_class_extension {
 EXPORT void oonf_class_add(struct oonf_class *);
 EXPORT void oonf_class_remove(struct oonf_class *);
 
-EXPORT void *oonf_class_malloc(struct oonf_class *)
-    __attribute__((warn_unused_result));
+EXPORT void *oonf_class_malloc(struct oonf_class *) __attribute__((warn_unused_result));
 EXPORT void oonf_class_free(struct oonf_class *, void *);
 
 EXPORT int oonf_class_extension_add(struct oonf_class_extension *);

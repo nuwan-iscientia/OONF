@@ -67,9 +67,8 @@
  * @return -1 if an error happened, 0 otherwise
  */
 int
-os_fd_generic_configsocket(struct os_fd *sock,
-    const union netaddr_socket *bind_to, size_t recvbuf,
-    bool rawip, const struct os_interface *os_if, enum oonf_log_source log_src) {
+os_fd_generic_configsocket(struct os_fd *sock, const union netaddr_socket *bind_to, size_t recvbuf, bool rawip,
+  const struct os_interface *os_if, enum oonf_log_source log_src) {
   union netaddr_socket bindto;
   struct netaddr_str buf;
   socklen_t addrlen;
@@ -79,8 +78,8 @@ os_fd_generic_configsocket(struct os_fd *sock,
   memcpy(&bindto, bind_to, sizeof(bindto));
 
   if (os_fd_set_nonblocking(sock)) {
-    OONF_WARN(log_src, "Cannot make socket non-blocking %s: %s (%d)\n",
-        netaddr_socket_to_string(&buf, &bindto), strerror(errno), errno);
+    OONF_WARN(log_src, "Cannot make socket non-blocking %s: %s (%d)\n", netaddr_socket_to_string(&buf, &bindto),
+      strerror(errno), errno);
     return -1;
   }
 
@@ -88,8 +87,7 @@ os_fd_generic_configsocket(struct os_fd *sock,
   if (!rawip && bind_to->std.sa_family == AF_INET6) {
     value = 1;
     if (setsockopt(sock->fd, IPPROTO_IPV6, IPV6_V6ONLY, (void *)&value, sizeof(value)) < 0) {
-        OONF_WARN(log_src, "Could not force socket to IPv6 only, continue: %s (%d)\n",
-            strerror(errno), errno);
+      OONF_WARN(log_src, "Could not force socket to IPv6 only, continue: %s (%d)\n", strerror(errno), errno);
     }
   }
 #endif
@@ -97,10 +95,8 @@ os_fd_generic_configsocket(struct os_fd *sock,
 #if defined(SO_BINDTODEVICE)
   /* this is binding the socket, not a multicast address */
   if (os_if != NULL && !os_if->flags.any &&
-      setsockopt(sock->fd, SOL_SOCKET, SO_BINDTODEVICE,
-          os_if->name, strlen(os_if->name) + 1) < 0) {
-    OONF_WARN(log_src, "Cannot bind socket to interface %s: %s (%d)\n",
-        os_if->name, strerror(errno), errno);
+      setsockopt(sock->fd, SOL_SOCKET, SO_BINDTODEVICE, os_if->name, strlen(os_if->name) + 1) < 0) {
+    OONF_WARN(log_src, "Cannot bind socket to interface %s: %s (%d)\n", os_if->name, strerror(errno), errno);
     return -1;
   }
 #endif
@@ -109,17 +105,16 @@ os_fd_generic_configsocket(struct os_fd *sock,
   /* allow to reuse address */
   value = 1;
   if (setsockopt(sock->fd, SOL_SOCKET, SO_REUSEADDR, &value, sizeof(value)) < 0) {
-    OONF_WARN(log_src, "Cannot reuse address for %s: %s (%d)\n",
-        netaddr_socket_to_string(&buf, &bindto), strerror(errno), errno);
+    OONF_WARN(log_src, "Cannot reuse address for %s: %s (%d)\n", netaddr_socket_to_string(&buf, &bindto),
+      strerror(errno), errno);
     return -1;
   }
 #endif
 
 #if defined(IP_RECVIF)
-  if (os_if != NULL
-      && setsockopt(sock, IPPROTO_IP, IP_RECVIF, &yes, sizeof(yes)) < 0) {
-    OONF_WARN(log_src, "Cannot apply IP_RECVIF for %s: %s (%d)\n",
-        netaddr_socket_to_string(&buf, &bindto), strerror(errno), errno);
+  if (os_if != NULL && setsockopt(sock, IPPROTO_IP, IP_RECVIF, &yes, sizeof(yes)) < 0) {
+    OONF_WARN(log_src, "Cannot apply IP_RECVIF for %s: %s (%d)\n", netaddr_socket_to_string(&buf, &bindto),
+      strerror(errno), errno);
     return -1;
   }
 #endif
@@ -127,8 +122,7 @@ os_fd_generic_configsocket(struct os_fd *sock,
 #if defined(SO_RCVBUF)
   if (recvbuf > 0) {
     while (recvbuf > 8192) {
-      if (setsockopt(sock->fd, SOL_SOCKET, SO_RCVBUF,
-          (void *)&recvbuf, sizeof(recvbuf)) == 0) {
+      if (setsockopt(sock->fd, SOL_SOCKET, SO_RCVBUF, (void *)&recvbuf, sizeof(recvbuf)) == 0) {
         break;
       }
 
@@ -136,8 +130,8 @@ os_fd_generic_configsocket(struct os_fd *sock,
     }
 
     if (recvbuf < 8192) {
-      OONF_WARN(log_src, "Cannot setup receive buffer size for %s: %s (%d)\n",
-          netaddr_socket_to_string(&buf, &bindto), strerror(errno), errno);
+      OONF_WARN(log_src, "Cannot setup receive buffer size for %s: %s (%d)\n", netaddr_socket_to_string(&buf, &bindto),
+        strerror(errno), errno);
       return -1;
     }
   }
@@ -151,8 +145,8 @@ os_fd_generic_configsocket(struct os_fd *sock,
   /* bind the socket to the port number */
   addrlen = sizeof(bindto);
   if (bind(sock->fd, &bindto.std, addrlen) < 0) {
-    OONF_WARN(log_src, "Cannot bind socket to address %s: %s (%d)\n",
-        netaddr_socket_to_string(&buf, &bindto), strerror(errno), errno);
+    OONF_WARN(log_src, "Cannot bind socket to address %s: %s (%d)\n", netaddr_socket_to_string(&buf, &bindto),
+      strerror(errno), errno);
 
     return -1;
   }

@@ -50,9 +50,9 @@
 #include "common/common_types.h"
 #include "common/netaddr.h"
 
-#include "subsystems/os_routing.h"
 #include "nhdp/nhdp.h"
 #include "olsrv2/olsrv2.h"
+#include "subsystems/os_routing.h"
 
 /**
  * per-domain data for locally attached networks
@@ -89,13 +89,10 @@ void olsrv2_lan_init(void);
 void olsrv2_lan_cleanup(void);
 
 EXPORT struct olsrv2_lan_entry *olsrv2_lan_add(
-    struct nhdp_domain *domain, const struct os_route_key *prefix,
-    uint32_t metric, uint8_t distance);
-EXPORT void olsrv2_lan_remove(struct nhdp_domain *,
-		const struct os_route_key *prefix);
+  struct nhdp_domain *domain, const struct os_route_key *prefix, uint32_t metric, uint8_t distance);
+EXPORT void olsrv2_lan_remove(struct nhdp_domain *, const struct os_route_key *prefix);
 
 EXPORT struct avl_tree *olsrv2_lan_get_tree(void);
-
 
 /**
  * @param prefix source specific prefix
@@ -117,6 +114,5 @@ static INLINE struct olsrv2_lan_domaindata *
 olsrv2_lan_get_domaindata(struct nhdp_domain *domain, struct olsrv2_lan_entry *lan) {
   return &lan->_domaindata[domain->index];
 }
-
 
 #endif /* OLSRV2_LAN_H_ */

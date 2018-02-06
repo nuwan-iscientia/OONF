@@ -43,8 +43,8 @@
  * @file
  */
 
-#include "common/common_types.h"
 #include "common/avl.h"
+#include "common/common_types.h"
 #include "common/netaddr.h"
 #include "core/oonf_logging.h"
 #include "core/oonf_subsystem.h"
@@ -63,7 +63,8 @@
 /* constants and definitions */
 
 /* OLSRv2 message TLV array index */
-enum {
+enum
+{
   IDX_TLV_ITIME,
   IDX_TLV_VTIME,
   IDX_TLV_CONT_SEQ_NUM,
@@ -72,7 +73,8 @@ enum {
 };
 
 /* OLSRv2 address TLV array index pass 1 */
-enum {
+enum
+{
   IDX_ADDRTLV_LINK_METRIC,
   IDX_ADDRTLV_NBR_ADDR_TYPE,
   IDX_ADDRTLV_GATEWAY,
@@ -103,16 +105,12 @@ struct _olsrv2_data {
 };
 
 /* Prototypes */
-static enum rfc5444_result
-_cb_messagetlvs(struct rfc5444_reader_tlvblock_context *context);
+static enum rfc5444_result _cb_messagetlvs(struct rfc5444_reader_tlvblock_context *context);
 
-static enum rfc5444_result
-_cb_addresstlvs(struct rfc5444_reader_tlvblock_context *context);
-static void _handle_gateways(struct rfc5444_reader_tlvblock_entry *tlv,
-    struct os_route_key *ssprefix, const uint32_t *cost_out,
-    const struct netaddr *addr);
-static enum rfc5444_result _cb_messagetlvs_end(
-    struct rfc5444_reader_tlvblock_context *context, bool dropped);
+static enum rfc5444_result _cb_addresstlvs(struct rfc5444_reader_tlvblock_context *context);
+static void _handle_gateways(struct rfc5444_reader_tlvblock_entry *tlv, struct os_route_key *ssprefix,
+  const uint32_t *cost_out, const struct netaddr *addr);
+static enum rfc5444_result _cb_messagetlvs_end(struct rfc5444_reader_tlvblock_context *context, bool dropped);
 
 /* definition of the RFC5444 reader components */
 static struct rfc5444_reader_tlvblock_consumer _olsrv2_message_consumer = {
@@ -123,17 +121,33 @@ static struct rfc5444_reader_tlvblock_consumer _olsrv2_message_consumer = {
 };
 
 static struct rfc5444_reader_tlvblock_consumer_entry _olsrv2_message_tlvs[] = {
-  [IDX_TLV_ITIME] = { .type = RFC5497_MSGTLV_INTERVAL_TIME, .type_ext = 0, .match_type_ext = true,
-      .min_length = 1, .max_length = 511, .match_length = true },
-  [IDX_TLV_VTIME] = { .type = RFC5497_MSGTLV_VALIDITY_TIME, .type_ext = 0, .match_type_ext = true,
-      .mandatory = true, .min_length = 1, .max_length = 511, .match_length = true },
+  [IDX_TLV_ITIME] = { .type = RFC5497_MSGTLV_INTERVAL_TIME,
+    .type_ext = 0,
+    .match_type_ext = true,
+    .min_length = 1,
+    .max_length = 511,
+    .match_length = true },
+  [IDX_TLV_VTIME] = { .type = RFC5497_MSGTLV_VALIDITY_TIME,
+    .type_ext = 0,
+    .match_type_ext = true,
+    .mandatory = true,
+    .min_length = 1,
+    .max_length = 511,
+    .match_length = true },
   [IDX_TLV_CONT_SEQ_NUM] = { .type = RFC7181_MSGTLV_CONT_SEQ_NUM,
-      .mandatory = true, .min_length = 2, .max_length = 65535, .match_length = true },
+    .mandatory = true,
+    .min_length = 2,
+    .max_length = 65535,
+    .match_length = true },
   [IDX_TLV_MPRTYPES] = { .type = RFC7722_MSGTLV_MPR_TYPES,
-      .type_ext = RFC7722_MSGTLV_MPR_TYPES_EXT, .match_type_ext = true,
-      .min_length = 1, .max_length = NHDP_MAXIMUM_DOMAINS, .match_length = true },
+    .type_ext = RFC7722_MSGTLV_MPR_TYPES_EXT,
+    .match_type_ext = true,
+    .min_length = 1,
+    .max_length = NHDP_MAXIMUM_DOMAINS,
+    .match_length = true },
   [IDX_TLV_SSR] = { .type = DRAFT_SSR_MSGTLV_CAPABILITY,
-      .type_ext = DRAFT_SSR_MSGTLV_CAPABILITY_EXT, .match_type_ext = true },
+    .type_ext = DRAFT_SSR_MSGTLV_CAPABILITY_EXT,
+    .match_type_ext = true },
 };
 
 static struct rfc5444_reader_tlvblock_consumer _olsrv2_address_consumer = {
@@ -145,13 +159,21 @@ static struct rfc5444_reader_tlvblock_consumer _olsrv2_address_consumer = {
 
 static struct rfc5444_reader_tlvblock_consumer_entry _olsrv2_address_tlvs[] = {
   [IDX_ADDRTLV_LINK_METRIC] = { .type = RFC7181_ADDRTLV_LINK_METRIC,
-    .min_length = 2, .max_length = 65535, .match_length = true },
+    .min_length = 2,
+    .max_length = 65535,
+    .match_length = true },
   [IDX_ADDRTLV_NBR_ADDR_TYPE] = { .type = RFC7181_ADDRTLV_NBR_ADDR_TYPE,
-    .min_length = 1, .max_length = 65535, .match_length = true },
+    .min_length = 1,
+    .max_length = 65535,
+    .match_length = true },
   [IDX_ADDRTLV_GATEWAY] = { .type = RFC7181_ADDRTLV_GATEWAY,
-    .min_length = 1, .max_length = 65535, .match_length = true },
+    .min_length = 1,
+    .max_length = 65535,
+    .match_length = true },
   [IDX_ADDRTLV_SRC_PREFIX] = { .type = SRCSPEC_GW_ADDRTLV_SRC_PREFIX,
-    .min_length = 1, .max_length = 17, .match_length = true },
+    .min_length = 1,
+    .max_length = 17,
+    .match_length = true },
 };
 
 /* nhdp multiplexer/protocol */
@@ -168,11 +190,9 @@ olsrv2_reader_init(struct oonf_rfc5444_protocol *p) {
   _protocol = p;
 
   rfc5444_reader_add_message_consumer(
-      &_protocol->reader, &_olsrv2_message_consumer,
-      _olsrv2_message_tlvs, ARRAYSIZE(_olsrv2_message_tlvs));
+    &_protocol->reader, &_olsrv2_message_consumer, _olsrv2_message_tlvs, ARRAYSIZE(_olsrv2_message_tlvs));
   rfc5444_reader_add_message_consumer(
-      &_protocol->reader, &_olsrv2_address_consumer,
-      _olsrv2_address_tlvs, ARRAYSIZE(_olsrv2_address_tlvs));
+    &_protocol->reader, &_olsrv2_address_consumer, _olsrv2_address_tlvs, ARRAYSIZE(_olsrv2_address_tlvs));
 }
 
 /**
@@ -180,10 +200,8 @@ olsrv2_reader_init(struct oonf_rfc5444_protocol *p) {
  */
 void
 olsrv2_reader_cleanup(void) {
-  rfc5444_reader_remove_message_consumer(
-      &_protocol->reader, &_olsrv2_address_consumer);
-  rfc5444_reader_remove_message_consumer(
-      &_protocol->reader, &_olsrv2_message_consumer);
+  rfc5444_reader_remove_message_consumer(&_protocol->reader, &_olsrv2_address_consumer);
+  rfc5444_reader_remove_message_consumer(&_protocol->reader, &_olsrv2_message_consumer);
 }
 
 /**
@@ -208,11 +226,9 @@ _cb_messagetlvs(struct rfc5444_reader_tlvblock_context *context) {
    */
   memset(&_current, 0, sizeof(_current));
 
-  OONF_DEBUG(LOG_OLSRV2_R, "Received TC from %s",
-      netaddr_to_string(&buf, _protocol->input.src_address));
+  OONF_DEBUG(LOG_OLSRV2_R, "Received TC from %s", netaddr_to_string(&buf, _protocol->input.src_address));
 
-  if (!context->has_origaddr || !context->has_hopcount
-      || !context->has_hoplimit || !context->has_seqno) {
+  if (!context->has_origaddr || !context->has_hopcount || !context->has_hoplimit || !context->has_seqno) {
     OONF_DEBUG(LOG_OLSRV2_R, "Missing message flag");
     return RFC5444_DROP_MESSAGE;
   }
@@ -235,41 +251,33 @@ _cb_messagetlvs(struct rfc5444_reader_tlvblock_context *context) {
   }
 
   if (!oonf_rfc5444_is_interface_active(_protocol->input.interface, af_type)) {
-    OONF_DEBUG(LOG_OLSRV2_R, "We do not handle address length %u on interface %s",
-        context->addr_len, _protocol->input.interface->name);
+    OONF_DEBUG(LOG_OLSRV2_R, "We do not handle address length %u on interface %s", context->addr_len,
+      _protocol->input.interface->name);
     return RFC5444_DROP_MESSAGE;
   }
 
-  OONF_DEBUG(LOG_OLSRV2_R, "Originator: %s   Seqno: %u",
-      netaddr_to_string(&buf, &context->orig_addr), context->seqno);
+  OONF_DEBUG(LOG_OLSRV2_R, "Originator: %s   Seqno: %u", netaddr_to_string(&buf, &context->orig_addr), context->seqno);
 
   /* get cont_seq_num extension */
   tmp = _olsrv2_message_tlvs[IDX_TLV_CONT_SEQ_NUM].type_ext;
-  if (tmp != RFC7181_CONT_SEQ_NUM_COMPLETE
-      && tmp != RFC7181_CONT_SEQ_NUM_INCOMPLETE) {
-    OONF_DEBUG(LOG_OLSRV2_R, "Illegal extension of CONT_SEQ_NUM TLV: %u",
-        tmp);
+  if (tmp != RFC7181_CONT_SEQ_NUM_COMPLETE && tmp != RFC7181_CONT_SEQ_NUM_INCOMPLETE) {
+    OONF_DEBUG(LOG_OLSRV2_R, "Illegal extension of CONT_SEQ_NUM TLV: %u", tmp);
     return RFC5444_DROP_MESSAGE;
   }
   _current.complete_tc = tmp == RFC7181_CONT_SEQ_NUM_COMPLETE;
 
   /* get ANSN */
-  memcpy(&ansn,
-      _olsrv2_message_tlvs[IDX_TLV_CONT_SEQ_NUM].tlv->single_value, 2);
+  memcpy(&ansn, _olsrv2_message_tlvs[IDX_TLV_CONT_SEQ_NUM].tlv->single_value, 2);
   ansn = ntohs(ansn);
 
   /* get VTime/ITime */
-  tmp = rfc5497_timetlv_get_from_vector(
-      _olsrv2_message_tlvs[IDX_TLV_VTIME].tlv->single_value,
-      _olsrv2_message_tlvs[IDX_TLV_VTIME].tlv->length,
-      context->hopcount);
+  tmp = rfc5497_timetlv_get_from_vector(_olsrv2_message_tlvs[IDX_TLV_VTIME].tlv->single_value,
+    _olsrv2_message_tlvs[IDX_TLV_VTIME].tlv->length, context->hopcount);
   _current.vtime = rfc5497_timetlv_decode(tmp);
 
   if (_olsrv2_message_tlvs[IDX_TLV_ITIME].tlv) {
-    tmp = rfc5497_timetlv_get_from_vector(
-        _olsrv2_message_tlvs[IDX_TLV_ITIME].tlv->single_value,
-        _olsrv2_message_tlvs[IDX_TLV_ITIME].tlv->length,
-        context->hopcount);
+    tmp = rfc5497_timetlv_get_from_vector(_olsrv2_message_tlvs[IDX_TLV_ITIME].tlv->single_value,
+      _olsrv2_message_tlvs[IDX_TLV_ITIME].tlv->length, context->hopcount);
     itime = rfc5497_timetlv_decode(tmp);
   }
   else {
@@ -278,12 +286,10 @@ _cb_messagetlvs(struct rfc5444_reader_tlvblock_context *context) {
 
   /* get mprtypes */
   _current.mprtypes_size = nhdp_domain_process_mprtypes_tlv(
-      _current.mprtypes, sizeof(_current.mprtypes),
-      _olsrv2_message_tlvs[IDX_TLV_MPRTYPES].tlv);
+    _current.mprtypes, sizeof(_current.mprtypes), _olsrv2_message_tlvs[IDX_TLV_MPRTYPES].tlv);
 
   /* test if we already forwarded the message */
-  if (!olsrv2_mpr_shall_forwarding(
-      context, _protocol->input.src_address, _current.vtime)) {
+  if (!olsrv2_mpr_shall_forwarding(context, _protocol->input.src_address, _current.vtime)) {
     /* mark message as 'no forward */
     rfc5444_reader_prevent_forwarding(context);
   }
@@ -295,8 +301,7 @@ _cb_messagetlvs(struct rfc5444_reader_tlvblock_context *context) {
   }
 
   /* get tc node */
-  _current.node = olsrv2_tc_node_add(
-      &context->orig_addr, _current.vtime, ansn);
+  _current.node = olsrv2_tc_node_add(&context->orig_addr, _current.vtime, ansn);
   if (_current.node == NULL) {
     OONF_DEBUG(LOG_OLSRV2_R, "Cannot create node");
     return RFC5444_DROP_MSG_BUT_FORWARD;
@@ -305,15 +310,13 @@ _cb_messagetlvs(struct rfc5444_reader_tlvblock_context *context) {
   /* check if the topology information is recent enough */
   if (_current.complete_tc) {
     if (rfc5444_seqno_is_smaller(ansn, _current.node->ansn)) {
-      OONF_DEBUG(LOG_OLSRV2_R, "ANSN %u is smaller than last stored ANSN %u",
-          ansn, _current.node->ansn);
+      OONF_DEBUG(LOG_OLSRV2_R, "ANSN %u is smaller than last stored ANSN %u", ansn, _current.node->ansn);
       return RFC5444_DROP_MSG_BUT_FORWARD;
     }
   }
   else {
     if (!rfc5444_seqno_is_larger(ansn, _current.node->ansn)) {
-      OONF_DEBUG(LOG_OLSRV2_R, "ANSN %u is smaller than last stored ANSN %u",
-          ansn, _current.node->ansn);
+      OONF_DEBUG(LOG_OLSRV2_R, "ANSN %u is smaller than last stored ANSN %u", ansn, _current.node->ansn);
       return RFC5444_DROP_MSG_BUT_FORWARD;
     }
   }
@@ -357,18 +360,16 @@ _cb_addresstlvs(struct rfc5444_reader_tlvblock_context *context __attribute__((u
     return RFC5444_OKAY;
   }
 
-  for (i=0; i<NHDP_MAXIMUM_DOMAINS; i++) {
+  for (i = 0; i < NHDP_MAXIMUM_DOMAINS; i++) {
     cost_in[i] = RFC7181_METRIC_INFINITE;
     cost_out[i] = RFC7181_METRIC_INFINITE;
   }
 
-  OONF_DEBUG(LOG_OLSRV2_R, "Found address in tc: %s",
-      netaddr_to_string(&buf, &context->addr));
+  OONF_DEBUG(LOG_OLSRV2_R, "Found address in tc: %s", netaddr_to_string(&buf, &context->addr));
 
   os_routing_init_sourcespec_prefix(&ssprefix, &context->addr);
 
-  for (tlv = _olsrv2_address_tlvs[IDX_ADDRTLV_LINK_METRIC].tlv;
-      tlv; tlv = tlv->next_entry) {
+  for (tlv = _olsrv2_address_tlvs[IDX_ADDRTLV_LINK_METRIC].tlv; tlv; tlv = tlv->next_entry) {
     domain = nhdp_domain_get_by_ext(tlv->type_ext);
     if (domain == NULL) {
       continue;
@@ -376,13 +377,12 @@ _cb_addresstlvs(struct rfc5444_reader_tlvblock_context *context __attribute__((u
 
     memcpy(&metric_value, tlv->single_value, sizeof(metric_value));
 
-    OONF_DEBUG(LOG_OLSRV2_R, "Metric for domain %d: 0x%02x%02x",
-        domain->index, metric_value.b[0], metric_value.b[1]);
+    OONF_DEBUG(LOG_OLSRV2_R, "Metric for domain %d: 0x%02x%02x", domain->index, metric_value.b[0], metric_value.b[1]);
 
     if (rfc7181_metric_has_flag(&metric_value, RFC7181_LINKMETRIC_INCOMING_NEIGH)) {
       cost_in[domain->index] = rfc7181_metric_decode(&metric_value);
       OONF_DEBUG(LOG_OLSRV2_R, "Incoming metric: %d", cost_in[domain->index]);
-     }
+    }
 
     if (rfc7181_metric_has_flag(&metric_value, RFC7181_LINKMETRIC_OUTGOING_NEIGH)) {
       cost_out[domain->index] = rfc7181_metric_decode(&metric_value);
@@ -398,7 +398,7 @@ _cb_addresstlvs(struct rfc5444_reader_tlvblock_context *context __attribute__((u
         OONF_DEBUG(LOG_OLSRV2_R, "Address is originator");
         edge->ansn = _current.node->ansn;
 
-        for (i=0; i<NHDP_MAXIMUM_DOMAINS; i++) {
+        for (i = 0; i < NHDP_MAXIMUM_DOMAINS; i++) {
           if (cost_out[i] <= RFC7181_METRIC_MAX) {
             _current.changed[i] |= (edge->cost[i] != cost_out[i]);
             edge->cost[i] = cost_out[i];
@@ -424,7 +424,7 @@ _cb_addresstlvs(struct rfc5444_reader_tlvblock_context *context __attribute__((u
       if (end) {
         OONF_DEBUG(LOG_OLSRV2_R, "Address is routable, but not originator");
         end->ansn = _current.node->ansn;
-        for (i=0; i< NHDP_MAXIMUM_DOMAINS; i++) {
+        for (i = 0; i < NHDP_MAXIMUM_DOMAINS; i++) {
           if (cost_out[i] <= RFC7181_METRIC_MAX) {
             _current.changed[i] |= (end->cost[i] != cost_out[i]);
             end->cost[i] = cost_out[i];
@@ -445,9 +445,8 @@ _cb_addresstlvs(struct rfc5444_reader_tlvblock_context *context __attribute__((u
 }
 
 static void
-_handle_gateways(struct rfc5444_reader_tlvblock_entry *tlv,
-    struct os_route_key *ssprefix, const uint32_t *cost_out,
-    const struct netaddr *addr) {
+_handle_gateways(struct rfc5444_reader_tlvblock_entry *tlv, struct os_route_key *ssprefix, const uint32_t *cost_out,
+  const struct netaddr *addr) {
   struct olsrv2_tc_attachment *end;
   struct nhdp_domain *domain;
   size_t i;
@@ -477,9 +476,8 @@ _handle_gateways(struct rfc5444_reader_tlvblock_entry *tlv,
   if (_olsrv2_address_tlvs[IDX_ADDRTLV_SRC_PREFIX].tlv) {
     /* copy source specific prefix */
     ssprefix->src._prefix_len = _olsrv2_address_tlvs[IDX_ADDRTLV_SRC_PREFIX].tlv->single_value[0];
-    memcpy(&ssprefix->src._addr[0],
-        &_olsrv2_address_tlvs[IDX_ADDRTLV_SRC_PREFIX].tlv->single_value[1],
-        _olsrv2_address_tlvs[IDX_ADDRTLV_SRC_PREFIX].tlv->length - 1);
+    memcpy(&ssprefix->src._addr[0], &_olsrv2_address_tlvs[IDX_ADDRTLV_SRC_PREFIX].tlv->single_value[1],
+      _olsrv2_address_tlvs[IDX_ADDRTLV_SRC_PREFIX].tlv->length - 1);
   }
 
   /* parse attached network */
@@ -492,13 +490,13 @@ _handle_gateways(struct rfc5444_reader_tlvblock_entry *tlv,
 
   if (_current.complete_tc) {
     /* clear unused metrics */
-    for (i=0; i<NHDP_MAXIMUM_DOMAINS; i++) {
+    for (i = 0; i < NHDP_MAXIMUM_DOMAINS; i++) {
       end->cost[i] = RFC7181_METRIC_INFINITE;
     }
   }
 
   /* use MT definition of AN tlv */
-  for (i=0; i<_current.mprtypes_size; i++) {
+  for (i = 0; i < _current.mprtypes_size; i++) {
     domain = nhdp_domain_get_by_ext(_current.mprtypes[i]);
     if (!domain) {
       /* unknown domain */
@@ -514,8 +512,8 @@ _handle_gateways(struct rfc5444_reader_tlvblock_entry *tlv,
       end->distance[domain->index] = tlv->single_value[i];
     }
 
-    OONF_DEBUG(LOG_OLSRV2_R, "Address is Attached Network (domain %u): dist=%u",
-        domain->ext, end->distance[domain->index]);
+    OONF_DEBUG(
+      LOG_OLSRV2_R, "Address is Attached Network (domain %u): dist=%u", domain->ext, end->distance[domain->index]);
   }
 }
 
@@ -526,8 +524,7 @@ _handle_gateways(struct rfc5444_reader_tlvblock_entry *tlv,
  * @return see rfc5444_result enum
  */
 static enum rfc5444_result
-_cb_messagetlvs_end(struct rfc5444_reader_tlvblock_context *context __attribute__((unused)),
-    bool dropped) {
+_cb_messagetlvs_end(struct rfc5444_reader_tlvblock_context *context __attribute__((unused)), bool dropped) {
   /* cleanup everything that is not the current ANSN, check for ss-prefixes */
   struct olsrv2_tc_edge *edge, *edge_it;
   struct olsrv2_tc_attachment *end, *end_it;
@@ -552,20 +549,19 @@ _cb_messagetlvs_end(struct rfc5444_reader_tlvblock_context *context __attribute_
     }
   }
 
-
   list_for_each_element(nhdp_domain_get_list(), domain, _node) {
     _current.node->ss_attached_networks[domain->index] = false;
 
-    OONF_DEBUG(LOG_OLSRV2_R, "Look for source-specific attachents of %s:",
-        netaddr_to_string(&nbuf1, &_current.node->target.prefix.dst));
+    OONF_DEBUG(LOG_OLSRV2_R,
+      "Look for source-specific attachents of %s:", netaddr_to_string(&nbuf1, &_current.node->target.prefix.dst));
     avl_for_each_element_safe(&_current.node->_attached_networks, end, _src_node, end_it) {
       OONF_DEBUG(LOG_OLSRV2_R, "        attachent [%s]/[%s]: %x / %u",
-          netaddr_to_string(&nbuf1, &end->dst->target.prefix.dst),
-          netaddr_to_string(&nbuf2, &end->dst->target.prefix.src),
-          end->cost[domain->index], netaddr_get_prefix_length(&end->dst->target.prefix.src));
+        netaddr_to_string(&nbuf1, &end->dst->target.prefix.dst),
+        netaddr_to_string(&nbuf2, &end->dst->target.prefix.src), end->cost[domain->index],
+        netaddr_get_prefix_length(&end->dst->target.prefix.src));
 
-      if (end->cost[domain->index] <= RFC7181_METRIC_MAX
-          && netaddr_get_prefix_length(&end->dst->target.prefix.src) > 0) {
+      if (end->cost[domain->index] <= RFC7181_METRIC_MAX &&
+          netaddr_get_prefix_length(&end->dst->target.prefix.src) > 0) {
         _current.node->ss_attached_networks[domain->index] = true;
         break;
       }

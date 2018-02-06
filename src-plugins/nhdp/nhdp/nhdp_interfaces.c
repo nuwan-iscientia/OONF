@@ -45,9 +45,9 @@
 
 #include <assert.h>
 
-#include "common/common_types.h"
 #include "common/avl.h"
 #include "common/avl_comp.h"
+#include "common/common_types.h"
 #include "common/container_of.h"
 #include "common/netaddr.h"
 #include "common/netaddr_acl.h"
@@ -177,12 +177,11 @@ nhdp_interface_update_status(struct nhdp_interface *interf) {
     }
   }
 
-  OONF_DEBUG(LOG_NHDP, "Interface %s: ipv4_only=%d ipv6_only=%d dualstack=%d",
-      nhdp_interface_get_name(interf), ipv4_only, ipv6_only, dualstack);
+  OONF_DEBUG(LOG_NHDP, "Interface %s: ipv4_only=%d ipv6_only=%d dualstack=%d", nhdp_interface_get_name(interf),
+    ipv4_only, ipv6_only, dualstack);
 
   interf->use_ipv4_for_flooding = ipv4_only > 0;
-  interf->use_ipv6_for_flooding =
-      ipv6_only > 0 || (ipv4_only == 0 && dualstack > 0);
+  interf->use_ipv6_for_flooding = ipv6_only > 0 || (ipv4_only == 0 && dualstack > 0);
 
   interf->dualstack_af_type = AF_UNSPEC;
   if (dualstack > 0) {
@@ -197,10 +196,8 @@ nhdp_interface_update_status(struct nhdp_interface *interf) {
     }
   }
 
-  OONF_DEBUG(LOG_NHDP, "Interface %s: floodv4=%d floodv6=%d dualstack=%d",
-      nhdp_interface_get_name(interf),
-      interf->use_ipv4_for_flooding, interf->use_ipv6_for_flooding,
-      interf->dualstack_af_type);
+  OONF_DEBUG(LOG_NHDP, "Interface %s: floodv4=%d floodv6=%d dualstack=%d", nhdp_interface_get_name(interf),
+    interf->use_ipv4_for_flooding, interf->use_ipv6_for_flooding, interf->dualstack_af_type);
 }
 
 /**
@@ -264,8 +261,7 @@ nhdp_interface_add(const char *name) {
     oonf_class_event(&_interface_info, interf, OONF_OBJECT_ADDED);
   }
 
-  OONF_INFO(LOG_NHDP, "Add interface to NHDP_interface tree: %s (refcount was %d)",
-      name, interf->_refcount);
+  OONF_INFO(LOG_NHDP, "Add interface to NHDP_interface tree: %s (refcount was %d)", name, interf->_refcount);
 
   /* keep track of users */
   interf->_refcount++;
@@ -282,8 +278,8 @@ nhdp_interface_remove(struct nhdp_interface *interf) {
   struct nhdp_interface_addr *addr, *a_it;
   struct nhdp_link *lnk, *l_it;
 
-  OONF_INFO(LOG_NHDP, "Remove interface to NHDP_interface tree: %s (refcount was %d)",
-      nhdp_interface_get_name(interf), interf->_refcount);
+  OONF_INFO(LOG_NHDP, "Remove interface to NHDP_interface tree: %s (refcount was %d)", nhdp_interface_get_name(interf),
+    interf->_refcount);
 
   if (interf->_refcount > 1) {
     /* there are still users left */
@@ -373,8 +369,7 @@ nhdp_interface_get_address_tree(void) {
  * @return last hello interval, 0 if configuration was used
  */
 uint64_t
-nhdp_interface_set_hello_interval(
-    struct nhdp_interface *interf, uint64_t interval) {
+nhdp_interface_set_hello_interval(struct nhdp_interface *interf, uint64_t interval) {
   uint64_t old;
 
   old = interf->overwrite_hello_interval;
@@ -391,8 +386,8 @@ nhdp_interface_set_hello_interval(
  * @param interval hello validity, 0 to reset to configured value
  * @return last hello validity time, 0 if configuration was used
  */
-uint64_t nhdp_set_hello_validity(
-    struct nhdp_interface *interf, uint64_t interval) {
+uint64_t
+nhdp_set_hello_validity(struct nhdp_interface *interf, uint64_t interval) {
   uint64_t old;
 
   old = interf->overwrite_hello_validity;
@@ -413,8 +408,8 @@ _addr_add(struct nhdp_interface *interf, struct netaddr *addr) {
 #ifdef OONF_LOG_DEBUG_INFO
   struct netaddr_str buf;
 #endif
-  OONF_DEBUG(LOG_NHDP, "Add address %s in NHDP interface %s",
-      netaddr_to_string(&buf, addr), nhdp_interface_get_name(interf));
+  OONF_DEBUG(
+    LOG_NHDP, "Add address %s in NHDP interface %s", netaddr_to_string(&buf, addr), nhdp_interface_get_name(interf));
 
   if_addr = avl_find_element(&interf->_if_addresses, addr, if_addr, _if_node);
   if (if_addr == NULL) {
@@ -460,8 +455,8 @@ _addr_has_been_removed(struct nhdp_interface_addr *addr, uint64_t vtime) {
   struct netaddr_str buf;
 #endif
 
-  OONF_DEBUG(LOG_NHDP, "Remove %s from NHDP interface %s",
-      netaddr_to_string(&buf, &addr->if_addr), nhdp_interface_get_name(addr->interf));
+  OONF_DEBUG(LOG_NHDP, "Remove %s from NHDP interface %s", netaddr_to_string(&buf, &addr->if_addr),
+    nhdp_interface_get_name(addr->interf));
 
   addr->removed = true;
   oonf_timer_set(&addr->_vtime, vtime);
@@ -534,8 +529,7 @@ _cb_generate_hello(struct oonf_timer_instance *ptr) {
  * @param changed true if socket address changed
  */
 static void
-_cb_interface_event(struct oonf_rfc5444_interface_listener *ifl,
-    bool changed __attribute__((unused))) {
+_cb_interface_event(struct oonf_rfc5444_interface_listener *ifl, bool changed __attribute__((unused))) {
   struct nhdp_interface *interf;
   struct nhdp_interface_addr *addr, *addr_it;
   struct os_interface_listener *if_listener;
@@ -561,15 +555,12 @@ _cb_interface_event(struct oonf_rfc5444_interface_listener *ifl,
 
   if_listener = oonf_rfc5444_get_core_if_listener(ifl->interface);
   if (if_listener != NULL && if_listener->data && if_listener->data->flags.up) {
-    ipv4 = if_listener->data->flags.loopback
-        || oonf_rfc5444_is_target_active(interf->rfc5444_if.interface->multicast4);
-    ipv6 = if_listener->data->flags.loopback
-        || oonf_rfc5444_is_target_active(interf->rfc5444_if.interface->multicast6);
+    ipv4 = if_listener->data->flags.loopback || oonf_rfc5444_is_target_active(interf->rfc5444_if.interface->multicast4);
+    ipv6 = if_listener->data->flags.loopback || oonf_rfc5444_is_target_active(interf->rfc5444_if.interface->multicast6);
 
     /* get all socket addresses that are matching the filter */
     avl_for_each_element(&if_listener->data->addresses, os_ip, _node) {
-      OONF_DEBUG(LOG_NHDP, "Found interface address %s",
-          netaddr_to_string(&nbuf, &os_ip->address));
+      OONF_DEBUG(LOG_NHDP, "Found interface address %s", netaddr_to_string(&nbuf, &os_ip->address));
 
       if (netaddr_get_address_family(&os_ip->address) == AF_INET && !ipv4) {
         /* ignore IPv4 addresses if ipv4 socket is not up*/
@@ -605,16 +596,14 @@ _cb_interface_event(struct oonf_rfc5444_interface_listener *ifl,
 
   /* get local IPv4 socket address */
   netaddr_invalidate(&interf->local_ipv4);
-  sock = oonf_rfc5444_interface_get_local_socket(
-      interf->rfc5444_if.interface, AF_INET);
+  sock = oonf_rfc5444_interface_get_local_socket(interf->rfc5444_if.interface, AF_INET);
   if (sock) {
     netaddr_from_socket(&interf->local_ipv4, sock);
   }
 
   /* get local IPv6 socket address */
   netaddr_invalidate(&interf->local_ipv6);
-  sock = oonf_rfc5444_interface_get_local_socket(
-      interf->rfc5444_if.interface, AF_INET6);
+  sock = oonf_rfc5444_interface_get_local_socket(interf->rfc5444_if.interface, AF_INET6);
   if (sock) {
     netaddr_from_socket(&interf->local_ipv6, sock);
   }

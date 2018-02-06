@@ -49,21 +49,16 @@
 #include "common/autobuf.h"
 #include "common/common_types.h"
 
-#include "config/cfg_db.h"
 #include "config/cfg.h"
+#include "config/cfg_db.h"
 
 /* state for parsing a command line */
-EXPORT int cfg_cmd_handle_set(struct cfg_instance *instance, struct cfg_db *db,
-    const char *arg, struct autobuf *log);
-EXPORT int cfg_cmd_handle_remove(struct cfg_instance *instance, struct cfg_db *db,
-    const char *arg, struct autobuf *log);
-EXPORT int cfg_cmd_handle_get(struct cfg_instance *instance, struct cfg_db *db,
-    const char *arg, struct autobuf *log);
-EXPORT int cfg_cmd_handle_load(struct cfg_instance *instance,
-    struct cfg_db *db, const char *arg, struct autobuf *log);
-EXPORT int cfg_cmd_handle_save(struct cfg_instance *instance, struct cfg_db *db,
-    const char *arg, struct autobuf *log);
-EXPORT int cfg_cmd_handle_schema(struct cfg_db *db,
-    const char *arg, struct autobuf *log);
+EXPORT int cfg_cmd_handle_set(struct cfg_instance *instance, struct cfg_db *db, const char *arg, struct autobuf *log);
+EXPORT int cfg_cmd_handle_remove(
+  struct cfg_instance *instance, struct cfg_db *db, const char *arg, struct autobuf *log);
+EXPORT int cfg_cmd_handle_get(struct cfg_instance *instance, struct cfg_db *db, const char *arg, struct autobuf *log);
+EXPORT int cfg_cmd_handle_load(struct cfg_instance *instance, struct cfg_db *db, const char *arg, struct autobuf *log);
+EXPORT int cfg_cmd_handle_save(struct cfg_instance *instance, struct cfg_db *db, const char *arg, struct autobuf *log);
+EXPORT int cfg_cmd_handle_schema(struct cfg_db *db, const char *arg, struct autobuf *log);
 
 #endif /* CFG_CMD_H_ */

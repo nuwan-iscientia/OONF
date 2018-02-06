@@ -56,8 +56,7 @@
  * @return timetlv value, 255 (infinite) if an error happened.
  */
 uint8_t
-rfc5497_timetlv_get_from_vector(
-    const uint8_t *vector, size_t vector_length, uint8_t hopcount) {
+rfc5497_timetlv_get_from_vector(const uint8_t *vector, size_t vector_length, uint8_t hopcount) {
   size_t i;
 
   /* handle illegal vector length */
@@ -66,15 +65,15 @@ rfc5497_timetlv_get_from_vector(
     return 255;
   }
 
-  for (i=1; i<vector_length; i+=2) {
+  for (i = 1; i < vector_length; i += 2) {
     /* find our position in the vector */
     if (hopcount <= vector[i]) {
-      return vector[i-1];
+      return vector[i - 1];
     }
   }
 
   /* use the last field of the vector */
-  return vector[i-1];
+  return vector[i - 1];
 }
 
 /**
@@ -139,7 +138,7 @@ rfc5497_timetlv_decode(uint8_t encoded) {
    * time-value := (1 + a/8) * 2^b * C
    * time-code := 8 * b + a
    */
-  uint8_t a,b;
+  uint8_t a, b;
 
   if (encoded == 0) {
     /* minimum valid time interval */
@@ -184,7 +183,7 @@ rfc5497_timetlv_decode(uint8_t encoded) {
  */
 int
 rfc7181_metric_encode(struct rfc7181_metric_field *encoded, uint32_t decoded) {
-  uint8_t a,b;
+  uint8_t a, b;
   /*
    * metric-value := (257+b)2^a - 256
    * metric-code := 256 * a + b
@@ -245,7 +244,7 @@ rfc5444_seqno_difference(uint16_t seqno1, uint16_t seqno2) {
     diff -= (1 << 16);
   }
   else if (diff < -(1 << 15)) {
-      diff += (1 << 16);
+    diff += (1 << 16);
   }
   return diff;
 }

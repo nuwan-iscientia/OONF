@@ -43,8 +43,8 @@
  * @file
  */
 
-#include "common/common_types.h"
 #include "common/autobuf.h"
+#include "common/common_types.h"
 #include "common/netaddr.h"
 #include "common/netaddr_acl.h"
 #include "config/cfg_schema.h"
@@ -75,8 +75,8 @@ static void _cb_config_changed(void);
 
 static struct oonf_telnet_command _telnet_commands[] = {
   TELNET_CMD("plugin", _cb_telnet_plugin,
-        "control plugins dynamically, parameters are 'list',"
-        "'load <plugin>' and 'unload <plugin>'"),
+    "control plugins dynamically, parameters are 'list',"
+    "'load <plugin>' and 'unload <plugin>'"),
 };
 
 /* configuration */
@@ -195,8 +195,7 @@ _cb_telnet_plugin(struct oonf_telnet_data *data) {
     return TELNET_RESULT_ACTIVE;
   }
 
-  abuf_appendf(data->out, "Unknown command '%s %s %s'.\n",
-      data->command, data->parameter, plugin_name);
+  abuf_appendf(data->out, "Unknown command '%s %s %s'.\n", data->command, data->parameter, plugin_name);
   return TELNET_RESULT_ACTIVE;
 }
 
@@ -206,10 +205,9 @@ _cb_telnet_plugin(struct oonf_telnet_data *data) {
 static void
 _cb_config_changed(void) {
   /* generate binary config */
-  if (cfg_schema_tobin(&_config, _plugin_controller_section.post,
-      _plugin_controller_entries, ARRAYSIZE(_plugin_controller_entries))) {
-    OONF_WARN(LOG_PLUGINCTRL, "Could not convert "
-        OONF_PLUGIN_CONTROLLER_SUBSYSTEM " config to bin");
+  if (cfg_schema_tobin(
+        &_config, _plugin_controller_section.post, _plugin_controller_entries, ARRAYSIZE(_plugin_controller_entries))) {
+    OONF_WARN(LOG_PLUGINCTRL, "Could not convert " OONF_PLUGIN_CONTROLLER_SUBSYSTEM " config to bin");
     return;
   }
 }

@@ -55,19 +55,15 @@
 
 EXPORT void cfg_help_printable(struct autobuf *out, size_t len);
 EXPORT void cfg_help_strlen(struct autobuf *out, size_t len);
-EXPORT void cfg_help_choice(struct autobuf *out, bool preamble,
-    const char *(*callback)(size_t idx, const void *ptr),
-    size_t choice_count, const void *ptr);
-EXPORT void cfg_help_int(struct autobuf *out,
-    int64_t min, int64_t max, uint16_t bytelen, uint16_t fraction);
-EXPORT void cfg_help_netaddr(struct autobuf *out, bool preamble,
-    bool prefix, const int8_t *af_types, size_t af_types_count);
-EXPORT void cfg_help_acl(struct autobuf *out, bool preamble,
-    bool prefix, const int8_t *af_types, size_t af_types_count);
+EXPORT void cfg_help_choice(struct autobuf *out, bool preamble, const char *(*callback)(size_t idx, const void *ptr),
+  size_t choice_count, const void *ptr);
+EXPORT void cfg_help_int(struct autobuf *out, int64_t min, int64_t max, uint16_t bytelen, uint16_t fraction);
+EXPORT void cfg_help_netaddr(
+  struct autobuf *out, bool preamble, bool prefix, const int8_t *af_types, size_t af_types_count);
+EXPORT void cfg_help_acl(
+  struct autobuf *out, bool preamble, bool prefix, const int8_t *af_types, size_t af_types_count);
 EXPORT void cfg_help_bitmap256(struct autobuf *out, bool preamble);
-EXPORT void cfg_help_token(struct autobuf *out, bool preamble,
-    const struct cfg_schema_entry *token_entry,
-    const struct cfg_schema_entry *sub_entries, size_t entry_count,
-    const struct cfg_schema_token_customizer *customizer);
+EXPORT void cfg_help_token(struct autobuf *out, bool preamble, const struct cfg_schema_entry *token_entry,
+  const struct cfg_schema_entry *sub_entries, size_t entry_count, const struct cfg_schema_token_customizer *customizer);
 
 #endif /* CFG_HELP_H_ */

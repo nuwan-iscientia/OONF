@@ -63,15 +63,13 @@
 
 static void _apply_metric(struct nhdp_domain *domain, const char *metric_name);
 static void _remove_metric(struct nhdp_domain *);
-static void _apply_mpr(struct nhdp_domain *domain,
-    const char *mpr_name, uint8_t willingness);
+static void _apply_mpr(struct nhdp_domain *domain, const char *mpr_name, uint8_t willingness);
 static void _remove_mpr(struct nhdp_domain *);
 
 static void _cb_update_everyone_routing_mpr(struct nhdp_domain *domain);
 static void _cb_update_everyone_flooding_mpr(struct nhdp_domain *domain);
 
-static bool _recalculate_neighbor_metric(struct nhdp_domain *domain,
-        struct nhdp_neighbor *neigh);
+static bool _recalculate_neighbor_metric(struct nhdp_domain *domain, struct nhdp_neighbor *neigh);
 static bool _recalculate_routing_mpr_set(struct nhdp_domain *domain);
 static bool _recalculate_flooding_mpr_set(void);
 
@@ -165,9 +163,8 @@ nhdp_domain_cleanup(void) {
 
   list_for_each_element_safe(&_domain_list, domain, _node, d_it) {
     /* free allocated TLVs */
-    for (i=0; i<4; i++) {
-      rfc5444_writer_unregister_addrtlvtype(
-          &_protocol->writer, &domain->_metric_addrtlvs[i]);
+    for (i = 0; i < 4; i++) {
+      rfc5444_writer_unregister_addrtlvtype(&_protocol->writer, &domain->_metric_addrtlvs[i]);
     }
 
     /* remove domain */
@@ -272,8 +269,7 @@ nhdp_domain_mpr_add(struct nhdp_domain_mpr *mpr) {
     }
   }
   if (_flooding_domain.mpr == &_everyone_mprs) {
-    _apply_mpr(&_flooding_domain,
-        _flooding_domain.mpr_name, _flooding_domain.local_willingness);
+    _apply_mpr(&_flooding_domain, _flooding_domain.mpr_name, _flooding_domain.local_willingness);
   }
   return 0;
 }
@@ -317,14 +313,12 @@ nhdp_domain_listener_remove(struct nhdp_domain_listener *listener) {
 }
 
 void
-nhdp_domain_metric_postprocessor_add(
-    struct nhdp_domain_metric_postprocessor *processor) {
+nhdp_domain_metric_postprocessor_add(struct nhdp_domain_metric_postprocessor *processor) {
   list_add_tail(&_domain_metric_postprocessor_list, &processor->_node);
 }
 
 void
-nhdp_domain_metric_postprocessor_remove(
-    struct nhdp_domain_metric_postprocessor *processor) {
+nhdp_domain_metric_postprocessor_remove(struct nhdp_domain_metric_postprocessor *processor) {
   if (list_is_node_added(&processor->_node)) {
     list_remove(&processor->_node);
   }
@@ -362,7 +356,7 @@ nhdp_domain_init_link(struct nhdp_link *lnk) {
   lnk->neigh_is_flooding_mpr = false;
 
   /* initialize metrics */
-  for (i=0; i<NHDP_MAXIMUM_DOMAINS; i++) {
+  for (i = 0; i < NHDP_MAXIMUM_DOMAINS; i++) {
     lnk->_domaindata[i].metric.in = RFC7181_METRIC_INFINITE;
     lnk->_domaindata[i].metric.out = RFC7181_METRIC_INFINITE;
     lnk->_domaindata[i].last_metric_change = oonf_clock_getNow();
@@ -388,7 +382,7 @@ nhdp_domain_init_l2hop(struct nhdp_l2hop *l2hop) {
   int i;
 
   /* initialize metrics */
-  for (i=0; i<NHDP_MAXIMUM_DOMAINS; i++) {
+  for (i = 0; i < NHDP_MAXIMUM_DOMAINS; i++) {
     l2hop->_domaindata[i].metric.in = RFC7181_METRIC_INFINITE;
     l2hop->_domaindata[i].metric.out = RFC7181_METRIC_INFINITE;
   }
@@ -413,14 +407,13 @@ nhdp_domain_init_neighbor(struct nhdp_neighbor *neigh) {
   struct nhdp_neighbor_domaindata *data;
   int i;
 
-  for (i=0; i<NHDP_MAXIMUM_DOMAINS; i++) {
+  for (i = 0; i < NHDP_MAXIMUM_DOMAINS; i++) {
     neigh->_domaindata[i].metric.in = RFC7181_METRIC_INFINITE;
     neigh->_domaindata[i].metric.out = RFC7181_METRIC_INFINITE;
 
     neigh->_domaindata[i].best_out_link = NULL;
     neigh->_domaindata[i].best_out_link_metric = RFC7181_METRIC_INFINITE;
     neigh->_domaindata[i].willingness = RFC7181_WILLINGNESS_NEVER;
-
 
     neigh->_domaindata[i].local_is_mpr = false;
     neigh->_domaindata[i].neigh_is_mpr = false;
@@ -445,8 +438,7 @@ nhdp_domain_init_neighbor(struct nhdp_neighbor *neigh) {
  *   must have a length of at least 2
  */
 void
-nhdp_domain_process_metric_linktlv(struct nhdp_domain *domain,
-    struct nhdp_link *lnk, const uint8_t *value) {
+nhdp_domain_process_metric_linktlv(struct nhdp_domain *domain, struct nhdp_link *lnk, const uint8_t *value) {
   struct rfc7181_metric_field metric_field;
   uint32_t metric;
 
@@ -468,8 +460,7 @@ nhdp_domain_process_metric_linktlv(struct nhdp_domain *domain,
  * @param value value of metric tlv
  */
 void
-nhdp_domain_process_metric_2hoptlv(struct nhdp_domain *domain,
-    struct nhdp_l2hop *l2hop, const uint8_t *value) {
+nhdp_domain_process_metric_2hoptlv(struct nhdp_domain *domain, struct nhdp_l2hop *l2hop, const uint8_t *value) {
   struct rfc7181_metric_field metric_field;
   struct nhdp_l2hop_domaindata *data;
   uint32_t metric;
@@ -499,8 +490,7 @@ _recalculate_metrics(struct nhdp_domain *domain, struct nhdp_neighbor *neigh, bo
   changed_metric = false;
 
   if (trigger) {
-    OONF_DEBUG(LOG_NHDP, "Recalculating metrics set for domain %d",
-        domain ? domain->index : -1);
+    OONF_DEBUG(LOG_NHDP, "Recalculating metrics set for domain %d", domain ? domain->index : -1);
   }
 
   if (!domain) {
@@ -528,8 +518,8 @@ _recalculate_metrics(struct nhdp_domain *domain, struct nhdp_neighbor *neigh, bo
   }
 
   if (trigger) {
-    OONF_INFO(LOG_NHDP, "Metrics changed for domain %d: %s",
-        domain ? domain->index : -1, changed_metric ? "true" : "false");
+    OONF_INFO(
+      LOG_NHDP, "Metrics changed for domain %d: %s", domain ? domain->index : -1, changed_metric ? "true" : "false");
   }
   return changed_metric;
 }
@@ -580,8 +570,7 @@ nhdp_domain_recalculate_mpr(void) {
  * @return
  */
 void
-nhdp_domain_delayed_mpr_recalculation(struct nhdp_domain *domain,
-    struct nhdp_neighbor *neigh __attribute__((unused))) {
+nhdp_domain_delayed_mpr_recalculation(struct nhdp_domain *domain, struct nhdp_neighbor *neigh __attribute__((unused))) {
   if (!domain) {
     list_for_each_element(&_domain_list, domain, _node) {
       nhdp_domain_delayed_mpr_recalculation(domain, neigh);
@@ -609,9 +598,7 @@ nhdp_domain_node_is_mpr(void) {
  * @return number of bytes written into destination buffer
  */
 size_t
-nhdp_domain_process_mprtypes_tlv(
-    uint8_t *mprtypes, size_t mprtypes_size,
-    struct rfc5444_reader_tlvblock_entry *tlv) {
+nhdp_domain_process_mprtypes_tlv(uint8_t *mprtypes, size_t mprtypes_size, struct rfc5444_reader_tlvblock_entry *tlv) {
   struct nhdp_domain *domain;
   size_t count;
 
@@ -642,8 +629,8 @@ nhdp_domain_process_mprtypes_tlv(
  * @param tlv MPR tlv context
  */
 void
-nhdp_domain_process_mpr_tlv(uint8_t *mprtypes, size_t mprtypes_size,
-    struct nhdp_link *lnk, struct rfc5444_reader_tlvblock_entry *tlv) {
+nhdp_domain_process_mpr_tlv(
+  uint8_t *mprtypes, size_t mprtypes_size, struct nhdp_link *lnk, struct rfc5444_reader_tlvblock_entry *tlv) {
   struct nhdp_domain *domain;
   struct nhdp_neighbor *neigh;
   size_t bit_idx, byte_idx;
@@ -659,13 +646,11 @@ nhdp_domain_process_mpr_tlv(uint8_t *mprtypes, size_t mprtypes_size,
   }
 
   /* set flooding MPR flag */
-  lnk->local_is_flooding_mpr =
-      (tlv->single_value[0] & RFC7181_MPR_FLOODING) != 0;
-  OONF_DEBUG(LOG_NHDP_R, "Flooding MPR for neighbor: %s",
-      lnk->local_is_flooding_mpr ? "true" : "false");
+  lnk->local_is_flooding_mpr = (tlv->single_value[0] & RFC7181_MPR_FLOODING) != 0;
+  OONF_DEBUG(LOG_NHDP_R, "Flooding MPR for neighbor: %s", lnk->local_is_flooding_mpr ? "true" : "false");
 
   /* set routing MPR flags */
-  for (i=0; i<mprtypes_size; i++) {
+  for (i = 0; i < mprtypes_size; i++) {
     domain = nhdp_domain_get_by_ext(mprtypes[i]);
     if (domain == NULL) {
       continue;
@@ -678,10 +663,10 @@ nhdp_domain_process_mpr_tlv(uint8_t *mprtypes, size_t mprtypes_size,
     }
 
     nhdp_domain_get_neighbordata(domain, lnk->neigh)->local_is_mpr =
-        (tlv->single_value[byte_idx] & (1 << bit_idx)) != 0;
+      (tlv->single_value[byte_idx] & (1 << bit_idx)) != 0;
 
-    OONF_DEBUG(LOG_NHDP_R, "Routing MPR for neighbor in domain %u: %s",
-        domain->ext, nhdp_domain_get_neighbordata(domain, lnk->neigh)->local_is_mpr ? "true" : "false");
+    OONF_DEBUG(LOG_NHDP_R, "Routing MPR for neighbor in domain %u: %s", domain->ext,
+      nhdp_domain_get_neighbordata(domain, lnk->neigh)->local_is_mpr ? "true" : "false");
   }
 
   _node_is_selected_as_mpr = false;
@@ -705,15 +690,14 @@ nhdp_domain_process_mpr_tlv(uint8_t *mprtypes, size_t mprtypes_size,
  */
 void
 nhdp_domain_process_willingness_tlv(
-    uint8_t *mprtypes, size_t mprtypes_size,
-    struct rfc5444_reader_tlvblock_entry *tlv) {
+  uint8_t *mprtypes, size_t mprtypes_size, struct rfc5444_reader_tlvblock_entry *tlv) {
   struct nhdp_domain *domain;
   size_t idx, i;
   uint8_t value;
 
   _flooding_domain._tmp_willingness = RFC7181_WILLINGNESS_NEVER;
   list_for_each_element(&_domain_list, domain, _node) {
-    domain->_tmp_willingness= RFC7181_WILLINGNESS_NEVER;
+    domain->_tmp_willingness = RFC7181_WILLINGNESS_NEVER;
   }
 
   if (!tlv) {
@@ -721,12 +705,10 @@ nhdp_domain_process_willingness_tlv(
   }
 
   /* copy flooding willingness */
-  _flooding_domain._tmp_willingness
-    = tlv->single_value[0] & RFC7181_WILLINGNESS_MASK;
-  OONF_DEBUG(LOG_NHDP_R, "Received flooding willingness: %u",
-      _flooding_domain._tmp_willingness);
+  _flooding_domain._tmp_willingness = tlv->single_value[0] & RFC7181_WILLINGNESS_MASK;
+  OONF_DEBUG(LOG_NHDP_R, "Received flooding willingness: %u", _flooding_domain._tmp_willingness);
 
-  for (i=0; i<mprtypes_size; i++) {
+  for (i = 0; i < mprtypes_size; i++) {
     domain = nhdp_domain_get_by_ext(mprtypes[i]);
     if (domain == NULL) {
       continue;
@@ -747,8 +729,7 @@ nhdp_domain_process_willingness_tlv(
 
     domain->_tmp_willingness = value;
 
-    OONF_DEBUG(LOG_NHDP_R, "Received routing willingness for domain %u: %u",
-        domain->ext, domain->_tmp_willingness);
+    OONF_DEBUG(LOG_NHDP_R, "Received routing willingness for domain %u: %u", domain->ext, domain->_tmp_willingness);
   }
 }
 
@@ -763,14 +744,12 @@ nhdp_domain_store_willingness(struct nhdp_link *lnk) {
   struct nhdp_domain *domain;
 
   lnk->flooding_willingness = _flooding_domain._tmp_willingness;
-  OONF_DEBUG(LOG_NHDP_R, "Set flooding willingness: %u",
-      lnk->flooding_willingness);
+  OONF_DEBUG(LOG_NHDP_R, "Set flooding willingness: %u", lnk->flooding_willingness);
 
   list_for_each_element(&_domain_list, domain, _node) {
     neighdata = nhdp_domain_get_neighbordata(domain, lnk->neigh);
     neighdata->willingness = domain->_tmp_willingness;
-    OONF_DEBUG(LOG_NHDP_R, "Set routing willingness for domain %u: %u",
-        domain->ext, neighdata->willingness);
+    OONF_DEBUG(LOG_NHDP_R, "Set routing willingness for domain %u: %u", domain->ext, neighdata->willingness);
   }
 }
 
@@ -781,8 +760,7 @@ nhdp_domain_store_willingness(struct nhdp_link *lnk) {
  * @return number of bytes written into buffer
  */
 size_t
-nhdp_domain_encode_mprtypes_tlvvalue(
-    uint8_t *mprtypes, size_t mprtypes_size) {
+nhdp_domain_encode_mprtypes_tlvvalue(uint8_t *mprtypes, size_t mprtypes_size) {
   struct nhdp_domain *domain;
   size_t count;
 
@@ -807,8 +785,7 @@ nhdp_domain_encode_mprtypes_tlvvalue(
  * @return length of tlvvalue, 0 if an error happened
  */
 size_t
-nhdp_domain_encode_mpr_tlvvalue(
-    uint8_t *tlvvalue, size_t tlvsize, struct nhdp_link *lnk) {
+nhdp_domain_encode_mpr_tlvvalue(uint8_t *tlvvalue, size_t tlvsize, struct nhdp_link *lnk) {
   struct nhdp_domain *domain;
   size_t bit_idx, byte_idx, len;
 
@@ -819,8 +796,7 @@ nhdp_domain_encode_mpr_tlvvalue(
     tlvvalue[0] |= RFC7181_MPR_FLOODING;
   }
 
-  OONF_DEBUG(LOG_NHDP_W, "Set flooding MPR: %s",
-      lnk->neigh_is_flooding_mpr ? "true" : "false");
+  OONF_DEBUG(LOG_NHDP_W, "Set flooding MPR: %s", lnk->neigh_is_flooding_mpr ? "true" : "false");
 
   list_for_each_element(&_domain_list, domain, _node) {
     bit_idx = (domain->index + 1) & 7;
@@ -829,7 +805,7 @@ nhdp_domain_encode_mpr_tlvvalue(
     if (byte_idx >= tlvsize) {
       return 0;
     }
-    if (byte_idx+1 > len) {
+    if (byte_idx + 1 > len) {
       len = byte_idx + 1;
     }
 
@@ -837,8 +813,8 @@ nhdp_domain_encode_mpr_tlvvalue(
       tlvvalue[byte_idx] |= (1 << bit_idx);
     }
 
-    OONF_DEBUG(LOG_NHDP_W, "Set routing MPR for domain %u: %s",
-        domain->ext, nhdp_domain_get_neighbordata(domain, lnk->neigh)->neigh_is_mpr ? "true" : "false");
+    OONF_DEBUG(LOG_NHDP_W, "Set routing MPR for domain %u: %s", domain->ext,
+      nhdp_domain_get_neighbordata(domain, lnk->neigh)->neigh_is_mpr ? "true" : "false");
   }
   return len;
 }
@@ -860,8 +836,7 @@ nhdp_domain_encode_willingness_tlvvalue(uint8_t *tlvvalue, size_t tlvsize) {
 
   /* set flooding willingness */
   tlvvalue[0] = _flooding_domain.local_willingness;
-  OONF_DEBUG(LOG_NHDP_W, "Set flooding willingness: %u",
-      _flooding_domain.local_willingness);
+  OONF_DEBUG(LOG_NHDP_W, "Set flooding willingness: %u", _flooding_domain.local_willingness);
 
   /* set routing willingness */
   list_for_each_element(&_domain_list, domain, _node) {
@@ -869,7 +844,7 @@ nhdp_domain_encode_willingness_tlvvalue(uint8_t *tlvvalue, size_t tlvsize) {
     if (idx >= tlvsize) {
       return -1;
     }
-    if (idx+1 > len) {
+    if (idx + 1 > len) {
       len = idx + 1;
     }
 
@@ -879,9 +854,10 @@ nhdp_domain_encode_willingness_tlvvalue(uint8_t *tlvvalue, size_t tlvsize) {
       value <<= RFC7181_WILLINGNESS_SHIFT;
     }
 
-    OONF_DEBUG(LOG_NHDP_W, "Set routing willingness for domain %u: %x"
-        " (%"PRINTF_SIZE_T_SPECIFIER")",
-        domain->ext, value, idx);
+    OONF_DEBUG(LOG_NHDP_W,
+      "Set routing willingness for domain %u: %x"
+      " (%" PRINTF_SIZE_T_SPECIFIER ")",
+      domain->ext, value, idx);
 
     tlvvalue[idx] |= value;
   }
@@ -915,8 +891,7 @@ nhdp_domain_get_flooding_domain(void) {
  * @return true if metric changed, false otherwise
  */
 bool
-nhdp_domain_set_incoming_metric(struct nhdp_domain_metric *metric,
-    struct nhdp_link *lnk, uint32_t metric_in) {
+nhdp_domain_set_incoming_metric(struct nhdp_domain_metric *metric, struct nhdp_link *lnk, uint32_t metric_in) {
   struct nhdp_domain_metric_postprocessor *processor;
   struct nhdp_link_domaindata *linkdata;
   struct nhdp_domain *domain;
@@ -1022,9 +997,7 @@ _recalculate_routing_mpr_set(struct nhdp_domain *domain) {
  * @return true neighbor metric or the two-hop link metrics changed
  */
 static bool
-_recalculate_neighbor_metric(
-    struct nhdp_domain *domain,
-    struct nhdp_neighbor *neigh) {
+_recalculate_neighbor_metric(struct nhdp_domain *domain, struct nhdp_neighbor *neigh) {
   struct nhdp_link *lnk;
   struct nhdp_link_domaindata *linkdata;
   struct nhdp_l2hop *l2hop;
@@ -1047,8 +1020,7 @@ _recalculate_neighbor_metric(
   neighdata->best_link_ifindex = 0;
 
   OONF_INFO(LOG_NHDP, "Recalculate neighbor %s metrics (ext %u): old_outgoing=%u",
-      netaddr_to_string(&nbuf, &neigh->originator), domain->ext,
-      neighdata->best_out_link_metric);
+    netaddr_to_string(&nbuf, &neigh->originator), domain->ext, neighdata->best_out_link_metric);
 
   /* get best metric */
   list_for_each_element(&neigh->_links, lnk, _neigh_node) {
@@ -1058,17 +1030,15 @@ _recalculate_neighbor_metric(
 
     linkdata = nhdp_domain_get_linkdata(domain, lnk);
     if (linkdata->metric.out < neighdata->metric.out) {
-      OONF_DEBUG(LOG_NHDP, "Link on if %s has better outgoing metric: %u",
-              lnk->local_if->os_if_listener.data->name,
-              linkdata->metric.out);
+      OONF_DEBUG(LOG_NHDP, "Link on if %s has better outgoing metric: %u", lnk->local_if->os_if_listener.data->name,
+        linkdata->metric.out);
 
       neighdata->metric.out = linkdata->metric.out;
       neighdata->best_out_link = lnk;
     }
     if (linkdata->metric.in < neighdata->metric.in) {
-      OONF_DEBUG(LOG_NHDP, "Link on if %s has better incoming metric: %u",
-              lnk->local_if->os_if_listener.data->name,
-              linkdata->metric.in);
+      OONF_DEBUG(LOG_NHDP, "Link on if %s has better incoming metric: %u", lnk->local_if->os_if_listener.data->name,
+        linkdata->metric.in);
       neighdata->metric.in = linkdata->metric.in;
     }
 
@@ -1085,11 +1055,9 @@ _recalculate_neighbor_metric(
     linkdata = nhdp_domain_get_linkdata(domain, neighdata->best_out_link);
 
     OONF_INFO(LOG_NHDP, "Best link: if=%s, link=%s, in=%u, out=%u",
-        nhdp_interface_get_if_listener(neighdata->best_out_link->local_if)->data->name,
-        netaddr_to_string(&nbuf, &neighdata->best_out_link->if_addr),
-        linkdata->metric.in, linkdata->metric.out);
-    neighdata->best_link_ifindex =
-        nhdp_interface_get_if_listener(neighdata->best_out_link->local_if)->data->index;
+      nhdp_interface_get_if_listener(neighdata->best_out_link->local_if)->data->name,
+      netaddr_to_string(&nbuf, &neighdata->best_out_link->if_addr), linkdata->metric.in, linkdata->metric.out);
+    neighdata->best_link_ifindex = nhdp_interface_get_if_listener(neighdata->best_out_link->local_if)->data->index;
 
     changed |= neighdata->best_out_link_metric != linkdata->metric.out;
     neighdata->best_out_link_metric = linkdata->metric.out;
@@ -1115,8 +1083,7 @@ nhdp_domain_add(uint8_t ext) {
   }
 
   if (_domain_counter == NHDP_MAXIMUM_DOMAINS) {
-    OONF_WARN(LOG_NHDP, "Maximum number of NHDP domains reached: %d",
-        NHDP_MAXIMUM_DOMAINS);
+    OONF_WARN(LOG_NHDP, "Maximum number of NHDP domains reached: %d", NHDP_MAXIMUM_DOMAINS);
     return NULL;
   }
 
@@ -1135,18 +1102,17 @@ nhdp_domain_add(uint8_t ext) {
   domain->metric->_refcount++;
 
   /* initialize metric TLVs */
-  for (i=0; i<4; i++) {
+  for (i = 0; i < 4; i++) {
     domain->_metric_addrtlvs[i].type = RFC7181_ADDRTLV_LINK_METRIC;
     domain->_metric_addrtlvs[i].exttype = domain->ext;
 
-    rfc5444_writer_register_addrtlvtype(&_protocol->writer,
-        &domain->_metric_addrtlvs[i], -1);
+    rfc5444_writer_register_addrtlvtype(&_protocol->writer, &domain->_metric_addrtlvs[i], -1);
   }
 
   /* add to domain list */
   list_add_tail(&_domain_list, &domain->_node);
 
-  oonf_class_event(&_domain_class, domain,OONF_OBJECT_ADDED);
+  oonf_class_event(&_domain_class, domain, OONF_OBJECT_ADDED);
   return domain;
 }
 
@@ -1166,8 +1132,7 @@ nhdp_domain_add(uint8_t ext) {
  *   maximum number of domains has been reached.
  */
 struct nhdp_domain *
-nhdp_domain_configure(uint8_t ext, const char *metric_name,
-    const char *mpr_name, uint8_t willingness) {
+nhdp_domain_configure(uint8_t ext, const char *metric_name, const char *mpr_name, uint8_t willingness) {
   struct nhdp_domain *domain;
 
   domain = nhdp_domain_add(ext);
@@ -1175,12 +1140,10 @@ nhdp_domain_configure(uint8_t ext, const char *metric_name,
     return NULL;
   }
 
-  OONF_DEBUG(LOG_NHDP, "Configure domain %u to metric=%s",
-      domain->index, metric_name);
+  OONF_DEBUG(LOG_NHDP, "Configure domain %u to metric=%s", domain->index, metric_name);
   _apply_metric(domain, metric_name);
 
-  OONF_DEBUG(LOG_NHDP, "Configure domain %u to mpr=%s, willingness=%u",
-      domain->index, mpr_name, willingness);
+  OONF_DEBUG(LOG_NHDP, "Configure domain %u to mpr=%s, willingness=%u", domain->index, mpr_name, willingness);
   _apply_mpr(domain, mpr_name, willingness);
 
   oonf_class_event(&_domain_class, domain, OONF_OBJECT_CHANGED);
@@ -1211,8 +1174,7 @@ _apply_metric(struct nhdp_domain *domain, const char *metric_name) {
   }
 
   /* Handle wildcard metric name first */
-  if (strcasecmp(metric_name, CFG_DOMAIN_ANY_METRIC_MPR) == 0
-      && !avl_is_empty(&_domain_metrics)) {
+  if (strcasecmp(metric_name, CFG_DOMAIN_ANY_METRIC_MPR) == 0 && !avl_is_empty(&_domain_metrics)) {
     metric_name = avl_first_element(&_domain_metrics, metric, _node)->name;
   }
 
@@ -1277,8 +1239,7 @@ _apply_mpr(struct nhdp_domain *domain, const char *mpr_name, uint8_t willingness
   }
 
   /* Handle wildcard mpr name first */
-  if (strcasecmp(mpr_name, CFG_DOMAIN_ANY_METRIC_MPR) == 0
-      && !avl_is_empty(&_domain_mprs)) {
+  if (strcasecmp(mpr_name, CFG_DOMAIN_ANY_METRIC_MPR) == 0 && !avl_is_empty(&_domain_mprs)) {
     mpr_name = avl_first_element(&_domain_mprs, mpr, _node)->name;
   }
 
@@ -1325,20 +1286,17 @@ _cb_update_everyone_routing_mpr(struct nhdp_domain *domain) {
   list_for_each_element(nhdp_db_get_neigh_list(), neigh, _global_node) {
     if (domain->mpr == &_everyone_mprs) {
       domaindata = nhdp_domain_get_neighbordata(domain, neigh);
-      domaindata->neigh_is_mpr =
-          domaindata->willingness > RFC7181_WILLINGNESS_NEVER;
+      domaindata->neigh_is_mpr = domaindata->willingness > RFC7181_WILLINGNESS_NEVER;
     }
   }
 }
 
 static void
-_cb_update_everyone_flooding_mpr(
-    struct nhdp_domain *domain __attribute__((unused))) {
+_cb_update_everyone_flooding_mpr(struct nhdp_domain *domain __attribute__((unused))) {
   struct nhdp_link *lnk;
 
   list_for_each_element(nhdp_db_get_link_list(), lnk, _global_node) {
-    lnk->neigh_is_flooding_mpr =
-        lnk->flooding_willingness > RFC7181_WILLINGNESS_NEVER;
+    lnk->neigh_is_flooding_mpr = lnk->flooding_willingness > RFC7181_WILLINGNESS_NEVER;
   }
 }
 
@@ -1363,16 +1321,14 @@ _link_to_string(struct nhdp_metric_str *buf, uint32_t metric) {
  * @return pointer to string representation of path metric value
  */
 static const char *
-_path_to_string(struct nhdp_metric_str *buf, uint32_t metric,
-    uint8_t hopcount __attribute((unused))) {
+_path_to_string(struct nhdp_metric_str *buf, uint32_t metric, uint8_t hopcount __attribute((unused))) {
   snprintf(buf->buf, sizeof(*buf), "0x%x", metric);
 
   return buf->buf;
 }
 
 static const char *
-_int_to_string(struct nhdp_metric_str *buf,
-    struct nhdp_link *lnk __attribute__((unused))) {
+_int_to_string(struct nhdp_metric_str *buf, struct nhdp_link *lnk __attribute__((unused))) {
   strscpy(buf->buf, "-", sizeof(*buf));
   return buf->buf;
 }

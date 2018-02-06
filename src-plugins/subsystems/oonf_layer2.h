@@ -55,10 +55,10 @@
 #define OONF_LAYER2_SUBSYSTEM "layer2"
 
 /*! memory class for layer2 neighbor */
-#define LAYER2_CLASS_NEIGHBOR    "layer2_neighbor"
+#define LAYER2_CLASS_NEIGHBOR "layer2_neighbor"
 
 /*! memory class for layer2 network */
-#define LAYER2_CLASS_NETWORK     "layer2_network"
+#define LAYER2_CLASS_NETWORK "layer2_network"
 
 /*! memory class for layer2 destination */
 #define LAYER2_CLASS_DESTINATION "layer2_destination"
@@ -79,7 +79,8 @@
  * @param p_help help text for configuration entry
  * @param args variable list of additional arguments
  */
-#define CFG_VALIDATE_LAYER2_NET_KEY(p_name, p_def, p_help, args...)   CFG_VALIDATE_CHOICE_CB_ARG(p_name, p_def, p_help, oonf_layer2_cfg_get_l2net_key, OONF_LAYER2_NET_COUNT, NULL, ##args )
+#define CFG_VALIDATE_LAYER2_NET_KEY(p_name, p_def, p_help, args...)                                                    \
+  CFG_VALIDATE_CHOICE_CB_ARG(p_name, p_def, p_help, oonf_layer2_cfg_get_l2net_key, OONF_LAYER2_NET_COUNT, NULL, ##args)
 
 /**
  * Creates a cfg_schema_entry for a parameter that can be choosen
@@ -89,7 +90,9 @@
  * @param p_help help text for configuration entry
  * @param args variable list of additional arguments
  */
-#define CFG_VALIDATE_LAYER2_NEIGH_KEY(p_name, p_def, p_help, args...)   CFG_VALIDATE_CHOICE_CB_ARG(p_name, p_def, p_help, oonf_layer2_cfg_get_l2neigh_key, OONF_LAYER2_NEIGH_COUNT, NULL, ##args )
+#define CFG_VALIDATE_LAYER2_NEIGH_KEY(p_name, p_def, p_help, args...)                                                  \
+  CFG_VALIDATE_CHOICE_CB_ARG(                                                                                          \
+    p_name, p_def, p_help, oonf_layer2_cfg_get_l2neigh_key, OONF_LAYER2_NEIGH_COUNT, NULL, ##args)
 
 /**
  * Creates a cfg_schema_entry for a parameter that can be choosen
@@ -99,7 +102,9 @@
  * @param p_help help text for configuration entry
  * @param args variable list of additional arguments
  */
-#define CFG_VALIDATE_LAYER2_COMP(p_name, p_def, p_help, args...)   CFG_VALIDATE_CHOICE_CB_ARG(p_name, p_def, p_help, oonf_layer2_cfg_get_l2comp, OONF_LAYER2_DATA_CMP_COUNT, NULL, ##args )
+#define CFG_VALIDATE_LAYER2_COMP(p_name, p_def, p_help, args...)                                                       \
+  CFG_VALIDATE_CHOICE_CB_ARG(                                                                                          \
+    p_name, p_def, p_help, oonf_layer2_cfg_get_l2comp, OONF_LAYER2_DATA_CMP_COUNT, NULL, ##args)
 
 /**
  * Creates a cfg_schema_entry for a parameter that can be choosen
@@ -109,7 +114,9 @@
  * @param p_help help text for configuration entry
  * @param args variable list of additional arguments
  */
-#define CFG_MAP_CHOICE_L2NET(p_reference, p_field, p_name, p_def, p_help, args...)   CFG_MAP_CHOICE_CB_ARG(p_reference, p_field, p_name, p_def, p_help, oonf_layer2_cfg_get_l2net_key, OONF_LAYER2_NET_COUNT, NULL, ##args )
+#define CFG_MAP_CHOICE_L2NET(p_reference, p_field, p_name, p_def, p_help, args...)                                     \
+  CFG_MAP_CHOICE_CB_ARG(                                                                                               \
+    p_reference, p_field, p_name, p_def, p_help, oonf_layer2_cfg_get_l2net_key, OONF_LAYER2_NET_COUNT, NULL, ##args)
 
 /**
  * Creates a cfg_schema_entry for a parameter that can be choosen
@@ -119,7 +126,9 @@
  * @param p_help help text for configuration entry
  * @param args variable list of additional arguments
  */
-#define CFG_MAP_CHOICE_L2NEIGH(p_reference, p_field, p_name, p_def, p_help, args...)   CFG_MAP_CHOICE_CB_ARG(p_reference, p_field, p_name, p_def, p_help, oonf_layer2_cfg_get_l2neigh_key, OONF_LAYER2_NEIGH_COUNT, NULL, ##args )
+#define CFG_MAP_CHOICE_L2NEIGH(p_reference, p_field, p_name, p_def, p_help, args...)                                   \
+  CFG_MAP_CHOICE_CB_ARG(p_reference, p_field, p_name, p_def, p_help, oonf_layer2_cfg_get_l2neigh_key,                  \
+    OONF_LAYER2_NEIGH_COUNT, NULL, ##args)
 
 /**
  * Creates a cfg_schema_entry for a parameter that can be choosen
@@ -129,16 +138,19 @@
  * @param p_help help text for configuration entry
  * @param args variable list of additional arguments
  */
-#define CFG_MAP_CHOICE_L2COMP(p_reference, p_field, p_name, p_def, p_help, args...)   CFG_MAP_CHOICE_CB_ARG(p_reference, p_field, p_name, p_def, p_help, oonf_layer2_cfg_get_l2comp, OONF_LAYER2_DATA_CMP_COUNT, NULL, ##args )
+#define CFG_MAP_CHOICE_L2COMP(p_reference, p_field, p_name, p_def, p_help, args...)                                    \
+  CFG_MAP_CHOICE_CB_ARG(                                                                                               \
+    p_reference, p_field, p_name, p_def, p_help, oonf_layer2_cfg_get_l2comp, OONF_LAYER2_DATA_CMP_COUNT, NULL, ##args)
 
 /**
  * priorities of layer2 originators
  */
-enum oonf_layer2_origin_priority {
-  OONF_LAYER2_ORIGIN_UNKNOWN    =  0,
+enum oonf_layer2_origin_priority
+{
+  OONF_LAYER2_ORIGIN_UNKNOWN = 0,
   OONF_LAYER2_ORIGIN_UNRELIABLE = 10,
   OONF_LAYER2_ORIGIN_CONFIGURED = 20,
-  OONF_LAYER2_ORIGIN_RELIABLE   = 30,
+  OONF_LAYER2_ORIGIN_RELIABLE = 30,
 };
 
 /**
@@ -157,7 +169,8 @@ struct oonf_layer2_origin {
   struct avl_node _node;
 };
 
-enum oonf_layer2_data_type {
+enum oonf_layer2_data_type
+{
   OONF_LAYER2_NO_DATA,
   OONF_LAYER2_INTEGER_DATA,
   OONF_LAYER2_BOOLEAN_DATA,
@@ -167,8 +180,8 @@ enum oonf_layer2_data_type {
 };
 
 union oonf_layer2_value {
-  int64_t        integer;
-  bool           boolean;
+  int64_t integer;
+  bool boolean;
   struct netaddr addr;
 };
 
@@ -206,7 +219,8 @@ struct oonf_layer2_metadata {
 /**
  * Comparator options for layer2 data
  */
-enum oonf_layer2_data_comparator_type {
+enum oonf_layer2_data_comparator_type
+{
   OONF_LAYER2_DATA_CMP_EQUALS,
   OONF_LAYER2_DATA_CMP_NOT_EQUALS,
   OONF_LAYER2_DATA_CMP_LESSER,
@@ -222,7 +236,8 @@ enum oonf_layer2_data_comparator_type {
 /**
  * list of layer2 network metrics
  */
-enum oonf_layer2_network_index {
+enum oonf_layer2_network_index
+{
   /*! primary center frequency */
   OONF_LAYER2_NET_FREQUENCY_1,
 
@@ -269,7 +284,8 @@ enum oonf_layer2_network_index {
 /**
  * list with types of layer2 networks
  */
-enum oonf_layer2_network_type {
+enum oonf_layer2_network_type
+{
   OONF_LAYER2_TYPE_UNDEFINED,
   OONF_LAYER2_TYPE_WIRELESS,
   OONF_LAYER2_TYPE_ETHERNET,
@@ -281,7 +297,8 @@ enum oonf_layer2_network_type {
 /**
  * list of layer2 neighbor metrics
  */
-enum oonf_layer2_neighbor_index {
+enum oonf_layer2_neighbor_index
+{
   /*! outgoing signal in milli dBm */
   OONF_LAYER2_NEIGH_TX_SIGNAL,
 
@@ -467,74 +484,53 @@ struct oonf_layer2_destination {
 EXPORT void oonf_layer2_origin_add(struct oonf_layer2_origin *origin);
 EXPORT void oonf_layer2_origin_remove(struct oonf_layer2_origin *origin);
 
-EXPORT int oonf_layer2_data_parse_string(union oonf_layer2_value *value,
-    const struct oonf_layer2_metadata *meta,
-    const char *input);
-EXPORT const char *oonf_layer2_data_to_string(char *buffer, size_t length,
-    const struct oonf_layer2_data *data,
-    const struct oonf_layer2_metadata *meta, bool raw);
-EXPORT bool oonf_layer2_data_set(struct oonf_layer2_data *data,
-    const struct oonf_layer2_origin *origin,
-    enum oonf_layer2_data_type type,
-    const union oonf_layer2_value *input);
-EXPORT bool oonf_layer2_data_compare(const union oonf_layer2_value *left,
-    const union oonf_layer2_value *right,
-    enum oonf_layer2_data_comparator_type comparator,
-    enum oonf_layer2_data_type data_type);
+EXPORT int oonf_layer2_data_parse_string(
+  union oonf_layer2_value *value, const struct oonf_layer2_metadata *meta, const char *input);
+EXPORT const char *oonf_layer2_data_to_string(
+  char *buffer, size_t length, const struct oonf_layer2_data *data, const struct oonf_layer2_metadata *meta, bool raw);
+EXPORT bool oonf_layer2_data_set(struct oonf_layer2_data *data, const struct oonf_layer2_origin *origin,
+  enum oonf_layer2_data_type type, const union oonf_layer2_value *input);
+EXPORT bool oonf_layer2_data_compare(const union oonf_layer2_value *left, const union oonf_layer2_value *right,
+  enum oonf_layer2_data_comparator_type comparator, enum oonf_layer2_data_type data_type);
 EXPORT enum oonf_layer2_data_comparator_type oonf_layer2_data_get_comparator(const char *);
 EXPORT const char *oonf_layer2_data_get_comparator_string(enum oonf_layer2_data_comparator_type type);
 EXPORT const char *oonf_layer2_data_get_type_string(enum oonf_layer2_data_type type);
 
 EXPORT struct oonf_layer2_net *oonf_layer2_net_add(const char *ifname);
-EXPORT bool oonf_layer2_net_remove(
-    struct oonf_layer2_net *, const struct oonf_layer2_origin *origin);
-EXPORT bool oonf_layer2_net_cleanup(struct oonf_layer2_net *l2net,
-    const struct oonf_layer2_origin *origin, bool cleanup_neigh);
+EXPORT bool oonf_layer2_net_remove(struct oonf_layer2_net *, const struct oonf_layer2_origin *origin);
+EXPORT bool oonf_layer2_net_cleanup(
+  struct oonf_layer2_net *l2net, const struct oonf_layer2_origin *origin, bool cleanup_neigh);
 EXPORT bool oonf_layer2_net_commit(struct oonf_layer2_net *);
-EXPORT void oonf_layer2_net_relabel(struct oonf_layer2_net *l2net,
-    const struct oonf_layer2_origin *new_origin,
-    const struct oonf_layer2_origin *old_origin);
+EXPORT void oonf_layer2_net_relabel(struct oonf_layer2_net *l2net, const struct oonf_layer2_origin *new_origin,
+  const struct oonf_layer2_origin *old_origin);
 EXPORT struct oonf_layer2_peer_address *oonf_layer2_net_add_ip(
-    struct oonf_layer2_net *l2net,
-    const struct oonf_layer2_origin *origin, const struct netaddr *ip);
-EXPORT int oonf_layer2_net_remove_ip(
-    struct oonf_layer2_peer_address *ip, const struct oonf_layer2_origin *origin);
-EXPORT struct oonf_layer2_neighbor_address *oonf_layer2_net_get_best_neighbor_match(
-    const struct netaddr *addr);
+  struct oonf_layer2_net *l2net, const struct oonf_layer2_origin *origin, const struct netaddr *ip);
+EXPORT int oonf_layer2_net_remove_ip(struct oonf_layer2_peer_address *ip, const struct oonf_layer2_origin *origin);
+EXPORT struct oonf_layer2_neighbor_address *oonf_layer2_net_get_best_neighbor_match(const struct netaddr *addr);
 EXPORT struct avl_tree *oonf_layer2_net_get_remote_ip_tree(void);
 
-EXPORT struct oonf_layer2_neigh *oonf_layer2_neigh_add(
-    struct oonf_layer2_net *, const struct netaddr *l2neigh);
-EXPORT bool oonf_layer2_neigh_cleanup(struct oonf_layer2_neigh *l2neigh,
-    const struct oonf_layer2_origin *origin);
-EXPORT bool oonf_layer2_neigh_remove(
-    struct oonf_layer2_neigh *l2neigh,
-    const struct oonf_layer2_origin *origin);
+EXPORT struct oonf_layer2_neigh *oonf_layer2_neigh_add(struct oonf_layer2_net *, const struct netaddr *l2neigh);
+EXPORT bool oonf_layer2_neigh_cleanup(struct oonf_layer2_neigh *l2neigh, const struct oonf_layer2_origin *origin);
+EXPORT bool oonf_layer2_neigh_remove(struct oonf_layer2_neigh *l2neigh, const struct oonf_layer2_origin *origin);
 EXPORT bool oonf_layer2_neigh_commit(struct oonf_layer2_neigh *l2neigh);
-EXPORT void oonf_layer2_neigh_relabel(struct oonf_layer2_neigh *l2neigh,
-    const struct oonf_layer2_origin *new_origin,
-    const struct oonf_layer2_origin *old_origin);
+EXPORT void oonf_layer2_neigh_relabel(struct oonf_layer2_neigh *l2neigh, const struct oonf_layer2_origin *new_origin,
+  const struct oonf_layer2_origin *old_origin);
 EXPORT struct oonf_layer2_neighbor_address *oonf_layer2_neigh_add_ip(
-    struct oonf_layer2_neigh *l2neigh,
-    const struct oonf_layer2_origin *origin, const struct netaddr *ip);
+  struct oonf_layer2_neigh *l2neigh, const struct oonf_layer2_origin *origin, const struct netaddr *ip);
 EXPORT int oonf_layer2_neigh_remove_ip(
-    struct oonf_layer2_neighbor_address *ip, const struct oonf_layer2_origin *origin);
+  struct oonf_layer2_neighbor_address *ip, const struct oonf_layer2_origin *origin);
 
 EXPORT struct oonf_layer2_destination *oonf_layer2_destination_add(
-    struct oonf_layer2_neigh *l2neigh, const struct netaddr *destination,
-    const struct oonf_layer2_origin *origin);
+  struct oonf_layer2_neigh *l2neigh, const struct netaddr *destination, const struct oonf_layer2_origin *origin);
 EXPORT void oonf_layer2_destination_remove(struct oonf_layer2_destination *);
 
 EXPORT const struct oonf_layer2_data *oonf_layer2_neigh_query(
-    const char *ifname, const struct netaddr *l2neigh,
-    enum oonf_layer2_neighbor_index idx);
+  const char *ifname, const struct netaddr *l2neigh, enum oonf_layer2_neighbor_index idx);
 EXPORT const struct oonf_layer2_data *oonf_layer2_neigh_get_data(
-    const struct oonf_layer2_neigh *l2neigh, enum oonf_layer2_neighbor_index idx);
+  const struct oonf_layer2_neigh *l2neigh, enum oonf_layer2_neighbor_index idx);
 
-EXPORT const struct oonf_layer2_metadata *oonf_layer2_neigh_metadata_get(
-    enum oonf_layer2_neighbor_index);
-EXPORT const struct oonf_layer2_metadata *oonf_layer2_net_metadata_get(
-    enum oonf_layer2_network_index);
+EXPORT const struct oonf_layer2_metadata *oonf_layer2_neigh_metadata_get(enum oonf_layer2_neighbor_index);
+EXPORT const struct oonf_layer2_metadata *oonf_layer2_net_metadata_get(enum oonf_layer2_network_index);
 EXPORT const char *oonf_layer2_cfg_get_l2net_key(size_t index, const void *unused);
 EXPORT const char *oonf_layer2_cfg_get_l2neigh_key(size_t index, const void *unused);
 EXPORT const char *oonf_layer2_cfg_get_l2comp(size_t index, const void *unused);
@@ -572,8 +568,7 @@ oonf_layer2_net_get(const char *ifname) {
  * @return layer-2 ip address object, NULL if not found
  */
 static INLINE struct oonf_layer2_peer_address *
-oonf_layer2_net_get_local_ip(const struct oonf_layer2_net *l2net,
-    const struct netaddr *addr) {
+oonf_layer2_net_get_local_ip(const struct oonf_layer2_net *l2net, const struct netaddr *addr) {
   struct oonf_layer2_peer_address *l2ip;
   return avl_find_element(&l2net->local_peer_ips, addr, l2ip, _net_node);
 }
@@ -585,8 +580,7 @@ oonf_layer2_net_get_local_ip(const struct oonf_layer2_net *l2net,
  * @return layer-2 ip address object, NULL if not found
  */
 static INLINE struct oonf_layer2_neighbor_address *
-oonf_layer2_net_get_remote_ip(const struct oonf_layer2_net *l2net,
-    const struct netaddr *addr) {
+oonf_layer2_net_get_remote_ip(const struct oonf_layer2_net *l2net, const struct netaddr *addr) {
   struct oonf_layer2_neighbor_address *l2ip;
   return avl_find_element(&l2net->remote_neighbor_ips, addr, l2ip, _net_node);
 }
@@ -598,8 +592,7 @@ oonf_layer2_net_get_remote_ip(const struct oonf_layer2_net *l2net,
  * @return layer-2 neighbor object, NULL if not found
  */
 static INLINE struct oonf_layer2_neigh *
-oonf_layer2_neigh_get(const struct oonf_layer2_net *l2net,
-    const struct netaddr *addr) {
+oonf_layer2_neigh_get(const struct oonf_layer2_net *l2net, const struct netaddr *addr) {
   struct oonf_layer2_neigh *l2neigh;
   return avl_find_element(&l2net->neighbors, addr, l2neigh, _node);
 }
@@ -611,8 +604,7 @@ oonf_layer2_neigh_get(const struct oonf_layer2_net *l2net,
  * @return layer-2 ip address object, NULL if not found
  */
 static INLINE struct oonf_layer2_neighbor_address *
-oonf_layer2_neigh_get_remote_ip(const struct oonf_layer2_neigh *l2neigh,
-    const struct netaddr *addr) {
+oonf_layer2_neigh_get_remote_ip(const struct oonf_layer2_neigh *l2neigh, const struct netaddr *addr) {
   struct oonf_layer2_neighbor_address *l2ip;
   return avl_find_element(&l2neigh->remote_neighbor_ips, addr, l2ip, _neigh_node);
 }
@@ -624,8 +616,7 @@ oonf_layer2_neigh_get_remote_ip(const struct oonf_layer2_neigh *l2neigh,
  * @return layer-2 destination object, NULL if not found
  */
 static INLINE struct oonf_layer2_destination *
-oonf_layer2_destination_get(const struct oonf_layer2_neigh *l2neigh,
-    const struct netaddr *destination) {
+oonf_layer2_destination_get(const struct oonf_layer2_neigh *l2neigh, const struct netaddr *destination) {
   struct oonf_layer2_destination *l2dst;
   return avl_find_element(&l2neigh->destinations, destination, l2dst, _node);
 }
@@ -717,16 +708,13 @@ oonf_layer2_data_get_origin(const struct oonf_layer2_data *l2data) {
  * @param origin originator of data value
  */
 static INLINE void
-oonf_layer2_data_set_origin(struct oonf_layer2_data *l2data,
-    const struct oonf_layer2_origin *origin) {
+oonf_layer2_data_set_origin(struct oonf_layer2_data *l2data, const struct oonf_layer2_origin *origin) {
   l2data->_origin = origin;
 }
 
 static INLINE bool
-oonf_layer2_data_from_string(struct oonf_layer2_data *data,
-    const struct oonf_layer2_origin *origin,
-    const struct oonf_layer2_metadata *meta,
-    const char *input) {
+oonf_layer2_data_from_string(struct oonf_layer2_data *data, const struct oonf_layer2_origin *origin,
+  const struct oonf_layer2_metadata *meta, const char *input) {
   union oonf_layer2_value value;
 
   if (oonf_layer2_data_parse_string(&value, meta, input)) {
@@ -736,17 +724,15 @@ oonf_layer2_data_from_string(struct oonf_layer2_data *data,
 }
 
 static INLINE const char *
-oonf_layer2_net_data_to_string(char *buffer, size_t length,
-    const struct oonf_layer2_data *data, enum oonf_layer2_network_index idx, bool raw) {
-  return oonf_layer2_data_to_string(buffer, length, data,
-      oonf_layer2_net_metadata_get(idx), raw);
+oonf_layer2_net_data_to_string(
+  char *buffer, size_t length, const struct oonf_layer2_data *data, enum oonf_layer2_network_index idx, bool raw) {
+  return oonf_layer2_data_to_string(buffer, length, data, oonf_layer2_net_metadata_get(idx), raw);
 }
 
 static INLINE const char *
-oonf_layer2_neigh_data_to_string(char *buffer, size_t length,
-    const struct oonf_layer2_data *data, enum oonf_layer2_neighbor_index idx, bool raw) {
-  return oonf_layer2_data_to_string(buffer, length, data,
-      oonf_layer2_neigh_metadata_get(idx), raw);
+oonf_layer2_neigh_data_to_string(
+  char *buffer, size_t length, const struct oonf_layer2_data *data, enum oonf_layer2_neighbor_index idx, bool raw) {
+  return oonf_layer2_data_to_string(buffer, length, data, oonf_layer2_neigh_metadata_get(idx), raw);
 }
 
 /**
@@ -757,9 +743,8 @@ oonf_layer2_neigh_data_to_string(char *buffer, size_t length,
  * @return true if value was overwrite, false otherwise
  */
 static INLINE bool
-oonf_layer2_data_set_int64(struct oonf_layer2_data *l2data,
-    const struct oonf_layer2_origin *origin, int64_t integer) {
-  union oonf_layer2_value value = {0};
+oonf_layer2_data_set_int64(struct oonf_layer2_data *l2data, const struct oonf_layer2_origin *origin, int64_t integer) {
+  union oonf_layer2_value value = { 0 };
   value.integer = integer;
 
   return oonf_layer2_data_set(l2data, origin, OONF_LAYER2_INTEGER_DATA, &value);
@@ -773,27 +758,22 @@ oonf_layer2_data_set_int64(struct oonf_layer2_data *l2data,
  * @return true if value was overwrite, false otherwise
  */
 static INLINE bool
-oonf_layer2_data_set_bool(struct oonf_layer2_data *l2data,
-    const struct oonf_layer2_origin *origin, bool boolean) {
-  union oonf_layer2_value value = {0};
+oonf_layer2_data_set_bool(struct oonf_layer2_data *l2data, const struct oonf_layer2_origin *origin, bool boolean) {
+  union oonf_layer2_value value = { 0 };
   value.boolean = boolean;
   return oonf_layer2_data_set(l2data, origin, OONF_LAYER2_BOOLEAN_DATA, &value);
 }
 
 static INLINE int
-oonf_layer2_net_data_from_string(
-    struct oonf_layer2_data *data, enum oonf_layer2_network_index idx,
-    struct oonf_layer2_origin *origin, const char *input) {
-  return oonf_layer2_data_from_string(
-      data, origin, oonf_layer2_net_metadata_get(idx), input);
+oonf_layer2_net_data_from_string(struct oonf_layer2_data *data, enum oonf_layer2_network_index idx,
+  struct oonf_layer2_origin *origin, const char *input) {
+  return oonf_layer2_data_from_string(data, origin, oonf_layer2_net_metadata_get(idx), input);
 }
 
 static INLINE int
-oonf_layer2_neigh_data_from_string(
-    struct oonf_layer2_data *data, enum oonf_layer2_neighbor_index idx,
-    struct oonf_layer2_origin *origin, const char *input) {
-  return oonf_layer2_data_from_string(
-      data, origin, oonf_layer2_neigh_metadata_get(idx), input);
+oonf_layer2_neigh_data_from_string(struct oonf_layer2_data *data, enum oonf_layer2_neighbor_index idx,
+  struct oonf_layer2_origin *origin, const char *input) {
+  return oonf_layer2_data_from_string(data, origin, oonf_layer2_neigh_metadata_get(idx), input);
 }
 
 /**

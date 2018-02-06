@@ -56,19 +56,19 @@
 #define OONF_NHDP_SUBSYSTEM "nhdp"
 
 /*! configuration section for NHDP */
-#define CFG_NHDP_SCHEMA_DOMAIN_SECTION_INIT    .type = "domain", .mode = CFG_SSMODE_NAMED_WITH_DEFAULT, .def_name = "0"
+#define CFG_NHDP_SCHEMA_DOMAIN_SECTION_INIT .type = "domain", .mode = CFG_SSMODE_NAMED_WITH_DEFAULT, .def_name = "0"
 
 /*! configuration section for NHDP domains */
-#define CFG_NHDP_SCHEMA_NHDP_SECTION_INIT      .type = "nhdp", .mode = CFG_SSMODE_UNNAMED
+#define CFG_NHDP_SCHEMA_NHDP_SECTION_INIT .type = "nhdp", .mode = CFG_SSMODE_UNNAMED
 
 /*! special name for 'no' metric/mpr */
-#define CFG_DOMAIN_NO_METRIC_MPR    "-"
+#define CFG_DOMAIN_NO_METRIC_MPR "-"
 
 /*! special name for 'any' metric/mpr */
-#define CFG_DOMAIN_ANY_METRIC_MPR   "*"
+#define CFG_DOMAIN_ANY_METRIC_MPR "*"
 
-
-enum {
+enum
+{
   /*! maximum number of metric domains */
   NHDP_MAXIMUM_DOMAINS = 4,
 
@@ -86,10 +86,9 @@ EXPORT void nhdp_set_originator(const struct netaddr *);
 EXPORT void nhdp_reset_originator(int af_type);
 EXPORT const struct netaddr *nhdp_get_originator(int af_type);
 
-EXPORT bool nhdp_flooding_selector(struct rfc5444_writer *writer,
-    struct rfc5444_writer_target *rfc5444_target, void *ptr);
+EXPORT bool nhdp_flooding_selector(
+  struct rfc5444_writer *writer, struct rfc5444_writer_target *rfc5444_target, void *ptr);
 EXPORT bool nhdp_forwarding_selector(
-    struct rfc5444_writer_target *rfc5444_target,
-    struct rfc5444_reader_tlvblock_context *context);
+  struct rfc5444_writer_target *rfc5444_target, struct rfc5444_reader_tlvblock_context *context);
 
 #endif /* NHDP_H_ */

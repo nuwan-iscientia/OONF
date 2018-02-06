@@ -49,7 +49,7 @@
 #include "common/common_types.h"
 
 /*! keyword for setting all bits in a bitmap */
-#define BITMAP256_ALL  "all"
+#define BITMAP256_ALL "all"
 
 /*! keyword for clearing all bits in a bitmap */
 #define BITMAP256_NONE "none"
@@ -59,7 +59,7 @@
  */
 struct bitmap256 {
   /*! array for 256 bits */
-  uint64_t b[256/sizeof(uint64_t)/8];
+  uint64_t b[256 / sizeof(uint64_t) / 8];
 };
 
 EXPORT bool bitmap256_is_subset(struct bitmap256 *set, struct bitmap256 *subset);

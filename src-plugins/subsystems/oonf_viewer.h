@@ -46,8 +46,8 @@
 #ifndef OONF_VIEWER_H_
 #define OONF_VIEWER_H_
 
-#include "common/common_types.h"
 #include "common/autobuf.h"
+#include "common/common_types.h"
 #include "common/json.h"
 #include "common/template.h"
 
@@ -58,19 +58,19 @@
 #define OONF_VIEWER_SUBSYSTEM "viewer"
 
 /*! viewer should return raw numbers, not iso-prefixes */
-#define OONF_VIEWER_RAW_FORMAT      "raw"
+#define OONF_VIEWER_RAW_FORMAT "raw"
 
 /*! viewer should only return the names of the fields */
-#define OONF_VIEWER_HEAD_FORMAT     "head"
+#define OONF_VIEWER_HEAD_FORMAT "head"
 
 /*! viewer should output json format */
-#define OONF_VIEWER_JSON_FORMAT     "json"
+#define OONF_VIEWER_JSON_FORMAT "json"
 
 /*! viewer should output json format with raw numbers */
 #define OONF_VIEWER_JSON_RAW_FORMAT "jsonraw"
 
 /*! viewer should output json format without surrounding object brackets */
-#define OONF_VIEWER_DATA_FORMAT     "data"
+#define OONF_VIEWER_DATA_FORMAT "data"
 
 /**
  * viewer should output json format with raw numbers
@@ -124,21 +124,18 @@ struct oonf_viewer_template {
   struct json_session _json;
 };
 
-EXPORT void oonf_viewer_output_prepare(struct oonf_viewer_template *template,
-    struct abuf_template_storage *storage, struct autobuf *out, const char *format);
+EXPORT void oonf_viewer_output_prepare(struct oonf_viewer_template *template, struct abuf_template_storage *storage,
+  struct autobuf *out, const char *format);
 EXPORT void oonf_viewer_output_print_line(struct oonf_viewer_template *template);
 EXPORT void oonf_viewer_output_finish(struct oonf_viewer_template *template);
 
-EXPORT void oonf_viewer_print_help(struct autobuf *out,
-    const char *parameter, struct oonf_viewer_template *template, size_t count);
-EXPORT int oonf_viewer_call_subcommands(struct autobuf *out,
-    struct abuf_template_storage *storage, const char *param,
-    struct oonf_viewer_template *templates, size_t count);
-EXPORT enum oonf_telnet_result oonf_viewer_telnet_handler(struct autobuf *out,
-    struct abuf_template_storage *storage, const char *cmd, const char *param,
-    struct oonf_viewer_template *templates, size_t count);
-EXPORT enum oonf_telnet_result oonf_viewer_telnet_help(struct autobuf *out,
-    const char *cmd, const char *parameter,
-    struct oonf_viewer_template *template, size_t count);
+EXPORT void oonf_viewer_print_help(
+  struct autobuf *out, const char *parameter, struct oonf_viewer_template *template, size_t count);
+EXPORT int oonf_viewer_call_subcommands(struct autobuf *out, struct abuf_template_storage *storage, const char *param,
+  struct oonf_viewer_template *templates, size_t count);
+EXPORT enum oonf_telnet_result oonf_viewer_telnet_handler(struct autobuf *out, struct abuf_template_storage *storage,
+  const char *cmd, const char *param, struct oonf_viewer_template *templates, size_t count);
+EXPORT enum oonf_telnet_result oonf_viewer_telnet_help(
+  struct autobuf *out, const char *cmd, const char *parameter, struct oonf_viewer_template *template, size_t count);
 
 #endif /* OONF_VIEWER_H_ */

@@ -43,16 +43,16 @@
  * @file
  */
 
-#include <stdio.h>
 #include "nhdp/nhdp.h"
 #include "nhdp/nhdp_db.h"
 #include "nhdp/nhdp_domain.h"
 #include "nhdp/nhdp_interfaces.h"
+#include <stdio.h>
 
-#include "common/common_types.h"
 #include "common/autobuf.h"
 #include "common/avl.h"
 #include "common/avl_comp.h"
+#include "common/common_types.h"
 #include "common/container_of.h"
 #include "config/cfg_schema.h"
 #include "core/oonf_cfg.h"
@@ -60,10 +60,10 @@
 #include "subsystems/oonf_class.h"
 #include "subsystems/oonf_rfc5444.h"
 
+#include "mpr/mpr.h"
 #include "mpr/mpr_internal.h"
 #include "mpr/neighbor-graph-flooding.h"
 #include "mpr/neighbor-graph.h"
-#include "mpr/mpr.h"
 
 /* FIXME remove unneeded includes */
 
@@ -74,7 +74,7 @@ mpr_add_n1_node_to_set(struct avl_tree *set, struct nhdp_neighbor *neigh, struct
   if (tmp_n1_neigh) {
     return;
   }
-  tmp_n1_neigh = calloc(1, sizeof (struct n1_node));
+  tmp_n1_neigh = calloc(1, sizeof(struct n1_node));
   tmp_n1_neigh->addr = neigh->originator;
   tmp_n1_neigh->_avl_node.key = &tmp_n1_neigh->addr;
   tmp_n1_neigh->neigh = neigh;
@@ -86,18 +86,17 @@ mpr_add_n1_node_to_set(struct avl_tree *set, struct nhdp_neighbor *neigh, struct
 void
 mpr_add_addr_node_to_set(struct avl_tree *set, const struct netaddr addr, uint32_t offset) {
   struct addr_node *tmp_node;
-  
+
   tmp_node = avl_find_element(set, &addr, tmp_node, _avl_node);
   if (tmp_node) {
     return;
   }
-  tmp_node = calloc(1, sizeof (struct addr_node));
+  tmp_node = calloc(1, sizeof(struct addr_node));
   tmp_node->addr = addr;
   tmp_node->_avl_node.key = &tmp_node->addr;
   tmp_node->table_offset = offset;
   avl_insert(set, &tmp_node->_avl_node);
 }
-
 
 /**
  * Initialize the MPR data set
@@ -153,10 +152,9 @@ mpr_clear_neighbor_graph(struct neighbor_graph *graph) {
   mpr_clear_n1_set(&graph->set_n1);
   mpr_clear_n1_set(&graph->set_mpr);
   mpr_clear_n1_set(&graph->set_mpr_candidates);
-  
-    free(graph->d_x_y_cache);
-  graph->d_x_y_cache = NULL;
 
+  free(graph->d_x_y_cache);
+  graph->d_x_y_cache = NULL;
 }
 
 /**
@@ -169,24 +167,22 @@ bool
 mpr_is_mpr(struct neighbor_graph *graph, struct netaddr *addr) {
   struct n1_node *tmp_mpr_node;
 
-  tmp_mpr_node = avl_find_element(&graph->set_mpr,
-      addr, tmp_mpr_node, _avl_node);
+  tmp_mpr_node = avl_find_element(&graph->set_mpr, addr, tmp_mpr_node, _avl_node);
   return tmp_mpr_node != NULL;
 }
 
 uint32_t
-mpr_calculate_minimal_d_z_y(const struct nhdp_domain *domain,
-    struct neighbor_graph *graph, struct addr_node *y) {
+mpr_calculate_minimal_d_z_y(const struct nhdp_domain *domain, struct neighbor_graph *graph, struct addr_node *y) {
   struct n1_node *z_node;
   uint32_t d_z_y, min_d_z_y;
 #ifdef OONF_LOG_DEBUG_INFO
-  struct n1_node   *remember;
+  struct n1_node *remember;
   struct netaddr_str nbuf1, nbuf2;
-#endif  
+#endif
   if (y->min_d_z_y) {
     return y->min_d_z_y;
   }
-  
+
   min_d_z_y = RFC7181_METRIC_INFINITE_PATH;
 #ifdef OONF_LOG_DEBUG_INFO
   remember = NULL;
@@ -200,17 +196,14 @@ mpr_calculate_minimal_d_z_y(const struct nhdp_domain *domain,
 #endif
     }
   }
-  
+
 #ifdef OONF_LOG_DEBUG_INFO
   if (remember) {
-    OONF_DEBUG(LOG_MPR, "minimal d_z_y(%s) = %s (cost %u)",
-               netaddr_to_string(&nbuf1, &y->addr),
-               netaddr_to_string(&nbuf2, &remember->addr),
-               min_d_z_y);
+    OONF_DEBUG(LOG_MPR, "minimal d_z_y(%s) = %s (cost %u)", netaddr_to_string(&nbuf1, &y->addr),
+      netaddr_to_string(&nbuf2, &remember->addr), min_d_z_y);
   }
   else {
-    OONF_DEBUG(LOG_MPR, "minimal d_z_y(%s) = infinite",
-               netaddr_to_string(&nbuf1, &y->addr));
+    OONF_DEBUG(LOG_MPR, "minimal d_z_y(%s) = infinite", netaddr_to_string(&nbuf1, &y->addr));
   }
 #endif
   y->min_d_z_y = min_d_z_y;
@@ -229,8 +222,7 @@ mpr_print_addr_set(struct avl_tree *set) {
 #endif
 
   avl_for_each_element(set, current_node, _avl_node) {
-    OONF_DEBUG(LOG_MPR, "%s",
-        netaddr_to_string(&buf1, &current_node->addr));
+    OONF_DEBUG(LOG_MPR, "%s", netaddr_to_string(&buf1, &current_node->addr));
   }
 }
 
@@ -246,16 +238,14 @@ mpr_print_n1_set(struct nhdp_domain *domain __attribute__((unused)), struct avl_
 #ifdef OONF_LOG_DEBUG_INFO
     neighbordata = nhdp_domain_get_neighbordata(domain, current_node->neigh);
 
-    OONF_DEBUG(LOG_MPR, "%s in: %u out: %u",
-        netaddr_to_string(&buf1, &current_node->addr),
-               neighbordata->metric.in,
-               neighbordata->metric.out);
+    OONF_DEBUG(LOG_MPR, "%s in: %u out: %u", netaddr_to_string(&buf1, &current_node->addr), neighbordata->metric.in,
+      neighbordata->metric.out);
 #endif
   }
 }
 
 /**
- * Print the MPR data sets 
+ * Print the MPR data sets
  * @param graph neighbor graph instance
  */
 void
@@ -282,11 +272,11 @@ mpr_print_sets(struct nhdp_domain *domain, struct neighbor_graph *graph) {
  * @return metric cost
  */
 uint32_t
-mpr_calculate_d_of_y_s(const struct nhdp_domain *domain, struct neighbor_graph *graph, struct addr_node *y,
-    struct avl_tree *subset_s) {
+mpr_calculate_d_of_y_s(
+  const struct nhdp_domain *domain, struct neighbor_graph *graph, struct addr_node *y, struct avl_tree *subset_s) {
   uint32_t d_x_y, min_cost;
   struct n1_node *node_n1;
-  
+
 #ifdef OONF_LOG_DEBUG_INFO
   struct netaddr_str buf1;
 #endif

@@ -45,17 +45,17 @@
 
 #include <string.h>
 
-#include "common/common_types.h"
 #include "common/avl.h"
 #include "common/avl_comp.h"
+#include "common/common_types.h"
 #include "common/netaddr.h"
 #include "config/cfg_schema.h"
 #include "core/oonf_subsystem.h"
+#include "crypto/rfc5444_signature/rfc5444_signature.h"
 #include "subsystems/oonf_class.h"
 #include "subsystems/oonf_rfc5444.h"
 #include "subsystems/oonf_timer.h"
 #include "subsystems/os_interface.h"
-#include "crypto/rfc5444_signature/rfc5444_signature.h"
 
 #include "crypto/simple_security/simple_security.h"
 
@@ -143,15 +143,12 @@ static void _cb_config_changed(void);
 
 /* configuration */
 static struct cfg_schema_entry _sise_entries[] = {
-  CFG_MAP_STRING_ARRAY(sise_config, key, "key", NULL,
-      "Key for HMAC signature", 256),
-  CFG_MAP_CLOCK_MIN(sise_config, vtime, "vtime", "60000",
-      "Time until replay protection counters are dropped", 60000),
-  CFG_MAP_CLOCK_MIN(sise_config, trigger_delay, "trigger_delay", "10000",
-      "Time until a query/response will be generated ", 1000),
+  CFG_MAP_STRING_ARRAY(sise_config, key, "key", NULL, "Key for HMAC signature", 256),
+  CFG_MAP_CLOCK_MIN(sise_config, vtime, "vtime", "60000", "Time until replay protection counters are dropped", 60000),
+  CFG_MAP_CLOCK_MIN(
+    sise_config, trigger_delay, "trigger_delay", "10000", "Time until a query/response will be generated ", 1000),
   CFG_MAP_INT32_MINMAX(sise_config, window_size, "window", "100",
-      "What amount of counter increase we accept from a neighbor node",
-      0, false, 1, INT32_MAX),
+    "What amount of counter increase we accept from a neighbor node", 0, false, 1, INT32_MAX),
 };
 
 static struct cfg_schema_section _sise_section = {
@@ -187,10 +184,11 @@ static struct sise_config _config;
 
 /* packet signature */
 static struct rfc5444_signature _signature = {
-  .key = {
+  .key =
+    {
       .crypt_function = RFC7182_ICV_CRYPT_HMAC,
       .hash_function = RFC7182_ICV_HASH_SHA_256,
-  },
+    },
 
   .is_matching_signature = _cb_is_matching_signature,
   .getCryptoKey = _cb_getCryptoKey,
@@ -208,24 +206,41 @@ static struct rfc5444_reader_tlvblock_consumer _pkt_consumer = {
   .block_callback_failed_constraints = _cb_timestamp_failed,
 };
 
-enum {
+enum
+{
   IDX_PKTTLV_SEND,
   IDX_PKTTLV_QUERY,
   IDX_PKTTLV_RESPONSE,
 };
 static struct rfc5444_reader_tlvblock_consumer_entry _pkt_tlvs[] = {
   [IDX_PKTTLV_SEND] =
-    { .type = RFC7182_PKTTLV_TIMESTAMP, .mandatory = true,
-      .type_ext = RFC7182_TIMESTAMP_EXT_MONOTONIC, .match_type_ext = true,
-      .min_length = 4, .max_length = 4, .match_length = true, },
+    {
+      .type = RFC7182_PKTTLV_TIMESTAMP,
+      .mandatory = true,
+      .type_ext = RFC7182_TIMESTAMP_EXT_MONOTONIC,
+      .match_type_ext = true,
+      .min_length = 4,
+      .max_length = 4,
+      .match_length = true,
+    },
   [IDX_PKTTLV_QUERY] =
-    { .type = RFC5444_PKTTLV_CHALLENGE,
-      .type_ext = RFC5444_CHALLENGE_QUERY, .match_type_ext = true,
-      .min_length = 4, .max_length = 4, .match_length = true, },
+    {
+      .type = RFC5444_PKTTLV_CHALLENGE,
+      .type_ext = RFC5444_CHALLENGE_QUERY,
+      .match_type_ext = true,
+      .min_length = 4,
+      .max_length = 4,
+      .match_length = true,
+    },
   [IDX_PKTTLV_RESPONSE] =
-    { .type = RFC5444_PKTTLV_CHALLENGE,
-      .type_ext = RFC5444_CHALLENGE_RESPONSE, .match_type_ext = true,
-      .min_length = 4, .max_length = 4, .match_length = true, },
+    {
+      .type = RFC5444_PKTTLV_CHALLENGE,
+      .type_ext = RFC5444_CHALLENGE_RESPONSE,
+      .match_type_ext = true,
+      .min_length = 4,
+      .max_length = 4,
+      .match_length = true,
+    },
 };
 
 static struct rfc5444_writer_pkthandler _pkt_handler = {
@@ -265,8 +280,7 @@ _init(void) {
     return -1;
   }
 
-  rfc5444_reader_add_packet_consumer(&_protocol->reader,
-      &_pkt_consumer, _pkt_tlvs, ARRAYSIZE(_pkt_tlvs));
+  rfc5444_reader_add_packet_consumer(&_protocol->reader, &_pkt_consumer, _pkt_tlvs, ARRAYSIZE(_pkt_tlvs));
   rfc5444_writer_register_pkthandler(&_protocol->writer, &_pkt_handler);
 
   rfc5444_sig_add(&_signature);
@@ -285,9 +299,7 @@ static void
 _cleanup(void) {
   struct neighbor_node *node, *node_it;
 
-  avl_for_each_element_safe(&_timestamp_tree, node, _node, node_it) {
-
-  }
+  avl_for_each_element_safe(&_timestamp_tree, node, _node, node_it) {}
   rfc5444_sig_remove(&_signature);
   oonf_timer_remove(&_timeout_class);
   oonf_timer_remove(&_query_trigger_class);
@@ -305,8 +317,7 @@ _cleanup(void) {
  * @return true if packet signature, false otherwise
  */
 static bool
-_cb_is_matching_signature(
-    struct rfc5444_signature *sig __attribute__((unused)), int msg_type) {
+_cb_is_matching_signature(struct rfc5444_signature *sig __attribute__((unused)), int msg_type) {
   return msg_type == RFC5444_WRITER_PKT_POSTPROCESSOR;
 }
 
@@ -317,8 +328,7 @@ _cb_is_matching_signature(
  * @return pointer to crypto key
  */
 static const void *
-_cb_getCryptoKey(
-    struct rfc5444_signature *sig __attribute__((unused)), size_t *length) {
+_cb_getCryptoKey(struct rfc5444_signature *sig __attribute__((unused)), size_t *length) {
   *length = _config.key_length;
   return _config.key;
 }
@@ -330,8 +340,7 @@ _cb_getCryptoKey(
  * @returns pointer to key id
  */
 static const void *
-_cb_getKeyId(
-    struct rfc5444_signature *sig __attribute__((unused)), size_t *length) {
+_cb_getKeyId(struct rfc5444_signature *sig __attribute__((unused)), size_t *length) {
   static const char dummy[] = "";
   *length = 0;
   return dummy;
@@ -462,18 +471,17 @@ _cb_timestamp_tlv(struct rfc5444_reader_tlvblock_context *context __attribute__(
   }
 
   OONF_DEBUG(LOG_SIMPLE_SECURITY, "Received new packet from %s/%s(%u): timestamp=%u (was %u), query=%u response=%u",
-      netaddr_to_string(&nbuf, &key.src), core_if->data.name, key.if_index,
-      timestamp, node->last_counter, query, response);
+    netaddr_to_string(&nbuf, &key.src), core_if->data.name, key.if_index, timestamp, node->last_counter, query,
+    response);
 
   /* remember querry */
   node->send_response = query;
 
   /* handle incoming timestamp and query response */
-  if ((node->send_query > 0 && response == node->send_query)
-      || (node->last_counter < timestamp &&
-          node->last_counter + _config.window_size > timestamp)) {
-    OONF_INFO(LOG_SIMPLE_SECURITY, "Received valid timestamp %u from %s/%s",
-        timestamp, netaddr_to_string(&nbuf, &key.src), core_if->data.name);
+  if ((node->send_query > 0 && response == node->send_query) ||
+      (node->last_counter < timestamp && node->last_counter + _config.window_size > timestamp)) {
+    OONF_INFO(LOG_SIMPLE_SECURITY, "Received valid timestamp %u from %s/%s", timestamp,
+      netaddr_to_string(&nbuf, &key.src), core_if->data.name);
 
     /* we got a valid query/response or a valid timestamp */
     node->last_counter = timestamp;
@@ -502,13 +510,12 @@ _cb_timestamp_tlv(struct rfc5444_reader_tlvblock_context *context __attribute__(
   }
 
   if (node->send_query > 0 || node->send_response > 0) {
-    OONF_INFO(LOG_SIMPLE_SECURITY, "Trigger challenge message: query=%u response=%u",
-        node->send_query, node->send_response);
+    OONF_INFO(
+      LOG_SIMPLE_SECURITY, "Trigger challenge message: query=%u response=%u", node->send_query, node->send_response);
 
-    if(!oonf_timer_is_active(&node->_trigger)) {
+    if (!oonf_timer_is_active(&node->_trigger)) {
       /* trigger query response */
-      oonf_timer_set(&node->_trigger,
-          node->send_response > 0 ? 1 : _config.trigger_delay);
+      oonf_timer_set(&node->_trigger, node->send_response > 0 ? 1 : _config.trigger_delay);
     }
   }
 
@@ -564,21 +571,18 @@ _cb_addPacketTLVs(struct rfc5444_writer *writer, struct rfc5444_writer_target *r
       /* send query */
       query = htonl(node->send_query);
 
-      rfc5444_writer_add_packettlv(writer, rfc5444_target,
-          RFC5444_PKTTLV_CHALLENGE, RFC5444_CHALLENGE_QUERY,
-          &query, sizeof(query));
+      rfc5444_writer_add_packettlv(
+        writer, rfc5444_target, RFC5444_PKTTLV_CHALLENGE, RFC5444_CHALLENGE_QUERY, &query, sizeof(query));
     }
     if (node->send_response) {
       /* send response */
       response = htonl(node->send_response);
 
-      rfc5444_writer_add_packettlv(writer, rfc5444_target,
-          RFC5444_PKTTLV_CHALLENGE, RFC5444_CHALLENGE_RESPONSE,
-          &response, sizeof(response));
+      rfc5444_writer_add_packettlv(
+        writer, rfc5444_target, RFC5444_PKTTLV_CHALLENGE, RFC5444_CHALLENGE_RESPONSE, &response, sizeof(response));
     }
     OONF_DEBUG(LOG_SIMPLE_SECURITY, "Add packettvs to %s/%s(%u): query=%u response=%u",
-        netaddr_to_string(&nbuf, &key.src), core_if->data.name, key.if_index,
-        node->send_query, node->send_response);
+      netaddr_to_string(&nbuf, &key.src), core_if->data.name, key.if_index, node->send_query, node->send_response);
 
     /* clear response */
     node->send_response = 0;
@@ -600,11 +604,9 @@ _cb_finishPacketTLVs(struct rfc5444_writer *writer, struct rfc5444_writer_target
   /* always send a timestamp */
   timestamp = htonl(++_local_timestamp);
 
-  rfc5444_writer_set_packettlv(writer, rfc5444_target,
-      RFC7182_PKTTLV_TIMESTAMP, RFC7182_TIMESTAMP_EXT_MONOTONIC,
-      &timestamp, sizeof(timestamp));
+  rfc5444_writer_set_packettlv(
+    writer, rfc5444_target, RFC7182_PKTTLV_TIMESTAMP, RFC7182_TIMESTAMP_EXT_MONOTONIC, &timestamp, sizeof(timestamp));
 }
-
 
 /**
  * AVL comparator for neighbor nodes
@@ -613,7 +615,7 @@ _cb_finishPacketTLVs(struct rfc5444_writer *writer, struct rfc5444_writer_target
  * @return
  */
 static int
-_avl_comp_timestamp_keys(const void *p1, const void *p2){
+_avl_comp_timestamp_keys(const void *p1, const void *p2) {
   return memcmp(p1, p2, sizeof(struct neighbor_key));
 }
 
@@ -623,8 +625,7 @@ _avl_comp_timestamp_keys(const void *p1, const void *p2){
 static void
 _cb_config_changed(void) {
   if (cfg_schema_tobin(&_config, _sise_section.post, _sise_entries, ARRAYSIZE(_sise_entries))) {
-    OONF_WARN(LOG_SIMPLE_SECURITY, "Cannot convert configuration for "
-        OONF_SIMPLE_SECURITY_SUBSYSTEM);
+    OONF_WARN(LOG_SIMPLE_SECURITY, "Cannot convert configuration for " OONF_SIMPLE_SECURITY_SUBSYSTEM);
     return;
   }
 

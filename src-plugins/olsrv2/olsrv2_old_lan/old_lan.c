@@ -62,14 +62,15 @@
 /**
  * Default values for locally attached network parameters
  */
-enum _lan_option_defaults {
-  LAN_DEFAULT_DOMAIN    = 0,//!< LAN_DEFAULT_DOMAIN
-  LAN_DEFAULT_METRIC    = 1,//!< LAN_DEFAULT_METRIC
-  LAN_DEFAULT_DISTANCE  = 2,//!< LAN_DEFAULT_DISTANCE
+enum _lan_option_defaults
+{
+  LAN_DEFAULT_DOMAIN = 0,   //!< LAN_DEFAULT_DOMAIN
+  LAN_DEFAULT_METRIC = 1,   //!< LAN_DEFAULT_METRIC
+  LAN_DEFAULT_DISTANCE = 2, //!< LAN_DEFAULT_DISTANCE
 };
 
 /*! locally attached network option for source-specific prefix */
-#define LAN_OPTION_SRC    "src="
+#define LAN_OPTION_SRC "src="
 
 /*! locally attached network option for outgoing metric */
 #define LAN_OPTION_METRIC "metric="
@@ -78,7 +79,7 @@ enum _lan_option_defaults {
 #define LAN_OPTION_DOMAIN "domain="
 
 /*! locally attached network option for hopcount distance */
-#define LAN_OPTION_DIST   "dist="
+#define LAN_OPTION_DIST "dist="
 
 /**
  * Additional parameters of a single locally attached network
@@ -101,8 +102,7 @@ struct _lan_data {
 static int _init(void);
 static void _cleanup(void);
 
-static const char *_parse_lan_parameters(struct os_route_key *prefix,
-    struct _lan_data *dst, const char *src);
+static const char *_parse_lan_parameters(struct os_route_key *prefix, struct _lan_data *dst, const char *src);
 static void _parse_lan_array(struct cfg_named_section *section, bool add);
 
 static void _cb_cfg_olsrv2_changed(void);
@@ -112,8 +112,8 @@ static struct cfg_schema_entry _olsrv2_entries[] = {
     "locally attached network, a combination of an"
     " ip address or prefix followed by an up to four optional parameters"
     " which define link metric cost, hopcount distance, domain of the prefix"
-    " and the source-prefix ( <"LAN_OPTION_METRIC"...> <"LAN_OPTION_DIST"...>"
-    " <"LAN_OPTION_DOMAIN"<num>/all> <"LAN_OPTION_SRC"...> ).",
+    " and the source-prefix ( <" LAN_OPTION_METRIC "...> <" LAN_OPTION_DIST "...>"
+    " <" LAN_OPTION_DOMAIN "<num>/all> <" LAN_OPTION_SRC "...> ).",
     .list = true),
 };
 
@@ -144,7 +144,7 @@ DECLARE_OONF_PLUGIN(_old_lan_subsystem);
 static int
 _init(void) {
   OONF_WARN(LOG_OLD_LAN, "Old LAN plugin does add support for the"
-      " deprecated olsrv2/lan config option");
+                         " deprecated olsrv2/lan config option");
   return 0;
 }
 
@@ -166,8 +166,8 @@ _cleanup(void) {
  * @return 0 if validation found no problems, -1 otherwise
  */
 int
-olsrv2_validate_lan(const struct cfg_schema_entry *entry,
-    const char *section_name, const char *value, struct autobuf *out) {
+olsrv2_validate_lan(
+  const struct cfg_schema_entry *entry, const char *section_name, const char *value, struct autobuf *out) {
   struct netaddr_str buf;
   struct _lan_data data;
   const char *ptr, *result;
@@ -175,20 +175,20 @@ olsrv2_validate_lan(const struct cfg_schema_entry *entry,
 
   if (value == NULL) {
     cfg_schema_help_netaddr(entry, out);
+    cfg_append_printable_line(out, "    This value is followed by a list of four optional parameters.");
     cfg_append_printable_line(out,
-        "    This value is followed by a list of four optional parameters.");
+      "    - '" LAN_OPTION_SRC "<prefix>' the source specific prefix of this attached network."
+      " The default is 2.");
     cfg_append_printable_line(out,
-        "    - '"LAN_OPTION_SRC"<prefix>' the source specific prefix of this attached network."
-        " The default is 2.");
+      "    - '" LAN_OPTION_METRIC "<m>' the link metric of the LAN (between %u and %u)."
+      " The default is 0.",
+      RFC7181_METRIC_MIN, RFC7181_METRIC_MAX);
     cfg_append_printable_line(out,
-        "    - '"LAN_OPTION_METRIC"<m>' the link metric of the LAN (between %u and %u)."
-        " The default is 0.", RFC7181_METRIC_MIN, RFC7181_METRIC_MAX);
+      "    - '" LAN_OPTION_DOMAIN "<d>' the domain of the LAN (between 0 and 255) or 'all'."
+      " The default is all.");
     cfg_append_printable_line(out,
-        "    - '"LAN_OPTION_DOMAIN"<d>' the domain of the LAN (between 0 and 255) or 'all'."
-        " The default is all.");
-    cfg_append_printable_line(out,
-        "    - '"LAN_OPTION_DIST"<d>' the hopcount distance of the LAN (between 0 and 255)."
-        " The default is 2.");
+      "    - '" LAN_OPTION_DIST "<d>' the hopcount distance of the LAN (between 0 and 255)."
+      " The default is 2.");
     return 0;
   }
 
@@ -204,20 +204,20 @@ olsrv2_validate_lan(const struct cfg_schema_entry *entry,
 
   result = _parse_lan_parameters(&prefix, &data, ptr);
   if (result) {
-    cfg_append_printable_line(out, "Value '%s' for entry '%s'"
-        " in section %s has %s",
-        value, entry->key.entry, section_name, result);
+    cfg_append_printable_line(out,
+      "Value '%s' for entry '%s'"
+      " in section %s has %s",
+      value, entry->key.entry, section_name, result);
     return -1;
   }
 
   if (data.metric < RFC7181_METRIC_MIN || data.metric > RFC7181_METRIC_MAX) {
-    cfg_append_printable_line(out, "Metric %u for prefix %s must be between %u and %u",
-        data.metric, buf.buf, RFC7181_METRIC_MIN, RFC7181_METRIC_MAX);
+    cfg_append_printable_line(out, "Metric %u for prefix %s must be between %u and %u", data.metric, buf.buf,
+      RFC7181_METRIC_MIN, RFC7181_METRIC_MAX);
     return -1;
   }
   if (data.dist > 255) {
-    cfg_append_printable_line(out,
-        "Distance %u for prefix %s must be between 0 and 255", data.dist, buf.buf);
+    cfg_append_printable_line(out, "Distance %u for prefix %s must be between 0 and 255", data.dist, buf.buf);
     return -1;
   }
 
@@ -233,8 +233,7 @@ olsrv2_validate_lan(const struct cfg_schema_entry *entry,
  *   to the suffix of the error message otherwise.
  */
 static const char *
-_parse_lan_parameters(struct os_route_key *prefix,
-    struct _lan_data *dst, const char *src) {
+_parse_lan_parameters(struct os_route_key *prefix, struct _lan_data *dst, const char *src) {
   char buffer[64];
   const char *ptr, *next;
   unsigned ext;
@@ -242,7 +241,7 @@ _parse_lan_parameters(struct os_route_key *prefix,
   ptr = src;
   dst->ext = -1;
   dst->metric = LAN_DEFAULT_METRIC;
-  dst->dist   = LAN_DEFAULT_DISTANCE;
+  dst->dist = LAN_DEFAULT_DISTANCE;
 
   while (ptr != NULL) {
     next = str_cpynextword(buffer, ptr, sizeof(buffer));
@@ -275,12 +274,10 @@ _parse_lan_parameters(struct os_route_key *prefix,
       if (netaddr_from_string(&prefix->src, &buffer[4])) {
         return "an illegal source prefix";
       }
-      if (netaddr_get_address_family(&prefix->dst)
-            != netaddr_get_address_family(&prefix->src)) {
+      if (netaddr_get_address_family(&prefix->dst) != netaddr_get_address_family(&prefix->src)) {
         return "an illegal source prefix address type";
       }
-      if (!os_routing_supports_source_specific(
-          netaddr_get_address_family(&prefix->dst))) {
+      if (!os_routing_supports_source_specific(netaddr_get_address_family(&prefix->dst))) {
         return "an unsupported sourc specific prefix";
       }
     }
@@ -371,4 +368,3 @@ _cb_cfg_olsrv2_changed(void) {
   /* run through all post-update LAN entries and add them */
   _parse_lan_array(_olsrv2_section.post, true);
 }
-

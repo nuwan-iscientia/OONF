@@ -46,8 +46,8 @@
 #ifndef RFC7182_PROVIDER_H_
 #define RFC7182_PROVIDER_H_
 
-#include "common/common_types.h"
 #include "common/avl.h"
+#include "common/common_types.h"
 
 /**
  * representation of a hash function for signatures
@@ -69,9 +69,7 @@ struct rfc7182_hash {
    * @param src_len length of original data
    * @return -1 if an error happened, 0 otherwise
    */
-  int (*hash)(struct rfc7182_hash *hash,
-      void *dst, size_t *dst_len,
-      const void *src, size_t src_len);
+  int (*hash)(struct rfc7182_hash *hash, void *dst, size_t *dst_len, const void *src, size_t src_len);
 
   /*! hook into the tree of registered hashes */
   struct avl_node _node;
@@ -107,10 +105,8 @@ struct rfc7182_crypt {
    * @param key_len length of key material
    * @return -1 if an error happened, 0 otherwise
    */
-  int (*sign)(struct rfc7182_crypt *crypt, struct rfc7182_hash *hash,
-      void *dst, size_t *dst_len,
-      const void *src, size_t src_len,
-      const void *key, size_t key_len);
+  int (*sign)(struct rfc7182_crypt *crypt, struct rfc7182_hash *hash, void *dst, size_t *dst_len, const void *src,
+    size_t src_len, const void *key, size_t key_len);
 
   /**
    * Checks if an encrypted signature is valid.
@@ -124,10 +120,8 @@ struct rfc7182_crypt {
    * @param key_len length of key material
    * @return true if signature matches, false otherwise
    */
-  bool (*validate)(struct rfc7182_crypt *crypt, struct rfc7182_hash *hash,
-      const void *encrypted, size_t encrypted_length,
-      const void *src, size_t src_len,
-      const void *key, size_t key_len);
+  bool (*validate)(struct rfc7182_crypt *crypt, struct rfc7182_hash *hash, const void *encrypted,
+    size_t encrypted_length, const void *src, size_t src_len, const void *key, size_t key_len);
 
   /**
    * Encrypts a data block.
@@ -141,10 +135,8 @@ struct rfc7182_crypt {
    * @param key_len length of key material
    * @return -1 if an error happened, 0 otherwise
    */
-  int (*encrypt)(struct rfc7182_crypt *crypt,
-      void *dst, size_t *dst_len,
-      const void *src, size_t src_len,
-      const void *key, size_t key_len);
+  int (*encrypt)(struct rfc7182_crypt *crypt, void *dst, size_t *dst_len, const void *src, size_t src_len,
+    const void *key, size_t key_len);
 
   /**
    * Decrypts a data block.
@@ -158,10 +150,8 @@ struct rfc7182_crypt {
    * @param key_len length of key material
    * @return -1 if an error happened, 0 otherwise
    */
-  int (*decrypt)(struct rfc7182_crypt *crypt,
-      void *dst, size_t *dst_len,
-      const void *src, size_t src_len,
-      const void *key, size_t key_len);
+  int (*decrypt)(struct rfc7182_crypt *crypt, void *dst, size_t *dst_len, const void *src, size_t src_len,
+    const void *key, size_t key_len);
 
   /*! hook into the tree of registered crypto functions */
   struct avl_node _node;
@@ -171,10 +161,10 @@ struct rfc7182_crypt {
 #define OONF_RFC7182_PROVIDER_SUBSYSTEM "rfc7182_provider"
 
 /*! rfc7182 hash class identifier */
-#define OONF_RFC7182_HASH_CLASS         "rfc7182_hash"
+#define OONF_RFC7182_HASH_CLASS "rfc7182_hash"
 
 /*! rfc7182 crypto class identifier */
-#define OONF_RFC7182_CRYPTO_CLASS       "rfc7182_crypto"
+#define OONF_RFC7182_CRYPTO_CLASS "rfc7182_crypto"
 
 EXPORT void rfc7182_add_hash(struct rfc7182_hash *);
 EXPORT void rfc7182_remove_hash(struct rfc7182_hash *);

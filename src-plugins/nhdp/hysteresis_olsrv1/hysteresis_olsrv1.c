@@ -45,8 +45,8 @@
 
 #include <stdio.h>
 
-#include "common/common_types.h"
 #include "common/autobuf.h"
+#include "common/common_types.h"
 #include "core/oonf_cfg.h"
 #include "core/oonf_logging.h"
 #include "core/oonf_subsystem.h"
@@ -103,32 +103,26 @@ struct link_hysteresis_data {
 static int _init(void);
 static void _cleanup(void);
 
-static void _update_hysteresis(struct nhdp_link *,
-    struct link_hysteresis_data *, bool);
+static void _update_hysteresis(struct nhdp_link *, struct link_hysteresis_data *, bool);
 
 static void _cb_link_added(void *);
 static void _cb_link_removed(void *);
 
-static void _cb_update_hysteresis(struct nhdp_link *,
-    struct rfc5444_reader_tlvblock_context *context);
+static void _cb_update_hysteresis(struct nhdp_link *, struct rfc5444_reader_tlvblock_context *context);
 static bool _cb_is_pending(struct nhdp_link *);
 static bool _cb_is_lost(struct nhdp_link *);
-static const char *_cb_to_string(
-    struct nhdp_hysteresis_str *, struct nhdp_link *);
+static const char *_cb_to_string(struct nhdp_hysteresis_str *, struct nhdp_link *);
 
 static void _cb_timer_hello_lost(struct oonf_timer_instance *);
 static void _cb_cfg_changed(void);
-static int _cb_cfg_validate(const char *section_name,
-    struct cfg_named_section *, struct autobuf *);
+static int _cb_cfg_validate(const char *section_name, struct cfg_named_section *, struct autobuf *);
 
 /* configuration options */
 static struct cfg_schema_entry _hysteresis_entries[] = {
-  CFG_MAP_INT32_MINMAX(_config, accept, "accept", "0.7",
-      "link quality to consider a link up", 3, 0, 1000),
-  CFG_MAP_INT32_MINMAX(_config, reject, "reject", "0.3",
-      "link quality to consider a link down", 3, 0, 1000),
-  CFG_MAP_INT32_MINMAX(_config, scaling, "scaling", "0.25",
-      "exponential aging to control speed of link hysteresis", 3, 1, 1000),
+  CFG_MAP_INT32_MINMAX(_config, accept, "accept", "0.7", "link quality to consider a link up", 3, 0, 1000),
+  CFG_MAP_INT32_MINMAX(_config, reject, "reject", "0.3", "link quality to consider a link down", 3, 0, 1000),
+  CFG_MAP_INT32_MINMAX(
+    _config, scaling, "scaling", "0.25", "exponential aging to control speed of link hysteresis", 3, 1, 1000),
 };
 
 static struct cfg_schema_section _hysteresis_section = {
@@ -231,8 +225,7 @@ _cleanup(void) {
  * @param lost true if hello was lost, false if hello was received
  */
 static void
-_update_hysteresis(struct nhdp_link *lnk,
-    struct link_hysteresis_data *data, bool lost) {
+_update_hysteresis(struct nhdp_link *lnk, struct link_hysteresis_data *data, bool lost) {
   /* calculate exponential aging */
   data->quality = data->quality * (1000 - _hysteresis_config.scaling);
   data->quality = (data->quality + 999) / 1000;
@@ -290,8 +283,7 @@ _cb_link_removed(void *ptr) {
  * @param context RFC5444 tlvblock reader context
  */
 static void
-_cb_update_hysteresis(struct nhdp_link *lnk,
-    struct rfc5444_reader_tlvblock_context *context __attribute__((unused))) {
+_cb_update_hysteresis(struct nhdp_link *lnk, struct rfc5444_reader_tlvblock_context *context __attribute__((unused))) {
   struct link_hysteresis_data *data;
 
   data = oonf_class_get_extension(&_link_extenstion, lnk);
@@ -349,8 +341,7 @@ _cb_to_string(struct nhdp_hysteresis_str *buf, struct nhdp_link *lnk) {
 
   data = oonf_class_get_extension(&_link_extenstion, lnk);
 
-  snprintf(buf->buf, sizeof(*buf), "quality=%s",
-      isonumber_from_s64(&fbuf, data->quality, "", 3, true));
+  snprintf(buf->buf, sizeof(*buf), "quality=%s", isonumber_from_s64(&fbuf, data->quality, "", 3, true));
 
   return buf->buf;
 }
@@ -377,10 +368,9 @@ _cb_timer_hello_lost(struct oonf_timer_instance *ptr) {
  */
 static void
 _cb_cfg_changed(void) {
-  if (cfg_schema_tobin(&_hysteresis_config, _hysteresis_section.post,
-      _hysteresis_entries, ARRAYSIZE(_hysteresis_entries))) {
-    OONF_WARN(LOG_HYSTERESIS_OLSRV1, "Could not convert "
-        OONF_HYSTERESIS_OLSRV1_SUBSYSTEM " plugin configuration");
+  if (cfg_schema_tobin(
+        &_hysteresis_config, _hysteresis_section.post, _hysteresis_entries, ARRAYSIZE(_hysteresis_entries))) {
+    OONF_WARN(LOG_HYSTERESIS_OLSRV1, "Could not convert " OONF_HYSTERESIS_OLSRV1_SUBSYSTEM " plugin configuration");
   }
 }
 
@@ -392,21 +382,18 @@ _cb_cfg_changed(void) {
  * @return 0 if data is okay, -1 if an error happened
  */
 static int
-_cb_cfg_validate(const char *section_name,
-    struct cfg_named_section *named, struct autobuf *out) {
+_cb_cfg_validate(const char *section_name, struct cfg_named_section *named, struct autobuf *out) {
   struct _config cfg;
   struct isonumber_str buf1, buf2;
 
   if (cfg_schema_tobin(&cfg, named, _hysteresis_entries, ARRAYSIZE(_hysteresis_entries))) {
-    cfg_append_printable_line(out, "Could not parse hysteresis configuration in section %s",
-        section_name);
+    cfg_append_printable_line(out, "Could not parse hysteresis configuration in section %s", section_name);
     return -1;
   }
 
   if (cfg.accept <= cfg.reject) {
     cfg_append_printable_line(out, "hysteresis accept (%s) is not smaller than reject (%s) value",
-        isonumber_from_s64(&buf1, cfg.accept, "", 3, true),
-        isonumber_from_s64(&buf2, cfg.reject, "", 3, true));
+      isonumber_from_s64(&buf1, cfg.accept, "", 3, true), isonumber_from_s64(&buf2, cfg.reject, "", 3, true));
     return -1;
   }
   return 0;

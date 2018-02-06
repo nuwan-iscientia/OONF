@@ -60,8 +60,8 @@
 #include "dlep/radio/dlep_radio.h"
 #include "dlep/radio/dlep_radio_interface.h"
 
-#include "dlep/ext_base_metric/metric.h"
 #include "dlep/ext_base_ip/ip.h"
+#include "dlep/ext_base_metric/metric.h"
 #include "dlep/ext_base_proto/proto_radio.h"
 #include "dlep/ext_l1_statistics/l1_statistics.h"
 #include "dlep/ext_l2_statistics/l2_statistics.h"
@@ -180,8 +180,7 @@ dlep_radio_add_interface(const char *ifname) {
     return NULL;
   }
 
-  if (dlep_if_add(&interface->interf, ifname,
-      &_l2_origin, &_l2_default_origin, LOG_DLEP_RADIO, true)) {
+  if (dlep_if_add(&interface->interf, ifname, &_l2_origin, &_l2_default_origin, LOG_DLEP_RADIO, true)) {
     oonf_class_free(&_interface_class, interface);
     return NULL;
   }
@@ -214,7 +213,7 @@ dlep_radio_remove_interface(struct dlep_radio_if *interface) {
 
   /* free memory */
   oonf_stream_free_managed_config(&interface->tcp_config);
-  free (interface->interf.session.cfg.peer_type);
+  free(interface->interf.session.cfg.peer_type);
   abuf_free(&interface->interf.udp_out);
   oonf_class_free(&_interface_class, interface);
 }

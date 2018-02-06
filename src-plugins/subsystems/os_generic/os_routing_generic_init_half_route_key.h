@@ -11,7 +11,7 @@
 #include "common/common_types.h"
 #include "subsystems/os_routing.h"
 
-EXPORT void os_routing_generic_init_half_os_route_key(struct netaddr *ipany,
-    struct netaddr *specific, const struct netaddr *source);
+EXPORT void os_routing_generic_init_half_os_route_key(
+  struct netaddr *ipany, struct netaddr *specific, const struct netaddr *source);
 
 #endif /* _OS_ROUTING_GENERIC_INIT_HALF_ROUTE_KEY_H_ */

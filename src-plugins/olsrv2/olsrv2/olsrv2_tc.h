@@ -52,8 +52,8 @@
 
 #include "subsystems/oonf_timer.h"
 
-#include "nhdp/nhdp_domain.h"
 #include "nhdp/nhdp.h"
+#include "nhdp/nhdp_domain.h"
 
 #include "olsrv2/olsrv2.h"
 #include "olsrv2/olsrv2_routing.h"
@@ -61,7 +61,8 @@
 /**
  * target types of olsrv2 edges
  */
-enum olsrv2_target_type {
+enum olsrv2_target_type
+{
   /*! target is another olsrv2 node */
   OLSRV2_NODE_TARGET,
 
@@ -73,10 +74,10 @@ enum olsrv2_target_type {
 };
 
 /*! memory class for olsrv2 nodes */
-#define OLSRV2_CLASS_TC_NODE  "olsrv2 tc node"
+#define OLSRV2_CLASS_TC_NODE "olsrv2 tc node"
 
 /*! memory class for olsrv2 edges */
-#define OLSRV2_CLASS_TC_EDGE  "olsrv2 tc edge"
+#define OLSRV2_CLASS_TC_EDGE "olsrv2 tc edge"
 
 /*! memory class for olsrv2 attached networks */
 #define OLSRV2_CLASS_ATTACHED "olsrv2 tc attached network"
@@ -215,18 +216,14 @@ struct olsrv2_tc_endpoint {
 void olsrv2_tc_init(void);
 void olsrv2_tc_cleanup(void);
 
-EXPORT struct olsrv2_tc_node *olsrv2_tc_node_add(
-    struct netaddr *, uint64_t vtime, uint16_t ansn);
+EXPORT struct olsrv2_tc_node *olsrv2_tc_node_add(struct netaddr *, uint64_t vtime, uint16_t ansn);
 EXPORT void olsrv2_tc_node_remove(struct olsrv2_tc_node *);
 
-EXPORT struct olsrv2_tc_edge *olsrv2_tc_edge_add(
-    struct olsrv2_tc_node *, struct netaddr *);
+EXPORT struct olsrv2_tc_edge *olsrv2_tc_edge_add(struct olsrv2_tc_node *, struct netaddr *);
 EXPORT bool olsrv2_tc_edge_remove(struct olsrv2_tc_edge *);
 
-EXPORT struct olsrv2_tc_attachment *olsrv2_tc_endpoint_add(
-    struct olsrv2_tc_node *, struct os_route_key *, bool mesh);
-EXPORT void olsrv2_tc_endpoint_remove(
-    struct olsrv2_tc_attachment *);
+EXPORT struct olsrv2_tc_attachment *olsrv2_tc_endpoint_add(struct olsrv2_tc_node *, struct os_route_key *, bool mesh);
+EXPORT void olsrv2_tc_endpoint_remove(struct olsrv2_tc_attachment *);
 
 void olsrv2_tc_trigger_change(struct olsrv2_tc_node *);
 
@@ -265,20 +262,17 @@ olsrv2_tc_endpoint_get(struct netaddr *prefix) {
 }
 
 static INLINE uint32_t
-olsrv2_tc_attachment_get_metric(struct nhdp_domain *domain,
-    struct olsrv2_tc_attachment *attached) {
+olsrv2_tc_attachment_get_metric(struct nhdp_domain *domain, struct olsrv2_tc_attachment *attached) {
   return attached->cost[domain->index];
 }
 
 static INLINE uint8_t
-olsrv2_tc_attachment_get_distance(struct nhdp_domain *domain,
-    struct olsrv2_tc_attachment *attached) {
+olsrv2_tc_attachment_get_distance(struct nhdp_domain *domain, struct olsrv2_tc_attachment *attached) {
   return attached->distance[domain->index];
 }
 
 static INLINE uint32_t
-olsrv2_tc_edge_get_metric(struct nhdp_domain *domain,
-    struct olsrv2_tc_edge *edge) {
+olsrv2_tc_edge_get_metric(struct nhdp_domain *domain, struct olsrv2_tc_edge *edge) {
   return edge->cost[domain->index];
 }
 

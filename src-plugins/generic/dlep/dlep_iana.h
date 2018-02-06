@@ -56,13 +56,14 @@
 #define DLEP_WELL_KNOWN_MULTICAST_PORT_TXT "854"
 
 /*! TCP port for DLEP radio server port */
-#define DLEP_WELL_KNOWN_SESSION_PORT_TXT   "854"
+#define DLEP_WELL_KNOWN_SESSION_PORT_TXT "854"
 /**
  * Generic DLEP Constant
  */
-enum {
+enum
+{
   /*! DLEP IANA_PORT */
-  DLEP_PORT = 854,//!< DLEP_PORT
+  DLEP_PORT = 854, //!< DLEP_PORT
 };
 
 /*! magic word for DLEP session */
@@ -71,24 +72,25 @@ enum {
 /**
  * Predefined DLEP extension IDs
  */
-enum dlep_extensions {
+enum dlep_extensions
+{
   /*! number of DLEP base extensions */
-  DLEP_EXTENSION_BASE_COUNT       =  3,
+  DLEP_EXTENSION_BASE_COUNT = 3,
 
   /*! DLEP protocol/session handling */
-  DLEP_EXTENSION_BASE_PROTO       = -3,
+  DLEP_EXTENSION_BASE_PROTO = -3,
 
   /*! DLEP metrics defined by base RFC */
-  DLEP_EXTENSION_BASE_IP          = -2,
+  DLEP_EXTENSION_BASE_IP = -2,
 
   /*! DLEP metrics defined by base RFC */
-  DLEP_EXTENSION_BASE_METRIC      = -1,
+  DLEP_EXTENSION_BASE_METRIC = -1,
 
   /*! Additional DLEP physical layer statistics */
-  DLEP_EXTENSION_L1_STATS         = 65520,
+  DLEP_EXTENSION_L1_STATS = 65520,
 
   /*! Additional DLEP link layer statistics */
-  DLEP_EXTENSION_L2_STATS         = 65521,
+  DLEP_EXTENSION_L2_STATS = 65521,
 
   /*! Additional boolean radio attributes */
   DLEP_EXTENSION_RADIO_ATTRIBUTES = 65522,
@@ -97,145 +99,147 @@ enum dlep_extensions {
 /**
  * DLEP signal IDs
  */
-enum dlep_signals {
+enum dlep_signals
+{
   /*! control numbers to keep session restriction the same */
-  DLEP_KEEP_RESTRICTION             = -3,
+  DLEP_KEEP_RESTRICTION = -3,
 
   /*! control number to kill DLEP session */
-  DLEP_KILL_SESSION                 = -2,
+  DLEP_KILL_SESSION = -2,
 
   /*! control number to allow all DLEP signals */
-  DLEP_ALL_SIGNALS                  = -1,
+  DLEP_ALL_SIGNALS = -1,
 
   /*! constant added to UDP signals */
-  DLEP_IS_UDP_SIGNAL                = 65536,
+  DLEP_IS_UDP_SIGNAL = 65536,
 
   /*! Do not use! */
-  DLEP_RESERVED_SIGNAL              =  0,
+  DLEP_RESERVED_SIGNAL = 0,
 
   /*! Router announces its presence (UDP) */
-  DLEP_UDP_PEER_DISCOVERY           =  1 + DLEP_IS_UDP_SIGNAL,
+  DLEP_UDP_PEER_DISCOVERY = 1 + DLEP_IS_UDP_SIGNAL,
 
   /*! Radio announces the open DLEP session port(s) (UDP) */
-  DLEP_UDP_PEER_OFFER               =  2 + DLEP_IS_UDP_SIGNAL,
+  DLEP_UDP_PEER_OFFER = 2 + DLEP_IS_UDP_SIGNAL,
 
   /*! Router announcing the supported extensions */
-  DLEP_SESSION_INITIALIZATION       =  1,
+  DLEP_SESSION_INITIALIZATION = 1,
 
   /*! Radio announcing the supported extensions and default metrics */
-  DLEP_SESSION_INITIALIZATION_ACK   =  2,
+  DLEP_SESSION_INITIALIZATION_ACK = 2,
 
   /*! Radio update interface scope data */
-  DLEP_SESSION_UPDATE               =  3,
+  DLEP_SESSION_UPDATE = 3,
 
   /*! Router acknowledges interface data update */
-  DLEP_SESSION_UPDATE_ACK           =  4,
+  DLEP_SESSION_UPDATE_ACK = 4,
 
   /*! Radio/Router terminates DLEP session */
-  DLEP_SESSION_TERMINATION          =  5,
+  DLEP_SESSION_TERMINATION = 5,
 
   /*! Radio/Router acknowledge end of DLEP session */
-  DLEP_SESSION_TERMINATION_ACK      =  6,
+  DLEP_SESSION_TERMINATION_ACK = 6,
 
   /*! Radio announces a new neighbor with metrics */
-  DLEP_DESTINATION_UP               =  7,
+  DLEP_DESTINATION_UP = 7,
 
   /*! Router acknowledges new neighbor */
-  DLEP_DESTINATION_UP_ACK           = 8,
+  DLEP_DESTINATION_UP_ACK = 8,
 
   /*! Router announce a new neighbor to the radio */
-  DLEP_DESTINATION_ANNOUNCE         = 9,
+  DLEP_DESTINATION_ANNOUNCE = 9,
 
   /*! Radio acknowledges the new neighbor */
-  DLEP_DESTINATION_ANNOUNCE_ACK     = 10,
+  DLEP_DESTINATION_ANNOUNCE_ACK = 10,
 
   /*! Radio announces a lost neighbor */
-  DLEP_DESTINATION_DOWN             = 11,
+  DLEP_DESTINATION_DOWN = 11,
 
   /*! Router acknowledges lost neighbor */
-  DLEP_DESTINATION_DOWN_ACK         = 12,
+  DLEP_DESTINATION_DOWN_ACK = 12,
 
   /*! Radio announces new metrics for a neighbor */
-  DLEP_DESTINATION_UPDATE           = 13,
+  DLEP_DESTINATION_UPDATE = 13,
 
   /*! Router demands a special link characteristic to a neighbor */
   DLEP_LINK_CHARACTERISTICS_REQUEST = 14,
 
   /*! Radio acknowledges the changed link characterestics */
-  DLEP_LINK_CHARACTERISTICS_ACK     = 15,
+  DLEP_LINK_CHARACTERISTICS_ACK = 15,
 
   /*! Radio/Router is still active */
-  DLEP_HEARTBEAT                    = 16,
+  DLEP_HEARTBEAT = 16,
 };
 
 /**
  * DLEP TLV ids
  */
-enum dlep_tlvs {
+enum dlep_tlvs
+{
   /*! did an operation succeed or failed */
-  DLEP_STATUS_TLV                  =  1,
+  DLEP_STATUS_TLV = 1,
 
   /*! IPv4 address, port and TLS flag for a Radio DLEP port */
-  DLEP_IPV4_CONPOINT_TLV           =  2,
+  DLEP_IPV4_CONPOINT_TLV = 2,
 
   /*! IPv6 address, port and TLS flag for a Radio DLEP port */
-  DLEP_IPV6_CONPOINT_TLV           =  3,
+  DLEP_IPV6_CONPOINT_TLV = 3,
 
   /*! string identifier of a DLEP Radio/Router */
-  DLEP_PEER_TYPE_TLV               =  4,
+  DLEP_PEER_TYPE_TLV = 4,
 
   /*! interval between two Heartbeats a Radio/Router will send */
-  DLEP_HEARTBEAT_INTERVAL_TLV      =  5,
+  DLEP_HEARTBEAT_INTERVAL_TLV = 5,
 
   /*! list of supported extensions of a DLEP Radio/Router */
-  DLEP_EXTENSIONS_SUPPORTED_TLV    =  6,
+  DLEP_EXTENSIONS_SUPPORTED_TLV = 6,
 
   /*! MAC address of a neighbor a DLEP message will refer to */
-  DLEP_MAC_ADDRESS_TLV             =  7,
+  DLEP_MAC_ADDRESS_TLV = 7,
 
   /*! IPv4 address of a DLEP neighbor */
-  DLEP_IPV4_ADDRESS_TLV            =  8,
+  DLEP_IPV4_ADDRESS_TLV = 8,
 
   /*! IPv6 address of a DLEP neighbor */
-  DLEP_IPV6_ADDRESS_TLV            =  9,
+  DLEP_IPV6_ADDRESS_TLV = 9,
 
   /*! IPv4 subnet of a DLEP neighbor */
-  DLEP_IPV4_SUBNET_TLV             = 10,
+  DLEP_IPV4_SUBNET_TLV = 10,
 
   /*! IPv6 subnet of a DLEP neigbor */
-  DLEP_IPV6_SUBNET_TLV             = 11,
+  DLEP_IPV6_SUBNET_TLV = 11,
 
   /*! maximum data rate (receive) in bit/s */
-  DLEP_MDRR_TLV                    = 12,
+  DLEP_MDRR_TLV = 12,
 
   /*! maximum data rate (transmit) in bit/s */
-  DLEP_MDRT_TLV                    = 13,
+  DLEP_MDRT_TLV = 13,
 
   /*! current data rate (receive) in bit/s */
-  DLEP_CDRR_TLV                    = 14,
+  DLEP_CDRR_TLV = 14,
 
   /*! current data rate (transmit) in bit/s */
-  DLEP_CDRT_TLV                    = 15,
+  DLEP_CDRT_TLV = 15,
 
   /*! latency in microseconds */
-  DLEP_LATENCY_TLV                 = 16,
+  DLEP_LATENCY_TLV = 16,
 
   /*! resources (receive) */
-  DLEP_RESOURCES_TLV               = 17,
+  DLEP_RESOURCES_TLV = 17,
 
   /*! relative link quality (receive) */
-  DLEP_RLQR_TLV                    = 18,
+  DLEP_RLQR_TLV = 18,
 
   /*! relative link quality (transmit) */
-  DLEP_RLQT_TLV                    = 19,
+  DLEP_RLQT_TLV = 19,
 
   /*! MTU of interface */
-  DLEP_MTU_TLV                     = 20,
+  DLEP_MTU_TLV = 20,
 
   /* l1 statistics */
 
   /*! channel center frequency in Hz */
-  DLEP_FREQUENCY_TLV               = 65408,
+  DLEP_FREQUENCY_TLV = 65408,
 
   /*! channel bandwidth in Hz */
   DLEP_BANDWIDTH_TLV,
@@ -301,7 +305,8 @@ enum dlep_tlvs {
   DLEP_CDRR_BC_TLV,
 };
 
-enum dlep_peer_type_flags {
+enum dlep_peer_type_flags
+{
   /*! radio does not implement access control */
   DLEP_PEER_TYPE_OPEN = 0,
 
@@ -311,9 +316,10 @@ enum dlep_peer_type_flags {
 /**
  * Flags for IP address TLVs
  */
-enum dlep_ipaddr_indicator {
+enum dlep_ipaddr_indicator
+{
   /*! Add an IP address to a DLEP neighbor */
-  DLEP_IP_ADD    = 1,
+  DLEP_IP_ADD = 1,
 
   /*! Remove an IP address from a DLEP neighbor */
   DLEP_IP_REMOVE = 0,
@@ -322,9 +328,10 @@ enum dlep_ipaddr_indicator {
 /**
  * Flags for DLEP Connection Point
  */
-enum dlep_connection_point_flags {
+enum dlep_connection_point_flags
+{
   /*! Connection needs TLS */
-  DLEP_CONNECTION_TLS   = 1,
+  DLEP_CONNECTION_TLS = 1,
 
   /*! Connection needs no TLS */
   DLEP_CONNECTION_PLAIN = 0,
@@ -333,33 +340,34 @@ enum dlep_connection_point_flags {
 /**
  * DLEP status codes
  */
-enum dlep_status {
+enum dlep_status
+{
   /*! internal value for "no status set" */
-  DLEP_STATUS_NONE                = -1,
+  DLEP_STATUS_NONE = -1,
 
   /*! operation succeeded */
-  DLEP_STATUS_OKAY                = 0,
+  DLEP_STATUS_OKAY = 0,
 
   /*! message ID is unknown */
-  DLEP_STATUS_UNKNOWN_MESSAGE     = 1,
+  DLEP_STATUS_UNKNOWN_MESSAGE = 1,
 
   /*! message happened at an unexpected time */
-  DLEP_STATUS_UNEXPECTED_MESSAGE  = 2,
+  DLEP_STATUS_UNEXPECTED_MESSAGE = 2,
 
   /*! unknown or invalid TLV in signal */
-  DLEP_STATUS_INVALID_DATA        = 3,
+  DLEP_STATUS_INVALID_DATA = 3,
 
   /*! unknown MAC address destination */
   DLEP_STATUS_INVALID_DESTINATION = 4,
 
   /*! receiver does not need messages about the destination */
-  DLEP_STATUS_NOT_INTERESTED      = 100,
+  DLEP_STATUS_NOT_INTERESTED = 100,
 
   /*! operation is refused at the moment */
-  DLEP_STATUS_REQUEST_DENIED      = 101,
+  DLEP_STATUS_REQUEST_DENIED = 101,
 
   /*! operation could not be done in the allocated time */
-  DLEP_STATUS_TIMED_OUT           = 102,
+  DLEP_STATUS_TIMED_OUT = 102,
 };
 
 #endif /* DLEP_IANA_H_ */

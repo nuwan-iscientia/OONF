@@ -49,8 +49,8 @@
 #include <stddef.h>
 
 #include "common/common_types.h"
-#include "list.h"
 #include "container_of.h"
+#include "list.h"
 
 /**
  * Static initializer for AVL tree
@@ -58,7 +58,11 @@
  * @param avl_comp comparator to be used
  * @param dups true if duplicates are allowed, false otherwise
  */
-#define AVL_STATIC_INIT(avl, avl_comp, dups) { .list_head = { .next = &avl.list_head, .prev = &avl.list_head }, .root = NULL, .count = 0, .allow_dups = dups, .comp = avl_comp}
+#define AVL_STATIC_INIT(avl, avl_comp, dups)                                                                           \
+  {                                                                                                                    \
+    .list_head = { .next = &avl.list_head, .prev = &avl.list_head }, .root = NULL, .count = 0, .allow_dups = dups,     \
+    .comp = avl_comp                                                                                                   \
+  }
 
 /**
  * This element is a member of a avl-tree. It must be contained in all
@@ -142,8 +146,7 @@ struct avl_tree {
   int (*comp)(const void *k1, const void *k2);
 };
 
-EXPORT void avl_init(struct avl_tree *,
-    int (*comp) (const void *k1, const void *k2), bool);
+EXPORT void avl_init(struct avl_tree *, int (*comp)(const void *k1, const void *k2), bool);
 EXPORT struct avl_node *avl_find(const struct avl_tree *, const void *);
 EXPORT struct avl_node *avl_find_greaterequal(const struct avl_tree *tree, const void *key);
 EXPORT struct avl_node *avl_find_lessequal(const struct avl_tree *tree, const void *key);
@@ -198,7 +201,7 @@ avl_is_node_added(const struct avl_node *node) {
  * @return pointer to tree element with the specified key,
  *    NULL if no element was found
  */
-#define avl_find_element(tree, key, element, node_element) \
+#define avl_find_element(tree, key, element, node_element)                                                             \
   container_of_if_notnull(avl_find(tree, key), typeof(*(element)), node_element)
 
 /**
@@ -211,7 +214,7 @@ avl_is_node_added(const struct avl_node *node) {
  * return pointer to last tree element with less or equal key than specified key,
  *    NULL if no element was found
  */
-#define avl_find_le_element(tree, key, element, node_element) \
+#define avl_find_le_element(tree, key, element, node_element)                                                          \
   container_of_if_notnull(avl_find_lessequal(tree, key), typeof(*(element)), node_element)
 
 /**
@@ -224,7 +227,7 @@ avl_is_node_added(const struct avl_node *node) {
  * return pointer to first tree element with greater or equal key than specified key,
  *    NULL if no element was found
  */
-#define avl_find_ge_element(tree, key, element, node_element) \
+#define avl_find_ge_element(tree, key, element, node_element)                                                          \
   container_of_if_notnull(avl_find_greaterequal(tree, key), typeof(*(element)), node_element)
 
 /**
@@ -238,7 +241,7 @@ avl_is_node_added(const struct avl_node *node) {
  * @return pointer to the first element of the avl_tree
  *    (automatically converted to type 'element')
  */
-#define avl_first_element(tree, element, node_member) \
+#define avl_first_element(tree, element, node_member)                                                                  \
   container_of((tree)->list_head.next, typeof(*(element)), node_member.list)
 
 /**
@@ -251,7 +254,7 @@ avl_is_node_added(const struct avl_node *node) {
  *    (automatically converted to type 'element'),
  *    NULL if tree is empty
  */
-#define avl_first_element_safe(tree, element, node_member) \
+#define avl_first_element_safe(tree, element, node_member)                                                             \
   (avl_is_empty(tree) ? NULL : avl_first_element(tree, element, node_member))
 
 /**
@@ -265,7 +268,7 @@ avl_is_node_added(const struct avl_node *node) {
  * @return pointer to the last element of the avl_tree
  *    (automatically converted to type 'element')
  */
-#define avl_last_element(tree, element, node_member) \
+#define avl_last_element(tree, element, node_member)                                                                   \
   container_of((tree)->list_head.prev, typeof(*(element)), node_member.list)
 
 /**
@@ -278,7 +281,7 @@ avl_is_node_added(const struct avl_node *node) {
  *    (automatically converted to type 'element'),
  *    NULL if tree is empty
  */
-#define avl_last_element_safe(tree, element, node_member) \
+#define avl_last_element_safe(tree, element, node_member)                                                              \
   (avl_is_empty(tree) ? NULL : avl_last_element(tree, element, node_member))
 
 /**
@@ -291,7 +294,7 @@ avl_is_node_added(const struct avl_node *node) {
  * @return pointer to the node after 'element'
  *    (automatically converted to type 'element')
  */
-#define avl_next_element(element, node_member) \
+#define avl_next_element(element, node_member)                                                                         \
   container_of((&(element)->node_member.list)->next, typeof(*(element)), node_member.list)
 
 /**
@@ -304,7 +307,7 @@ avl_is_node_added(const struct avl_node *node) {
  *    NULL if there is no element after 'element' or
  *    'element' is NULL
  */
-#define avl_next_element_safe(tree, element, node_member) \
+#define avl_next_element_safe(tree, element, node_member)                                                              \
   ((element) == NULL || avl_is_last(tree, &(element)->node_member) ? NULL : avl_next_element(element, node_member))
 
 /**
@@ -317,7 +320,7 @@ avl_is_node_added(const struct avl_node *node) {
  * @return pointer to the node before 'element'
  *    (automatically converted to type 'element')
  */
-#define avl_prev_element(element, node_member) \
+#define avl_prev_element(element, node_member)                                                                         \
   container_of((&(element)->node_member.list)->prev, typeof(*(element)), node_member.list)
 
 /**
@@ -330,9 +333,8 @@ avl_is_node_added(const struct avl_node *node) {
  *    NULL if there is no element before 'element' or
  *    'element' is NULL
  */
-#define avl_prev_element_safe(tree, element, node_member) \
+#define avl_prev_element_safe(tree, element, node_member)                                                              \
   ((element) == NULL || avl_is_first(tree, &(element)->node_member) ? NULL : avl_prev_element(element, node_member))
-
 
 /**
  * Loop over a block of elements of a tree, used similar to a for() command.
@@ -346,9 +348,8 @@ avl_is_node_added(const struct avl_node *node) {
  * @param node_member name of the avl_node element inside the
  *    larger struct
  */
-#define avl_for_element_range(first, last, element, node_member) \
-  for (element = (first); \
-       element->node_member.list.prev != &(last)->node_member.list; \
+#define avl_for_element_range(first, last, element, node_member)                                                       \
+  for (element = (first); element->node_member.list.prev != &(last)->node_member.list;                                 \
        element = avl_next_element(element, node_member))
 
 /**
@@ -363,9 +364,8 @@ avl_is_node_added(const struct avl_node *node) {
  * @param node_member name of the avl_node element inside the
  *    larger struct
  */
-#define avl_for_element_range_reverse(first, last, element, node_member) \
-  for (element = (last); \
-       element->node_member.list.next != &(first)->node_member.list; \
+#define avl_for_element_range_reverse(first, last, element, node_member)                                               \
+  for (element = (last); element->node_member.list.next != &(first)->node_member.list;                                 \
        element = avl_prev_element(element, node_member))
 
 /**
@@ -379,10 +379,9 @@ avl_is_node_added(const struct avl_node *node) {
  * @param node_member name of the avl_node element inside the
  *    larger struct
  */
-#define avl_for_each_element(tree, element, node_member) \
-  avl_for_element_range(avl_first_element(tree, element, node_member), \
-                        avl_last_element(tree, element,  node_member), \
-                        element, node_member)
+#define avl_for_each_element(tree, element, node_member)                                                               \
+  avl_for_element_range(                                                                                               \
+    avl_first_element(tree, element, node_member), avl_last_element(tree, element, node_member), element, node_member)
 
 /**
  * Loop over all elements of an avl_tree backwards, used similar to a for() command.
@@ -395,10 +394,9 @@ avl_is_node_added(const struct avl_node *node) {
  * @param node_member name of the avl_node element inside the
  *    larger struct
  */
-#define avl_for_each_element_reverse(tree, element, node_member) \
-  avl_for_element_range_reverse(avl_first_element(tree, element, node_member), \
-                                avl_last_element(tree, element,  node_member), \
-                                element, node_member)
+#define avl_for_each_element_reverse(tree, element, node_member)                                                       \
+  avl_for_element_range_reverse(                                                                                       \
+    avl_first_element(tree, element, node_member), avl_last_element(tree, element, node_member), element, node_member)
 
 /**
  * Loop over a block of elements of a tree, used similar to a for() command.
@@ -413,9 +411,8 @@ avl_is_node_added(const struct avl_node *node) {
  * @param node_member name of the avl_node element inside the
  *    larger struct
  */
-#define avl_for_element_to_last(tree, first, element, node_member) \
+#define avl_for_element_to_last(tree, first, element, node_member)                                                     \
   avl_for_element_range(first, avl_last_element(tree, element, node_member), element, node_member)
-
 
 /**
  * Loop over a block of elements of a tree backwards, used similar to a for() command.
@@ -430,7 +427,7 @@ avl_is_node_added(const struct avl_node *node) {
  * @param node_member name of the avl_node element inside the
  *    larger struct
  */
-#define avl_for_element_to_last_reverse(tree, first, element, node_member) \
+#define avl_for_element_to_last_reverse(tree, first, element, node_member)                                             \
   avl_for_element_range_reverse(first, avl_last_element(tree, element, node_member), element, node_member)
 
 /**
@@ -446,9 +443,8 @@ avl_is_node_added(const struct avl_node *node) {
  * @param node_member name of the avl_node element inside the
  *    larger struct
  */
-#define avl_for_first_to_element(tree, last, element, node_member) \
+#define avl_for_first_to_element(tree, last, element, node_member)                                                     \
   avl_for_element_range(avl_first_element(tree, element, node_member), last, element, node_member)
-
 
 /**
  * Loop over a block of elements of a tree backwards, used similar to a for() command.
@@ -463,7 +459,7 @@ avl_is_node_added(const struct avl_node *node) {
  * @param node_member name of the avl_node element inside the
  *    larger struct
  */
-#define avl_for_first_to_element_reverse(tree, last, element, node_member) \
+#define avl_for_first_to_element_reverse(tree, last, element, node_member)                                             \
   avl_for_element_range_reverse(avl_first_element(tree, element, node_member), last, element, node_member)
 
 /**
@@ -480,9 +476,10 @@ avl_is_node_added(const struct avl_node *node) {
  * @param start helper pointer to remember start of iteration
  * @param key pointer to key
  */
-#define avl_for_each_elements_with_key(tree, element, node_member, start, key) \
-  for (start = element = avl_find_element(tree, key, element, node_member); \
-       element != NULL && &element->node_member.list != &(tree)->list_head && (element == start || element->node_member.follower); \
+#define avl_for_each_elements_with_key(tree, element, node_member, start, key)                                         \
+  for (start = element = avl_find_element(tree, key, element, node_member);                                            \
+       element != NULL && &element->node_member.list != &(tree)->list_head &&                                          \
+       (element == start || element->node_member.follower);                                                            \
        element = avl_next_element(element, node_member))
 
 /**
@@ -498,9 +495,9 @@ avl_is_node_added(const struct avl_node *node) {
  * @param ptr pointer to tree element struct which is used to store
  *    the next node during the loop
  */
-#define avl_for_element_range_safe(first_element, last_element, element, node_member, ptr) \
-  for (element = (first_element), ptr = avl_next_element(element, node_member); \
-       element->node_member.list.prev != &(last_element)->node_member.list; \
+#define avl_for_element_range_safe(first_element, last_element, element, node_member, ptr)                             \
+  for (element = (first_element), ptr = avl_next_element(element, node_member);                                        \
+       element->node_member.list.prev != &(last_element)->node_member.list;                                            \
        element = ptr, ptr = avl_next_element(ptr, node_member))
 
 /**
@@ -516,9 +513,9 @@ avl_is_node_added(const struct avl_node *node) {
  * @param ptr pointer to node element struct which is used to store
  *    the previous node during the loop
  */
-#define avl_for_element_range_reverse_safe(first_element, last_element, element, node_member, ptr) \
-  for (element = (last_element), ptr = avl_prev_element(element, node_member); \
-       element->node_member.list.next != &(first_element)->node_member.list; \
+#define avl_for_element_range_reverse_safe(first_element, last_element, element, node_member, ptr)                     \
+  for (element = (last_element), ptr = avl_prev_element(element, node_member);                                         \
+       element->node_member.list.next != &(first_element)->node_member.list;                                           \
        element = ptr, ptr = avl_prev_element(ptr, node_member))
 
 /**
@@ -535,10 +532,9 @@ avl_is_node_added(const struct avl_node *node) {
  * @param ptr pointer to a tree element which is used to store
  *    the next node during the loop
  */
-#define avl_for_each_element_safe(tree, element, node_member, ptr) \
-  avl_for_element_range_safe(avl_first_element(tree, element, node_member), \
-                             avl_last_element(tree, element, node_member), \
-                             element, node_member, ptr)
+#define avl_for_each_element_safe(tree, element, node_member, ptr)                                                     \
+  avl_for_element_range_safe(avl_first_element(tree, element, node_member),                                            \
+    avl_last_element(tree, element, node_member), element, node_member, ptr)
 
 /**
  * Loop over all elements of an avl_tree backwards, used similar to a for() command.
@@ -554,10 +550,9 @@ avl_is_node_added(const struct avl_node *node) {
  * @param ptr pointer to a tree element which is used to store
  *    the next node during the loop
  */
-#define avl_for_each_element_reverse_safe(tree, element, node_member, ptr) \
-  avl_for_element_range_reverse_safe(avl_first_element(tree, element, node_member), \
-                                     avl_last_element(tree, element, node_member), \
-                                     element, node_member, ptr)
+#define avl_for_each_element_reverse_safe(tree, element, node_member, ptr)                                             \
+  avl_for_element_range_reverse_safe(avl_first_element(tree, element, node_member),                                    \
+    avl_last_element(tree, element, node_member), element, node_member, ptr)
 
 /**
  * A special loop that removes all elements of the tree and cleans up the tree
@@ -577,12 +572,9 @@ avl_is_node_added(const struct avl_node *node) {
  * @param ptr pointer to a tree element which is used to store
  *    the next node during the loop
  */
-#define avl_remove_all_elements(tree, element, node_member, ptr) \
-  for (element = avl_first_element(tree, element, node_member), \
-       ptr = avl_next_element(element, node_member), \
-       list_init_head(&(tree)->list_head), \
-       (tree)->root = NULL; \
-       (tree)->count > 0; \
-       element = ptr, ptr = avl_next_element(ptr, node_member), (tree)->count--)
+#define avl_remove_all_elements(tree, element, node_member, ptr)                                                       \
+  for (element = avl_first_element(tree, element, node_member), ptr = avl_next_element(element, node_member),          \
+      list_init_head(&(tree)->list_head), (tree)->root = NULL;                                                         \
+       (tree)->count > 0; element = ptr, ptr = avl_next_element(ptr, node_member), (tree)->count--)
 
 #endif /* _AVL_H */

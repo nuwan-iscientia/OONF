@@ -99,9 +99,7 @@ struct cfg_io {
 EXPORT void cfg_io_add(struct cfg_instance *, struct cfg_io *);
 EXPORT void cfg_io_remove(struct cfg_instance *, struct cfg_io *);
 
-EXPORT struct cfg_db *cfg_io_load(struct cfg_instance *instance,
-    const char *url, struct autobuf *log);
-EXPORT int cfg_io_save(struct cfg_instance *instance,
-    const char *url, struct cfg_db *src, struct autobuf *log);
+EXPORT struct cfg_db *cfg_io_load(struct cfg_instance *instance, const char *url, struct autobuf *log);
+EXPORT int cfg_io_save(struct cfg_instance *instance, const char *url, struct cfg_db *src, struct autobuf *log);
 
 #endif /* CFG_IO_H_ */

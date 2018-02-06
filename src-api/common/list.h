@@ -48,8 +48,8 @@
 
 #include <stddef.h>
 
-#include "common/container_of.h"
 #include "common/common_types.h"
+#include "common/container_of.h"
 
 /**
  * this struct is used as list head and list elements.
@@ -216,7 +216,7 @@ list_merge(struct list_entity *add_to, struct list_entity *remove_from) {
   add_to->prev->next = remove_from->next;
   remove_from->next->prev = add_to->prev;
 
-  add_to->prev= remove_from->prev;
+  add_to->prev = remove_from->prev;
   remove_from->prev->next = add_to;
 
   list_init_head(remove_from);
@@ -231,8 +231,7 @@ list_merge(struct list_entity *add_to, struct list_entity *remove_from) {
  * @return pointer to the first element of the list
  *    (automatically converted to type 'element')
  */
-#define list_first_element(head, element, list_member) \
-    container_of((head)->next, typeof(*(element)), list_member)
+#define list_first_element(head, element, list_member) container_of((head)->next, typeof(*(element)), list_member)
 
 /**
  * @param head pointer to list-head
@@ -243,8 +242,7 @@ list_merge(struct list_entity *add_to, struct list_entity *remove_from) {
  * @return pointer to the last element of the list
  *    (automatically converted to type 'element')
  */
-#define list_last_element(head, element, list_member) \
-    container_of((head)->prev, typeof(*(element)), list_member)
+#define list_last_element(head, element, list_member) container_of((head)->prev, typeof(*(element)), list_member)
 
 /**
  * This function must not be called for the last element of
@@ -256,7 +254,7 @@ list_merge(struct list_entity *add_to, struct list_entity *remove_from) {
  * @return pointer to the node after 'element'
  *    (automatically converted to type 'element')
  */
-#define list_next_element(element, list_member) \
+#define list_next_element(element, list_member)                                                                        \
   container_of((&(element)->list_member)->next, typeof(*(element)), list_member)
 
 /**
@@ -269,7 +267,7 @@ list_merge(struct list_entity *add_to, struct list_entity *remove_from) {
  * @return pointer to the node before 'element'
  *    (automatically converted to type 'element')
  */
-#define list_prev_element(element, list_member) \
+#define list_prev_element(element, list_member)                                                                        \
   container_of((&(element)->list_member)->prev, typeof(*(element)), list_member)
 
 /**
@@ -282,9 +280,8 @@ list_merge(struct list_entity *add_to, struct list_entity *remove_from) {
  * @param element iterator pointer to list element struct
  * @param list_member name of list_entity within list element struct
  */
-#define list_for_element_range(first_element, last_element, element, list_member) \
-  for (element = (first_element); \
-       element->list_member.prev != &(last_element)->list_member; \
+#define list_for_element_range(first_element, last_element, element, list_member)                                      \
+  for (element = (first_element); element->list_member.prev != &(last_element)->list_member;                           \
        element = list_next_element(element, list_member))
 
 /**
@@ -297,9 +294,8 @@ list_merge(struct list_entity *add_to, struct list_entity *remove_from) {
  * @param element iterator pointer to list element struct
  * @param list_member name of list_entity within list element struct
  */
-#define list_for_element_range_reverse(first_element, last_element, element, list_member) \
-  for (element = (last_element); \
-       element->list_member.next != &(first_element)->list_member; \
+#define list_for_element_range_reverse(first_element, last_element, element, list_member)                              \
+  for (element = (last_element); element->list_member.next != &(first_element)->list_member;                           \
        element = list_prev_element(element, list_member))
 
 /**
@@ -313,10 +309,9 @@ list_merge(struct list_entity *add_to, struct list_entity *remove_from) {
  * @param list_member name of the list_entity element inside the
  *    larger struct
  */
-#define list_for_each_element(head, element, list_member) \
-  list_for_element_range(list_first_element(head, element, list_member), \
-                         list_last_element(head, element, list_member), \
-                         element, list_member)
+#define list_for_each_element(head, element, list_member)                                                              \
+  list_for_element_range(list_first_element(head, element, list_member),                                               \
+    list_last_element(head, element, list_member), element, list_member)
 
 /**
  * Loop over all elements of a list backwards, used similar to a for() command.
@@ -329,10 +324,9 @@ list_merge(struct list_entity *add_to, struct list_entity *remove_from) {
  * @param list_member name of the list_entity element inside the
  *    larger struct
  */
-#define list_for_each_element_reverse(head, element, list_member) \
-  list_for_element_range_reverse(list_first_element(head, element, list_member), \
-                                 list_last_element(head, element, list_member), \
-                                 element, list_member)
+#define list_for_each_element_reverse(head, element, list_member)                                                      \
+  list_for_element_range_reverse(list_first_element(head, element, list_member),                                       \
+    list_last_element(head, element, list_member), element, list_member)
 
 /**
  * Loop over a block of elements of a list, used similar to a for() command.
@@ -347,7 +341,7 @@ list_merge(struct list_entity *add_to, struct list_entity *remove_from) {
  * @param list_member name of the list_entity element inside the
  *    larger struct
  */
-#define list_for_element_to_last(head, first, element, list_member) \
+#define list_for_element_to_last(head, first, element, list_member)                                                    \
   list_for_element_range(first, list_last_element(head, element, list_member), element, list_member)
 
 /**
@@ -363,7 +357,7 @@ list_merge(struct list_entity *add_to, struct list_entity *remove_from) {
  * @param list_member name of the list_entity element inside the
  *    larger struct
  */
-#define list_for_element_to_last_reverse(head, first, element, list_member) \
+#define list_for_element_to_last_reverse(head, first, element, list_member)                                            \
   list_for_element_range_reverse(first, list_last_element(head, element, list_member), element, list_member)
 
 /**
@@ -379,7 +373,7 @@ list_merge(struct list_entity *add_to, struct list_entity *remove_from) {
  * @param list_member name of the list_entity element inside the
  *    larger struct
  */
-#define list_for_first_to_element(head, last, element, list_member) \
+#define list_for_first_to_element(head, last, element, list_member)                                                    \
   list_for_element_range(list_first_element(head, element, list_member), last, element, list_member)
 
 /**
@@ -395,7 +389,7 @@ list_merge(struct list_entity *add_to, struct list_entity *remove_from) {
  * @param list_member name of the list_entity element inside the
  *    larger struct
  */
-#define list_for_first_to_element_reverse(head, last, element, list_member) \
+#define list_for_first_to_element_reverse(head, last, element, list_member)                                            \
   list_for_element_range_reverse(list_first_element(head, element, list_member), last, element, list_member)
 
 /**
@@ -411,9 +405,9 @@ list_merge(struct list_entity *add_to, struct list_entity *remove_from) {
  * @param ptr pointer to list element struct which is used to store
  *    the next node during the loop
  */
-#define list_for_element_range_safe(first_element, last_element, element, list_member, ptr) \
-  for (element = (first_element), ptr = list_next_element(element, list_member); \
-       element->list_member.prev != &(last_element)->list_member; \
+#define list_for_element_range_safe(first_element, last_element, element, list_member, ptr)                            \
+  for (element = (first_element), ptr = list_next_element(element, list_member);                                       \
+       element->list_member.prev != &(last_element)->list_member;                                                      \
        element = ptr, ptr = list_next_element(ptr, list_member))
 
 /**
@@ -429,9 +423,9 @@ list_merge(struct list_entity *add_to, struct list_entity *remove_from) {
  * @param ptr pointer to list element struct which is used to store
  *    the previous node during the loop
  */
-#define list_for_element_range_reverse_safe(first_element, last_element, element, list_member, ptr) \
-  for (element = (last_element), ptr = list_prev_element(element, list_member); \
-       element->list_member.next != &(first_element)->list_member; \
+#define list_for_element_range_reverse_safe(first_element, last_element, element, list_member, ptr)                    \
+  for (element = (last_element), ptr = list_prev_element(element, list_member);                                        \
+       element->list_member.next != &(first_element)->list_member;                                                     \
        element = ptr, ptr = list_prev_element(ptr, list_member))
 
 /**
@@ -448,10 +442,9 @@ list_merge(struct list_entity *add_to, struct list_entity *remove_from) {
  * @param ptr pointer to an list element struct which is used to store
  *    the next node during the loop
  */
-#define list_for_each_element_safe(head, element, list_member, ptr) \
-  list_for_element_range_safe(list_first_element(head, element, list_member), \
-                              list_last_element(head, element, list_member), \
-                              element, list_member, ptr)
+#define list_for_each_element_safe(head, element, list_member, ptr)                                                    \
+  list_for_element_range_safe(list_first_element(head, element, list_member),                                          \
+    list_last_element(head, element, list_member), element, list_member, ptr)
 
 /**
  * Loop over all elements of a list backwards, used similar to a for() command.
@@ -467,9 +460,8 @@ list_merge(struct list_entity *add_to, struct list_entity *remove_from) {
  * @param ptr pointer to an list element struct which is used to store
  *    the next node during the loop
  */
-#define list_for_each_element_reverse_safe(head, element, list_member, ptr) \
-  list_for_element_range_reverse_safe(list_first_element(head, element, list_member), \
-                                      list_last_element(head, element, list_member), \
-                                      element, list_member, ptr)
+#define list_for_each_element_reverse_safe(head, element, list_member, ptr)                                            \
+  list_for_element_range_reverse_safe(list_first_element(head, element, list_member),                                  \
+    list_last_element(head, element, list_member), element, list_member, ptr)
 
 #endif /* LIST_H_ */

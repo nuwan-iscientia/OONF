@@ -43,19 +43,19 @@
  * @file
  */
 
+#include "nhdp/nhdp.h"
 #include "common/common_types.h"
 #include "config/cfg_schema.h"
 #include "core/oonf_logging.h"
 #include "core/oonf_subsystem.h"
+#include "nhdp/nhdp_domain.h"
+#include "nhdp/nhdp_hysteresis.h"
+#include "nhdp/nhdp_interfaces.h"
+#include "nhdp/nhdp_reader.h"
+#include "nhdp/nhdp_writer.h"
 #include "subsystems/oonf_class.h"
 #include "subsystems/oonf_rfc5444.h"
 #include "subsystems/os_interface.h"
-#include "nhdp/nhdp_hysteresis.h"
-#include "nhdp/nhdp_interfaces.h"
-#include "nhdp/nhdp_domain.h"
-#include "nhdp/nhdp_reader.h"
-#include "nhdp/nhdp_writer.h"
-#include "nhdp/nhdp.h"
 
 /* definitions */
 
@@ -95,20 +95,17 @@ static bool _forwarding_selector(struct rfc5444_writer_target *rfc5444_target);
 static void _cb_cfg_domain_changed(void);
 static void _cb_cfg_interface_changed(void);
 static void _cb_cfg_nhdp_changed(void);
-static int _cb_validate_domain_section(const char *section_name,
-    struct cfg_named_section *, struct autobuf *);
+static int _cb_validate_domain_section(const char *section_name, struct cfg_named_section *, struct autobuf *);
 
 /* subsystem definition */
 static struct cfg_schema_entry _nhdp_entries[] = {
   CFG_MAP_STRING_ARRAY(_generic_parameters, flooding_mpr_name, "mpr", "*",
-      "ID of the mpr algorithm used for flooding RFC5444 messages. '"CFG_DOMAIN_NO_METRIC_MPR"'"
-      " means no mpr algorithm (everyone is MPR), '"CFG_DOMAIN_ANY_METRIC_MPR"' means"
-      " any metric that is loaded (with fallback on '"CFG_DOMAIN_NO_METRIC_MPR"').",
-      NHDP_DOMAIN_MPR_MAXLEN),
-  CFG_MAP_INT32_MINMAX(_generic_parameters, mpr_willingness, "willingness",
-      RFC7181_WILLINGNESS_DEFAULT_STRING,
-      "Flooding willingness for MPR calculation", 0,
-      RFC7181_WILLINGNESS_MIN, RFC7181_WILLINGNESS_MAX),
+    "ID of the mpr algorithm used for flooding RFC5444 messages. '" CFG_DOMAIN_NO_METRIC_MPR "'"
+    " means no mpr algorithm (everyone is MPR), '" CFG_DOMAIN_ANY_METRIC_MPR "' means"
+    " any metric that is loaded (with fallback on '" CFG_DOMAIN_NO_METRIC_MPR "').",
+    NHDP_DOMAIN_MPR_MAXLEN),
+  CFG_MAP_INT32_MINMAX(_generic_parameters, mpr_willingness, "willingness", RFC7181_WILLINGNESS_DEFAULT_STRING,
+    "Flooding willingness for MPR calculation", 0, RFC7181_WILLINGNESS_MIN, RFC7181_WILLINGNESS_MAX),
 };
 
 static struct cfg_schema_section _nhdp_section = {
@@ -120,13 +117,12 @@ static struct cfg_schema_section _nhdp_section = {
 };
 
 static struct cfg_schema_entry _interface_entries[] = {
-  CFG_MAP_ACL_V46(nhdp_interface, ifaddr_filter, "ifaddr_filter",
-      "-127.0.0.0/8\0-::1\0" ACL_DEFAULT_ACCEPT,
-      "Filter for ip interface addresses that should be included in HELLO messages"),
-  CFG_MAP_CLOCK_MIN(nhdp_interface, validity_time, "hello_validity", "20.0",
-    "Validity time for NHDP Hello Messages", 100),
-  CFG_MAP_CLOCK_MIN(nhdp_interface, refresh_interval, "hello_interval", "2.0",
-    "Time interval between two NHDP Hello Messages", 100),
+  CFG_MAP_ACL_V46(nhdp_interface, ifaddr_filter, "ifaddr_filter", "-127.0.0.0/8\0-::1\0" ACL_DEFAULT_ACCEPT,
+    "Filter for ip interface addresses that should be included in HELLO messages"),
+  CFG_MAP_CLOCK_MIN(
+    nhdp_interface, validity_time, "hello_validity", "20.0", "Validity time for NHDP Hello Messages", 100),
+  CFG_MAP_CLOCK_MIN(
+    nhdp_interface, refresh_interval, "hello_interval", "2.0", "Time interval between two NHDP Hello Messages", 100),
 };
 
 static struct cfg_schema_section _interface_section = {
@@ -140,19 +136,18 @@ static struct cfg_schema_section _interface_section = {
 
 static struct cfg_schema_entry _domain_entries[] = {
   CFG_MAP_STRING_ARRAY(_domain_parameters, metric_name, "metric", CFG_DOMAIN_ANY_METRIC_MPR,
-      "ID of the routing metric used for this domain. '"CFG_DOMAIN_NO_METRIC_MPR"'"
-      " means no metric (hopcount!), '"CFG_DOMAIN_ANY_METRIC_MPR"' means any metric"
-      " that is loaded (with fallback on '"CFG_DOMAIN_NO_METRIC_MPR"').",
-      NHDP_DOMAIN_METRIC_MAXLEN),
-  CFG_MAP_STRING_ARRAY(_domain_parameters, mpr_name,  "mpr", CFG_DOMAIN_ANY_METRIC_MPR,
-      "ID of the mpr algorithm used for reducing the routing (mpr-)set of this domain."
-      " '"CFG_DOMAIN_NO_METRIC_MPR"'"
-      " means no mpr algorithm (everyone is MPR), '"CFG_DOMAIN_ANY_METRIC_MPR"' means"
-      " any metric that is loaded (with fallback on '"CFG_DOMAIN_NO_METRIC_MPR"').",
-      NHDP_DOMAIN_MPR_MAXLEN),
-  CFG_MAP_INT32_MINMAX(_domain_parameters, mpr_willingness, "willingness",
-      RFC7181_WILLINGNESS_DEFAULT_STRING, "Routing willingness used for MPR calculation",
-      0, RFC7181_WILLINGNESS_MIN, RFC7181_WILLINGNESS_MAX),
+    "ID of the routing metric used for this domain. '" CFG_DOMAIN_NO_METRIC_MPR "'"
+    " means no metric (hopcount!), '" CFG_DOMAIN_ANY_METRIC_MPR "' means any metric"
+    " that is loaded (with fallback on '" CFG_DOMAIN_NO_METRIC_MPR "').",
+    NHDP_DOMAIN_METRIC_MAXLEN),
+  CFG_MAP_STRING_ARRAY(_domain_parameters, mpr_name, "mpr", CFG_DOMAIN_ANY_METRIC_MPR,
+    "ID of the mpr algorithm used for reducing the routing (mpr-)set of this domain."
+    " '" CFG_DOMAIN_NO_METRIC_MPR "'"
+    " means no mpr algorithm (everyone is MPR), '" CFG_DOMAIN_ANY_METRIC_MPR "' means"
+    " any metric that is loaded (with fallback on '" CFG_DOMAIN_NO_METRIC_MPR "').",
+    NHDP_DOMAIN_MPR_MAXLEN),
+  CFG_MAP_INT32_MINMAX(_domain_parameters, mpr_willingness, "willingness", RFC7181_WILLINGNESS_DEFAULT_STRING,
+    "Routing willingness used for MPR calculation", 0, RFC7181_WILLINGNESS_MIN, RFC7181_WILLINGNESS_MAX),
 };
 
 static struct cfg_schema_section _domain_section = {
@@ -304,7 +299,7 @@ nhdp_get_originator(int af_type) {
  */
 bool
 nhdp_flooding_selector(struct rfc5444_writer *writer __attribute__((unused)),
-    struct rfc5444_writer_target *rfc5444_target, void *ptr __attribute__((unused))) {
+  struct rfc5444_writer_target *rfc5444_target, void *ptr __attribute__((unused))) {
   return _forwarding_selector(rfc5444_target);
 }
 
@@ -317,7 +312,7 @@ nhdp_flooding_selector(struct rfc5444_writer *writer __attribute__((unused)),
  */
 bool
 nhdp_forwarding_selector(struct rfc5444_writer_target *rfc5444_target,
-    struct rfc5444_reader_tlvblock_context *context __attribute__((unused))) {
+  struct rfc5444_reader_tlvblock_context *context __attribute__((unused))) {
   return _forwarding_selector(rfc5444_target);
 }
 
@@ -348,24 +343,22 @@ _forwarding_selector(struct rfc5444_writer_target *rfc5444_target) {
   /* get NHDP interface for target */
   interf = nhdp_interface_get(target->interface->name);
   if (interf == NULL) {
-    OONF_DEBUG(LOG_NHDP, "Do not flood message type"
-        " to interface %s: its unknown to NHDP",
-        target->interface->name);
+    OONF_DEBUG(LOG_NHDP,
+      "Do not flood message type"
+      " to interface %s: its unknown to NHDP",
+      target->interface->name);
     return NULL;
   }
 
   /* lookup flooding cache in NHDP interface */
   if (is_ipv4) {
-    flood = interf->use_ipv4_for_flooding
-        || interf->dualstack_af_type == AF_INET;
+    flood = interf->use_ipv4_for_flooding || interf->dualstack_af_type == AF_INET;
   }
   else {
-    flood =  interf->use_ipv6_for_flooding
-        || interf->dualstack_af_type == AF_INET6;
+    flood = interf->use_ipv6_for_flooding || interf->dualstack_af_type == AF_INET6;
   }
 
-  OONF_DEBUG(LOG_NHDP, "Flooding to target %s: %s",
-      netaddr_to_string(&buf, &target->dst), flood ? "yes" : "no");
+  OONF_DEBUG(LOG_NHDP, "Flooding to target %s: %s", netaddr_to_string(&buf, &target->dst), flood ? "yes" : "no");
 
   return flood;
 }
@@ -378,21 +371,17 @@ _cb_cfg_domain_changed(void) {
   struct _domain_parameters param;
   int ext;
 
-  OONF_INFO(LOG_NHDP, "Received domain cfg change for name '%s': %s %s",
-      _domain_section.section_name,
-      _domain_section.pre != NULL ? "pre" : "-",
-      _domain_section.post != NULL ? "post" : "-");
+  OONF_INFO(LOG_NHDP, "Received domain cfg change for name '%s': %s %s", _domain_section.section_name,
+    _domain_section.pre != NULL ? "pre" : "-", _domain_section.post != NULL ? "post" : "-");
 
   ext = strtol(_domain_section.section_name, NULL, 10);
 
-  if (cfg_schema_tobin(&param, _domain_section.post,
-      _domain_entries, ARRAYSIZE(_domain_entries))) {
+  if (cfg_schema_tobin(&param, _domain_section.post, _domain_entries, ARRAYSIZE(_domain_entries))) {
     OONF_WARN(LOG_NHDP, "Cannot convert NHDP domain configuration.");
     return;
   }
 
-  nhdp_domain_configure(ext, param.metric_name,
-      param.mpr_name, param.mpr_willingness);
+  nhdp_domain_configure(ext, param.metric_name, param.mpr_name, param.mpr_willingness);
 }
 
 /**
@@ -404,10 +393,8 @@ _cb_cfg_interface_changed(void) {
   const char *ifname;
   char ifbuf[IF_NAMESIZE];
 
-
   ifname = cfg_get_phy_if(ifbuf, _interface_section.section_name);
-  OONF_DEBUG(LOG_NHDP, "Configuration of NHDP interface %s changed",
-        _interface_section.section_name);
+  OONF_DEBUG(LOG_NHDP, "Configuration of NHDP interface %s changed", _interface_section.section_name);
 
   if (_interface_section.pre == NULL) {
     /* increase nhdp_interface refcount */
@@ -439,8 +426,7 @@ _cb_cfg_interface_changed(void) {
     return;
   }
 
-  if (cfg_schema_tobin(nhdp_if, _interface_section.post,
-      _interface_entries, ARRAYSIZE(_interface_entries))) {
+  if (cfg_schema_tobin(nhdp_if, _interface_section.post, _interface_entries, ARRAYSIZE(_interface_entries))) {
     OONF_WARN(LOG_NHDP, "Cannot convert NHDP configuration for interface.");
     return;
   }
@@ -452,8 +438,7 @@ _cb_cfg_interface_changed(void) {
 static void
 _cb_cfg_nhdp_changed(void) {
   struct _generic_parameters param;
-  if (cfg_schema_tobin(&param, _nhdp_section.post,
-      _nhdp_entries, ARRAYSIZE(_nhdp_entries))) {
+  if (cfg_schema_tobin(&param, _nhdp_section.post, _nhdp_entries, ARRAYSIZE(_nhdp_entries))) {
     OONF_WARN(LOG_NHDP, "Cannot convert NHDP configuration.");
     return;
   }
@@ -469,8 +454,7 @@ _cb_cfg_nhdp_changed(void) {
  * @return -1 if invalid, 0 otherwise
  */
 static int
-_cb_validate_domain_section(const char *section_name,
-    struct cfg_named_section *named, struct autobuf *out) {
+_cb_validate_domain_section(const char *section_name, struct cfg_named_section *named, struct autobuf *out) {
   char *error = NULL;
   int ext;
 
@@ -482,15 +466,13 @@ _cb_validate_domain_section(const char *section_name,
   ext = strtol(named->name, &error, 10);
   if (error != NULL && *error != 0) {
     /* illegal domain name */
-    abuf_appendf(out, "name of section '%s' must be a number between 0 and 255",
-        section_name);
+    abuf_appendf(out, "name of section '%s' must be a number between 0 and 255", section_name);
     return -1;
   }
 
   if (ext < 0 || ext > 255) {
     /* name out of range */
-    abuf_appendf(out, "name of section '%s' must be a number between 0 and 255",
-        section_name);
+    abuf_appendf(out, "name of section '%s' must be a number between 0 and 255", section_name);
     return -1;
   }
   return 0;

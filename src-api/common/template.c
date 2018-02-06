@@ -46,13 +46,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "common/common_types.h"
 #include "common/autobuf.h"
+#include "common/common_types.h"
 #include "common/string.h"
 #include "common/template.h"
 
 static struct abuf_template_data_entry *_find_template(
-    struct abuf_template_data *set, size_t set_count, const char *txt, size_t txtLength);
+  struct abuf_template_data *set, size_t set_count, const char *txt, size_t txtLength);
 
 /**
  * Initialize an index table for a template engine.
@@ -67,8 +67,8 @@ static struct abuf_template_data_entry *_find_template(
  * @param format format string of the template
  */
 void
-abuf_template_init_ext(struct abuf_template_storage *storage,
-    struct abuf_template_data *data, size_t data_count, const char *format) {
+abuf_template_init_ext(
+  struct abuf_template_storage *storage, struct abuf_template_data *data, size_t data_count, const char *format) {
   /* helper string for 'just one tab between keys' */
   static const char default_format[] = "\t";
 
@@ -77,7 +77,7 @@ abuf_template_init_ext(struct abuf_template_storage *storage,
   bool escape = false;
   size_t start = 0;
   size_t pos = 0;
-  size_t i,j;
+  size_t i, j;
 
   memset(storage, 0, sizeof(*storage));
 
@@ -98,7 +98,7 @@ abuf_template_init_ext(struct abuf_template_storage *storage,
 
     if (storage->count) {
       storage->indices[0].start = 0;
-      storage->indices[storage->count-1].end = 1;
+      storage->indices[storage->count - 1].end = 1;
     }
     return;
   }
@@ -112,10 +112,10 @@ abuf_template_init_ext(struct abuf_template_storage *storage,
         continue;
       }
       if (pos - start > 1) {
-        d = _find_template(data, data_count, &format[start+1], pos-start-1);
+        d = _find_template(data, data_count, &format[start + 1], pos - start - 1);
         if (d) {
           storage->indices[storage->count].start = start;
-          storage->indices[storage->count].end = pos+1;
+          storage->indices[storage->count].end = pos + 1;
           storage->indices[storage->count].data = d;
 
           storage->count++;
@@ -146,13 +146,12 @@ abuf_template_init_ext(struct abuf_template_storage *storage,
  *   false to insert the values.
  */
 void
-abuf_add_template(struct autobuf *out,
-    struct abuf_template_storage *storage, bool keys) {
+abuf_add_template(struct autobuf *out, struct abuf_template_storage *storage, bool keys) {
   struct abuf_template_storage_entry *entry;
   size_t i, last = 0;
   const char *value;
 
-  for (i=0; i<storage->count; i++) {
+  for (i = 0; i < storage->count; i++) {
     entry = &storage->indices[i];
 
     /* copy prefix text */
@@ -189,8 +188,8 @@ static struct abuf_template_data_entry *
 _find_template(struct abuf_template_data *set, size_t set_count, const char *txt, size_t txtLength) {
   size_t i, j;
 
-  for (j=0; j<set_count; j++) {
-    for (i=0; i<set[j].count; i++) {
+  for (j = 0; j < set_count; j++) {
+    for (i = 0; i < set[j].count; i++) {
       const char *key;
 
       key = set[j].data[i].key;

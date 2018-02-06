@@ -76,10 +76,8 @@ static void _cb_config_changed(void);
 
 /* configuration */
 static struct cfg_schema_entry _example_entries[] = {
-  CFG_MAP_INT64_MINMAX(_example_config, start, "start", "0",
-      "Starting value for counter", 0, 0, 1000),
-  CFG_MAP_CLOCK_MIN(_example_config, interval, "interval", "1.0",
-      "Interval between counter updates", 100),
+  CFG_MAP_INT64_MINMAX(_example_config, start, "start", "0", "Starting value for counter", 0, 0, 1000),
+  CFG_MAP_CLOCK_MIN(_example_config, interval, "interval", "1.0", "Interval between counter updates", 100),
 };
 
 static struct cfg_schema_section _example_section = {
@@ -116,9 +114,7 @@ static struct oonf_timer_class _counter_info = {
   .periodic = true,
 };
 
-static struct oonf_timer_instance _counter_timer = {
-  .class = &_counter_info
-};
+static struct oonf_timer_instance _counter_timer = { .class = &_counter_info };
 
 static int
 _init(void) {
@@ -140,15 +136,13 @@ static void
 _cb_counter_event(struct oonf_timer_instance *ptr __attribute((unused))) {
   _config.counter++;
 
-  OONF_INFO(LOG_EXAMPLE, "Updated counter to: %"PRIu64, _config.counter);
+  OONF_INFO(LOG_EXAMPLE, "Updated counter to: %" PRIu64, _config.counter);
 }
 
 static void
 _cb_config_changed(void) {
-  if (cfg_schema_tobin(&_config, _example_section.post,
-      _example_entries, ARRAYSIZE(_example_entries))) {
-    OONF_WARN(LOG_EXAMPLE, "Could not convert "
-        OONF_EXAMPLE_SUBSYSTEM " config to bin");
+  if (cfg_schema_tobin(&_config, _example_section.post, _example_entries, ARRAYSIZE(_example_entries))) {
+    OONF_WARN(LOG_EXAMPLE, "Could not convert " OONF_EXAMPLE_SUBSYSTEM " config to bin");
     return;
   }
 

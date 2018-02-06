@@ -50,8 +50,8 @@
 
 #include "nl80211_listener/nl80211_listener.h"
 
-void nl80211_send_get_survey(struct os_system_netlink *nl, struct nlmsghdr *nl_msg,
-    struct genlmsghdr *hdr, struct nl80211_if *interf);
-void nl80211_process_get_survey_result(struct nl80211_if *interf, struct nlmsghdr*);
+void nl80211_send_get_survey(
+  struct os_system_netlink *nl, struct nlmsghdr *nl_msg, struct genlmsghdr *hdr, struct nl80211_if *interf);
+void nl80211_process_get_survey_result(struct nl80211_if *interf, struct nlmsghdr *);
 
 #endif /* NL80211_GET_SURVEY_H_ */

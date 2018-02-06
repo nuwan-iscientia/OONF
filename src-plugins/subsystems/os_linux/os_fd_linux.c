@@ -43,10 +43,10 @@
  * @file
  */
 
+#include <errno.h>
 #include <net/if.h>
 #include <netinet/in.h>
 #include <sys/ioctl.h>
-#include <errno.h>
 
 #include "common/common_types.h"
 #include "core/oonf_logging.h"
@@ -89,8 +89,7 @@ _init(void) {
  * Cleanup os_net subsystem
  */
 static void
-_cleanup(void) {
-}
+_cleanup(void) {}
 
 /**
  * wait for a network event on multiple sockets
@@ -108,13 +107,11 @@ os_fd_linux_event_wait(struct os_fd_select *sel) {
     maxdelay = INT32_MAX;
   }
 
-  sel->_event_count = epoll_wait(sel->_epoll_fd, sel->_events,
-      ARRAYSIZE(sel->_events), maxdelay);
+  sel->_event_count = epoll_wait(sel->_epoll_fd, sel->_events, ARRAYSIZE(sel->_events), maxdelay);
 
-  OONF_DEBUG(LOG_OS_SOCKET, "epoll_wait(maxdelay = %"PRIu64"): %d",
-      maxdelay, sel->_event_count);
+  OONF_DEBUG(LOG_OS_SOCKET, "epoll_wait(maxdelay = %" PRIu64 "): %d", maxdelay, sel->_event_count);
 
-  for (i=0; i<sel->_event_count; i++) {
+  for (i = 0; i < sel->_event_count; i++) {
     sock = os_fd_event_get(sel, i);
     sock->received_events = sel->_events[i].events;
 
@@ -130,17 +127,15 @@ os_fd_linux_event_wait(struct os_fd_select *sel) {
  * @return -1 if an error happened, 0 otherwise
  */
 int
-os_fd_linux_event_socket_modify(struct os_fd_select *sel,
-    struct os_fd *sock) {
+os_fd_linux_event_socket_modify(struct os_fd_select *sel, struct os_fd *sock) {
   struct epoll_event event;
 
-  memset(&event,0,sizeof(event));
+  memset(&event, 0, sizeof(event));
 
   event.events = sock->wanted_events;
   event.data.ptr = sock;
 
-  OONF_DEBUG(LOG_OS_SOCKET, "Modify socket %d to events 0x%x",
-      sock->fd, sock->wanted_events);
+  OONF_DEBUG(LOG_OS_SOCKET, "Modify socket %d to events 0x%x", sock->fd, sock->wanted_events);
   return epoll_ctl(sel->_epoll_fd, EPOLL_CTL_MOD, sock->fd, &event);
 }
 

@@ -45,8 +45,8 @@
 
 #include <arpa/inet.h>
 
-#include "common/common_types.h"
 #include "common/autobuf.h"
+#include "common/common_types.h"
 
 #include "core/oonf_logging.h"
 
@@ -66,7 +66,6 @@
  */
 void
 dlep_writer_start_signal(struct dlep_writer *writer, uint16_t signal_type) {
-
   writer->signal_type = signal_type;
   writer->signal_start = abuf_getlen(writer->out);
 
@@ -82,8 +81,7 @@ dlep_writer_start_signal(struct dlep_writer *writer, uint16_t signal_type) {
  * @param len length of value, can be 0
  */
 void
-dlep_writer_add_tlv(struct dlep_writer *writer,
-    uint16_t type, const void *data, uint16_t len) {
+dlep_writer_add_tlv(struct dlep_writer *writer, uint16_t type, const void *data, uint16_t len) {
   abuf_append_uint16(writer->out, htons(type));
   abuf_append_uint16(writer->out, htons(len));
   abuf_memcpy(writer->out, data, len);
@@ -99,9 +97,8 @@ dlep_writer_add_tlv(struct dlep_writer *writer,
  * @param len2 length of second value
  */
 void
-dlep_writer_add_tlv2(struct dlep_writer *writer,
-    uint16_t type, const void *data1, uint16_t len1,
-    const void *data2, uint16_t len2) {
+dlep_writer_add_tlv2(
+  struct dlep_writer *writer, uint16_t type, const void *data1, uint16_t len1, const void *data2, uint16_t len2) {
   abuf_append_uint16(writer->out, htons(type));
   abuf_append_uint16(writer->out, htons(len1 + len2));
   abuf_memcpy(writer->out, data1, len1);
@@ -115,22 +112,20 @@ dlep_writer_add_tlv2(struct dlep_writer *writer,
  * @return -1 if an error happened, 0 otherwise
  */
 int
-dlep_writer_finish_signal(struct dlep_writer *writer,
-    enum oonf_log_source source) {
+dlep_writer_finish_signal(struct dlep_writer *writer, enum oonf_log_source source) {
   size_t length;
   uint16_t tmp16;
   char *dst;
 
   if (abuf_has_failed(writer->out)) {
-    OONF_WARN(source, "Could not build signal: %u",
-        writer->signal_type);
+    OONF_WARN(source, "Could not build signal: %u", writer->signal_type);
     return -1;
   }
 
   length = abuf_getlen(writer->out) - writer->signal_start;
   if (length > 65535 + 4) {
-    OONF_WARN(source, "Signal %u became too long: %" PRINTF_SIZE_T_SPECIFIER,
-        writer->signal_type, abuf_getlen(writer->out));
+    OONF_WARN(
+      source, "Signal %u became too long: %" PRINTF_SIZE_T_SPECIFIER, writer->signal_type, abuf_getlen(writer->out));
     return -1;
   }
 
@@ -141,8 +136,7 @@ dlep_writer_finish_signal(struct dlep_writer *writer,
   dst = abuf_getptr(writer->out);
   memcpy(&dst[writer->signal_start + 2], &tmp16, sizeof(tmp16));
 
-  OONF_DEBUG_HEX(source, &dst[writer->signal_start], length,
-      "Finished signal %u:", writer->signal_type);
+  OONF_DEBUG_HEX(source, &dst[writer->signal_start], length, "Finished signal %u:", writer->signal_type);
   return 0;
 }
 
@@ -157,8 +151,7 @@ dlep_writer_add_heartbeat_tlv(struct dlep_writer *writer, uint64_t interval) {
 
   value = htonl(interval);
 
-  dlep_writer_add_tlv(writer, DLEP_HEARTBEAT_INTERVAL_TLV,
-      &value, sizeof(value));
+  dlep_writer_add_tlv(writer, DLEP_HEARTBEAT_INTERVAL_TLV, &value, sizeof(value));
 }
 
 /**
@@ -168,14 +161,12 @@ dlep_writer_add_heartbeat_tlv(struct dlep_writer *writer, uint64_t interval) {
  * @param access_control true if radio implements access control, false otherwise
  */
 void
-dlep_writer_add_peer_type_tlv(struct dlep_writer *writer,
-    const char *peer_type, bool access_control) {
+dlep_writer_add_peer_type_tlv(struct dlep_writer *writer, const char *peer_type, bool access_control) {
   char flags;
 
   flags = access_control ? DLEP_PEER_TYPE_SECURED : DLEP_PEER_TYPE_OPEN;
 
-  dlep_writer_add_tlv2(writer, DLEP_PEER_TYPE_TLV,
-      &flags, sizeof(flags), peer_type, strlen(peer_type));
+  dlep_writer_add_tlv2(writer, DLEP_PEER_TYPE_TLV, &flags, sizeof(flags), peer_type, strlen(peer_type));
 }
 
 /**
@@ -185,8 +176,7 @@ dlep_writer_add_peer_type_tlv(struct dlep_writer *writer,
  * @return -1 if address was wrong type, 0 otherwise
  */
 int
-dlep_writer_add_mac_tlv(struct dlep_writer *writer,
-    const struct netaddr *mac) {
+dlep_writer_add_mac_tlv(struct dlep_writer *writer, const struct netaddr *mac) {
   uint8_t value[8];
 
   switch (netaddr_get_address_family(mac)) {
@@ -199,8 +189,7 @@ dlep_writer_add_mac_tlv(struct dlep_writer *writer,
 
   netaddr_to_binary(value, mac, 8);
 
-  dlep_writer_add_tlv(writer,
-      DLEP_MAC_ADDRESS_TLV, value, netaddr_get_binlength(mac));
+  dlep_writer_add_tlv(writer, DLEP_MAC_ADDRESS_TLV, value, netaddr_get_binlength(mac));
   return 0;
 }
 
@@ -211,8 +200,7 @@ dlep_writer_add_mac_tlv(struct dlep_writer *writer,
  * @param add true if address should be added, false to remove it
  */
 int
-dlep_writer_add_ip_tlv(struct dlep_writer *writer,
-    const struct netaddr *ip, bool add) {
+dlep_writer_add_ip_tlv(struct dlep_writer *writer, const struct netaddr *ip, bool add) {
   uint8_t value[18];
 
   value[0] = add ? DLEP_IP_ADD : DLEP_IP_REMOVE;
@@ -222,23 +210,19 @@ dlep_writer_add_ip_tlv(struct dlep_writer *writer,
     case AF_INET:
       value[5] = netaddr_get_prefix_length(ip);
       if (value[5] != 32) {
-        dlep_writer_add_tlv(writer,
-            DLEP_IPV4_SUBNET_TLV, value, 6);
+        dlep_writer_add_tlv(writer, DLEP_IPV4_SUBNET_TLV, value, 6);
       }
       else {
-        dlep_writer_add_tlv(writer,
-            DLEP_IPV4_ADDRESS_TLV, value, 5);
+        dlep_writer_add_tlv(writer, DLEP_IPV4_ADDRESS_TLV, value, 5);
       }
       break;
     case AF_INET6:
       value[17] = netaddr_get_prefix_length(ip);
       if (value[17] != 128) {
-        dlep_writer_add_tlv(writer,
-            DLEP_IPV6_SUBNET_TLV, value, 18);
+        dlep_writer_add_tlv(writer, DLEP_IPV6_SUBNET_TLV, value, 18);
       }
       else {
-        dlep_writer_add_tlv(writer,
-            DLEP_IPV6_ADDRESS_TLV, value, 17);
+        dlep_writer_add_tlv(writer, DLEP_IPV6_ADDRESS_TLV, value, 17);
       }
       break;
     default:
@@ -255,8 +239,7 @@ dlep_writer_add_ip_tlv(struct dlep_writer *writer,
  * @param tls TLS capability flag
  */
 void
-dlep_writer_add_ipv4_conpoint_tlv(struct dlep_writer *writer,
-    const struct netaddr *addr, uint16_t port, bool tls) {
+dlep_writer_add_ipv4_conpoint_tlv(struct dlep_writer *writer, const struct netaddr *addr, uint16_t port, bool tls) {
   uint8_t value[7];
 
   if (netaddr_get_address_family(addr) != AF_INET) {
@@ -271,8 +254,7 @@ dlep_writer_add_ipv4_conpoint_tlv(struct dlep_writer *writer,
   netaddr_to_binary(&value[1], addr, sizeof(value));
   memcpy(&value[5], &port, sizeof(port));
 
-  dlep_writer_add_tlv(writer,
-      DLEP_IPV4_CONPOINT_TLV, &value, sizeof(value));
+  dlep_writer_add_tlv(writer, DLEP_IPV4_CONPOINT_TLV, &value, sizeof(value));
 }
 
 /**
@@ -283,8 +265,7 @@ dlep_writer_add_ipv4_conpoint_tlv(struct dlep_writer *writer,
  * @param tls TLS capability flag
  */
 void
-dlep_writer_add_ipv6_conpoint_tlv(struct dlep_writer *writer,
-    const struct netaddr *addr, uint16_t port, bool tls) {
+dlep_writer_add_ipv6_conpoint_tlv(struct dlep_writer *writer, const struct netaddr *addr, uint16_t port, bool tls) {
   uint8_t value[19];
 
   if (netaddr_get_address_family(addr) != AF_INET6) {
@@ -299,8 +280,7 @@ dlep_writer_add_ipv6_conpoint_tlv(struct dlep_writer *writer,
   netaddr_to_binary(&value[1], addr, sizeof(value));
   memcpy(&value[17], &port, sizeof(port));
 
-  dlep_writer_add_tlv(writer,
-      DLEP_IPV6_CONPOINT_TLV, &value, sizeof(value));
+  dlep_writer_add_tlv(writer, DLEP_IPV6_CONPOINT_TLV, &value, sizeof(value));
 }
 
 /**
@@ -310,8 +290,7 @@ dlep_writer_add_ipv6_conpoint_tlv(struct dlep_writer *writer,
  * @param tlv tlv id
  */
 void
-dlep_writer_add_uint64(struct dlep_writer *writer,
-    uint64_t number, enum dlep_tlvs tlv) {
+dlep_writer_add_uint64(struct dlep_writer *writer, uint64_t number, enum dlep_tlvs tlv) {
   uint64_t value;
 
   value = be64toh(number);
@@ -326,9 +305,8 @@ dlep_writer_add_uint64(struct dlep_writer *writer,
  * @param tlv tlv id
  */
 void
-dlep_writer_add_int64(struct dlep_writer *writer,
-    int64_t number, enum dlep_tlvs tlv) {
-  uint64_t *value = (uint64_t*)(&number);
+dlep_writer_add_int64(struct dlep_writer *writer, int64_t number, enum dlep_tlvs tlv) {
+  uint64_t *value = (uint64_t *)(&number);
 
   *value = htonl(*value);
 
@@ -343,8 +321,7 @@ dlep_writer_add_int64(struct dlep_writer *writer,
  * @return -1 if status text was too long, 0 otherwise
  */
 int
-dlep_writer_add_status(struct dlep_writer *writer,
-    enum dlep_status status, const char *text) {
+dlep_writer_add_status(struct dlep_writer *writer, enum dlep_status status, const char *text) {
   uint8_t value;
   size_t txtlen;
 
@@ -354,8 +331,7 @@ dlep_writer_add_status(struct dlep_writer *writer,
     return -1;
   }
 
-  dlep_writer_add_tlv2(writer, DLEP_STATUS_TLV,
-      &value, sizeof(value), text, txtlen);
+  dlep_writer_add_tlv2(writer, DLEP_STATUS_TLV, &value, sizeof(value), text, txtlen);
   return 0;
 }
 
@@ -366,10 +342,8 @@ dlep_writer_add_status(struct dlep_writer *writer,
  * @param ext_count number of supported extensions
  */
 void
-dlep_writer_add_supported_extensions(struct dlep_writer *writer,
-    const uint16_t *extensions, uint16_t ext_count) {
-  dlep_writer_add_tlv(writer, DLEP_EXTENSIONS_SUPPORTED_TLV,
-      extensions, ext_count * 2);
+dlep_writer_add_supported_extensions(struct dlep_writer *writer, const uint16_t *extensions, uint16_t ext_count) {
+  dlep_writer_add_tlv(writer, DLEP_EXTENSIONS_SUPPORTED_TLV, extensions, ext_count * 2);
 }
 
 /**
@@ -381,10 +355,8 @@ dlep_writer_add_supported_extensions(struct dlep_writer *writer,
  * @return -1 if an error happened, 0 otherwise
  */
 int
-dlep_writer_map_identity(struct dlep_writer *writer,
-    struct oonf_layer2_data *data,
-    const struct oonf_layer2_metadata *meta,
-    uint16_t tlv, uint16_t length) {
+dlep_writer_map_identity(struct dlep_writer *writer, struct oonf_layer2_data *data,
+  const struct oonf_layer2_metadata *meta, uint16_t tlv, uint16_t length) {
   int64_t l2value64;
   uint64_t tmp64;
   uint32_t tmp32;
@@ -449,14 +421,13 @@ dlep_writer_map_identity(struct dlep_writer *writer,
  *   (minus 1) of the conversion that failed.
  */
 int
-dlep_writer_map_l2neigh_data(struct dlep_writer *writer,
-    struct dlep_extension *ext, struct oonf_layer2_data *data,
-    struct oonf_layer2_data *def) {
+dlep_writer_map_l2neigh_data(
+  struct dlep_writer *writer, struct dlep_extension *ext, struct oonf_layer2_data *data, struct oonf_layer2_data *def) {
   struct dlep_neighbor_mapping *map;
   struct oonf_layer2_data *ptr;
   size_t i;
 
-  for (i=0; i<ext->neigh_mapping_count; i++) {
+  for (i = 0; i < ext->neigh_mapping_count; i++) {
     map = &ext->neigh_mapping[i];
 
     ptr = &data[map->layer2];
@@ -464,10 +435,8 @@ dlep_writer_map_l2neigh_data(struct dlep_writer *writer,
       ptr = &def[map->layer2];
     }
 
-    if (map->to_tlv(writer, ptr,
-        oonf_layer2_neigh_metadata_get(map->layer2),
-        map->dlep, map->length)) {
-      return -(i+1);
+    if (map->to_tlv(writer, ptr, oonf_layer2_neigh_metadata_get(map->layer2), map->dlep, map->length)) {
+      return -(i + 1);
     }
   }
   return 0;
@@ -484,18 +453,15 @@ dlep_writer_map_l2neigh_data(struct dlep_writer *writer,
  *   (minus 1) of the conversion that failed.
  */
 int
-dlep_writer_map_l2net_data(struct dlep_writer *writer,
-    struct dlep_extension *ext, struct oonf_layer2_data *data) {
+dlep_writer_map_l2net_data(struct dlep_writer *writer, struct dlep_extension *ext, struct oonf_layer2_data *data) {
   struct dlep_network_mapping *map;
   size_t i;
 
-  for (i=0; i<ext->if_mapping_count; i++) {
+  for (i = 0; i < ext->if_mapping_count; i++) {
     map = &ext->if_mapping[i];
 
-    if (map->to_tlv(writer, &data[map->layer2],
-        oonf_layer2_net_metadata_get(map->layer2),
-        map->dlep, map->length)) {
-      return -(i+1);
+    if (map->to_tlv(writer, &data[map->layer2], oonf_layer2_net_metadata_get(map->layer2), map->dlep, map->length)) {
+      return -(i + 1);
     }
   }
   return 0;

@@ -62,4 +62,3 @@ os_routing_avl_cmp_route_key(const void *p1, const void *p2) {
 
   return memcmp(ss1, ss2, sizeof(*ss1));
 }
-

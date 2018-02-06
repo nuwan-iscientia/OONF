@@ -43,9 +43,9 @@
  * @file
  */
 
-#include "common/common_types.h"
 #include "common/avl.h"
 #include "common/avl_comp.h"
+#include "common/common_types.h"
 #include "common/list.h"
 #include "common/netaddr.h"
 
@@ -53,11 +53,11 @@
 #include "subsystems/oonf_class.h"
 #include "subsystems/oonf_timer.h"
 
-#include "nhdp/nhdp_internal.h"
+#include "nhdp/nhdp_db.h"
+#include "nhdp/nhdp_domain.h"
 #include "nhdp/nhdp_hysteresis.h"
 #include "nhdp/nhdp_interfaces.h"
-#include "nhdp/nhdp_domain.h"
-#include "nhdp/nhdp_db.h"
+#include "nhdp/nhdp_internal.h"
 
 /* Prototypes of local functions */
 static void _link_status_now_symmetric(struct nhdp_link *lnk);
@@ -71,10 +71,10 @@ static void _cb_l2hop_vtime(struct oonf_timer_instance *);
 static void _cb_naddr_vtime(struct oonf_timer_instance *);
 
 /* Link status names */
-static const char *_LINK_PENDING   = "pending";
-static const char *_LINK_HEARD     = "heard";
+static const char *_LINK_PENDING = "pending";
+static const char *_LINK_HEARD = "heard";
 static const char *_LINK_SYMMETRIC = "symmetric";
-static const char *_LINK_LOST      = "lost";
+static const char *_LINK_LOST = "lost";
 
 /* memory and timer classes necessary for NHDP */
 static struct oonf_class _neigh_info = {
@@ -241,8 +241,7 @@ nhdp_db_neighbor_remove(struct nhdp_neighbor *neigh) {
 #endif
   bool was_mpr;
 
-  OONF_DEBUG(LOG_NHDP, "Remove Neighbor: 0x%0zx (%s)",
-      (size_t)neigh, netaddr_to_string(&nbuf, &neigh->originator));
+  OONF_DEBUG(LOG_NHDP, "Remove Neighbor: 0x%0zx (%s)", (size_t)neigh, netaddr_to_string(&nbuf, &neigh->originator));
 
   /* trigger event */
   oonf_class_event(&_neigh_info, neigh, OONF_OBJECT_REMOVED);
@@ -360,8 +359,7 @@ nhdp_db_neighbor_join(struct nhdp_neighbor *dst, struct nhdp_neighbor *src) {
  * @return pointer to neighbor address, NULL if out of memory
  */
 struct nhdp_naddr *
-nhdp_db_neighbor_addr_add(struct nhdp_neighbor *neigh,
-    const struct netaddr *addr) {
+nhdp_db_neighbor_addr_add(struct nhdp_neighbor *neigh, const struct netaddr *addr) {
   struct nhdp_naddr *naddr;
 
   naddr = oonf_class_malloc(&_naddr_info);
@@ -433,8 +431,7 @@ nhdp_db_neighbor_addr_move(struct nhdp_neighbor *neigh, struct nhdp_naddr *naddr
  * @param originator originator address, might be type AF_UNSPEC
  */
 void
-nhdp_db_neighbor_set_originator(struct nhdp_neighbor *neigh,
-    const struct netaddr *originator) {
+nhdp_db_neighbor_set_originator(struct nhdp_neighbor *neigh, const struct netaddr *originator) {
   struct nhdp_neighbor *neigh2;
   struct nhdp_link *lnk;
 
@@ -492,9 +489,7 @@ nhdp_db_neighbor_set_originator(struct nhdp_neighbor *neigh,
  * @param n_ipv6 ipv6 neighbor
  */
 void
-nhdp_db_neighbor_connect_dualstack(
-    struct nhdp_neighbor *n_ipv4, struct nhdp_neighbor *n_ipv6) {
-
+nhdp_db_neighbor_connect_dualstack(struct nhdp_neighbor *n_ipv4, struct nhdp_neighbor *n_ipv6) {
   if (n_ipv4->dualstack_partner != n_ipv6) {
     nhdp_db_neigbor_disconnect_dualstack(n_ipv4);
     n_ipv4->dualstack_partner = n_ipv6;
@@ -706,7 +701,7 @@ nhdp_db_link_addr_remove(struct nhdp_laddr *laddr) {
 
 /**
  * Moves a nhdp link address to a different link
- * @param lnk NHDP link 
+ * @param lnk NHDP link
  * @param laddr NHDP link address
  */
 void
@@ -796,9 +791,7 @@ nhdp_db_link_2hop_remove(struct nhdp_l2hop *l2hop) {
  * @param l_ipv6 ipv6 link
  */
 void
-nhdp_db_link_connect_dualstack(
-    struct nhdp_link *l_ipv4, struct nhdp_link *l_ipv6) {
-
+nhdp_db_link_connect_dualstack(struct nhdp_link *l_ipv4, struct nhdp_link *l_ipv6) {
   if (l_ipv4->dualstack_partner != l_ipv6) {
     nhdp_db_link_disconnect_dualstack(l_ipv4);
     l_ipv4->dualstack_partner = l_ipv6;
@@ -933,9 +926,8 @@ _nhdp_db_link_calculate_status(struct nhdp_link *lnk) {
   localif = nhdp_interface_get_if_listener(lnk->local_if)->data;
 
   /* check for originator collision */
-  if (!netaddr_is_unspec(local_originator)
-      && (netaddr_cmp(local_originator, &lnk->if_addr) == 0
-          || netaddr_cmp(local_originator, &lnk->neigh->originator) == 0)) {
+  if (!netaddr_is_unspec(local_originator) && (netaddr_cmp(local_originator, &lnk->if_addr) == 0 ||
+                                                netaddr_cmp(local_originator, &lnk->neigh->originator) == 0)) {
     return NHDP_LINK_PENDING;
   }
 

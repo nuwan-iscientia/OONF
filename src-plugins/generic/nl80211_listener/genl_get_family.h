@@ -47,10 +47,10 @@
 #define GENL_GET_FAMILY_H_
 
 #include <linux/netlink.h>
+
 #include "nl80211_listener/nl80211_listener.h"
 
 void genl_send_get_family(struct nlmsghdr *nl_msg, struct genlmsghdr *hdr);
-void genl_process_get_family_result(struct nlmsghdr *hdr,
-    uint32_t *nl80211_id, uint32_t *nl80211_mc);
+void genl_process_get_family_result(struct nlmsghdr *hdr, uint32_t *nl80211_id, uint32_t *nl80211_mc);
 
 #endif /* GENL_GET_FAMILY_H_ */

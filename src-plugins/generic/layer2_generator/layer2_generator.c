@@ -45,8 +45,8 @@
 
 #include <stdio.h>
 
-#include "common/common_types.h"
 #include "common/autobuf.h"
+#include "common/common_types.h"
 #include "common/netaddr.h"
 #include "common/string.h"
 #include "common/template.h"
@@ -105,17 +105,13 @@ static struct oonf_timer_instance _l2gen_timer = {
 static struct _l2_generator_config _l2gen_config;
 
 static struct cfg_schema_entry _l2gen_entries[] = {
-  CFG_MAP_CLOCK_MIN(_l2_generator_config, interval, "interval", "3.000",
-      "Interval between L2 generator events",
-      500),
-  CFG_MAP_STRING_ARRAY(_l2_generator_config, interface, "interface", "eth0",
-      "Interface of example radio", IF_NAMESIZE),
-  CFG_MAP_NETADDR_MAC48(_l2_generator_config, neighbor, "neighbor", "02:00:00:00:00:01",
-      "Mac address of example radio", false, false),
+  CFG_MAP_CLOCK_MIN(_l2_generator_config, interval, "interval", "3.000", "Interval between L2 generator events", 500),
+  CFG_MAP_STRING_ARRAY(_l2_generator_config, interface, "interface", "eth0", "Interface of example radio", IF_NAMESIZE),
+  CFG_MAP_NETADDR_MAC48(
+    _l2_generator_config, neighbor, "neighbor", "02:00:00:00:00:01", "Mac address of example radio", false, false),
   CFG_MAP_NETADDR_MAC48(_l2_generator_config, destination, "destination", "02:00:00:00:00:02",
-      "Mac address of example radio destination", false, true),
-  CFG_MAP_BOOL(_l2_generator_config, active, "active", "false",
-      "Activates artificially generated layer2 data"),
+    "Mac address of example radio destination", false, true),
+  CFG_MAP_BOOL(_l2_generator_config, active, "active", "false", "Activates artificially generated layer2 data"),
 };
 
 static struct cfg_schema_section _l2gen_section = {
@@ -183,7 +179,7 @@ _set_data(struct oonf_layer2_data *data, enum oonf_layer2_data_type type, int64_
       oonf_layer2_data_set_int64(data, &_origin, value);
       break;
     case OONF_LAYER2_BOOLEAN_DATA:
-      oonf_layer2_data_set_bool(data, &_origin, (value&1) != 0);
+      oonf_layer2_data_set_bool(data, &_origin, (value & 1) != 0);
       break;
     default:
       break;
@@ -208,13 +204,11 @@ _cb_l2gen_event(struct oonf_timer_instance *ptr __attribute((unused))) {
   if (oonf_layer2_origin_is_added(&_origin)) {
     return;
   }
-  
+
   event_counter++;
-  
-  OONF_DEBUG(LOG_L2GEN, "L2Gen-Event triggered (%s/%s/%"PRIu64")",
-      _l2gen_config.interface,
-      netaddr_to_string(&buf1, &_l2gen_config.neighbor),
-      event_counter);
+
+  OONF_DEBUG(LOG_L2GEN, "L2Gen-Event triggered (%s/%s/%" PRIu64 ")", _l2gen_config.interface,
+    netaddr_to_string(&buf1, &_l2gen_config.neighbor), event_counter);
 
   net = oonf_layer2_net_add(_l2gen_config.interface);
   if (net == NULL) {
@@ -226,17 +220,16 @@ _cb_l2gen_event(struct oonf_timer_instance *ptr __attribute((unused))) {
   net->if_type = OONF_LAYER2_TYPE_UNDEFINED;
   net->last_seen = oonf_clock_getNow();
 
-  for (net_idx=0; net_idx<OONF_LAYER2_NET_COUNT; net_idx++) {
+  for (net_idx = 0; net_idx < OONF_LAYER2_NET_COUNT; net_idx++) {
     _set_data(&net->data[net_idx], oonf_layer2_net_metadata_get(net_idx)->type, event_counter);
   }
-  for (neigh_idx=0; neigh_idx<OONF_LAYER2_NEIGH_COUNT; neigh_idx++) {
+  for (neigh_idx = 0; neigh_idx < OONF_LAYER2_NEIGH_COUNT; neigh_idx++) {
     _set_data(&net->neighdata[neigh_idx], oonf_layer2_neigh_metadata_get(neigh_idx)->type, event_counter);
   }
 
   if (oonf_layer2_net_commit(net)) {
     /* something bad has happened, l2net was removed */
-    OONF_WARN(LOG_L2GEN, "Could not commit interface %s",
-        _l2gen_config.interface);
+    OONF_WARN(LOG_L2GEN, "Could not commit interface %s", _l2gen_config.interface);
     return;
   }
 
@@ -260,25 +253,23 @@ _cb_l2gen_event(struct oonf_timer_instance *ptr __attribute((unused))) {
 
 static void
 _cb_config_changed(void) {
-  if (cfg_schema_tobin(&_l2gen_config, _l2gen_section.post,
-      _l2gen_entries, ARRAYSIZE(_l2gen_entries))) {
-    OONF_WARN(LOG_L2GEN, "Could not convert " OONF_L2GEN_SUBSYSTEM
-        " plugin configuration");
+  if (cfg_schema_tobin(&_l2gen_config, _l2gen_section.post, _l2gen_entries, ARRAYSIZE(_l2gen_entries))) {
+    OONF_WARN(LOG_L2GEN, "Could not convert " OONF_L2GEN_SUBSYSTEM " plugin configuration");
     return;
   }
 
   cfg_get_phy_if(_l2gen_config.interface, _l2gen_config.interface);
 
-  OONF_DEBUG(LOG_L2GEN, "Generator is now %s for interface %s\n",
-      _l2gen_config.active ? "active" : "inactive", _l2gen_config.interface);
-  
+  OONF_DEBUG(LOG_L2GEN, "Generator is now %s for interface %s\n", _l2gen_config.active ? "active" : "inactive",
+    _l2gen_config.interface);
+
   if (!oonf_layer2_origin_is_added(&_origin) && _l2gen_config.active) {
     oonf_layer2_origin_add(&_origin);
   }
   else if (oonf_layer2_origin_is_added(&_origin) && !_l2gen_config.active) {
     oonf_layer2_origin_remove(&_origin);
   }
-  
+
   /* set new interval */
   oonf_timer_set(&_l2gen_timer, _l2gen_config.interval);
 }

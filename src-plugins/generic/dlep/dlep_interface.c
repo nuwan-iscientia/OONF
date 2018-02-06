@@ -43,27 +43,24 @@
  * @file
  */
 
-#include "common/common_types.h"
 #include "common/avl.h"
 #include "common/avl_comp.h"
+#include "common/common_types.h"
 #include "subsystems/oonf_packet_socket.h"
 
 #include "dlep/dlep_extension.h"
 #include "dlep/dlep_iana.h"
+#include "dlep/dlep_interface.h"
 #include "dlep/dlep_session.h"
 #include "dlep/dlep_writer.h"
-#include "dlep/dlep_interface.h"
 
-static void _cb_receive_udp(struct oonf_packet_socket *,
-    union netaddr_socket *from, void *ptr, size_t length);
+static void _cb_receive_udp(struct oonf_packet_socket *, union netaddr_socket *from, void *ptr, size_t length);
 static void _cb_send_multicast(struct dlep_session *session, int af_family);
 
 static const char _DLEP_PREFIX[] = DLEP_RFC8175_PREFIX;
 
-static struct avl_tree _radio_if_tree =
-    AVL_STATIC_INIT(_radio_if_tree, avl_comp_strcasecmp, false);
-static struct avl_tree _router_if_tree =
-    AVL_STATIC_INIT(_router_if_tree, avl_comp_strcasecmp, false);
+static struct avl_tree _radio_if_tree = AVL_STATIC_INIT(_radio_if_tree, avl_comp_strcasecmp, false);
+static struct avl_tree _router_if_tree = AVL_STATIC_INIT(_router_if_tree, avl_comp_strcasecmp, false);
 
 struct avl_tree *
 dlep_if_get_tree(bool radio) {
@@ -81,15 +78,12 @@ dlep_if_get_tree(bool radio) {
  * @return -1 if an error happened, 0 otherwise
  */
 int
-dlep_if_add(struct dlep_if *interf, const char *ifname,
-    const struct oonf_layer2_origin *l2_origin,
-    const struct oonf_layer2_origin *l2_default_origin,
-    enum oonf_log_source log_src, bool radio) {
+dlep_if_add(struct dlep_if *interf, const char *ifname, const struct oonf_layer2_origin *l2_origin,
+  const struct oonf_layer2_origin *l2_default_origin, enum oonf_log_source log_src, bool radio) {
   struct dlep_extension *ext;
 
   /* initialize key */
-  strscpy(interf->l2_ifname, ifname,
-      sizeof(interf->l2_ifname));
+  strscpy(interf->l2_ifname, ifname, sizeof(interf->l2_ifname));
   interf->_node.key = interf->l2_ifname;
 
   if (abuf_init(&interf->udp_out)) {
@@ -97,13 +91,10 @@ dlep_if_add(struct dlep_if *interf, const char *ifname,
   }
 
   /* add dlep prefix to buffer */
-  abuf_memcpy(&interf->udp_out,
-      _DLEP_PREFIX, sizeof(_DLEP_PREFIX) - 1);
+  abuf_memcpy(&interf->udp_out, _DLEP_PREFIX, sizeof(_DLEP_PREFIX) - 1);
 
-  if (dlep_session_add(&interf->session,
-      interf->l2_ifname, l2_origin, l2_default_origin,
-      &interf->udp_out,
-      radio, log_src)) {
+  if (dlep_session_add(
+        &interf->session, interf->l2_ifname, l2_origin, l2_default_origin, &interf->udp_out, radio, log_src)) {
     abuf_free(&interf->udp_out);
     return -1;
   }
@@ -122,8 +113,7 @@ dlep_if_add(struct dlep_if *interf, const char *ifname,
   /* initialize session */
   interf->session.cb_send_buffer = _cb_send_multicast;
   interf->session.cb_end_session = NULL;
-  interf->session.restrict_signal =
-      radio ? DLEP_UDP_PEER_DISCOVERY : DLEP_UDP_PEER_OFFER;
+  interf->session.restrict_signal = radio ? DLEP_UDP_PEER_DISCOVERY : DLEP_UDP_PEER_OFFER;
   interf->session.writer.out = &interf->udp_out;
 
   /* add to tree */
@@ -153,8 +143,7 @@ void
 dlep_if_remove(struct dlep_if *interface) {
   struct dlep_extension *ext;
 
-  OONF_DEBUG(interface->session.log_source,
-      "remove session %s", interface->l2_ifname);
+  OONF_DEBUG(interface->session.log_source, "remove session %s", interface->l2_ifname);
 
   avl_for_each_element(dlep_extension_get_tree(), ext, _node) {
     if (interface->session.radio) {
@@ -190,8 +179,7 @@ dlep_if_remove(struct dlep_if *interface) {
  * @param length length of packet data
  */
 static void
-_cb_receive_udp(struct oonf_packet_socket *pkt,
-    union netaddr_socket *from, void *ptr, size_t length) {
+_cb_receive_udp(struct oonf_packet_socket *pkt, union netaddr_socket *from, void *ptr, size_t length) {
   struct dlep_if *interf;
   uint8_t *buffer;
   ssize_t processed;
@@ -200,8 +188,7 @@ _cb_receive_udp(struct oonf_packet_socket *pkt,
   interf = pkt->config.user;
   buffer = ptr;
 
-  if (interf->session_tree.count > 0
-      && interf->single_session) {
+  if (interf->session_tree.count > 0 && interf->single_session) {
     /* ignore UDP traffic as long as we have a connection */
     return;
   }
@@ -216,9 +203,8 @@ _cb_receive_udp(struct oonf_packet_socket *pkt,
     return;
   }
 
-  if (memcmp(buffer, _DLEP_PREFIX, sizeof(_DLEP_PREFIX)-1) != 0) {
-    OONF_WARN(interf->session.log_source,
-        "Incoming UDP packet with unknown signature");
+  if (memcmp(buffer, _DLEP_PREFIX, sizeof(_DLEP_PREFIX) - 1) != 0) {
+    OONF_WARN(interf->session.log_source, "Incoming UDP packet with unknown signature");
     return;
   }
 
@@ -227,8 +213,7 @@ _cb_receive_udp(struct oonf_packet_socket *pkt,
   length -= (sizeof(_DLEP_PREFIX) - 1);
 
   /* copy socket information */
-  memcpy(&interf->session.remote_socket, from,
-      sizeof(interf->session.remote_socket));
+  memcpy(&interf->session.remote_socket, from, sizeof(interf->session.remote_socket));
 
   processed = dlep_session_process_buffer(&interf->session, buffer, length, true);
   if (processed < 0) {
@@ -242,23 +227,20 @@ _cb_receive_udp(struct oonf_packet_socket *pkt,
   }
 
   if ((size_t)processed < length) {
-    OONF_WARN(interf->session.log_source,
-        "Received malformed or too short UDP packet from %s",
-        netaddr_socket_to_string(&nbuf, from));
+    OONF_WARN(interf->session.log_source, "Received malformed or too short UDP packet from %s",
+      netaddr_socket_to_string(&nbuf, from));
     /* incomplete or bad packet, just ignore it */
     return;
   }
 
   if (abuf_getlen(interf->session.writer.out) > sizeof(_DLEP_PREFIX) - 1) {
     /* send an unicast response */
-    oonf_packet_send_managed(&interf->udp, from,
-        abuf_getptr(interf->session.writer.out),
-        abuf_getlen(interf->session.writer.out));
+    oonf_packet_send_managed(
+      &interf->udp, from, abuf_getptr(interf->session.writer.out), abuf_getlen(interf->session.writer.out));
     abuf_clear(interf->session.writer.out);
 
     /* add dlep prefix to buffer */
-    abuf_memcpy(interf->session.writer.out,
-        _DLEP_PREFIX, sizeof(_DLEP_PREFIX) - 1);
+    abuf_memcpy(interf->session.writer.out, _DLEP_PREFIX, sizeof(_DLEP_PREFIX) - 1);
   }
 
   netaddr_socket_invalidate(&interf->session.remote_socket);
@@ -273,27 +255,24 @@ static void
 _cb_send_multicast(struct dlep_session *session, int af_family) {
   struct dlep_if *interf;
 
-  if (abuf_getlen(session->writer.out) <= sizeof(_DLEP_PREFIX) - 1
-      || !netaddr_socket_is_unspec(&session->remote_socket)) {
+  if (abuf_getlen(session->writer.out) <= sizeof(_DLEP_PREFIX) - 1 ||
+      !netaddr_socket_is_unspec(&session->remote_socket)) {
     return;
   }
 
   /* get pointer to radio interface */
   interf = container_of(session, struct dlep_if, session);
 
-  if (interf->session_tree.count > 0
-      && interf->single_session) {
+  if (interf->session_tree.count > 0 && interf->single_session) {
     /* do not produce UDP traffic as long as we are connected */
     return;
   }
 
-  OONF_DEBUG(session->log_source, "Send multicast %"
-      PRINTF_SIZE_T_SPECIFIER " bytes",
-      abuf_getlen(session->writer.out));
+  OONF_DEBUG(
+    session->log_source, "Send multicast %" PRINTF_SIZE_T_SPECIFIER " bytes", abuf_getlen(session->writer.out));
 
-  oonf_packet_send_managed_multicast(&interf->udp,
-      abuf_getptr(session->writer.out), abuf_getlen(session->writer.out),
-      af_family);
+  oonf_packet_send_managed_multicast(
+    &interf->udp, abuf_getptr(session->writer.out), abuf_getlen(session->writer.out), af_family);
 
   abuf_clear(session->writer.out);
 

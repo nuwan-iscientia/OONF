@@ -49,8 +49,7 @@
 #include "common/common_types.h"
 #include "subsystems/oonf_rfc5444.h"
 
-int nhdp_writer_init(struct oonf_rfc5444_protocol *)
-  __attribute__((warn_unused_result));
+int nhdp_writer_init(struct oonf_rfc5444_protocol *) __attribute__((warn_unused_result));
 void nhdp_writer_cleanup(void);
 
 EXPORT void nhdp_writer_send_hello(struct nhdp_interface *interf);

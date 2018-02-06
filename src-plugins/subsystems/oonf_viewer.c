@@ -43,13 +43,13 @@
  * @file
  */
 
-#include "common/common_types.h"
+#include "subsystems/oonf_viewer.h"
 #include "common/autobuf.h"
+#include "common/common_types.h"
 #include "common/json.h"
 #include "common/template.h"
 #include "core/oonf_subsystem.h"
 #include "subsystems/oonf_telnet.h" /* compile-time dependency */
-#include "subsystems/oonf_viewer.h"
 
 /* Definitions */
 #define LOG_VIEWER _oonf_viewer_subsystem.logging
@@ -59,19 +59,18 @@ static int _init(void);
 static void _cleanup(void);
 
 /* Template call help text for telnet */
-static const char _telnet_help[] =
-    "\n"
-    "Use '" OONF_VIEWER_JSON_FORMAT "' as the first parameter"
-    " ' to generate JSON output of all keys/value pairs.\n"
-    "Use '" OONF_VIEWER_JSON_RAW_FORMAT "' as the first parameter"
-    " to generate JSON output of all keys/value pairs"
-    "  without isoprefixes for numbers.\n"
-    "Use '" OONF_VIEWER_HEAD_FORMAT "' as the first parameter to"
-    " generate a headline for the table.\n"
-    "Use '" OONF_VIEWER_RAW_FORMAT "' as the first parameter to"
-    " generate a headline for the table without isoprefixes for numbers.\n"
-    "You can also add a custom template (text with keys inside)"
-    " as the last parameter instead.\n";
+static const char _telnet_help[] = "\n"
+                                   "Use '" OONF_VIEWER_JSON_FORMAT "' as the first parameter"
+                                   " ' to generate JSON output of all keys/value pairs.\n"
+                                   "Use '" OONF_VIEWER_JSON_RAW_FORMAT "' as the first parameter"
+                                   " to generate JSON output of all keys/value pairs"
+                                   "  without isoprefixes for numbers.\n"
+                                   "Use '" OONF_VIEWER_HEAD_FORMAT "' as the first parameter to"
+                                   " generate a headline for the table.\n"
+                                   "Use '" OONF_VIEWER_RAW_FORMAT "' as the first parameter to"
+                                   " generate a headline for the table without isoprefixes for numbers.\n"
+                                   "You can also add a custom template (text with keys inside)"
+                                   " as the last parameter instead.\n";
 
 /* subsystem definition */
 static struct oonf_subsystem _oonf_viewer_subsystem = {
@@ -94,8 +93,7 @@ _init(void) {
  * Cleanup all allocated data of telnet subsystem
  */
 static void
-_cleanup(void) {
-}
+_cleanup(void) {}
 
 /**
  * Prepare a viewer template for output. The create_json and
@@ -108,9 +106,8 @@ _cleanup(void) {
  * @param format pointer to template for output, not used for JSON output
  */
 void
-oonf_viewer_output_prepare(struct oonf_viewer_template *template,
-    struct abuf_template_storage *storage,
-    struct autobuf *out, const char *format) {
+oonf_viewer_output_prepare(struct oonf_viewer_template *template, struct abuf_template_storage *storage,
+  struct autobuf *out, const char *format) {
   template->out = out;
 
   if (template->create_json) {
@@ -133,8 +130,7 @@ oonf_viewer_output_prepare(struct oonf_viewer_template *template,
 
     /* no JSON format, generate template entries */
     template->_storage = storage;
-    abuf_template_init_ext(template->_storage,
-        template->data, template->data_size, format);
+    abuf_template_init_ext(template->_storage, template->data, template->data_size, format);
   }
 }
 
@@ -180,14 +176,14 @@ oonf_viewer_output_finish(struct oonf_viewer_template *template) {
  * @param count number of elements in template array
  */
 void
-oonf_viewer_print_help(struct autobuf *out, const char *parameter,
-    struct oonf_viewer_template *template, size_t count) {
-  size_t i,j,k;
+oonf_viewer_print_help(
+  struct autobuf *out, const char *parameter, struct oonf_viewer_template *template, size_t count) {
+  size_t i, j, k;
 
   if (parameter == NULL || *parameter == 0) {
     abuf_puts(out, "Available subcommands:\n");
 
-    for (i=0; i<count; i++) {
+    for (i = 0; i < count; i++) {
       if (template[i].help_line) {
         abuf_appendf(out, "\t%s: %s\n", template[i].json_name, template[i].help_line);
       }
@@ -200,16 +196,15 @@ oonf_viewer_print_help(struct autobuf *out, const char *parameter,
     abuf_puts(out, "Use 'help <command> <subcommand>' to get help about a subcommand\n");
     return;
   }
-  for (i=0; i<count; i++) {
+  for (i = 0; i < count; i++) {
     if (strcmp(parameter, template[i].json_name) == 0) {
       if (template[i].help) {
         abuf_puts(out, template[i].help);
       }
-      abuf_appendf(out, "The subcommand '%s' has the following keys:\n",
-          template[i].json_name);
+      abuf_appendf(out, "The subcommand '%s' has the following keys:\n", template[i].json_name);
 
-      for (j=0; j<template[i].data_size; j++) {
-        for (k=0; k<template[i].data[j].count; k++) {
+      for (j = 0; j < template[i].data_size; j++) {
+        for (k = 0; k < template[i].data[j].count; k++) {
           abuf_appendf(out, "\t%%%s%%\n", template[i].data[j].data[k].key);
         }
       }
@@ -234,9 +229,8 @@ oonf_viewer_print_help(struct autobuf *out, const char *parameter,
  * @return -1 if an error happened, 0 otherwise
  */
 int
-oonf_viewer_call_subcommands(struct autobuf *out,
-    struct abuf_template_storage *storage, const char *param,
-    struct oonf_viewer_template *templates, size_t count) {
+oonf_viewer_call_subcommands(struct autobuf *out, struct abuf_template_storage *storage, const char *param,
+  struct oonf_viewer_template *templates, size_t count) {
   const char *next = NULL, *ptr = NULL;
   int result = 0;
   size_t i;
@@ -271,7 +265,7 @@ oonf_viewer_call_subcommands(struct autobuf *out,
     next = param;
   }
 
-  for (i=0; i<count; i++) {
+  for (i = 0; i < count; i++) {
     if ((ptr = str_hasnextword(next, templates[i].json_name))) {
       templates[i].create_json = json;
       templates[i].create_raw = raw;
@@ -306,9 +300,9 @@ oonf_viewer_call_subcommands(struct autobuf *out,
  * @return telnet return code
  */
 enum oonf_telnet_result
-oonf_viewer_telnet_handler(struct autobuf *out,
-    struct abuf_template_storage *storage, const char *cmd, const char *param,
-    struct oonf_viewer_template *templates, size_t count) {
+oonf_viewer_telnet_handler(struct autobuf *out, struct abuf_template_storage *storage, const char *cmd,
+  const char *param, struct oonf_viewer_template *templates, size_t count)
+{
   int result;
 
   /* sanity check */
@@ -339,9 +333,9 @@ oonf_viewer_telnet_handler(struct autobuf *out,
  * @return telnet return coce
  */
 enum oonf_telnet_result
-oonf_viewer_telnet_help(struct autobuf *out,
-    const char *cmd, const char *parameter,
-    struct oonf_viewer_template *template, size_t count) {
+oonf_viewer_telnet_help(
+  struct autobuf *out, const char *cmd, const char *parameter, struct oonf_viewer_template *template, size_t count)
+{
   const char *next;
 
   /* skip the layer2info command, NULL output is acceptable */

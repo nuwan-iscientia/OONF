@@ -43,16 +43,14 @@
  * @file
  */
 
-#include "common/common_types.h"
+#include "common/json.h"
 #include "common/autobuf.h"
+#include "common/common_types.h"
 #include "common/string.h"
 #include "common/template.h"
-#include "common/json.h"
 
-static void _add_template(struct autobuf *out, bool brackets,
-    struct abuf_template_data *data, size_t data_count);
-static void _json_printvalue(struct autobuf *out,
-    const char *txt, bool delimiter);
+static void _add_template(struct autobuf *out, bool brackets, struct abuf_template_data *data, size_t data_count);
+static void _json_printvalue(struct autobuf *out, const char *txt, bool delimiter);
 
 /**
  * Initialize the JSON session object for creating a nested JSON
@@ -61,8 +59,7 @@ static void _json_printvalue(struct autobuf *out,
  * @param out output buffer
  */
 void
-json_init_session(struct json_session *session,
-    struct autobuf *out) {
+json_init_session(struct json_session *session, struct autobuf *out) {
   memset(session, 0, sizeof(*session));
   session->out = out;
   session->empty = true;
@@ -74,8 +71,7 @@ json_init_session(struct json_session *session,
  * @param name name of JSON array
  */
 void
-json_start_array(struct json_session *session,
-    const char *name) {
+json_start_array(struct json_session *session, const char *name) {
   if (!session->empty) {
     abuf_puts(session->out, ",");
     session->empty = true;
@@ -126,8 +122,7 @@ json_start_object(struct json_session *session, const char *name) {
  * @param value value to print
  */
 void
-json_print(struct json_session *session,
-    const char *key, bool string, const char *value) {
+json_print(struct json_session *session, const char *key, bool string, const char *value) {
   if (!session->empty) {
     abuf_puts(session->out, ",");
   }
@@ -158,8 +153,7 @@ json_end_object(struct json_session *session) {
  * @param count number of elements in data array
  */
 void
-json_print_templates(struct json_session *session,
-    struct abuf_template_data *data, size_t count) {
+json_print_templates(struct json_session *session, struct abuf_template_data *data, size_t count) {
   if (session->empty) {
     session->empty = false;
     abuf_puts(session->out, "\n");
@@ -180,18 +174,17 @@ json_print_templates(struct json_session *session,
  * @param data_count number of template data entries
  */
 static void
-_add_template(struct autobuf *out, bool brackets,
-    struct abuf_template_data *data, size_t data_count) {
+_add_template(struct autobuf *out, bool brackets, struct abuf_template_data *data, size_t data_count) {
   bool first;
-  size_t i,j;
+  size_t i, j;
 
   if (brackets) {
     abuf_puts(out, "{");
   }
 
   first = true;
-  for (i=0; i<data_count; i++) {
-    for (j=0; j<data[i].count; j++) {
+  for (i = 0; i < data_count; i++) {
+    for (j = 0; j < data[i].count; j++) {
       if (data[i].data[j].value == NULL) {
         continue;
       }

@@ -68,16 +68,17 @@ static void _cleanup(void);
 static void _cb_update_link_config(void *);
 static void _cb_delayed_config(struct oonf_timer_instance *);
 
-static int _cb_validate_linkdata(const struct cfg_schema_entry *entry,
-    const char *section_name, const char *value, struct autobuf *out);
-static void _parse_strarray(struct strarray *array, const char *ifname,
-    enum oonf_layer2_neighbor_index idx);
+static int _cb_validate_linkdata(
+  const struct cfg_schema_entry *entry, const char *section_name, const char *value, struct autobuf *out);
+static void _parse_strarray(struct strarray *array, const char *ifname, enum oonf_layer2_neighbor_index idx);
 static void _cb_config_changed(void);
 
 /* define configuration entries */
 
 /*! configuration validator for linkdata */
-#define CFG_VALIDATE_LINKDATA(link_index, p_help, args...)         _CFG_VALIDATE("", "", p_help, .cb_validate = _cb_validate_linkdata, .validate_param = {{ .i32 = { link_index }}}, .list = true, ##args )
+#define CFG_VALIDATE_LINKDATA(link_index, p_help, args...)                                                             \
+  _CFG_VALIDATE("", "", p_help, .cb_validate = _cb_validate_linkdata, .validate_param = { { .i32 = { link_index } } }, \
+    .list = true, ##args)
 
 static struct cfg_schema_entry _link_config_if_entries[] = {
   CFG_VALIDATE_LINKDATA(OONF_LAYER2_NEIGH_RX_BITRATE,
@@ -164,11 +165,10 @@ _early_cfg_init(void) {
   struct cfg_schema_entry *entry;
   size_t i;
 
-  for (i=0; i<ARRAYSIZE(_link_config_if_entries); i++) {
+  for (i = 0; i < ARRAYSIZE(_link_config_if_entries); i++) {
     entry = &_link_config_if_entries[i];
-    entry->key.entry = oonf_layer2_neigh_metadata_get(
-        (enum oonf_layer2_neighbor_index)
-        entry->validate_param[0].i32[0])->key;
+    entry->key.entry =
+      oonf_layer2_neigh_metadata_get((enum oonf_layer2_neighbor_index)entry->validate_param[0].i32[0])->key;
   }
 }
 
@@ -213,8 +213,7 @@ static void
 _cb_update_link_config(void *ptr __attribute__((unused))) {
   if (!oonf_timer_is_active(&_lazy_update_instance)) {
     OONF_DEBUG(LOG_LINK_CONFIG, "Trigger lazy update");
-    oonf_timer_set(&_lazy_update_instance,
-        OONF_LINK_CONFIG_REWRITE_DELAY);
+    oonf_timer_set(&_lazy_update_instance, OONF_LINK_CONFIG_REWRITE_DELAY);
   }
 }
 
@@ -238,8 +237,8 @@ _cb_delayed_config(struct oonf_timer_instance *timer __attribute__((unused))) {
  * @return -1 if validation failed, 0 otherwise
  */
 static int
-_cb_validate_linkdata(const struct cfg_schema_entry *entry,
-    const char *section_name, const char *value, struct autobuf *out) {
+_cb_validate_linkdata(
+  const struct cfg_schema_entry *entry, const char *section_name, const char *value, struct autobuf *out) {
   enum oonf_layer2_neighbor_index idx;
   struct isonumber_str sbuf;
   struct netaddr_str nbuf;
@@ -249,8 +248,8 @@ _cb_validate_linkdata(const struct cfg_schema_entry *entry,
 
   /* test if first word is a human readable number */
   ptr = str_cpynextword(sbuf.buf, value, sizeof(sbuf));
-  if (cfg_validate_int(out, section_name, entry->key.entry, sbuf.buf,
-      INT64_MIN, INT64_MAX, 8, oonf_layer2_neigh_metadata_get(idx)->fraction)) {
+  if (cfg_validate_int(out, section_name, entry->key.entry, sbuf.buf, INT64_MIN, INT64_MAX, 8,
+        oonf_layer2_neigh_metadata_get(idx)->fraction)) {
     return -1;
   }
 
@@ -260,8 +259,7 @@ _cb_validate_linkdata(const struct cfg_schema_entry *entry,
     /* test if the rest of the words are mac addresses */
     ptr = str_cpynextword(nbuf.buf, ptr, sizeof(nbuf));
 
-    if (cfg_validate_netaddr(out, section_name, entry->key.entry,
-        nbuf.buf, false, af, ARRAYSIZE(af))) {
+    if (cfg_validate_netaddr(out, section_name, entry->key.entry, nbuf.buf, false, af, ARRAYSIZE(af))) {
       return -1;
     }
   }
@@ -275,8 +273,7 @@ _cb_validate_linkdata(const struct cfg_schema_entry *entry,
  * @param idx layer2 neighbor index
  */
 static void
-_parse_strarray(struct strarray *array, const char *ifname,
-    enum oonf_layer2_neighbor_index idx) {
+_parse_strarray(struct strarray *array, const char *ifname, enum oonf_layer2_neighbor_index idx) {
   struct oonf_layer2_neigh *l2neigh;
   struct oonf_layer2_net *l2net;
   struct netaddr_str nbuf;
@@ -299,9 +296,8 @@ _parse_strarray(struct strarray *array, const char *ifname,
 
     if (ptr == NULL) {
       /* add network wide data entry */
-      if (!oonf_layer2_data_set_int64(&l2net->neighdata[idx], &_l2_origin_current ,value)) {
-        OONF_INFO(LOG_LINK_CONFIG, "if-wide %s for %s: %s",
-            oonf_layer2_neigh_metadata_get(idx)->key, ifname, hbuf.buf);
+      if (!oonf_layer2_data_set_int64(&l2net->neighdata[idx], &_l2_origin_current, value)) {
+        OONF_INFO(LOG_LINK_CONFIG, "if-wide %s for %s: %s", oonf_layer2_neigh_metadata_get(idx)->key, ifname, hbuf.buf);
       }
       continue;
     }
@@ -319,8 +315,8 @@ _parse_strarray(struct strarray *array, const char *ifname,
       }
 
       if (!oonf_layer2_data_set_int64(&l2neigh->data[idx], &_l2_origin_current, value)) {
-        OONF_INFO(LOG_LINK_CONFIG, "%s to neighbor %s on %s: %s",
-            oonf_layer2_neigh_metadata_get(idx)->key, nbuf.buf, ifname, hbuf.buf);
+        OONF_INFO(LOG_LINK_CONFIG, "%s to neighbor %s on %s: %s", oonf_layer2_neigh_metadata_get(idx)->key, nbuf.buf,
+          ifname, hbuf.buf);
       }
     }
   }
@@ -370,7 +366,7 @@ _cb_config_changed(void) {
       }
       if (commit) {
         /* trigger change event */
-       oonf_layer2_neigh_commit(l2neigh);
+        oonf_layer2_neigh_commit(l2neigh);
       }
     }
 

@@ -46,8 +46,8 @@
 #ifndef OS_FD_H_
 #define OS_FD_H_
 
-#include <unistd.h>
 #include <sys/select.h>
+#include <unistd.h>
 
 #include "common/avl.h"
 #include "common/common_types.h"
@@ -77,11 +77,9 @@ static INLINE int os_fd_listen(struct os_fd *, int n);
 
 static INLINE int os_fd_event_add(struct os_fd_select *);
 static INLINE int os_fd_event_socket_add(struct os_fd_select *, struct os_fd *);
-static INLINE int os_fd_event_socket_read(struct os_fd_select *,
-    struct os_fd *, bool want_read);
+static INLINE int os_fd_event_socket_read(struct os_fd_select *, struct os_fd *, bool want_read);
 static INLINE int os_fd_event_is_read(struct os_fd *);
-static INLINE int os_fd_event_socket_write(struct os_fd_select *,
-    struct os_fd *, bool want_write);
+static INLINE int os_fd_event_socket_write(struct os_fd_select *, struct os_fd *, bool want_write);
 static INLINE int os_fd_event_is_write(struct os_fd *);
 static INLINE int os_fd_event_socket_remove(struct os_fd_select *, struct os_fd *);
 static INLINE int os_fd_event_set_deadline(struct os_fd_select *, uint64_t deadline);
@@ -91,37 +89,35 @@ static INLINE struct os_fd *os_fd_event_get(struct os_fd_select *, int idx);
 static INLINE int os_fd_event_remove(struct os_fd_select *);
 
 static INLINE int os_fd_connect(struct os_fd *, const union netaddr_socket *remote);
-static INLINE int os_fd_accept(struct os_fd *client,
-    struct os_fd *server, union netaddr_socket *incoming);
+static INLINE int os_fd_accept(struct os_fd *client, struct os_fd *server, union netaddr_socket *incoming);
 static INLINE int os_fd_get_socket_error(struct os_fd *, int *value);
-static INLINE ssize_t os_fd_sendto(struct os_fd *, const void *buf, size_t length,
-    const union netaddr_socket *dst, bool dont_route);
-static INLINE ssize_t os_fd_recvfrom(struct os_fd *, void *buf, size_t length,
-    union netaddr_socket *source, const struct os_interface *);
+static INLINE ssize_t os_fd_sendto(
+  struct os_fd *, const void *buf, size_t length, const union netaddr_socket *dst, bool dont_route);
+static INLINE ssize_t os_fd_recvfrom(
+  struct os_fd *, void *buf, size_t length, union netaddr_socket *source, const struct os_interface *);
 static INLINE const char *os_fd_get_loopback_name(void);
-static INLINE ssize_t os_fd_sendfile(struct os_fd *, struct os_fd *,
-    size_t offset, size_t count);
+static INLINE ssize_t os_fd_sendfile(struct os_fd *, struct os_fd *, size_t offset, size_t count);
 
-static INLINE int os_fd_getsocket(struct os_fd *, const union netaddr_socket *bindto, bool tcp,
-    size_t recvbuf, const struct os_interface *, enum oonf_log_source log_src);
-static INLINE int os_fd_getrawsocket(struct os_fd *, const union netaddr_socket *bindto, int protocol,
-    size_t recvbuf, const struct os_interface *, enum oonf_log_source log_src);
-static INLINE int os_fd_configsocket(struct os_fd *, const union netaddr_socket *bindto,
-    size_t recvbuf, bool rawip, const struct os_interface *, enum oonf_log_source log_src);
+static INLINE int os_fd_getsocket(struct os_fd *, const union netaddr_socket *bindto, bool tcp, size_t recvbuf,
+  const struct os_interface *, enum oonf_log_source log_src);
+static INLINE int os_fd_getrawsocket(struct os_fd *, const union netaddr_socket *bindto, int protocol, size_t recvbuf,
+  const struct os_interface *, enum oonf_log_source log_src);
+static INLINE int os_fd_configsocket(struct os_fd *, const union netaddr_socket *bindto, size_t recvbuf, bool rawip,
+  const struct os_interface *, enum oonf_log_source log_src);
 static INLINE int os_fd_set_nonblocking(struct os_fd *);
-static INLINE int os_fd_join_mcast_recv(struct os_fd *, const struct netaddr *multicast,
-    const struct os_interface *, enum oonf_log_source log_src);
-static INLINE int os_fd_join_mcast_send(struct os_fd *, const struct netaddr *multicast,
-    const struct os_interface *, bool loop, uint8_t ttl, enum oonf_log_source log_src);
+static INLINE int os_fd_join_mcast_recv(
+  struct os_fd *, const struct netaddr *multicast, const struct os_interface *, enum oonf_log_source log_src);
+static INLINE int os_fd_join_mcast_send(struct os_fd *, const struct netaddr *multicast, const struct os_interface *,
+  bool loop, uint8_t ttl, enum oonf_log_source log_src);
 static INLINE int os_fd_set_dscp(struct os_fd *, int dscp, bool ipv6);
 static INLINE uint8_t *os_fd_skip_rawsocket_prefix(uint8_t *ptr, ssize_t *len, int af_type);
 
 /* include os-specific headers */
 #if defined(__linux__)
 #include "os_linux/os_fd_linux.h"
-#elif defined (BSD)
+#elif defined(BSD)
 #include "subsystems/os_bsd/os_fd_bsd.h"
-#elif defined (_WIN32)
+#elif defined(_WIN32)
 #include "subsystems/os_win32/os_fd_win32.h"
 #else
 #error "Unknown operation system"

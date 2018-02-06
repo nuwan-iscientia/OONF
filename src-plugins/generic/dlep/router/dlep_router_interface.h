@@ -49,8 +49,8 @@
 #include "common/common_types.h"
 #include "common/netaddr.h"
 
-#include "dlep/dlep_session.h"
 #include "dlep/dlep_interface.h"
+#include "dlep/dlep_session.h"
 
 /**
  * DLEP router interface

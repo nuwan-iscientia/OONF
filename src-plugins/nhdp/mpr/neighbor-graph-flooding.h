@@ -46,18 +46,16 @@
 #ifndef __NEIGHBOR_GRAPH_FLOODING__
 #define __NEIGHBOR_GRAPH_FLOODING__
 
-
 #include "nhdp/nhdp_domain.h"
 #include "nhdp/nhdp_interfaces.h"
 
 #include "neighbor-graph.h"
 
 struct mpr_flooding_data {
-    struct nhdp_interface *current_interface;
-    struct neighbor_graph neigh_graph;
+  struct nhdp_interface *current_interface;
+  struct neighbor_graph neigh_graph;
 };
 
-void mpr_calculate_neighbor_graph_flooding(
-    const struct nhdp_domain *domain, struct mpr_flooding_data *data);
+void mpr_calculate_neighbor_graph_flooding(const struct nhdp_domain *domain, struct mpr_flooding_data *data);
 
 #endif

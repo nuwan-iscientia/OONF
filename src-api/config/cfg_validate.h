@@ -50,30 +50,21 @@
 #include "common/common_types.h"
 #include "config/cfg_schema.h"
 
-EXPORT int cfg_validate_printable(struct autobuf *out,
-    const char *section_name, const char *entry_name, const char *value,
-    size_t len);
-EXPORT int cfg_validate_strlen(struct autobuf *out,
-    const char *section_name, const char *entry_name, const char *value,
-    size_t len);
-EXPORT int cfg_validate_choice(struct autobuf *out, const char *section_name,
-    const char *entry_name, const char *value,
-    const char *(*callback)(size_t idx, const void *ptr),
-    size_t choices_count, const void *ptr);
-EXPORT int cfg_validate_int(struct autobuf *out,
-    const char *section_name, const char *entry_name, const char *value,
-    int64_t min, int64_t max, uint16_t bytelen, uint16_t fraction);
-EXPORT int cfg_validate_netaddr(struct autobuf *out,
-    const char *section_name, const char *entry_name, const char *value,
-    bool prefix, const int8_t *af_types, size_t af_types_count);
-EXPORT int cfg_validate_acl(struct autobuf *out,
-    const char *section_name, const char *entry_name, const char *value,
-    bool prefix, const int8_t *af_types, size_t af_types_count);
-EXPORT int cfg_validate_bitmap256(struct autobuf *out,
-    const char *section_name, const char *entry_name, const char *value);
-EXPORT int cfg_validate_tokens(struct autobuf *out,
-    const char *section_name, const char *entry_name, const char *value,
-    struct cfg_schema_entry *entries, size_t entry_count,
-    struct cfg_schema_token_customizer *custom);
+EXPORT int cfg_validate_printable(
+  struct autobuf *out, const char *section_name, const char *entry_name, const char *value, size_t len);
+EXPORT int cfg_validate_strlen(
+  struct autobuf *out, const char *section_name, const char *entry_name, const char *value, size_t len);
+EXPORT int cfg_validate_choice(struct autobuf *out, const char *section_name, const char *entry_name, const char *value,
+  const char *(*callback)(size_t idx, const void *ptr), size_t choices_count, const void *ptr);
+EXPORT int cfg_validate_int(struct autobuf *out, const char *section_name, const char *entry_name, const char *value,
+  int64_t min, int64_t max, uint16_t bytelen, uint16_t fraction);
+EXPORT int cfg_validate_netaddr(struct autobuf *out, const char *section_name, const char *entry_name,
+  const char *value, bool prefix, const int8_t *af_types, size_t af_types_count);
+EXPORT int cfg_validate_acl(struct autobuf *out, const char *section_name, const char *entry_name, const char *value,
+  bool prefix, const int8_t *af_types, size_t af_types_count);
+EXPORT int cfg_validate_bitmap256(
+  struct autobuf *out, const char *section_name, const char *entry_name, const char *value);
+EXPORT int cfg_validate_tokens(struct autobuf *out, const char *section_name, const char *entry_name, const char *value,
+  struct cfg_schema_entry *entries, size_t entry_count, struct cfg_schema_token_customizer *custom);
 
 #endif /* CFG_VALIDATE_H_ */

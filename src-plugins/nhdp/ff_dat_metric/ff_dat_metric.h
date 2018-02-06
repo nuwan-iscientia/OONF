@@ -52,20 +52,21 @@
 /**
  * ff data metric constants
  */
-enum {
+enum
+{
   /* frame transmission success between 1/8 and 8/8 */
-  DATFF_FRAME_SUCCESS_RANGE = 1<<3,
+  DATFF_FRAME_SUCCESS_RANGE = 1 << 3,
 
   /*
    * linkspeed between 1 kbit/s and 2 gbit/s
    * (linkspeed_range * frame_success_range = 1<<24)
    */
-  DATFF_LINKSPEED_MINIMUM = 1<<10,
-  DATFF_LINKSPEED_RANGE = 1<<21,
+  DATFF_LINKSPEED_MINIMUM = 1 << 10,
+  DATFF_LINKSPEED_RANGE = 1 << 21,
 
   /* basic statistics of the metric */
-  DATFF_LINKCOST_MINIMUM  = RFC7181_METRIC_MIN,
-  DATFF_LINKCOST_MAXIMUM  = RFC7181_METRIC_MAX,
+  DATFF_LINKCOST_MINIMUM = RFC7181_METRIC_MIN,
+  DATFF_LINKCOST_MAXIMUM = RFC7181_METRIC_MAX,
 };
 
 #endif /* FF_DAT_METRIC_H_ */

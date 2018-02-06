@@ -50,8 +50,8 @@
 #include "common/avl.h"
 #include "common/avl_comp.h"
 #include "common/common_types.h"
-#include "config/cfg_io.h"
 #include "config/cfg.h"
+#include "config/cfg_io.h"
 
 static int avl_comp_cfgio(const void *txt1, const void *txt2);
 
@@ -95,7 +95,8 @@ cfg_append_printable_line(struct autobuf *autobuf, const char *fmt, ...) {
   int rv;
   va_list ap;
 
-  if (autobuf == NULL) return 0;
+  if (autobuf == NULL)
+    return 0;
 
   _value = (unsigned char *)abuf_getptr(autobuf) + abuf_getlen(autobuf);
   len = abuf_getlen(autobuf);
@@ -128,8 +129,8 @@ cfg_append_printable_line(struct autobuf *autobuf, const char *fmt, ...) {
 bool
 cfg_is_allowed_key(const char *key) {
   static const char *valid = "_0123456789"
-      "abcdefghijklmnopqrstuvwxyz"
-      "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+                             "abcdefghijklmnopqrstuvwxyz"
+                             "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
   /* test for [a-zA-Z_][a-zA-Z0-9_]* */
   if (*key >= '0' && *key <= '9') {
     return false;
@@ -168,13 +169,12 @@ cfg_avlcmp_keys(const void *p1, const void *p2) {
  */
 const char *
 cfg_get_choice_array_value(size_t idx, const void *ptr) {
-  const char * const *string_array;
+  const char *const *string_array;
 
   string_array = ptr;
 
   return string_array[idx];
 }
-
 
 /**
  * Looks up the index of a string within a string array
@@ -185,14 +185,13 @@ cfg_get_choice_array_value(size_t idx, const void *ptr) {
  * @return index of the string inside the array, -1 if not found
  */
 int
-cfg_get_choice_index(const char *key,
-    const char *(*callback)(size_t idx, const void *ptr),
-    size_t choices_count, const void *ptr) {
+cfg_get_choice_index(
+  const char *key, const char *(*callback)(size_t idx, const void *ptr), size_t choices_count, const void *ptr) {
   size_t i;
 
-  for (i=0; i<choices_count; i++) {
+  for (i = 0; i < choices_count; i++) {
     if (strcasecmp(key, callback(i, ptr)) == 0) {
-      return (int) i;
+      return (int)i;
     }
   }
   return -1;

@@ -49,7 +49,8 @@
 /*! subsystem identifier */
 #define OONF_LAYER2_CONFIG_SUBSYSTEM "layer2_config"
 
-enum {
+enum
+{
   LAYER2_RECONFIG_DELAY = 500
 };
 

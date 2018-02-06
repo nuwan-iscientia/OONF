@@ -47,8 +47,8 @@
 #include "common/netaddr.h"
 
 #include "dlep/dlep_extension.h"
-#include "dlep/dlep_session.h"
 #include "dlep/dlep_reader.h"
+#include "dlep/dlep_session.h"
 
 /**
  * Parse a heartbeat TLV
@@ -59,8 +59,7 @@
  * @return -1 if an error happened, 0 otherwise
  */
 int
-dlep_reader_heartbeat_tlv(uint64_t *interval,
-    struct dlep_session *session, struct dlep_parser_value *value) {
+dlep_reader_heartbeat_tlv(uint64_t *interval, struct dlep_session *session, struct dlep_parser_value *value) {
   uint32_t tmp;
   const uint8_t *ptr;
 
@@ -88,8 +87,8 @@ dlep_reader_heartbeat_tlv(uint64_t *interval,
  * @return -1 if an error happened, 0 otherwise
  */
 int
-dlep_reader_peer_type(char *text, size_t text_length, bool *secured_medium,
-    struct dlep_session *session, struct dlep_parser_value *value) {
+dlep_reader_peer_type(
+  char *text, size_t text_length, bool *secured_medium, struct dlep_session *session, struct dlep_parser_value *value) {
   const uint8_t *ptr;
 
   if (!value) {
@@ -108,13 +107,13 @@ dlep_reader_peer_type(char *text, size_t text_length, bool *secured_medium,
 
   if (value->length > 1 && text_length > 0) {
     /* generate a 0 terminated copy of the text */
-    if (text_length-1u > value->length-1u) {
-      memcpy(text, &ptr[1], value->length-1u);
-      text[value->length-1u] = 0;
+    if (text_length - 1u > value->length - 1u) {
+      memcpy(text, &ptr[1], value->length - 1u);
+      text[value->length - 1u] = 0;
     }
     else {
-      memcpy(text, &ptr[1], text_length-2u);
-      text[text_length-2u] = 0;
+      memcpy(text, &ptr[1], text_length - 2u);
+      text[text_length - 2u] = 0;
     }
   }
   return 0;
@@ -129,8 +128,7 @@ dlep_reader_peer_type(char *text, size_t text_length, bool *secured_medium,
  * @return -1 if an error happened, 0 otherwise
  */
 int
-dlep_reader_mac_tlv(struct netaddr *mac,
-    struct dlep_session *session, struct dlep_parser_value *value) {
+dlep_reader_mac_tlv(struct netaddr *mac, struct dlep_session *session, struct dlep_parser_value *value) {
   const uint8_t *ptr;
 
   if (!value) {
@@ -154,8 +152,7 @@ dlep_reader_mac_tlv(struct netaddr *mac,
  * @return -1 if an error happened, 0 otherwise
  */
 int
-dlep_reader_ipv4_tlv(struct netaddr *ipv4, bool *add,
-    struct dlep_session *session, struct dlep_parser_value *value) {
+dlep_reader_ipv4_tlv(struct netaddr *ipv4, bool *add, struct dlep_session *session, struct dlep_parser_value *value) {
   const uint8_t *ptr;
 
   if (!value) {
@@ -180,8 +177,7 @@ dlep_reader_ipv4_tlv(struct netaddr *ipv4, bool *add,
  * @return -1 if an error happened, 0 otherwise
  */
 int
-dlep_reader_ipv6_tlv(struct netaddr *ipv6, bool *add,
-    struct dlep_session *session, struct dlep_parser_value *value) {
+dlep_reader_ipv6_tlv(struct netaddr *ipv6, bool *add, struct dlep_session *session, struct dlep_parser_value *value) {
   const uint8_t *ptr;
 
   if (!value) {
@@ -206,8 +202,8 @@ dlep_reader_ipv6_tlv(struct netaddr *ipv6, bool *add,
  * @return -1 if an error happened, 0 otherwise
  */
 int
-dlep_reader_ipv4_subnet_tlv(struct netaddr *ipv4, bool *add,
-    struct dlep_session *session, struct dlep_parser_value *value) {
+dlep_reader_ipv4_subnet_tlv(
+  struct netaddr *ipv4, bool *add, struct dlep_session *session, struct dlep_parser_value *value) {
   const uint8_t *ptr;
 
   if (!value) {
@@ -232,8 +228,8 @@ dlep_reader_ipv4_subnet_tlv(struct netaddr *ipv4, bool *add,
  * @return -1 if an error happened, 0 otherwise
  */
 int
-dlep_reader_ipv6_subnet_tlv(struct netaddr *ipv6, bool *add,
-    struct dlep_session *session, struct dlep_parser_value *value) {
+dlep_reader_ipv6_subnet_tlv(
+  struct netaddr *ipv6, bool *add, struct dlep_session *session, struct dlep_parser_value *value) {
   const uint8_t *ptr;
 
   if (!value) {
@@ -260,8 +256,7 @@ dlep_reader_ipv6_subnet_tlv(struct netaddr *ipv6, bool *add,
  */
 int
 dlep_reader_ipv4_conpoint_tlv(
-    struct netaddr *addr, uint16_t *port, bool *tls,
-    struct dlep_session *session, struct dlep_parser_value *value) {
+  struct netaddr *addr, uint16_t *port, bool *tls, struct dlep_session *session, struct dlep_parser_value *value) {
   uint16_t tmp;
   const uint8_t *ptr;
 
@@ -306,8 +301,7 @@ dlep_reader_ipv4_conpoint_tlv(
  */
 int
 dlep_reader_ipv6_conpoint_tlv(
-    struct netaddr *addr, uint16_t *port, bool *tls,
-    struct dlep_session *session, struct dlep_parser_value *value) {
+  struct netaddr *addr, uint16_t *port, bool *tls, struct dlep_session *session, struct dlep_parser_value *value) {
   uint16_t tmp;
   const uint8_t *ptr;
 
@@ -350,8 +344,7 @@ dlep_reader_ipv6_conpoint_tlv(
  * @return -1 if an error happened, 0 otherwise
  */
 int
-dlep_reader_uint64(uint64_t *number, uint16_t tlv_id,
-    struct dlep_session *session, struct dlep_parser_value *value) {
+dlep_reader_uint64(uint64_t *number, uint16_t tlv_id, struct dlep_session *session, struct dlep_parser_value *value) {
   uint64_t tmp;
   const uint8_t *ptr;
 
@@ -378,8 +371,7 @@ dlep_reader_uint64(uint64_t *number, uint16_t tlv_id,
  * @return -1 if an error happened, 0 otherwise
  */
 int
-dlep_reader_int64(int64_t *number, uint16_t tlv_id,
-    struct dlep_session *session, struct dlep_parser_value *value) {
+dlep_reader_int64(int64_t *number, uint16_t tlv_id, struct dlep_session *session, struct dlep_parser_value *value) {
   uint64_t tmp;
   const uint8_t *ptr;
 
@@ -407,9 +399,8 @@ dlep_reader_int64(int64_t *number, uint16_t tlv_id,
  * @return -1 if an error happened, 0 otherwise
  */
 int
-dlep_reader_status(enum dlep_status *status,
-    char *text, size_t text_length,
-    struct dlep_session *session, struct dlep_parser_value *value) {
+dlep_reader_status(enum dlep_status *status, char *text, size_t text_length, struct dlep_session *session,
+  struct dlep_parser_value *value) {
   const uint8_t *ptr;
 
   if (!value) {
@@ -425,12 +416,12 @@ dlep_reader_status(enum dlep_status *status,
   if (value->length > 1 && text_length > 0) {
     /* generate a 0 terminated copy of the text */
     if (text_length >= value->length) {
-      memcpy(text, &ptr[1], value->length-1);
-      text[value->length-1] = 0;
+      memcpy(text, &ptr[1], value->length - 1);
+      text[value->length - 1] = 0;
     }
     else {
-      memcpy(text, &ptr[1], text_length-1);
-      text[text_length-1] = 0;
+      memcpy(text, &ptr[1], text_length - 1);
+      text[text_length - 1] = 0;
     }
   }
   else if (text_length) {
@@ -448,15 +439,14 @@ dlep_reader_status(enum dlep_status *status,
  * @return -1 if an error happened, 0 otherwise
  */
 int
-dlep_reader_map_identity(struct oonf_layer2_data *data,
-    const struct oonf_layer2_metadata *meta,
-    struct dlep_session *session, uint16_t dlep_tlv) {
+dlep_reader_map_identity(struct oonf_layer2_data *data, const struct oonf_layer2_metadata *meta,
+  struct dlep_session *session, uint16_t dlep_tlv) {
   struct dlep_parser_value *value;
   int64_t l2value;
   uint64_t tmp64;
   uint32_t tmp32;
   uint16_t tmp16;
-  uint8_t  tmp8;
+  uint8_t tmp8;
   const uint8_t *dlepvalue;
 
   value = dlep_session_get_tlv_value(session, dlep_tlv);
@@ -466,19 +456,19 @@ dlep_reader_map_identity(struct oonf_layer2_data *data,
     switch (value->length) {
       case 8:
         memcpy(&tmp64, dlepvalue, 8);
-        l2value = (int64_t) be64toh(tmp64);
+        l2value = (int64_t)be64toh(tmp64);
         break;
       case 4:
         memcpy(&tmp32, dlepvalue, 4);
-        l2value = (int32_t) ntohl(tmp32);
+        l2value = (int32_t)ntohl(tmp32);
         break;
       case 2:
         memcpy(&tmp16, dlepvalue, 2);
-        l2value = (int16_t) ntohs(tmp16);
+        l2value = (int16_t)ntohs(tmp16);
         break;
       case 1:
         memcpy(&tmp8, dlepvalue, 1);
-        l2value = (int8_t) tmp8;
+        l2value = (int8_t)tmp8;
         break;
       default:
         return -1;
@@ -509,17 +499,15 @@ dlep_reader_map_identity(struct oonf_layer2_data *data,
  *   (minus 1) of the conversion that failed.
  */
 int
-dlep_reader_map_l2neigh_data(struct oonf_layer2_data *data,
-    struct dlep_session *session, struct dlep_extension *ext) {
+dlep_reader_map_l2neigh_data(struct oonf_layer2_data *data, struct dlep_session *session, struct dlep_extension *ext) {
   struct dlep_neighbor_mapping *map;
   size_t i;
 
-  for (i=0; i<ext->neigh_mapping_count; i++) {
+  for (i = 0; i < ext->neigh_mapping_count; i++) {
     map = &ext->neigh_mapping[i];
 
-    if (map->from_tlv(&data[map->layer2],
-        oonf_layer2_neigh_metadata_get(map->layer2), session, map->dlep)) {
-      return -(i+1);
+    if (map->from_tlv(&data[map->layer2], oonf_layer2_neigh_metadata_get(map->layer2), session, map->dlep)) {
+      return -(i + 1);
     }
   }
   return 0;
@@ -536,17 +524,15 @@ dlep_reader_map_l2neigh_data(struct oonf_layer2_data *data,
  *   (minus 1) of the conversion that failed.
  */
 int
-dlep_reader_map_l2net_data(struct oonf_layer2_data *data,
-    struct dlep_session *session, struct dlep_extension *ext) {
+dlep_reader_map_l2net_data(struct oonf_layer2_data *data, struct dlep_session *session, struct dlep_extension *ext) {
   struct dlep_network_mapping *map;
   size_t i;
 
-  for (i=0; i<ext->if_mapping_count; i++) {
+  for (i = 0; i < ext->if_mapping_count; i++) {
     map = &ext->if_mapping[i];
 
-    if (map->from_tlv(&data[map->layer2],
-        oonf_layer2_net_metadata_get(map->layer2), session, map->dlep)) {
-      return -(i+1);
+    if (map->from_tlv(&data[map->layer2], oonf_layer2_net_metadata_get(map->layer2), session, map->dlep)) {
+      return -(i + 1);
     }
   }
   return 0;

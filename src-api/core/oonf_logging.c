@@ -57,7 +57,6 @@
 #include "core/oonf_logging.h"
 #include "core/os_core.h"
 
-
 static struct list_entity _handler_list;
 static struct autobuf _logbuffer;
 static const struct oonf_appdata *_appdata;
@@ -71,23 +70,23 @@ uint8_t log_global_mask[LOG_MAXIMUM_SOURCES];
 /*! names for build-in logging targets */
 const char *LOG_SOURCE_NAMES[LOG_MAXIMUM_SOURCES] = {
   /* all logging sources */
-  [LOG_ALL]           = "all",
+  [LOG_ALL] = "all",
 
   /* the 'default' logging source */
-  [LOG_MAIN]          = "main",
+  [LOG_MAIN] = "main",
 
   /* the 'default' logging source */
-  [LOG_LOGGING]       = "logging",
-  [LOG_CONFIG]        = "config",
-  [LOG_PLUGINS]       = "plugins",
-  [LOG_SUBSYSTEMS]    = "subsystems",
+  [LOG_LOGGING] = "logging",
+  [LOG_CONFIG] = "config",
+  [LOG_PLUGINS] = "plugins",
+  [LOG_SUBSYSTEMS] = "subsystems",
 };
 
 /*! names of logging severities */
-const char *LOG_SEVERITY_NAMES[LOG_SEVERITY_MAX+1] = {
+const char *LOG_SEVERITY_NAMES[LOG_SEVERITY_MAX + 1] = {
   [LOG_SEVERITY_DEBUG] = "DEBUG",
-  [LOG_SEVERITY_INFO]  = "INFO",
-  [LOG_SEVERITY_WARN]  = "WARN",
+  [LOG_SEVERITY_INFO] = "INFO",
+  [LOG_SEVERITY_WARN] = "WARN",
 };
 
 static uint32_t _log_warnings[LOG_MAXIMUM_SOURCES];
@@ -99,8 +98,7 @@ static uint32_t _log_warnings[LOG_MAXIMUM_SOURCES];
  * @return -1 if an error happened, 0 otherwise
  */
 int
-oonf_log_init(const struct oonf_appdata *data, enum oonf_log_severity def_severity)
-{
+oonf_log_init(const struct oonf_appdata *data, enum oonf_log_severity def_severity) {
   enum oonf_log_severity sev;
   enum oonf_log_source src;
   size_t len;
@@ -154,8 +152,7 @@ oonf_log_init(const struct oonf_appdata *data, enum oonf_log_severity def_severi
  * Cleanup all resources allocated by logging system
  */
 void
-oonf_log_cleanup(void)
-{
+oonf_log_cleanup(void) {
   struct oonf_log_handler_entry *h, *iterator;
   enum oonf_log_source src;
 
@@ -165,7 +162,7 @@ oonf_log_cleanup(void)
   }
 
   for (src = LOG_CORESOURCE_COUNT; src < LOG_MAXIMUM_SOURCES; src++) {
-    free ((void *)LOG_SOURCE_NAMES[src]);
+    free((void *)LOG_SOURCE_NAMES[src]);
     LOG_SOURCE_NAMES[src] = NULL;
   }
   abuf_free(&_logbuffer);
@@ -177,8 +174,7 @@ oonf_log_cleanup(void)
  * @param h pointer to log event handler struct
  */
 void
-oonf_log_addhandler(struct oonf_log_handler_entry *h)
-{
+oonf_log_addhandler(struct oonf_log_handler_entry *h) {
   list_add_tail(&_handler_list, &h->_node);
   oonf_log_updatemask();
 }
@@ -188,8 +184,7 @@ oonf_log_addhandler(struct oonf_log_handler_entry *h)
  * @param h pointer to handler entry
  */
 void
-oonf_log_removehandler(struct oonf_log_handler_entry *h)
-{
+oonf_log_removehandler(struct oonf_log_handler_entry *h) {
   list_remove(&h->_node);
   oonf_log_updatemask();
 }
@@ -204,15 +199,17 @@ oonf_log_register_source(const char *name) {
   size_t i, len;
 
   /* maybe the source is already there ? */
-  for (i=0; i<_source_count; i++) {
+  for (i = 0; i < _source_count; i++) {
     if (strcmp(name, LOG_SOURCE_NAMES[i]) == 0) {
       return i;
     }
   }
 
   if (i == LOG_MAXIMUM_SOURCES) {
-    OONF_WARN(LOG_LOGGING, "Maximum number of logging sources reached,"
-        " cannot allocate %s", name);
+    OONF_WARN(LOG_LOGGING,
+      "Maximum number of logging sources reached,"
+      " cannot allocate %s",
+      name);
     return LOG_MAIN;
   }
 
@@ -284,9 +281,7 @@ oonf_log_get_libdata(void) {
  */
 void
 oonf_log_printversion(struct autobuf *abuf) {
-  abuf_appendf(abuf," %s version %s\n",
-            _appdata->app_name,
-            _libdata->version);
+  abuf_appendf(abuf, " %s version %s\n", _appdata->app_name, _libdata->version);
   abuf_appendf(abuf, " Git commit: %s\n", _libdata->git_commit);
   abuf_puts(abuf, _appdata->versionstring_trailer);
 }
@@ -297,8 +292,7 @@ oonf_log_printversion(struct autobuf *abuf) {
  * changes without a logevent handler being added or removed.
  */
 void
-oonf_log_updatemask(void)
-{
+oonf_log_updatemask(void) {
   enum oonf_log_source src;
   struct oonf_log_handler_entry *h, *iterator;
   uint8_t mask;
@@ -341,7 +335,7 @@ oonf_log_updatemask(void)
  */
 const char *
 oonf_log_get_walltime(struct oonf_walltime_str *buf) {
-struct timeval now;
+  struct timeval now;
   struct tm *tm;
 
   if (os_core_gettimeofday(&now)) {
@@ -352,8 +346,8 @@ struct timeval now;
   if (tm == NULL) {
     return NULL;
   }
-  snprintf(buf->buf, sizeof(buf->buf), "%02d:%02d:%02d.%03ld",
-      tm->tm_hour % 24u, tm->tm_min % 60u, tm->tm_sec % 60u, (now.tv_usec / 1000) % 1000u);
+  snprintf(buf->buf, sizeof(buf->buf), "%02d:%02d:%02d.%03ld", tm->tm_hour % 24u, tm->tm_min % 60u, tm->tm_sec % 60u,
+    (now.tv_usec / 1000) % 1000u);
   return buf->buf;
 }
 
@@ -372,9 +366,8 @@ struct timeval now;
  * @param format printf format string for log output plus a variable number of arguments
  */
 void
-oonf_log(enum oonf_log_severity severity, enum oonf_log_source source, bool no_header,
-    const char *file, int line, const void *hexptr, size_t hexlen, const char *format, ...)
-{
+oonf_log(enum oonf_log_severity severity, enum oonf_log_source source, bool no_header, const char *file, int line,
+  const void *hexptr, size_t hexlen, const char *format, ...) {
   struct oonf_log_handler_entry *h, *iterator;
   struct oonf_log_parameters param;
   struct oonf_walltime_str tbuf;
@@ -395,12 +388,12 @@ oonf_log(enum oonf_log_severity severity, enum oonf_log_source source, bool no_h
   if (!no_header) {
     p1 = abuf_puts(&_logbuffer, oonf_log_get_walltime(&tbuf));
 
-    p2 = abuf_appendf(&_logbuffer, " %s(%s) %s %d: ",
-        LOG_SEVERITY_NAMES[severity], LOG_SOURCE_NAMES[source], file, line);
+    p2 =
+      abuf_appendf(&_logbuffer, " %s(%s) %s %d: ", LOG_SEVERITY_NAMES[severity], LOG_SOURCE_NAMES[source], file, line);
   }
   abuf_vappendf(&_logbuffer, format, ap);
 
-  last = &abuf_getptr(&_logbuffer)[abuf_getlen(&_logbuffer)-1];
+  last = &abuf_getptr(&_logbuffer)[abuf_getlen(&_logbuffer) - 1];
   if (hexptr) {
     /* append \n at the end of the line if necessary */
     if (*last != '\n') {
@@ -447,9 +440,7 @@ oonf_log(enum oonf_log_severity severity, enum oonf_log_source source, bool no_h
  * @param param logging parameter set
  */
 void
-oonf_log_stderr(struct oonf_log_handler_entry *entry __attribute__ ((unused)),
-    struct oonf_log_parameters *param)
-{
+oonf_log_stderr(struct oonf_log_handler_entry *entry __attribute__((unused)), struct oonf_log_parameters *param) {
   fputs(param->buffer, stderr);
   fputc('\n', stderr);
 }
@@ -460,9 +451,7 @@ oonf_log_stderr(struct oonf_log_handler_entry *entry __attribute__ ((unused)),
  * @param param logging parameter set
  */
 void
-oonf_log_file(struct oonf_log_handler_entry *entry,
-    struct oonf_log_parameters *param)
-{
+oonf_log_file(struct oonf_log_handler_entry *entry, struct oonf_log_parameters *param) {
   FILE *f;
 
   f = entry->custom;
@@ -477,8 +466,6 @@ oonf_log_file(struct oonf_log_handler_entry *entry,
  * @param param logging parameter set
  */
 void
-oonf_log_syslog(struct oonf_log_handler_entry *entry __attribute__ ((unused)),
-    struct oonf_log_parameters *param)
-{
+oonf_log_syslog(struct oonf_log_handler_entry *entry __attribute__((unused)), struct oonf_log_parameters *param) {
   os_core_syslog(param->severity, param->buffer + param->timeLength);
 }

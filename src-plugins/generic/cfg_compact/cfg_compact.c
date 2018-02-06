@@ -47,13 +47,13 @@
 #include <fcntl.h>
 #include <glob.h>
 #include <string.h>
-#include <unistd.h>
-#include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/types.h>
+#include <unistd.h>
 
 #include "common/autobuf.h"
-#include "config/cfg_io.h"
 #include "config/cfg.h"
+#include "config/cfg_io.h"
 #include "core/oonf_subsystem.h"
 
 #include "core/oonf_cfg.h"
@@ -67,12 +67,10 @@ static struct cfg_db *_cb_compact_loadall(const char *param, struct autobuf *log
 static int _cb_compact_save(const char *param, struct cfg_db *src, struct autobuf *log);
 
 static int _cb_compact_load(struct cfg_db *db, const char *param, struct autobuf *log);
-static int _compact_parse(struct cfg_db *db,
-    struct autobuf *input, struct autobuf *log);
-static int _compact_serialize(struct autobuf *dst, struct cfg_db *src,
-    struct autobuf *log);
-static int _parse_line(struct cfg_db *db, char *line, char *section, size_t section_size,
-    char *name, size_t name_size, struct autobuf *log);
+static int _compact_parse(struct cfg_db *db, struct autobuf *input, struct autobuf *log);
+static int _compact_serialize(struct autobuf *dst, struct cfg_db *src, struct autobuf *log);
+static int _parse_line(
+  struct cfg_db *db, char *line, char *section, size_t section_size, char *name, size_t name_size, struct autobuf *log);
 
 static struct oonf_subsystem _oonf_cfg_compact_subsystem = {
   .name = OONF_CFG_COMPACT_SUBSYSTEM,
@@ -97,8 +95,7 @@ static struct cfg_io _cfg_compact = {
  * Callback to hook plugin into configuration system.
  */
 static void
-_early_cfg_init(void)
-{
+_early_cfg_init(void) {
   cfg_io_add(oonf_cfg_get_instance(), &_cfg_compact);
 }
 
@@ -106,8 +103,7 @@ _early_cfg_init(void)
  * Destructor of plugin
  */
 static void
-_cleanup(void)
-{
+_cleanup(void) {
   cfg_io_remove(oonf_cfg_get_instance(), &_cfg_compact);
 }
 
@@ -126,7 +122,7 @@ _cb_compact_loadall(const char *param, struct autobuf *log) {
   size_t i;
 
   db = cfg_db_add();
-  if (!db){
+  if (!db) {
     cfg_append_printable_line(log, "Out of memory for database");
     return NULL;
   }
@@ -143,7 +139,7 @@ _cb_compact_loadall(const char *param, struct autobuf *log) {
       cfg_append_printable_line(log, "no match for file pattern '%s'", param);
       break;
     default:
-      for (i=0; i<globbuf.gl_pathc; i++) {
+      for (i = 0; i < globbuf.gl_pathc; i++) {
         if (_cb_compact_load(db, globbuf.gl_pathv[i], log)) {
           break;
         }
@@ -175,17 +171,15 @@ _cb_compact_load(struct cfg_db *db, const char *param, struct autobuf *log) {
 
   fd = open(param, O_RDONLY, 0);
   if (fd == -1) {
-    cfg_append_printable_line(log,
-        "Cannot open file '%s' to read configuration: %s (%d)",
-        param, strerror(errno), errno);
+    cfg_append_printable_line(
+      log, "Cannot open file '%s' to read configuration: %s (%d)", param, strerror(errno), errno);
     return -1;
   }
 
   bytes = 1;
   if (abuf_init(&dst)) {
-    cfg_append_printable_line(log,
-        "Out of memory error while allocating io buffer");
-    close (fd);
+    cfg_append_printable_line(log, "Out of memory error while allocating io buffer");
+    close(fd);
     return -1;
   }
 
@@ -193,9 +187,7 @@ _cb_compact_load(struct cfg_db *db, const char *param, struct autobuf *log) {
   while (bytes > 0) {
     bytes = read(fd, buffer, sizeof(buffer));
     if (bytes < 0 && errno != EINTR) {
-      cfg_append_printable_line(log,
-          "Error while reading file '%s': %s (%d)",
-          param, strerror(errno), errno);
+      cfg_append_printable_line(log, "Error while reading file '%s': %s (%d)", param, strerror(errno), errno);
       close(fd);
       abuf_free(&dst);
       return -1;
@@ -233,8 +225,7 @@ _cb_compact_save(const char *param, struct cfg_db *src_db, struct autobuf *log) 
   struct autobuf abuf;
 
   if (abuf_init(&abuf)) {
-    cfg_append_printable_line(log,
-        "Out of memory error while allocating io buffer");
+    cfg_append_printable_line(log, "Out of memory error while allocating io buffer");
     return -1;
   }
   if (_compact_serialize(&abuf, src_db, log)) {
@@ -244,9 +235,8 @@ _cb_compact_save(const char *param, struct cfg_db *src_db, struct autobuf *log) 
 
   fd = open(param, O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR);
   if (fd == -1) {
-    cfg_append_printable_line(log,
-        "Cannot open file '%s' for writing configuration: %s (%d)",
-        param, strerror(errno), errno);
+    cfg_append_printable_line(
+      log, "Cannot open file '%s' for writing configuration: %s (%d)", param, strerror(errno), errno);
     return -1;
   }
 
@@ -254,9 +244,7 @@ _cb_compact_save(const char *param, struct cfg_db *src_db, struct autobuf *log) 
   while (total < abuf_getlen(&abuf)) {
     bytes = write(fd, abuf_getptr(&abuf) + total, abuf_getlen(&abuf) - total);
     if (bytes <= 0 && errno != EINTR) {
-      cfg_append_printable_line(log,
-          "Error while writing to file '%s': %s (%d)",
-          param, strerror(errno), errno);
+      cfg_append_printable_line(log, "Error while writing to file '%s': %s (%d)", param, strerror(errno), errno);
       close(fd);
       return -1;
     }
@@ -279,8 +267,7 @@ _cb_compact_save(const char *param, struct cfg_db *src_db, struct autobuf *log) 
  * @return -1 if an error happened, 0 otherwise
  */
 static int
-_compact_parse(struct cfg_db *db,
-    struct autobuf *input, struct autobuf *log) {
+_compact_parse(struct cfg_db *db, struct autobuf *input, struct autobuf *log) {
   char section[128];
   char name[128];
   char *src;
@@ -302,16 +289,15 @@ _compact_parse(struct cfg_db *db,
 
     /* termiate line with zero byte */
     src[eol] = 0;
-    if (eol > line && src[eol-1] == '\r') {
+    if (eol > line && src[eol - 1] == '\r') {
       /* handle \r\n line ending */
-      src[eol-1] = 0;
+      src[eol - 1] = 0;
     }
 
-    if (_parse_line(db, &src[line], section, sizeof(section),
-        name, sizeof(name), log)) {
+    if (_parse_line(db, &src[line], section, sizeof(section), name, sizeof(name), log)) {
       return -1;
     }
-    line = eol+1;
+    line = eol + 1;
   }
   return 0;
 }
@@ -324,8 +310,7 @@ _compact_parse(struct cfg_db *db,
  * @return 0 if database was serialized, -1 otherwise
  */
 static int
-_compact_serialize(struct autobuf *dst, struct cfg_db *src,
-    struct autobuf *log __attribute__ ((unused))) {
+_compact_serialize(struct autobuf *dst, struct cfg_db *src, struct autobuf *log __attribute__((unused))) {
   struct cfg_section_type *section, *s_it;
   struct cfg_named_section *name, *n_it;
   struct cfg_entry *entry, *e_it;
@@ -365,10 +350,8 @@ _compact_serialize(struct autobuf *dst, struct cfg_db *src,
  * @return 0 if line was parsed successfully, -1 otherwise
  */
 static int
-_parse_line(struct cfg_db *db, char *line,
-    char *section, size_t section_size,
-    char *name, size_t name_size,
-    struct autobuf *log) {
+_parse_line(struct cfg_db *db, char *line, char *section, size_t section_size, char *name, size_t name_size,
+  struct autobuf *log) {
   char *first, *ptr;
   bool dummy;
 
@@ -384,8 +367,7 @@ _parse_line(struct cfg_db *db, char *line,
     first++;
     ptr = strchr(first, ']');
     if (ptr == NULL) {
-      cfg_append_printable_line(log,
-          "Section syntax error in line: '%s'", line);
+      cfg_append_printable_line(log, "Section syntax error in line: '%s'", line);
       return -1;
     }
     *ptr = 0;
@@ -400,8 +382,7 @@ _parse_line(struct cfg_db *db, char *line,
     /* trim section name */
     first = str_trim(first);
     if (*first == 0) {
-      cfg_append_printable_line(log,
-          "Section syntax error, no section type found");
+      cfg_append_printable_line(log, "Section syntax error, no section type found");
       return -1;
     }
 
@@ -418,14 +399,12 @@ _parse_line(struct cfg_db *db, char *line,
 
     /* validity of section type (and name) */
     if (!cfg_is_allowed_key(section)) {
-      cfg_append_printable_line(log,
-          "Illegal section type: '%s'", section);
+      cfg_append_printable_line(log, "Illegal section type: '%s'", section);
       return -1;
     }
 
     if (*name != 0 && !cfg_is_allowed_section_name(name)) {
-      cfg_append_printable_line(log,
-          "Illegal section name: '%s'", name);
+      cfg_append_printable_line(log, "Illegal section name: '%s'", name);
       return -1;
     }
 
@@ -437,8 +416,7 @@ _parse_line(struct cfg_db *db, char *line,
   }
 
   if (*section == 0) {
-    cfg_append_printable_line(log,
-        "Entry before first section is not allowed in this format");
+    cfg_append_printable_line(log, "Entry before first section is not allowed in this format");
     return -1;
   }
 
@@ -455,14 +433,12 @@ _parse_line(struct cfg_db *db, char *line,
   ptr = str_trim(ptr);
 
   if (*ptr == 0) {
-    cfg_append_printable_line(log,
-        "No second token found in line '%s'",  line);
+    cfg_append_printable_line(log, "No second token found in line '%s'", line);
     return -1;
   }
 
   if (!cfg_is_allowed_key(first)) {
-    cfg_append_printable_line(log,
-        "Illegal key type: '%s'", first);
+    cfg_append_printable_line(log, "Illegal key type: '%s'", first);
     return -1;
   }
 

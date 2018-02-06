@@ -51,8 +51,8 @@
 #include "subsystems/oonf_rfc5444.h"
 #include "subsystems/oonf_timer.h"
 
-#include "nhdp/nhdp_domain.h"
 #include "nhdp/nhdp.h"
+#include "nhdp/nhdp_domain.h"
 
 #include "olsrv2/olsrv2_routing.h"
 #include "olsrv2/olsrv2_tc.h"
@@ -159,12 +159,10 @@ olsrv2_tc_cleanup(void) {
  * @return pointer to node, NULL if out of memory
  */
 struct olsrv2_tc_node *
-olsrv2_tc_node_add(struct netaddr *originator,
-    uint64_t vtime, uint16_t ansn) {
+olsrv2_tc_node_add(struct netaddr *originator, uint64_t vtime, uint16_t ansn) {
   struct olsrv2_tc_node *node;
 
-  node = avl_find_element(
-      &_tc_tree, originator, node, _originator_node);
+  node = avl_find_element(&_tc_tree, originator, node, _originator_node);
   if (!node) {
     node = oonf_class_malloc(&_tc_node_class);
     if (node == NULL) {
@@ -185,8 +183,7 @@ olsrv2_tc_node_add(struct netaddr *originator,
 
     /* initialize dijkstra data */
     node->target.type = OLSRV2_NODE_TARGET;
-    olsrv2_routing_dijkstra_node_init(&node->target._dijkstra,
-        &node->target.prefix.dst);
+    olsrv2_routing_dijkstra_node_init(&node->target._dijkstra, &node->target.prefix.dst);
 
     /* hook into global tree */
     avl_insert(&_tc_tree, &node->_originator_node);
@@ -223,8 +220,7 @@ olsrv2_tc_node_remove(struct olsrv2_tc_node *node) {
   }
 
   /* remove attached networks */
-  avl_for_each_element_safe(
-      &node->_attached_networks, net, _src_node, net_it) {
+  avl_for_each_element_safe(&node->_attached_networks, net, _src_node, net_it) {
     olsrv2_tc_endpoint_remove(net);
   }
 
@@ -258,7 +254,7 @@ olsrv2_tc_edge_add(struct olsrv2_tc_node *src, struct netaddr *addr) {
     edge->virtual = false;
 
     /* cleanup metric data from other side of the edge */
-    for (i=0; i<NHDP_MAXIMUM_DOMAINS; i++) {
+    for (i = 0; i < NHDP_MAXIMUM_DOMAINS; i++) {
       edge->cost[i] = RFC7181_METRIC_INFINITE;
     }
 
@@ -296,7 +292,7 @@ olsrv2_tc_edge_add(struct olsrv2_tc_node *src, struct netaddr *addr) {
   edge->src = src;
   edge->dst = dst;
   edge->inverse = inverse;
-  for (i=0; i<NHDP_MAXIMUM_DOMAINS; i++) {
+  for (i = 0; i < NHDP_MAXIMUM_DOMAINS; i++) {
     edge->cost[i] = RFC7181_METRIC_INFINITE;
   }
 
@@ -309,7 +305,7 @@ olsrv2_tc_edge_add(struct olsrv2_tc_node *src, struct netaddr *addr) {
   inverse->dst = src;
   inverse->inverse = edge;
   inverse->virtual = true;
-  for (i=0; i<NHDP_MAXIMUM_DOMAINS; i++) {
+  for (i = 0; i < NHDP_MAXIMUM_DOMAINS; i++) {
     inverse->cost[i] = RFC7181_METRIC_INFINITE;
   }
 
@@ -344,8 +340,7 @@ olsrv2_tc_edge_remove(struct olsrv2_tc_edge *edge) {
  * @return pointer to tc attachment, NULL if out of memory
  */
 struct olsrv2_tc_attachment *
-olsrv2_tc_endpoint_add(struct olsrv2_tc_node *node,
-    struct os_route_key *prefix, bool mesh) {
+olsrv2_tc_endpoint_add(struct olsrv2_tc_node *node, struct os_route_key *prefix, bool mesh) {
   struct olsrv2_tc_attachment *net;
   struct olsrv2_tc_endpoint *end;
   int i;
@@ -384,7 +379,7 @@ olsrv2_tc_endpoint_add(struct olsrv2_tc_node *node,
   /* initialize attached network */
   net->src = node;
   net->dst = end;
-  for (i=0; i<NHDP_MAXIMUM_DOMAINS; i++) {
+  for (i = 0; i < NHDP_MAXIMUM_DOMAINS; i++) {
     net->cost[i] = RFC7181_METRIC_INFINITE;
   }
 
@@ -397,8 +392,7 @@ olsrv2_tc_endpoint_add(struct olsrv2_tc_node *node,
   avl_insert(&end->_attached_networks, &net->_endpoint_node);
 
   /* initialize dijkstra data */
-  olsrv2_routing_dijkstra_node_init(&end->target._dijkstra,
-      &node->target.prefix.dst);
+  olsrv2_routing_dijkstra_node_init(&end->target._dijkstra, &node->target.prefix.dst);
 
   oonf_class_event(&_tc_attached_class, net, OONF_OBJECT_ADDED);
   return net;
@@ -409,8 +403,7 @@ olsrv2_tc_endpoint_add(struct olsrv2_tc_node *node,
  * @param net pointer to tc attachment
  */
 void
-olsrv2_tc_endpoint_remove(
-    struct olsrv2_tc_attachment *net) {
+olsrv2_tc_endpoint_remove(struct olsrv2_tc_attachment *net) {
   oonf_class_event(&_tc_attached_class, net, OONF_OBJECT_REMOVED);
 
   /* remove from node */
@@ -461,7 +454,6 @@ olsrv2_tc_get_endpoint_tree(void) {
   return &_tc_endpoint_tree;
 }
 
-
 /**
  * Callback triggered when a tc node times out
  * @param ptr timer instance that fired
@@ -506,8 +498,7 @@ _remove_edge(struct olsrv2_tc_edge *edge, bool cleanup) {
   avl_remove(&edge->src->_edges, &edge->_node);
   avl_remove(&edge->dst->_edges, &edge->inverse->_node);
 
-  if (edge->dst->_edges.count == 0 && cleanup
-      && olsrv2_tc_is_node_virtual(edge->dst)) {
+  if (edge->dst->_edges.count == 0 && cleanup && olsrv2_tc_is_node_virtual(edge->dst)) {
     /*
      * node is already virtual and has no
      * incoming links anymore.
@@ -529,8 +520,7 @@ _cb_neighbor_change(void *ptr) {
   struct olsrv2_tc_node *tc_node;
 
   neigh = ptr;
-  if (memcmp(&neigh->originator, &neigh->_old_originator,
-      sizeof(neigh->originator)) == 0) {
+  if (memcmp(&neigh->originator, &neigh->_old_originator, sizeof(neigh->originator)) == 0) {
     /* no change */
     return;
   }

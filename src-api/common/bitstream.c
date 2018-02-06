@@ -7,8 +7,8 @@
 
 #include <string.h>
 
-#include "common/common_types.h"
 #include "common/bitstream.h"
+#include "common/common_types.h"
 
 /**
  * Initialize reading bitstream
@@ -100,7 +100,7 @@ bitstream_r_read(struct bitstream_r *stream, uint64_t *dst, int32_t bits) {
   }
 
   while (size > 1) {
-    offset ++;
+    offset++;
     size--;
 
     result = (result << 8) | buffer[offset];
@@ -222,7 +222,7 @@ bitstream_w_write(struct bitstream_w *stream, uint64_t src, int32_t bits) {
 
   /* write data to buffer */
   while (size > 0) {
-    size --;
+    size--;
 
     buffer[offset + size] |= (src & 0xFF);
     src >>= 8;

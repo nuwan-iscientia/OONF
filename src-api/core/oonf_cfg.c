@@ -47,15 +47,16 @@
 #include <stdlib.h>
 
 #include "common/common_types.h"
-#include "config/cfg_schema.h"
 #include "config/cfg.h"
+#include "config/cfg_schema.h"
 
 #include "core/oonf_cfg.h"
 #include "core/oonf_logging.h"
 #include "core/oonf_subsystem.h"
 
 /* definitions */
-enum {
+enum
+{
   IDX_FORK,
   IDX_FAILFAST,
   IDX_PIDFILE,
@@ -83,18 +84,17 @@ static int _argc;
 
 /* define global configuration template */
 static struct cfg_schema_entry _global_entries[] = {
-  [IDX_FORK]       = CFG_MAP_BOOL(oonf_config_global, fork, "fork", "no",
-      "Set to true to fork daemon into background."),
-  [IDX_FAILFAST]   = CFG_MAP_BOOL(oonf_config_global, failfast, "failfast", "no",
-      "Set to true to stop daemon startup if at least one plugin doesn't load."),
-  [IDX_PIDFILE]    = CFG_MAP_STRING(oonf_config_global, pidfile, "pidfile", "",
-      "Write the process id of the forced child into a file"),
-  [IDX_LOCKFILE]   = CFG_MAP_STRING(oonf_config_global, lockfile, "lockfile", "",
-      "Use this file to prevent multiple running routing agents, '-' for no locking"),
-  [IDX_PLUGINPATH] = CFG_MAP_STRING(oonf_config_global, plugin_path, "plugin_path", "",
-      "Additional user defined path to look for plugins"),
-  [IDX_PLUGINS]    =CFG_MAP_STRINGLIST(oonf_config_global, plugin, CFG_GLOBAL_PLUGIN, "",
-      "Set list of plugins to be loaded by daemon. Some might need configuration options."),
+  [IDX_FORK] = CFG_MAP_BOOL(oonf_config_global, fork, "fork", "no", "Set to true to fork daemon into background."),
+  [IDX_FAILFAST] = CFG_MAP_BOOL(oonf_config_global, failfast, "failfast", "no",
+    "Set to true to stop daemon startup if at least one plugin doesn't load."),
+  [IDX_PIDFILE] =
+    CFG_MAP_STRING(oonf_config_global, pidfile, "pidfile", "", "Write the process id of the forced child into a file"),
+  [IDX_LOCKFILE] = CFG_MAP_STRING(oonf_config_global, lockfile, "lockfile", "",
+    "Use this file to prevent multiple running routing agents, '-' for no locking"),
+  [IDX_PLUGINPATH] = CFG_MAP_STRING(
+    oonf_config_global, plugin_path, "plugin_path", "", "Additional user defined path to look for plugins"),
+  [IDX_PLUGINS] = CFG_MAP_STRINGLIST(oonf_config_global, plugin, CFG_GLOBAL_PLUGIN, "",
+    "Set list of plugins to be loaded by daemon. Some might need configuration options."),
 };
 
 static struct cfg_schema_section _global_section = {
@@ -102,7 +102,6 @@ static struct cfg_schema_section _global_section = {
   .entries = _global_entries,
   .entry_count = ARRAYSIZE(_global_entries),
 };
-
 
 /**
  * Initializes the olsrd configuration subsystem
@@ -119,10 +118,8 @@ oonf_cfg_init(int argc, char **argv, const char *default_cfg_handler) {
   cfg_add(&_oonf_cfg_instance);
 
   /* initialize default for lockfile */
-  _global_entries[IDX_LOCKFILE].def.value =
-      oonf_log_get_appdata()->default_lockfile;
-  _global_entries[IDX_LOCKFILE].def.length =
-      strlen(oonf_log_get_appdata()->default_lockfile) + 1;
+  _global_entries[IDX_LOCKFILE].def.value = oonf_log_get_appdata()->default_lockfile;
+  _global_entries[IDX_LOCKFILE].def.length = strlen(oonf_log_get_appdata()->default_lockfile) + 1;
 
   /* initialize schema */
   cfg_schema_add(&_oonf_schema);
@@ -465,11 +462,9 @@ oonf_cfg_update_globalcfg(bool raw) {
   struct cfg_named_section *named;
   int result;
 
-  named = cfg_db_find_namedsection(
-      raw ? _oonf_raw_db : _oonf_work_db, CFG_SECTION_GLOBAL, NULL);
+  named = cfg_db_find_namedsection(raw ? _oonf_raw_db : _oonf_work_db, CFG_SECTION_GLOBAL, NULL);
 
-  result = cfg_schema_tobin(&config_global,
-      named, _global_entries, ARRAYSIZE(_global_entries));
+  result = cfg_schema_tobin(&config_global, named, _global_entries, ARRAYSIZE(_global_entries));
 
   /* set plugin path */
   oonf_subsystem_set_path(config_global.plugin_path);

@@ -13,13 +13,10 @@
 #include "subsystems/os_interface.h"
 
 EXPORT const struct netaddr *os_interface_generic_get_bindaddress(
-    int af_type, struct netaddr_acl *filter,
-    struct os_interface *os_if);
-EXPORT struct os_interface *
-    os_interface_generic_get_data_by_ifbaseindex(unsigned ifindex);
-EXPORT struct os_interface *
-    os_interface_generic_get_data_by_ifindex(unsigned ifindex);
+  int af_type, struct netaddr_acl *filter, struct os_interface *os_if);
+EXPORT struct os_interface *os_interface_generic_get_data_by_ifbaseindex(unsigned ifindex);
+EXPORT struct os_interface *os_interface_generic_get_data_by_ifindex(unsigned ifindex);
 EXPORT const struct os_interface_ip *os_interface_generic_get_prefix_from_dst(
-    struct netaddr *destination, struct os_interface *os_if);
+  struct netaddr *destination, struct os_interface *os_if);
 
 #endif /* OS_INTERFACE_GENERIC_H_ */

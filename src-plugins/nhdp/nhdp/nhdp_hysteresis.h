@@ -72,8 +72,7 @@ struct nhdp_hysteresis_handler {
    * @param lnk nhdp link
    * @param context rfc5444 reader context
    */
-  void (*update_hysteresis)(struct nhdp_link *lnk,
-      struct rfc5444_reader_tlvblock_context *context);
+  void (*update_hysteresis)(struct nhdp_link *lnk, struct rfc5444_reader_tlvblock_context *context);
 
   /**
    * callback to check if link is pending
@@ -95,8 +94,7 @@ struct nhdp_hysteresis_handler {
    * @param lnk nhdp link
    * @return pointer to buffer
    */
-  const char *(*to_string)(
-      struct nhdp_hysteresis_str *buf, struct nhdp_link *lnk);
+  const char *(*to_string)(struct nhdp_hysteresis_str *buf, struct nhdp_link *lnk);
 };
 
 EXPORT void nhdp_hysteresis_set_handler(struct nhdp_hysteresis_handler *);
@@ -108,8 +106,7 @@ EXPORT struct nhdp_hysteresis_handler *nhdp_hysteresis_get_handler(void);
  * @param context pointer to rfc5444 context (message context)
  */
 static INLINE void
-nhdp_hysteresis_update(struct nhdp_link *lnk,
-    struct rfc5444_reader_tlvblock_context *context) {
+nhdp_hysteresis_update(struct nhdp_link *lnk, struct rfc5444_reader_tlvblock_context *context) {
   nhdp_hysteresis_get_handler()->update_hysteresis(lnk, context);
 }
 

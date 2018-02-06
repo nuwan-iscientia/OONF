@@ -57,9 +57,9 @@
 /* include os-specific headers */
 #if defined(__linux__)
 #include "subsystems/os_linux/os_system_linux.h"
-#elif defined (BSD)
+#elif defined(BSD)
 #include "subsystems/os_bsd/os_system_bsd.h"
-#elif defined (_WIN32)
+#elif defined(_WIN32)
 #include "subsystems/os_win32/os_system_win32.h"
 #else
 #error "Unknown operation system"

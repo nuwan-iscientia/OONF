@@ -49,8 +49,7 @@
 #include "common/common_types.h"
 #include "subsystems/os_tunnel.h"
 
-struct os_tunnel_internal {
-};
+struct os_tunnel_internal {};
 
 EXPORT int os_tunnel_linux_add(struct os_tunnel *tunnel);
 EXPORT int os_tunnel_linux_remove(struct os_tunnel *tunnel);

@@ -46,8 +46,8 @@
 #ifndef DLEP_RADIO_SESSION_H_
 #define DLEP_RADIO_SESSION_H_
 
-#include "common/common_types.h"
 #include "common/avl.h"
+#include "common/common_types.h"
 #include "core/oonf_subsystem.h"
 #include "subsystems/oonf_packet_socket.h"
 #include "subsystems/oonf_stream_socket.h"
@@ -77,7 +77,6 @@ void dlep_radio_session_init(void);
 void dlep_radio_session_cleanup(void);
 
 void dlep_radio_remove_session(struct dlep_radio_session *router_session);
-void dlep_radio_session_initialize_tcp_callbacks(
-    struct oonf_stream_config *config);
+void dlep_radio_session_initialize_tcp_callbacks(struct oonf_stream_config *config);
 
 #endif /* DLEP_RADIO_SESSION_H_ */

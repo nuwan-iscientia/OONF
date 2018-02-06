@@ -50,10 +50,10 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "common/common_types.h"
 #include "common/avl.h"
 #include "common/avl_comp.h"
 #include "common/bitmap256.h"
+#include "common/common_types.h"
 #include "common/isonumber.h"
 #include "common/netaddr.h"
 #include "common/netaddr_acl.h"
@@ -61,21 +61,17 @@
 #include "config/cfg.h"
 #include "config/cfg_db.h"
 #include "config/cfg_help.h"
+#include "config/cfg_schema.h"
 #include "config/cfg_tobin.h"
 #include "config/cfg_validate.h"
-#include "config/cfg_schema.h"
 
-static bool _validate_cfg_entry(
-    struct cfg_db *db, struct cfg_section_type *section,
-    struct cfg_named_section *named, struct cfg_entry *entry,
-    const char *section_name, bool cleanup, struct autobuf *out);
+static bool _validate_cfg_entry(struct cfg_db *db, struct cfg_section_type *section, struct cfg_named_section *named,
+  struct cfg_entry *entry, const char *section_name, bool cleanup, struct autobuf *out);
 static bool _section_needs_default_named_one(struct cfg_section_type *type);
-static void _handle_named_section_change (struct cfg_schema_section* s_section, 
-    struct cfg_db* pre_change, struct cfg_db* post_change, const char* section_name, 
-    bool startup, struct cfg_named_section* pre_defnamed, 
-    struct cfg_named_section* post_defnamed);
-static int _handle_db_changes(struct cfg_db *pre_change,
-    struct cfg_db *post_change, bool startup);
+static void _handle_named_section_change(struct cfg_schema_section *s_section, struct cfg_db *pre_change,
+  struct cfg_db *post_change, const char *section_name, bool startup, struct cfg_named_section *pre_defnamed,
+  struct cfg_named_section *post_defnamed);
+static int _handle_db_changes(struct cfg_db *pre_change, struct cfg_db *post_change, bool startup);
 
 /*! string array with boolean options with value true */
 const char *CFGLIST_BOOL_TRUE[] = { CFGLIST_BOOL_TRUE_VALUES };
@@ -108,15 +104,13 @@ cfg_schema_add(struct cfg_schema *schema) {
  * @param section pointer to section
  */
 void
-cfg_schema_add_section(struct cfg_schema *schema,
-    struct cfg_schema_section *section) {
+cfg_schema_add_section(struct cfg_schema *schema, struct cfg_schema_section *section) {
   struct cfg_schema_entry *entry;
   size_t i;
 
   /* make sure definitions in compiled code are correct */
-  assert (cfg_is_allowed_key(section->type));
-  assert (section->def_name == NULL
-      || cfg_is_allowed_section_name(section->def_name));
+  assert(cfg_is_allowed_key(section->type));
+  assert(section->def_name == NULL || cfg_is_allowed_section_name(section->def_name));
 
   /* hook section into global section tree */
   section->_section_node.key = section->type;
@@ -127,11 +121,11 @@ cfg_schema_add_section(struct cfg_schema *schema,
     list_add_tail(&schema->handlers, &section->_delta_node);
   }
 
-  for (i=0; i<section->entry_count; i++) {
+  for (i = 0; i < section->entry_count; i++) {
     entry = &section->entries[i];
 
     /* make sure key name in compiled code is correct */
-    assert (cfg_is_allowed_key(entry->key.entry));
+    assert(cfg_is_allowed_key(entry->key.entry));
 
     entry->_parent = section;
     entry->key.type = section->type;
@@ -176,7 +170,7 @@ cfg_schema_remove_section(struct cfg_schema *schema, struct cfg_schema_section *
     avl_remove(&schema->sections, &section->_section_node);
     section->_section_node.key = NULL;
 
-    for (i=0; i<section->entry_count; i++) {
+    for (i = 0; i < section->entry_count; i++) {
       avl_remove(&schema->entries, &section->entries[i]._node);
       section->entries[i]._node.key = NULL;
     }
@@ -196,9 +190,7 @@ cfg_schema_remove_section(struct cfg_schema *schema, struct cfg_schema_section *
  * @return 0 if validation found no problems, -1 otherwise
  */
 int
-cfg_schema_validate(struct cfg_db *db,
-    bool cleanup, bool ignore_unknown_sections,
-    struct autobuf *out) {
+cfg_schema_validate(struct cfg_db *db, bool cleanup, bool ignore_unknown_sections, struct autobuf *out) {
   char section_name[256];
   struct cfg_section_type *section, *section_it;
   struct cfg_named_section *named, *named_it;
@@ -219,16 +211,14 @@ cfg_schema_validate(struct cfg_db *db,
 
   CFG_FOR_ALL_SECTION_TYPES(db, section, section_it) {
     /* check for missing schema sections */
-    schema_section_first = avl_find_element(&db->schema->sections, section->type,
-        schema_section_first, _section_node);
+    schema_section_first = avl_find_element(&db->schema->sections, section->type, schema_section_first, _section_node);
 
     if (schema_section_first == NULL) {
       if (ignore_unknown_sections) {
         continue;
       }
 
-      cfg_append_printable_line(out,
-          "Cannot find schema for section type '%s'", section->type);
+      cfg_append_printable_line(out, "Cannot find schema for section type '%s'", section->type);
 
       if (cleanup) {
         cfg_db_remove_sectiontype(db, section->type);
@@ -238,8 +228,7 @@ cfg_schema_validate(struct cfg_db *db,
       continue;
     }
 
-    schema_section_last = avl_find_le_element(&db->schema->sections, section->type,
-        schema_section_last, _section_node);
+    schema_section_last = avl_find_le_element(&db->schema->sections, section->type, schema_section_last, _section_node);
 
     /* iterate over all schema for a certain section type */
     avl_for_element_range(schema_section_first, schema_section_last, schema_section, _section_node) {
@@ -250,18 +239,21 @@ cfg_schema_validate(struct cfg_db *db,
 
         if (hasName) {
           if (schema_section->mode == CFG_SSMODE_UNNAMED) {
-            cfg_append_printable_line(out, "The section type '%s'"
-                " has to be used without a name"
-                " ('%s' was given as a name)", section->type, named->name);
+            cfg_append_printable_line(out,
+              "The section type '%s'"
+              " has to be used without a name"
+              " ('%s' was given as a name)",
+              section->type, named->name);
 
             warning = true;
           }
         }
 
         if (hasName && !cfg_is_allowed_section_name(named->name)) {
-          cfg_append_printable_line(out, "The section name '%s' for"
-              " type '%s' contains illegal characters",
-              named->name, section->type);
+          cfg_append_printable_line(out,
+            "The section name '%s' for"
+            " type '%s' contains illegal characters",
+            named->name, section->type);
           warning = true;
         }
 
@@ -278,14 +270,12 @@ cfg_schema_validate(struct cfg_db *db,
         }
 
         /* initialize section_name field for validate */
-        snprintf(section_name, sizeof(section_name), "'%s%s%s'",
-            section->type, hasName ? "=" : "", hasName ? named->name : "");
+        snprintf(section_name, sizeof(section_name), "'%s%s%s'", section->type, hasName ? "=" : "",
+          hasName ? named->name : "");
 
         /* check for bad values */
         CFG_FOR_ALL_ENTRIES(named, entry, entry_it) {
-          warning = _validate_cfg_entry(
-              db, section, named, entry, section_name,
-              cleanup, out);
+          warning = _validate_cfg_entry(db, section, named, entry, section_name, cleanup, out);
           error |= warning;
         }
 
@@ -315,14 +305,13 @@ cfg_schema_validate(struct cfg_db *db,
         warning = !cfg_db_is_named_section(named) && section->names.count < 2;
       }
       if (warning) {
-        cfg_append_printable_line(out, "Missing mandatory section of type '%s'",
-            schema_section->type);
+        cfg_append_printable_line(out, "Missing mandatory section of type '%s'", schema_section->type);
       }
       error |= warning;
     }
 
     /* check for missing values */
-    for (i=0; i<schema_section->entry_count; i++) {
+    for (i = 0; i < schema_section->entry_count; i++) {
       schema_entry = &schema_section->entries[i];
       if (strarray_is_empty_c(&schema_entry->def)) {
         /* found a mandatory schema entry */
@@ -338,8 +327,7 @@ cfg_schema_validate(struct cfg_db *db,
               warning = false;
 
               avl_for_each_element(&section->names, named, node) {
-                if (named->name != NULL
-                    && cfg_db_get_entry(named, schema_entry->key.entry) == NULL) {
+                if (named->name != NULL && cfg_db_get_entry(named, schema_entry->key.entry) == NULL) {
                   /* found a named section without mandatory entry */
                   warning = true;
                   break;
@@ -353,8 +341,8 @@ cfg_schema_validate(struct cfg_db *db,
           }
         }
         if (warning) {
-          cfg_append_printable_line(out, "Missing mandatory entry of type '%s' and key '%s'",
-              schema_section->type, schema_entry->key.entry);
+          cfg_append_printable_line(
+            out, "Missing mandatory entry of type '%s' and key '%s'", schema_section->type, schema_entry->key.entry);
         }
         error |= warning;
       }
@@ -377,15 +365,14 @@ cfg_schema_validate(struct cfg_db *db,
  *   An error might result in a partial initialized target buffer.
  */
 int
-cfg_schema_tobin(void *target, struct cfg_named_section *named,
-    const struct cfg_schema_entry *entries, size_t count) {
+cfg_schema_tobin(void *target, struct cfg_named_section *named, const struct cfg_schema_entry *entries, size_t count) {
   char *ptr;
   size_t i;
   const struct const_strarray *value;
 
   ptr = (char *)target;
 
-  for (i=0; i<count; i++) {
+  for (i = 0; i < count; i++) {
     if (entries[i].cb_to_binary == NULL) {
       continue;
     }
@@ -393,7 +380,7 @@ cfg_schema_tobin(void *target, struct cfg_named_section *named,
     value = cfg_db_get_schema_entry_value(named, &entries[i]);
     if (entries[i].cb_to_binary(&entries[i], value, ptr + entries[i].bin_offset)) {
       /* error in conversion */
-      return -1-i;
+      return -1 - i;
     }
   }
   return 0;
@@ -467,7 +454,7 @@ cfg_avlcmp_schemaentries(const void *p1, const void *p2) {
  */
 const char *
 cfg_schema_get_choice_value(size_t idx, const void *ptr) {
-  const char* const *array = ptr;
+  const char *const *array = ptr;
 
   return array[idx];
 }
@@ -482,10 +469,9 @@ cfg_schema_get_choice_value(size_t idx, const void *ptr) {
  * @return 0 if validation found no problems, -1 otherwise
  */
 int
-cfg_schema_validate_strlen(const struct cfg_schema_entry *entry,
-    const char *section_name, const char *value, struct autobuf *out) {
-  return cfg_validate_strlen(
-      out, section_name, entry->key.entry, value, entry->validate_param[0].s);
+cfg_schema_validate_strlen(
+  const struct cfg_schema_entry *entry, const char *section_name, const char *value, struct autobuf *out) {
+  return cfg_validate_strlen(out, section_name, entry->key.entry, value, entry->validate_param[0].s);
 }
 
 /**
@@ -499,10 +485,9 @@ cfg_schema_validate_strlen(const struct cfg_schema_entry *entry,
  * @return 0 if validation found no problems, -1 otherwise
  */
 int
-cfg_schema_validate_printable(const struct cfg_schema_entry *entry,
-    const char *section_name, const char *value, struct autobuf *out) {
-  return cfg_validate_printable(
-      out, section_name, entry->key.entry, value, entry->validate_param[0].s);
+cfg_schema_validate_printable(
+  const struct cfg_schema_entry *entry, const char *section_name, const char *value, struct autobuf *out) {
+  return cfg_validate_printable(out, section_name, entry->key.entry, value, entry->validate_param[0].s);
 }
 
 /**
@@ -516,14 +501,11 @@ cfg_schema_validate_printable(const struct cfg_schema_entry *entry,
  * @return 0 if validation found no problems, -1 otherwise
  */
 int
-cfg_schema_validate_choice(const struct cfg_schema_entry *entry,
-    const char *section_name, const char *value, struct autobuf *out) {
-  return cfg_validate_choice(out, section_name, entry->key.entry, value,
-      entry->validate_param[0].ptr, entry->validate_param[1].s,
-      entry->validate_param[2].ptr);
+cfg_schema_validate_choice(
+  const struct cfg_schema_entry *entry, const char *section_name, const char *value, struct autobuf *out) {
+  return cfg_validate_choice(out, section_name, entry->key.entry, value, entry->validate_param[0].ptr,
+    entry->validate_param[1].s, entry->validate_param[2].ptr);
 }
-
-
 
 /**
  * Schema entry validator for integers.
@@ -535,12 +517,10 @@ cfg_schema_validate_choice(const struct cfg_schema_entry *entry,
  * @return 0 if validation found no problems, -1 otherwise
  */
 int
-cfg_schema_validate_int(const struct cfg_schema_entry *entry,
-    const char *section_name, const char *value, struct autobuf *out) {
-  return cfg_validate_int(out, section_name, entry->key.entry, value,
-      entry->validate_param[0].i64, entry->validate_param[1].i64,
-      entry->validate_param[2].i16[0],
-      entry->validate_param[2].i16[1]);
+cfg_schema_validate_int(
+  const struct cfg_schema_entry *entry, const char *section_name, const char *value, struct autobuf *out) {
+  return cfg_validate_int(out, section_name, entry->key.entry, value, entry->validate_param[0].i64,
+    entry->validate_param[1].i64, entry->validate_param[2].i16[0], entry->validate_param[2].i16[1]);
 }
 
 /**
@@ -553,10 +533,10 @@ cfg_schema_validate_int(const struct cfg_schema_entry *entry,
  * @return 0 if validation found no problems, -1 otherwise
  */
 int
-cfg_schema_validate_netaddr(const struct cfg_schema_entry *entry,
-    const char *section_name, const char *value, struct autobuf *out) {
-  return cfg_validate_netaddr(out, section_name, entry->key.entry, value,
-      entry->validate_param[1].b, entry->validate_param[0].i8, 5);
+cfg_schema_validate_netaddr(
+  const struct cfg_schema_entry *entry, const char *section_name, const char *value, struct autobuf *out) {
+  return cfg_validate_netaddr(
+    out, section_name, entry->key.entry, value, entry->validate_param[1].b, entry->validate_param[0].i8, 5);
 }
 
 /**
@@ -569,10 +549,10 @@ cfg_schema_validate_netaddr(const struct cfg_schema_entry *entry,
  * @return 0 if validation found no problems, -1 otherwise
  */
 int
-cfg_schema_validate_acl(const struct cfg_schema_entry *entry,
-    const char *section_name, const char *value, struct autobuf *out) {
-  return cfg_validate_acl(out, section_name, entry->key.entry, value,
-      entry->validate_param[1].b, entry->validate_param[0].i8, 5);
+cfg_schema_validate_acl(
+  const struct cfg_schema_entry *entry, const char *section_name, const char *value, struct autobuf *out) {
+  return cfg_validate_acl(
+    out, section_name, entry->key.entry, value, entry->validate_param[1].b, entry->validate_param[0].i8, 5);
 }
 
 /**
@@ -585,8 +565,8 @@ cfg_schema_validate_acl(const struct cfg_schema_entry *entry,
  * @return 0 if validation found no problems, -1 otherwise
  */
 int
-cfg_schema_validate_bitmap256(const struct cfg_schema_entry *entry,
-    const char *section_name, const char *value, struct autobuf *out) {
+cfg_schema_validate_bitmap256(
+  const struct cfg_schema_entry *entry, const char *section_name, const char *value, struct autobuf *out) {
   return cfg_validate_bitmap256(out, section_name, entry->key.entry, value);
 }
 
@@ -600,11 +580,10 @@ cfg_schema_validate_bitmap256(const struct cfg_schema_entry *entry,
  * @return 0 if validation found no problems, -1 otherwise
  */
 int
-cfg_schema_validate_tokens(const struct cfg_schema_entry *entry,
-    const char *section_name, const char *value, struct autobuf *out) {
-  return cfg_validate_tokens(out, section_name, entry->key.entry, value,
-      entry->validate_param[0].ptr, entry->validate_param[1].s,
-      entry->validate_param[2].ptr);
+cfg_schema_validate_tokens(
+  const struct cfg_schema_entry *entry, const char *section_name, const char *value, struct autobuf *out) {
+  return cfg_validate_tokens(out, section_name, entry->key.entry, value, entry->validate_param[0].ptr,
+    entry->validate_param[1].s, entry->validate_param[2].ptr);
 }
 /**
  * Help generator for string maximum length validator.
@@ -613,8 +592,7 @@ cfg_schema_validate_tokens(const struct cfg_schema_entry *entry,
  * @param out pointer to autobuffer for help output
  */
 void
-cfg_schema_help_strlen(
-    const struct cfg_schema_entry *entry, struct autobuf *out) {
+cfg_schema_help_strlen(const struct cfg_schema_entry *entry, struct autobuf *out) {
   cfg_help_strlen(out, entry->validate_param[0].s);
 }
 
@@ -626,8 +604,7 @@ cfg_schema_help_strlen(
  * @param out pointer to autobuffer for validator output
  */
 void
-cfg_schema_help_printable(
-    const struct cfg_schema_entry *entry, struct autobuf *out) {
+cfg_schema_help_printable(const struct cfg_schema_entry *entry, struct autobuf *out) {
   cfg_help_printable(out, entry->validate_param[0].s);
 }
 
@@ -639,10 +616,8 @@ cfg_schema_help_printable(
  * @param out pointer to autobuffer for validator output
  */
 void
-cfg_schema_help_choice(
-    const struct cfg_schema_entry *entry, struct autobuf *out) {
-  cfg_help_choice(out, true, entry->validate_param[0].ptr,
-      entry->validate_param[1].s, entry->validate_param[2].ptr);
+cfg_schema_help_choice(const struct cfg_schema_entry *entry, struct autobuf *out) {
+  cfg_help_choice(out, true, entry->validate_param[0].ptr, entry->validate_param[1].s, entry->validate_param[2].ptr);
 }
 
 /**
@@ -653,9 +628,8 @@ cfg_schema_help_choice(
  */
 void
 cfg_schema_help_int(const struct cfg_schema_entry *entry, struct autobuf *out) {
-  cfg_help_int(out, entry->validate_param[0].i64, entry->validate_param[1].i64,
-      entry->validate_param[2].i16[0],
-      entry->validate_param[2].i16[1]);
+  cfg_help_int(out, entry->validate_param[0].i64, entry->validate_param[1].i64, entry->validate_param[2].i16[0],
+    entry->validate_param[2].i16[1]);
 }
 
 /**
@@ -665,10 +639,8 @@ cfg_schema_help_int(const struct cfg_schema_entry *entry, struct autobuf *out) {
  * @param out pointer to autobuffer for validator output
  */
 void
-cfg_schema_help_netaddr(
-    const struct cfg_schema_entry *entry, struct autobuf *out) {
-  cfg_help_netaddr(out, true, entry->validate_param[1].b,
-      entry->validate_param[0].i8, 5);
+cfg_schema_help_netaddr(const struct cfg_schema_entry *entry, struct autobuf *out) {
+  cfg_help_netaddr(out, true, entry->validate_param[1].b, entry->validate_param[0].i8, 5);
 }
 
 /**
@@ -678,10 +650,8 @@ cfg_schema_help_netaddr(
  * @param out pointer to autobuffer for validator output
  */
 void
-cfg_schema_help_acl(
-    const struct cfg_schema_entry *entry, struct autobuf *out) {
-  cfg_help_acl(out, true, entry->validate_param[1].b,
-      entry->validate_param[0].i8, 5);
+cfg_schema_help_acl(const struct cfg_schema_entry *entry, struct autobuf *out) {
+  cfg_help_acl(out, true, entry->validate_param[1].b, entry->validate_param[0].i8, 5);
 }
 
 /**
@@ -691,9 +661,7 @@ cfg_schema_help_acl(
  * @param out pointer to autobuffer for validator output
  */
 void
-cfg_schema_help_bitmap256(
-    const struct cfg_schema_entry *entry __attribute__((unused)),
-    struct autobuf *out) {
+cfg_schema_help_bitmap256(const struct cfg_schema_entry *entry __attribute__((unused)), struct autobuf *out) {
   cfg_help_bitmap256(out, true);
 }
 
@@ -704,13 +672,10 @@ cfg_schema_help_bitmap256(
  * @param out pointer to autobuffer for help output
  */
 void
-cfg_schema_help_token(
-    const struct cfg_schema_entry *entry, struct autobuf *out) {
-  cfg_help_token(out, true, entry,
-      entry->validate_param[0].ptr, entry->validate_param[1].s,
-      entry->validate_param[2].ptr);
+cfg_schema_help_token(const struct cfg_schema_entry *entry, struct autobuf *out) {
+  cfg_help_token(
+    out, true, entry, entry->validate_param[0].ptr, entry->validate_param[1].s, entry->validate_param[2].ptr);
 }
-
 
 /**
  * Binary converter for string pointers. This validator will
@@ -723,8 +688,7 @@ cfg_schema_help_token(
  * @return 0 if conversion succeeded, -1 otherwise.
  */
 int
-cfg_schema_tobin_strptr(const struct cfg_schema_entry *s_entry,
-    const struct const_strarray *value, void *reference) {
+cfg_schema_tobin_strptr(const struct cfg_schema_entry *s_entry, const struct const_strarray *value, void *reference) {
   if (s_entry->list) {
     /* we don't support direct list conversion to binary */
     return -1;
@@ -741,14 +705,12 @@ cfg_schema_tobin_strptr(const struct cfg_schema_entry *s_entry,
  * @return 0 if conversion succeeded, -1 otherwise.
  */
 int
-cfg_schema_tobin_strarray(const struct cfg_schema_entry *s_entry,
-    const struct const_strarray *value, void *reference) {
+cfg_schema_tobin_strarray(const struct cfg_schema_entry *s_entry, const struct const_strarray *value, void *reference) {
   if (s_entry->list) {
     /* we don't support direct list conversion to binary */
     return -1;
   }
-  return cfg_tobin_strarray(reference, s_entry->bin_size, value,
-      s_entry->validate_param[0].s);
+  return cfg_tobin_strarray(reference, s_entry->bin_size, value, s_entry->validate_param[0].s);
 }
 
 /**
@@ -761,15 +723,13 @@ cfg_schema_tobin_strarray(const struct cfg_schema_entry *s_entry,
  * @return 0 if conversion succeeded, -1 otherwise.
  */
 int
-cfg_schema_tobin_choice(const struct cfg_schema_entry *s_entry,
-    const struct const_strarray *value, void *reference) {
+cfg_schema_tobin_choice(const struct cfg_schema_entry *s_entry, const struct const_strarray *value, void *reference) {
   if (s_entry->list) {
     /* we don't support direct list conversion to binary */
     return -1;
   }
-  return cfg_tobin_choice(reference, s_entry->bin_size, value,
-      s_entry->validate_param[0].ptr, s_entry->validate_param[1].s,
-      s_entry->validate_param[2].ptr);
+  return cfg_tobin_choice(reference, s_entry->bin_size, value, s_entry->validate_param[0].ptr,
+    s_entry->validate_param[1].s, s_entry->validate_param[2].ptr);
 }
 
 /**
@@ -781,14 +741,13 @@ cfg_schema_tobin_choice(const struct cfg_schema_entry *s_entry,
  * @return 0 if conversion succeeded, -1 otherwise.
  */
 int
-cfg_schema_tobin_int(const struct cfg_schema_entry *s_entry,
-    const struct const_strarray *value, void *reference) {
+cfg_schema_tobin_int(const struct cfg_schema_entry *s_entry, const struct const_strarray *value, void *reference) {
   if (s_entry->list) {
     /* we don't support direct list conversion to binary */
     return -1;
   }
-  return cfg_tobin_int(reference, s_entry->bin_size, value,
-      s_entry->validate_param[2].u16[1], s_entry->validate_param[2].u16[0]);
+  return cfg_tobin_int(
+    reference, s_entry->bin_size, value, s_entry->validate_param[2].u16[1], s_entry->validate_param[2].u16[0]);
 }
 
 /**
@@ -798,9 +757,9 @@ cfg_schema_tobin_int(const struct cfg_schema_entry *s_entry,
  * @param value pointer to value of configuration entry.
  * @param reference pointer to binary output buffer.
  * @return 0 if conversion succeeded, -1 otherwise.
- */int
-cfg_schema_tobin_netaddr(const struct cfg_schema_entry *s_entry,
-    const struct const_strarray *value, void *reference) {
+ */
+int
+cfg_schema_tobin_netaddr(const struct cfg_schema_entry *s_entry, const struct const_strarray *value, void *reference) {
   if (s_entry->list) {
     /* we don't support direct list conversion to binary */
     return -1;
@@ -817,8 +776,7 @@ cfg_schema_tobin_netaddr(const struct cfg_schema_entry *s_entry,
  * @return -1 if an error happened, 0 otherwise
  */
 int
-cfg_schema_tobin_acl(const struct cfg_schema_entry *s_entry,
-     const struct const_strarray *value, void *reference) {
+cfg_schema_tobin_acl(const struct cfg_schema_entry *s_entry, const struct const_strarray *value, void *reference) {
   return cfg_tobin_acl(reference, s_entry->bin_size, value);
 }
 
@@ -831,22 +789,21 @@ cfg_schema_tobin_acl(const struct cfg_schema_entry *s_entry,
  * @return -1 if an error happened, 0 otherwise
  */
 int
-cfg_schema_tobin_bitmap256(const struct cfg_schema_entry *s_entry,
-     const struct const_strarray *value, void *reference) {
+cfg_schema_tobin_bitmap256(
+  const struct cfg_schema_entry *s_entry, const struct const_strarray *value, void *reference) {
   return cfg_tobin_bitmap256(reference, s_entry->bin_size, value);
 }
 
- /**
-  * Binary converter for booleans.
-  * See CFG_MAP_BOOL() macro in cfg_schema.h
-  * @param s_entry pointer to configuration entry schema.
-  * @param value pointer to value of configuration entry.
-  * @param reference pointer to binary output buffer.
-  * @return 0 if conversion succeeded, -1 otherwise.
-  */
+/**
+ * Binary converter for booleans.
+ * See CFG_MAP_BOOL() macro in cfg_schema.h
+ * @param s_entry pointer to configuration entry schema.
+ * @param value pointer to value of configuration entry.
+ * @param reference pointer to binary output buffer.
+ * @return 0 if conversion succeeded, -1 otherwise.
+ */
 int
-cfg_schema_tobin_bool(const struct cfg_schema_entry *s_entry,
-    const struct const_strarray *value, void *reference) {
+cfg_schema_tobin_bool(const struct cfg_schema_entry *s_entry, const struct const_strarray *value, void *reference) {
   if (s_entry->list) {
     /* we don't support direct list conversion to binary */
     return -1;
@@ -863,8 +820,8 @@ cfg_schema_tobin_bool(const struct cfg_schema_entry *s_entry,
  * @return 0 if conversion succeeded, -1 otherwise.
  */
 int
-cfg_schema_tobin_stringlist(const struct cfg_schema_entry *s_entry,
-    const struct const_strarray *value, void *reference) {
+cfg_schema_tobin_stringlist(
+  const struct cfg_schema_entry *s_entry, const struct const_strarray *value, void *reference) {
   return cfg_tobin_stringlist(reference, s_entry->bin_size, value);
 }
 
@@ -877,16 +834,13 @@ cfg_schema_tobin_stringlist(const struct cfg_schema_entry *s_entry,
  * @return 0 if conversion succeeded, -1 otherwise.
  */
 int
-cfg_schema_tobin_tokens(const struct cfg_schema_entry *s_entry,
-    const struct const_strarray *value, void *reference) {
+cfg_schema_tobin_tokens(const struct cfg_schema_entry *s_entry, const struct const_strarray *value, void *reference) {
   if (s_entry->list) {
     /* we don't support direct list conversion to binary */
     return -1;
   }
-  return cfg_tobin_tokens(reference,
-      strarray_get_first_c(value),
-      s_entry->validate_param[0].ptr, s_entry->validate_param[1].s,
-      s_entry->validate_param[2].ptr);
+  return cfg_tobin_tokens(reference, strarray_get_first_c(value), s_entry->validate_param[0].ptr,
+    s_entry->validate_param[1].s, s_entry->validate_param[2].ptr);
 }
 
 /**
@@ -931,7 +885,7 @@ _handle_db_changes(struct cfg_db *pre_change, struct cfg_db *post_change, bool s
   struct cfg_schema_section *s_section;
   struct cfg_section_type *pre_type, *post_type;
   struct cfg_named_section *pre_named, *post_named, *named_it;
-  struct cfg_named_section * pre_defnamed, *post_defnamed;
+  struct cfg_named_section *pre_defnamed, *post_defnamed;
 
   if (pre_change->schema == NULL || pre_change->schema != post_change->schema) {
     /* no valid schema found */
@@ -989,8 +943,8 @@ _handle_db_changes(struct cfg_db *pre_change, struct cfg_db *post_change, bool s
       /* handle new named sections and changes */
       pre_named = NULL;
       CFG_FOR_ALL_SECTION_NAMES(post_type, post_named, named_it) {
-        _handle_named_section_change(s_section, pre_change, post_change,
-            post_named->name, startup, pre_defnamed, post_defnamed);
+        _handle_named_section_change(
+          s_section, pre_change, post_change, post_named->name, startup, pre_defnamed, post_defnamed);
       }
     }
     if (pre_type) {
@@ -1002,21 +956,19 @@ _handle_db_changes(struct cfg_db *pre_change, struct cfg_db *post_change, bool s
         }
 
         if (!post_named) {
-          _handle_named_section_change(s_section, pre_change, post_change,
-              pre_named->name, startup, pre_defnamed, post_defnamed);
+          _handle_named_section_change(
+            s_section, pre_change, post_change, pre_named->name, startup, pre_defnamed, post_defnamed);
         }
       }
     }
-    if (startup && s_section->mode == CFG_SSMODE_UNNAMED
-        && pre_type == NULL && post_type == NULL) {
+    if (startup && s_section->mode == CFG_SSMODE_UNNAMED && pre_type == NULL && post_type == NULL) {
       /* send change signal on startup for unnamed section */
-      _handle_named_section_change(s_section, pre_change, post_change, NULL, true,
-          pre_defnamed, post_defnamed);
+      _handle_named_section_change(s_section, pre_change, post_change, NULL, true, pre_defnamed, post_defnamed);
     }
     if ((pre_defnamed != NULL) != (post_defnamed != NULL)) {
       /* status of default named section changed */
-      _handle_named_section_change(s_section, pre_change, post_change,
-          s_section->def_name, true, pre_defnamed, post_defnamed);
+      _handle_named_section_change(
+        s_section, pre_change, post_change, s_section->def_name, true, pre_defnamed, post_defnamed);
     }
   }
   return 0;
@@ -1034,9 +986,8 @@ _handle_db_changes(struct cfg_db *pre_change, struct cfg_db *post_change, bool s
  * @return true if an error happened, false otherwise
  */
 static bool
-_validate_cfg_entry(struct cfg_db *db, struct cfg_section_type *section,
-    struct cfg_named_section *named, struct cfg_entry *entry,
-    const char *section_name, bool cleanup, struct autobuf *out) {
+_validate_cfg_entry(struct cfg_db *db, struct cfg_section_type *section, struct cfg_named_section *named,
+  struct cfg_entry *entry, const char *section_name, bool cleanup, struct autobuf *out) {
   struct cfg_schema_entry *schema_entry, *s_entry_it;
   struct cfg_schema_entry_key key;
   bool warning, do_remove;
@@ -1048,9 +999,7 @@ _validate_cfg_entry(struct cfg_db *db, struct cfg_section_type *section,
   key.type = section->type;
   key.entry = entry->name;
 
-  avl_for_each_elements_with_key(
-      &db->schema->entries, schema_entry, _node, s_entry_it, &key) {
-
+  avl_for_each_elements_with_key(&db->schema->entries, schema_entry, _node, s_entry_it, &key) {
     if (schema_entry->cb_validate == NULL) {
       continue;
     }
@@ -1059,8 +1008,7 @@ _validate_cfg_entry(struct cfg_db *db, struct cfg_section_type *section,
     ptr1 = entry->val.value;
 
     do_remove = false;
-    while (!strarray_is_empty(&entry->val)
-        && ptr1 < entry->val.value + entry->val.length) {
+    while (!strarray_is_empty(&entry->val) && ptr1 < entry->val.value + entry->val.length) {
       if (!do_remove && schema_entry->cb_validate(schema_entry, section_name, ptr1, out) != 0) {
         /* warning is generated by the validate callback itself */
         warning = true;
@@ -1098,19 +1046,16 @@ _validate_cfg_entry(struct cfg_db *db, struct cfg_section_type *section,
  * @param post_defnamed named section with default name after change
  */
 static void
-_handle_named_section_change(struct cfg_schema_section *s_section,
-    struct cfg_db *pre_change, struct cfg_db *post_change,
-    const char *section_name, bool startup,
-    struct cfg_named_section *pre_defnamed,
-    struct cfg_named_section *post_defnamed) {
+_handle_named_section_change(struct cfg_schema_section *s_section, struct cfg_db *pre_change,
+  struct cfg_db *post_change, const char *section_name, bool startup, struct cfg_named_section *pre_defnamed,
+  struct cfg_named_section *post_defnamed) {
   struct cfg_schema_entry *entry;
   bool changed;
   size_t i;
 
-  if ((s_section->mode == CFG_SSMODE_NAMED
-       || s_section->mode == CFG_SSMODE_NAMED_MANDATORY
-       || s_section->mode == CFG_SSMODE_NAMED_WITH_DEFAULT)
-      && section_name == NULL) {
+  if ((s_section->mode == CFG_SSMODE_NAMED || s_section->mode == CFG_SSMODE_NAMED_MANDATORY ||
+        s_section->mode == CFG_SSMODE_NAMED_WITH_DEFAULT) &&
+      section_name == NULL) {
     /*
      * ignore unnamed data entry for named sections, they are only
      * used for delivering defaults
@@ -1118,11 +1063,10 @@ _handle_named_section_change(struct cfg_schema_section *s_section,
     return;
   }
 
-  s_section->pre = cfg_db_find_namedsection(pre_change, s_section->type, section_name );
-  s_section->post = cfg_db_find_namedsection(post_change, s_section->type, section_name );
+  s_section->pre = cfg_db_find_namedsection(pre_change, s_section->type, section_name);
+  s_section->post = cfg_db_find_namedsection(post_change, s_section->type, section_name);
 
-  if (s_section->mode == CFG_SSMODE_NAMED_WITH_DEFAULT
-      && strcasecmp(s_section->def_name, section_name ) == 0) {
+  if (s_section->mode == CFG_SSMODE_NAMED_WITH_DEFAULT && strcasecmp(s_section->def_name, section_name) == 0) {
     /* use the default named sections if necessary */
     if (s_section->pre == NULL && !startup) {
       s_section->pre = pre_defnamed;
@@ -1134,22 +1078,19 @@ _handle_named_section_change(struct cfg_schema_section *s_section,
 
   changed = false;
 
-  if ((s_section->mode == CFG_SSMODE_NAMED
-      || s_section->mode == CFG_SSMODE_NAMED_MANDATORY
-      || s_section->mode == CFG_SSMODE_NAMED_WITH_DEFAULT)
-      && (s_section->pre == NULL) != (s_section->post == NULL)) {
+  if ((s_section->mode == CFG_SSMODE_NAMED || s_section->mode == CFG_SSMODE_NAMED_MANDATORY ||
+        s_section->mode == CFG_SSMODE_NAMED_WITH_DEFAULT) &&
+      (s_section->pre == NULL) != (s_section->post == NULL)) {
     /* section vanished or appeared */
     changed = true;
   }
 
-  for (i=0; i<s_section->entry_count; i++) {
+  for (i = 0; i < s_section->entry_count; i++) {
     entry = &s_section->entries[i];
 
     /* read values */
-    entry->pre = cfg_db_get_entry_value(
-        pre_change, s_section->type, section_name, entry->key.entry);
-    entry->post = cfg_db_get_entry_value(
-        post_change, s_section->type, section_name, entry->key.entry);
+    entry->pre = cfg_db_get_entry_value(pre_change, s_section->type, section_name, entry->key.entry);
+    entry->post = cfg_db_get_entry_value(post_change, s_section->type, section_name, entry->key.entry);
 
     entry->delta_changed = strarray_cmp_c(entry->pre, entry->post);
     changed |= entry->delta_changed;

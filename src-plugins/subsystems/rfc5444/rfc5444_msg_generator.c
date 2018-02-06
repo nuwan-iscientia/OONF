@@ -52,13 +52,13 @@
 #include <stdio.h>
 #endif
 
-#include "common/common_types.h"
 #include "common/avl.h"
+#include "common/common_types.h"
 #include "common/list.h"
 #include "common/netaddr.h"
 
-#include "rfc5444_writer.h"
 #include "rfc5444_api_config.h"
+#include "rfc5444_writer.h"
 
 /**
  * data necessary for automatic address compression
@@ -80,18 +80,17 @@ struct _rfc5444_internal_addr_compress_session {
   bool closed;
 };
 
-static void _close_addrblock(struct _rfc5444_internal_addr_compress_session *acs,
-    struct rfc5444_writer *writer, struct rfc5444_writer_address *last_addr, int);
-static void _finalize_message_fragment(struct rfc5444_writer *writer,
-    struct rfc5444_writer_message *msg, struct list_entity *fragment_addrs, bool not_fragmented,
-    rfc5444_writer_targetselector useIf, void *param);
-static int _compress_address(struct _rfc5444_internal_addr_compress_session *acs,
-    struct rfc5444_writer *writer, struct list_entity *addr_list, int same_prefixlen);
-static void _write_addresses(struct rfc5444_writer *writer, struct rfc5444_writer_message *msg,
-    struct list_entity *fragment_addrs);
+static void _close_addrblock(struct _rfc5444_internal_addr_compress_session *acs, struct rfc5444_writer *writer,
+  struct rfc5444_writer_address *last_addr, int);
+static void _finalize_message_fragment(struct rfc5444_writer *writer, struct rfc5444_writer_message *msg,
+  struct list_entity *fragment_addrs, bool not_fragmented, rfc5444_writer_targetselector useIf, void *param);
+static int _compress_address(struct _rfc5444_internal_addr_compress_session *acs, struct rfc5444_writer *writer,
+  struct list_entity *addr_list, int same_prefixlen);
+static void _write_addresses(
+  struct rfc5444_writer *writer, struct rfc5444_writer_message *msg, struct list_entity *fragment_addrs);
 static void _write_msgheader(struct rfc5444_writer *writer, struct rfc5444_writer_message *msg);
 static uint8_t *_write_addresstlvs(struct rfc5444_writer *writer, struct rfc5444_writer_message *msg,
-    struct rfc5444_writer_address *first, struct rfc5444_writer_address *last, uint8_t *ptr);
+  struct rfc5444_writer_address *first, struct rfc5444_writer_address *last, uint8_t *ptr);
 
 /*! temporary buffer for messages when going through a postprocessor */
 static uint8_t _msg_buffer[RFC5444_MAX_MESSAGE_SIZE];
@@ -109,8 +108,9 @@ static uint8_t _msg_buffer[RFC5444_MAX_MESSAGE_SIZE];
  *   RFC5444_... otherwise
  */
 enum rfc5444_result
-rfc5444_writer_create_message(struct rfc5444_writer *writer, uint8_t msgid,
-    uint8_t addr_len, rfc5444_writer_targetselector useIf, void *param) {
+rfc5444_writer_create_message(
+  struct rfc5444_writer *writer, uint8_t msgid, uint8_t addr_len, rfc5444_writer_targetselector useIf, void *param)
+{
   struct rfc5444_writer_message *msg;
   struct rfc5444_writer_content_provider *prv;
   struct list_entity *ptr1;
@@ -206,8 +206,8 @@ rfc5444_writer_create_message(struct rfc5444_writer *writer, uint8_t msgid,
       _rfc5444_writer_begin_packet(writer, target);
     }
 
-    interface_msg_mtu = target->packet_size - processor_preallocation
-        - (target->_pkt.header + target->_pkt.added + target->_pkt.allocated);
+    interface_msg_mtu = target->packet_size - processor_preallocation -
+                        (target->_pkt.header + target->_pkt.added + target->_pkt.allocated);
     if (interface_msg_mtu < max_msg_size) {
       max_msg_size = interface_msg_mtu;
     }
@@ -287,7 +287,7 @@ rfc5444_writer_create_message(struct rfc5444_writer *writer, uint8_t msgid,
   idx = 0;
   non_mandatory = 0;
   ptr1 = msg->_addr_head.next;
-  while(ptr1 != &msg->_addr_head) {
+  while (ptr1 != &msg->_addr_head) {
     addr = container_of(ptr1, struct rfc5444_writer_address, _addr_list_node);
     if (addr->_done && !addr->_mandatory_addr) {
       ptr1 = ptr1->next;
@@ -364,7 +364,8 @@ rfc5444_writer_create_message(struct rfc5444_writer *writer, uint8_t msgid,
 
       /* continue without stepping forward */
       continue;
-    } else {
+    }
+    else {
       /* add cost for this address to total costs */
       for (i = 0; i < writer->msg_addr_len; i++) {
         acs[i].total += acs[i].current;
@@ -413,8 +414,8 @@ rfc5444_writer_create_message(struct rfc5444_writer *writer, uint8_t msgid,
  * @return true if param equals interf, false otherwise
  */
 bool
-rfc5444_writer_singletarget_selector(struct rfc5444_writer *writer __attribute__ ((unused)),
-    struct rfc5444_writer_target *interf, void *param) {
+rfc5444_writer_singletarget_selector(
+  struct rfc5444_writer *writer __attribute__((unused)), struct rfc5444_writer_target *interf, void *param) {
   return interf == param;
 }
 
@@ -425,9 +426,9 @@ rfc5444_writer_singletarget_selector(struct rfc5444_writer *writer __attribute__
  * @param param unused
  * @return always true
  */
-bool rfc5444_writer_alltargets_selector(struct rfc5444_writer *writer __attribute__ ((unused)),
-    struct rfc5444_writer_target *interf __attribute__ ((unused)),
-    void *param __attribute__ ((unused))) {
+bool
+rfc5444_writer_alltargets_selector(struct rfc5444_writer *writer __attribute__((unused)),
+  struct rfc5444_writer_target *interf __attribute__((unused)), void *param __attribute__((unused))) {
   return true;
 }
 
@@ -448,9 +449,9 @@ bool rfc5444_writer_alltargets_selector(struct rfc5444_writer *writer __attribut
  *   RFC5444_... if an error happened
  */
 enum rfc5444_result
-rfc5444_writer_forward_msg(struct rfc5444_writer *writer,
-    struct rfc5444_reader_tlvblock_context *context,
-    const uint8_t *msg, size_t len) {
+rfc5444_writer_forward_msg(
+  struct rfc5444_writer *writer, struct rfc5444_reader_tlvblock_context *context, const uint8_t *msg, size_t len)
+{
   struct rfc5444_writer_target *target;
   struct rfc5444_writer_message *rfc5444_msg;
   struct rfc5444_writer_forward_handler *handler;
@@ -464,8 +465,7 @@ rfc5444_writer_forward_msg(struct rfc5444_writer *writer,
   assert(writer->_state == RFC5444_WRITER_NONE);
 #endif
 
-  rfc5444_msg = avl_find_element(&writer->_msgcreators,
-      &context->msg_type, rfc5444_msg, _msgcreator_node);
+  rfc5444_msg = avl_find_element(&writer->_msgcreators, &context->msg_type, rfc5444_msg, _msgcreator_node);
   if (rfc5444_msg == NULL) {
     /* error, no msgcreator found */
     return RFC5444_NO_MSGCREATOR;
@@ -493,8 +493,8 @@ rfc5444_writer_forward_msg(struct rfc5444_writer *writer,
 
     max = 0;
     if (!target->_is_flushed) {
-      max = target->_pkt.max -
-          (target->_pkt.header + target->_pkt.added + target->_pkt.allocated + target->_bin_msgs_size);
+      max =
+        target->_pkt.max - (target->_pkt.header + target->_pkt.added + target->_pkt.allocated + target->_bin_msgs_size);
 
       if (len + transformer_overhead > max) {
         /* flush the old packet */
@@ -504,9 +504,9 @@ rfc5444_writer_forward_msg(struct rfc5444_writer *writer,
 
     if (target->_is_flushed) {
       /* begin a new packet */
-      _rfc5444_writer_begin_packet(writer,target);
-      max = target->_pkt.max -
-          (target->_pkt.header + target->_pkt.added + target->_pkt.allocated + target->_bin_msgs_size);
+      _rfc5444_writer_begin_packet(writer, target);
+      max =
+        target->_pkt.max - (target->_pkt.header + target->_pkt.added + target->_pkt.allocated + target->_bin_msgs_size);
     }
 
     if (len + transformer_overhead > max) {
@@ -529,8 +529,7 @@ rfc5444_writer_forward_msg(struct rfc5444_writer *writer,
 
   /* run processors (unpspecific) forwarding processors */
   avl_for_each_element(&writer->_forwarding_processors, handler, _node) {
-    if (handler->is_matching_signature(handler, msg[0])
-        && !handler->target_specific) {
+    if (handler->is_matching_signature(handler, msg[0]) && !handler->target_specific) {
       if (handler->process(handler, target, context, _msg_buffer, &generic_size)) {
         /* error, we have not modified the _bin_msgs_size, so we can just return */
         return RFC5444_FW_BAD_TRANSFORM;
@@ -541,7 +540,6 @@ rfc5444_writer_forward_msg(struct rfc5444_writer *writer,
       }
     }
   }
-
 
   /* 3) grab index of header structures */
   flags = msg[1];
@@ -575,8 +573,8 @@ rfc5444_writer_forward_msg(struct rfc5444_writer *writer,
       continue;
     }
 
-    ptr = &target->_pkt.buffer[target->_pkt.header + target->_pkt.added
-                            + target->_pkt.allocated + target->_bin_msgs_size];
+    ptr =
+      &target->_pkt.buffer[target->_pkt.header + target->_pkt.added + target->_pkt.allocated + target->_bin_msgs_size];
 
     /* copy message into packet buffer */
     assert(ptr + generic_size <= target->_pkt.buffer + target->_pkt.max);
@@ -587,8 +585,7 @@ rfc5444_writer_forward_msg(struct rfc5444_writer *writer,
 
     /* run processors */
     avl_for_each_element(&writer->_forwarding_processors, handler, _node) {
-      if (handler->is_matching_signature(handler, msg[0])
-          && handler->target_specific) {
+      if (handler->is_matching_signature(handler, msg[0]) && handler->target_specific) {
         if (handler->process(handler, target, context, ptr, &msg_size)) {
           /* error, we have not modified the _bin_msgs_size, so we can just return */
           return RFC5444_FW_BAD_TRANSFORM;
@@ -636,8 +633,9 @@ rfc5444_writer_forward_msg(struct rfc5444_writer *writer,
  * @return RFC5444_OKAY if tlv has been added to packet, RFC5444_... otherwise
  */
 enum rfc5444_result
-rfc5444_writer_add_messagetlv(struct rfc5444_writer *writer,
-    uint8_t type, uint8_t exttype, const void *value, size_t length) {
+rfc5444_writer_add_messagetlv(
+  struct rfc5444_writer *writer, uint8_t type, uint8_t exttype, const void *value, size_t length)
+{
 #if WRITER_STATE_MACHINE == true
   assert(writer->_state == RFC5444_WRITER_ADD_MSGTLV);
 #endif
@@ -654,8 +652,8 @@ rfc5444_writer_add_messagetlv(struct rfc5444_writer *writer,
  * @return RFC5444_OKAY if memory for tlv has been allocated, RFC5444_... otherwise
  */
 enum rfc5444_result
-rfc5444_writer_allocate_messagetlv(struct rfc5444_writer *writer,
-    bool has_exttype, size_t length) {
+rfc5444_writer_allocate_messagetlv(struct rfc5444_writer *writer, bool has_exttype, size_t length)
+{
 #if WRITER_STATE_MACHINE == true
   assert(writer->_state == RFC5444_WRITER_ADD_MSGTLV);
 #endif
@@ -674,8 +672,9 @@ rfc5444_writer_allocate_messagetlv(struct rfc5444_writer *writer,
  * @return RFC5444_OKAY if tlv has been set to packet, RFC5444_... otherwise
  */
 enum rfc5444_result
-rfc5444_writer_set_messagetlv(struct rfc5444_writer *writer,
-    uint8_t type, uint8_t exttype, const void *value, size_t length) {
+rfc5444_writer_set_messagetlv(
+  struct rfc5444_writer *writer, uint8_t type, uint8_t exttype, const void *value, size_t length)
+{
 #if WRITER_STATE_MACHINE == true
   assert(writer->_state == RFC5444_WRITER_FINISH_MSGTLV);
 #endif
@@ -694,9 +693,8 @@ rfc5444_writer_set_messagetlv(struct rfc5444_writer *writer,
  * @param has_seqno true if header contains a sequence number
  */
 void
-rfc5444_writer_set_msg_header(struct rfc5444_writer *writer, struct rfc5444_writer_message *msg,
-    bool has_originator, bool has_hopcount, bool has_hoplimit, bool has_seqno) {
-
+rfc5444_writer_set_msg_header(struct rfc5444_writer *writer, struct rfc5444_writer_message *msg, bool has_originator,
+  bool has_hopcount, bool has_hoplimit, bool has_seqno) {
 #if WRITER_STATE_MACHINE == true
   assert(writer->_state == RFC5444_WRITER_ADD_HEADER);
 #endif
@@ -733,8 +731,8 @@ rfc5444_writer_set_msg_header(struct rfc5444_writer *writer, struct rfc5444_writ
  * @param originator pointer to originator address buffer
  */
 void
-rfc5444_writer_set_msg_originator(struct rfc5444_writer *writer,
-    struct rfc5444_writer_message *msg, const void *originator) {
+rfc5444_writer_set_msg_originator(
+  struct rfc5444_writer *writer, struct rfc5444_writer_message *msg, const void *originator) {
 #if WRITER_STATE_MACHINE == true
   assert(writer->_state == RFC5444_WRITER_ADD_HEADER || writer->_state == RFC5444_WRITER_FINISH_HEADER);
 #endif
@@ -752,8 +750,8 @@ rfc5444_writer_set_msg_originator(struct rfc5444_writer *writer,
  * @param hopcount hopcount to set
  */
 void
-rfc5444_writer_set_msg_hopcount(struct rfc5444_writer *writer __attribute__ ((unused)),
-    struct rfc5444_writer_message *msg, uint8_t hopcount) {
+rfc5444_writer_set_msg_hopcount(
+  struct rfc5444_writer *writer __attribute__((unused)), struct rfc5444_writer_message *msg, uint8_t hopcount) {
 #if WRITER_STATE_MACHINE == true
   assert(writer->_state == RFC5444_WRITER_ADD_HEADER || writer->_state == RFC5444_WRITER_FINISH_HEADER);
 #endif
@@ -770,8 +768,8 @@ rfc5444_writer_set_msg_hopcount(struct rfc5444_writer *writer __attribute__ ((un
  * @param hoplimit hoplimit to set
  */
 void
-rfc5444_writer_set_msg_hoplimit(struct rfc5444_writer *writer __attribute__ ((unused)),
-    struct rfc5444_writer_message *msg, uint8_t hoplimit) {
+rfc5444_writer_set_msg_hoplimit(
+  struct rfc5444_writer *writer __attribute__((unused)), struct rfc5444_writer_message *msg, uint8_t hoplimit) {
 #if WRITER_STATE_MACHINE == true
   assert(writer->_state == RFC5444_WRITER_ADD_HEADER || writer->_state == RFC5444_WRITER_FINISH_HEADER);
 #endif
@@ -788,8 +786,8 @@ rfc5444_writer_set_msg_hoplimit(struct rfc5444_writer *writer __attribute__ ((un
  * @param seqno sequence number of message header
  */
 void
-rfc5444_writer_set_msg_seqno(struct rfc5444_writer *writer __attribute__ ((unused)),
-    struct rfc5444_writer_message *msg, uint16_t seqno) {
+rfc5444_writer_set_msg_seqno(
+  struct rfc5444_writer *writer __attribute__((unused)), struct rfc5444_writer_message *msg, uint16_t seqno) {
 #if WRITER_STATE_MACHINE == true
   assert(writer->_state == RFC5444_WRITER_ADD_HEADER || writer->_state == RFC5444_WRITER_FINISH_HEADER);
 #endif
@@ -806,9 +804,8 @@ rfc5444_writer_set_msg_seqno(struct rfc5444_writer *writer __attribute__ ((unuse
  * @param common_head length of common head
  */
 static void
-_close_addrblock(struct _rfc5444_internal_addr_compress_session *acs,
-    struct rfc5444_writer *writer,
-    struct rfc5444_writer_address *last_addr, int common_head) {
+_close_addrblock(struct _rfc5444_internal_addr_compress_session *acs, struct rfc5444_writer *writer,
+  struct rfc5444_writer_address *last_addr, int common_head) {
   int best;
   int i, size;
   if (common_head > writer->msg_addr_len) {
@@ -851,9 +848,8 @@ _close_addrblock(struct _rfc5444_internal_addr_compress_session *acs,
  * @return new number of messages with same prefix length
  */
 static int
-_compress_address(struct _rfc5444_internal_addr_compress_session *acs,
-    struct rfc5444_writer *writer, struct list_entity *addr_list,
-    int same_prefixlen) {
+_compress_address(struct _rfc5444_internal_addr_compress_session *acs, struct rfc5444_writer *writer,
+  struct list_entity *addr_list, int same_prefixlen) {
   struct rfc5444_writer_address *addr, *last_addr;
   struct rfc5444_writer_addrtlv *tlv, *last_tlv;
   struct rfc5444_writer_tlvtype *tlvtype;
@@ -881,11 +877,10 @@ _compress_address(struct _rfc5444_internal_addr_compress_session *acs,
 #ifdef DEBUG_OUTPUT
   {
     struct netaddr_str nbuf1, nbuf2;
-    printf("Compress Address %s (last: %s)\n",
-        netaddr_to_string(&nbuf1, &addr->address),
-        last_addr == NULL ? "" : netaddr_to_string(&nbuf2, &last_addr->address));
+    printf("Compress Address %s (last: %s)\n", netaddr_to_string(&nbuf1, &addr->address),
+      last_addr == NULL ? "" : netaddr_to_string(&nbuf2, &last_addr->address));
     printf("\ttotal:   ");
-    for (i=0; i<addrlen; i++) {
+    for (i = 0; i < addrlen; i++) {
       printf(" %4d ", acs[i].total);
     }
     printf("\n");
@@ -894,10 +889,10 @@ _compress_address(struct _rfc5444_internal_addr_compress_session *acs,
   /* add size for address part (and header if necessary) */
   if (last_addr) {
     /* remember how many entries with the same prefixlength we had */
-    if (netaddr_get_prefix_length(&last_addr->address)
-        == netaddr_get_prefix_length(&addr->address)) {
+    if (netaddr_get_prefix_length(&last_addr->address) == netaddr_get_prefix_length(&addr->address)) {
       same_prefixlen++;
-    } else {
+    }
+    else {
       same_prefixlen = 1;
     }
 
@@ -911,7 +906,7 @@ _compress_address(struct _rfc5444_internal_addr_compress_session *acs,
     _close_addrblock(acs, writer, last_addr, common_head);
 #ifdef DEBUG_OUTPUT
     printf("\tt-closed:");
-    for (i=0; i<addrlen; i++) {
+    for (i = 0; i < addrlen; i++) {
       printf(" %4d ", acs[i].total);
     }
     printf("\n");
@@ -930,8 +925,7 @@ _compress_address(struct _rfc5444_internal_addr_compress_session *acs,
     tlv->_same_value = false;
 
     if (last_addr) {
-      last_tlv = avl_find_element(&last_addr->_addrtlv_tree,
-          &tlvtype->_full_type, last_tlv, addrtlv_node);
+      last_tlv = avl_find_element(&last_addr->_addrtlv_tree, &tlvtype->_full_type, last_tlv, addrtlv_node);
       if (last_tlv && last_tlv->length == tlv->length) {
         tlv->_same_length = true;
         tlv->_same_value = memcmp(tlv->value, last_tlv->value, tlv->length) == 0;
@@ -1003,7 +997,7 @@ _compress_address(struct _rfc5444_internal_addr_compress_session *acs,
 
       /* check if we are forced to do a new tlv block anyways */
       if (closed || !tlv->_same_length) {
-        /* 
+        /*
          * this TLV does not continue, either because address block is ending or because
          * value length changed
          */
@@ -1023,7 +1017,7 @@ _compress_address(struct _rfc5444_internal_addr_compress_session *acs,
 #ifdef DEBUG_OUTPUT
     printf(" %2d/%2d", continue_cost, closed ? -1 : new_cost);
 #endif
-    if (closed || acs[i].total + continue_cost > acs[addrlen-1].total + new_cost) {
+    if (closed || acs[i].total + continue_cost > acs[addrlen - 1].total + new_cost) {
       /* forget the last addresses, longer prefix is better. */
       /* store address block for later binary generation */
 #if 0
@@ -1037,7 +1031,7 @@ _compress_address(struct _rfc5444_internal_addr_compress_session *acs,
       acs[i].ptr = addr;
       acs[i].multiplen = false;
 
-      acs[i].total = acs[addrlen-1].total;
+      acs[i].total = acs[addrlen - 1].total;
       acs[i].current = new_cost;
       closed = true;
     }
@@ -1072,10 +1066,8 @@ _compress_address(struct _rfc5444_internal_addr_compress_session *acs,
 }
 
 static uint8_t *
-_write_addresstlv(struct rfc5444_writer_tlvtype *tlvtype,
-    struct rfc5444_writer_address *addr_first,
-    struct rfc5444_writer_address *addr_last,
-    uint8_t *ptr) {
+_write_addresstlv(struct rfc5444_writer_tlvtype *tlvtype, struct rfc5444_writer_address *addr_first,
+  struct rfc5444_writer_address *addr_last, uint8_t *ptr) {
   struct rfc5444_writer_addrtlv *tlv_first, *tlv_last, *tlv;
   uint16_t total_len;
   uint8_t *flag;
@@ -1100,10 +1092,12 @@ _write_addresstlv(struct rfc5444_writer_tlvtype *tlvtype,
 
   if (tlv_first->address == addr_first && tlv_last->address == addr_last) {
     /* no index necessary */
-  } else if (tlv_first->address->index == tlv_last->address->index) {
+  }
+  else if (tlv_first->address->index == tlv_last->address->index) {
     *flag |= RFC5444_TLV_FLAG_SINGLE_IDX;
     *ptr++ = tlv_first->address->index - addr_first->index;
-  } else {
+  }
+  else {
     *flag |= RFC5444_TLV_FLAG_MULTI_IDX;
     *ptr++ = tlv_first->address->index - addr_first->index;
     *ptr++ = tlv_last->address->index - addr_first->index;
@@ -1130,7 +1124,8 @@ _write_addresstlv(struct rfc5444_writer_tlvtype *tlvtype,
     if (tlvtype->_same_value) {
       memcpy(ptr, tlv_first->value, tlv_first->length);
       ptr += tlv_first->length;
-    } else {
+    }
+    else {
       list_for_each_element(&tlvtype->_current_tlv_list, tlv, _current_tlv_node) {
         memcpy(ptr, tlv->value, tlv->length);
         ptr += tlv->length;
@@ -1151,7 +1146,7 @@ _write_addresstlv(struct rfc5444_writer_tlvtype *tlvtype,
  */
 static uint8_t *
 _write_addresstlvs(struct rfc5444_writer *writer, struct rfc5444_writer_message *msg,
-    struct rfc5444_writer_address *first, struct rfc5444_writer_address *last, uint8_t *ptr) {
+  struct rfc5444_writer_address *first, struct rfc5444_writer_address *last, uint8_t *ptr) {
   struct rfc5444_writer_tlvtype *tlvtype;
   struct rfc5444_writer_address *addr, *prev_addr;
   struct rfc5444_writer_addrtlv *tlv, *last_tlv;
@@ -1216,8 +1211,8 @@ _write_addresstlvs(struct rfc5444_writer *writer, struct rfc5444_writer_message 
  * @param fragment_addrs list of fragmented addresses
  */
 static void
-_write_addresses(struct rfc5444_writer *writer, struct rfc5444_writer_message *msg,
-    struct list_entity *fragment_addrs) {
+_write_addresses(
+  struct rfc5444_writer *writer, struct rfc5444_writer_message *msg, struct list_entity *fragment_addrs) {
   struct rfc5444_writer_address *addr_start, *addr_end, *addr_first, *addr_last, *addr;
   const uint8_t *addr_start_ptr, *addr_ptr;
   uint8_t *start, *ptr, *flag, *tlvblock_length;
@@ -1255,9 +1250,8 @@ _write_addresses(struct rfc5444_writer *writer, struct rfc5444_writer_message *m
 #ifdef DEBUG_OUTPUT
     {
       struct netaddr_str nbuf1, nbuf2;
-      printf("Write address block from %s to %s\n",
-          netaddr_to_string(&nbuf1, &addr_start->address),
-          netaddr_to_string(&nbuf2, &addr_end->address));
+      printf("Write address block from %s to %s\n", netaddr_to_string(&nbuf1, &addr_start->address),
+        netaddr_to_string(&nbuf2, &addr_end->address));
     }
 #endif
     if (addr_start != addr_end) {
@@ -1276,8 +1270,7 @@ _write_addresses(struct rfc5444_writer *writer, struct rfc5444_writer_message *m
         }
 
         for (tail = 1; tail <= tail_len; tail++) {
-          if (addr_start_ptr[writer->msg_addr_len - tail]
-                             != addr_ptr[writer->msg_addr_len - tail]) {
+          if (addr_start_ptr[writer->msg_addr_len - tail] != addr_ptr[writer->msg_addr_len - tail]) {
             tail_len = tail - 1;
             break;
           }
@@ -1314,7 +1307,8 @@ _write_addresses(struct rfc5444_writer *writer, struct rfc5444_writer_message *m
       *ptr++ = tail_len;
       if (zero_tail) {
         *flag |= RFC5444_ADDR_FLAG_ZEROTAIL;
-      } else {
+      }
+      else {
         *flag |= RFC5444_ADDR_FLAG_FULLTAIL;
         memcpy(ptr, &addr_start_ptr[writer->msg_addr_len - tail_len], tail_len);
         ptr += tail_len;
@@ -1335,8 +1329,8 @@ _write_addresses(struct rfc5444_writer *writer, struct rfc5444_writer_message *m
       list_for_element_range(addr_start, addr_end, addr, _addr_fragment_node) {
         *ptr++ = netaddr_get_prefix_length(&addr->address);
       }
-    } else if (netaddr_get_prefix_length(&addr_start->address)
-        != writer->msg_addr_len * 8) {
+    }
+    else if (netaddr_get_prefix_length(&addr_start->address) != writer->msg_addr_len * 8) {
       /* single prefixlen */
       *flag |= RFC5444_ADDR_FLAG_SINGLEPLEN;
       *ptr++ = netaddr_get_prefix_length(&addr_start->address);
@@ -1350,7 +1344,6 @@ _write_addresses(struct rfc5444_writer *writer, struct rfc5444_writer_message *m
     /* remember pointer for tlvblock length */
     tlvblock_length = ptr;
     ptr += 2;
-
 
     /* generate tlvs */
     ptr = _write_addresstlvs(writer, msg, addr_start, addr_end, ptr);
@@ -1428,8 +1421,7 @@ _write_msgheader(struct rfc5444_writer *writer, struct rfc5444_writer_message *m
  */
 static void
 _finalize_message_fragment(struct rfc5444_writer *writer, struct rfc5444_writer_message *msg,
-    struct list_entity *fragment_addrs, bool not_fragmented,
-    rfc5444_writer_targetselector useIf, void *param) {
+  struct list_entity *fragment_addrs, bool not_fragmented, rfc5444_writer_targetselector useIf, void *param) {
   struct rfc5444_writer_postprocessor *processor;
   struct rfc5444_writer_content_provider *prv;
   struct rfc5444_writer_target *target;
@@ -1473,7 +1465,7 @@ _finalize_message_fragment(struct rfc5444_writer *writer, struct rfc5444_writer_
       }
 
       /* consistency check */
-      assert (addr->_block_start->index > first->index);
+      assert(addr->_block_start->index > first->index);
 
       /* get address block before this one */
       addr = list_prev_element(addr->_block_start, _addr_fragment_node);
@@ -1508,10 +1500,9 @@ _finalize_message_fragment(struct rfc5444_writer *writer, struct rfc5444_writer_
     }
 
     /* calculate total size of packet and message, see if it fits into the current packet */
-    if (target->_pkt.header + target->_pkt.added + target->_pkt.set + target->_bin_msgs_size
-        + writer->_msg.header + writer->_msg.added + writer->_msg.set + msg->_bin_addr_size
-        > target->_pkt.max) {
-
+    if (target->_pkt.header + target->_pkt.added + target->_pkt.set + target->_bin_msgs_size + writer->_msg.header +
+          writer->_msg.added + writer->_msg.set + msg->_bin_addr_size >
+        target->_pkt.max) {
       /* flush the old packet */
       rfc5444_writer_flush(writer, target, false);
 
@@ -1535,8 +1526,7 @@ _finalize_message_fragment(struct rfc5444_writer *writer, struct rfc5444_writer_
 
   /* run processors */
   avl_for_each_element(&writer->_processors, processor, _node) {
-    if (processor->is_matching_signature(processor, msg->type)
-        && !processor->target_specific) {
+    if (processor->is_matching_signature(processor, msg->type) && !processor->target_specific) {
       if (processor->process(processor, target, msg, _msg_buffer, &generic_size)) {
         /* error, we have not modified the _bin_msgs_size, so we can just return */
         return;
@@ -1552,16 +1542,15 @@ _finalize_message_fragment(struct rfc5444_writer *writer, struct rfc5444_writer_
     }
 
     /* get pointer to end of _pkt buffer  and copy it */
-    ptr = &target->_pkt.buffer[target->_pkt.header + target->_pkt.added
-                                 + target->_pkt.allocated + target->_bin_msgs_size];
+    ptr =
+      &target->_pkt.buffer[target->_pkt.header + target->_pkt.added + target->_pkt.allocated + target->_bin_msgs_size];
     memcpy(ptr, _msg_buffer, generic_size);
 
     /* now run the target specific processors */
     msg_size = generic_size;
     error = false;
     avl_for_each_element(&writer->_processors, processor, _node) {
-      if (processor->is_matching_signature(processor, msg->type)
-          && processor->target_specific && msg_size > 0) {
+      if (processor->is_matching_signature(processor, msg->type) && processor->target_specific && msg_size > 0) {
         if (processor->process(processor, target, msg, ptr, &msg_size)) {
           error = true;
           break;

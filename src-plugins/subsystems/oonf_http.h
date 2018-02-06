@@ -65,12 +65,13 @@
 /**
  * Constants for HTTP subsystem
  */
-enum {
+enum
+{
   /*! maximum number of HTTP headers */
   OONF_HTTP_MAX_HEADERS = 16,
 
   /*! maximum number of GET/POST parameters */
-  OONF_HTTP_MAX_PARAMS  = 8,
+  OONF_HTTP_MAX_PARAMS = 8,
 
   /*! maximum URI length */
   OONF_HTTP_MAX_URI_LENGTH = 256
@@ -79,7 +80,8 @@ enum {
 /**
  * supported HTTP result codes
  */
-enum oonf_http_result {
+enum oonf_http_result
+{
   HTTP_200_OK = 200,
   HTTP_400_BAD_REQ = 400,
   HTTP_401_UNAUTHORIZED = 401,
@@ -174,15 +176,13 @@ struct oonf_http_handler {
    * @param session http session object
    * @return http result
    */
-  enum oonf_http_result (*content_handler)(
-      struct autobuf *out, struct oonf_http_session *session);
+  enum oonf_http_result (*content_handler)(struct autobuf *out, struct oonf_http_session *session);
 };
 
 EXPORT void oonf_http_add(struct oonf_http_handler *);
 EXPORT void oonf_http_remove(struct oonf_http_handler *);
 
-EXPORT const char *oonf_http_lookup_value(char **keys, char **values,
-    size_t count, const char *key);
+EXPORT const char *oonf_http_lookup_value(char **keys, char **values, size_t count, const char *key);
 
 /**
  * Lookup the value of one http header field.
@@ -192,8 +192,7 @@ EXPORT const char *oonf_http_lookup_value(char **keys, char **values,
  */
 static INLINE const char *
 oonf_http_lookup_header(struct oonf_http_session *session, const char *key) {
-  return oonf_http_lookup_value(session->header_name, session->header_value,
-      session->header_count, key);
+  return oonf_http_lookup_value(session->header_name, session->header_value, session->header_count, key);
 }
 
 /**
@@ -204,8 +203,7 @@ oonf_http_lookup_header(struct oonf_http_session *session, const char *key) {
  */
 static INLINE const char *
 oonf_http_lookup_param(struct oonf_http_session *session, const char *key) {
-  return oonf_http_lookup_value(session->param_name, session->param_value,
-      session->param_count, key);
+  return oonf_http_lookup_value(session->param_name, session->param_value, session->param_count, key);
 }
 
 #endif /* OONF_HTTP_H_ */

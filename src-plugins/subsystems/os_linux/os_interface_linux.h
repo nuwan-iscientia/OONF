@@ -50,10 +50,11 @@
 #include <linux/rtnetlink.h>
 
 #include "common/common_types.h"
-#include "subsystems/os_interface.h"
 #include "subsystems/os_generic/os_interface_generic.h"
+#include "subsystems/os_interface.h"
 
-enum {
+enum
+{
   /*! interval until an interface change trigger will be activated again */
   OS_INTERFACE_CHANGE_TRIGGER_INTERVAL = 200,
 };
@@ -161,14 +162,12 @@ os_interface_get_data_by_ifbaseindex(unsigned ifindex) {
 }
 
 static INLINE const struct netaddr *
-os_interface_get_bindaddress(int af_type,
-    struct netaddr_acl *filter, struct os_interface *ifdata) {
+os_interface_get_bindaddress(int af_type, struct netaddr_acl *filter, struct os_interface *ifdata) {
   return os_interface_generic_get_bindaddress(af_type, filter, ifdata);
 }
 
 static INLINE const struct os_interface_ip *
-os_interface_get_prefix_from_dst(
-    struct netaddr *destination, struct os_interface *ifdata) {
+os_interface_get_prefix_from_dst(struct netaddr *destination, struct os_interface *ifdata) {
   return os_interface_generic_get_prefix_from_dst(destination, ifdata);
 }
 

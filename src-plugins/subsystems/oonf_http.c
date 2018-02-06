@@ -43,10 +43,10 @@
  * @file
  */
 
-#include <sys/types.h>
-#include <sys/stat.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <sys/stat.h>
+#include <sys/types.h>
 
 #include "common/avl.h"
 #include "common/avl_comp.h"
@@ -68,7 +68,7 @@
 
 #ifndef O_DIRECTORY
 /* uClibc does not define it */
-#define O_DIRECTORY     00200000        /* must be a directory */
+#define O_DIRECTORY 00200000 /* must be a directory */
 #endif
 
 /* Definitions */
@@ -116,66 +116,56 @@ static int _init(void);
 static void _cleanup(void);
 
 static void _cb_config_changed(void);
-static enum oonf_stream_session_state _cb_receive_data(
-    struct oonf_stream_session *session);
-static void _cb_create_error(struct oonf_stream_session *session,
-    enum oonf_stream_errors error);
+static enum oonf_stream_session_state _cb_receive_data(struct oonf_stream_session *session);
+static void _cb_create_error(struct oonf_stream_session *session, enum oonf_stream_errors error);
 static void _cb_cleanup_session(struct oonf_stream_session *);
 
-static bool _auth_okay(struct oonf_http_handler *handler,
-    struct oonf_http_session *session);
-static void _create_http_error(struct oonf_stream_session *session,
-    enum oonf_http_result error);
+static bool _auth_okay(struct oonf_http_handler *handler, struct oonf_http_session *session);
+static void _create_http_error(struct oonf_stream_session *session, enum oonf_http_result error);
 static struct oonf_http_handler *_get_site_handler(const char *uri);
 static const char *_get_headertype_string(enum oonf_http_result type);
-static void _create_http_header(struct oonf_stream_session *session,
-    enum oonf_http_result code, const char *content_type,
-    size_t content_length);
-static int _parse_http_header(char *header_data, size_t header_len,
-    struct oonf_http_session *header);
-static size_t _parse_query_string(char *s,
-    char **name, char **value, size_t count);
-static void  _decode_uri(char *src);
-static enum oonf_http_result _cb_telnet_handler(
-      struct autobuf *out, struct oonf_http_session *);
-static enum oonf_http_result _cb_file_handler(
-      struct autobuf *out, struct oonf_http_session *);
+static void _create_http_header(
+  struct oonf_stream_session *session, enum oonf_http_result code, const char *content_type, size_t content_length);
+static int _parse_http_header(char *header_data, size_t header_len, struct oonf_http_session *header);
+static size_t _parse_query_string(char *s, char **name, char **value, size_t count);
+static void _decode_uri(char *src);
+static enum oonf_http_result _cb_telnet_handler(struct autobuf *out, struct oonf_http_session *);
+static enum oonf_http_result _cb_file_handler(struct autobuf *out, struct oonf_http_session *);
 
 /* configuration variables */
 static struct cfg_schema_entry _http_entries[] = {
-  CFG_MAP_ACL_V46(_http_config, smc.acl,
-      "acl", ACL_DEFAULT_ACCEPT, "Access control list for http interface"),
-  CFG_MAP_ACL_V46(_http_config, smc.bindto,
-      "bindto", "127.0.0.1\0" "::1\0" ACL_DEFAULT_REJECT, "Bind http socket to this address"),
-  CFG_MAP_INT32_MINMAX(_http_config, smc.port,
-      "port", "1980", "Network port for http interface", 0, 1, 65535),
+  CFG_MAP_ACL_V46(_http_config, smc.acl, "acl", ACL_DEFAULT_ACCEPT, "Access control list for http interface"),
+  CFG_MAP_ACL_V46(_http_config, smc.bindto, "bindto",
+    "127.0.0.1\0"
+    "::1\0" ACL_DEFAULT_REJECT,
+    "Bind http socket to this address"),
+  CFG_MAP_INT32_MINMAX(_http_config, smc.port, "port", "1980", "Network port for http interface", 0, 1, 65535),
   CFG_MAP_STRING(_http_config, www_dir, "webserver", "",
-      "Path to map into the /www subdirectory of the HTTP server, empty path"
-      " feature will be disabled"),
+    "Path to map into the /www subdirectory of the HTTP server, empty path"
+    " feature will be disabled"),
 };
 
-static struct cfg_schema_section _http_section = {
-  .type = OONF_HTTP_SUBSYSTEM,
+static struct cfg_schema_section _http_section = { .type = OONF_HTTP_SUBSYSTEM,
   .mode = CFG_SSMODE_UNNAMED,
   .entries = _http_entries,
   .entry_count = ARRAYSIZE(_http_entries),
   .help = "Settings for the http interface",
-  .cb_delta_handler = _cb_config_changed
-};
+  .cb_delta_handler = _cb_config_changed };
 
 /* tree of http sites */
 static struct avl_tree _http_site_tree;
 
 /* http session handling */
 static struct oonf_stream_managed _http_managed_socket = {
-  .config = {
-    .session_timeout = 120000, /* 120 seconds */
-    .maximum_input_buffer = 65536,
-    .allowed_sessions = 10,
-    .receive_data = _cb_receive_data,
-    .create_error = _cb_create_error,
-    .cleanup_session = _cb_cleanup_session,
-  },
+  .config =
+    {
+      .session_timeout = 120000, /* 120 seconds */
+      .maximum_input_buffer = 65536,
+      .allowed_sessions = 10,
+      .receive_data = _cb_receive_data,
+      .create_error = _cb_create_error,
+      .cleanup_session = _cb_cleanup_session,
+    },
 };
 
 static struct _http_config _config;
@@ -184,17 +174,19 @@ static struct _http_config _config;
 static struct oonf_http_handler _telnet_handler = {
   .site = HTTP_TO_TELNET,
   .content_handler = _cb_telnet_handler,
-  .acl = {
+  .acl =
+    {
       .accept_default = true,
-  },
+    },
 };
 
 static struct oonf_http_handler _file_handler = {
   .site = HTTP_FILES,
   .content_handler = _cb_file_handler,
-  .acl = {
+  .acl =
+    {
       .accept_default = true,
-  },
+    },
 };
 
 /* subsystem definition */
@@ -234,7 +226,7 @@ _init(void) {
  */
 void
 _cleanup(void) {
-  free (_config.www_dir);
+  free(_config.www_dir);
   if (_config.www_dir_fd != -1) {
     close(_config.www_dir_fd);
   }
@@ -254,7 +246,7 @@ void
 oonf_http_add(struct oonf_http_handler *handler) {
   assert(handler->site && handler->site[0] == '/');
 
-  handler->directory = handler->site[strlen(handler->site)-1] == '/';
+  handler->directory = handler->site[strlen(handler->site) - 1] == '/';
   handler->node.key = handler->site;
   avl_insert(&_http_site_tree, &handler->node);
 
@@ -285,7 +277,7 @@ const char *
 oonf_http_lookup_value(char **keys, char **values, size_t count, const char *key) {
   size_t i;
 
-  for (i=0; i<count; i++) {
+  for (i = 0; i < count; i++) {
     if (strcmp(keys[i], key) == 0) {
       return values[i];
     }
@@ -302,7 +294,7 @@ static enum oonf_stream_session_state
 _cb_receive_data(struct oonf_stream_session *session) {
   struct oonf_http_session header;
   struct oonf_http_handler *handler;
-  char uri[OONF_HTTP_MAX_URI_LENGTH+1];
+  char uri[OONF_HTTP_MAX_URI_LENGTH + 1];
   char *first_header;
   char *ptr;
   size_t len;
@@ -325,8 +317,7 @@ _cb_receive_data(struct oonf_stream_session *session) {
     return STREAM_SESSION_SEND_AND_QUIT;
   }
 
-  if (strcmp(header.http_version, HTTP_VERSION_1_0) != 0
-      && strcmp(header.http_version, HTTP_VERSION_1_1) != 0) {
+  if (strcmp(header.http_version, HTTP_VERSION_1_0) != 0 && strcmp(header.http_version, HTTP_VERSION_1_1) != 0) {
     OONF_INFO(LOG_HTTP, "Unknown HTTP version: '%s'\n", header.http_version);
     _create_http_error(session, HTTP_400_BAD_REQ);
     return STREAM_SESSION_SEND_AND_QUIT;
@@ -339,8 +330,7 @@ _cb_receive_data(struct oonf_stream_session *session) {
     return STREAM_SESSION_SEND_AND_QUIT;
   }
 
-  OONF_DEBUG(LOG_HTTP, "Incoming HTTP request: %s %s %s\n",
-      header.method, header.request_uri, header.http_version);
+  OONF_DEBUG(LOG_HTTP, "Incoming HTTP request: %s %s %s\n", header.method, header.request_uri, header.http_version);
 
   /* make working copy of URI string */
   strscpy(uri, header.request_uri, sizeof(uri));
@@ -348,8 +338,8 @@ _cb_receive_data(struct oonf_stream_session *session) {
   if (strcmp(header.method, HTTP_POST) == 0) {
     const char *content_length;
 
-    content_length = oonf_http_lookup_value(header.header_name, header.header_value,
-        header.header_count, HTTP_CONTENT_LENGTH);
+    content_length =
+      oonf_http_lookup_value(header.header_name, header.header_value, header.header_count, HTTP_CONTENT_LENGTH);
     if (!content_length) {
       OONF_INFO(LOG_HTTP, "Need 'content-length' for POST requests");
       _create_http_error(session, HTTP_400_BAD_REQ);
@@ -358,11 +348,11 @@ _cb_receive_data(struct oonf_stream_session *session) {
 
     if (strtoul(content_length, NULL, 10) > abuf_getlen(&session->in)) {
       /* header not complete */
-      return STREAM_SESSION_ACTIVE;;
+      return STREAM_SESSION_ACTIVE;
+      ;
     }
 
-    header.param_count = _parse_query_string(first_header,
-        header.param_name, header.param_value, OONF_HTTP_MAX_PARAMS);
+    header.param_count = _parse_query_string(first_header, header.param_name, header.param_value, OONF_HTTP_MAX_PARAMS);
   }
 
   /* strip the URL fragment away */
@@ -379,10 +369,10 @@ _cb_receive_data(struct oonf_stream_session *session) {
     ptr = strchr(uri, '?');
     if (ptr != NULL) {
       *ptr++ = 0;
-      header.param_count = _parse_query_string(ptr,
-          header.param_name, header.param_value, OONF_HTTP_MAX_PARAMS);
+      header.param_count = _parse_query_string(ptr, header.param_name, header.param_value, OONF_HTTP_MAX_PARAMS);
     }
-  } else if (strcmp(header.method, HTTP_POST) != 0) {
+  }
+  else if (strcmp(header.method, HTTP_POST) != 0) {
     OONF_INFO(LOG_HTTP, "HTTP method not implemented :'%s'", header.method);
     _create_http_error(session, HTTP_501_NOT_IMPLEMENTED);
     return STREAM_SESSION_SEND_AND_QUIT;
@@ -432,16 +422,14 @@ _cb_receive_data(struct oonf_stream_session *session) {
       session->copy_total_size = header.transfer_length;
       session->copy_bytes_sent = 0;
 
-      _create_http_header(session, HTTP_200_OK,
-          header.content_type, header.transfer_length);
+      _create_http_header(session, HTTP_200_OK, header.content_type, header.transfer_length);
     }
     else if (result != HTTP_200_OK) {
       /* create error message */
       _create_http_error(session, result);
     }
     else {
-      _create_http_header(session, HTTP_200_OK,
-          header.content_type, abuf_getlen(&session->out));
+      _create_http_header(session, HTTP_200_OK, header.content_type, abuf_getlen(&session->out));
     }
   }
   return STREAM_SESSION_SEND_AND_QUIT;
@@ -463,8 +451,7 @@ _cb_cleanup_session(struct oonf_stream_session *session) {
  * @return true if authorized, false if not
  */
 static bool
-_auth_okay(struct oonf_http_handler *handler,
-    struct oonf_http_session *session) {
+_auth_okay(struct oonf_http_handler *handler, struct oonf_http_session *session) {
   const char *auth, *name_pw_base64;
   char *ptr;
 
@@ -492,8 +479,7 @@ _auth_okay(struct oonf_http_handler *handler,
  * @param error tcp error code
  */
 static void
-_cb_create_error(struct oonf_stream_session *session,
-    enum oonf_stream_errors error) {
+_cb_create_error(struct oonf_stream_session *session, enum oonf_stream_errors error) {
   _create_http_error(session, (enum oonf_http_result)error);
 }
 
@@ -503,13 +489,12 @@ _cb_create_error(struct oonf_stream_session *session,
  * @param error http error code
  */
 static void
-_create_http_error(struct oonf_stream_session *session,
-    enum oonf_http_result error) {
+_create_http_error(struct oonf_stream_session *session, enum oonf_http_result error) {
   abuf_clear(&session->out);
-  abuf_appendf(&session->out, "<html><head><title>%s %s http server</title></head>"
-      "<body><h1>HTTP error %d: %s</h1></body></html>",
-      oonf_log_get_appdata()->app_name, oonf_log_get_libdata()->version,
-      error, _get_headertype_string(error));
+  abuf_appendf(&session->out,
+    "<html><head><title>%s %s http server</title></head>"
+    "<body><h1>HTTP error %d: %s</h1></body></html>",
+    oonf_log_get_appdata()->app_name, oonf_log_get_libdata()->version, error, _get_headertype_string(error));
   _create_http_header(session, error, NULL, abuf_getlen(&session->out));
 }
 
@@ -547,8 +532,7 @@ _get_site_handler(const char *uri) {
   if (handler) {
     len = strlen(uri);
 
-    if (strncasecmp(handler->site, uri, len) == 0
-        && handler->site[len] == '/' && handler->site[len+1] == 0) {
+    if (strncasecmp(handler->site, uri, len) == 0 && handler->site[len] == '/' && handler->site[len + 1] == 0) {
       return handler;
     }
   }
@@ -595,8 +579,8 @@ _get_headertype_string(enum oonf_http_result type) {
  *   plain html
  */
 static void
-_create_http_header(struct oonf_stream_session *session,
-    enum oonf_http_result code, const char *content_type, size_t content_length) {
+_create_http_header(
+  struct oonf_stream_session *session, enum oonf_http_result code, const char *content_type, size_t content_length) {
   struct autobuf buf;
   struct timeval currtime;
 
@@ -609,8 +593,7 @@ _create_http_header(struct oonf_stream_session *session,
   abuf_strftime(&buf, "Date: %a, %d %b %Y %H:%M:%S GMT\r\n", localtime(&currtime.tv_sec));
 
   /* Server version */
-  abuf_appendf(&buf, "Server: %s\r\n",
-      oonf_log_get_libdata()->version);
+  abuf_appendf(&buf, "Server: %s\r\n", oonf_log_get_libdata()->version);
 
   /* connection-type */
   abuf_puts(&buf, "Connection: closed\r\n");
@@ -656,8 +639,7 @@ _create_http_header(struct oonf_stream_session *session,
  * @return 0 if http header was correct, -1 if an error happened
  */
 static int
-_parse_http_header(char *header_data, size_t header_len,
-    struct oonf_http_session *header) {
+_parse_http_header(char *header_data, size_t header_len, struct oonf_http_session *header) {
   size_t header_index;
 
   assert(header_data);
@@ -666,7 +648,7 @@ _parse_http_header(char *header_data, size_t header_len,
   memset(header, 0, sizeof(struct oonf_http_session));
   header->method = header_data;
 
-  while(true) {
+  while (true) {
     if (header_len < 2) {
       goto unexpected_end;
     }
@@ -687,23 +669,26 @@ _parse_http_header(char *header_data, size_t header_len,
     else if (*header_data == '\n') {
       *header_data = '\0';
 
-      header_data++; header_len--;
+      header_data++;
+      header_len--;
       break;
     }
 
-    header_data++; header_len--;
+    header_data++;
+    header_len--;
   }
 
   if (header->http_version == NULL) {
     goto unexpected_end;
   }
 
-  for(header_index = 0; true; header_index++) {
+  for (header_index = 0; true; header_index++) {
     if (*header_data == '\n') {
       break;
     }
     else if (*header_data == '\r') {
-      if (header_len < 2) return true;
+      if (header_len < 2)
+        return true;
 
       if (header_data[1] == '\n') {
         break;
@@ -716,7 +701,7 @@ _parse_http_header(char *header_data, size_t header_len,
 
     header->header_name[header_index] = header_data;
 
-    while(true) {
+    while (true) {
       if (header_len < 1) {
         goto unexpected_end;
       }
@@ -724,7 +709,8 @@ _parse_http_header(char *header_data, size_t header_len,
       if (*header_data == ':') {
         *header_data = '\0';
 
-        header_data++; header_len--;
+        header_data++;
+        header_len--;
         break;
       }
       else if (*header_data == ' ' || *header_data == '\t') {
@@ -734,10 +720,11 @@ _parse_http_header(char *header_data, size_t header_len,
         goto unexpected_end;
       }
 
-      header_data++; header_len--;
+      header_data++;
+      header_len--;
     }
 
-    while(true) {
+    while (true) {
       if (header_len < 1) {
         goto unexpected_end;
       }
@@ -757,7 +744,8 @@ _parse_http_header(char *header_data, size_t header_len,
           *header_data = ' ';
           header_data[1] = ' ';
 
-          header_data += 2; header_len -= 2;
+          header_data += 2;
+          header_len -= 2;
           continue;
         }
 
@@ -767,7 +755,8 @@ _parse_http_header(char *header_data, size_t header_len,
           header->header_value[header_index] = header_data;
         }
 
-        header_data++; header_len--;
+        header_data++;
+        header_len--;
         break;
       }
       else if (*header_data == '\r') {
@@ -785,7 +774,8 @@ _parse_http_header(char *header_data, size_t header_len,
             header_data[1] = ' ';
             header_data[2] = ' ';
 
-            header_data += 3; header_len -= 3;
+            header_data += 3;
+            header_len -= 3;
             continue;
           }
 
@@ -795,12 +785,14 @@ _parse_http_header(char *header_data, size_t header_len,
             header->header_value[header_index] = header_data;
           }
 
-          header_data += 2; header_len -= 2;
+          header_data += 2;
+          header_len -= 2;
           break;
         }
       }
 
-      header_data++; header_len--;
+      header_data++;
+      header_len--;
     }
   }
 
@@ -847,11 +839,12 @@ _parse_query_string(char *s, char **name, char **value, size_t count) {
     if (ptr != NULL) {
       *ptr++ = '\0';
       value[i] = ptr;
-    } else {
+    }
+    else {
       value[i] = &name[i][strlen(name[i])];
     }
 
-    if(name[i][0] != '\0') {
+    if (name[i][0] != '\0') {
       i++;
     }
   }
@@ -874,9 +867,10 @@ _decode_uri(char *src) {
 
       src++;
       sscanf(src, "%02x", &value);
-      *dst++ = (char) value;
+      *dst++ = (char)value;
       src += 2;
-    } else {
+    }
+    else {
       *dst++ = *src++;
     }
   }
@@ -897,7 +891,7 @@ _cb_telnet_handler(struct autobuf *out, struct oonf_http_session *session) {
   char *ptr1, *ptr2, *ptr3;
 
   session->content_type = HTTP_CONTENTTYPE_TEXT;
-  strscpy(buffer, &session->decoded_request_uri[sizeof(HTTP_TO_TELNET)-1], sizeof(buffer));
+  strscpy(buffer, &session->decoded_request_uri[sizeof(HTTP_TO_TELNET) - 1], sizeof(buffer));
 
   ptr1 = buffer;
   while (true) {
@@ -943,8 +937,7 @@ _cb_telnet_handler(struct autobuf *out, struct oonf_http_session *session) {
  * @return http result
  */
 static enum oonf_http_result
-_cb_file_handler(struct autobuf *out __attribute__((unused)),
-    struct oonf_http_session *session) {
+_cb_file_handler(struct autobuf *out __attribute__((unused)), struct oonf_http_session *session) {
   const char *file;
   struct stat st;
   int fd;
@@ -956,29 +949,25 @@ _cb_file_handler(struct autobuf *out __attribute__((unused)),
 
   if (strstr(session->decoded_request_uri, "/../")) {
     /* directory traversal is not allowed */
-    OONF_INFO(LOG_HTTP, "Blocked directory traversal '%s' uri",
-        session->decoded_request_uri);
+    OONF_INFO(LOG_HTTP, "Blocked directory traversal '%s' uri", session->decoded_request_uri);
     return HTTP_404_NOT_FOUND;
   }
 
-  file = &session->decoded_request_uri[sizeof(HTTP_FILES)-1];
+  file = &session->decoded_request_uri[sizeof(HTTP_FILES) - 1];
   if (file[0] == '/') {
     /* directory traversal is not allowed */
-    OONF_INFO(LOG_HTTP, "Blocked directory traversal '%s' uri",
-        session->decoded_request_uri);
+    OONF_INFO(LOG_HTTP, "Blocked directory traversal '%s' uri", session->decoded_request_uri);
     return HTTP_404_NOT_FOUND;
   }
 
   fd = openat(_config.www_dir_fd, file, O_NONBLOCK, O_RDONLY);
   if (fd == -1) {
-    OONF_INFO(LOG_HTTP, "Could not open file '%s': %s (%d)",
-        file, strerror(errno), errno);
+    OONF_INFO(LOG_HTTP, "Could not open file '%s': %s (%d)", file, strerror(errno), errno);
     return HTTP_404_NOT_FOUND;
   }
 
   if (fstat(fd, &st)) {
-    OONF_WARN(LOG_HTTP, "Could not get file statistics of '%s': %s (%d)",
-        file, strerror(errno), errno);
+    OONF_WARN(LOG_HTTP, "Could not get file statistics of '%s': %s (%d)", file, strerror(errno), errno);
     return HTTP_404_NOT_FOUND;
   }
 
@@ -997,8 +986,7 @@ _cb_file_handler(struct autobuf *out __attribute__((unused)),
 static void
 _cb_config_changed(void) {
   /* generate binary config */
-  if (cfg_schema_tobin(&_config, _http_section.post,
-      _http_entries, ARRAYSIZE(_http_entries))) {
+  if (cfg_schema_tobin(&_config, _http_section.post, _http_entries, ARRAYSIZE(_http_entries))) {
     /* error in conversion */
     OONF_WARN(LOG_HTTP, "Cannot map http config to binary data");
     return;
@@ -1013,8 +1001,7 @@ _cb_config_changed(void) {
   if (_config.www_dir && _config.www_dir[0]) {
     _config.www_dir_fd = open(_config.www_dir, O_DIRECTORY, O_RDONLY);
     if (_config.www_dir_fd == -1) {
-      OONF_WARN(LOG_HTTP, "Could not open file directory '%s': %s (%d)",
-          _config.www_dir, strerror(errno), errno);
+      OONF_WARN(LOG_HTTP, "Could not open file directory '%s': %s (%d)", _config.www_dir, strerror(errno), errno);
     }
   }
 }

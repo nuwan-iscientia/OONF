@@ -75,14 +75,15 @@
 /**
  * Default values for locally attached network parameters
  */
-enum _lan_option_defaults {
-  LAN_DEFAULT_DOMAIN    = 0,//!< LAN_DEFAULT_DOMAIN
-  LAN_DEFAULT_METRIC    = 1,//!< LAN_DEFAULT_METRIC
-  LAN_DEFAULT_DISTANCE  = 2,//!< LAN_DEFAULT_DISTANCE
+enum _lan_option_defaults
+{
+  LAN_DEFAULT_DOMAIN = 0,   //!< LAN_DEFAULT_DOMAIN
+  LAN_DEFAULT_METRIC = 1,   //!< LAN_DEFAULT_METRIC
+  LAN_DEFAULT_DISTANCE = 2, //!< LAN_DEFAULT_DISTANCE
 };
 
 /*! locally attached network option for source-specific prefix */
-#define LAN_OPTION_SRC    "src="
+#define LAN_OPTION_SRC "src="
 
 /*! locally attached network option for outgoing metric */
 #define LAN_OPTION_METRIC "metric="
@@ -91,7 +92,7 @@ enum _lan_option_defaults {
 #define LAN_OPTION_DOMAIN "domain="
 
 /*! locally attached network option for hopcount distance */
-#define LAN_OPTION_DIST   "dist="
+#define LAN_OPTION_DIST "dist="
 
 /**
  * olsrv2 plugin config
@@ -156,15 +157,14 @@ static void _cb_cfg_domain_changed(void);
 /* subsystem definition */
 static struct cfg_schema_entry _rt_domain_entries[] = {
   CFG_MAP_BOOL(olsrv2_routing_domain, use_srcip_in_routes, "srcip_routes", "true",
-      "Set the source IP of IPv4-routes to a fixed value."),
-  CFG_MAP_INT32_MINMAX(olsrv2_routing_domain, protocol, "protocol", "100",
-      "Protocol number to be used in routing table", 0, 1, 254),
-  CFG_MAP_INT32_MINMAX(olsrv2_routing_domain, table, "table", "254",
-      "Routing table number for routes", 0, 1, 254),
-  CFG_MAP_INT32_MINMAX(olsrv2_routing_domain, distance, "distance", "2",
-      "Metric Distance to be used in routing table", 0, 1, 255),
-  CFG_MAP_BOOL(olsrv2_routing_domain, source_specific, "source_specific", "true",
-      "This domain uses IPv6 source specific routing"),
+    "Set the source IP of IPv4-routes to a fixed value."),
+  CFG_MAP_INT32_MINMAX(
+    olsrv2_routing_domain, protocol, "protocol", "100", "Protocol number to be used in routing table", 0, 1, 254),
+  CFG_MAP_INT32_MINMAX(olsrv2_routing_domain, table, "table", "254", "Routing table number for routes", 0, 1, 254),
+  CFG_MAP_INT32_MINMAX(
+    olsrv2_routing_domain, distance, "distance", "2", "Metric Distance to be used in routing table", 0, 1, 255),
+  CFG_MAP_BOOL(
+    olsrv2_routing_domain, source_specific, "source_specific", "true", "This domain uses IPv6 source specific routing"),
 };
 
 static struct cfg_schema_section _rt_domain_section = {
@@ -176,22 +176,18 @@ static struct cfg_schema_section _rt_domain_section = {
 };
 
 static struct cfg_schema_entry _olsrv2_entries[] = {
-  CFG_MAP_CLOCK_MIN(_config, tc_interval, "tc_interval", "5.0",
-    "Time between two TC messages", 100),
-  CFG_MAP_CLOCK_MIN(_config, tc_validity, "tc_validity", "300.0",
-    "Validity time of a TC messages", 100),
-  CFG_MAP_CLOCK_MIN(_config, f_hold_time, "forward_hold_time", "300.0",
-    "Holdtime for forwarding set information", 100),
-  CFG_MAP_CLOCK_MIN(_config, p_hold_time, "processing_hold_time", "300.0",
-    "Holdtime for processing set information", 100),
+  CFG_MAP_CLOCK_MIN(_config, tc_interval, "tc_interval", "5.0", "Time between two TC messages", 100),
+  CFG_MAP_CLOCK_MIN(_config, tc_validity, "tc_validity", "300.0", "Validity time of a TC messages", 100),
+  CFG_MAP_CLOCK_MIN(_config, f_hold_time, "forward_hold_time", "300.0", "Holdtime for forwarding set information", 100),
+  CFG_MAP_CLOCK_MIN(
+    _config, p_hold_time, "processing_hold_time", "300.0", "Holdtime for processing set information", 100),
   CFG_MAP_INT64_MINMAX(_config, a_hold_time_factor, "advertisement_hold_time_factor", "3",
     "Holdtime for TC advertisements as a factor of TC interval time", false, 1, 255),
   CFG_MAP_BOOL(_config, nhdp_routable, "nhdp_routable", "no",
     "Decides if NHDP interface addresses"
     " are routed to other nodes. 'true' means the 'routable_acl' parameter"
     " will be matched to the addresses to decide."),
-  CFG_MAP_ACL_V46(_config, routable_acl, "routable_acl",
-      OLSRV2_ROUTABLE_IPV4 OLSRV2_ROUTABLE_IPV6 ACL_DEFAULT_ACCEPT,
+  CFG_MAP_ACL_V46(_config, routable_acl, "routable_acl", OLSRV2_ROUTABLE_IPV4 OLSRV2_ROUTABLE_IPV6 ACL_DEFAULT_ACCEPT,
     "Filter to decide which addresses are considered routable"),
   CFG_MAP_ACL_V46(_config, originator_acl, "originator",
     OLSRV2_ORIGINATOR_IPV4 OLSRV2_ORIGINATOR_IPV6 ACL_DEFAULT_ACCEPT,
@@ -391,8 +387,7 @@ olsrv2_is_routable(struct netaddr *addr) {
  * @return true if TC should be processed, false otherwise
  */
 bool
-olsrv2_mpr_shall_process(
-    struct rfc5444_reader_tlvblock_context *context, uint64_t vtime) {
+olsrv2_mpr_shall_process(struct rfc5444_reader_tlvblock_context *context, uint64_t vtime) {
   enum oonf_duplicate_result dup_result;
   bool process;
 #ifdef OONF_LOG_DEBUG_INFO
@@ -401,24 +396,22 @@ olsrv2_mpr_shall_process(
 
   /* check if message has originator and sequence number */
   if (!context->has_origaddr || !context->has_seqno) {
-    OONF_DEBUG(LOG_OLSRV2, "Do not process message type %u,"
-        " originator or sequence number is missing!",
-        context->msg_type);
+    OONF_DEBUG(LOG_OLSRV2,
+      "Do not process message type %u,"
+      " originator or sequence number is missing!",
+      context->msg_type);
     return false;
   }
 
   /* check forwarding set */
-  dup_result = oonf_duplicate_entry_add(&_protocol->processed_set,
-      context->msg_type, &context->orig_addr,
-      context->seqno, vtime + _olsrv2_config.f_hold_time);
+  dup_result = oonf_duplicate_entry_add(&_protocol->processed_set, context->msg_type, &context->orig_addr,
+    context->seqno, vtime + _olsrv2_config.f_hold_time);
   process = oonf_duplicate_is_new(dup_result);
 
-  OONF_DEBUG(LOG_OLSRV2, "Do %sprocess message type %u from %s"
-      " with seqno %u (dupset result: %u)",
-      process ? "" : "not ",
-      context->msg_type,
-      netaddr_to_string(&buf, &context->orig_addr),
-      context->seqno, dup_result);
+  OONF_DEBUG(LOG_OLSRV2,
+    "Do %sprocess message type %u from %s"
+    " with seqno %u (dupset result: %u)",
+    process ? "" : "not ", context->msg_type, netaddr_to_string(&buf, &context->orig_addr), context->seqno, dup_result);
   return process;
 }
 
@@ -431,8 +424,8 @@ olsrv2_mpr_shall_process(
  * @return true if message was forwarded, false otherwise
  */
 bool
-olsrv2_mpr_shall_forwarding(struct rfc5444_reader_tlvblock_context *context,
-    struct netaddr *source_address, uint64_t vtime) {
+olsrv2_mpr_shall_forwarding(
+  struct rfc5444_reader_tlvblock_context *context, struct netaddr *source_address, uint64_t vtime) {
   struct nhdp_interface *interf;
   struct nhdp_laddr *laddr;
   struct nhdp_neighbor *neigh;
@@ -444,9 +437,10 @@ olsrv2_mpr_shall_forwarding(struct rfc5444_reader_tlvblock_context *context,
 
   /* check if message has originator and sequence number */
   if (!context->has_origaddr || !context->has_seqno) {
-    OONF_DEBUG(LOG_OLSRV2, "Do not forward message type %u,"
-        " originator or sequence number is missing!",
-        context->msg_type);
+    OONF_DEBUG(LOG_OLSRV2,
+      "Do not forward message type %u,"
+      " originator or sequence number is missing!",
+      context->msg_type);
     return false;
   }
 
@@ -468,37 +462,37 @@ olsrv2_mpr_shall_forwarding(struct rfc5444_reader_tlvblock_context *context,
   }
 
   /* check forwarding set */
-  dup_result = oonf_duplicate_entry_add(&_protocol->forwarded_set,
-      context->msg_type, &context->orig_addr,
-      context->seqno, vtime + _olsrv2_config.f_hold_time);
+  dup_result = oonf_duplicate_entry_add(&_protocol->forwarded_set, context->msg_type, &context->orig_addr,
+    context->seqno, vtime + _olsrv2_config.f_hold_time);
   if (!oonf_duplicate_is_new(dup_result)) {
-    OONF_DEBUG(LOG_OLSRV2, "Do not forward message type %u from %s"
-        " with seqno %u (dupset result: %u)",
-        context->msg_type,
-        netaddr_to_string(&buf, &context->orig_addr),
-        context->seqno, dup_result);
+    OONF_DEBUG(LOG_OLSRV2,
+      "Do not forward message type %u from %s"
+      " with seqno %u (dupset result: %u)",
+      context->msg_type, netaddr_to_string(&buf, &context->orig_addr), context->seqno, dup_result);
     return false;
   }
 
   /* get NHDP interface */
   interf = nhdp_interface_get(_protocol->input.interface->name);
   if (interf == NULL) {
-    OONF_DEBUG(LOG_OLSRV2, "Do not forward because NHDP does not handle"
-        " interface '%s'", _protocol->input.interface->name);
+    OONF_DEBUG(LOG_OLSRV2,
+      "Do not forward because NHDP does not handle"
+      " interface '%s'",
+      _protocol->input.interface->name);
     return false;
   }
 
   /* get NHDP link address corresponding to source */
   laddr = nhdp_interface_get_link_addr(interf, source_address);
   if (laddr == NULL) {
-    OONF_DEBUG(LOG_OLSRV2, "Do not forward because source IP %s is"
-        " not a direct neighbor",
-        netaddr_to_string(&buf, source_address));
+    OONF_DEBUG(LOG_OLSRV2,
+      "Do not forward because source IP %s is"
+      " not a direct neighbor",
+      netaddr_to_string(&buf, source_address));
     return false;
   }
 
-  if (netaddr_get_address_family(&context->orig_addr)
-      == netaddr_get_address_family(source_address)) {
+  if (netaddr_get_address_family(&context->orig_addr) == netaddr_get_address_family(source_address)) {
     /* get NHDP neighbor */
     neigh = laddr->link->neigh;
   }
@@ -507,21 +501,20 @@ olsrv2_mpr_shall_forwarding(struct rfc5444_reader_tlvblock_context *context,
     neigh = laddr->link->dualstack_partner->neigh;
   }
   else {
-    OONF_DEBUG(LOG_OLSRV2, "Do not forward because this is a dualstack"
-        " message, but the link source %s is not dualstack capable",
-        netaddr_to_string(&buf, source_address));
+    OONF_DEBUG(LOG_OLSRV2,
+      "Do not forward because this is a dualstack"
+      " message, but the link source %s is not dualstack capable",
+      netaddr_to_string(&buf, source_address));
     return false;
   }
 
   /* forward if this neighbor has selected us as a flooding MPR */
   forward = laddr->link->local_is_flooding_mpr && neigh->symmetric > 0;
-  OONF_DEBUG(LOG_OLSRV2, "Do %sforward message type %u from %s"
-      " with seqno %u (%s/%u)",
-      forward ? "" : "not ",
-      context->msg_type,
-      netaddr_to_string(&buf, &context->orig_addr),
-      context->seqno,
-      laddr->link->local_is_flooding_mpr ? "true" : "false", neigh->symmetric);
+  OONF_DEBUG(LOG_OLSRV2,
+    "Do %sforward message type %u from %s"
+    " with seqno %u (%s/%u)",
+    forward ? "" : "not ", context->msg_type, netaddr_to_string(&buf, &context->orig_addr), context->seqno,
+    laddr->link->local_is_flooding_mpr ? "true" : "false", neigh->symmetric);
   return forward;
 }
 
@@ -590,43 +583,36 @@ _get_addr_priority(const struct netaddr *addr) {
 
   if (!netaddr_acl_check_accept(&_olsrv2_config.originator_acl, addr)) {
     /* does not match the acl */
-    OONF_DEBUG(LOG_OLSRV2, "check priority for %s: 0 (not in ACL)",
-        netaddr_to_string(&nbuf, addr));
+    OONF_DEBUG(LOG_OLSRV2, "check priority for %s: 0 (not in ACL)", netaddr_to_string(&nbuf, addr));
     return 0;
   }
-
 
   if (netaddr_get_address_family(addr) == AF_INET) {
     if (netaddr_is_in_subnet(&NETADDR_IPV4_LINKLOCAL, addr)) {
       /* linklocal */
-      OONF_DEBUG(LOG_OLSRV2, "check priority for %s: 1 (linklocal)",
-          netaddr_to_string(&nbuf, addr));
+      OONF_DEBUG(LOG_OLSRV2, "check priority for %s: 1 (linklocal)", netaddr_to_string(&nbuf, addr));
       return 1;
     }
 
     /* routable */
-    OONF_DEBUG(LOG_OLSRV2, "check priority for %s: 2 (routable)",
-        netaddr_to_string(&nbuf, addr));
+    OONF_DEBUG(LOG_OLSRV2, "check priority for %s: 2 (routable)", netaddr_to_string(&nbuf, addr));
     return 2;
   }
 
   if (netaddr_get_address_family(addr) == AF_INET6) {
     if (netaddr_is_in_subnet(&NETADDR_IPV6_LINKLOCAL, addr)) {
       /* linklocal */
-      OONF_DEBUG(LOG_OLSRV2, "check priority for %s: 1 (linklocal)",
-          netaddr_to_string(&nbuf, addr));
+      OONF_DEBUG(LOG_OLSRV2, "check priority for %s: 1 (linklocal)", netaddr_to_string(&nbuf, addr));
       return 1;
     }
 
     /* routable */
-    OONF_DEBUG(LOG_OLSRV2, "check priority for %s: 2 (routable)",
-        netaddr_to_string(&nbuf, addr));
+    OONF_DEBUG(LOG_OLSRV2, "check priority for %s: 2 (routable)", netaddr_to_string(&nbuf, addr));
     return 2;
   }
 
   /* unknown */
-  OONF_DEBUG(LOG_OLSRV2, "check priority for %s: 0 (unknown)",
-      netaddr_to_string(&nbuf, addr));
+  OONF_DEBUG(LOG_OLSRV2, "check priority for %s: 0 (unknown)", netaddr_to_string(&nbuf, addr));
 
   return 0;
 }
@@ -649,8 +635,7 @@ _update_originator(int af_family) {
   struct netaddr_str buf;
 #endif
 
-  OONF_DEBUG(LOG_OLSRV2, "Updating OLSRV2 %s originator",
-      af_family == AF_INET ? "ipv4" : "ipv6");
+  OONF_DEBUG(LOG_OLSRV2, "Updating OLSRV2 %s originator", af_family == AF_INET ? "ipv4" : "ipv6");
 
   originator = olsrv2_originator_get(af_family);
 
@@ -687,8 +672,7 @@ _update_originator(int af_family) {
   }
 
   if (new_priority > old_priority) {
-    OONF_DEBUG(LOG_OLSRV2, "Set originator to %s",
-        netaddr_to_string(&buf, &new_originator));
+    OONF_DEBUG(LOG_OLSRV2, "Set originator to %s", netaddr_to_string(&buf, &new_originator));
     olsrv2_originator_set(&new_originator);
   }
 }
@@ -710,8 +694,7 @@ _cb_if_event(struct os_interface_listener *if_listener __attribute__((unused))) 
  */
 static void
 _cb_cfg_olsrv2_changed(void) {
-  if (cfg_schema_tobin(&_olsrv2_config, _olsrv2_section.post,
-      _olsrv2_entries, ARRAYSIZE(_olsrv2_entries))) {
+  if (cfg_schema_tobin(&_olsrv2_config, _olsrv2_section.post, _olsrv2_entries, ARRAYSIZE(_olsrv2_entries))) {
     OONF_WARN(LOG_OLSRV2, "Cannot convert OLSRV2 configuration.");
     return;
   }
@@ -753,8 +736,7 @@ _cb_cfg_domain_changed(void) {
   }
 
   memset(&rtdomain, 0, sizeof(rtdomain));
-  if (cfg_schema_tobin(&rtdomain, _rt_domain_section.post,
-      _rt_domain_entries, ARRAYSIZE(_rt_domain_entries))) {
+  if (cfg_schema_tobin(&rtdomain, _rt_domain_section.post, _rt_domain_entries, ARRAYSIZE(_rt_domain_entries))) {
     OONF_WARN(LOG_OLSRV2, "Cannot convert OLSRV2 routing domain parameters.");
     return;
   }

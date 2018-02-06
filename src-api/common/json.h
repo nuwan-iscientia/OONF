@@ -46,8 +46,8 @@
 #ifndef JSON_H_
 #define JSON_H_
 
-#include "common/common_types.h"
 #include "common/autobuf.h"
+#include "common/common_types.h"
 #include "common/template.h"
 
 /**
@@ -61,18 +61,13 @@ struct json_session {
   bool empty;
 };
 
-EXPORT void json_init_session(struct json_session *,
-    struct autobuf *out);
-EXPORT void json_start_array(struct json_session *,
-    const char *name);
+EXPORT void json_init_session(struct json_session *, struct autobuf *out);
+EXPORT void json_start_array(struct json_session *, const char *name);
 EXPORT void json_end_array(struct json_session *);
-EXPORT void json_start_object(struct json_session *,
-    const char *name);
+EXPORT void json_start_object(struct json_session *, const char *name);
 EXPORT void json_end_object(struct json_session *);
-EXPORT void json_print_templates(struct json_session *,
-    struct abuf_template_data *data, size_t count);
-EXPORT void json_print(struct json_session *session,
-    const char *key, bool string, const char *value);
+EXPORT void json_print_templates(struct json_session *, struct abuf_template_data *data, size_t count);
+EXPORT void json_print(struct json_session *session, const char *key, bool string, const char *value);
 
 /**
  * Returns the JSON text representation of a boolean

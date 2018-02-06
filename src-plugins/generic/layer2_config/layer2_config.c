@@ -60,9 +60,13 @@
 /* definitions and constants */
 #define LOG_LAYER2_CONFIG _oonf_layer2_config_subsystem.logging
 
-enum { _MAX_L2_VALUE_LEN = 64 };
+enum
+{
+  _MAX_L2_VALUE_LEN = 64
+};
 
-enum l2_data_type {
+enum l2_data_type
+{
   L2_NET,
   L2_NET_IP,
   L2_DEF,
@@ -100,24 +104,15 @@ struct l2_config_if_data {
 static int _init(void);
 static void _cleanup(void);
 
-static struct l2_config_if_data *_add_if_data(
-    const char *ifname, size_t data_count);
+static struct l2_config_if_data *_add_if_data(const char *ifname, size_t data_count);
 static void _remove_if_data(struct l2_config_if_data *);
 
-static int _cb_if_value_validator(
-    struct autobuf *out, const char *section_name,
-    const char *entry_name, const char *value,
-    struct cfg_schema_entry *entries, size_t entry_count);
-static int _cb_if_value_tobin(
-    struct cfg_schema_entry *entries, size_t entry_count,
-      const char *value, void *ptr);
-static int _cb_neigh_value_validator(
-    struct autobuf *out, const char *section_name,
-    const char *entry_name, const char *value,
-    struct cfg_schema_entry *entries, size_t entry_count);
-static int _cb_neigh_value_tobin(
-    struct cfg_schema_entry *entries, size_t entry_count,
-      const char *value, void *ptr);
+static int _cb_if_value_validator(struct autobuf *out, const char *section_name, const char *entry_name,
+  const char *value, struct cfg_schema_entry *entries, size_t entry_count);
+static int _cb_if_value_tobin(struct cfg_schema_entry *entries, size_t entry_count, const char *value, void *ptr);
+static int _cb_neigh_value_validator(struct autobuf *out, const char *section_name, const char *entry_name,
+  const char *value, struct cfg_schema_entry *entries, size_t entry_count);
+static int _cb_neigh_value_tobin(struct cfg_schema_entry *entries, size_t entry_count, const char *value, void *ptr);
 
 static void _cb_update_l2net(void *);
 static void _cb_update_l2neigh(void *);
@@ -135,7 +130,8 @@ static struct cfg_schema_entry _l2net_entries[] = {
 };
 static struct cfg_schema_entry _l2net_def_entries[] = {
   CFG_MAP_CHOICE_L2NEIGH(l2_config_data, data_idx, "l2net_key", "", "Layer2 neighbor key for configuration"),
-  CFG_MAP_STRING_ARRAY(l2_config_data, txt_value, "l2net_value", "", "Layer2 neighbor value for default neighbor data", _MAX_L2_VALUE_LEN),
+  CFG_MAP_STRING_ARRAY(
+    l2_config_data, txt_value, "l2net_value", "", "Layer2 neighbor value for default neighbor data", _MAX_L2_VALUE_LEN),
 };
 static struct cfg_schema_entry _l2neigh_entries[] = {
   CFG_MAP_CHOICE_L2NET(l2_config_data, data_idx, "l2neigh_key", "", "Layer2 neighbor key for configuration"),
@@ -148,7 +144,8 @@ static struct cfg_schema_entry _l2neigh_ip_entries[] = {
 };
 static struct cfg_schema_entry _l2neigh_dst_entries[] = {
   CFG_MAP_NETADDR_MAC48(l2_config_data, mac, "l2neigh_mac", "", "MAC address of neighbor", false, false),
-  CFG_MAP_NETADDR_MAC48(l2_config_data, data.addr, "l2neigh_dst", "", "Secondary MAC address of neighbor", false, false),
+  CFG_MAP_NETADDR_MAC48(
+    l2_config_data, data.addr, "l2neigh_dst", "", "Secondary MAC address of neighbor", false, false),
 };
 
 static struct cfg_schema_token_customizer _if_value_customizer = {
@@ -162,12 +159,12 @@ static struct cfg_schema_token_customizer _neigh_value_customizer = {
 };
 
 static struct cfg_schema_entry _l2_config_if_entries[] = {
-  [L2_NET]    = CFG_VALIDATE_TOKENS_CUSTOM("l2net", "",
+  [L2_NET] = CFG_VALIDATE_TOKENS_CUSTOM("l2net", "",
     "Sets an interface wide layer2 entry into the database."
     " Parameters are the key of the interface data followed by the data.",
     _l2net_entries, _if_value_customizer, .list = true),
-  [L2_NET_IP] = CFG_VALIDATE_NETADDR_V46("l2net_ip", "",
-    "Sets an ip address/prefix for the local radio in the database", true, false, .list = true),
+  [L2_NET_IP] = CFG_VALIDATE_NETADDR_V46(
+    "l2net_ip", "", "Sets an ip address/prefix for the local radio in the database", true, false, .list = true),
   [L2_DEF] = CFG_VALIDATE_TOKENS_CUSTOM("l2default", "",
     "Sets an interface wide default neighbor layer2 entry into the database."
     " Parameters are the key of the neighbor data followed by the data.",
@@ -297,11 +294,10 @@ _add_if_data(const char *ifname, size_t data_count) {
     _remove_if_data(if_data);
   }
 
-  if_data = calloc(1, sizeof(struct l2_config_if_data)
-      + data_count * sizeof(struct l2_config_data));
+  if_data = calloc(1, sizeof(struct l2_config_if_data) + data_count * sizeof(struct l2_config_data));
   if (!if_data) {
-    OONF_WARN(LOG_LAYER2_CONFIG, "Out of memory for %"PRINTF_SIZE_T_SPECIFIER
-        " ifdata entries for interface %s", data_count, _l2_config_section.section_name);
+    OONF_WARN(LOG_LAYER2_CONFIG, "Out of memory for %" PRINTF_SIZE_T_SPECIFIER " ifdata entries for interface %s",
+      data_count, _l2_config_section.section_name);
     return NULL;
   }
 
@@ -329,7 +325,7 @@ _remove_if_data(struct l2_config_if_data *if_data) {
 
   oonf_timer_stop(&if_data->_reconfigure_timer);
   avl_remove(&_if_data_tree, &if_data->_node);
-  free (if_data);
+  free(if_data);
 }
 
 /**
@@ -343,9 +339,8 @@ _remove_if_data(struct l2_config_if_data *if_data) {
  * @return -1 if an error happened, 0 otherwise
  */
 static int
-_cb_if_value_validator(struct autobuf *out, const char *section_name,
-    const char *entry_name, const char *value,
-    struct cfg_schema_entry *entries, size_t entry_count) {
+_cb_if_value_validator(struct autobuf *out, const char *section_name, const char *entry_name, const char *value,
+  struct cfg_schema_entry *entries, size_t entry_count) {
   struct l2_config_data l2_data;
   const struct oonf_layer2_metadata *meta;
   union oonf_layer2_value dst;
@@ -358,10 +353,9 @@ _cb_if_value_validator(struct autobuf *out, const char *section_name,
 
   if (oonf_layer2_data_parse_string(&dst, meta, l2_data.txt_value)) {
     cfg_append_printable_line(out,
-        "Value '%s' for entry '%s' in section %s does not use the data"
-        " type %s for layer2 network key %s",
-        value, entry_name, section_name,
-        oonf_layer2_data_get_type_string(meta->type), meta->key);
+      "Value '%s' for entry '%s' in section %s does not use the data"
+      " type %s for layer2 network key %s",
+      value, entry_name, section_name, oonf_layer2_data_get_type_string(meta->type), meta->key);
   }
   return 0;
 }
@@ -375,10 +369,8 @@ _cb_if_value_validator(struct autobuf *out, const char *section_name,
  * @return -1 if an error happened, 0 otherwise
  */
 static int
-_cb_if_value_tobin(
-    struct cfg_schema_entry *entries __attribute__((unused)),
-    size_t entry_count __attribute__((unused)),
-    const char *value __attribute__((unused)), void *ptr) {
+_cb_if_value_tobin(struct cfg_schema_entry *entries __attribute__((unused)), size_t entry_count __attribute__((unused)),
+  const char *value __attribute__((unused)), void *ptr) {
   struct l2_config_data *l2_data;
   const struct oonf_layer2_metadata *meta;
 
@@ -403,9 +395,8 @@ _cb_if_value_tobin(
  * @return -1 if an error happened, 0 otherwise
  */
 static int
-_cb_neigh_value_validator(struct autobuf *out, const char *section_name,
-    const char *entry_name, const char *value,
-    struct cfg_schema_entry *entries, size_t entry_count) {
+_cb_neigh_value_validator(struct autobuf *out, const char *section_name, const char *entry_name, const char *value,
+  struct cfg_schema_entry *entries, size_t entry_count) {
   struct l2_config_data l2_data;
   const struct oonf_layer2_metadata *meta;
   union oonf_layer2_value dst;
@@ -418,10 +409,9 @@ _cb_neigh_value_validator(struct autobuf *out, const char *section_name,
 
   if (oonf_layer2_data_parse_string(&dst, meta, l2_data.txt_value)) {
     cfg_append_printable_line(out,
-        "Value '%s' for entry '%s' in section %s does not use the data"
-        " type %s for layer2 neighbor key %s",
-        value, entry_name, section_name,
-        oonf_layer2_data_get_type_string(meta->type), meta->key);
+      "Value '%s' for entry '%s' in section %s does not use the data"
+      " type %s for layer2 neighbor key %s",
+      value, entry_name, section_name, oonf_layer2_data_get_type_string(meta->type), meta->key);
   }
   return 0;
 }
@@ -435,10 +425,8 @@ _cb_neigh_value_validator(struct autobuf *out, const char *section_name,
  * @return -1 if an error happened, 0 otherwise
  */
 static int
-_cb_neigh_value_tobin(
-    struct cfg_schema_entry *entries __attribute__((unused)),
-    size_t entry_count __attribute__((unused)),
-    const char *value __attribute__((unused)), void *ptr) {
+_cb_neigh_value_tobin(struct cfg_schema_entry *entries __attribute__((unused)),
+  size_t entry_count __attribute__((unused)), const char *value __attribute__((unused)), void *ptr) {
   struct l2_config_data *l2_data;
   const struct oonf_layer2_metadata *meta;
 
@@ -511,7 +499,6 @@ _configure_if_data(struct l2_config_if_data *if_data) {
   struct l2_config_data *entry;
   size_t i;
 
-
   l2net = oonf_layer2_net_get(if_data->interf);
   if (!l2net && if_data->count > 0) {
     l2net = oonf_layer2_net_add(if_data->interf);
@@ -524,41 +511,35 @@ _configure_if_data(struct l2_config_if_data *if_data) {
   if (l2net) {
     oonf_layer2_net_relabel(l2net, &_l2_origin_old, &_l2_origin_current);
 
-    for (i=0; i<if_data->count; i++) {
+    for (i = 0; i < if_data->count; i++) {
       entry = &if_data->d[i];
 
       switch (entry->config_type) {
         case L2_NET:
-          oonf_layer2_data_set(&l2net->data[entry->data_idx],
-              &_l2_origin_current, entry->data_type, &entry->data);
+          oonf_layer2_data_set(&l2net->data[entry->data_idx], &_l2_origin_current, entry->data_type, &entry->data);
           break;
         case L2_NET_IP:
-          oonf_layer2_net_add_ip(l2net,
-              &_l2_origin_current, &entry->data.addr);
+          oonf_layer2_net_add_ip(l2net, &_l2_origin_current, &entry->data.addr);
           break;
         case L2_DEF:
-          oonf_layer2_data_set(&l2net->neighdata[entry->data_idx],
-              &_l2_origin_current, entry->data_type, &entry->data);
+          oonf_layer2_data_set(&l2net->neighdata[entry->data_idx], &_l2_origin_current, entry->data_type, &entry->data);
           break;
         case L2_NEIGH:
           l2neigh = oonf_layer2_neigh_add(l2net, &entry->mac);
           if (l2neigh) {
-            oonf_layer2_data_set(&l2neigh->data[entry->data_idx],
-                &_l2_origin_current, entry->data_type, &entry->data);
+            oonf_layer2_data_set(&l2neigh->data[entry->data_idx], &_l2_origin_current, entry->data_type, &entry->data);
           }
           break;
         case L2_NEIGH_IP:
           l2neigh = oonf_layer2_neigh_add(l2net, &entry->mac);
           if (l2neigh) {
-            oonf_layer2_neigh_add_ip(l2neigh,
-                &_l2_origin_current, &entry->data.addr);
+            oonf_layer2_neigh_add_ip(l2neigh, &_l2_origin_current, &entry->data.addr);
           }
           break;
         case L2_DST:
           l2neigh = oonf_layer2_neigh_add(l2net, &entry->mac);
           if (l2neigh) {
-            oonf_layer2_destination_add(l2neigh,
-                &entry->data.addr, &_l2_origin_current);
+            oonf_layer2_destination_add(l2neigh, &entry->data.addr, &_l2_origin_current);
           }
           break;
         default:
@@ -594,13 +575,12 @@ _cb_config_changed(void) {
 
   if (!_l2_config_section.post) {
     /* section was removed */
-     return;
+    return;
   }
 
   total = 0;
-  for (i=0; i<L2_TYPE_COUNT; i++) {
-    entry = cfg_db_get_entry(_l2_config_section.post,
-        _l2_config_if_entries[i].key.entry);
+  for (i = 0; i < L2_TYPE_COUNT; i++) {
+    entry = cfg_db_get_entry(_l2_config_section.post, _l2_config_if_entries[i].key.entry);
     if (entry) {
       total += strarray_get_count(&entry->val);
     }
@@ -608,8 +588,8 @@ _cb_config_changed(void) {
 
   if_data = _add_if_data(_l2_config_section.section_name, total);
   if (!if_data) {
-    OONF_WARN(LOG_LAYER2_CONFIG, "Out of memory for %"PRINTF_SIZE_T_SPECIFIER
-        " ifdata entries for interface %s", total, _l2_config_section.section_name);
+    OONF_WARN(LOG_LAYER2_CONFIG, "Out of memory for %" PRINTF_SIZE_T_SPECIFIER " ifdata entries for interface %s",
+      total, _l2_config_section.section_name);
     return;
   }
 
@@ -621,21 +601,17 @@ _cb_config_changed(void) {
 
   /* initialize data */
   total = 0;
-  for (i=0; i<L2_TYPE_COUNT; i++) {
-    entry = cfg_db_get_entry(_l2_config_section.post,
-        _l2_config_if_entries[i].key.entry);
+  for (i = 0; i < L2_TYPE_COUNT; i++) {
+    entry = cfg_db_get_entry(_l2_config_section.post, _l2_config_if_entries[i].key.entry);
     if (entry) {
       strarray_for_each_element(&entry->val, txt_value) {
-
         /*
          * assume that the data type is "address", we will overwrite it for
          * other variants in the next function call.
          */
         if_data->d[total].data_type = OONF_LAYER2_NETWORK_DATA;
-        if(!cfg_tobin_tokens(&if_data->d[total], txt_value,
-            _l2_config_if_entries[i].validate_param[0].ptr,
-            _l2_config_if_entries[i].validate_param[1].s,
-            _l2_config_if_entries[i].validate_param[2].ptr)) {
+        if (!cfg_tobin_tokens(&if_data->d[total], txt_value, _l2_config_if_entries[i].validate_param[0].ptr,
+              _l2_config_if_entries[i].validate_param[1].s, _l2_config_if_entries[i].validate_param[2].ptr)) {
           if_data->d[total].config_type = i;
           total++;
         }
