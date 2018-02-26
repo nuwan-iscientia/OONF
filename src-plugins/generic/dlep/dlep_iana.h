@@ -348,26 +348,26 @@ enum dlep_status
   /*! operation succeeded */
   DLEP_STATUS_OKAY = 0,
 
+  /*! operation is refused at the moment */
+  DLEP_STATUS_REQUEST_DENIED = 2,
+
   /*! message ID is unknown */
-  DLEP_STATUS_UNKNOWN_MESSAGE = 1,
+  DLEP_STATUS_UNKNOWN_MESSAGE = 128,
 
   /*! message happened at an unexpected time */
-  DLEP_STATUS_UNEXPECTED_MESSAGE = 2,
+  DLEP_STATUS_UNEXPECTED_MESSAGE = 129,
 
   /*! unknown or invalid TLV in signal */
-  DLEP_STATUS_INVALID_DATA = 3,
+  DLEP_STATUS_INVALID_DATA = 130,
 
   /*! unknown MAC address destination */
-  DLEP_STATUS_INVALID_DESTINATION = 4,
+  DLEP_STATUS_INVALID_DESTINATION = 131,
 
   /*! receiver does not need messages about the destination */
   DLEP_STATUS_NOT_INTERESTED = 100,
 
-  /*! operation is refused at the moment */
-  DLEP_STATUS_REQUEST_DENIED = 101,
-
   /*! operation could not be done in the allocated time */
-  DLEP_STATUS_TIMED_OUT = 102,
+  DLEP_STATUS_TIMED_OUT = 132,
 };
 
 #endif /* DLEP_IANA_H_ */
