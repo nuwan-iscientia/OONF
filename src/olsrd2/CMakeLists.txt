@@ -54,6 +54,7 @@ IF (NOT OONF_STATIC_PLUGINS)
                              olsrv2
                              olsrv2info
                              olsrv2_lan
+                             olsrv2_old_lan
                              netjsoninfo
                              lan_import
                              auto_ll4

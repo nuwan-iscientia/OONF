@@ -94,7 +94,7 @@ static struct cfg_schema_entry _olsrv2_lan_entries[] = {
 };
 
 static struct cfg_schema_section _olsrv2_lan_section = {
-  .type = CFG_OLSRV2_SECTION,
+  .type = OONF_OLSRV2_LAN_SUBSYSTEM,
   .mode = CFG_SSMODE_NAMED,
   .cb_delta_handler = _cb_cfg_olsrv2_lan_changed,
   .entries = _olsrv2_lan_entries,
