@@ -348,6 +348,9 @@ enum dlep_status
   /*! operation succeeded */
   DLEP_STATUS_OKAY = 0,
 
+  /*! receiver does not need messages about the destination */
+  DLEP_STATUS_NOT_INTERESTED = 1,
+
   /*! operation is refused at the moment */
   DLEP_STATUS_REQUEST_DENIED = 2,
 
@@ -362,9 +365,6 @@ enum dlep_status
 
   /*! unknown MAC address destination */
   DLEP_STATUS_INVALID_DESTINATION = 131,
-
-  /*! receiver does not need messages about the destination */
-  DLEP_STATUS_NOT_INTERESTED = 100,
 
   /*! operation could not be done in the allocated time */
   DLEP_STATUS_TIMED_OUT = 132,
