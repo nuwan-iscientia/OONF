@@ -105,6 +105,9 @@ static const uint16_t _peer_update_duplicates[] = {
 static const uint16_t _peer_updateack_tlvs[] = {
   DLEP_STATUS_TLV,
 };
+static const uint16_t _peer_updateack_mandatory[] = {
+  DLEP_STATUS_TLV,
+};
 
 /* peer termination */
 static const uint16_t _peer_termination_tlvs[] = {
@@ -243,6 +246,8 @@ static struct dlep_extension_signal _signals[] = {
     .id = DLEP_SESSION_UPDATE_ACK,
     .supported_tlvs = _peer_updateack_tlvs,
     .supported_tlv_count = ARRAYSIZE(_peer_updateack_tlvs),
+    .mandatory_tlvs = _peer_updateack_mandatory,
+    .mandatory_tlv_count = ARRAYSIZE(_peer_updateack_mandatory),
   },
   {
     .id = DLEP_SESSION_TERMINATION,

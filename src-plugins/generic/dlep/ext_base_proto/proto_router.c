@@ -428,7 +428,7 @@ _router_process_session_update(struct dlep_extension *ext __attribute__((unused)
   }
 
   /* generate ACK */
-  return dlep_session_generate_signal(session, DLEP_SESSION_UPDATE_ACK, NULL);
+  return dlep_session_generate_signal_status(session, DLEP_SESSION_UPDATE_ACK, NULL, DLEP_STATUS_OKAY, "Success");
 }
 
 /**

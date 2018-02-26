@@ -323,7 +323,7 @@ _radio_process_session_init(struct dlep_extension *ext __attribute__((unused)), 
 static int
 _radio_process_session_update(struct dlep_extension *ext __attribute__((unused)), struct dlep_session *session) {
   /* we don't support IP address exchange with the router at the moment */
-  return dlep_session_generate_signal(session, DLEP_SESSION_UPDATE_ACK, NULL);
+  return dlep_session_generate_signal_status(session, DLEP_SESSION_UPDATE_ACK, NULL, DLEP_STATUS_OKAY, "Success");
 }
 
 /**
