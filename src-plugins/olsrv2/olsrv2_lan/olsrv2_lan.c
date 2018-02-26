@@ -83,7 +83,7 @@ static void _cleanup(void);
 static void _cb_cfg_olsrv2_lan_changed(void);
 
 static struct cfg_schema_entry _olsrv2_lan_entries[] = {
-  CFG_MAP_NETADDR_V46(_lan_data, prefix.dst, "prefix", "", "locally attached network prefix", true, false),
+  CFG_MAP_NETADDR_V46(_lan_data, prefix.dst, "prefix", NULL, "locally attached network prefix", true, false),
   CFG_MAP_INT32_MINMAX(
     _lan_data, extension, "domain", "-1", "domain for this LAN entry, -1 for all domains", 0, -1, 255),
   CFG_MAP_NETADDR_V6(
