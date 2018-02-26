@@ -479,7 +479,7 @@ _router_process_destination_up(struct dlep_extension *ext __attribute__((unused)
   }
 
   /* generate ACK */
-  return dlep_session_generate_signal(session, DLEP_DESTINATION_UP_ACK, &mac);
+  return dlep_session_generate_signal_status (session, DLEP_DESTINATION_UP_ACK, &mac, DLEP_STATUS_OKAY, "Success");
 }
 
 /**
@@ -524,7 +524,7 @@ _router_process_destination_down(struct dlep_extension *ext __attribute__((unuse
   oonf_layer2_neigh_remove(l2neigh, session->l2_origin);
 
   /* generate ACK */
-  return dlep_session_generate_signal(session, DLEP_DESTINATION_DOWN_ACK, &mac);
+  return dlep_session_generate_signal_status(session, DLEP_DESTINATION_DOWN_ACK, &mac, DLEP_STATUS_OKAY, "Success");
 }
 
 /**

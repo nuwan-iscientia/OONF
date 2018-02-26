@@ -141,6 +141,7 @@ static const uint16_t _dst_up_ack_tlvs[] = {
 };
 static const uint16_t _dst_up_ack_mandatory[] = {
   DLEP_MAC_ADDRESS_TLV,
+  DLEP_STATUS_TLV,
 };
 
 /* destination down */
@@ -149,6 +150,7 @@ static const uint16_t _dst_down_tlvs[] = {
 };
 static const uint16_t _dst_down_mandatory[] = {
   DLEP_MAC_ADDRESS_TLV,
+  DLEP_STATUS_TLV,
 };
 
 /* destination down ack */
