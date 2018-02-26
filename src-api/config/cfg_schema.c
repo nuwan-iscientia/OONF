@@ -313,36 +313,29 @@ cfg_schema_validate(struct cfg_db *db, bool cleanup, bool ignore_unknown_section
     /* check for missing values */
     for (i = 0; i < schema_section->entry_count; i++) {
       schema_entry = &schema_section->entries[i];
-      if (strarray_is_empty_c(&schema_entry->def)) {
+      if (section && strarray_is_empty_c(&schema_entry->def)) {
         /* found a mandatory schema entry */
 
         warning = true;
-        if (section) {
-          named = cfg_db_get_unnamed_section(section);
-          if (named) {
-            /* entry not in unnamed section */
-            warning = cfg_db_get_entry(named, schema_entry->key.entry) == NULL;
-            if (named->name && warning) {
-              /* no mandatory value in unnamed section, check named sections */
-              warning = false;
-
-              avl_for_each_element(&section->names, named, node) {
-                if (named->name != NULL && cfg_db_get_entry(named, schema_entry->key.entry) == NULL) {
-                  /* found a named section without mandatory entry */
-                  warning = true;
-                  break;
-                }
-              }
-            }
-          }
-          else {
-            /* no unnamed section */
-            warning = true;
-          }
+        named = cfg_db_get_unnamed_section(section);
+        if (named) {
+          /* entry not in unnamed section */
+          warning = cfg_db_get_entry(named, schema_entry->key.entry) == NULL;
         }
         if (warning) {
-          cfg_append_printable_line(
-            out, "Missing mandatory entry of type '%s' and key '%s'", schema_section->type, schema_entry->key.entry);
+          /* no mandatory value in unnamed section, check named sections */
+          warning = false;
+
+          avl_for_each_element(&section->names, named, node) {
+            if (named->name != NULL && cfg_db_get_entry(named, schema_entry->key.entry) == NULL) {
+              /* found a named section without mandatory entry */
+              warning = true;
+              cfg_append_printable_line(
+                out, "Missing mandatory entry of type '%s', name '%s' and key '%s'",
+                schema_section->type, named->name, schema_entry->key.entry);
+              break;
+            }
+          }
         }
         error |= warning;
       }

@@ -139,6 +139,7 @@ static void _cb_rt_event(const struct os_route *, bool);
 
 static void _cb_metric_aging(struct oonf_timer_instance *entry);
 
+static void _cb_cfg_interface_changed(void);
 static void _cb_cfg_changed(void);
 
 /* plugin declaration */
@@ -164,6 +165,12 @@ static struct cfg_schema_entry _import_entries[] = {
     "Double the routing metric value every time interval, 0 to disable"),
 };
 
+static struct cfg_schema_section _interface_section = {
+  CFG_OSIF_SCHEMA_INTERFACE_SECTION_INIT,
+
+  .cb_delta_handler = _cb_cfg_interface_changed,
+};
+
 static struct cfg_schema_section _import_section = {
   .type = OONF_LAN_IMPORT_SUBSYSTEM,
 
@@ -177,6 +184,8 @@ static struct cfg_schema_section _import_section = {
 
   .entries = _import_entries,
   .entry_count = ARRAYSIZE(_import_entries),
+
+  .next_section = &_interface_section,
 };
 
 static const char *_dependencies[] = {
@@ -312,7 +321,6 @@ _is_allowed_to_import(const struct os_route *route) {
 
   interf = os_interface_get_data_by_ifindex(route->p.if_index);
   if (interf != NULL && interf->flags.mesh) {
-    /* don't import routes from mesh interface */
     return false;
   }
   return true;
@@ -356,6 +364,11 @@ _cb_rt_event(const struct os_route *route, bool set) {
     return;
   }
 
+  /* get interface name for route */
+  if (route->p.if_index) {
+    if_indextoname(route->p.if_index, ifname);
+  }
+
   avl_for_each_element(&_import_tree, import, _node) {
     OONF_DEBUG(LOG_LAN_IMPORT, "Check for import: %s", import->name);
 
@@ -391,7 +404,10 @@ _cb_rt_event(const struct os_route *route, bool set) {
 
     /* check interface name */
     if (import->ifname[0]) {
-      if_indextoname(route->p.if_index, ifname);
+      if (route->p.if_index == 0) {
+        OONF_DEBUG(LOG_LAN_IMPORT, "Route has no interface");
+        continue;
+      }
       if (strcmp(import->ifname, ifname) != 0) {
         OONF_DEBUG(LOG_LAN_IMPORT, "Bad interface");
         continue;
@@ -537,11 +553,38 @@ _cb_metric_aging(struct oonf_timer_instance *entry) {
 }
 
 /**
+ * interface section changed
+ */
+static void
+_cb_cfg_interface_changed(void) {
+  struct _import_entry *import;
+
+  if (_interface_section.pre || !_interface_section.post) {
+    /* only check for new sections */
+    return;
+  }
+
+  avl_for_each_element(&_import_tree, import, _node) {
+    if (import->ifname[0] && strcmp(import->ifname, _interface_section.section_name) == 0) {
+      OONF_WARN(LOG_LAN_IMPORT, "Mesh interface %s cannot be used for LAN IMPORT",
+                _interface_section.section_name);
+    }
+  }
+}
+
+/**
  * Configuration changed
  */
 static void
 _cb_cfg_changed(void) {
   struct _import_entry *import;
+
+  if (_import_section.post && !_import_section.pre) {
+    if (nhdp_interface_get(_import_section.section_name)) {
+      OONF_WARN(LOG_LAN_IMPORT, "Mesh interface %s cannot be used for LAN IMPORT",
+                _import_section.section_name);
+    }
+  }
 
   /* get existing modifier */
   import = _get_import(_import_section.section_name);
