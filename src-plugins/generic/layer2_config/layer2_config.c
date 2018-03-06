@@ -135,8 +135,8 @@ static struct cfg_schema_entry _l2net_def_entries[] = {
 };
 static struct cfg_schema_entry _l2neigh_entries[] = {
   CFG_MAP_CHOICE_L2NEIGH(l2_config_data, data_idx, "l2neigh_key", "", "Layer2 neighbor key for configuration"),
-  CFG_MAP_NETADDR_MAC48(l2_config_data, mac, "l2neigh_mac", "", "MAC address of neighbor", false, false),
   CFG_MAP_STRING_ARRAY(l2_config_data, txt_value, "l2neigh_value", "", "Layer2 neighbor value", _MAX_L2_VALUE_LEN),
+  CFG_MAP_NETADDR_MAC48(l2_config_data, mac, "l2neigh_mac", "", "MAC address of neighbor", false, false),
 };
 static struct cfg_schema_entry _l2neigh_ip_entries[] = {
   CFG_MAP_NETADDR_MAC48(l2_config_data, mac, "l2neigh_mac", "", "MAC address of neighbor", false, false),
