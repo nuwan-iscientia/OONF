@@ -731,7 +731,7 @@ oonf_rfc5444_reconfigure_interface(struct oonf_rfc5444_interface *interf, struct
 
   if (port == 0) {
     /* delay configuration apply */
-    OONF_INFO_NH(LOG_RFC5444, "    delay configuration, we still lack to protocol port");
+    OONF_INFO(LOG_RFC5444, "    delay configuration, we still lack to protocol port");
     return;
   }
 
@@ -1056,12 +1056,11 @@ _print_packet_to_buffer(enum oonf_log_source source, union netaddr_socket *sock 
     if (result) {
       OONF_WARN(source, "%s %s for printing: %s (%d)", error, netaddr_socket_to_string(&buf, sock),
         rfc5444_strerror(result), result);
-      OONF_WARN_NH(source, "%s", abuf_getptr(&_printer_buffer));
+      OONF_WARN(source, "packet: %s", abuf_getptr(&_printer_buffer));
     }
     else {
       OONF_DEBUG(source, "%s %s through %s:", success, netaddr_socket_to_string(&buf, sock), interf->name);
-
-      OONF_DEBUG_NH(source, "%s", abuf_getptr(&_printer_buffer));
+      OONF_DEBUG(source, "packet: %s", abuf_getptr(&_printer_buffer));
     }
   }
 }
@@ -1108,11 +1107,7 @@ _cb_receive_data(struct oonf_packet_socket *sock, union netaddr_socket *from, vo
   if (result < 0) {
     OONF_WARN(LOG_RFC5444, "Error while parsing incoming packet from %s: %s (%d)", netaddr_socket_to_string(&buf, from),
       rfc5444_strerror(result), result);
-
-    abuf_clear(&_printer_buffer);
-    abuf_hexdump(&_printer_buffer, "", ptr, length);
-
-    OONF_WARN_NH(LOG_RFC5444, "%s", abuf_getptr(&_printer_buffer));
+    OONF_WARN_HEX(LOG_RFC5444, ptr, length, "%s", abuf_getptr(&_printer_buffer));
   }
 }
 

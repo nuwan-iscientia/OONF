@@ -43,9 +43,9 @@
  * @file
  */
 
-#include "common/netaddr_acl.h"
 #include "common/common_types.h"
 #include "common/netaddr.h"
+#include "common/netaddr_acl.h"
 #include "common/string.h"
 
 static bool _is_in_array(const struct netaddr *, size_t, const struct netaddr *);
@@ -70,9 +70,6 @@ netaddr_acl_remove(struct netaddr_acl *acl) {
   free(acl->reject);
 
   memset(acl, 0, sizeof(*acl));
-
-  assert(acl->accept == NULL);
-  assert(acl->reject == NULL);
 }
 
 /**

@@ -255,7 +255,7 @@ _validate_mpr_set(const struct nhdp_domain *domain, struct neighbor_graph *graph
   avl_for_each_element(&graph->set_n1, node_n1, _avl_node) {
     if (domain == nhdp_domain_get_flooding_domain()) {
       if (node_n1->link->flooding_willingness == RFC7181_WILLINGNESS_ALWAYS) {
-        assert(mpr_is_mpr(graph, &node_n1->addr));
+        OONF_ASSERT(mpr_is_mpr(graph, &node_n1->addr), LOG_MPR, "WILLINGNESS_ALWAYS Node is no MPR");
       }
     }
     else {
@@ -263,7 +263,7 @@ _validate_mpr_set(const struct nhdp_domain *domain, struct neighbor_graph *graph
 
       neighdata = nhdp_domain_get_neighbordata(domain, node_n1->neigh);
       if (neighdata->willingness == RFC7181_WILLINGNESS_ALWAYS) {
-        assert(mpr_is_mpr(graph, &node_n1->addr));
+        OONF_ASSERT(mpr_is_mpr(graph, &node_n1->addr), LOG_MPR, "WILLINGNESS_ALWAYS Node is no MPR");
       }
     }
   }
@@ -280,12 +280,12 @@ _validate_mpr_set(const struct nhdp_domain *domain, struct neighbor_graph *graph
      * there is at least one element in M that is also in N1(y). This is
      * equivalent to the requirement that d(y, M) is defined.
      */
-    assert(d_y_mpr < RFC7181_METRIC_INFINITE_PATH);
+    OONF_ASSERT(d_y_mpr < RFC7181_METRIC_INFINITE_PATH, LOG_MPR, "d_y path length %u is more than infinite", d_y_mpr);
 
     /*
      * Third property: For any y in N2, d(y,M) = d(y, N1).
      */
-    assert(d_y_mpr == d_y_n1);
+    OONF_ASSERT(d_y_mpr == d_y_n1, LOG_MPR, "d_y_path length %u should be %u", d_y_mpr, d_y_n1);
   }
 }
 #endif

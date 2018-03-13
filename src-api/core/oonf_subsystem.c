@@ -43,7 +43,6 @@
  * @file
  */
 
-#include <assert.h>
 #include <dlfcn.h>
 #include <errno.h>
 #include <stdio.h>
@@ -155,7 +154,7 @@ void
 oonf_subsystem_configure(struct cfg_schema *schema, struct oonf_subsystem *subsystem) {
   struct cfg_schema_section *schema_section;
 
-  assert(subsystem->name);
+  OONF_ASSERT(subsystem->name, LOG_SUBSYSTEMS, "Subsystem name is not set");
 
   OONF_INFO(LOG_SUBSYSTEMS, "Configure subsystem %s", subsystem->name);
 

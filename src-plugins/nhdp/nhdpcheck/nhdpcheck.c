@@ -166,7 +166,7 @@ _cb_message_start_callback(struct rfc5444_reader_tlvblock_context *context) {
   struct nhdp_interface *interf;
 
   interf = nhdp_interface_get(_protocol->input.interface->name);
-  assert(interf);
+  OONF_ASSERT(interf, LOG_NHDPCHECK, "Could not find NHDP interface %s", _protocol->input.interface->name);
 #endif
 
   /* check address length */

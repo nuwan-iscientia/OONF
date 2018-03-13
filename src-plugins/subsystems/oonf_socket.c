@@ -43,7 +43,6 @@
  * @file
  */
 
-#include <assert.h>
 #include <errno.h>
 #include <stdlib.h>
 #include <string.h>
@@ -143,10 +142,7 @@ _initiate_shutdown(void) {
  */
 void
 oonf_socket_add(struct oonf_socket_entry *entry) {
-  OONF_DEBUG(LOG_SOCKET, "Adding socket entry %d to scheduler\n", os_fd_get_fd(&entry->fd));
-
-  assert(entry->name);
-  assert(entry->name[0]);
+  OONF_DEBUG(LOG_SOCKET, "Adding socket entry %s (%d) to scheduler\n", entry->name, os_fd_get_fd(&entry->fd));
 
   list_add_before(&_socket_head, &entry->_node);
   os_fd_event_socket_add(&_socket_events, &entry->fd);
@@ -159,7 +155,7 @@ oonf_socket_add(struct oonf_socket_entry *entry) {
 void
 oonf_socket_remove(struct oonf_socket_entry *entry) {
   if (list_is_node_added(&entry->_node)) {
-    OONF_DEBUG(LOG_SOCKET, "Removing socket entry %d\n", os_fd_get_fd(&entry->fd));
+    OONF_DEBUG(LOG_SOCKET, "Removing socket entry %s (%d)\n", entry->name, os_fd_get_fd(&entry->fd));
 
     list_remove(&entry->_node);
     os_fd_event_socket_remove(&_socket_events, &entry->fd);

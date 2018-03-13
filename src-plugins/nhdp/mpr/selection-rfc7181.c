@@ -242,7 +242,7 @@ _process_unique_mprs(const struct nhdp_domain *domain, struct neighbor_graph *gr
     }
     OONF_DEBUG(
       LOG_MPR, "Number of possible MPRs for N node %s is %u", netaddr_to_string(&buf1, &node_n->addr), possible_mprs);
-    assert(possible_mprs > 0);
+    OONF_ASSERT(possible_mprs > 0, LOG_MPR, "There should be at least one possible MPR");
     if (possible_mprs == 1) {
       /* There is only one possible MPR to cover this 2-hop neighbor, so this
        * node must become an MPR. */

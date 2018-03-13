@@ -87,6 +87,7 @@ const char *LOG_SEVERITY_NAMES[LOG_SEVERITY_MAX + 1] = {
   [LOG_SEVERITY_DEBUG] = "DEBUG",
   [LOG_SEVERITY_INFO] = "INFO",
   [LOG_SEVERITY_WARN] = "WARN",
+  [LOG_SEVERITY_ASSERT] = "ASSERT",
 };
 
 static uint32_t _log_warnings[LOG_MAXIMUM_SOURCES];
@@ -358,7 +359,6 @@ oonf_log_get_walltime(struct oonf_walltime_str *buf) {
  *
  * @param severity severity of the log event (LOG_SEVERITY_DEBUG to LOG_SEVERITY_WARN)
  * @param source source of the log event (LOG_LOGGING, ... )
- * @param no_header true if time header should not be created
  * @param file filename where the logging macro have been called
  * @param line line number where the logging macro have been called
  * @param hexptr pointer to binary buffer that should be appended as a hexdump
@@ -366,7 +366,7 @@ oonf_log_get_walltime(struct oonf_walltime_str *buf) {
  * @param format printf format string for log output plus a variable number of arguments
  */
 void
-oonf_log(enum oonf_log_severity severity, enum oonf_log_source source, bool no_header, const char *file, int line,
+oonf_log(enum oonf_log_severity severity, enum oonf_log_source source, const char *file, int line,
   const void *hexptr, size_t hexlen, const char *format, ...) {
   struct oonf_log_handler_entry *h, *iterator;
   struct oonf_log_parameters param;
@@ -385,12 +385,8 @@ oonf_log(enum oonf_log_severity severity, enum oonf_log_source source, bool no_h
 
   /* generate log string */
   abuf_clear(&_logbuffer);
-  if (!no_header) {
-    p1 = abuf_puts(&_logbuffer, oonf_log_get_walltime(&tbuf));
-
-    p2 =
-      abuf_appendf(&_logbuffer, " %s(%s) %s %d: ", LOG_SEVERITY_NAMES[severity], LOG_SOURCE_NAMES[source], file, line);
-  }
+  p1 = abuf_puts(&_logbuffer, oonf_log_get_walltime(&tbuf));
+  p2 = abuf_appendf(&_logbuffer, " %s(%s) %s %d: ", LOG_SEVERITY_NAMES[severity], LOG_SOURCE_NAMES[source], file, line);
   abuf_vappendf(&_logbuffer, format, ap);
 
   last = &abuf_getptr(&_logbuffer)[abuf_getlen(&_logbuffer) - 1];
@@ -411,7 +407,6 @@ oonf_log(enum oonf_log_severity severity, enum oonf_log_source source, bool no_h
 
   param.severity = severity;
   param.source = source;
-  param.no_header = no_header;
   param.file = file;
   param.line = line;
   param.buffer = abuf_getptr(&_logbuffer);
@@ -440,9 +435,26 @@ oonf_log(enum oonf_log_severity severity, enum oonf_log_source source, bool no_h
  * @param param logging parameter set
  */
 void
-oonf_log_stderr(struct oonf_log_handler_entry *entry __attribute__((unused)), struct oonf_log_parameters *param) {
+oonf_log_stderr(struct oonf_log_handler_entry *entry, struct oonf_log_parameters *param) {
+  bool *color = entry->custom;
+
+  if (color) {
+    switch (param->severity) {
+      case LOG_SEVERITY_INFO:
+        fputs("\033[0;33m", stderr);
+        break;
+      case LOG_SEVERITY_WARN:
+        fputs("\033[0;31m", stderr);
+        break;
+      default:
+        break;
+    }
+  }
   fputs(param->buffer, stderr);
   fputc('\n', stderr);
+  if (color && param->severity != LOG_SEVERITY_DEBUG) {
+    fputs("\033[0m;", stderr);
+  }
 }
 
 /**

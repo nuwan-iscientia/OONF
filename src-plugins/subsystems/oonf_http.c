@@ -244,8 +244,6 @@ _cleanup(void) {
  */
 void
 oonf_http_add(struct oonf_http_handler *handler) {
-  assert(handler->site && handler->site[0] == '/');
-
   handler->directory = handler->site[strlen(handler->site) - 1] == '/';
   handler->node.key = handler->site;
   avl_insert(&_http_site_tree, &handler->node);
@@ -642,9 +640,6 @@ static int
 _parse_http_header(char *header_data, size_t header_len, struct oonf_http_session *header) {
   size_t header_index;
 
-  assert(header_data);
-  assert(header);
-
   memset(header, 0, sizeof(struct oonf_http_session));
   header->method = header_data;
 
@@ -822,10 +817,6 @@ static size_t
 _parse_query_string(char *s, char **name, char **value, size_t count) {
   char *ptr;
   size_t i = 0;
-
-  assert(s);
-  assert(name);
-  assert(value);
 
   while (s != NULL && i < count) {
     name[i] = s;

@@ -43,8 +43,6 @@
  * @file
  */
 
-#include <assert.h>
-
 #include "common/avl.h"
 #include "common/avl_comp.h"
 #include "common/common_types.h"

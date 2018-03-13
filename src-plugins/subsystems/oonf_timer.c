@@ -43,7 +43,6 @@
  * @file
  */
 
-#include <assert.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
@@ -125,9 +124,6 @@ _cleanup(void) {
  */
 void
 oonf_timer_add(struct oonf_timer_class *ti) {
-  assert(ti->callback);
-  assert(ti->name);
-  assert(ti->name[0]);
   list_add_tail(&_timer_info_list, &ti->_node);
 }
 
@@ -165,9 +161,6 @@ oonf_timer_start_ext(struct oonf_timer_instance *timer, uint64_t first, uint64_t
 #ifdef OONF_LOG_DEBUG_INFO
   struct isonumber_str timebuf1;
 #endif
-
-  assert(timer->class);
-  assert(timer->jitter_pct <= 100);
 
   if (timer->_clock) {
     avl_remove(&_timer_tree, &timer->_node);

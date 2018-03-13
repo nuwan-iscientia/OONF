@@ -264,7 +264,9 @@ os_routing_linux_set(struct os_route *route, bool set, bool del_similar) {
     route->_internal.nl_seq = seq;
     route->_internal._node.key = &route->_internal.nl_seq;
 
-    assert(!avl_is_node_added(&route->_internal._node));
+    OONF_ASSERT(!avl_is_node_added(&route->_internal._node),
+                LOG_OS_ROUTING, "route %s is already in feedback list!",
+                os_routing_to_string(&rbuf, &os_rt.p));
     avl_insert(&_rtnetlink_feedback, &route->_internal._node);
   }
   return 0;
@@ -282,7 +284,7 @@ os_routing_linux_query(struct os_route *route) {
   struct rtgenmsg *rt_gen;
   int seq;
 
-  assert(route->cb_finished != NULL && route->cb_get != NULL);
+  OONF_ASSERT(route->cb_finished != NULL && route->cb_get != NULL, LOG_OS_ROUTING, "illegal route query");
   memset(buffer, 0, sizeof(buffer));
 
   /* get pointers for netlink message */

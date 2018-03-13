@@ -171,7 +171,8 @@ _calculate_d_x_y(
 #endif
 
   idx = x->table_offset + y->table_offset;
-  assert(graph->d_x_y_cache);
+  OONF_ASSERT(graph->d_x_y_cache, LOG_MPR, "graph cache should be initialized");
+
   cost = graph->d_x_y_cache[idx];
   if (!cost) {
     cost1 = _calculate_d1_x(domain, x);

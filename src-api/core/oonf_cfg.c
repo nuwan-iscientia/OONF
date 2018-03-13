@@ -365,8 +365,7 @@ oonf_cfg_apply(void) {
   /*** phase 2: check configuration and apply it ***/
   /* validate configuration data */
   if (cfg_schema_validate(_oonf_raw_db, false, true, &log)) {
-    OONF_WARN(LOG_CONFIG, "Configuration validation failed");
-    OONF_WARN_NH(LOG_CONFIG, "%s", abuf_getptr(&log));
+    OONF_WARN(LOG_CONFIG, "Configuration validation failed: %s", abuf_getptr(&log));
     goto apply_failed;
   }
 

@@ -58,7 +58,6 @@
 #define IF_NAMESIZE 16
 #endif
 
-#include <assert.h>
 #include <string.h>
 
 #include "common/autobuf.h"

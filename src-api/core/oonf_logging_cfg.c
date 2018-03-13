@@ -75,6 +75,9 @@
 /*! configuration entry for activating file logging */
 #define LOG_FILE_ENTRY "file"
 
+/*! configuration entry for activating stderr color logging */
+#define LOG_STDERR_COLOR_ENTRY "stderr_color"
+
 /* prototype for configuration change handler */
 static void _cb_logcfg_apply(void);
 static void _apply_log_setting(
@@ -90,6 +93,7 @@ static struct cfg_schema_entry _logging_entries[] = {
   CFG_VALIDATE_BOOL(LOG_STDERR_ENTRY, "false", "Set to true to activate logging to stderr"),
   CFG_VALIDATE_BOOL(LOG_SYSLOG_ENTRY, "false", "Set to true to activate logging to syslog"),
   CFG_VALIDATE_STRING(LOG_FILE_ENTRY, "", "Set a filename to log to a file"),
+  CFG_VALIDATE_BOOL(LOG_STDERR_COLOR_ENTRY, "false", "Use ANSI colors for stderr logging"),
 };
 
 static struct cfg_schema_section _logging_section = {
@@ -101,7 +105,9 @@ static struct cfg_schema_section _logging_section = {
 
 /* global logger configuration */
 static uint8_t _logging_cfg[LOG_MAXIMUM_SOURCES];
-static struct oonf_log_handler_entry _stderr_handler = { .handler = oonf_log_stderr };
+
+static bool _stderr_color = false;
+static struct oonf_log_handler_entry _stderr_handler = { .handler = oonf_log_stderr, .custom = &_stderr_color };
 static struct oonf_log_handler_entry _syslog_handler = { .handler = oonf_log_syslog };
 static struct oonf_log_handler_entry _file_handler = { .handler = oonf_log_file };
 
@@ -172,6 +178,9 @@ oonf_logcfg_apply(struct cfg_db *db) {
 
   ptr = cfg_db_get_entry_value(db, LOG_SECTION, NULL, LOG_STDERR_ENTRY)->value;
   activate_stderr = cfg_get_bool(ptr);
+
+  ptr = cfg_db_get_entry_value(db, LOG_SECTION, NULL, LOG_STDERR_COLOR_ENTRY)->value;
+  _stderr_color = cfg_get_bool(ptr);
 
   /* and finally modify the logging handlers */
   /* log.file */

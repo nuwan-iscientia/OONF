@@ -318,9 +318,7 @@ oonf_rfc5444_flush_target(struct oonf_rfc5444_target *target, bool force) {
  */
 static INLINE struct oonf_rfc5444_target *
 oonf_rfc5444_get_target_from_writer(struct rfc5444_writer *writer) {
-  assert(writer->msg_target);
-
-  return container_of(writer->msg_target, struct oonf_rfc5444_target, rfc5444_target);
+  return container_of_if_notnull(writer->msg_target, struct oonf_rfc5444_target, rfc5444_target);
 }
 
 /**

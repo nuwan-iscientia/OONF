@@ -251,14 +251,12 @@ _cb_addMessageTLVs(struct rfc5444_writer *writer) {
   size_t willingness_size;
   uint8_t mprtypes[NHDP_MAXIMUM_DOMAINS];
   uint8_t mprtypes_size;
+  struct netaddr_str buf;
 
   target = oonf_rfc5444_get_target_from_writer(writer);
 
-  if (target != target->interface->multicast4 && target != target->interface->multicast6) {
-    struct netaddr_str buf;
-    OONF_WARN(LOG_NHDP_W, "target for NHDP is no interface multicast: %s", netaddr_to_string(&buf, &target->dst));
-    assert(0);
-  }
+  OONF_ASSERT(target != target->interface->multicast4 && target != target->interface->multicast6,
+                LOG_NHDP_W, "target for NHDP is no interface multicast: %s", netaddr_to_string(&buf, &target->dst));
 
   itime_encoded = rfc5497_timetlv_encode(_nhdp_if->refresh_interval);
   vtime_encoded = rfc5497_timetlv_encode(_nhdp_if->h_hold_time);
