@@ -438,7 +438,7 @@ void
 oonf_log_stderr(struct oonf_log_handler_entry *entry, struct oonf_log_parameters *param) {
   bool *color = entry->custom;
 
-  if (color) {
+  if (*color) {
     switch (param->severity) {
       case LOG_SEVERITY_INFO:
         fputs("\033[0;33m", stderr);
@@ -453,7 +453,7 @@ oonf_log_stderr(struct oonf_log_handler_entry *entry, struct oonf_log_parameters
   fputs(param->buffer, stderr);
   fputc('\n', stderr);
   if (color && param->severity != LOG_SEVERITY_DEBUG) {
-    fputs("\033[0m;", stderr);
+    fputs("\033[0m", stderr);
   }
 }
 
