@@ -57,6 +57,7 @@
 #include "subsystems/oonf_clock.h"
 #include "subsystems/oonf_telnet.h"
 #include "subsystems/oonf_viewer.h"
+#include "subsystems/os_interface.h"
 
 #include "systeminfo/systeminfo.h"
 
@@ -76,6 +77,9 @@ static void _initialize_memory_values(struct oonf_viewer_template *template, str
 static void _initialize_timer_values(struct oonf_viewer_template *template, struct oonf_timer_class *tc);
 static void _initialize_socket_values(struct oonf_viewer_template *template, struct oonf_socket_entry *sock);
 static void _initialize_logging_values(struct oonf_viewer_template *template, enum oonf_log_source source);
+static void _initialize_interface_key_values(struct oonf_viewer_template *template, struct os_interface *);
+static void _initialize_interface_data_values(struct oonf_viewer_template *template, struct os_interface *);
+static void _initialize_ifaddr_data_values(struct oonf_viewer_template *template, struct os_interface_ip *);
 
 static int _cb_create_text_time(struct oonf_viewer_template *);
 static int _cb_create_text_version(struct oonf_viewer_template *);
@@ -83,6 +87,9 @@ static int _cb_create_text_memory(struct oonf_viewer_template *);
 static int _cb_create_text_timer(struct oonf_viewer_template *);
 static int _cb_create_text_socket(struct oonf_viewer_template *);
 static int _cb_create_text_logging(struct oonf_viewer_template *);
+static int _cb_create_text_interface(struct oonf_viewer_template *);
+static int _cb_create_text_ifaddr(struct oonf_viewer_template *);
+static int _cb_create_text_ifpeer(struct oonf_viewer_template *);
 
 /*
  * list of template keys and corresponding buffers for values.
@@ -144,6 +151,27 @@ static int _cb_create_text_logging(struct oonf_viewer_template *);
 /*! template key for number of warnings per logging source */
 #define KEY_LOG_WARNINGS "log_warnings"
 
+#define KEY_IF_NAME "if_name"
+#define KEY_IF_INDEX "if_index"
+#define KEY_IF_BASEIDX "if_baseidx"
+#define KEY_IF_FLAG_UP "if_flag_up"
+#define KEY_IF_FLAG_PROMISC "if_flag_promisc"
+#define KEY_IF_FLAG_LOOPBACK "if_flag_loopback"
+#define KEY_IF_FLAG_ANY "if_flag_any"
+#define KEY_IF_FLAG_UNICAST "if_flag_unicast"
+#define KEY_IF_FLAG_MESH "if_flag_mesh"
+#define KEY_IF_MAC "if_mac"
+#define KEY_IF_IPV4 "if_ipv4"
+#define KEY_IF_IPV6 "if_ipv6"
+#define KEY_IF_LLV4 "if_llv4"
+#define KEY_IF_LLV6 "if_llv6"
+#define KEY_IF_ADDR_COUNT "if_addr_count"
+#define KEY_IF_PEER_COUNT "if_peer_count"
+
+#define KEY_IFADDR_PREFIXED "ifaddr_prefixed_addr"
+#define KEY_IFADDR_ADDR "ifaddr_address"
+#define KEY_IFADDR_PREFIX "ifaddr_prefix"
+
 /*
  * buffer space for values that will be assembled
  * into the output of the plugin
@@ -172,6 +200,26 @@ static struct isonumber_str _value_socket_long;
 
 static char _value_log_source[64];
 static struct isonumber_str _value_log_warnings;
+
+static char _value_if_name[IF_NAMESIZE];
+static char _value_if_index[21];
+static char _value_if_baseidx[21];
+static char _value_if_flag_up[TEMPLATE_JSON_BOOL_LENGTH];
+static char _value_if_flag_promisc[TEMPLATE_JSON_BOOL_LENGTH];
+static char _value_if_flag_loopback[TEMPLATE_JSON_BOOL_LENGTH];
+static char _value_if_flag_any[TEMPLATE_JSON_BOOL_LENGTH];
+static char _value_if_flag_unicast[TEMPLATE_JSON_BOOL_LENGTH];
+static char _value_if_flag_mesh[TEMPLATE_JSON_BOOL_LENGTH];
+static struct netaddr_str _value_if_mac;
+static struct netaddr_str _value_if_ipv4;
+static struct netaddr_str _value_if_ipv6;
+static struct netaddr_str _value_if_llv4;
+static struct netaddr_str _value_if_llv6;
+static char _value_if_addr_count[21];
+static char _value_if_peer_count[21];
+static struct netaddr_str _value_ifaddr_prefixed;
+static struct netaddr_str _value_ifaddr_addr;
+static struct netaddr_str _value_ifaddr_prefix;
 
 /* definition of the template data entries for JSON and table output */
 static struct abuf_template_data_entry _tde_time_key[] = {
@@ -206,6 +254,31 @@ static struct abuf_template_data_entry _tde_logging_key[] = {
   { KEY_LOG_SOURCE, _value_log_source, true },
   { KEY_LOG_WARNINGS, _value_log_warnings.buf, false },
 };
+static struct abuf_template_data_entry _tde_if_key[] = {
+  { KEY_IF_NAME, _value_if_name, true },
+  { KEY_IF_INDEX, _value_if_index, false },
+  { KEY_IF_BASEIDX, _value_if_baseidx, false },
+};
+static struct abuf_template_data_entry _tde_if_data[] = {
+  { KEY_IF_FLAG_UP, _value_if_flag_up, true },
+  { KEY_IF_FLAG_PROMISC, _value_if_flag_promisc, true },
+  { KEY_IF_FLAG_LOOPBACK, _value_if_flag_loopback, true },
+  { KEY_IF_FLAG_ANY, _value_if_flag_any, true },
+  { KEY_IF_FLAG_UNICAST, _value_if_flag_unicast, true },
+  { KEY_IF_FLAG_MESH, _value_if_flag_mesh, true },
+  { KEY_IF_MAC, _value_if_mac.buf, true },
+  { KEY_IF_IPV4, _value_if_ipv4.buf , true },
+  { KEY_IF_IPV6, _value_if_ipv6.buf , true },
+  { KEY_IF_LLV4, _value_if_llv4.buf , true },
+  { KEY_IF_LLV6, _value_if_llv6.buf , true },
+  { KEY_IF_ADDR_COUNT, _value_if_addr_count, false },
+  { KEY_IF_PEER_COUNT, _value_if_peer_count, false },
+};
+static struct abuf_template_data_entry _tde_ifaddr_data[] = {
+  { KEY_IFADDR_PREFIXED, _value_ifaddr_prefixed.buf, true },
+  { KEY_IFADDR_ADDR, _value_ifaddr_addr.buf, true },
+  { KEY_IFADDR_PREFIX, _value_ifaddr_prefix.buf, true },
+};
 
 static struct abuf_template_storage _template_storage;
 
@@ -227,6 +300,14 @@ static struct abuf_template_data _td_socket[] = {
 };
 static struct abuf_template_data _td_logging[] = {
   { _tde_logging_key, ARRAYSIZE(_tde_logging_key) },
+};
+static struct abuf_template_data _td_if[] = {
+  { _tde_if_key, ARRAYSIZE(_tde_if_key) },
+  { _tde_if_data, ARRAYSIZE(_tde_if_data) },
+};
+static struct abuf_template_data _td_ifaddr[] = {
+  { _tde_if_key, ARRAYSIZE(_tde_if_key) },
+  { _tde_ifaddr_data, ARRAYSIZE(_tde_ifaddr_data) },
 };
 
 /* OONF viewer templates (based on Template Data arrays) */
@@ -266,6 +347,24 @@ static struct oonf_viewer_template _templates[] = {
     .data_size = ARRAYSIZE(_td_logging),
     .json_name = "logging",
     .cb_function = _cb_create_text_logging,
+  },
+  {
+    .data = _td_if,
+    .data_size = ARRAYSIZE(_td_if),
+    .json_name = "interface",
+    .cb_function = _cb_create_text_interface,
+  },
+  {
+    .data = _td_ifaddr,
+    .data_size = ARRAYSIZE(_td_ifaddr),
+    .json_name = "if_addr",
+    .cb_function = _cb_create_text_ifaddr,
+  },
+  {
+    .data = _td_ifaddr,
+    .data_size = ARRAYSIZE(_td_ifaddr),
+    .json_name = "if_peer",
+    .cb_function = _cb_create_text_ifpeer,
   },
 };
 
@@ -400,6 +499,55 @@ _initialize_logging_values(struct oonf_viewer_template *template, enum oonf_log_
 }
 
 /**
+ * Initialize the value buffers for an interface key
+ * @param template viewer template
+ * @param interf OONF interface instance
+ */
+static void
+_initialize_interface_key_values(struct oonf_viewer_template *template __attribute__((unused)),
+                                 struct os_interface *interf) {
+  strscpy(_value_if_name, interf->name, IF_NAMESIZE);
+  snprintf(_value_if_index, sizeof(_value_if_index), "%u", interf->index);
+  snprintf(_value_if_baseidx, sizeof(_value_if_baseidx), "%u", interf->base_index);
+}
+
+/**
+ * Initialize the value buffers for interface data
+ * @param template viewer template
+ * @param interf OONF interface instance
+ */
+static void
+_initialize_interface_data_values(struct oonf_viewer_template *template __attribute__((unused)),
+                                  struct os_interface *interf) {
+  strscpy(_value_if_flag_up, json_getbool(interf->flags.up), sizeof(_value_if_flag_up));
+  strscpy(_value_if_flag_promisc, json_getbool(interf->flags.promisc), sizeof(_value_if_flag_promisc));
+  strscpy(_value_if_flag_loopback, json_getbool(interf->flags.loopback), sizeof(_value_if_flag_loopback));
+  strscpy(_value_if_flag_any, json_getbool(interf->flags.any), sizeof(_value_if_flag_any));
+  strscpy(_value_if_flag_unicast, json_getbool(interf->flags.unicast_only), sizeof(_value_if_flag_unicast));
+  strscpy(_value_if_flag_mesh, json_getbool(interf->flags.mesh), sizeof(_value_if_flag_mesh));
+  netaddr_to_string(&_value_if_mac, &interf->mac);
+  netaddr_to_string(&_value_if_ipv4, interf->if_v4);
+  netaddr_to_string(&_value_if_ipv6, interf->if_v6);
+  netaddr_to_string(&_value_if_llv4, interf->if_linklocal_v4);
+  netaddr_to_string(&_value_if_llv6, interf->if_linklocal_v6);
+  snprintf(_value_if_addr_count, sizeof(_value_if_addr_count), "%u", interf->addresses.count);
+  snprintf(_value_if_peer_count, sizeof(_value_if_peer_count), "%u", interf->peers.count);
+}
+
+/**
+ * Initialize the value buffers for interface addresses or peers
+ * @param template viewer template
+ * @param ip OONF interface ip instance
+ */
+static void
+_initialize_ifaddr_data_values(struct oonf_viewer_template *template __attribute__((unused)),
+                                  struct os_interface_ip *ip) {
+  netaddr_to_string(&_value_ifaddr_prefixed, &ip->prefixed_addr);
+  netaddr_to_string(&_value_ifaddr_addr, &ip->address);
+  netaddr_to_string(&_value_ifaddr_prefix, &ip->prefix);
+}
+
+/**
  * Callback to generate text/json description of current time
  * @param template viewer template
  * @return -1 if an error happened, 0 otherwise
@@ -500,6 +648,74 @@ _cb_create_text_logging(struct oonf_viewer_template *template) {
 
     /* generate template output */
     oonf_viewer_output_print_line(template);
+  }
+
+  return 0;
+}
+
+/**
+ * Callback to generate text/json description for interfaces
+ * @param template viewer template
+ * @return -1 if an error happened, 0 otherwise
+ */
+static int
+_cb_create_text_interface(struct oonf_viewer_template *template) {
+  struct os_interface *interf;
+
+  avl_for_each_element(os_interface_get_tree(), interf, _node) {
+    _initialize_interface_key_values(template, interf);
+    _initialize_interface_data_values(template, interf);
+
+    /* generate template output */
+    oonf_viewer_output_print_line(template);
+  }
+
+  return 0;
+}
+
+/**
+ * Callback to generate text/json description for interface addresses
+ * @param template viewer template
+ * @return -1 if an error happened, 0 otherwise
+ */
+static int
+_cb_create_text_ifaddr(struct oonf_viewer_template *template) {
+  struct os_interface *interf;
+  struct os_interface_ip *ip;
+
+  avl_for_each_element(os_interface_get_tree(), interf, _node) {
+    _initialize_interface_key_values(template, interf);
+
+    avl_for_each_element(&interf->addresses, ip, _node) {
+      _initialize_ifaddr_data_values(template, ip);
+
+      /* generate template output */
+      oonf_viewer_output_print_line(template);
+    }
+  }
+
+  return 0;
+}
+
+/**
+ * Callback to generate text/json description for interface peers
+ * @param template viewer template
+ * @return -1 if an error happened, 0 otherwise
+ */
+static int
+_cb_create_text_ifpeer(struct oonf_viewer_template *template) {
+  struct os_interface *interf;
+  struct os_interface_ip *ip;
+
+  avl_for_each_element(os_interface_get_tree(), interf, _node) {
+    _initialize_interface_key_values(template, interf);
+
+    avl_for_each_element(&interf->peers, ip, _node) {
+      _initialize_ifaddr_data_values(template, ip);
+
+      /* generate template output */
+      oonf_viewer_output_print_line(template);
+    }
   }
 
   return 0;
