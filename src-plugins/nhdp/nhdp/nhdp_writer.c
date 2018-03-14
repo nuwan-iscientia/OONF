@@ -255,7 +255,7 @@ _cb_addMessageTLVs(struct rfc5444_writer *writer) {
 
   target = oonf_rfc5444_get_target_from_writer(writer);
 
-  OONF_ASSERT(target != target->interface->multicast4 && target != target->interface->multicast6,
+  OONF_ASSERT(target == target->interface->multicast4 || target == target->interface->multicast6,
                 LOG_NHDP_W, "target for NHDP is no interface multicast: %s", netaddr_to_string(&buf, &target->dst));
 
   itime_encoded = rfc5497_timetlv_encode(_nhdp_if->refresh_interval);

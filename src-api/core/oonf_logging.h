@@ -153,9 +153,9 @@ struct oonf_log_parameters {
 #endif
 
 #ifdef NDEBUG
-#define OONF_DO_ABORT true
-#else
 #define OONF_DO_ABORT false
+#else
+#define OONF_DO_ABORT true
 #endif
 
 /**
