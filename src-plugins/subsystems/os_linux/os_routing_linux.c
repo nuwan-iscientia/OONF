@@ -635,19 +635,26 @@ _cb_rtnetlink_message(struct nlmsghdr *msg) {
 
   OONF_DEBUG(LOG_OS_ROUTING, "Content: %s", os_routing_to_string(&rbuf, &rt.p));
 
-  if (msg->nlmsg_seq == 0) {
-    /* send route events to listeners */
-    list_for_each_element(&_rtnetlink_listener, listener, _internal._node) {
-      listener->cb_get(&rt, msg->nlmsg_type == RTM_NEWROUTE);
+  /*
+   * sometimes netlink messages from the kernel have a (random?) sequence number, so
+   * we deliver everything with seq==0 and with an unregistered sequence number
+   * to the attached listeners now
+   */
+  filter = NULL;
+  if (msg->nlmsg_seq != 0) {
+    /* check for feedback for ongoing route commands */
+    filter = avl_find_element(&_rtnetlink_feedback, &msg->nlmsg_seq, filter, _internal._node);
+  }
+
+  if (filter) {
+    if (filter->cb_get != NULL && _match_routes(filter, &rt)) {
+      filter->cb_get(filter, &rt);
     }
   }
   else {
-    /* check for feedback for ongoing route commands */
-    filter = avl_find_element(&_rtnetlink_feedback, &msg->nlmsg_seq, filter, _internal._node);
-    if (filter) {
-      if (filter->cb_get != NULL && _match_routes(filter, &rt)) {
-        filter->cb_get(filter, &rt);
-      }
+    /* send route events to listeners */
+    list_for_each_element(&_rtnetlink_listener, listener, _internal._node) {
+      listener->cb_get(&rt, msg->nlmsg_type == RTM_NEWROUTE);
     }
   }
 }
