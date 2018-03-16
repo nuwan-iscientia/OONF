@@ -55,6 +55,7 @@
 #include "subsystems/oonf_layer2.h"
 #include "subsystems/oonf_packet_socket.h"
 #include "subsystems/oonf_timer.h"
+#include "subsystems/os_interface.h"
 
 #include "dlep/dlep_extension.h"
 #include "dlep/dlep_iana.h"
@@ -74,7 +75,11 @@
 #include "dlep/router/dlep_router_internal.h"
 #include "dlep/router/dlep_router_session.h"
 
+static void _connect_to_setup(struct dlep_router_if *router_if);
+static void _check_connect_to(struct dlep_router_if *router_if);
 static void _cleanup_interface(struct dlep_router_if *interface);
+static int _connect_to_if_changed(struct os_interface_listener *);
+static void _cb_check_connect_to_status(struct oonf_timer_instance *);
 
 static struct oonf_class _router_if_class = {
   .name = "DLEP router interface",
@@ -93,6 +98,11 @@ static struct oonf_layer2_origin _l2_default_origin = {
   .name = "dlep router defaults",
   .proactive = false,
   .priority = OONF_LAYER2_ORIGIN_UNRELIABLE,
+};
+
+static struct oonf_timer_class _connect_to_watchdog_class = {
+  .name = "connect_to watchdog",
+  .callback = _cb_check_connect_to_status,
 };
 
 /**
@@ -116,6 +126,7 @@ dlep_router_interface_init(void) {
   _shutting_down = false;
 
   oonf_layer2_origin_add(&_l2_origin);
+  oonf_timer_add(&_connect_to_watchdog_class);
 }
 
 /**
@@ -136,6 +147,7 @@ dlep_router_interface_cleanup(void) {
   dlep_router_session_cleanup();
   dlep_extension_cleanup();
   oonf_layer2_origin_remove(&_l2_origin);
+  oonf_timer_remove(&_connect_to_watchdog_class);
 }
 
 /**
@@ -187,10 +199,13 @@ dlep_router_add_interface(const char *ifname) {
     return NULL;
   }
 
-  if (dlep_if_add(&interface->interf, ifname, &_l2_origin, &_l2_default_origin, LOG_DLEP_ROUTER, false)) {
+  if (dlep_if_add(&interface->interf, ifname, &_l2_origin, &_l2_default_origin, _connect_to_if_changed, LOG_DLEP_ROUTER, false)) {
     oonf_class_free(&_router_if_class, interface);
     return NULL;
   }
+
+  /* prepare timer */
+  interface->_connect_to_watchdog.class = &_connect_to_watchdog_class;
 
   OONF_DEBUG(LOG_DLEP_ROUTER, "Add session %s", ifname);
   return interface;
@@ -221,31 +236,16 @@ dlep_router_remove_interface(struct dlep_router_if *interface) {
 void
 dlep_router_apply_interface_settings(struct dlep_router_if *interf) {
   struct dlep_extension *ext;
-  struct os_interface *os_if;
-  const struct os_interface_ip *result;
-  union netaddr_socket local, remote;
-#ifdef OONF_LOG_DEBUG_INFO
-  struct netaddr_str nbuf;
-#endif
 
   oonf_packet_apply_managed(&interf->interf.udp, &interf->interf.udp_config);
 
   _cleanup_interface(interf);
 
   if (!netaddr_is_unspec(&interf->connect_to_addr)) {
-    os_if = interf->interf.session.l2_listener.data;
-
-    OONF_DEBUG(LOG_DLEP_ROUTER, "Connect directly to [%s]:%d", netaddr_to_string(&nbuf, &interf->connect_to_addr),
-      interf->connect_to_port);
-
-    result = os_interface_get_prefix_from_dst(&interf->connect_to_addr, os_if);
-    if (result) {
-      /* initialize local and remote socket */
-      netaddr_socket_init(&local, &result->address, 0, os_if->index);
-      netaddr_socket_init(&remote, &interf->connect_to_addr, interf->connect_to_port, os_if->index);
-
-      dlep_router_add_session(interf, &local, &remote);
-    }
+    _connect_to_setup(interf);
+  }
+  else {
+    oonf_timer_stop(&interf->_connect_to_watchdog);
   }
 
   avl_for_each_element(dlep_extension_get_tree(), ext, _node) {
@@ -273,6 +273,37 @@ dlep_router_terminate_all_sessions(void) {
 }
 
 /**
+* open a direct TCP connection for this interface
+* @param router_if router interface
+*/
+static void
+_connect_to_setup(struct dlep_router_if *router_if) {
+  struct os_interface *os_if;
+  const struct os_interface_ip *result;
+  union netaddr_socket local;
+#ifdef OONF_LOG_DEBUG_INFO
+  struct netaddr_str nbuf;
+#endif
+
+  os_if = router_if->interf.session.l2_listener.data;
+
+  OONF_DEBUG(LOG_DLEP_ROUTER, "Connect directly to [%s]:%d", netaddr_to_string(&nbuf, &router_if->connect_to_addr),
+      router_if->connect_to_port);
+
+  /* start watchdog */
+  oonf_timer_set(&router_if->_connect_to_watchdog, 1000);
+
+  result = os_interface_get_prefix_from_dst(&router_if->connect_to_addr, os_if);
+  if (result) {
+    /* initialize local and remote socket */
+    netaddr_socket_init(&local, &result->address, 0, os_if->index);
+    netaddr_socket_init(&router_if->connect_to, &router_if->connect_to_addr, router_if->connect_to_port, os_if->index);
+
+    dlep_router_add_session(router_if, &local, &router_if->connect_to);
+  }
+}
+
+/**
  * Close all existing dlep sessions of a dlep interface
  * @param interface dlep router interface
  */
@@ -284,4 +315,57 @@ _cleanup_interface(struct dlep_router_if *interface) {
   avl_for_each_element_safe(&interface->interf.session_tree, stream, _node, it) {
     dlep_router_remove_session(stream);
   }
+}
+
+/**
+ * check if connect_to session is up and running. If not, restart it.
+ * @param router_if router interface
+ */
+static void
+_check_connect_to(struct dlep_router_if *router_if) {
+  struct dlep_router_session *connect_to_session;
+
+  if (netaddr_is_unspec(&router_if->connect_to_addr)) {
+    /* do not connect */
+    return;
+  }
+
+  connect_to_session = dlep_router_get_session(router_if, &router_if->connect_to);
+  if (connect_to_session->session._peer_state == DLEP_PEER_NOT_CONNECTED
+    || connect_to_session->session._peer_state == DLEP_PEER_TERMINATED) {
+    /* cleanup not working session */
+    dlep_router_remove_session(connect_to_session);
+    connect_to_session = NULL;
+  }
+
+  if (!connect_to_session) {
+    _connect_to_setup(router_if);
+  }
+  return;
+}
+
+/**
+* Interface listener to (re-)establish connect_to session if it failed.
+* @param interf interface listener that triggered
+* @return always 0
+*/
+static int
+_connect_to_if_changed(struct os_interface_listener *interf) {
+  struct dlep_router_if *router_if;
+
+  router_if = container_of(interf, struct dlep_router_if, interf.session.l2_listener);
+  _check_connect_to(router_if);
+  return 0;
+}
+
+/**
+ * Timer callback to watch connect_to session status
+ * @param instance watchdog timer instance
+ */
+static void
+_cb_check_connect_to_status(struct oonf_timer_instance *instance) {
+  struct dlep_router_if *router_if;
+
+  router_if = container_of(instance, struct dlep_router_if, _connect_to_watchdog);
+  _check_connect_to(router_if);
 }

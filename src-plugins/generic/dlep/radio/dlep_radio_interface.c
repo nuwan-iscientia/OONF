@@ -180,7 +180,7 @@ dlep_radio_add_interface(const char *ifname) {
     return NULL;
   }
 
-  if (dlep_if_add(&interface->interf, ifname, &_l2_origin, &_l2_default_origin, LOG_DLEP_RADIO, true)) {
+  if (dlep_if_add(&interface->interf, ifname, &_l2_origin, &_l2_default_origin, NULL, LOG_DLEP_RADIO, true)) {
     oonf_class_free(&_interface_class, interface);
     return NULL;
   }

@@ -51,6 +51,7 @@
 #include "common/netaddr.h"
 #include "subsystems/oonf_stream_socket.h"
 #include "subsystems/oonf_timer.h"
+#include "subsystems/os_interface.h"
 
 #include "dlep/router/dlep_router_interface.h"
 
@@ -93,8 +94,8 @@ void dlep_router_session_init(void);
 void dlep_router_session_cleanup(void);
 
 struct dlep_router_session *dlep_router_get_session(struct dlep_router_if *interf, union netaddr_socket *remote);
-struct dlep_router_session *dlep_router_add_session(
-  struct dlep_router_if *interf, union netaddr_socket *local, union netaddr_socket *remote);
+struct dlep_router_session *dlep_router_add_session(struct dlep_router_if *interf,
+    union netaddr_socket *local, union netaddr_socket *remote);
 void dlep_router_remove_session(struct dlep_router_session *);
 
 #endif /* DLEP_ROUTER_SESSION_H_ */

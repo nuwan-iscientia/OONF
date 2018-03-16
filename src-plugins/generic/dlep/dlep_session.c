@@ -114,13 +114,14 @@ dlep_session_init(void) {
  * @param out output buffer for session
  * @param radio true if this is a radio session,
  *   false for a router session
+ * @param if_changed interface listener for session, can be NULL
  * @param log_source logging source for session
  * @return -1 if an error happened, 0 otherwise
  */
 int
 dlep_session_add(struct dlep_session *session, const char *l2_ifname, const struct oonf_layer2_origin *l2_origin,
   const struct oonf_layer2_origin *l2_default_origin, struct autobuf *out, bool radio,
-  enum oonf_log_source log_source) {
+  int (*if_changed)(struct os_interface_listener *), enum oonf_log_source log_source) {
   struct dlep_session_parser *parser;
   struct dlep_extension *ext;
   int32_t i;
@@ -135,9 +136,11 @@ dlep_session_add(struct dlep_session *session, const char *l2_ifname, const stru
   session->l2_default_origin = l2_default_origin;
   session->radio = radio;
   session->writer.out = out;
+  session->_peer_state = DLEP_PEER_WAIT_FOR_INIT;
 
   /* remember interface name */
   session->l2_listener.name = l2_ifname;
+  session->l2_listener.if_changed = if_changed;
 
   /* get interface listener to lock interface */
   if (!os_interface_add(&session->l2_listener)) {
@@ -214,6 +217,8 @@ dlep_session_remove(struct dlep_session *session) {
 
   free(parser->values);
   parser->values = NULL;
+
+  session->_peer_state = DLEP_PEER_NOT_CONNECTED;
 }
 
 /**

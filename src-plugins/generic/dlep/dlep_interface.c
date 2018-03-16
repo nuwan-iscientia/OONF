@@ -73,13 +73,15 @@ dlep_if_get_tree(bool radio) {
  * @param ifname name of interface
  * @param l2_origin layer2 originator that shall be used
  * @param l2_default_origin layer2 originator that shall be used for setting defaults
+ * @param if_changed interface listener bound to UDP session, can be NULL
  * @param log_src logging source that shall be used
  * @param radio true if it is a radio interface, false for router
  * @return -1 if an error happened, 0 otherwise
  */
 int
 dlep_if_add(struct dlep_if *interf, const char *ifname, const struct oonf_layer2_origin *l2_origin,
-  const struct oonf_layer2_origin *l2_default_origin, enum oonf_log_source log_src, bool radio) {
+  const struct oonf_layer2_origin *l2_default_origin,
+  int (*if_changed)(struct os_interface_listener *), enum oonf_log_source log_src, bool radio) {
   struct dlep_extension *ext;
 
   /* initialize key */
@@ -93,8 +95,8 @@ dlep_if_add(struct dlep_if *interf, const char *ifname, const struct oonf_layer2
   /* add dlep prefix to buffer */
   abuf_memcpy(&interf->udp_out, _DLEP_PREFIX, sizeof(_DLEP_PREFIX) - 1);
 
-  if (dlep_session_add(
-        &interf->session, interf->l2_ifname, l2_origin, l2_default_origin, &interf->udp_out, radio, log_src)) {
+  if (dlep_session_add(&interf->session, interf->l2_ifname,
+    l2_origin, l2_default_origin, &interf->udp_out, radio, if_changed, log_src)) {
     abuf_free(&interf->udp_out);
     return -1;
   }
@@ -188,9 +190,16 @@ _cb_receive_udp(struct oonf_packet_socket *pkt, union netaddr_socket *from, void
   interf = pkt->config.user;
   buffer = ptr;
 
-  if (interf->session_tree.count > 0 && interf->single_session) {
-    /* ignore UDP traffic as long as we have a connection */
-    return;
+  switch (interf->udp_mode) {
+    case DLEP_IF_UDP_NONE:
+      return;
+    case DLEP_IF_UDP_SINGLE_SESSION:
+      if(interf->session_tree.count > 0) {
+        return;
+      }
+      break;
+    default:
+      break;
   }
 
   if (length < sizeof(_DLEP_PREFIX) - 1) {
@@ -263,9 +272,16 @@ _cb_send_multicast(struct dlep_session *session, int af_family) {
   /* get pointer to radio interface */
   interf = container_of(session, struct dlep_if, session);
 
-  if (interf->session_tree.count > 0 && interf->single_session) {
-    /* do not produce UDP traffic as long as we are connected */
-    return;
+  switch (interf->udp_mode) {
+    case DLEP_IF_UDP_NONE:
+      return;
+    case DLEP_IF_UDP_SINGLE_SESSION:
+      if(interf->session_tree.count > 0) {
+        return;
+      }
+      break;
+    default:
+      break;
   }
 
   OONF_DEBUG(

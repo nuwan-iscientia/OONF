@@ -73,6 +73,12 @@ static void _cleanup(void);
 static void _cb_config_changed(void);
 
 /* configuration */
+static const char *_UDP_MODE[] = {
+  [DLEP_IF_UDP_NONE] = DLEP_IF_UDP_NONE_STR,
+  [DLEP_IF_UDP_SINGLE_SESSION] = DLEP_IF_UDP_SINGLE_SESSION_STR,
+  [DLEP_IF_UDP_ALWAYS] = DLEP_IF_UDP_ALWAYS_STR,
+};
+
 static struct cfg_schema_entry _router_entries[] = {
   CFG_MAP_STRING(dlep_router_if, interf.session.cfg.peer_type, "peer_type", "OONF DLEP Router",
     "Identification string of DLEP router endpoint"),
@@ -92,8 +98,10 @@ static struct cfg_schema_entry _router_entries[] = {
   CFG_MAP_CLOCK_MINMAX(dlep_router_if, interf.session.cfg.heartbeat_interval, "heartbeat_interval", "1.000",
     "Interval in seconds between two heartbeat signals", 1000, 65535000),
 
-  CFG_MAP_BOOL(dlep_router_if, interf.single_session, "single_session", "true",
-    "Restrict DLEP router to single session per interface"),
+  CFG_MAP_CHOICE(dlep_router_if, interf.udp_mode, "udp_mode", DLEP_IF_UDP_SINGLE_SESSION_STR,
+    "Determines the UDP behavior of the router. 'none' never sends/processes UDP, 'single_session' only does"
+    " if no DLEP session is active and 'always' always sends/processes UDP and allows multiple sessions",
+    _UDP_MODE),
 
   CFG_MAP_STRING_ARRAY(dlep_router_if, interf.udp_config.interface, "datapath_if", "",
     "Overwrite datapath interface for incoming dlep traffic, used for"

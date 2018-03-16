@@ -74,6 +74,12 @@ static void _initiate_shutdown(void);
 static void _cb_config_changed(void);
 
 /* configuration */
+static const char *_UDP_MODE[] = {
+  [DLEP_IF_UDP_NONE] = DLEP_IF_UDP_NONE_STR,
+  [DLEP_IF_UDP_SINGLE_SESSION] = DLEP_IF_UDP_SINGLE_SESSION_STR,
+  [DLEP_IF_UDP_ALWAYS] = DLEP_IF_UDP_ALWAYS_STR,
+};
+
 static struct cfg_schema_entry _radio_entries[] = {
   CFG_MAP_STRING_ARRAY(dlep_radio_if, interf.udp_config.interface, "datapath_if", "",
     "Name of interface to talk to dlep router (default is section name)", IF_NAMESIZE),
@@ -97,7 +103,10 @@ static struct cfg_schema_entry _radio_entries[] = {
   CFG_MAP_CLOCK_MINMAX(dlep_radio_if, interf.session.cfg.heartbeat_interval, "heartbeat_interval", "1.000",
     "Interval in seconds between two heartbeat signals", 1000, 65535 * 1000),
 
-  CFG_MAP_BOOL(dlep_radio_if, interf.single_session, "single_session", "true", "Connect only to a single router"),
+  CFG_MAP_CHOICE(dlep_radio_if, interf.udp_mode, "udp_mode", DLEP_IF_UDP_SINGLE_SESSION_STR,
+    "Determines the UDP behavior of the radio. 'none' never sends/processes UDP, 'single_session' only does"
+    " if no DLEP session is active and 'always' always sends/processes UDP and allows multiple sessions",
+    _UDP_MODE),
 
   CFG_MAP_BOOL(dlep_radio_if, interf.session.cfg.send_proxied, "proxied", "true",
     "Report 802.11s proxied mac address for neighbors"),

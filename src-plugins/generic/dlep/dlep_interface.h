@@ -51,6 +51,21 @@
 #include "core/oonf_logging.h"
 #include "subsystems/oonf_packet_socket.h"
 
+#define DLEP_IF_UDP_NONE_STR           "none"
+#define DLEP_IF_UDP_SINGLE_SESSION_STR "single_session"
+#define DLEP_IF_UDP_ALWAYS_STR         "always"
+
+enum dlep_if_udp_mode{
+  /* never handle UDP */
+  DLEP_IF_UDP_NONE,
+
+  /* just use UDP if no session is active */
+  DLEP_IF_UDP_SINGLE_SESSION,
+
+  /* always handle UDP */
+  DLEP_IF_UDP_ALWAYS,
+};
+
 /**
  * Interface that is used for one or multiple dlep sessions
  */
@@ -70,8 +85,8 @@ struct dlep_if {
   /*! dynamic buffer for UDP output */
   struct autobuf udp_out;
 
-  /*! true if radio should only accept a single session */
-  bool single_session;
+  /*! decides when/if UDP should be sent/processed */
+  enum dlep_if_udp_mode udp_mode;
 
   /*! true if this interface is used for DLEP radio */
   bool radio;
@@ -85,7 +100,8 @@ struct dlep_if {
 
 struct avl_tree *dlep_if_get_tree(bool radio);
 int dlep_if_add(struct dlep_if *interf, const char *ifname, const struct oonf_layer2_origin *l2_origin,
-  const struct oonf_layer2_origin *l2_default_origin, enum oonf_log_source log_src, bool radio);
+  const struct oonf_layer2_origin *l2_default_origin,
+  int (*if_changed)(struct os_interface_listener *), enum oonf_log_source log_src, bool radio);
 void dlep_if_remove(struct dlep_if *interface);
 
 #endif /* DLEP_INTERFACE_H_ */

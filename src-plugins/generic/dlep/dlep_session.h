@@ -258,6 +258,7 @@ struct dlep_session_config {
  */
 enum dlep_peer_state
 {
+  DLEP_PEER_NOT_CONNECTED,
   DLEP_PEER_WAIT_FOR_INIT,
   DLEP_PEER_WAIT_FOR_UPDATE_ACK,
   DLEP_PEER_SEND_UPDATE,
@@ -336,7 +337,8 @@ struct dlep_session {
 void dlep_session_init(void);
 
 int dlep_session_add(struct dlep_session *session, const char *l2_ifname, const struct oonf_layer2_origin *l2_origin,
-  const struct oonf_layer2_origin *l2_default_origin, struct autobuf *out, bool radio, enum oonf_log_source);
+  const struct oonf_layer2_origin *l2_default_origin, struct autobuf *out, bool radio,
+  int (*if_changed)(struct os_interface_listener *), enum oonf_log_source);
 void dlep_session_remove(struct dlep_session *session);
 void dlep_session_terminate(struct dlep_session *session);
 
