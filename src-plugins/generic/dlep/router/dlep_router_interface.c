@@ -331,8 +331,9 @@ _check_connect_to(struct dlep_router_if *router_if) {
   }
 
   connect_to_session = dlep_router_get_session(router_if, &router_if->connect_to);
-  if (connect_to_session->session._peer_state == DLEP_PEER_NOT_CONNECTED
-    || connect_to_session->session._peer_state == DLEP_PEER_TERMINATED) {
+  if (connect_to_session != NULL
+    && (connect_to_session->session._peer_state == DLEP_PEER_NOT_CONNECTED
+    || connect_to_session->session._peer_state == DLEP_PEER_TERMINATED)) {
     /* cleanup not working session */
     dlep_router_remove_session(connect_to_session);
     connect_to_session = NULL;

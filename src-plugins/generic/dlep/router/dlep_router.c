@@ -110,7 +110,7 @@ static struct cfg_schema_entry _router_entries[] = {
 
   CFG_MAP_NETADDR_V46(dlep_router_if, connect_to_addr, "connect_to", "-",
     "IP to directly connect to a known DLEP radio TCP socket", false, true),
-  CFG_MAP_INT32_MINMAX(dlep_router_if, connect_to_port, "connect_to_port", "1",
+  CFG_MAP_INT32_MINMAX(dlep_router_if, connect_to_port, "connect_to_port", DLEP_WELL_KNOWN_SESSION_PORT_TXT,
     "TCP port to directly connect to a known DLEP radio TCP socket", 0, 1, 65535),
 };
 
