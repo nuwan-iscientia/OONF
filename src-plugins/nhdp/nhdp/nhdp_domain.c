@@ -567,7 +567,6 @@ nhdp_domain_recalculate_mpr(void) {
  * @param domain NHDP domain
  * @param neigh neighbor that triggered the recalculation,
  *   NULL for unspecified neighbor
- * @return
  */
 void
 nhdp_domain_delayed_mpr_recalculation(struct nhdp_domain *domain, struct nhdp_neighbor *neigh __attribute__((unused))) {
@@ -625,7 +624,7 @@ nhdp_domain_process_mprtypes_tlv(uint8_t *mprtypes, size_t mprtypes_size, struct
  * Process an in MPR tlv for a NHDP link
  * @param mprtypes list of extensions for MPR
  * @param mprtypes_size length of mprtypes array
- * @param neigh NHDP neighbor
+ * @param lnk NHDP link
  * @param tlv MPR tlv context
  */
 void
@@ -736,7 +735,7 @@ nhdp_domain_process_willingness_tlv(
 /**
  * Stores the willingness data processed by
  * nhdp_domain_process_willingness_tlv() into a neighbor object
- * @param neigh NHDP neighbor
+ * @param lnk NHDP link
  */
 void
 nhdp_domain_store_willingness(struct nhdp_link *lnk) {
@@ -781,7 +780,7 @@ nhdp_domain_encode_mprtypes_tlvvalue(uint8_t *mprtypes, size_t mprtypes_size) {
  *
  * @param tlvvalue destination for value of MPR tlv
  * @param tlvsize length of tlv value
- * @param neigh pointer to NHDP neighbor for MPR tlv
+ * @param lnk pointer to NHDP link for MPR tlv
  * @return length of tlvvalue, 0 if an error happened
  */
 size_t
@@ -993,7 +992,6 @@ _recalculate_routing_mpr_set(struct nhdp_domain *domain) {
  * and check for two-hop outgoing link metric changes
  * @param domain NHDP domain
  * @param neigh NHDP neighbor
- * @param neighdata NHDP neighbor domaindata
  * @return true neighbor metric or the two-hop link metrics changed
  */
 static bool

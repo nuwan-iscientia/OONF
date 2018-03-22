@@ -85,8 +85,9 @@ cfg_help_printable(struct autobuf *out, size_t len) {
  * Produce help text for a choice of multiple constants
  * @param out output buffer
  * @param preamble true if preamble should be printed
- * @param choices function pointer to retriev text choices
- * @param choice_count number of choices
+ * @param callback callback function that provides the choices for configuration
+ * @param choice_count number of strings in list
+ * @param ptr customization pointer for callback
  */
 void
 cfg_help_choice(struct autobuf *out, bool preamble, const char *(*callback)(size_t idx, const void *ptr),

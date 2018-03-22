@@ -328,7 +328,8 @@ oonf_layer2_data_set(struct oonf_layer2_data *l2data, const struct oonf_layer2_o
  * Compare two layer2 data objects
  * @param left left parameter for comparator
  * @param right right parameter for comparator
- * @param cmp comparator
+ * @param comparator comparator type
+ * @param data_type data type for comparison
  * @return comparator result, false if not valid
  *   (e.g. comparing different types of data)
  */
@@ -843,7 +844,8 @@ oonf_layer2_neigh_relabel(struct oonf_layer2_neigh *l2neigh, const struct oonf_l
 /**
  * Add an IP address or prefix to a layer-2 interface. This represents
  * an address of the local radio or modem.
- * @param l2net layer-2 network object
+ * @param l2neigh layer-2 neighbor object
+ * @param origin layer2 data origin
  * @param ip ip address or prefix
  * @return layer2 ip address object, NULL if out of memory
  */

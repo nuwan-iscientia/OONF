@@ -180,7 +180,7 @@ cfg_get_choice_array_value(size_t idx, const void *ptr) {
  * Looks up the index of a string within a string array
  * @param key pointer to string to be looked up in the array
  * @param callback pointer to the callback that returns choice options
- * @param choice_count number of choices
+ * @param choices_count number of choices
  * @param ptr (optional) pointer for choice callback
  * @return index of the string inside the array, -1 if not found
  */

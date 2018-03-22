@@ -110,8 +110,9 @@ cfg_validate_strlen(
  * @param section_name name of configuration section
  * @param entry_name name of configuration entry
  * @param value value that needs to be validated
- * @param choices pointer to list of strings
+ * @param callback callback function to get choices from
  * @param choices_count number of strings in list
+ * @param ptr customization pointer for callback
  * @return 0 if value is valid, -1 otherwise
  */
 int

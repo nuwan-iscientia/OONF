@@ -490,7 +490,7 @@ os_fd_get_socket_error(struct os_fd *sockfd, int *value) {
 
 /**
  * Sends data to an UDP socket.
- * @param sockfd filedescriptor of UDP socket
+ * @param sock filedescriptor of UDP socket
  * @param buf buffer for target data
  * @param length length of buffer
  * @param dst pointer to netaddr socket to send packet to

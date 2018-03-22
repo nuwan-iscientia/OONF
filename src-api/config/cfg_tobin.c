@@ -74,8 +74,9 @@ cfg_tobin_strarray(void *reference, size_t bin_size, const struct const_strarray
  * @param reference pointer to binary output buffer.
  * @param bin_size size of reference memory
  * @param value pointer to value of configuration entry.
- * @param choices array of strings to choose from
- * @param choice_count number of strings to choose from
+ * @param callback callback function providing choices for conversion
+ * @param choices_count number of strings in list
+ * @param ptr customization pointer for callback
  * @return 0 if conversion succeeded, -1 otherwise.
  */
 int
@@ -267,10 +268,10 @@ cfg_tobin_stringlist(void *reference, size_t bin_size, const struct const_strarr
  * Binary converter for list of space separated tokens.
  * See CFG_MAP_STRINGLIST() macro in cfg_schema.h
  * @param reference pointer to binary output buffer.
- * @param bin_size size of reference memory
  * @param value pointer to value of configuration entry.
  * @param entries pointer to array of configuration entries
  * @param entry_count number of configuration entries
+ * @param custom customizer parameters for token conversion
  * @return 0 if conversion succeeded, -1 otherwise.
  */
 int

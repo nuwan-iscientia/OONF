@@ -564,7 +564,7 @@ oonf_layer2_net_get(const char *ifname) {
 /**
  * Get a layer-2 local peer ip address object from the database
  * @param l2net layer-2 network/interface object
- * @param ip ip address of local radio/modem
+ * @param addr ip address of local radio/modem
  * @return layer-2 ip address object, NULL if not found
  */
 static INLINE struct oonf_layer2_peer_address *
@@ -576,7 +576,7 @@ oonf_layer2_net_get_local_ip(const struct oonf_layer2_net *l2net, const struct n
 /**
  * Get a layer-2 ip address object from the database
  * @param l2net layer-2 network object
- * @param ip ip address of remote router
+ * @param addr ip address of remote router
  * @return layer-2 ip address object, NULL if not found
  */
 static INLINE struct oonf_layer2_neighbor_address *
@@ -600,7 +600,7 @@ oonf_layer2_neigh_get(const struct oonf_layer2_net *l2net, const struct netaddr 
 /**
  * Get a layer-2 ip address object from the database
  * @param l2neigh layer-2 neighbor object
- * @param ip ip address of remote router
+ * @param addr ip address of remote router
  * @return layer-2 ip address object, NULL if not found
  */
 static INLINE struct oonf_layer2_neighbor_address *
