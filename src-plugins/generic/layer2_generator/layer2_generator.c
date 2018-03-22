@@ -246,7 +246,7 @@ _cb_l2gen_event(struct oonf_timer_instance *ptr __attribute((unused))) {
   neigh->last_seen = oonf_clock_getNow();
 
   for (neigh_idx = 0; neigh_idx < OONF_LAYER2_NEIGH_COUNT; neigh_idx++) {
-    _set_data(&neigh->data[neigh_idx], oonf_layer2_neigh_metadata_get(net_idx)->type, event_counter);
+    _set_data(&neigh->data[neigh_idx], oonf_layer2_neigh_metadata_get(neigh_idx)->type, event_counter);
   }
   oonf_layer2_neigh_commit(neigh);
 }
