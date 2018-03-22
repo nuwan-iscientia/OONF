@@ -153,7 +153,6 @@ static const uint16_t _dst_down_tlvs[] = {
 };
 static const uint16_t _dst_down_mandatory[] = {
   DLEP_MAC_ADDRESS_TLV,
-  DLEP_STATUS_TLV,
 };
 
 /* destination down ack */
@@ -163,6 +162,7 @@ static const uint16_t _dst_down_ack_tlvs[] = {
 };
 static const uint16_t _dst_down_ack_mandatory[] = {
   DLEP_MAC_ADDRESS_TLV,
+  DLEP_STATUS_TLV,
 };
 
 /* destination update */
@@ -588,7 +588,7 @@ _cb_remote_heartbeat(struct oonf_timer_instance *ptr) {
   }
   else {
     /* soft-terminate session (send PEER_TERM) */
-    dlep_session_terminate(session);
+    dlep_session_terminate(session, DLEP_STATUS_TIMED_OUT, "Remote heartbeat timed out");
 
     /* set timeout for hard-termination */
     oonf_timer_set(&session->remote_heartbeat_timeout, session->remote_heartbeat_interval * 2);

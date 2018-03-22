@@ -77,7 +77,7 @@ static enum dlep_parser_error _handle_extension(
   struct dlep_session *session, struct dlep_extension *ext, uint32_t signal_type);
 static enum dlep_parser_error _process_tlvs(
   struct dlep_session *, int32_t signal_type, uint16_t signal_length, const uint8_t *tlvs);
-static void _send_terminate(struct dlep_session *session);
+static void _send_terminate(struct dlep_session *session, enum dlep_status status, const char *status_text);
 static void _cb_destination_timeout(struct oonf_timer_instance *);
 
 static struct oonf_class _tlv_class = {
@@ -224,11 +224,13 @@ dlep_session_remove(struct dlep_session *session) {
 /**
  * Send peer termination
  * @param session dlep session
+ * @param status DLEP status code for termination
+ * @param status_text text message for termination
  */
 void
-dlep_session_terminate(struct dlep_session *session) {
+dlep_session_terminate(struct dlep_session *session, enum dlep_status status, const char *status_text) {
   if (session->restrict_signal != DLEP_ALL_SIGNALS) {
-    dlep_session_generate_signal(session, DLEP_SESSION_TERMINATION, NULL);
+    dlep_session_generate_signal_status(session, DLEP_SESSION_TERMINATION, NULL, status, status_text);
     session->cb_send_buffer(session, 0);
   }
   session->restrict_signal = DLEP_SESSION_TERMINATION_ACK;
@@ -441,7 +443,7 @@ dlep_session_process_signal(struct dlep_session *session, const void *ptr, size_
   }
   if (result != DLEP_NEW_PARSER_OKAY) {
     OONF_WARN(session->log_source, "Parser error: %d", result);
-    _send_terminate(session);
+    _send_terminate(session, DLEP_STATUS_INVALID_DATA, "Incoming signal could not be parsed");
   }
   else if (session->next_restrict_signal != DLEP_KEEP_RESTRICTION) {
     session->restrict_signal = session->next_restrict_signal;
@@ -822,11 +824,13 @@ _process_tlvs(struct dlep_session *session, int32_t signal_type, uint16_t signal
 /**
  * terminate a DLEP session
  * @param session dlep session
+ * @param status DLEP status code for termination
+ * @param status_text text message for termination
  */
 static void
-_send_terminate(struct dlep_session *session) {
+_send_terminate(struct dlep_session *session, enum dlep_status status, const char *status_text) {
   if (session->restrict_signal != DLEP_UDP_PEER_DISCOVERY && session->restrict_signal != DLEP_UDP_PEER_OFFER) {
-    dlep_session_generate_signal(session, DLEP_SESSION_TERMINATION, NULL);
+    dlep_session_generate_signal_status(session, DLEP_SESSION_TERMINATION, NULL, status, status_text);
 
     session->restrict_signal = DLEP_SESSION_TERMINATION_ACK;
     session->next_restrict_signal = DLEP_SESSION_TERMINATION_ACK;

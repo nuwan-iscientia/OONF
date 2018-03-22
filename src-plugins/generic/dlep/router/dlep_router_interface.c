@@ -267,7 +267,7 @@ dlep_router_terminate_all_sessions(void) {
 
   avl_for_each_element(dlep_if_get_tree(false), interf, interf._node) {
     avl_for_each_element(&interf->interf.session_tree, router_session, _node) {
-      dlep_session_terminate(&router_session->session);
+      dlep_session_terminate(&router_session->session, DLEP_STATUS_OKAY, "DLEP router is shutting down");
     }
   }
 }

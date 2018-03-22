@@ -340,7 +340,7 @@ int dlep_session_add(struct dlep_session *session, const char *l2_ifname, const 
   const struct oonf_layer2_origin *l2_default_origin, struct autobuf *out, bool radio,
   int (*if_changed)(struct os_interface_listener *), enum oonf_log_source);
 void dlep_session_remove(struct dlep_session *session);
-void dlep_session_terminate(struct dlep_session *session);
+void dlep_session_terminate(struct dlep_session *session, enum dlep_status status, const char *status_text);
 
 int dlep_session_update_extensions(struct dlep_session *session, const uint8_t *extvalues, size_t extcount);
 enum oonf_stream_session_state dlep_session_process_tcp(

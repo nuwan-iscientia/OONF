@@ -248,7 +248,7 @@ dlep_radio_terminate_all_sessions(void) {
 
   avl_for_each_element(dlep_if_get_tree(true), interf, interf._node) {
     avl_for_each_element(&interf->interf.session_tree, radio_session, _node) {
-      dlep_session_terminate(&radio_session->session);
+      dlep_session_terminate(&radio_session->session, DLEP_STATUS_OKAY, "DLEP radio is shutting down");
     }
   }
 }
