@@ -322,6 +322,27 @@ netaddr_extract_ipv4_compatible(struct netaddr *dst, const struct netaddr *src) 
 }
 
 /**
+ * Generate a stateless autoconfigured IPv6 address from an IPv6 template and a MAC address.
+ * @param ipv6 generated IPv6 address
+ * @param template original IPv6 address or prefix, lower 8 bytes will be overwritten
+ * @param mac MAC address to generate host part of address
+ */
+static INLINE void
+netaddr_get_stateless_ipv6(struct netaddr *ipv6, const struct netaddr *template, const struct netaddr *mac) {
+  memcpy(&ipv6->_addr[0], &template->_addr[0], 8);
+  ipv6->_addr[ 8] = mac->_addr[0] ^ 0x02;
+  ipv6->_addr[ 9] = mac->_addr[1];
+  ipv6->_addr[10] = mac->_addr[2];
+  ipv6->_addr[11] = 0xff;
+  ipv6->_addr[12] = 0xfe;
+  ipv6->_addr[13] = mac->_addr[3];
+  ipv6->_addr[14] = mac->_addr[4];
+  ipv6->_addr[15] = mac->_addr[5];
+  ipv6->_type = AF_INET6;
+  ipv6->_prefix_len = 128;
+}
+
+/**
  * Read the binary representation of an address into a netaddr object
  * @param dst pointer to netaddr object
  * @param binary source pointer
