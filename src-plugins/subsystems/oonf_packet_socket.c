@@ -843,8 +843,8 @@ _cb_interface_listener(struct os_interface_listener *l) {
   managed = container_of(l, struct oonf_packet_managed, _if_listener);
 
   result = _apply_managed(managed);
-
-  OONF_DEBUG(LOG_PACKET, "Result from interface triggered socket reconfiguration: %d", result);
+  OONF_DEBUG(LOG_PACKET, "Result from interface %s triggered socket reconfiguration: %d",
+             l->data->name, result);
 
   return result;
 }
