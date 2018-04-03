@@ -103,6 +103,7 @@ static struct oonf_layer2_origin _l2_default_origin = {
 static struct oonf_timer_class _connect_to_watchdog_class = {
   .name = "connect_to watchdog",
   .callback = _cb_check_connect_to_status,
+  .periodic = true,
 };
 
 /**
