@@ -278,7 +278,13 @@ oonf_stream_connect_to(struct oonf_stream_socket *stream_socket, const union net
   }
 
   if (os_fd_connect(&sock, remote)) {
-    if (errno != EINPROGRESS) {
+    if (errno == ECONNREFUSED) {
+      /* Don't produce a warning for an failed outgoing TCP connection */
+      OONF_INFO(LOG_STREAM, "TCP connection to %s refused: %s (%d)",
+        netaddr_socket_to_string(&nbuf1, remote), strerror(errno), errno);
+      goto connect_to_error;
+    }
+    else if (errno != EINPROGRESS) {
       OONF_WARN(LOG_STREAM, "Cannot connect outgoing tcp connection to %s: %s (%d)",
         netaddr_socket_to_string(&nbuf1, remote), strerror(errno), errno);
       goto connect_to_error;
@@ -721,7 +727,14 @@ _cb_parse_connection(struct oonf_socket_entry *entry) {
         OONF_WARN(LOG_STREAM, "getsockopt failed: %s (%d)", strerror(errno), errno);
         session->state = STREAM_SESSION_CLEANUP;
       }
+      else if (value == ECONNREFUSED) {
+        /* Don't produce a warning for an failed outgoing TCP connection */
+        OONF_INFO(LOG_STREAM, "TCP connection to %s refused: %s (%d)",
+            netaddr_socket_to_string(&buf, &session->remote_socket), strerror(value), value);
+        session->state = STREAM_SESSION_CLEANUP;
+      }
       else if (value != 0) {
+        // TODO 1
         OONF_WARN(LOG_STREAM, "Connection to %s failed: %s (%d)",
           netaddr_socket_to_string(&buf, &session->remote_socket), strerror(value), value);
         session->state = STREAM_SESSION_CLEANUP;
