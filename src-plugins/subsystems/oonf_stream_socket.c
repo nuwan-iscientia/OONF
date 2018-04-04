@@ -734,7 +734,6 @@ _cb_parse_connection(struct oonf_socket_entry *entry) {
         session->state = STREAM_SESSION_CLEANUP;
       }
       else if (value != 0) {
-        // TODO 1
         OONF_WARN(LOG_STREAM, "Connection to %s failed: %s (%d)",
           netaddr_socket_to_string(&buf, &session->remote_socket), strerror(value), value);
         session->state = STREAM_SESSION_CLEANUP;
