@@ -445,7 +445,7 @@ oonf_layer2_net_add(const char *ifname) {
   avl_insert(&_oonf_layer2_net_tree, &l2net->_node);
 
   /* initialize tree of neighbors, ips and proxies */
-  avl_init(&l2net->neighbors, avl_comp_netaddr, false);
+  avl_init(&l2net->neighbors, oonf_layer2_avlcmp_neigh_key, false);
   avl_init(&l2net->local_peer_ips, avl_comp_netaddr, false);
   avl_init(&l2net->remote_neighbor_ips, avl_comp_netaddr, true);
 
@@ -686,18 +686,18 @@ oonf_layer2_net_get_best_neighbor_match(const struct netaddr *addr) {
 /**
  * Add a layer-2 neighbor to a addr.
  * @param l2net layer-2 addr object
- * @param neigh mac address of layer-2 neighbor
+ * @param key unique key for neighbor
  * @return layer-2 neighbor object
  */
 struct oonf_layer2_neigh *
-oonf_layer2_neigh_add(struct oonf_layer2_net *l2net, const struct netaddr *neigh) {
+oonf_layer2_neigh_add_lid(struct oonf_layer2_net *l2net, const struct oonf_layer2_neigh_key *key) {
   struct oonf_layer2_neigh *l2neigh;
 
-  if (netaddr_get_address_family(neigh) != AF_MAC48 && netaddr_get_address_family(neigh) != AF_EUI64) {
+  if (netaddr_get_address_family(&key->addr) != AF_MAC48 && netaddr_get_address_family(&key->addr) != AF_EUI64) {
     return NULL;
   }
 
-  l2neigh = oonf_layer2_neigh_get(l2net, neigh);
+  l2neigh = oonf_layer2_neigh_get_lid(l2net, key);
   if (l2neigh) {
     return l2neigh;
   }
@@ -707,8 +707,8 @@ oonf_layer2_neigh_add(struct oonf_layer2_net *l2net, const struct netaddr *neigh
     return NULL;
   }
 
-  memcpy(&l2neigh->addr, neigh, sizeof(*neigh));
-  l2neigh->_node.key = &l2neigh->addr;
+  memcpy(&l2neigh->key, key, sizeof(*key));
+  l2neigh->_node.key = &l2neigh->key;
   l2neigh->network = l2net;
 
   avl_insert(&l2net->neighbors, &l2neigh->_node);
@@ -1091,6 +1091,67 @@ oonf_layer2_get_net_tree(void) {
 struct avl_tree *
 oonf_layer2_get_origin_tree(void) {
   return &_oonf_originator_tree;
+}
+
+/**
+ * Compares two layer2 neighbor keys
+ * @param p1 pointer to first neighbor key
+ * @param p2 pointer to second neighbor key
+ * @return result of memcmp comparison
+ */
+int
+oonf_layer2_avlcmp_neigh_key(const void *p1, const void *p2) {
+  const struct oonf_layer2_neigh_key *k1 = p1;
+  const struct oonf_layer2_neigh_key *k2 = p2;
+
+  return memcmp(k1, k2, sizeof(*k1));
+}
+
+/**
+ * Converts a layer2 neighbor key into a string representation
+ * @param buf buffer for output string
+ * @param key layer2 neighbor key
+ * @param show_mac true to show MAC and Link ID, false to only show LID
+ * @return pointer to output string
+ */
+const char *
+oonf_layer2_neigh_key_to_string(union oonf_layer2_neigh_key_str *buf,
+    const struct oonf_layer2_neigh_key *key, bool show_mac) {
+  static const char HEX[17] = "0123456789ABCDEF";
+  size_t str_idx, lid_idx;
+
+  if (show_mac) {
+    netaddr_to_string(&buf->nbuf, &key->addr);
+  }
+  else {
+    buf->buf[0] = 0;
+  }
+
+  if (key->link_id_length == 0) {
+    return buf->buf;
+  }
+
+  str_idx = strlen(buf->buf);
+  lid_idx = 0;
+
+  if (show_mac) {
+    buf->buf[str_idx++] = ' ';
+    buf->buf[str_idx++] = '[';
+    buf->buf[str_idx++] = '0';
+    buf->buf[str_idx++] = 'x';
+  }
+
+  while (str_idx + 4 < sizeof(*buf) && lid_idx < key->link_id_length) {
+    buf->buf[str_idx++] = HEX[key->link_id[lid_idx] >> 4];
+    buf->buf[str_idx++] = HEX[key->link_id[lid_idx] & 15];
+    lid_idx++;
+  }
+
+  if (show_mac) {
+    buf->buf[str_idx++] = ']';
+    buf->buf[str_idx++] = 0;
+  }
+  return buf->buf;
 }
 
 /**

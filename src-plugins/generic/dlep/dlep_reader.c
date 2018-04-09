@@ -143,6 +143,31 @@ dlep_reader_mac_tlv(struct netaddr *mac, struct dlep_session *session, struct dl
 }
 
 /**
+ * Parse a DLEP link-id TLV
+ * @param key pointer to link-id storage
+ * @param session dlep session
+ * @param value dlep value to parse, NULL for using the first
+ *   DLEP_LID_TLV value
+ * @return -1 if an error happened, 0 otherwise
+ */
+int
+dlep_reader_lid_tlv(struct oonf_layer2_neigh_key *key, struct dlep_session *session, struct dlep_parser_value *value) {
+  const uint8_t *ptr;
+
+  if (!value) {
+    value = dlep_session_get_tlv_value(session, DLEP_LID_TLV);
+    if (!value) {
+      return -1;
+    }
+  }
+
+  ptr = dlep_session_get_tlv_binary(session, value);
+  memcpy(key->link_id, ptr, value->length);
+  key->link_id_length = value->length;
+  return 0;
+}
+
+/**
  * Parse DLEP IPv4 address TLV
  * @param ipv4 pointer to address storage
  * @param add pointer to boolean for flag storage

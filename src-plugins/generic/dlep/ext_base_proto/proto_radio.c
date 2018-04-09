@@ -73,13 +73,13 @@ static int _radio_process_destination_up_ack(struct dlep_extension *, struct dle
 static int _radio_process_destination_down_ack(struct dlep_extension *, struct dlep_session *);
 static int _radio_process_link_char_request(struct dlep_extension *, struct dlep_session *);
 
-static int _radio_write_peer_offer(struct dlep_extension *, struct dlep_session *session, const struct netaddr *);
-static int _radio_write_session_init_ack(struct dlep_extension *, struct dlep_session *session, const struct netaddr *);
+static int _radio_write_peer_offer(struct dlep_extension *, struct dlep_session *session, const struct oonf_layer2_neigh_key *);
+static int _radio_write_session_init_ack(struct dlep_extension *, struct dlep_session *session, const struct oonf_layer2_neigh_key *);
 
 static void _l2_neigh_added_to_session(
-  struct dlep_session *session, struct oonf_layer2_neigh *l2neigh, const struct netaddr *mac);
+  struct dlep_session *session, struct oonf_layer2_neigh *l2neigh, const struct oonf_layer2_neigh_key *mac);
 static void _l2_neigh_added(
-  struct oonf_layer2_neigh *l2neigh, struct oonf_layer2_destination *l2dest, const struct netaddr *mac);
+  struct oonf_layer2_neigh *l2neigh, struct oonf_layer2_destination *l2dest, const struct oonf_layer2_neigh_key *mac);
 
 static void _cb_l2_net_changed(void *);
 
@@ -251,9 +251,11 @@ _radio_process_session_init(struct dlep_extension *ext __attribute__((unused)), 
   struct oonf_layer2_neigh *l2neigh;
   struct oonf_layer2_destination *l2dest;
   struct dlep_parser_value *value;
+  struct oonf_layer2_neigh_key l2key;
   const uint8_t *ptr;
 
 #ifdef OONF_LOG_DEBUG_INFO
+  union oonf_layer2_neigh_key_str nkbuf;
   struct netaddr_str nbuf;
 #endif
 
@@ -297,14 +299,18 @@ _radio_process_session_init(struct dlep_extension *ext __attribute__((unused)), 
   if (l2net) {
     avl_for_each_element(&l2net->neighbors, l2neigh, _node) {
       if (session->cfg.send_neighbors) {
-        OONF_DEBUG(session->log_source, "Add local neighbor: %s", netaddr_to_string(&nbuf, &l2neigh->addr));
-        _l2_neigh_added_to_session(session, l2neigh, &l2neigh->addr);
+        OONF_DEBUG(session->log_source, "Add local neighbor: %s",
+                   oonf_layer2_neigh_key_to_string(&nkbuf, &l2neigh->key, true));
+        _l2_neigh_added_to_session(session, l2neigh, &l2neigh->key);
       }
 
       if (session->cfg.send_proxied) {
+        memcpy(&l2key, &l2neigh->key, sizeof(l2key));
+
         avl_for_each_element(&l2neigh->destinations, l2dest, _node) {
+          memcpy(&l2key.addr, &l2dest->destination, sizeof(l2key.addr));
           OONF_DEBUG(session->log_source, "Add proxied neighbor: %s", netaddr_to_string(&nbuf, &l2dest->destination));
-          _l2_neigh_added_to_session(session, l2neigh, &l2dest->destination);
+          _l2_neigh_added_to_session(session, l2neigh, &l2key);
         }
       }
     }
@@ -357,19 +363,22 @@ _radio_process_session_update_ack(struct dlep_extension *ext __attribute__((unus
 static int
 _radio_process_destination_up_ack(struct dlep_extension *ext __attribute__((unused)), struct dlep_session *session) {
   struct dlep_local_neighbor *local;
-  struct netaddr mac;
-  if (dlep_reader_mac_tlv(&mac, session, NULL)) {
+  struct oonf_layer2_neigh_key mac_lid;
+
+  memset(&mac_lid, 0, sizeof(mac_lid));
+  if (dlep_reader_mac_tlv(&mac_lid.addr, session, NULL)) {
     return -1;
   }
+  dlep_reader_lid_tlv(&mac_lid, session, NULL);
 
   if (dlep_base_proto_print_status(session) == DLEP_STATUS_OKAY) {
-    local = dlep_session_get_local_neighbor(session, &mac);
+    local = dlep_session_get_local_neighbor(session, &mac_lid);
     if (local->state == DLEP_NEIGHBOR_UP_SENT) {
       local->state = DLEP_NEIGHBOR_UP_ACKED;
       oonf_timer_stop(&local->_ack_timeout);
 
       if (local->changed) {
-        dlep_session_generate_signal(session, DLEP_DESTINATION_UPDATE, &mac);
+        dlep_session_generate_signal(session, DLEP_DESTINATION_UPDATE, &mac_lid);
         local->changed = false;
       }
     }
@@ -386,14 +395,16 @@ _radio_process_destination_up_ack(struct dlep_extension *ext __attribute__((unus
 static int
 _radio_process_destination_down_ack(struct dlep_extension *ext __attribute__((unused)), struct dlep_session *session) {
   struct dlep_local_neighbor *local;
-  struct netaddr mac;
-  if (dlep_reader_mac_tlv(&mac, session, NULL)) {
-    OONF_INFO(session->log_source, "Could not read MAC tlv");
+  struct oonf_layer2_neigh_key mac_lid;
+
+  memset(&mac_lid, 0, sizeof(mac_lid));
+  if (dlep_reader_mac_tlv(&mac_lid.addr, session, NULL)) {
     return -1;
   }
+  dlep_reader_lid_tlv(&mac_lid, session, NULL);
 
   if (dlep_base_proto_print_status(session) == DLEP_STATUS_OKAY) {
-    local = dlep_session_get_local_neighbor(session, &mac);
+    local = dlep_session_get_local_neighbor(session, &mac_lid);
     if (local->state == DLEP_NEIGHBOR_DOWN_SENT) {
       dlep_session_remove_local_neighbor(session, local);
     }
@@ -423,7 +434,7 @@ _radio_process_link_char_request(
  */
 static int
 _radio_write_peer_offer(struct dlep_extension *ext __attribute__((unused)), struct dlep_session *session,
-  const struct netaddr *addr __attribute__((unused))) {
+  const struct oonf_layer2_neigh_key *addr __attribute__((unused))) {
   struct dlep_radio_if *radio_if;
   struct netaddr local_addr;
 #ifdef OONF_LOG_DEBUG_INFO
@@ -463,7 +474,7 @@ _radio_write_peer_offer(struct dlep_extension *ext __attribute__((unused)), stru
  */
 static int
 _radio_write_session_init_ack(struct dlep_extension *ext __attribute__((unused)), struct dlep_session *session,
-  const struct netaddr *addr __attribute__((unused))) {
+  const struct oonf_layer2_neigh_key *addr __attribute__((unused))) {
   const uint16_t *ext_ids;
   uint16_t ext_count;
 
@@ -491,13 +502,13 @@ _radio_write_session_init_ack(struct dlep_extension *ext __attribute__((unused))
  * @param mac MAC address of other endpoint
  */
 static void
-_l2_neigh_added_to_session(struct dlep_session *session, struct oonf_layer2_neigh *l2neigh, const struct netaddr *mac) {
+_l2_neigh_added_to_session(struct dlep_session *session, struct oonf_layer2_neigh *l2neigh, const struct oonf_layer2_neigh_key *mac) {
   struct dlep_local_neighbor *local;
 
   local = dlep_session_add_local_neighbor(session, mac);
 
   if (local) {
-    memcpy(&local->neigh_addr, &l2neigh->addr, sizeof(local->neigh_addr));
+    memcpy(&local->neigh_key, &l2neigh->key, sizeof(local->neigh_key));
 
     dlep_session_generate_signal(session, DLEP_DESTINATION_UP, mac);
     local->state = DLEP_NEIGHBOR_UP_SENT;
@@ -509,10 +520,11 @@ _l2_neigh_added_to_session(struct dlep_session *session, struct oonf_layer2_neig
  * Helper function triggered for a new layer2 neighbor
  * @param l2neigh layer2 neighbor
  * @param l2dest layer2 destination (might be NULL)
- * @param mac MAC address of other endpoint
+ * @param mac MAC address (plus link id) of other endpoint
  */
 static void
-_l2_neigh_added(struct oonf_layer2_neigh *l2neigh, struct oonf_layer2_destination *l2dest, const struct netaddr *mac) {
+_l2_neigh_added(struct oonf_layer2_neigh *l2neigh, struct oonf_layer2_destination *l2dest,
+                const struct oonf_layer2_neigh_key *mac) {
   struct dlep_radio_if *radio_if;
   struct dlep_radio_session *radio_session;
 
@@ -540,7 +552,7 @@ _l2_neigh_added(struct oonf_layer2_neigh *l2neigh, struct oonf_layer2_destinatio
  */
 static void
 _l2_neigh_changed(
-  struct oonf_layer2_neigh *l2neigh, struct oonf_layer2_destination *l2dest, const struct netaddr *mac) {
+  struct oonf_layer2_neigh *l2neigh, struct oonf_layer2_destination *l2dest, const struct oonf_layer2_neigh_key *mac) {
   struct dlep_radio_if *radio_if;
   struct dlep_radio_session *radio_session;
   struct dlep_local_neighbor *local;
@@ -561,7 +573,7 @@ _l2_neigh_changed(
     local = dlep_session_add_local_neighbor(&radio_session->session, mac);
 
     if (local) {
-      memcpy(&local->neigh_addr, &l2neigh->addr, sizeof(local->neigh_addr));
+      memcpy(&local->neigh_key, &l2neigh->key, sizeof(local->neigh_key));
 
       switch (local->state) {
         case DLEP_NEIGHBOR_UP_SENT:
@@ -594,7 +606,7 @@ _l2_neigh_changed(
  */
 static void
 _l2_neigh_removed(
-  struct oonf_layer2_neigh *l2neigh, struct oonf_layer2_destination *l2dest, const struct netaddr *mac) {
+  struct oonf_layer2_neigh *l2neigh, struct oonf_layer2_destination *l2dest, const struct oonf_layer2_neigh_key *mac) {
   struct dlep_radio_if *radio_if;
   struct dlep_radio_session *radio_session;
   struct dlep_local_neighbor *local;
@@ -617,8 +629,8 @@ _l2_neigh_removed(
       continue;
     }
 
-    if ((l2dest && netaddr_cmp(&l2neigh->addr, &local->neigh_addr) == 0) ||
-        (!l2dest && netaddr_is_unspec(&local->neigh_addr))) {
+    if ((l2dest && memcmp(&l2neigh->key, &local->neigh_key, sizeof(l2neigh->key)) == 0) ||
+        (!l2dest && netaddr_is_unspec(&local->neigh_key.addr))) {
       dlep_session_generate_signal(&radio_session->session, DLEP_DESTINATION_DOWN, mac);
       local->state = DLEP_NEIGHBOR_DOWN_SENT;
       oonf_timer_set(&local->_ack_timeout, radio_session->session.cfg.heartbeat_interval * 2);
@@ -654,7 +666,7 @@ static void
 _cb_l2_neigh_added(void *ptr) {
   struct oonf_layer2_neigh *l2neigh = ptr;
 
-  _l2_neigh_added(l2neigh, NULL, &l2neigh->addr);
+  _l2_neigh_added(l2neigh, NULL, &l2neigh->key);
 }
 
 /**
@@ -665,12 +677,15 @@ static void
 _cb_l2_neigh_changed(void *ptr) {
   struct oonf_layer2_neigh *l2neigh;
   struct oonf_layer2_destination *l2dst;
+  struct oonf_layer2_neigh_key dst_key;
 
   l2neigh = ptr;
-  _l2_neigh_changed(l2neigh, NULL, &l2neigh->addr);
+  _l2_neigh_changed(l2neigh, NULL, &l2neigh->key);
 
+  memcpy(&dst_key, &l2neigh->key, sizeof(dst_key));
   avl_for_each_element(&l2neigh->destinations, l2dst, _node) {
-    _l2_neigh_changed(l2neigh, l2dst, &l2dst->destination);
+    memcpy(&dst_key.addr, &l2dst->destination, sizeof(dst_key.addr));
+    _l2_neigh_changed(l2neigh, l2dst, &dst_key);
   }
 }
 
@@ -682,7 +697,7 @@ static void
 _cb_l2_neigh_removed(void *ptr) {
   struct oonf_layer2_neigh *l2neigh = ptr;
 
-  _l2_neigh_removed(l2neigh, NULL, &l2neigh->addr);
+  _l2_neigh_removed(l2neigh, NULL, &l2neigh->key);
 }
 
 /**
@@ -692,8 +707,11 @@ _cb_l2_neigh_removed(void *ptr) {
 static void
 _cb_l2_dst_added(void *ptr) {
   struct oonf_layer2_destination *l2dst = ptr;
+  struct oonf_layer2_neigh_key dst_key;
 
-  _l2_neigh_added(l2dst->neighbor, NULL, &l2dst->destination);
+  memcpy(&dst_key, &l2dst->neighbor->key, sizeof(dst_key));
+  memcpy(&dst_key.addr, &l2dst->destination, sizeof(dst_key.addr));
+  _l2_neigh_added(l2dst->neighbor, NULL, &dst_key);
 }
 
 /**
@@ -703,8 +721,11 @@ _cb_l2_dst_added(void *ptr) {
 static void
 _cb_l2_dst_removed(void *ptr) {
   struct oonf_layer2_destination *l2dst = ptr;
+  struct oonf_layer2_neigh_key dst_key;
 
-  _l2_neigh_removed(l2dst->neighbor, NULL, &l2dst->destination);
+  memcpy(&dst_key, &l2dst->neighbor->key, sizeof(dst_key));
+  memcpy(&dst_key.addr, &l2dst->destination, sizeof(dst_key.addr));
+  _l2_neigh_removed(l2dst->neighbor, NULL, &dst_key);
 }
 
 /**

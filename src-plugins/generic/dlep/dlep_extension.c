@@ -247,7 +247,7 @@ dlep_extension_router_process_destination(struct dlep_extension *ext, struct dle
  */
 int
 dlep_extension_radio_write_session_init_ack(
-  struct dlep_extension *ext, struct dlep_session *session, const struct netaddr *neigh __attribute__((unused))) {
+  struct dlep_extension *ext, struct dlep_session *session, const struct oonf_layer2_neigh_key *neigh __attribute__((unused))) {
   const struct oonf_layer2_metadata *meta;
   struct oonf_layer2_net *l2net;
   struct oonf_layer2_data *l2data;
@@ -321,7 +321,7 @@ dlep_extension_radio_write_session_init_ack(
  */
 int
 dlep_extension_radio_write_session_update(
-  struct dlep_extension *ext, struct dlep_session *session, const struct netaddr *neigh __attribute__((unused))) {
+  struct dlep_extension *ext, struct dlep_session *session, const struct oonf_layer2_neigh_key *neigh __attribute__((unused))) {
   struct oonf_layer2_net *l2net;
   int result;
 
@@ -355,9 +355,9 @@ dlep_extension_radio_write_session_update(
  */
 int
 dlep_extension_radio_write_destination(
-  struct dlep_extension *ext, struct dlep_session *session, const struct netaddr *neigh) {
+  struct dlep_extension *ext, struct dlep_session *session, const struct oonf_layer2_neigh_key *neigh) {
   struct oonf_layer2_neigh *l2neigh;
-  struct netaddr_str nbuf;
+  union oonf_layer2_neigh_key_str nbuf;
   int result;
 
   l2neigh = dlep_session_get_local_l2_neighbor(session, neigh);
@@ -365,16 +365,15 @@ dlep_extension_radio_write_destination(
     OONF_WARN(session->log_source,
       "Could not find l2neigh "
       "for neighbor %s",
-      netaddr_to_string(&nbuf, neigh));
+      oonf_layer2_neigh_key_to_string(&nbuf, neigh, true));
     return -1;
   }
 
   result = dlep_writer_map_l2neigh_data(&session->writer, ext, l2neigh->data, l2neigh->network->neighdata);
   if (result) {
     OONF_WARN(session->log_source,
-      "tlv mapping for extension %d"
-      " and neighbor %s failed: %d",
-      ext->id, netaddr_to_string(&nbuf, neigh), result);
+      "tlv mapping for extension %d and neighbor %s failed: %d",
+      ext->id, oonf_layer2_neigh_key_to_string(&nbuf, neigh, true), result);
     return result;
   }
   return 0;

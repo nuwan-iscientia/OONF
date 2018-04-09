@@ -172,14 +172,14 @@ dlep_writer_add_peer_type_tlv(struct dlep_writer *writer, const char *peer_type,
 /**
  * Write a DLEP MAC address TLV
  * @param writer dlep writer
- * @param mac mac address
+ * @param mac_lid mac address/LID
  * @return -1 if address was wrong type, 0 otherwise
  */
 int
-dlep_writer_add_mac_tlv(struct dlep_writer *writer, const struct netaddr *mac) {
+dlep_writer_add_mac_lid_tlv(struct dlep_writer *writer, const struct oonf_layer2_neigh_key *mac_lid) {
   uint8_t value[8];
 
-  switch (netaddr_get_address_family(mac)) {
+  switch (netaddr_get_address_family(&mac_lid->addr)) {
     case AF_MAC48:
     case AF_EUI64:
       break;
@@ -187,9 +187,10 @@ dlep_writer_add_mac_tlv(struct dlep_writer *writer, const struct netaddr *mac) {
       return -1;
   }
 
-  netaddr_to_binary(value, mac, 8);
+  netaddr_to_binary(value, &mac_lid->addr, 8);
 
-  dlep_writer_add_tlv(writer, DLEP_MAC_ADDRESS_TLV, value, netaddr_get_binlength(mac));
+  dlep_writer_add_tlv(writer, DLEP_MAC_ADDRESS_TLV, value, netaddr_get_binlength(&mac_lid->addr));
+  dlep_writer_add_tlv(writer, DLEP_LID_TLV, mac_lid->link_id, mac_lid->link_id_length);
   return 0;
 }
 

@@ -456,13 +456,13 @@ dlep_session_process_signal(struct dlep_session *session, const void *ptr, size_
 /**
  * Add a neighbor to the local DLEP storage
  * @param session dlep session
- * @param neigh neighbor MAC address
+ * @param key neighbor key (MAC plus link id)
  * @return pointer to dlep neighbor, NULL if out of memory
  */
 struct dlep_local_neighbor *
-dlep_session_add_local_neighbor(struct dlep_session *session, const struct netaddr *neigh) {
+dlep_session_add_local_neighbor(struct dlep_session *session, const struct oonf_layer2_neigh_key *key) {
   struct dlep_local_neighbor *local;
-  if ((local = dlep_session_get_local_neighbor(session, neigh))) {
+  if ((local = dlep_session_get_local_neighbor(session, key))) {
     return local;
   }
 
@@ -472,8 +472,8 @@ dlep_session_add_local_neighbor(struct dlep_session *session, const struct netad
   }
 
   /* hook into tree */
-  memcpy(&local->addr, neigh, sizeof(local->addr));
-  local->_node.key = &local->addr;
+  memcpy(&local->key, key, sizeof(*key));
+  local->_node.key = &local->key;
   avl_insert(&session->local_neighbor_tree, &local->_node);
 
   /* initialize timer */
@@ -502,21 +502,22 @@ dlep_session_remove_local_neighbor(struct dlep_session *session, struct dlep_loc
 /**
  * Get the layer2 neigbor for a DLEP session MAC address
  * @param session dlep session
- * @param neigh MAC address of neighbor
+ * @param key neighbor key (MAC address plus link id)
  * @return layer2 neighbor, NULL if not found
  */
 struct oonf_layer2_neigh *
-dlep_session_get_local_l2_neighbor(struct dlep_session *session, const struct netaddr *neigh) {
+dlep_session_get_local_l2_neighbor(struct dlep_session *session, const struct oonf_layer2_neigh_key *key) {
   struct dlep_local_neighbor *dlep_neigh;
   struct oonf_layer2_neigh *l2neigh;
   struct oonf_layer2_net *l2net;
 #ifdef OONF_LOG_INFO
-  struct netaddr_str nbuf1, nbuf2;
+  union oonf_layer2_neigh_key_str nbuf1, nbuf2;
 #endif
 
-  dlep_neigh = dlep_session_get_local_neighbor(session, neigh);
+  dlep_neigh = dlep_session_get_local_neighbor(session, key);
   if (!dlep_neigh) {
-    OONF_INFO(session->log_source, "Could not find local neighbor for %s", netaddr_to_string(&nbuf1, neigh));
+    OONF_INFO(session->log_source, "Could not find local neighbor for %s",
+              oonf_layer2_neigh_key_to_string(&nbuf1, key, true));
     return NULL;
   }
 
@@ -526,12 +527,12 @@ dlep_session_get_local_l2_neighbor(struct dlep_session *session, const struct ne
     return NULL;
   }
 
-  l2neigh = oonf_layer2_neigh_get(l2net, &dlep_neigh->neigh_addr);
+  l2neigh = oonf_layer2_neigh_get_lid(l2net, &dlep_neigh->neigh_key);
   if (!l2neigh) {
     OONF_INFO(session->log_source,
-      "Could not find l2neigh "
-      "for neighbor %s (%s)",
-      netaddr_to_string(&nbuf1, neigh), netaddr_to_string(&nbuf2, &dlep_neigh->neigh_addr));
+      "Could not find l2neigh for neighbor %s (%s)",
+      oonf_layer2_neigh_key_to_string(&nbuf1, key, true),
+      oonf_layer2_neigh_key_to_string(&nbuf2, &dlep_neigh->neigh_key, true));
     return NULL;
   }
   return l2neigh;
@@ -542,7 +543,7 @@ dlep_session_get_l2_from_neighbor(struct dlep_local_neighbor *dlep_neigh) {
   struct oonf_layer2_neigh *l2neigh;
   struct oonf_layer2_net *l2net;
 #ifdef OONF_LOG_INFO
-  struct netaddr_str nbuf;
+  union oonf_layer2_neigh_key_str nbuf;
 #endif
 
   l2net = oonf_layer2_net_get(dlep_neigh->session->l2_listener.name);
@@ -552,12 +553,11 @@ dlep_session_get_l2_from_neighbor(struct dlep_local_neighbor *dlep_neigh) {
     return NULL;
   }
 
-  l2neigh = oonf_layer2_neigh_get(l2net, &dlep_neigh->neigh_addr);
+  l2neigh = oonf_layer2_neigh_get_lid(l2net, &dlep_neigh->neigh_key);
   if (!l2neigh) {
     OONF_INFO(dlep_neigh->session->log_source,
-      "Could not find l2neigh "
-      "for neighbor %s",
-      netaddr_to_string(&nbuf, &dlep_neigh->neigh_addr));
+      "Could not find l2neigh for neighbor %s",
+      oonf_layer2_neigh_key_to_string(&nbuf, &dlep_neigh->neigh_key, true));
     return NULL;
   }
   return l2neigh;
@@ -572,17 +572,19 @@ dlep_session_get_l2_from_neighbor(struct dlep_local_neighbor *dlep_neigh) {
  * @return -1 if an error happened, 0 otherwise
  */
 static int
-_generate_signal(struct dlep_session *session, int32_t signal, const struct netaddr *neighbor) {
+_generate_signal(struct dlep_session *session, int32_t signal, const struct oonf_layer2_neigh_key *neighbor) {
   struct dlep_extension *ext;
   size_t e, s;
 
   size_t len;
 #ifdef OONF_LOG_DEBUG_INFO
-  struct netaddr_str nbuf1, nbuf2;
+  union oonf_layer2_neigh_key_str nkbuf;
+  struct netaddr_str nbuf2;
 #endif
 
-  OONF_DEBUG(session->log_source, "Generate signal %u for %s on %s (%s)", signal, netaddr_to_string(&nbuf1, neighbor),
-    session->l2_listener.name, netaddr_socket_to_string(&nbuf2, &session->remote_socket));
+  OONF_DEBUG(session->log_source, "Generate signal %u for %s on %s (%s)", signal,
+             oonf_layer2_neigh_key_to_string(&nkbuf, neighbor, true),
+             session->l2_listener.name, netaddr_socket_to_string(&nbuf2, &session->remote_socket));
 
   len = abuf_getlen(session->writer.out);
 
@@ -623,12 +625,12 @@ _generate_signal(struct dlep_session *session, int32_t signal, const struct neta
  * Generate a DLEP signal/message
  * @param session dlep session
  * @param signal signal id
- * @param neighbor neighbor MAC address the signal should refer to,
+ * @param neighbor neighbor MAC address (plus link id) the signal should refer to,
  *   might be NULL
  * @return -1 if an error happened, 0 otherwise
  */
 int
-dlep_session_generate_signal(struct dlep_session *session, int32_t signal, const struct netaddr *neighbor) {
+dlep_session_generate_signal(struct dlep_session *session, int32_t signal, const struct oonf_layer2_neigh_key *neighbor) {
   if (_generate_signal(session, signal, neighbor)) {
     OONF_WARN(session->log_source, "Could not generate signal %u", signal);
     return -1;
@@ -640,14 +642,14 @@ dlep_session_generate_signal(struct dlep_session *session, int32_t signal, const
  * Generate a DLEP signal/message with a DLEP status TLV
  * @param session dlep session
  * @param signal signal id
- * @param neighbor neighbor MAC address the signal should refer to,
+ * @param neighbor neighbor MAC address (plus link id) the signal should refer to,
  *   might be NULL
  * @param status DLEP status code
  * @param msg ZERO terminated DLEP status text
  * @return -1 if an error happened, 0 otherwise
  */
 int
-dlep_session_generate_signal_status(struct dlep_session *session, int32_t signal, const struct netaddr *neighbor,
+dlep_session_generate_signal_status(struct dlep_session *session, int32_t signal, const struct oonf_layer2_neigh_key *neighbor,
   enum dlep_status status, const char *msg) {
   if (_generate_signal(session, signal, neighbor)) {
     OONF_WARN(session->log_source, "Could not generate signal %u", signal);

@@ -74,8 +74,8 @@ static int _router_process_destination_down_ack(struct dlep_extension *, struct 
 static int _router_process_destination_update(struct dlep_extension *, struct dlep_session *);
 static int _router_process_link_char_ack(struct dlep_extension *, struct dlep_session *);
 
-static int _router_write_peer_discovery(struct dlep_extension *, struct dlep_session *session, const struct netaddr *);
-static int _router_write_session_init(struct dlep_extension *, struct dlep_session *session, const struct netaddr *);
+static int _router_write_peer_discovery(struct dlep_extension *, struct dlep_session *session, const struct oonf_layer2_neigh_key *);
+static int _router_write_session_init(struct dlep_extension *, struct dlep_session *session, const struct oonf_layer2_neigh_key *);
 
 static struct dlep_extension_implementation _router_signals[] = {
   {
@@ -453,23 +453,24 @@ static int
 _router_process_destination_up(struct dlep_extension *ext __attribute__((unused)), struct dlep_session *session) {
   struct oonf_layer2_net *l2net;
   struct oonf_layer2_neigh *l2neigh;
-  struct netaddr mac;
   int result;
+  struct oonf_layer2_neigh_key mac_lid;
 
-  if (dlep_reader_mac_tlv(&mac, session, NULL)) {
-    OONF_INFO(session->log_source, "mac tlv missing");
+  memset(&mac_lid, 0, sizeof(mac_lid));
+  if (dlep_reader_mac_tlv(&mac_lid.addr, session, NULL)) {
     return -1;
   }
+  dlep_reader_lid_tlv(&mac_lid, session, NULL);
 
   l2net = oonf_layer2_net_add(session->l2_listener.name);
   if (!l2net) {
     return dlep_session_generate_signal_status(
-      session, DLEP_DESTINATION_UP_ACK, &mac, DLEP_STATUS_REQUEST_DENIED, "Not enough memory");
+      session, DLEP_DESTINATION_UP_ACK, &mac_lid, DLEP_STATUS_REQUEST_DENIED, "Not enough memory");
   }
-  l2neigh = oonf_layer2_neigh_add(l2net, &mac);
+  l2neigh = oonf_layer2_neigh_add_lid(l2net, &mac_lid);
   if (!l2neigh) {
     return dlep_session_generate_signal_status(
-      session, DLEP_DESTINATION_UP_ACK, &mac, DLEP_STATUS_REQUEST_DENIED, "Not enough memory");
+      session, DLEP_DESTINATION_UP_ACK, &mac_lid, DLEP_STATUS_REQUEST_DENIED, "Not enough memory");
   }
 
   result = dlep_reader_map_l2neigh_data(l2neigh->data, session, _base);
@@ -479,7 +480,7 @@ _router_process_destination_up(struct dlep_extension *ext __attribute__((unused)
   }
 
   /* generate ACK */
-  return dlep_session_generate_signal_status (session, DLEP_DESTINATION_UP_ACK, &mac, DLEP_STATUS_OKAY, "Success");
+  return dlep_session_generate_signal_status (session, DLEP_DESTINATION_UP_ACK, &mac_lid, DLEP_STATUS_OKAY, "Success");
 }
 
 /**
@@ -504,18 +505,20 @@ static int
 _router_process_destination_down(struct dlep_extension *ext __attribute__((unused)), struct dlep_session *session) {
   struct oonf_layer2_net *l2net;
   struct oonf_layer2_neigh *l2neigh;
-  struct netaddr mac;
+  struct oonf_layer2_neigh_key mac_lid;
 
-  if (dlep_reader_mac_tlv(&mac, session, NULL)) {
+  memset(&mac_lid, 0, sizeof(mac_lid));
+  if (dlep_reader_mac_tlv(&mac_lid.addr, session, NULL)) {
     return -1;
   }
+  dlep_reader_lid_tlv(&mac_lid, session, NULL);
 
   l2net = oonf_layer2_net_get(session->l2_listener.name);
   if (!l2net) {
     return 0;
   }
 
-  l2neigh = oonf_layer2_neigh_get(l2net, &mac);
+  l2neigh = oonf_layer2_neigh_get_lid(l2net, &mac_lid);
   if (!l2neigh) {
     return 0;
   }
@@ -524,7 +527,7 @@ _router_process_destination_down(struct dlep_extension *ext __attribute__((unuse
   oonf_layer2_neigh_remove(l2neigh, session->l2_origin);
 
   /* generate ACK */
-  return dlep_session_generate_signal_status(session, DLEP_DESTINATION_DOWN_ACK, &mac, DLEP_STATUS_OKAY, "Success");
+  return dlep_session_generate_signal_status(session, DLEP_DESTINATION_DOWN_ACK, &mac_lid, DLEP_STATUS_OKAY, "Success");
 }
 
 /**
@@ -597,7 +600,7 @@ _router_process_link_char_ack(struct dlep_extension *ext __attribute__((unused))
  */
 static int
 _router_write_peer_discovery(struct dlep_extension *ext __attribute__((unused)), struct dlep_session *session,
-  const struct netaddr *addr __attribute__((unused))) {
+  const struct oonf_layer2_neigh_key *addr __attribute__((unused))) {
   if (session->restrict_signal != DLEP_UDP_PEER_OFFER) {
     return -1;
   }
@@ -613,7 +616,7 @@ _router_write_peer_discovery(struct dlep_extension *ext __attribute__((unused)),
  */
 static int
 _router_write_session_init(struct dlep_extension *ext __attribute__((unused)), struct dlep_session *session,
-  const struct netaddr *addr __attribute__((unused))) {
+  const struct oonf_layer2_neigh_key *addr __attribute__((unused))) {
   const uint16_t *ext_ids;
   uint16_t ext_count;
 

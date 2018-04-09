@@ -70,9 +70,9 @@ struct _prefix_storage {
 static void _cb_session_init(struct dlep_session *session);
 static void _cb_session_cleanup(struct dlep_session *session);
 static int _radio_write_session_update(
-  struct dlep_extension *ext, struct dlep_session *session, const struct netaddr *neigh);
+  struct dlep_extension *ext, struct dlep_session *session, const struct oonf_layer2_neigh_key *neigh);
 static int _radio_write_destination_update(
-  struct dlep_extension *ext, struct dlep_session *session, const struct netaddr *neigh);
+  struct dlep_extension *ext, struct dlep_session *session, const struct oonf_layer2_neigh_key *neigh);
 static enum dlep_parser_error _router_process_session_update(struct dlep_extension *ext, struct dlep_session *session);
 static enum dlep_parser_error _router_process_destination_update(
   struct dlep_extension *ext, struct dlep_session *session);
@@ -209,7 +209,7 @@ _cb_session_init(struct dlep_session *session) {
   }
 
   avl_for_each_element(&l2net->neighbors, l2neigh, _node) {
-    dlep_neighbor = dlep_session_add_local_neighbor(session, &l2neigh->addr);
+    dlep_neighbor = dlep_session_add_local_neighbor(session, &l2neigh->key);
     if (dlep_neighbor) {
       avl_for_each_element(&l2neigh->remote_neighbor_ips, l2neigh_ip, _neigh_node) {
         _add_prefix(&dlep_neighbor->_ip_prefix_modification, &l2neigh_ip->ip, true);
@@ -240,7 +240,7 @@ _cb_session_cleanup(struct dlep_session *session) {
 
 static int
 _radio_write_session_update(struct dlep_extension *ext __attribute__((unused)), struct dlep_session *session,
-  const struct netaddr *neigh __attribute__((unused))) {
+  const struct oonf_layer2_neigh_key *neigh __attribute__((unused))) {
   struct _prefix_storage *storage, *storage_it;
 
   struct netaddr_str nbuf;
@@ -264,29 +264,31 @@ _radio_write_session_update(struct dlep_extension *ext __attribute__((unused)), 
 }
 
 static int
-_radio_write_destination_update(
-  struct dlep_extension *ext __attribute__((unused)), struct dlep_session *session, const struct netaddr *neigh) {
+_radio_write_destination_update(struct dlep_extension *ext __attribute__((unused)), struct dlep_session *session,
+    const struct oonf_layer2_neigh_key *neigh) {
   struct dlep_local_neighbor *dlep_neigh;
   struct _prefix_storage *storage, *storage_it;
 
-  struct netaddr_str nbuf1, nbuf2;
+  union oonf_layer2_neigh_key_str nkbuf;
+  struct netaddr_str nbuf1;
 
   dlep_neigh = dlep_session_get_local_neighbor(session, neigh);
   if (!dlep_neigh) {
     OONF_WARN(session->log_source,
-      "Could not find dlep_neighbor "
-      "for neighbor %s",
-      netaddr_to_string(&nbuf1, neigh));
+      "Could not find dlep_neighbor for neighbor %s",
+      oonf_layer2_neigh_key_to_string(&nkbuf, neigh, true));
     return -1;
   }
 
   /* send every attached IP towards the router */
   avl_for_each_element(&dlep_neigh->_ip_prefix_modification, storage, _node) {
     OONF_INFO(session->log_source, "add '%s' (%s) to destination update %s",
-      netaddr_to_string(&nbuf1, &storage->prefix), storage->add ? "add" : "remove", netaddr_to_string(&nbuf2, neigh));
+      netaddr_to_string(&nbuf1, &storage->prefix), storage->add ? "add" : "remove",
+      oonf_layer2_neigh_key_to_string(&nkbuf, neigh, true));
     if (dlep_writer_add_ip_tlv(&session->writer, &storage->prefix, storage->add)) {
       OONF_WARN(session->log_source, "Cannot add '%s' (%s) to destination update %s",
-        netaddr_to_string(&nbuf1, &storage->prefix), storage->add ? "add" : "remove", netaddr_to_string(&nbuf2, neigh));
+        netaddr_to_string(&nbuf1, &storage->prefix), storage->add ? "add" : "remove",
+        oonf_layer2_neigh_key_to_string(&nkbuf, neigh, true));
       return -1;
     }
   }
@@ -493,7 +495,7 @@ _cb_remove_if_ip(void *ptr) {
 }
 
 static void
-_modify_neigh_ip(const char *if_name, struct netaddr *neighbor, struct netaddr *prefix, bool add) {
+_modify_neigh_ip(const char *if_name, struct oonf_layer2_neigh_key *neighbor, struct netaddr *prefix, bool add) {
   struct dlep_radio_if *radio_interf;
   struct dlep_local_neighbor *dlep_neighbor;
   struct dlep_radio_session *radio_session;
@@ -513,11 +515,11 @@ _modify_neigh_ip(const char *if_name, struct netaddr *neighbor, struct netaddr *
 static void
 _cb_add_neigh_ip(void *ptr) {
   struct oonf_layer2_neighbor_address *neigh_ip = ptr;
-  _modify_neigh_ip(neigh_ip->l2neigh->network->name, &neigh_ip->l2neigh->addr, &neigh_ip->ip, true);
+  _modify_neigh_ip(neigh_ip->l2neigh->network->name, &neigh_ip->l2neigh->key, &neigh_ip->ip, true);
 }
 
 static void
 _cb_remove_neigh_ip(void *ptr) {
   struct oonf_layer2_neighbor_address *neigh_ip = ptr;
-  _modify_neigh_ip(neigh_ip->l2neigh->network->name, &neigh_ip->l2neigh->addr, &neigh_ip->ip, false);
+  _modify_neigh_ip(neigh_ip->l2neigh->network->name, &neigh_ip->l2neigh->key, &neigh_ip->ip, false);
 }

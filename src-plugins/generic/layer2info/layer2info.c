@@ -127,6 +127,9 @@ static int _cb_create_text_dst(struct oonf_viewer_template *);
 /*! template key for neighbor address */
 #define KEY_NEIGH_ADDR "neigh_addr"
 
+/*! template key for neighbor link-id */
+#define KEY_NEIGH_LID "neigh_lid"
+
 /*! template key for last time neighbor was active */
 #define KEY_NEIGH_LASTSEEN "neigh_lastseen"
 
@@ -168,6 +171,7 @@ static char _value_if_peer_ip_origin[IF_NAMESIZE];
 static char _value_if_data[OONF_LAYER2_NET_COUNT][64];
 static char _value_if_origin[OONF_LAYER2_NET_COUNT][IF_NAMESIZE];
 static struct netaddr_str _value_neigh_addr;
+static union oonf_layer2_neigh_key_str _value_neigh_key;
 static struct isonumber_str _value_neigh_lastseen;
 static struct netaddr_str _value_neigh_remote_ip;
 static char _value_neigh_remote_ip_origin[IF_NAMESIZE];
@@ -202,6 +206,7 @@ static struct abuf_template_data_entry _tde_if_origin[OONF_LAYER2_NET_COUNT];
 
 static struct abuf_template_data_entry _tde_neigh_key[] = {
   { KEY_NEIGH_ADDR, _value_neigh_addr.buf, true },
+  { KEY_NEIGH_LID, _value_neigh_key.buf, true },
 };
 
 static struct abuf_template_data_entry _tde_neigh[] = {
@@ -483,7 +488,8 @@ _initialize_if_origin_values(struct oonf_layer2_data *data) {
  */
 static void
 _initialize_neigh_values(struct oonf_layer2_neigh *neigh) {
-  netaddr_to_string(&_value_neigh_addr, &neigh->addr);
+  netaddr_to_string(&_value_neigh_addr, &neigh->key.addr);
+  oonf_layer2_neigh_key_to_string(&_value_neigh_key, &neigh->key, false);
 
   if (neigh->last_seen) {
     oonf_clock_toIntervalString(&_value_neigh_lastseen, -oonf_clock_get_relative(neigh->last_seen));

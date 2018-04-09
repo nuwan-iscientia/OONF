@@ -69,6 +69,11 @@
 /*! memory class for layer2 neighbor address */
 #define LAYER2_CLASS_NEIGHBOR_ADDRESS "layer2_neighbor_address"
 
+enum {
+  /*! maximum length of link id for layer2 neighbors */
+  OONF_LAYER2_MAX_LINK_ID = 16,
+};
+
 /* configuration Macros for Layer2 keys */
 
 /**
@@ -419,11 +424,33 @@ struct oonf_layer2_peer_address {
 };
 
 /**
+ * unique key of a layer2 neighbor
+ */
+struct oonf_layer2_neigh_key {
+  /*! mac address of the neighbor */
+  struct netaddr addr;
+
+  /*! length of link id in octets */
+  uint8_t link_id_length;
+
+  /*! stored link id of neighbor (padded with zero bytes) */
+  uint8_t link_id[OONF_LAYER2_MAX_LINK_ID];
+};
+
+/**
+ * String buffer for text representation of neighbor key
+ */
+union oonf_layer2_neigh_key_str {
+  struct netaddr_str nbuf;
+  char buf[sizeof(struct netaddr_str) + 5 + 16*2];
+};
+
+/**
  * representation of a remote layer2 neighbor
  */
 struct oonf_layer2_neigh {
   /*! remote mac address of neighbor */
-  struct netaddr addr;
+  struct oonf_layer2_neigh_key key;
 
   /*! back pointer to layer2 network */
   struct oonf_layer2_net *network;
@@ -509,7 +536,7 @@ EXPORT int oonf_layer2_net_remove_ip(struct oonf_layer2_peer_address *ip, const 
 EXPORT struct oonf_layer2_neighbor_address *oonf_layer2_net_get_best_neighbor_match(const struct netaddr *addr);
 EXPORT struct avl_tree *oonf_layer2_net_get_remote_ip_tree(void);
 
-EXPORT struct oonf_layer2_neigh *oonf_layer2_neigh_add(struct oonf_layer2_net *, const struct netaddr *l2neigh);
+EXPORT struct oonf_layer2_neigh *oonf_layer2_neigh_add_lid(struct oonf_layer2_net *, const struct oonf_layer2_neigh_key *key);
 EXPORT bool oonf_layer2_neigh_cleanup(struct oonf_layer2_neigh *l2neigh, const struct oonf_layer2_origin *origin);
 EXPORT bool oonf_layer2_neigh_remove(struct oonf_layer2_neigh *l2neigh, const struct oonf_layer2_origin *origin);
 EXPORT bool oonf_layer2_neigh_commit(struct oonf_layer2_neigh *l2neigh);
@@ -539,6 +566,9 @@ EXPORT const char *oonf_layer2_net_get_type_name(enum oonf_layer2_network_type);
 
 EXPORT struct avl_tree *oonf_layer2_get_net_tree(void);
 EXPORT struct avl_tree *oonf_layer2_get_origin_tree(void);
+EXPORT int oonf_layer2_avlcmp_neigh_key(const void *p1, const void *p2);
+EXPORT const char *oonf_layer2_neigh_key_to_string(union oonf_layer2_neigh_key_str *buf,
+    const struct oonf_layer2_neigh_key *key, bool show_mac);
 
 /**
  * Checks if a layer2 originator is registered
@@ -585,6 +615,15 @@ oonf_layer2_net_get_remote_ip(const struct oonf_layer2_net *l2net, const struct 
   return avl_find_element(&l2net->remote_neighbor_ips, addr, l2ip, _net_node);
 }
 
+static INLINE struct oonf_layer2_neigh *
+oonf_layer2_neigh_add(struct oonf_layer2_net *net, const struct netaddr *l2neigh) {
+  struct oonf_layer2_neigh_key key;
+
+  memset(&key, 0, sizeof(key));
+  memcpy(&key.addr, l2neigh, sizeof(*l2neigh));
+  return oonf_layer2_neigh_add_lid(net, &key);
+}
+
 /**
  * Get a layer-2 neighbor object from the database
  * @param l2net layer-2 network/interface object
@@ -594,7 +633,23 @@ oonf_layer2_net_get_remote_ip(const struct oonf_layer2_net *l2net, const struct 
 static INLINE struct oonf_layer2_neigh *
 oonf_layer2_neigh_get(const struct oonf_layer2_net *l2net, const struct netaddr *addr) {
   struct oonf_layer2_neigh *l2neigh;
-  return avl_find_element(&l2net->neighbors, addr, l2neigh, _node);
+  struct oonf_layer2_neigh_key key;
+
+  memset(&key, 0, sizeof(key));
+  memcpy(&key.addr, addr, sizeof(*addr));
+  return avl_find_element(&l2net->neighbors, &key, l2neigh, _node);
+}
+
+/**
+ * Get a layer-2 neighbor object from the database
+ * @param l2net layer-2 network/interface object
+ * @param key unique key of remote neighbor
+ * @return layer-2 neighbor object, NULL if not found
+ */
+static INLINE struct oonf_layer2_neigh *
+oonf_layer2_neigh_get_lid(const struct oonf_layer2_net *l2net, const struct oonf_layer2_neigh_key *key) {
+  struct oonf_layer2_neigh *l2neigh;
+  return avl_find_element(&l2net->neighbors, key, l2neigh, _node);
 }
 
 /**

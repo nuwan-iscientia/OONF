@@ -326,7 +326,7 @@ _cb_probe_link(struct oonf_timer_instance *ptr __attribute__((unused))) {
       if (last_tx_packets != ldata->last_tx_traffic) {
         /* advance timestamp */
         ldata->last_probe_check = oonf_clock_getNow();
-        OONF_DEBUG(LOG_PROBING, "Drop link %s (already has unicast traffic)", netaddr_to_string(&nbuf, &l2neigh->addr));
+        OONF_DEBUG(LOG_PROBING, "Drop link %s (already has unicast traffic)", netaddr_to_string(&nbuf, &l2neigh->key.addr));
         continue;
       }
 

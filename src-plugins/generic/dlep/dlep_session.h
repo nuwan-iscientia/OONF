@@ -205,8 +205,9 @@ struct dlep_local_neighbor {
   /**
    * mac address of the endpoint of the neighbor
    * (might be proxied ethernet)
+   * it might also have a link ID
    */
-  struct netaddr addr;
+  struct oonf_layer2_neigh_key key;
 
   /*! state of neighbor */
   enum dlep_neighbor_state state;
@@ -217,8 +218,8 @@ struct dlep_local_neighbor {
   /*! true if iterative updates are be used for destination IPs */
   bool destination_ip_iterative;
 
-  /*! mac address of the neighbors wireless interface */
-  struct netaddr neigh_addr;
+  /*! mac address (plus link ID) of the neighbors wireless interface */
+  struct oonf_layer2_neigh_key neigh_key;
 
   /*! back-pointer to dlep session */
   struct dlep_session *session;
@@ -347,14 +348,14 @@ enum oonf_stream_session_state dlep_session_process_tcp(
   struct oonf_stream_session *tcp_session, struct dlep_session *session);
 ssize_t dlep_session_process_buffer(struct dlep_session *session, const void *buffer, size_t length, bool is_udp);
 ssize_t dlep_session_process_signal(struct dlep_session *session, const void *buffer, size_t length, bool is_udp);
-int dlep_session_generate_signal(struct dlep_session *session, int32_t signal, const struct netaddr *neighbor);
-int dlep_session_generate_signal_status(struct dlep_session *session, int32_t signal, const struct netaddr *neighbor,
+int dlep_session_generate_signal(struct dlep_session *session, int32_t signal, const struct oonf_layer2_neigh_key *neighbor);
+int dlep_session_generate_signal_status(struct dlep_session *session, int32_t signal, const struct oonf_layer2_neigh_key *neighbor,
   enum dlep_status status, const char *msg);
 struct dlep_parser_value *dlep_session_get_tlv_value(struct dlep_session *session, uint16_t tlvtype);
 
-struct dlep_local_neighbor *dlep_session_add_local_neighbor(struct dlep_session *session, const struct netaddr *neigh);
+struct dlep_local_neighbor *dlep_session_add_local_neighbor(struct dlep_session *session, const struct oonf_layer2_neigh_key *key);
 void dlep_session_remove_local_neighbor(struct dlep_session *session, struct dlep_local_neighbor *local);
-struct oonf_layer2_neigh *dlep_session_get_local_l2_neighbor(struct dlep_session *session, const struct netaddr *neigh);
+struct oonf_layer2_neigh *dlep_session_get_local_l2_neighbor(struct dlep_session *session, const struct oonf_layer2_neigh_key *key);
 struct oonf_layer2_neigh *dlep_session_get_l2_from_neighbor(struct dlep_local_neighbor *dlep_neigh);
 
 /**
@@ -422,13 +423,13 @@ dlep_session_get_tlv_binary(struct dlep_session *session, struct dlep_parser_val
 /**
  * Get a DLEP neighbor
  * @param session dlep session
- * @param neigh neighbor MAC address
+ * @param key neighbor MAC address plus link ID
  * @return DLEP neighbor, NULL if not found
  */
 static INLINE struct dlep_local_neighbor *
-dlep_session_get_local_neighbor(struct dlep_session *session, const struct netaddr *neigh) {
+dlep_session_get_local_neighbor(struct dlep_session *session, const struct oonf_layer2_neigh_key *key) {
   struct dlep_local_neighbor *local;
-  return avl_find_element(&session->local_neighbor_tree, neigh, local, _node);
+  return avl_find_element(&session->local_neighbor_tree, key, local, _node);
 }
 
 #endif /* _DLEP_SESSION_H_ */

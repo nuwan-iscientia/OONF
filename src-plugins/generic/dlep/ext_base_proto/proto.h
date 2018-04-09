@@ -49,6 +49,7 @@
 #include "common/common_types.h"
 #include "common/netaddr.h"
 
+#include "subsystems/oonf_layer2.h"
 #include "dlep/dlep_extension.h"
 #include "dlep/dlep_session.h"
 
@@ -61,6 +62,7 @@ void dlep_base_proto_print_peer_type(struct dlep_session *session);
 int dlep_base_proto_process_session_termination(struct dlep_extension *, struct dlep_session *);
 int dlep_base_proto_process_session_termination_ack(struct dlep_extension *, struct dlep_session *);
 int dlep_base_proto_process_heartbeat(struct dlep_extension *, struct dlep_session *);
-int dlep_base_proto_write_mac_only(struct dlep_extension *, struct dlep_session *session, const struct netaddr *neigh);
+int dlep_base_proto_write_mac_only(struct dlep_extension *, struct dlep_session *session,
+    const struct oonf_layer2_neigh_key *neigh);
 
 #endif /* _PROTO_H_ */

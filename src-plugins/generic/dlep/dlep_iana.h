@@ -236,6 +236,10 @@ enum dlep_tlvs
   /*! MTU of interface */
   DLEP_MTU_TLV = 20,
 
+  /*! link ID TLV */
+  DLEP_LID_TLV = 21,
+
+
   /* l1 statistics */
 
   /*! channel center frequency in Hz */
