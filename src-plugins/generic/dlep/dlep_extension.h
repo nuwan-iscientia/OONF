@@ -352,9 +352,9 @@ EXPORT const uint16_t *dlep_extension_get_ids(uint16_t *length);
 EXPORT int dlep_extension_get_l2_neighbor_key(struct oonf_layer2_neigh_key *key, struct dlep_session *session);
 EXPORT struct oonf_layer2_neigh *dlep_extension_get_l2_neighbor(struct dlep_session *session);
 
-EXPORT int dlep_extension_router_process_session_init_ack(struct dlep_extension *, struct dlep_session *session);
-EXPORT int dlep_extension_router_process_session_update(struct dlep_extension *, struct dlep_session *session);
-EXPORT int dlep_extension_router_process_destination(struct dlep_extension *, struct dlep_session *session);
+EXPORT enum dlep_parser_error dlep_extension_router_process_session_init_ack(struct dlep_extension *, struct dlep_session *session);
+EXPORT enum dlep_parser_error dlep_extension_router_process_session_update(struct dlep_extension *, struct dlep_session *session);
+EXPORT enum dlep_parser_error dlep_extension_router_process_destination(struct dlep_extension *, struct dlep_session *session);
 EXPORT int dlep_extension_radio_write_session_init_ack(
   struct dlep_extension *ext, struct dlep_session *session, const struct oonf_layer2_neigh_key *neigh);
 EXPORT int dlep_extension_radio_write_session_update(

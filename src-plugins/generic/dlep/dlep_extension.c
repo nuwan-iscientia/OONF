@@ -170,11 +170,11 @@ dlep_extension_get_ids(uint16_t *length) {
  * @param session dlep session
  * @return -1 if an error happened, 0 otherwise
  */
-int
+enum dlep_parser_error
 dlep_extension_router_process_session_init_ack(struct dlep_extension *ext, struct dlep_session *session) {
   if (session->restrict_signal != DLEP_SESSION_INITIALIZATION_ACK) {
     /* ignore unless we are in initialization mode */
-    return 0;
+    return DLEP_NEW_PARSER_OKAY;
   }
   return _process_interface_specific_update(ext, session);
 }
@@ -186,11 +186,11 @@ dlep_extension_router_process_session_init_ack(struct dlep_extension *ext, struc
  * @param session dlep session
  * @return -1 if an error happened, 0 otherwise
  */
-int
+enum dlep_parser_error
 dlep_extension_router_process_session_update(struct dlep_extension *ext, struct dlep_session *session) {
   if (session->restrict_signal != DLEP_ALL_SIGNALS) {
     /* ignore unless we have an established session */
-    return 0;
+    return DLEP_NEW_PARSER_OKAY;
   }
 
   return _process_interface_specific_update(ext, session);
@@ -239,27 +239,27 @@ dlep_extension_get_l2_neighbor(struct dlep_session *session) {
  * @param session dlep session
  * @return -1 if an error happened, 0 otherwise
  */
-int
+enum dlep_parser_error
 dlep_extension_router_process_destination(struct dlep_extension *ext, struct dlep_session *session) {
   struct oonf_layer2_neigh *l2neigh;
-  int result;
+  enum dlep_parser_error result;
 
   if (session->restrict_signal != DLEP_ALL_SIGNALS) {
     /* ignore unless we have an established session */
-    return 0;
+    return DLEP_NEW_PARSER_OKAY;
   }
 
   l2neigh = dlep_extension_get_l2_neighbor(session);
   if (!l2neigh) {
-    return 0;
+    return DLEP_NEW_PARSER_OKAY;
   }
 
   result = dlep_reader_map_l2neigh_data(l2neigh->data, session, ext);
   if (result) {
     OONF_INFO(session->log_source, "tlv mapping for extension %d failed: %d", ext->id, result);
-    return result;
+    return DLEP_NEW_PARSER_UNSUPPORTED_TLV;
   }
-  return 0;
+  return DLEP_NEW_PARSER_OKAY;
 }
 
 /**
@@ -411,7 +411,7 @@ dlep_extension_radio_write_destination(
  * @param session dlep session
  * @return -1 if an error happened, 0 otherwise
  */
-static int
+static enum dlep_parser_error
 _process_interface_specific_update(struct dlep_extension *ext, struct dlep_session *session) {
   struct oonf_layer2_net *l2net;
   int result;
@@ -419,19 +419,19 @@ _process_interface_specific_update(struct dlep_extension *ext, struct dlep_sessi
   l2net = oonf_layer2_net_add(session->l2_listener.name);
   if (!l2net) {
     OONF_INFO(session->log_source, "Could not add l2net for new interface");
-    return -1;
+    return DLEP_NEW_PARSER_INTERNAL_ERROR;
   }
 
   result = dlep_reader_map_l2neigh_data(l2net->neighdata, session, ext);
   if (result) {
     OONF_INFO(session->log_source, "tlv mapping for extension %d failed: %d", ext->id, result);
-    return result;
+    return DLEP_NEW_PARSER_UNSUPPORTED_TLV;
   }
 
   result = dlep_reader_map_l2net_data(l2net->data, session, ext);
   if (result) {
     OONF_INFO(session->log_source, "tlv mapping for extension %d failed: %d", ext->id, result);
-    return result;
+    return DLEP_NEW_PARSER_UNSUPPORTED_TLV;
   }
-  return 0;
+  return DLEP_NEW_PARSER_OKAY;
 }

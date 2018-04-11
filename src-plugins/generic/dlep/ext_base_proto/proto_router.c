@@ -63,16 +63,16 @@ static void _cb_apply_router(struct dlep_session *);
 static void _cb_cleanup_router(struct dlep_session *);
 static void _cb_create_peer_discovery(struct oonf_timer_instance *);
 
-static int _router_process_peer_offer(struct dlep_extension *, struct dlep_session *);
-static int _router_process_session_init_ack(struct dlep_extension *, struct dlep_session *);
-static int _router_process_session_update(struct dlep_extension *, struct dlep_session *);
-static int _router_process_session_update_ack(struct dlep_extension *, struct dlep_session *);
-static int _router_process_destination_up(struct dlep_extension *, struct dlep_session *);
-static int _router_process_destination_up_ack(struct dlep_extension *, struct dlep_session *);
-static int _router_process_destination_down(struct dlep_extension *, struct dlep_session *);
-static int _router_process_destination_down_ack(struct dlep_extension *, struct dlep_session *);
-static int _router_process_destination_update(struct dlep_extension *, struct dlep_session *);
-static int _router_process_link_char_ack(struct dlep_extension *, struct dlep_session *);
+static enum dlep_parser_error _router_process_peer_offer(struct dlep_extension *, struct dlep_session *);
+static enum dlep_parser_error _router_process_session_init_ack(struct dlep_extension *, struct dlep_session *);
+static enum dlep_parser_error _router_process_session_update(struct dlep_extension *, struct dlep_session *);
+static enum dlep_parser_error _router_process_session_update_ack(struct dlep_extension *, struct dlep_session *);
+static enum dlep_parser_error _router_process_destination_up(struct dlep_extension *, struct dlep_session *);
+static enum dlep_parser_error _router_process_destination_up_ack(struct dlep_extension *, struct dlep_session *);
+static enum dlep_parser_error _router_process_destination_down(struct dlep_extension *, struct dlep_session *);
+static enum dlep_parser_error _router_process_destination_down_ack(struct dlep_extension *, struct dlep_session *);
+static enum dlep_parser_error _router_process_destination_update(struct dlep_extension *, struct dlep_session *);
+static enum dlep_parser_error _router_process_link_char_ack(struct dlep_extension *, struct dlep_session *);
 
 static int _router_write_peer_discovery(struct dlep_extension *, struct dlep_session *session, const struct oonf_layer2_neigh_key *);
 static int _router_write_session_init(struct dlep_extension *, struct dlep_session *session, const struct oonf_layer2_neigh_key *);
@@ -250,7 +250,7 @@ _cb_create_peer_discovery(struct oonf_timer_instance *ptr) {
  * @param session dlep session
  * @return -1 if an error happened, 0 otherwise
  */
-static int
+static enum dlep_parser_error
 _router_process_peer_offer(struct dlep_extension *ext __attribute__((unused)), struct dlep_session *session) {
   struct dlep_router_if *router_if;
   union netaddr_socket local, remote;
@@ -264,7 +264,7 @@ _router_process_peer_offer(struct dlep_extension *ext __attribute__((unused)), s
 
   if (session->restrict_signal != DLEP_UDP_PEER_OFFER) {
     /* ignore unless we are in discovery mode */
-    return 0;
+    return DLEP_NEW_PARSER_OKAY;
   }
 
   /* optional peer type tlv */
@@ -280,7 +280,7 @@ _router_process_peer_offer(struct dlep_extension *ext __attribute__((unused)), s
   value = dlep_session_get_tlv_value(session, DLEP_IPV6_CONPOINT_TLV);
   while (value) {
     if (dlep_reader_ipv6_conpoint_tlv(&addr, &port, &tls, session, value)) {
-      return -1;
+      return DLEP_NEW_PARSER_UNSUPPORTED_TLV;
     }
 
     if (tls) {
@@ -300,7 +300,7 @@ _router_process_peer_offer(struct dlep_extension *ext __attribute__((unused)), s
   value = dlep_session_get_tlv_value(session, DLEP_IPV4_CONPOINT_TLV);
   while (value && !result) {
     if (dlep_reader_ipv4_conpoint_tlv(&addr, &port, &tls, session, value)) {
-      return -1;
+      return DLEP_NEW_PARSER_UNSUPPORTED_TLV;
     }
 
     if (tls) {
@@ -323,7 +323,7 @@ _router_process_peer_offer(struct dlep_extension *ext __attribute__((unused)), s
     if (!ip) {
       /* no possible way to communicate */
       OONF_DEBUG(session->log_source, "No matching prefix for incoming connection found");
-      return -1;
+      return DLEP_NEW_PARSER_INTERNAL_ERROR;
     }
     result = &ip->address;
     netaddr_socket_init(&remote, &addr, port, ifdata->index);
@@ -335,10 +335,10 @@ _router_process_peer_offer(struct dlep_extension *ext __attribute__((unused)), s
   router_if = dlep_router_get_by_layer2_if(ifdata->name);
   if (router_if && &router_if->interf.session == session) {
     dlep_router_add_session(router_if, &local, &remote);
-    return 0;
+    return DLEP_NEW_PARSER_OKAY;
   }
   /* ignore incoming offer, something is wrong */
-  return -1;
+  return DLEP_NEW_PARSER_INTERNAL_ERROR;
 }
 
 /**
@@ -347,7 +347,7 @@ _router_process_peer_offer(struct dlep_extension *ext __attribute__((unused)), s
  * @param session dlep session
  * @return -1 if an error happened, 0 otherwise
  */
-static int
+static enum dlep_parser_error
 _router_process_session_init_ack(struct dlep_extension *ext __attribute__((unused)), struct dlep_session *session) {
   struct oonf_layer2_net *l2net;
   struct dlep_parser_value *value;
@@ -356,13 +356,13 @@ _router_process_session_init_ack(struct dlep_extension *ext __attribute__((unuse
 
   if (session->restrict_signal != DLEP_SESSION_INITIALIZATION_ACK) {
     /* ignore unless we are in initialization mode */
-    return 0;
+    return DLEP_NEW_PARSER_OKAY;
   }
 
   /* mandatory heartbeat tlv */
   if (dlep_reader_heartbeat_tlv(&session->remote_heartbeat_interval, session, NULL)) {
     OONF_INFO(session->log_source, "no heartbeat tlv, should not happen!");
-    return -1;
+    return DLEP_NEW_PARSER_MISSING_MANDATORY_TLV;
   }
 
   /* optional extension supported tlv */
@@ -370,16 +370,16 @@ _router_process_session_init_ack(struct dlep_extension *ext __attribute__((unuse
   if (value) {
     ptr = dlep_session_get_tlv_binary(session, value);
     if (dlep_session_update_extensions(session, ptr, value->length / 2, true)) {
-      return -1;
+      return DLEP_NEW_PARSER_INTERNAL_ERROR;
     }
   }
   else if (dlep_session_update_extensions(session, NULL, 0, true)) {
-    return -1;
+    return DLEP_NEW_PARSER_INTERNAL_ERROR;
   }
 
   l2net = oonf_layer2_net_add(session->l2_listener.name);
   if (!l2net) {
-    return -1;
+    return DLEP_NEW_PARSER_OUT_OF_MEMORY;
   }
 
   /* mark interface as DLEP */
@@ -390,7 +390,7 @@ _router_process_session_init_ack(struct dlep_extension *ext __attribute__((unuse
   result = dlep_reader_map_l2neigh_data(l2net->neighdata, session, _base);
   if (result) {
     OONF_INFO(session->log_source, "tlv mapping failed for extension %u: %u", ext->id, result);
-    return result;
+    return DLEP_NEW_PARSER_INTERNAL_ERROR;
   }
 
   OONF_DEBUG(session->log_source, "Remote heartbeat interval %" PRIu64, session->remote_heartbeat_interval);
@@ -402,7 +402,7 @@ _router_process_session_init_ack(struct dlep_extension *ext __attribute__((unuse
 
   session->next_restrict_signal = DLEP_ALL_SIGNALS;
 
-  return 0;
+  return DLEP_NEW_PARSER_OKAY;
 }
 
 /**
@@ -418,17 +418,20 @@ _router_process_session_update(struct dlep_extension *ext __attribute__((unused)
 
   l2net = oonf_layer2_net_add(session->l2_listener.name);
   if (!l2net) {
-    return -1;
+    return DLEP_NEW_PARSER_OUT_OF_MEMORY;
   }
 
   result = dlep_reader_map_l2neigh_data(l2net->neighdata, session, _base);
   if (result) {
     OONF_INFO(session->log_source, "tlv mapping failed for extension %u: %u", ext->id, result);
-    return -1;
+    return DLEP_NEW_PARSER_INTERNAL_ERROR;
   }
 
   /* generate ACK */
-  return dlep_session_generate_signal_status(session, DLEP_SESSION_UPDATE_ACK, NULL, DLEP_STATUS_OKAY, "Success");
+  if (dlep_session_generate_signal_status(session, DLEP_SESSION_UPDATE_ACK, NULL, DLEP_STATUS_OKAY, "Success")) {
+    return DLEP_NEW_PARSER_INTERNAL_ERROR;
+  }
+  return DLEP_NEW_PARSER_OKAY;
 }
 
 /**
@@ -437,10 +440,10 @@ _router_process_session_update(struct dlep_extension *ext __attribute__((unused)
  * @param session dlep session
  * @return -1 if an error happened, 0 otherwise
  */
-static int
+static enum dlep_parser_error
 _router_process_session_update_ack(struct dlep_extension *ext __attribute__((unused)), struct dlep_session *session) {
   dlep_base_proto_print_status(session);
-  return 0;
+  return DLEP_NEW_PARSER_OKAY;
 }
 
 /**
@@ -449,7 +452,7 @@ _router_process_session_update_ack(struct dlep_extension *ext __attribute__((unu
  * @param session dlep session
  * @return -1 if an error happened, 0 otherwise
  */
-static int
+static enum dlep_parser_error
 _router_process_destination_up(struct dlep_extension *ext __attribute__((unused)), struct dlep_session *session) {
   struct oonf_layer2_net *l2net;
   struct oonf_layer2_neigh *l2neigh;
@@ -457,28 +460,41 @@ _router_process_destination_up(struct dlep_extension *ext __attribute__((unused)
   struct oonf_layer2_neigh_key mac_lid;
 
   if (dlep_extension_get_l2_neighbor_key(&mac_lid, session)) {
-    return -1;
+    return DLEP_NEW_PARSER_UNSUPPORTED_TLV;
   }
 
   l2net = oonf_layer2_net_add(session->l2_listener.name);
   if (!l2net) {
-    return dlep_session_generate_signal_status(
-      session, DLEP_DESTINATION_UP_ACK, &mac_lid, DLEP_STATUS_REQUEST_DENIED, "Not enough memory");
+    if (dlep_session_generate_signal_status(
+        session, DLEP_DESTINATION_UP_ACK, &mac_lid, DLEP_STATUS_REQUEST_DENIED, "Not enough memory")) {
+      return DLEP_NEW_PARSER_INTERNAL_ERROR;
+    }
+    else {
+      return DLEP_NEW_PARSER_OKAY;
+    }
   }
   l2neigh = oonf_layer2_neigh_add_lid(l2net, &mac_lid);
   if (!l2neigh) {
-    return dlep_session_generate_signal_status(
-      session, DLEP_DESTINATION_UP_ACK, &mac_lid, DLEP_STATUS_REQUEST_DENIED, "Not enough memory");
+    if (dlep_session_generate_signal_status(
+      session, DLEP_DESTINATION_UP_ACK, &mac_lid, DLEP_STATUS_REQUEST_DENIED, "Not enough memory")) {
+      return DLEP_NEW_PARSER_INTERNAL_ERROR;
+    }
+    else {
+      return DLEP_NEW_PARSER_OKAY;
+    }
   }
 
   result = dlep_reader_map_l2neigh_data(l2neigh->data, session, _base);
   if (result) {
     OONF_INFO(session->log_source, "tlv mapping failed for extension %u: %u", ext->id, result);
-    return result;
+    return DLEP_NEW_PARSER_INTERNAL_ERROR;
   }
 
   /* generate ACK */
-  return dlep_session_generate_signal_status (session, DLEP_DESTINATION_UP_ACK, &mac_lid, DLEP_STATUS_OKAY, "Success");
+  if (dlep_session_generate_signal_status (session, DLEP_DESTINATION_UP_ACK, &mac_lid, DLEP_STATUS_OKAY, "Success")) {
+    return DLEP_NEW_PARSER_INTERNAL_ERROR;
+  }
+  return DLEP_NEW_PARSER_OKAY;
 }
 
 /**
@@ -487,10 +503,10 @@ _router_process_destination_up(struct dlep_extension *ext __attribute__((unused)
  * @param session dlep session
  * @return -1 if an error happened, 0 otherwise
  */
-static int
+static enum dlep_parser_error
 _router_process_destination_up_ack(struct dlep_extension *ext __attribute__((unused)), struct dlep_session *session) {
   dlep_base_proto_print_status(session);
-  return 0;
+  return DLEP_NEW_PARSER_OKAY;
 }
 
 /**
@@ -499,31 +515,34 @@ _router_process_destination_up_ack(struct dlep_extension *ext __attribute__((unu
  * @param session dlep session
  * @return -1 if an error happened, 0 otherwise
  */
-static int
+static enum dlep_parser_error
 _router_process_destination_down(struct dlep_extension *ext __attribute__((unused)), struct dlep_session *session) {
   struct oonf_layer2_net *l2net;
   struct oonf_layer2_neigh *l2neigh;
   struct oonf_layer2_neigh_key mac_lid;
 
   if (dlep_extension_get_l2_neighbor_key(&mac_lid, session)) {
-    return -1;
+    return DLEP_NEW_PARSER_UNSUPPORTED_TLV;
   }
 
   l2net = oonf_layer2_net_get(session->l2_listener.name);
   if (!l2net) {
-    return 0;
+    return DLEP_NEW_PARSER_INTERNAL_ERROR;
   }
 
   l2neigh = oonf_layer2_neigh_get_lid(l2net, &mac_lid);
   if (!l2neigh) {
-    return 0;
+    return DLEP_NEW_PARSER_INTERNAL_ERROR;
   }
 
   /* remove layer2 neighbor */
   oonf_layer2_neigh_remove(l2neigh, session->l2_origin);
 
   /* generate ACK */
-  return dlep_session_generate_signal_status(session, DLEP_DESTINATION_DOWN_ACK, &mac_lid, DLEP_STATUS_OKAY, "Success");
+  if (dlep_session_generate_signal_status(session, DLEP_DESTINATION_DOWN_ACK, &mac_lid, DLEP_STATUS_OKAY, "Success")) {
+    return DLEP_NEW_PARSER_INTERNAL_ERROR;
+  }
+  return DLEP_NEW_PARSER_OKAY;
 }
 
 /**
@@ -532,10 +551,10 @@ _router_process_destination_down(struct dlep_extension *ext __attribute__((unuse
  * @param session dlep session
  * @return -1 if an error happened, 0 otherwise
  */
-static int
+static enum dlep_parser_error
 _router_process_destination_down_ack(struct dlep_extension *ext __attribute__((unused)), struct dlep_session *session) {
   dlep_base_proto_print_status(session);
-  return 0;
+  return DLEP_NEW_PARSER_OKAY;
 }
 
 /**
@@ -544,7 +563,7 @@ _router_process_destination_down_ack(struct dlep_extension *ext __attribute__((u
  * @param session dlep session
  * @return -1 if an error happened, 0 otherwise
  */
-static int
+static enum dlep_parser_error
 _router_process_destination_update(struct dlep_extension *ext __attribute__((unused)), struct dlep_session *session) {
   struct oonf_layer2_net *l2net;
   struct oonf_layer2_neigh *l2neigh;
@@ -552,27 +571,27 @@ _router_process_destination_update(struct dlep_extension *ext __attribute__((unu
   int result;
 
   if (dlep_extension_get_l2_neighbor_key(&mac_lid, session)) {
-    return -1;
+    return DLEP_NEW_PARSER_UNSUPPORTED_TLV;
   }
 
   l2net = oonf_layer2_net_get(session->l2_listener.name);
   if (!l2net) {
-    return 0;
+    return DLEP_NEW_PARSER_INTERNAL_ERROR;
   }
 
   l2neigh = oonf_layer2_neigh_get_lid(l2net, &mac_lid);
   if (!l2neigh) {
     /* we did not get the destination up signal */
-    return 0;
+    return DLEP_NEW_PARSER_OKAY;
   }
 
   result = dlep_reader_map_l2neigh_data(l2neigh->data, session, _base);
   if (result) {
     OONF_INFO(session->log_source, "tlv mapping failed for extension %u: %u", ext->id, result);
-    return result;
+    return DLEP_NEW_PARSER_INTERNAL_ERROR;
   }
 
-  return 0;
+  return DLEP_NEW_PARSER_OKAY;
 }
 
 /**
@@ -581,10 +600,10 @@ _router_process_destination_update(struct dlep_extension *ext __attribute__((unu
  * @param session dlep session
  * @return -1 if an error happened, 0 otherwise
  */
-static int
+static enum dlep_parser_error
 _router_process_link_char_ack(struct dlep_extension *ext __attribute__((unused)), struct dlep_session *session) {
   dlep_base_proto_print_status(session);
-  return 0;
+  return DLEP_NEW_PARSER_OKAY;
 }
 
 /**

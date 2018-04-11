@@ -53,11 +53,11 @@
 
 #include "dlep/ext_l1_statistics/l1_statistics.h"
 
-static int dlep_reader_map_array(struct oonf_layer2_data *data, const struct oonf_layer2_metadata *meta,
+static int _map_array(struct oonf_layer2_data *data, const struct oonf_layer2_metadata *meta,
   struct dlep_session *session, uint16_t dlep_tlv, enum oonf_layer2_network_index l2idx);
-static int dlep_reader_map_frequency(struct oonf_layer2_data *data, const struct oonf_layer2_metadata *meta,
+static int _map_frequency(struct oonf_layer2_data *data, const struct oonf_layer2_metadata *meta,
   struct dlep_session *session, uint16_t dlep_tlv);
-static int dlep_reader_map_bandwidth(struct oonf_layer2_data *data, const struct oonf_layer2_metadata *meta,
+static int _map_bandwidth(struct oonf_layer2_data *data, const struct oonf_layer2_metadata *meta,
   struct dlep_session *session, uint16_t dlep_tlv);
 
 static int dlep_writer_map_array(struct dlep_writer *writer, struct oonf_layer2_data *data,
@@ -185,7 +185,7 @@ static struct dlep_network_mapping _net_mappings[] = {
 
     .mandatory = true,
 
-    .from_tlv = dlep_reader_map_frequency,
+    .from_tlv = _map_frequency,
     .to_tlv = dlep_writer_map_frequency,
   },
   {
@@ -195,7 +195,7 @@ static struct dlep_network_mapping _net_mappings[] = {
 
     .mandatory = true,
 
-    .from_tlv = dlep_reader_map_bandwidth,
+    .from_tlv = _map_bandwidth,
     .to_tlv = dlep_writer_map_bandwidth,
   },
   {
@@ -275,7 +275,7 @@ dlep_l1_statistics_init(void) {
  * @return -1 if an error happened, 0 otherwise
  */
 static int
-dlep_reader_map_array(struct oonf_layer2_data *data, const struct oonf_layer2_metadata *meta __attribute__((unused)),
+_map_array(struct oonf_layer2_data *data, const struct oonf_layer2_metadata *meta __attribute__((unused)),
   struct dlep_session *session, uint16_t dlep_tlv, enum oonf_layer2_network_index l2idx) {
   struct dlep_parser_value *value;
   int64_t l2value;
@@ -332,9 +332,9 @@ dlep_reader_map_array(struct oonf_layer2_data *data, const struct oonf_layer2_me
  * @return -1 if an error happened, 0 otherwise
  */
 static int
-dlep_reader_map_frequency(struct oonf_layer2_data *data, const struct oonf_layer2_metadata *meta,
+_map_frequency(struct oonf_layer2_data *data, const struct oonf_layer2_metadata *meta,
   struct dlep_session *session, uint16_t dlep_tlv) {
-  return dlep_reader_map_array(data, meta, session, dlep_tlv, OONF_LAYER2_NET_FREQUENCY_1);
+  return _map_array(data, meta, session, dlep_tlv, OONF_LAYER2_NET_FREQUENCY_1);
 }
 
 /**
@@ -346,9 +346,9 @@ dlep_reader_map_frequency(struct oonf_layer2_data *data, const struct oonf_layer
  * @return -1 if an error happened, 0 otherwise
  */
 static int
-dlep_reader_map_bandwidth(struct oonf_layer2_data *data, const struct oonf_layer2_metadata *meta,
+_map_bandwidth(struct oonf_layer2_data *data, const struct oonf_layer2_metadata *meta,
   struct dlep_session *session, uint16_t dlep_tlv) {
-  return dlep_reader_map_array(data, meta, session, dlep_tlv, OONF_LAYER2_NET_BANDWIDTH_1);
+  return _map_array(data, meta, session, dlep_tlv, OONF_LAYER2_NET_BANDWIDTH_1);
 }
 
 /**
