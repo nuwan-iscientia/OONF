@@ -252,6 +252,9 @@ struct dlep_session_config {
 
   /*! true if proxied neighbors should be sent with DLEP */
   bool send_proxied;
+
+  /*! length of LIDs used to communicate with router */
+  uint16_t lid_length;
 };
 
 /**
@@ -282,9 +285,6 @@ struct dlep_session {
 
   /*! true if this is a radio session */
   bool radio;
-
-  /*! true if LID tagged neighbor information can be transmitted over the link */
-  bool allow_lids;
 
   /*! parser for this dlep session */
   struct dlep_session_parser parser;

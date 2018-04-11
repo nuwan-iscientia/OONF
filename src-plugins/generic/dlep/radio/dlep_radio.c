@@ -111,6 +111,9 @@ static struct cfg_schema_entry _radio_entries[] = {
   CFG_MAP_BOOL(dlep_radio_if, interf.session.cfg.send_proxied, "proxied", "true",
     "Report 802.11s proxied mac address for neighbors"),
   CFG_MAP_BOOL(dlep_radio_if, interf.session.cfg.send_neighbors, "not_proxied", "false", "Report direct neighbors"),
+
+  CFG_MAP_INT32_MINMAX(dlep_radio_if, interf.session.cfg.lid_length, "lid_length", DLEP_DEFAULT_LID_LENGTH_TXT,
+    "Link-ID length in octets that can be used to communicate with router", 0, 0, OONF_LAYER2_MAX_LINK_ID-1),
 };
 
 static struct cfg_schema_section _radio_section = {

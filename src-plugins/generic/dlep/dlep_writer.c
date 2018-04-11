@@ -214,6 +214,21 @@ dlep_writer_add_lid_tlv(struct dlep_writer *writer, const struct oonf_layer2_nei
 }
 
 /**
+ * Write a DLEP Link-ID length TLV
+ * @param writer dlep writer
+ * @param link_id_length length of link-id
+ * @return -1 if address was wrong type, 0 otherwise
+ */
+int
+dlep_writer_add_lid_length_tlv(struct dlep_writer *writer, uint16_t link_id_length) {
+  uint16_t value;
+
+  value = htons(link_id_length);
+  dlep_writer_add_tlv(writer, DLEP_LID_LENGTH_TLV, &value, sizeof(value));
+  return 0;
+}
+
+/**
  * Write a DLEP IPv4/IPv6 address/subnet TLV
  * @param writer dlep writer
  * @param ip IPv4 address

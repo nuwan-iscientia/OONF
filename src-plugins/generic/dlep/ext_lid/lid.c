@@ -55,11 +55,15 @@
 
 #include "dlep/ext_lid/lid.h"
 
-static int _write_lid_only(struct dlep_extension *ext, struct dlep_session *session, const struct oonf_layer2_neigh_key *neigh);
-static void _cb_session_init(struct dlep_session *session);
 static void _cb_session_deactivate(struct dlep_session *session);
+static int _write_lid_only(struct dlep_extension *ext, struct dlep_session *session, const struct oonf_layer2_neigh_key *neigh);
+static int _write_session_init_ack(struct dlep_extension *ext, struct dlep_session *session, const struct oonf_layer2_neigh_key *neigh);
+static enum dlep_parser_error _process_session_init_ack(struct dlep_extension *ext, struct dlep_session *session);
 
-/* UDP peer discovery */
+/* session initialization ack */
+static const uint16_t _session_initack_tlvs[] = {
+  DLEP_LID_LENGTH_TLV,
+};
 
 /* destination up */
 static const uint16_t _dst_up_tlvs[] = {
@@ -119,6 +123,13 @@ static const uint16_t _linkchar_ack_mandatory[] = {
 
 /* supported signals of this extension, parsing the LID TLV is done by dlep_extension */
 static struct dlep_extension_signal _signals[] = {
+  {
+    .id = DLEP_SESSION_INITIALIZATION_ACK,
+    .supported_tlvs = _session_initack_tlvs,
+    .supported_tlv_count = ARRAYSIZE(_session_initack_tlvs),
+    .process_radio = _process_session_init_ack,
+    .add_router_tlvs = _write_session_init_ack,
+  },
   {
     .id = DLEP_DESTINATION_UP,
     .supported_tlvs = _dst_up_tlvs,
@@ -192,8 +203,6 @@ static struct dlep_extension _lid = {
   .tlvs = _tlvs,
   .tlv_count = ARRAYSIZE(_tlvs),
 
-  .cb_session_init_radio = _cb_session_init,
-  .cb_session_init_router = _cb_session_init,
   .cb_session_deactivate_radio = _cb_session_deactivate,
   .cb_session_deactivate_router = _cb_session_deactivate,
 };
@@ -208,6 +217,11 @@ dlep_lid_init(void) {
   return &_lid;
 }
 
+static void
+_cb_session_deactivate(struct dlep_session *session) {
+  session->cfg.lid_length = 0;
+}
+
 /**
  * Write the link-id TLV into the DLEP message
  * @param ext (this) dlep extension
@@ -218,18 +232,31 @@ dlep_lid_init(void) {
 static int
 _write_lid_only(
   struct dlep_extension *ext __attribute__((unused)), struct dlep_session *session, const struct oonf_layer2_neigh_key *neigh) {
-  if (dlep_writer_add_lid_tlv(&session->writer, neigh)) {
-    return -1;
+  return dlep_writer_add_lid_tlv(&session->writer, neigh);
+}
+
+static int
+_write_session_init_ack(struct dlep_extension *ext __attribute__((unused)), struct dlep_session *session,
+                        const struct oonf_layer2_neigh_key *neigh __attribute__((unused))) {
+  if (session->cfg.lid_length == 0 || session->cfg.lid_length == DLEP_DEFAULT_LID_LENGTH) {
+    return 0;
   }
-  return 0;
+
+  return dlep_writer_add_lid_length_tlv(&session->writer, session->cfg.lid_length);
 }
 
-static void
-_cb_session_init(struct dlep_session *session) {
-  session->allow_lids = true;
-}
+static enum dlep_parser_error
+_process_session_init_ack(struct dlep_extension *ext __attribute__((unused)), struct dlep_session *session) {
+  uint16_t length;
 
-static void
-_cb_session_deactivate(struct dlep_session *session) {
-  session->allow_lids = false;
+  if (dlep_reader_lid_length_tlv(&length, session, NULL)) {
+    return DLEP_NEW_PARSER_OKAY;
+  }
+
+  if (length > OONF_LAYER2_MAX_LINK_ID) {
+    dlep_session_generate_signal_status(session, DLEP_SESSION_TERMINATION, NULL, DLEP_STATUS_REQUEST_DENIED,
+        "Cannot handle link-id length this large");
+    return DLEP_NEW_PARSER_TERMINDATED;
+  }
+  return DLEP_NEW_PARSER_OKAY;
 }

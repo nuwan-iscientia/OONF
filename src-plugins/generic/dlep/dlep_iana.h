@@ -57,13 +57,20 @@
 
 /*! TCP port for DLEP radio server port */
 #define DLEP_WELL_KNOWN_SESSION_PORT_TXT "854"
+
+/*! Default Link-ID length in Octets for configuration */
+#define DLEP_DEFAULT_LID_LENGTH_TXT "4"
+
 /**
- * Generic DLEP Constant
+ * Generic DLEP Constants
  */
 enum
 {
   /*! DLEP IANA_PORT */
   DLEP_PORT = 854, //!< DLEP_PORT
+
+  /*! used for link id extension */
+  DLEP_DEFAULT_LID_LENGTH = 4,
 };
 
 /*! magic word for DLEP session */
@@ -245,6 +252,8 @@ enum dlep_tlvs
   /*! link ID TLV */
   DLEP_LID_TLV = 21,
 
+  /*! link ID TLV */
+  DLEP_LID_LENGTH_TLV = 22,
 
   /* l1 statistics */
 

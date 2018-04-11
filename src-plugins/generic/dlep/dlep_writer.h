@@ -63,6 +63,7 @@ void dlep_writer_add_heartbeat_tlv(struct dlep_writer *writer, uint64_t interval
 void dlep_writer_add_peer_type_tlv(struct dlep_writer *writer, const char *peer_type, bool access_control);
 int dlep_writer_add_mac_tlv(struct dlep_writer *writer, const struct oonf_layer2_neigh_key *mac_lid);
 int dlep_writer_add_lid_tlv(struct dlep_writer *writer, const struct oonf_layer2_neigh_key *mac_lid);
+int dlep_writer_add_lid_length_tlv(struct dlep_writer *writer, uint16_t link_id_length);
 int dlep_writer_add_ip_tlv(struct dlep_writer *writer, const struct netaddr *ipv4, bool add);
 void dlep_writer_add_ipv4_conpoint_tlv(struct dlep_writer *writer, const struct netaddr *addr, uint16_t port, bool tls);
 void dlep_writer_add_ipv6_conpoint_tlv(struct dlep_writer *writer, const struct netaddr *addr, uint16_t port, bool tls);

@@ -458,7 +458,7 @@ dlep_session_add_local_neighbor(struct dlep_session *session, const struct oonf_
     return local;
   }
 
-  if (key->link_id_length > 0 && !session->allow_lids) {
+  if (key->link_id_length != 0 && key->link_id_length != session->cfg.lid_length) {
     /* LIDs not allowed */
     return NULL;
   }

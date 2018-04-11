@@ -58,6 +58,7 @@ int dlep_reader_peer_type(
   char *text, size_t text_length, bool *secured, struct dlep_session *session, struct dlep_parser_value *value);
 int dlep_reader_mac_tlv(struct oonf_layer2_neigh_key *lid, struct dlep_session *session, struct dlep_parser_value *value);
 int dlep_reader_lid_tlv(struct oonf_layer2_neigh_key *lid, struct dlep_session *session, struct dlep_parser_value *value);
+int dlep_reader_lid_length_tlv(uint16_t *length, struct dlep_session *session, struct dlep_parser_value *value);
 int dlep_reader_ipv4_tlv(
   struct netaddr *ipv4, bool *add, struct dlep_session *session, struct dlep_parser_value *value);
 int dlep_reader_ipv6_tlv(

@@ -168,6 +168,32 @@ dlep_reader_lid_tlv(struct oonf_layer2_neigh_key *key, struct dlep_session *sess
 }
 
 /**
+ * Parse a DLEP link-id length TLV
+ * @param length pointer to link-id length storage
+ * @param session dlep session
+ * @param value dlep value to parse, NULL for using the first
+ *   DLEP_LID_TLV value
+ * @return -1 if an error happened, 0 otherwise
+ */
+int
+dlep_reader_lid_length_tlv(uint16_t *length, struct dlep_session *session, struct dlep_parser_value *value) {
+  const uint8_t *ptr;
+  uint16_t tmp16;
+  if (!value) {
+    value = dlep_session_get_tlv_value(session, DLEP_LID_TLV);
+    if (!value) {
+      return -1;
+    }
+  }
+
+  ptr = dlep_session_get_tlv_binary(session, value);
+  memcpy(&tmp16, ptr, sizeof(tmp16));
+  *length = ntohs(tmp16);
+
+  return 0;
+}
+
+/**
  * Parse DLEP IPv4 address TLV
  * @param ipv4 pointer to address storage
  * @param add pointer to boolean for flag storage

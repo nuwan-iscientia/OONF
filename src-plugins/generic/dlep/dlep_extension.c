@@ -207,8 +207,9 @@ dlep_extension_get_l2_neighbor_key(struct oonf_layer2_neigh_key *key, struct dle
   if (dlep_reader_lid_tlv(key, session, NULL)) {
     OONF_DEBUG(session->log_source, "lid tlv not present");
   }
-  else if (!session->allow_lids) {
-    OONF_INFO(session->log_source, "LID TLV is not allowed");
+  else if (key->link_id_length != session->cfg.lid_length) {
+    OONF_INFO(session->log_source, "LID TLV (length=%u) with bad length (should be %u)",
+              key->link_id_length, session->cfg.lid_length);
     return -1;
   }
   return 0;
