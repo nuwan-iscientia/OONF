@@ -235,6 +235,13 @@ _write_lid_only(
   return dlep_writer_add_lid_tlv(&session->writer, neigh);
 }
 
+/**
+* Write link-id-length TLV if necessary
+ * @param ext (this) dlep extension
+ * @param session dlep session
+ * @param neigh layer2 neighbor key to write into TLV (NULL in this case)
+ * @return -1 if an error happened, 0 otherwise
+ */
 static int
 _write_session_init_ack(struct dlep_extension *ext __attribute__((unused)), struct dlep_session *session,
                         const struct oonf_layer2_neigh_key *neigh __attribute__((unused))) {
@@ -245,6 +252,12 @@ _write_session_init_ack(struct dlep_extension *ext __attribute__((unused)), stru
   return dlep_writer_add_lid_length_tlv(&session->writer, session->cfg.lid_length);
 }
 
+/**
+ * Handle incoming link-id-length TLV
+ * @param ext (this) dlep extension
+ * @param session dlep session
+ * @return parser return code
+ */
 static enum dlep_parser_error
 _process_session_init_ack(struct dlep_extension *ext __attribute__((unused)), struct dlep_session *session) {
   uint16_t length;
