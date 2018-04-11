@@ -383,22 +383,12 @@ _process_destination_ip_tlv(
 
 static enum dlep_parser_error
 _router_process_destination_update(struct dlep_extension *ext __attribute((unused)), struct dlep_session *session) {
-  struct oonf_layer2_net *l2net;
   struct oonf_layer2_neigh *l2neigh;
-  struct netaddr mac, ip;
+  struct netaddr ip;
   struct dlep_parser_value *value;
   bool add_ip;
 
-  if (dlep_reader_mac_tlv(&mac, session, NULL)) {
-    OONF_INFO(session->log_source, "mac tlv missing");
-    return -1;
-  }
-
-  l2net = oonf_layer2_net_get(session->l2_listener.name);
-  if (!l2net) {
-    return 0;
-  }
-  l2neigh = oonf_layer2_neigh_add(l2net, &mac);
+  l2neigh = dlep_extension_get_l2_neighbor(session);
   if (!l2neigh) {
     return 0;
   }

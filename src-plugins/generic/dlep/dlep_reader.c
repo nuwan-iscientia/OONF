@@ -121,14 +121,14 @@ dlep_reader_peer_type(
 
 /**
  * Parse a DLEP mac address TLV
- * @param mac pointer to mac address storage
+ * @param key pointer to link-id storage
  * @param session dlep session
  * @param value dlep value to parse, NULL for using the first
  *   DLEP_MAC_ADDRESS_TLV value
  * @return -1 if an error happened, 0 otherwise
  */
 int
-dlep_reader_mac_tlv(struct netaddr *mac, struct dlep_session *session, struct dlep_parser_value *value) {
+dlep_reader_mac_tlv(struct oonf_layer2_neigh_key *key, struct dlep_session *session, struct dlep_parser_value *value) {
   const uint8_t *ptr;
 
   if (!value) {
@@ -139,7 +139,7 @@ dlep_reader_mac_tlv(struct netaddr *mac, struct dlep_session *session, struct dl
   }
 
   ptr = dlep_session_get_tlv_binary(session, value);
-  return netaddr_from_binary(mac, ptr, value->length, 0);
+  return netaddr_from_binary(&key->addr, ptr, value->length, 0);
 }
 
 /**

@@ -497,6 +497,7 @@ _configure_if_data(struct l2_config_if_data *if_data) {
   struct oonf_layer2_neigh *l2neigh;
   struct oonf_layer2_net *l2net;
   struct l2_config_data *entry;
+  struct oonf_layer2_neigh_key key;
   size_t i;
 
   l2net = oonf_layer2_net_get(if_data->interf);
@@ -525,7 +526,11 @@ _configure_if_data(struct l2_config_if_data *if_data) {
           oonf_layer2_data_set(&l2net->neighdata[entry->data_idx], &_l2_origin_current, entry->data_type, &entry->data);
           break;
         case L2_NEIGH:
-          l2neigh = oonf_layer2_neigh_add(l2net, &entry->mac);
+          memset(&key, 0, sizeof(key));
+          memcpy(&key.addr, &entry->mac, sizeof(key.addr));
+          key.link_id[0] = 1;
+          key.link_id_length = 1;
+          l2neigh = oonf_layer2_neigh_add_lid(l2net, &key);
           if (l2neigh) {
             oonf_layer2_data_set(&l2neigh->data[entry->data_idx], &_l2_origin_current, entry->data_type, &entry->data);
           }

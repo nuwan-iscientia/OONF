@@ -369,11 +369,11 @@ _router_process_session_init_ack(struct dlep_extension *ext __attribute__((unuse
   value = dlep_session_get_tlv_value(session, DLEP_EXTENSIONS_SUPPORTED_TLV);
   if (value) {
     ptr = dlep_session_get_tlv_binary(session, value);
-    if (dlep_session_update_extensions(session, ptr, value->length / 2)) {
+    if (dlep_session_update_extensions(session, ptr, value->length / 2, true)) {
       return -1;
     }
   }
-  else if (dlep_session_update_extensions(session, NULL, 0)) {
+  else if (dlep_session_update_extensions(session, NULL, 0, true)) {
     return -1;
   }
 
@@ -456,11 +456,9 @@ _router_process_destination_up(struct dlep_extension *ext __attribute__((unused)
   int result;
   struct oonf_layer2_neigh_key mac_lid;
 
-  memset(&mac_lid, 0, sizeof(mac_lid));
-  if (dlep_reader_mac_tlv(&mac_lid.addr, session, NULL)) {
+  if (dlep_extension_get_l2_neighbor_key(&mac_lid, session)) {
     return -1;
   }
-  dlep_reader_lid_tlv(&mac_lid, session, NULL);
 
   l2net = oonf_layer2_net_add(session->l2_listener.name);
   if (!l2net) {
@@ -507,11 +505,9 @@ _router_process_destination_down(struct dlep_extension *ext __attribute__((unuse
   struct oonf_layer2_neigh *l2neigh;
   struct oonf_layer2_neigh_key mac_lid;
 
-  memset(&mac_lid, 0, sizeof(mac_lid));
-  if (dlep_reader_mac_tlv(&mac_lid.addr, session, NULL)) {
+  if (dlep_extension_get_l2_neighbor_key(&mac_lid, session)) {
     return -1;
   }
-  dlep_reader_lid_tlv(&mac_lid, session, NULL);
 
   l2net = oonf_layer2_net_get(session->l2_listener.name);
   if (!l2net) {
@@ -552,10 +548,10 @@ static int
 _router_process_destination_update(struct dlep_extension *ext __attribute__((unused)), struct dlep_session *session) {
   struct oonf_layer2_net *l2net;
   struct oonf_layer2_neigh *l2neigh;
-  struct netaddr mac;
+  struct oonf_layer2_neigh_key mac_lid;
   int result;
 
-  if (dlep_reader_mac_tlv(&mac, session, NULL)) {
+  if (dlep_extension_get_l2_neighbor_key(&mac_lid, session)) {
     return -1;
   }
 
@@ -564,7 +560,7 @@ _router_process_destination_update(struct dlep_extension *ext __attribute__((unu
     return 0;
   }
 
-  l2neigh = oonf_layer2_neigh_get(l2net, &mac);
+  l2neigh = oonf_layer2_neigh_get_lid(l2net, &mac_lid);
   if (!l2neigh) {
     /* we did not get the destination up signal */
     return 0;

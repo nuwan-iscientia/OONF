@@ -94,6 +94,12 @@ enum dlep_extensions
 
   /*! Additional boolean radio attributes */
   DLEP_EXTENSION_RADIO_ATTRIBUTES = 65522,
+
+  /*! DLEP Link ID */
+  DLEP_EXTENSION_LINK_ID = 65523,
+
+  /*! number of supported (non-base) DLEP extensions */
+  DLEP_EXTENSION_COUNT = 4,
 };
 
 /**

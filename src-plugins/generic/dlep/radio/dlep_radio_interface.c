@@ -66,6 +66,7 @@
 #include "dlep/ext_l1_statistics/l1_statistics.h"
 #include "dlep/ext_l2_statistics/l2_statistics.h"
 #include "dlep/ext_radio_attributes/radio_attributes.h"
+#include "dlep/ext_lid/lid.h"
 #include "dlep/radio/dlep_radio_internal.h"
 #include "dlep/radio/dlep_radio_session.h"
 
@@ -109,6 +110,7 @@ dlep_radio_interface_init(void) {
   dlep_l1_statistics_init();
   dlep_l2_statistics_init();
   dlep_radio_attributes_init();
+  dlep_lid_init();
 
   _shutting_down = false;
   return 0;

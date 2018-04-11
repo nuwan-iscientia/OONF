@@ -282,11 +282,11 @@ _radio_process_session_init(struct dlep_extension *ext __attribute__((unused)), 
   value = dlep_session_get_tlv_value(session, DLEP_EXTENSIONS_SUPPORTED_TLV);
   if (value) {
     ptr = dlep_session_get_tlv_binary(session, value);
-    if (dlep_session_update_extensions(session, ptr, value->length / 2)) {
+    if (dlep_session_update_extensions(session, ptr, value->length / 2, true)) {
       return -1;
     }
   }
-  else if (dlep_session_update_extensions(session, NULL, 0)) {
+  else if (dlep_session_update_extensions(session, NULL, 0, true)) {
     return -1;
   }
 
@@ -365,11 +365,9 @@ _radio_process_destination_up_ack(struct dlep_extension *ext __attribute__((unus
   struct dlep_local_neighbor *local;
   struct oonf_layer2_neigh_key mac_lid;
 
-  memset(&mac_lid, 0, sizeof(mac_lid));
-  if (dlep_reader_mac_tlv(&mac_lid.addr, session, NULL)) {
+  if (dlep_extension_get_l2_neighbor_key(&mac_lid, session)) {
     return -1;
   }
-  dlep_reader_lid_tlv(&mac_lid, session, NULL);
 
   if (dlep_base_proto_print_status(session) == DLEP_STATUS_OKAY) {
     local = dlep_session_get_local_neighbor(session, &mac_lid);
@@ -397,11 +395,9 @@ _radio_process_destination_down_ack(struct dlep_extension *ext __attribute__((un
   struct dlep_local_neighbor *local;
   struct oonf_layer2_neigh_key mac_lid;
 
-  memset(&mac_lid, 0, sizeof(mac_lid));
-  if (dlep_reader_mac_tlv(&mac_lid.addr, session, NULL)) {
+  if (dlep_extension_get_l2_neighbor_key(&mac_lid, session)) {
     return -1;
   }
-  dlep_reader_lid_tlv(&mac_lid, session, NULL);
 
   if (dlep_base_proto_print_status(session) == DLEP_STATUS_OKAY) {
     local = dlep_session_get_local_neighbor(session, &mac_lid);

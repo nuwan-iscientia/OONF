@@ -72,6 +72,7 @@
 #include "dlep/ext_l1_statistics/l1_statistics.h"
 #include "dlep/ext_l2_statistics/l2_statistics.h"
 #include "dlep/ext_radio_attributes/radio_attributes.h"
+#include "dlep/ext_lid/lid.h"
 #include "dlep/router/dlep_router_internal.h"
 #include "dlep/router/dlep_router_session.h"
 
@@ -123,6 +124,7 @@ dlep_router_interface_init(void) {
   dlep_l1_statistics_init();
   dlep_l2_statistics_init();
   dlep_radio_attributes_init();
+  dlep_lid_init();
 
   _shutting_down = false;
 

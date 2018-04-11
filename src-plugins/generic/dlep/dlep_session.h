@@ -151,7 +151,7 @@ struct dlep_session_parser {
   size_t value_max_count;
 
   /*! array of active dlep extensions */
-  struct dlep_extension **extensions;
+  struct dlep_extension *extensions[DLEP_EXTENSION_BASE_COUNT + DLEP_EXTENSION_COUNT];
 
   /*! number of active dlep extensions */
   size_t extension_count;
@@ -283,6 +283,9 @@ struct dlep_session {
   /*! true if this is a radio session */
   bool radio;
 
+  /*! true if LID tagged neighbor information can be transmitted over the link */
+  bool allow_lids;
+
   /*! parser for this dlep session */
   struct dlep_session_parser parser;
 
@@ -343,7 +346,7 @@ int dlep_session_add(struct dlep_session *session, const char *l2_ifname, const 
 void dlep_session_remove(struct dlep_session *session);
 void dlep_session_terminate(struct dlep_session *session, enum dlep_status status, const char *status_text);
 
-int dlep_session_update_extensions(struct dlep_session *session, const uint8_t *extvalues, size_t extcount);
+int dlep_session_update_extensions(struct dlep_session *session, const uint8_t *extvalues, size_t extcount, bool radio);
 enum oonf_stream_session_state dlep_session_process_tcp(
   struct oonf_stream_session *tcp_session, struct dlep_session *session);
 ssize_t dlep_session_process_buffer(struct dlep_session *session, const void *buffer, size_t length, bool is_udp);

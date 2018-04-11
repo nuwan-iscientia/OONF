@@ -196,6 +196,41 @@ dlep_extension_router_process_session_update(struct dlep_extension *ext, struct 
   return _process_interface_specific_update(ext, session);
 }
 
+int
+dlep_extension_get_l2_neighbor_key(struct oonf_layer2_neigh_key *key, struct dlep_session *session) {
+  memset(key, 0, sizeof(*key));
+  if (dlep_reader_mac_tlv(key, session, NULL)) {
+    OONF_INFO(session->log_source, "mac tlv missing");
+    return -1;
+  }
+
+  if (dlep_reader_lid_tlv(key, session, NULL)) {
+    OONF_DEBUG(session->log_source, "lid tlv not present");
+  }
+  else if (!session->allow_lids) {
+    OONF_INFO(session->log_source, "LID TLV is not allowed");
+    return -1;
+  }
+  return 0;
+}
+
+struct oonf_layer2_neigh *
+dlep_extension_get_l2_neighbor(struct dlep_session *session) {
+  struct oonf_layer2_net *l2net;
+
+  struct oonf_layer2_neigh_key key;
+
+  if (dlep_extension_get_l2_neighbor_key(&key, session)) {
+    return NULL;
+  }
+
+  l2net = oonf_layer2_net_get(session->l2_listener.name);
+  if (!l2net) {
+    return NULL;
+  }
+  return oonf_layer2_neigh_get_lid(l2net, &key);
+}
+
 /**
  * Handle handle destination up/update for DLEP extension
  * by automatically mapping oonf_layer2_data to DLEP TLVs
@@ -205,9 +240,7 @@ dlep_extension_router_process_session_update(struct dlep_extension *ext, struct 
  */
 int
 dlep_extension_router_process_destination(struct dlep_extension *ext, struct dlep_session *session) {
-  struct oonf_layer2_net *l2net;
   struct oonf_layer2_neigh *l2neigh;
-  struct netaddr mac;
   int result;
 
   if (session->restrict_signal != DLEP_ALL_SIGNALS) {
@@ -215,16 +248,7 @@ dlep_extension_router_process_destination(struct dlep_extension *ext, struct dle
     return 0;
   }
 
-  if (dlep_reader_mac_tlv(&mac, session, NULL)) {
-    OONF_INFO(session->log_source, "mac tlv missing");
-    return -1;
-  }
-
-  l2net = oonf_layer2_net_get(session->l2_listener.name);
-  if (!l2net) {
-    return 0;
-  }
-  l2neigh = oonf_layer2_neigh_add(l2net, &mac);
+  l2neigh = dlep_extension_get_l2_neighbor(session);
   if (!l2neigh) {
     return 0;
   }

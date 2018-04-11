@@ -1118,7 +1118,18 @@ const char *
 oonf_layer2_neigh_key_to_string(union oonf_layer2_neigh_key_str *buf,
     const struct oonf_layer2_neigh_key *key, bool show_mac) {
   static const char HEX[17] = "0123456789ABCDEF";
+  static const char NONE[] = "-";
   size_t str_idx, lid_idx;
+  uint8_t af;
+
+  if (key == NULL) {
+    return NONE;
+  }
+
+  af = netaddr_get_address_family(&key->addr);
+  if (af != AF_MAC48 && af != AF_EUI64) {
+    return NONE;
+  }
 
   if (show_mac) {
     netaddr_to_string(&buf->nbuf, &key->addr);

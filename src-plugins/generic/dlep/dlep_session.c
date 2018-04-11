@@ -124,7 +124,6 @@ dlep_session_add(struct dlep_session *session, const char *l2_ifname, const stru
   int (*if_changed)(struct os_interface_listener *), enum oonf_log_source log_source) {
   struct dlep_session_parser *parser;
   struct dlep_extension *ext;
-  int32_t i;
 
   parser = &session->parser;
 
@@ -149,17 +148,6 @@ dlep_session_add(struct dlep_session *session, const char *l2_ifname, const stru
     return -1;
   }
 
-  /* allocate memory for the pointers */
-  parser->extensions = calloc(dlep_extension_get_tree()->count, sizeof(struct dlep_extension *));
-  if (!parser->extensions) {
-    OONF_WARN(session->log_source, "Cannot allocate extension buffer for %s", l2_ifname);
-    dlep_session_remove(session);
-    return -1;
-  }
-
-  /* remember the sessions */
-  parser->extension_count = dlep_extension_get_tree()->count;
-
   parser->values = calloc(SESSION_VALUE_STEP, sizeof(struct dlep_parser_value));
   if (!parser->values) {
     OONF_WARN(session->log_source, "Cannot allocate values buffer for %s", l2_ifname);
@@ -167,11 +155,11 @@ dlep_session_add(struct dlep_session *session, const char *l2_ifname, const stru
     return -1;
   }
 
-  i = 0;
+  /* generate full list of extensions */
   avl_for_each_element(dlep_extension_get_tree(), ext, _node) {
     OONF_DEBUG(session->log_source, "Add extension %d to session", ext->id);
-    parser->extensions[i] = ext;
-    i++;
+    parser->extensions[parser->extension_count] = ext;
+    parser->extension_count++;
   }
 
   if (_update_allowed_tlvs(session)) {
@@ -212,8 +200,7 @@ dlep_session_remove(struct dlep_session *session) {
   oonf_timer_stop(&session->local_event_timer);
   oonf_timer_stop(&session->remote_heartbeat_timeout);
 
-  free(parser->extensions);
-  parser->extensions = NULL;
+  parser->extension_count = 0;
 
   free(parser->values);
   parser->values = NULL;
@@ -244,43 +231,48 @@ dlep_session_terminate(struct dlep_session *session, enum dlep_status status, co
  * @return -1 if an error happened, 0 otherwise
  */
 int
-dlep_session_update_extensions(struct dlep_session *session, const uint8_t *extvalues, size_t extcount) {
-  struct dlep_extension **ext_array, *ext;
-  size_t count, i;
+dlep_session_update_extensions(struct dlep_session *session, const uint8_t *extvalues, size_t extcount, bool radio) {
+  struct dlep_extension *ext;
+  size_t i, j;
+  bool deactivate;
   uint16_t extid;
-
   OONF_INFO(session->log_source, "Update session extension list");
 
-  /* keep entry a few entries untouched, these are the base extensions */
-  count = DLEP_EXTENSION_BASE_COUNT;
+  /* deactivate all extensions not present anymore  */
+  for (j = DLEP_EXTENSION_BASE_COUNT; j < session->parser.extension_count; j++) {
+    deactivate = true;
+
+    for (i = 0; i < extcount; i++) {
+      memcpy(&extid, &extvalues[i * 2], sizeof(extid));
+      if (ntohs(extid) == session->parser.extensions[j]->id) {
+        deactivate = false;
+        break;
+      }
+    }
+
+    if (deactivate) {
+      if (radio) {
+        session->parser.extensions[j]->cb_session_deactivate_radio(session);
+      }
+      else {
+        session->parser.extensions[j]->cb_session_deactivate_router(session);
+      }
+    }
+  }
+
+  /* generate new session extension list */
+  session->parser.extension_count = DLEP_EXTENSION_BASE_COUNT;
   for (i = 0; i < extcount; i++) {
     memcpy(&extid, &extvalues[i * 2], sizeof(extid));
 
-    if (dlep_extension_get(ntohs(extid))) {
-      count++;
+    ext = dlep_extension_get(ntohs(extid));
+    if (ext) {
       OONF_INFO(session->log_source, "Add extension: %d", ntohs(extid));
+
+      session->parser.extensions[session->parser.extension_count] = ext;
+      session->parser.extension_count++;
     }
   }
-
-  if (count != session->parser.extension_count) {
-    ext_array = realloc(session->parser.extensions, sizeof(struct dlep_extension *) * count);
-    if (!ext_array) {
-      return -1;
-    }
-
-    session->parser.extensions = ext_array;
-    session->parser.extension_count = count;
-  }
-
-  count = DLEP_EXTENSION_BASE_COUNT;
-  for (i = 0; i < extcount; i++) {
-    memcpy(&extid, &extvalues[i * 2], sizeof(extid));
-    if ((ext = dlep_extension_get(ntohs(extid)))) {
-      session->parser.extensions[count] = ext;
-      count++;
-    }
-  }
-
   return _update_allowed_tlvs(session);
 }
 
@@ -466,6 +458,10 @@ dlep_session_add_local_neighbor(struct dlep_session *session, const struct oonf_
     return local;
   }
 
+  if (key->link_id_length > 0 && !session->allow_lids) {
+    /* LIDs not allowed */
+    return NULL;
+  }
   local = oonf_class_malloc(&_local_neighbor_class);
   if (!local) {
     return NULL;
@@ -1075,13 +1071,13 @@ _call_extension_processing(struct dlep_session *session, struct dlep_extension *
     }
 
     if (session->radio) {
-      if (ext->signals[s].process_radio(ext, session)) {
+      if (ext->signals[s].process_radio && ext->signals[s].process_radio(ext, session)) {
         OONF_DEBUG(session->log_source, "Error in radio signal processing of extension '%s'", ext->name);
         return -1;
       }
     }
     else {
-      if (ext->signals[s].process_router(ext, session)) {
+      if (ext->signals[s].process_router && ext->signals[s].process_router(ext, session)) {
         OONF_DEBUG(session->log_source, "Error in router signal processing of extension '%s'", ext->name);
         return -1;
       }

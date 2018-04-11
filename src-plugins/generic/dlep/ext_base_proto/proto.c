@@ -536,16 +536,16 @@ dlep_base_proto_process_heartbeat(struct dlep_extension *ext __attribute__((unus
 }
 
 /**
- * Write the mac address (and LID) TLV into the DLEP message
+ * Write the mac address TLV into the DLEP message
  * @param ext (this) dlep extension
  * @param session dlep session
- * @param neigh mac address to write into TLV
+ * @param neigh layer2 neighbor key to write into TLV
  * @return -1 if an error happened, 0 otherwise
  */
 int
 dlep_base_proto_write_mac_only(
   struct dlep_extension *ext __attribute__((unused)), struct dlep_session *session, const struct oonf_layer2_neigh_key *neigh) {
-  if (dlep_writer_add_mac_lid_tlv(&session->writer, neigh)) {
+  if (dlep_writer_add_mac_tlv(&session->writer, neigh)) {
     return -1;
   }
   return 0;

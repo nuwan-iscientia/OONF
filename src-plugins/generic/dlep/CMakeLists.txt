@@ -13,6 +13,7 @@ SET (common_source      ext_base_metric/metric.c
                         ext_l1_statistics/l1_statistics.c
                         ext_l2_statistics/l2_statistics.c
                         ext_radio_attributes/radio_attributes.c
+                        ext_lid/lid.c
                         dlep_extension.c
                         dlep_interface.c
                         dlep_session.c
