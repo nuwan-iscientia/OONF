@@ -127,8 +127,8 @@ static struct dlep_extension_signal _signals[] = {
     .id = DLEP_SESSION_INITIALIZATION_ACK,
     .supported_tlvs = _session_initack_tlvs,
     .supported_tlv_count = ARRAYSIZE(_session_initack_tlvs),
-    .process_radio = _process_session_init_ack,
-    .add_router_tlvs = _write_session_init_ack,
+    .process_router = _process_session_init_ack,
+    .add_radio_tlvs = _write_session_init_ack,
   },
   {
     .id = DLEP_DESTINATION_UP,
@@ -191,6 +191,7 @@ static struct dlep_extension_signal _signals[] = {
 /* supported TLVs of this extension */
 static struct dlep_extension_tlv _tlvs[] = {
   { DLEP_LID_TLV, 1, OONF_LAYER2_MAX_LINK_ID },
+  { DLEP_LID_LENGTH_TLV, 2, 2 },
 };
 
 /* DLEP base extension, radio side */
@@ -263,6 +264,7 @@ _process_session_init_ack(struct dlep_extension *ext __attribute__((unused)), st
   uint16_t length;
 
   if (dlep_reader_lid_length_tlv(&length, session, NULL)) {
+    session->cfg.lid_length = DLEP_DEFAULT_LID_LENGTH;
     return DLEP_NEW_PARSER_OKAY;
   }
 
@@ -271,5 +273,7 @@ _process_session_init_ack(struct dlep_extension *ext __attribute__((unused)), st
         "Cannot handle link-id length this large");
     return DLEP_NEW_PARSER_TERMINDATED;
   }
+
+  session->cfg.lid_length = length;
   return DLEP_NEW_PARSER_OKAY;
 }

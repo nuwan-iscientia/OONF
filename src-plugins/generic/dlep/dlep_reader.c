@@ -180,7 +180,7 @@ dlep_reader_lid_length_tlv(uint16_t *length, struct dlep_session *session, struc
   const uint8_t *ptr;
   uint16_t tmp16;
   if (!value) {
-    value = dlep_session_get_tlv_value(session, DLEP_LID_TLV);
+    value = dlep_session_get_tlv_value(session, DLEP_LID_LENGTH_TLV);
     if (!value) {
       return -1;
     }

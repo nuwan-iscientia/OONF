@@ -254,7 +254,7 @@ struct dlep_session_config {
   bool send_proxied;
 
   /*! length of LIDs used to communicate with router */
-  uint16_t lid_length;
+  int32_t lid_length;
 };
 
 /**
