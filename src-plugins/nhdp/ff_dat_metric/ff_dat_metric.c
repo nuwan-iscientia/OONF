@@ -132,7 +132,10 @@ struct link_datff_data {
   /*! last received packet sequence number */
   uint16_t last_seq_nr;
 
-  /*! remember the last transmitted packet loss for hysteresis (scaled by 1000) */
+  /*!
+   * remember the last transmitted packet success for hysteresis
+   * (scaled by 1000*DATFF_FRAME_SUCCESS_RANGE)
+   */
   int64_t last_packet_success_rate;
 
   /*! last known hello interval */
@@ -166,6 +169,12 @@ static int _calculate_dynamic_loss_exponent(int link_neigborhood);
 static uint32_t _apply_packet_loss(struct ff_dat_if_config *ifconfig, struct nhdp_link *lnk,
   struct link_datff_data *ldata, uint32_t metric, uint32_t received, uint32_t total);
 
+static int _get_scaled_rx_linkspeed(struct ff_dat_if_config *ifconfig, struct nhdp_link *lnk);
+static int64_t _get_raw_rx_linkspeed(const char *ifname, struct nhdp_link *lnk);
+static int _get_median_rx_linkspeed(struct link_datff_data *ldata);
+static uint64_t _get_bitrate_metric(struct link_datff_data *ldata, const char *ifname, struct netaddr *link_id);
+static uint64_t _shape_metric(uint64_t metric, const char *ifname, struct netaddr *link_id);
+
 static void _cb_hello_lost(struct oonf_timer_instance *);
 
 static bool _shall_process_packet(struct nhdp_interface *, struct ff_dat_if_config *ifconfig);
@@ -173,6 +182,11 @@ static bool _shall_process_packet(struct nhdp_interface *, struct ff_dat_if_conf
 static enum rfc5444_result _cb_process_packet(struct rfc5444_reader_tlvblock_context *context);
 
 static void _reset_missed_hello_timer(struct link_datff_data *);
+
+#if 0
+// TODO: implement
+static enum nhdp_metric_result _get_dat_metric(struct nhdp_domain *domain, uint32_t *metric, struct oonf_layer2_neigh *neigh);
+#endif
 
 static const char *_link_to_string(struct nhdp_metric_str *buf, uint32_t metric);
 static const char *_path_to_string(struct nhdp_metric_str *buf, uint32_t metric, uint8_t hopcount);
@@ -289,6 +303,13 @@ static struct oonf_timer_class _hello_lost_info = {
   .callback = _cb_hello_lost,
 };
 
+/* layer2 originator for BC loss */
+static struct oonf_layer2_origin _ffdat_origin = {
+  .name = "ffdat bc loss",
+  .proactive = true,
+  .priority = OONF_LAYER2_ORIGIN_RELIABLE - 1,
+};
+
 /* nhdp metric handler */
 static const enum oonf_layer2_neighbor_index _required_l2neigh[] = {
   OONF_LAYER2_NEIGH_RX_BITRATE,
@@ -309,6 +330,11 @@ static struct nhdp_domain_metric _datff_handler = {
 
   .required_l2neigh_data = _required_l2neigh,
   .required_l2neigh_count = ARRAYSIZE(_required_l2neigh),
+
+#if 0
+// TODO: implement
+  .cb_get_metric = _get_dat_metric,
+#endif
 };
 
 /* Temporary buffer to sort incoming link speed for median calculation */
@@ -350,8 +376,9 @@ _init(void) {
   oonf_timer_add(&_hello_lost_info);
 
   _protocol = oonf_rfc5444_get_default_protocol();
-
   oonf_rfc5444_add_protocol_pktseqno(_protocol);
+
+  oonf_layer2_origin_add(&_ffdat_origin);
   return 0;
 }
 
@@ -381,6 +408,8 @@ _cleanup(void) {
 
   oonf_timer_remove(&_sampling_timer_info);
   oonf_timer_remove(&_hello_lost_info);
+
+  oonf_layer2_origin_remove(&_ffdat_origin);
 }
 
 /**
@@ -583,7 +612,7 @@ _get_raw_rx_linkspeed(const char *ifname, struct nhdp_link *lnk) {
   struct oonf_layer2_neigh *l2neigh;
   const struct oonf_layer2_data *rx_bitrate_entry;
 
-  rx_bitrate_entry = oonf_layer2_neigh_query(ifname, &lnk->remote_mac, OONF_LAYER2_NEIGH_RX_BITRATE);
+  rx_bitrate_entry = oonf_layer2_neigh_query(ifname, &lnk->remote_mac, OONF_LAYER2_NEIGH_RX_BITRATE, true);
   if (rx_bitrate_entry) {
     return oonf_layer2_data_get_int64(rx_bitrate_entry, 0);
   }
@@ -656,24 +685,67 @@ _get_scaled_rx_linkspeed(struct ff_dat_if_config *ifconfig, struct nhdp_link *ln
   return rx_rate;
 }
 
+static uint64_t
+_get_bitrate_metric(struct link_datff_data *ldata, const char *ifname, struct netaddr *link_id) {
+  int rx_bitrate;
+  struct netaddr_str nbuf;
+
+  /* get median scaled link speed and apply it to metric */
+  rx_bitrate = _get_median_rx_linkspeed(ldata);
+  if (rx_bitrate > DATFF_LINKSPEED_RANGE) {
+    OONF_WARN(LOG_FF_DAT, "Metric overflow for link %s (if %s): %d", netaddr_to_string(&nbuf, link_id),
+      ifname, rx_bitrate);
+    return RFC7181_METRIC_MIN;
+  }
+  return DATFF_LINKSPEED_RANGE / rx_bitrate;
+}
+
+static uint64_t
+_shape_metric(uint64_t metric, const char *ifname, struct netaddr *link_id) {
+  struct rfc7181_metric_field encoded_metric;
+  struct netaddr_str nbuf;
+
+  /* convert into something that can be transmitted over the network */
+  if (metric > RFC7181_METRIC_MAX) {
+    /* give the metric an upper bound */
+    OONF_INFO(LOG_FF_DAT, "Metric overflow for link %s (if %s): %" PRIu64, netaddr_to_string(&nbuf, link_id),
+      ifname, metric);
+    return RFC7181_METRIC_MAX;
+  }
+  else if (metric < RFC7181_METRIC_MIN) {
+    OONF_WARN(LOG_FF_DAT, "Metric underflow for link %s (if %s): %" PRIu64, netaddr_to_string(&nbuf, link_id),
+      ifname, metric);
+    return RFC7181_METRIC_MIN;
+  }
+  else if (!rfc7181_metric_encode(&encoded_metric, metric)) {
+    return rfc7181_metric_decode(&encoded_metric);
+  }
+  else {
+    /* metric encoding failed */
+    OONF_WARN(LOG_FF_DAT, "Metric encoding failed for link %s (if %s): %" PRIu64,
+      netaddr_to_string(&nbuf, link_id), ifname, metric);
+    return RFC7181_METRIC_MAX;
+  }
+}
+
 /**
  * Timer callback to sample new metric values into bucket
  * @param ptr nhdp link
  */
 static void
 _cb_dat_sampling(struct oonf_timer_instance *ptr) {
-  struct rfc7181_metric_field encoded_metric;
   struct ff_dat_if_config *ifconfig;
   struct link_datff_data *ldata;
   struct nhdp_interface *nhdp_if;
   struct nhdp_link *lnk;
   uint32_t total, received;
-  uint64_t metric;
+  uint64_t bitrate_metric, dat_metric;
   uint32_t metric_value;
   uint32_t missing_intervals;
   size_t i;
-  int rx_bitrate;
+#ifdef OONF_LOG_DEBUG_INFO
   struct netaddr_str nbuf;
+#endif
 
   ifconfig = container_of(ptr, struct ff_dat_if_config, _sampling_timer);
 
@@ -713,55 +785,22 @@ _cb_dat_sampling(struct oonf_timer_instance *ptr) {
     OONF_DEBUG(LOG_FF_DAT, "Query incoming linkspeed for link %s: %" PRIu64, netaddr_to_string(&nbuf, &lnk->if_addr),
       (uint64_t)(ldata->buckets[ldata->activePtr].scaled_speed) * DATFF_LINKSPEED_MINIMUM);
 
-    /* get median scaled link speed and apply it to metric */
-    rx_bitrate = _get_median_rx_linkspeed(ldata);
-    if (rx_bitrate > DATFF_LINKSPEED_RANGE) {
-      OONF_WARN(LOG_FF_DAT, "Metric overflow %s (%s): %d", netaddr_to_string(&nbuf, &lnk->if_addr),
-        nhdp_interface_get_name(lnk->local_if), rx_bitrate);
-      metric = 1;
-    }
-    else {
-      metric = DATFF_LINKSPEED_RANGE / rx_bitrate;
-    }
+    bitrate_metric = _get_bitrate_metric(ldata, nhdp_interface_get_name(lnk->local_if), &lnk->if_addr);
 
     /* calculate frame loss, use discrete values */
-    if (total == 0 || received == 0 || received * DATFF_FRAME_SUCCESS_RANGE <= total) {
-      metric *= DATFF_FRAME_SUCCESS_RANGE;
-    }
-    else {
-      metric = _apply_packet_loss(ifconfig, lnk, ldata, metric, received, total);
-    }
+    dat_metric = _apply_packet_loss(ifconfig, lnk, ldata, bitrate_metric, received, total);
 
-    /* convert into something that can be transmitted over the network */
-    if (metric > RFC7181_METRIC_MAX) {
-      /* give the metric an upper bound */
-      OONF_INFO(LOG_FF_DAT, "Metric overflow %s (%s): %" PRIu64, netaddr_to_string(&nbuf, &lnk->if_addr),
-        nhdp_interface_get_name(lnk->local_if), metric);
-      metric_value = RFC7181_METRIC_MAX;
-    }
-    else if (metric < RFC7181_METRIC_MIN) {
-      OONF_WARN(LOG_FF_DAT, "Metric underflow %s (%s): %" PRIu64, netaddr_to_string(&nbuf, &lnk->if_addr),
-        nhdp_interface_get_name(lnk->local_if), metric);
-      metric_value = RFC7181_METRIC_MIN;
-    }
-    else if (!rfc7181_metric_encode(&encoded_metric, metric)) {
-      metric_value = rfc7181_metric_decode(&encoded_metric);
-    }
-    else {
-      /* metric encoding failed */
-      OONF_WARN(LOG_FF_DAT, "Metric encoding failed for link %s (%s): %" PRIu64,
-        netaddr_to_string(&nbuf, &lnk->if_addr), nhdp_interface_get_name(lnk->local_if), metric);
-      metric_value = RFC7181_METRIC_MAX;
-    }
+    /* shape metric into transmittable format */
+    metric_value = _shape_metric(dat_metric, nhdp_interface_get_name(lnk->local_if), &lnk->if_addr);
 
     /* set metric for incoming link */
     nhdp_domain_set_incoming_metric(&_datff_handler, lnk, metric_value);
 
     OONF_DEBUG(LOG_FF_DAT,
       "New sampling rate for link %s (%s):"
-      " %d/%d = %u (speed=%" PRIu64 ")\n",
-      netaddr_to_string(&nbuf, &lnk->if_addr), nhdp_interface_get_name(lnk->local_if), received, total, metric_value,
-      (uint64_t)(rx_bitrate)*DATFF_LINKSPEED_MINIMUM);
+      " %d/%d = %u (bitrate_metric=%" PRIu64 ", dat_metric=%" PRIu64 ")\n",
+      netaddr_to_string(&nbuf, &lnk->if_addr), nhdp_interface_get_name(lnk->local_if),
+      received, total, metric_value, bitrate_metric, dat_metric);
 
     /* update rolling buffer */
     ldata->activePtr++;
@@ -829,18 +868,49 @@ _calculate_dynamic_loss_exponent(int link_neigborhood) {
  */
 static uint32_t
 _apply_packet_loss(struct ff_dat_if_config *ifconfig, struct nhdp_link *lnk, struct link_datff_data *ldata,
-  uint32_t metric, uint32_t received, uint32_t total) {
-  int64_t success_scaled_by_1000;
+    uint32_t metric, uint32_t received, uint32_t total) {
+  struct oonf_layer2_data *rx_bc_loss_entry;
+  int64_t success1_scaled_by_1000, success2_scaled_by_1000, success_scaled_by_1000;
   int loss_exponent;
   int64_t tmp_metric;
 
-  if (received * DATFF_FRAME_SUCCESS_RANGE < total) {
-    success_scaled_by_1000 = 1000ll;
+  /* success based on received multicast frames */
+  if (total == 0 || received * DATFF_FRAME_SUCCESS_RANGE <= total) {
+    success1_scaled_by_1000 = 0ll;
   }
   else {
-    success_scaled_by_1000 = (((int64_t)DATFF_FRAME_SUCCESS_RANGE * 1000ll) * received) / total;
+    success1_scaled_by_1000 = (((int64_t)DATFF_FRAME_SUCCESS_RANGE * 1000ll) * received) / total;
   }
 
+  /* success based on layer2 broadcast loss */
+  rx_bc_loss_entry = oonf_layer2_neigh_query(nhdp_interface_get_name(lnk->local_if),
+    &lnk->remote_mac, OONF_LAYER2_NEIGH_RX_BC_LOSS, false);
+  if (rx_bc_loss_entry && oonf_layer2_data_get_origin(rx_bc_loss_entry) != &_ffdat_origin) {
+    success2_scaled_by_1000 = 1000 - oonf_layer2_data_get_int64(rx_bc_loss_entry, 0);
+  }
+  else {
+    if (success1_scaled_by_1000 > 0) {
+      rx_bc_loss_entry = oonf_layer2_neigh_add_path(nhdp_interface_get_name(lnk->local_if),
+          &lnk->remote_mac, OONF_LAYER2_NEIGH_RX_BC_LOSS);
+      if (rx_bc_loss_entry) {
+        oonf_layer2_data_set_int64(rx_bc_loss_entry, &_ffdat_origin, 1000 - success1_scaled_by_1000);
+      }
+    }
+    success2_scaled_by_1000 = 0ll;
+  }
+
+  /* calculate mean success if necessary */
+  success_scaled_by_1000 = success1_scaled_by_1000 + success2_scaled_by_1000;
+  if (success1_scaled_by_1000 > 0 && success2_scaled_by_1000 > 0) {
+    success_scaled_by_1000 = success_scaled_by_1000 / 2;
+  }
+
+  /* make sure we have someone meaningful */
+  if (success_scaled_by_1000 == 0) {
+    return metric * DATFF_FRAME_SUCCESS_RANGE;
+  }
+
+  /* hysteresis */
   if (success_scaled_by_1000 >= ldata->last_packet_success_rate - 750 &&
       success_scaled_by_1000 <= ldata->last_packet_success_rate + 750) {
     /* keep old loss rate */
@@ -1035,6 +1105,16 @@ _reset_missed_hello_timer(struct link_datff_data *data) {
 
   data->missed_hellos = 0;
 }
+
+#if 0
+// TODO: implement !
+static enum nhdp_metric_result
+_get_dat_metric(struct nhdp_domain *domain, uint32_t *metric, struct oonf_layer2_neigh *neigh) {
+  uint32_t metric;
+
+  _get_
+}
+#endif
 
 /**
  * Convert DATFF metric into string representation
