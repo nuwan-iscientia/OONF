@@ -186,10 +186,10 @@ static struct oonf_rfc5444_protocol *_protocol;
 /* NHDP originator address, might be undefined */
 static struct netaddr _originator_v4, _originator_v6;
 
-/* logging sources for NHDP subsystem */
-static enum oonf_log_source LOG_NHDP;
-static enum oonf_log_source LOG_NHDP_R;
-static enum oonf_log_source LOG_NHDP_W;
+/* Additional logging sources, not static because used by other source files! */
+enum oonf_log_source LOG_NHDP;
+enum oonf_log_source LOG_NHDP_R;
+enum oonf_log_source LOG_NHDP_W;
 
 /**
  * Initialize additional logging sources for NHDP

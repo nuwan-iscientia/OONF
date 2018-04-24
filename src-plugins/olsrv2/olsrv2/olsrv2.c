@@ -254,11 +254,11 @@ static bool _generate_tcs = true;
 static uint64_t _overwrite_tc_interval;
 static uint64_t _overwrite_tc_validity;
 
-/* Additional logging sources */
-static enum oonf_log_source LOG_OLSRV2;
-static enum oonf_log_source LOG_OLSRV2_R;
-static enum oonf_log_source LOG_OLSRV2_ROUTING;
-static enum oonf_log_source LOG_OLSRV2_W;
+/* Additional logging sources, not static because used by other source files! */
+enum oonf_log_source LOG_OLSRV2;
+enum oonf_log_source LOG_OLSRV2_R;
+enum oonf_log_source LOG_OLSRV2_ROUTING;
+enum oonf_log_source LOG_OLSRV2_W;
 
 /**
  * Initialize additional logging sources for NHDP
