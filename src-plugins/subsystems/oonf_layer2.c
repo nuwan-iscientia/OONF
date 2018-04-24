@@ -92,7 +92,6 @@ static const struct oonf_layer2_metadata _metadata_neigh[OONF_LAYER2_NEIGH_COUNT
     .fraction = 3 },
   [OONF_LAYER2_NEIGH_TX_BITRATE] = { .key = "tx_bitrate", .type = OONF_LAYER2_INTEGER_DATA, .unit = "bit/s" },
   [OONF_LAYER2_NEIGH_RX_BITRATE] = { .key = "rx_bitrate", .type = OONF_LAYER2_INTEGER_DATA, .unit = "bit/s" },
-  [OONF_LAYER2_NEIGH_RX_BC_BITRATE] = { .key = "rx_bc_bitrate", .type = OONF_LAYER2_INTEGER_DATA, .unit = "bit/s" },
   [OONF_LAYER2_NEIGH_TX_MAX_BITRATE] = { .key = "tx_max_bitrate", .type = OONF_LAYER2_INTEGER_DATA, .unit = "bit/s" },
   [OONF_LAYER2_NEIGH_RX_MAX_BITRATE] = { .key = "rx_max_bitrate", .type = OONF_LAYER2_INTEGER_DATA, .unit = "bit/s" },
   [OONF_LAYER2_NEIGH_TX_BYTES] = { .key = "tx_bytes", .type = OONF_LAYER2_INTEGER_DATA, .unit = "byte" },
@@ -100,12 +99,19 @@ static const struct oonf_layer2_metadata _metadata_neigh[OONF_LAYER2_NEIGH_COUNT
   [OONF_LAYER2_NEIGH_TX_FRAMES] = { .key = "tx_frames", .type = OONF_LAYER2_INTEGER_DATA },
   [OONF_LAYER2_NEIGH_RX_FRAMES] = { .key = "rx_frames", .type = OONF_LAYER2_INTEGER_DATA },
   [OONF_LAYER2_NEIGH_TX_THROUGHPUT] = { .key = "tx_throughput", .type = OONF_LAYER2_INTEGER_DATA, .unit = "bit/s" },
+  [OONF_LAYER2_NEIGH_RX_THROUGHPUT] = { .key = "rx_throughput", .type = OONF_LAYER2_INTEGER_DATA, .unit = "bit/s" },
   [OONF_LAYER2_NEIGH_TX_RETRIES] = { .key = "tx_retries", .type = OONF_LAYER2_INTEGER_DATA },
+  [OONF_LAYER2_NEIGH_RX_RETRIES] = { .key = "rx_retries", .type = OONF_LAYER2_INTEGER_DATA },
   [OONF_LAYER2_NEIGH_TX_FAILED] = { .key = "tx_failed", .type = OONF_LAYER2_INTEGER_DATA },
-  [OONF_LAYER2_NEIGH_LATENCY] = { .key = "latency", .type = OONF_LAYER2_INTEGER_DATA, .unit = "s", .fraction = 6 },
-  [OONF_LAYER2_NEIGH_RESOURCES] = { .key = "resources", .type = OONF_LAYER2_INTEGER_DATA },
+  [OONF_LAYER2_NEIGH_RX_FAILED] = { .key = "rx_failed", .type = OONF_LAYER2_INTEGER_DATA },
   [OONF_LAYER2_NEIGH_TX_RLQ] = { .key = "tx_rlq", .type = OONF_LAYER2_INTEGER_DATA },
   [OONF_LAYER2_NEIGH_RX_RLQ] = { .key = "rx_rlq", .type = OONF_LAYER2_INTEGER_DATA },
+  [OONF_LAYER2_NEIGH_RX_BC_BITRATE] = { .key = "rx_bc_bitrate", .type = OONF_LAYER2_INTEGER_DATA, .unit = "bit/s" },
+  [OONF_LAYER2_NEIGH_RX_BC_LOSS] = { .key = "rx_bc_loss", .type = OONF_LAYER2_INTEGER_DATA, .fraction = 3 },
+  [OONF_LAYER2_NEIGH_LATENCY] = { .key = "latency", .type = OONF_LAYER2_INTEGER_DATA, .unit = "s", .fraction = 6 },
+  [OONF_LAYER2_NEIGH_RESOURCES] = { .key = "resources", .type = OONF_LAYER2_INTEGER_DATA },
+  [OONF_LAYER2_NEIGH_RADIO_HOPCOUNT] = { .key = "radio_hopcount", .type = OONF_LAYER2_INTEGER_DATA },
+  [OONF_LAYER2_NEIGH_IP_HOPCOUNT] = { .key = "ip_hopcount", .type = OONF_LAYER2_INTEGER_DATA },
 };
 
 /* layer2 network metadata */
@@ -122,10 +128,13 @@ static const struct oonf_layer2_metadata _metadata_net[OONF_LAYER2_NET_COUNT] = 
   [OONF_LAYER2_NET_CHANNEL_BUSY] = { .key = "ch_busy", .type = OONF_LAYER2_INTEGER_DATA, .unit = "s", .fraction = 9 },
   [OONF_LAYER2_NET_CHANNEL_RX] = { .key = "ch_rx", .type = OONF_LAYER2_INTEGER_DATA, .unit = "s", .fraction = 9 },
   [OONF_LAYER2_NET_CHANNEL_TX] = { .key = "ch_tx", .type = OONF_LAYER2_INTEGER_DATA, .unit = "s", .fraction = 9 },
+  [OONF_LAYER2_NET_TX_BC_BITRATE] = { .key = "tx_bc_bitrate", .type = OONF_LAYER2_INTEGER_DATA, .unit = "bit/s" },
   [OONF_LAYER2_NET_MTU] = { .key = "mtu", .type = OONF_LAYER2_INTEGER_DATA, .unit = "byte" },
   [OONF_LAYER2_NET_MCS_BY_PROBING] = { .key = "mcs_by_probing", .type = OONF_LAYER2_BOOLEAN_DATA },
   [OONF_LAYER2_NET_RX_ONLY_UNICAST] = { .key = "rx_only_unicast", .type = OONF_LAYER2_BOOLEAN_DATA },
   [OONF_LAYER2_NET_TX_ONLY_UNICAST] = { .key = "tx_only_unicast", .type = OONF_LAYER2_BOOLEAN_DATA },
+  [OONF_LAYER2_NET_RADIO_MULTIHOP] = { .key = "radio_multihop", .type = OONF_LAYER2_BOOLEAN_DATA },
+  [OONF_LAYER2_NET_BAND_UP_DOWN] = { .key = "band_updown", .type = OONF_LAYER2_BOOLEAN_DATA },
 };
 
 static const char *_network_type[OONF_LAYER2_TYPE_COUNT] = {
@@ -172,12 +181,20 @@ static struct oonf_class _l2neigh_addr_class = {
   .name = LAYER2_CLASS_NEIGHBOR_ADDRESS,
   .size = sizeof(struct oonf_layer2_neighbor_address),
 };
+static struct oonf_class _lid_class = {
+  .name = LAYER2_CLASS_LID,
+  .size = sizeof(struct oonf_layer2_lid),
+};
 
 static struct avl_tree _oonf_layer2_net_tree;
 
 static struct avl_tree _oonf_originator_tree;
 
 static struct avl_tree _local_peer_ips_tree;
+
+static struct avl_tree _lid_tree;
+
+static uint32_t _lid_originator_count;
 
 /**
  * Subsystem constructor
@@ -190,10 +207,14 @@ _init(void) {
   oonf_class_add(&_l2dst_class);
   oonf_class_add(&_l2net_addr_class);
   oonf_class_add(&_l2neigh_addr_class);
+  oonf_class_add(&_lid_class);
 
   avl_init(&_oonf_layer2_net_tree, avl_comp_strcasecmp, false);
   avl_init(&_oonf_originator_tree, avl_comp_strcasecmp, false);
   avl_init(&_local_peer_ips_tree, avl_comp_netaddr, true);
+  avl_init(&_lid_tree, avl_comp_netaddr, false);
+
+  _lid_originator_count = 0;
   return 0;
 }
 
@@ -203,11 +224,17 @@ _init(void) {
 static void
 _cleanup(void) {
   struct oonf_layer2_net *l2net, *l2n_it;
+  struct oonf_layer2_lid *lid, *lid_it;
 
   avl_for_each_element_safe(&_oonf_layer2_net_tree, l2net, _node, l2n_it) {
     _net_remove(l2net);
   }
+  avl_for_each_element_safe(&_lid_tree, lid, _node, lid_it) {
+    avl_remove(&_lid_tree, &lid->_node);
+    oonf_class_free(&_lid_class, lid);
+  }
 
+  oonf_class_remove(&_lid_class);
   oonf_class_remove(&_l2neigh_addr_class);
   oonf_class_remove(&_l2net_addr_class);
   oonf_class_remove(&_l2dst_class);
@@ -223,6 +250,11 @@ void
 oonf_layer2_origin_add(struct oonf_layer2_origin *origin) {
   origin->_node.key = origin->name;
   avl_insert(&_oonf_originator_tree, &origin->_node);
+
+  if (origin->lid) {
+    origin->lid_index = _lid_originator_count;
+    _lid_originator_count++;
+  }
 }
 
 /**
@@ -684,6 +716,57 @@ oonf_layer2_net_get_best_neighbor_match(const struct netaddr *addr) {
 }
 
 /**
+ * Generate a layer2 key based on an originator and a MAC. Enumerate
+ * new keys without explicitly storing them.
+ * @param key destination buffer for key
+ * @param origin originator for link-id creation
+ * @param mac mac address part of key
+ * @return -1 if an error happened, 0 otherwise
+ */
+int
+oonf_layer2_neigh_generate_lid(struct oonf_layer2_neigh_key *key,
+    struct oonf_layer2_origin *origin, const struct netaddr *mac) {
+  struct oonf_layer2_lid *lid;
+  uint32_t u32;
+
+  if (!origin->lid) {
+    return -1;
+  }
+
+  if (netaddr_get_address_family(mac) != AF_MAC48 && netaddr_get_address_family(mac) != AF_EUI64) {
+    return -1;
+  }
+
+  if (!(lid = avl_find_element(&_lid_tree, mac, lid, _node))) {
+    lid = oonf_class_malloc(&_lid_class);
+    if (!lid) {
+      return -1;
+    }
+
+    memcpy(&lid->mac, mac, sizeof(*mac));
+    lid->_node.key = &lid->mac;
+    avl_insert(&_lid_tree, &lid->_node);
+    lid->next_id = 1;
+  }
+
+  /* copy mac */
+  memcpy(&key->addr, mac, sizeof(*mac));
+
+  /* TODO: make LID length configurable */
+
+  /* generate new link-id */
+  u32 = htonl(lid->next_id);
+  memcpy(&key->link_id[0], &u32, 4);
+  key->link_id_length = 4;
+
+  /* keep track which originator orderer this LID */
+  key->link_id[0] = origin->lid_index & 0xff;
+
+  lid->next_id++;
+  return 0;
+}
+
+/**
  * Add a layer-2 neighbor to a addr.
  * @param l2net layer-2 addr object
  * @param key unique key for neighbor
@@ -855,28 +938,32 @@ oonf_layer2_neigh_add_ip(
   struct oonf_layer2_neighbor_address *l2addr;
 
   l2addr = oonf_layer2_neigh_get_remote_ip(l2neigh, ip);
-  if (!l2addr) {
-    l2addr = oonf_class_malloc(&_l2neigh_addr_class);
-    if (!l2addr) {
-      return NULL;
-    }
-
-    /* copy data */
-    memcpy(&l2addr->ip, ip, sizeof(*ip));
-
-    /* set back reference */
-    l2addr->l2neigh = l2neigh;
-
-    /* add to tree */
-    l2addr->_neigh_node.key = &l2addr->ip;
-    avl_insert(&l2neigh->remote_neighbor_ips, &l2addr->_neigh_node);
-    l2addr->_net_node.key = &l2addr->ip;
-    avl_insert(&l2neigh->network->remote_neighbor_ips, &l2addr->_net_node);
-
-    oonf_class_event(&_l2neigh_addr_class, l2addr, OONF_OBJECT_ADDED);
+  if (l2addr) {
+    l2addr->origin = origin;
+    return l2addr;
   }
 
+  l2addr = oonf_class_malloc(&_l2neigh_addr_class);
+  if (!l2addr) {
+    return NULL;
+  }
+
+  /* copy data */
+  memcpy(&l2addr->ip, ip, sizeof(*ip));
+
+  /* set back reference */
+  l2addr->l2neigh = l2neigh;
+
+  /* add to tree */
+  l2addr->_neigh_node.key = &l2addr->ip;
+  avl_insert(&l2neigh->remote_neighbor_ips, &l2addr->_neigh_node);
+  l2addr->_net_node.key = &l2addr->ip;
+  avl_insert(&l2neigh->network->remote_neighbor_ips, &l2addr->_net_node);
+
+  /* remember originator */
   l2addr->origin = origin;
+
+  oonf_class_event(&_l2neigh_addr_class, l2addr, OONF_OBJECT_ADDED);
   return l2addr;
 }
 
@@ -958,10 +1045,12 @@ oonf_layer2_destination_remove(struct oonf_layer2_destination *l2dst) {
  * @param ifname name of interface
  * @param l2neigh_addr neighbor mac address
  * @param idx data index
+ * @param get_default true to return default (net) data if no neighbor data available
  * @return pointer to linklayer data, NULL if no value available
  */
-const struct oonf_layer2_data *
-oonf_layer2_neigh_query(const char *ifname, const struct netaddr *l2neigh_addr, enum oonf_layer2_neighbor_index idx) {
+struct oonf_layer2_data *
+oonf_layer2_neigh_query(const char *ifname, const struct netaddr *l2neigh_addr,
+      enum oonf_layer2_neighbor_index idx, bool get_default) {
   struct oonf_layer2_net *l2net;
   struct oonf_layer2_neigh *l2neigh;
   struct oonf_layer2_data *data;
@@ -981,6 +1070,10 @@ oonf_layer2_neigh_query(const char *ifname, const struct netaddr *l2neigh_addr, 
     }
   }
 
+  if (!get_default) {
+    return NULL;
+  }
+
   /* look for network specific default */
   data = &l2net->neighdata[idx];
   if (oonf_layer2_data_has_value(data)) {
@@ -990,14 +1083,41 @@ oonf_layer2_neigh_query(const char *ifname, const struct netaddr *l2neigh_addr, 
 }
 
 /**
+ * Get neighbor specific data, add interface and neighbor if necessary
+ * @param ifname name of interface
+ * @param l2neigh_addr neighbor mac address
+ * @param idx data index
+ * @return pointer to linklayer data, NULL if no value available
+ */
+struct oonf_layer2_data *
+oonf_layer2_neigh_add_path(const char *ifname, const struct netaddr *l2neigh_addr, enum oonf_layer2_neighbor_index idx) {
+    struct oonf_layer2_net *l2net;
+  struct oonf_layer2_neigh *l2neigh;
+
+  /* query layer2 database about neighbor */
+  l2net = oonf_layer2_net_add(ifname);
+  if (l2net == NULL) {
+    return NULL;
+  }
+
+  /* look for neighbor specific data */
+  l2neigh = oonf_layer2_neigh_add(l2net, l2neigh_addr);
+  if (l2neigh == NULL) {
+    return NULL;
+  }
+
+  return &l2neigh->data[idx];
+}
+
+/**
  * Get neighbor specific data, either from neighbor or from the networks default
  * @param l2neigh pointer to layer2 neighbor
  * @param idx data index
  * @return pointer to linklayer data, NULL if no value available
  */
-const struct oonf_layer2_data *
-oonf_layer2_neigh_get_data(const struct oonf_layer2_neigh *l2neigh, enum oonf_layer2_neighbor_index idx) {
-  const struct oonf_layer2_data *data;
+struct oonf_layer2_data *
+oonf_layer2_neigh_get_data(struct oonf_layer2_neigh *l2neigh, enum oonf_layer2_neighbor_index idx) {
+  struct oonf_layer2_data *data;
 
   data = &l2neigh->data[idx];
   if (oonf_layer2_data_has_value(data)) {

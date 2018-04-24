@@ -69,6 +69,9 @@
 /*! memory class for layer2 neighbor address */
 #define LAYER2_CLASS_NEIGHBOR_ADDRESS "layer2_neighbor_address"
 
+/*! memory class for layer2 tracking of next link-id per neighbor */
+#define LAYER2_CLASS_LID "layer2_lid"
+
 enum {
   /*! maximum length of link id for layer2 neighbors */
   OONF_LAYER2_MAX_LINK_ID = 16,
@@ -170,6 +173,12 @@ struct oonf_layer2_origin {
   /*! priority of this originator */
   enum oonf_layer2_origin_priority priority;
 
+  /*! true if this originator creates l2neighbor LID entries */
+  bool lid;
+
+  /* index number of the originator for LID creation */
+  uint32_t lid_index;
+
   /*! node for tree of originators */
   struct avl_node _node;
 };
@@ -270,7 +279,10 @@ enum oonf_layer2_network_index
   /*! total time in ns the channel was transmitting */
   OONF_LAYER2_NET_CHANNEL_TX,
 
-  /*! maixmum size of an IP packet for this interface */
+  /*! outgoing broadcast bitrate in bit/s */
+  OONF_LAYER2_NET_TX_BC_BITRATE,
+
+  /*! maixmum size of an ethernet/IP packet the router is allowed to send */
   OONF_LAYER2_NET_MTU,
 
   /*! true if unicast traffic is necessary for ratecontrol */
@@ -281,6 +293,15 @@ enum oonf_layer2_network_index
 
   /*! true if interface does not support incoming broadcast/multicast */
   OONF_LAYER2_NET_TX_ONLY_UNICAST,
+
+  /*! true if radio provides multihop forwarding transparently */
+  OONF_LAYER2_NET_RADIO_MULTIHOP,
+
+  /*!
+   * true if first frequency is uplink, second is downlink.
+   * false if reported frequencies can be used for both reception/transmission
+   */
+  OONF_LAYER2_NET_BAND_UP_DOWN,
 
   /*! number of layer2 network metrics */
   OONF_LAYER2_NET_COUNT,
@@ -316,9 +337,6 @@ enum oonf_layer2_neighbor_index
   /*! incoming bitrate in bit/s */
   OONF_LAYER2_NEIGH_RX_BITRATE,
 
-  /*! incoming broadcast bitrate in bit/s */
-  OONF_LAYER2_NEIGH_RX_BC_BITRATE,
-
   /*! maximum possible outgoing bitrate in bit/s */
   OONF_LAYER2_NEIGH_TX_MAX_BITRATE,
 
@@ -338,13 +356,34 @@ enum oonf_layer2_neighbor_index
   OONF_LAYER2_NEIGH_RX_FRAMES,
 
   /*! average outgoing throughput in bit/s */
+  OONF_LAYER2_NEIGH_RX_THROUGHPUT,
+
+  /*! average incoming throughput in bit/s */
   OONF_LAYER2_NEIGH_TX_THROUGHPUT,
+
+  /*! total number of frame retransmission of other radio*/
+  OONF_LAYER2_NEIGH_RX_RETRIES,
 
   /*! total number of frame retransmission */
   OONF_LAYER2_NEIGH_TX_RETRIES,
 
+  /*! total number of failed frame receptions */
+  OONF_LAYER2_NEIGH_RX_FAILED,
+
   /*! total number of failed frame transmissions */
   OONF_LAYER2_NEIGH_TX_FAILED,
+
+  /*! relative transmission link quality (0-100) */
+  OONF_LAYER2_NEIGH_TX_RLQ,
+
+  /*! relative receiver link quality (0-100) */
+  OONF_LAYER2_NEIGH_RX_RLQ,
+
+  /*! incoming broadcast bitrate in bit/s */
+  OONF_LAYER2_NEIGH_RX_BC_BITRATE,
+
+  /*! incoming broadcast loss in 1/1000 */
+  OONF_LAYER2_NEIGH_RX_BC_LOSS,
 
   /*! latency to neighbor in microseconds */
   OONF_LAYER2_NEIGH_LATENCY,
@@ -352,11 +391,14 @@ enum oonf_layer2_neighbor_index
   /*! available resources of radio (0-100) */
   OONF_LAYER2_NEIGH_RESOURCES,
 
-  /*! relative transmission link quality (0-100) */
-  OONF_LAYER2_NEIGH_TX_RLQ,
+  /*! number of radio hops to neighbor, only available for multihop capable radios */
+  OONF_LAYER2_NEIGH_RADIO_HOPCOUNT,
 
-  /*! relative receiver link quality (0-100) */
-  OONF_LAYER2_NEIGH_RX_RLQ,
+  /*!
+   *IP hopcount (including ethernet between radio and router) to neighbor router,
+   * only available for multihop capable radios
+   */
+  OONF_LAYER2_NEIGH_IP_HOPCOUNT,
 
   /*! number of neighbor metrics */
   OONF_LAYER2_NEIGH_COUNT,
@@ -508,6 +550,14 @@ struct oonf_layer2_destination {
   struct avl_node _node;
 };
 
+struct oonf_layer2_lid {
+  struct netaddr mac;
+
+  uint32_t next_id;
+
+  struct avl_node _node;
+};
+
 EXPORT void oonf_layer2_origin_add(struct oonf_layer2_origin *origin);
 EXPORT void oonf_layer2_origin_remove(struct oonf_layer2_origin *origin);
 
@@ -536,6 +586,7 @@ EXPORT int oonf_layer2_net_remove_ip(struct oonf_layer2_peer_address *ip, const 
 EXPORT struct oonf_layer2_neighbor_address *oonf_layer2_net_get_best_neighbor_match(const struct netaddr *addr);
 EXPORT struct avl_tree *oonf_layer2_net_get_remote_ip_tree(void);
 
+EXPORT int oonf_layer2_neigh_generate_lid(struct oonf_layer2_neigh_key *, struct oonf_layer2_origin *origin, const struct netaddr *mac);
 EXPORT struct oonf_layer2_neigh *oonf_layer2_neigh_add_lid(struct oonf_layer2_net *, const struct oonf_layer2_neigh_key *key);
 EXPORT bool oonf_layer2_neigh_cleanup(struct oonf_layer2_neigh *l2neigh, const struct oonf_layer2_origin *origin);
 EXPORT bool oonf_layer2_neigh_remove(struct oonf_layer2_neigh *l2neigh, const struct oonf_layer2_origin *origin);
@@ -551,10 +602,12 @@ EXPORT struct oonf_layer2_destination *oonf_layer2_destination_add(
   struct oonf_layer2_neigh *l2neigh, const struct netaddr *destination, const struct oonf_layer2_origin *origin);
 EXPORT void oonf_layer2_destination_remove(struct oonf_layer2_destination *);
 
-EXPORT const struct oonf_layer2_data *oonf_layer2_neigh_query(
-  const char *ifname, const struct netaddr *l2neigh, enum oonf_layer2_neighbor_index idx);
-EXPORT const struct oonf_layer2_data *oonf_layer2_neigh_get_data(
-  const struct oonf_layer2_neigh *l2neigh, enum oonf_layer2_neighbor_index idx);
+EXPORT struct oonf_layer2_data *oonf_layer2_neigh_query(
+  const char *ifname, const struct netaddr *l2neigh, enum oonf_layer2_neighbor_index idx, bool get_default);
+EXPORT struct oonf_layer2_data *oonf_layer2_neigh_add_path(
+  const char *ifname, const struct netaddr *l2neigh_addr, enum oonf_layer2_neighbor_index idx);
+EXPORT struct oonf_layer2_data *oonf_layer2_neigh_get_data(
+  struct oonf_layer2_neigh *l2neigh, enum oonf_layer2_neighbor_index idx);
 
 EXPORT const struct oonf_layer2_metadata *oonf_layer2_neigh_metadata_get(enum oonf_layer2_neighbor_index);
 EXPORT const struct oonf_layer2_metadata *oonf_layer2_net_metadata_get(enum oonf_layer2_network_index);
