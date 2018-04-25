@@ -38,25 +38,10 @@ set(TEST test_rfc5444_interop2010_01.c
          test_rfc5444_interop2010_36.c
          
          test_rfc5444_interop2010_38.c
+
+         test_rfc5444_interop2010.c
          )
+set (LIBS oonf_common oonf_config)
 
-# create executable
-ADD_EXECUTABLE(test_rfc5444_interop2010 ${TEST}
-                                        test_rfc5444_interop2010.c 
-                                        $<TARGET_OBJECTS:oonf_static_rfc5444_api>)
-
-TARGET_LINK_LIBRARIES(test_rfc5444_interop2010 oonf_common)
-TARGET_LINK_LIBRARIES(test_rfc5444_interop2010 static_cunit)
-
-# link regex for windows and android
-IF (WIN32 OR ANDROID)
-    TARGET_LINK_LIBRARIES(test_rfc5444_interop2010 oonf_regex)
-ENDIF(WIN32 OR ANDROID)
-
-# link extra win32 libs
-IF(WIN32)
-    SET_TARGET_PROPERTIES(test_rfc5444_interop2010 PROPERTIES ENABLE_EXPORTS true)
-    TARGET_LINK_LIBRARIES(test_rfc5444_interop2010 ws2_32 iphlpapi)
-ENDIF(WIN32)
-
-ADD_TEST(NAME test_rfc5444_interop2010 COMMAND test_rfc5444_interop2010)
+include_directories(${CMAKE_SOURCE_DIR}/src-plugins/subsystems)
+oonf_create_test("test_rfc5444_interop2010" "${TEST}" "${LIBS}" "$<TARGET_OBJECTS:oonf_static_rfc5444_api>")
