@@ -99,6 +99,7 @@ endif (NOT OONF_NO_TESTING)
 # define static and dynamic target
 add_custom_target(static)
 add_custom_target(dynamic)
+add_custom_target(build_tests)
 
 # start compiling core and plugins
 add_subdirectory(src-api)

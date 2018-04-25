@@ -3,7 +3,6 @@ include_directories(.)
 
 function (oonf_create_test executable source libraries objects)
     # create executable
-    message ("Test ${executable}: source=${source} libs=${libraries}")
     ADD_EXECUTABLE(${executable} ${source} ${objects})
 
     add_dependencies(build_tests ${executable})
