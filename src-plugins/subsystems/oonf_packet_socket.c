@@ -340,6 +340,7 @@ oonf_packet_apply_managed(struct oonf_packet_managed *managed, const struct oonf
 int
 oonf_packet_send_managed(
   struct oonf_packet_managed *managed, union netaddr_socket *remote, const void *data, size_t length) {
+  int result;
 #ifdef OONF_LOG_DEBUG_INFO
   struct netaddr_str buf;
 #endif
@@ -348,19 +349,34 @@ oonf_packet_send_managed(
     return 0;
   }
 
+  result = 1;
+  errno = 0;
   if (list_is_node_added(&managed->socket_v4.scheduler_entry._node) &&
       netaddr_socket_get_addressfamily(remote) == AF_INET) {
-    return oonf_packet_send(&managed->socket_v4, remote, data, length);
+    result = oonf_packet_send(&managed->socket_v4, remote, data, length);
   }
   if (list_is_node_added(&managed->socket_v6.scheduler_entry._node) &&
       netaddr_socket_get_addressfamily(remote) == AF_INET6) {
-    return oonf_packet_send(&managed->socket_v6, remote, data, length);
+    result = oonf_packet_send(&managed->socket_v6, remote, data, length);
   }
-  errno = 0;
-  OONF_DEBUG(LOG_PACKET, "Managed socket did not sent packet to %s because socket was not active",
-    netaddr_socket_to_string(&buf, remote));
+  else {
+    OONF_DEBUG(LOG_PACKET, "Managed socket did not sent packet to %s because socket was not active",
+      netaddr_socket_to_string(&buf, remote));
+  }
 
-  return 0;
+  if (errno == EBADF) {
+    /* file descriptor is not working anymore */
+    if (netaddr_socket_get_addressfamily(remote) == AF_INET) {
+      oonf_packet_remove(&managed->socket_v4, true);
+    }
+    else {
+      oonf_packet_remove(&managed->socket_v6, true);
+    }
+
+    /* try to re-open */
+    _apply_managed(managed);
+  }
+  return result;
 }
 
 /**
