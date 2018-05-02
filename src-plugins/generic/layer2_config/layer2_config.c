@@ -528,8 +528,6 @@ _configure_if_data(struct l2_config_if_data *if_data) {
         case L2_NEIGH:
           memset(&key, 0, sizeof(key));
           memcpy(&key.addr, &entry->mac, sizeof(key.addr));
-          key.link_id[0] = 1;
-          key.link_id_length = 1;
           l2neigh = oonf_layer2_neigh_add_lid(l2net, &key);
           if (l2neigh) {
             oonf_layer2_data_set(&l2neigh->data[entry->data_idx], &_l2_origin_current, entry->data_type, &entry->data);
