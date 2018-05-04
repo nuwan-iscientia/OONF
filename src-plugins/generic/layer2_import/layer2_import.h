@@ -43,10 +43,16 @@
  * @file
  */
 
-#ifndef LAN_IMPORT_H_
-#define LAN_IMPORT_H_
+#ifndef LAYER2_IMPORT_H_
+#define LAYER2_IMPORT_H_
 
 /*! subsystem identifier */
-#define OONF_LAN_IMPORT_SUBSYSTEM "lan_import"
+#define OONF_LAYER2_IMPORT_SUBSYSTEM "layer2_import"
 
-#endif /* LAN_IMPORT_H_ */
+#define OONF_LAN_IMPORT_SECTION "lan_import"
+
+/*! prefix for the names of the layer2 origins */
+#define LAN_ORIGIN_PREFIX "lan-"
+#define L2IMPORT_ORIGIN_PREFIX "l2i-"
+
+#endif /* LAYER2_IMPORT_H_ */

@@ -232,12 +232,12 @@ netaddr_socket_invalidate(union netaddr_socket *sock) {
 }
 
 /**
- * @param addr netaddr object
+ * @param addr netaddr object (might be NULL)
  * @return true if address is AF_UNSPEC, false otherwise
  */
 static INLINE bool
 netaddr_is_unspec(const struct netaddr *addr) {
-  return addr->_type == AF_UNSPEC;
+  return addr == NULL || addr->_type == AF_UNSPEC;
 }
 
 /**

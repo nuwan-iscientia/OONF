@@ -40,10 +40,12 @@ IF (NOT OONF_STATIC_PLUGINS)
                              os_fd
                              os_interface
                              os_system
+                             os_routing
                              cfg_compact
                              layer2info
                              systeminfo
                              dlep_router
+                             layer2_export
                              )
 ENDIF (NOT OONF_STATIC_PLUGINS)
 

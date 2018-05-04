@@ -205,7 +205,7 @@ _cb_session_init(struct dlep_session *session) {
   }
 
   avl_for_each_element(&l2net->local_peer_ips, l2net_ip, _net_node) {
-    _add_prefix(&session->_ip_prefix_modification, &l2net_ip->ip, true);
+    _add_prefix(&session->_ext_ip.prefix_modification, &l2net_ip->ip, true);
   }
 
   avl_for_each_element(&l2net->neighbors, l2neigh, _node) {
@@ -232,20 +232,42 @@ _cb_session_cleanup(struct dlep_session *session) {
   }
 
   /* remove all stored changes for the local peer */
-  avl_for_each_element_safe(&session->_ip_prefix_modification, storage, _node, storage_it) {
-    avl_remove(&session->_ip_prefix_modification, &storage->_node);
+  avl_for_each_element_safe(&session->_ext_ip.prefix_modification, storage, _node, storage_it) {
+    avl_remove(&session->_ext_ip.prefix_modification, &storage->_node);
     oonf_class_free(&_prefix_class, storage);
   }
+}
+
+static void
+_handle_if_ip(struct dlep_session *session, struct netaddr *last_session_if_ip,
+    const struct netaddr *first_if_ip, const struct netaddr *second_if_ip) {
+  const struct netaddr *if_ip;
+
+  if_ip = netaddr_is_unspec(first_if_ip) ? second_if_ip : first_if_ip;
+
+  if (netaddr_cmp(last_session_if_ip, if_ip) == 0) {
+    return;
+  }
+
+  if (!netaddr_is_unspec(last_session_if_ip)) {
+    dlep_writer_add_ip_tlv(&session->writer, last_session_if_ip, false);
+  }
+  if (!netaddr_is_unspec(if_ip)) {
+    dlep_writer_add_ip_tlv(&session->writer, if_ip, true);
+  }
+  memcpy(last_session_if_ip, if_ip, sizeof(*if_ip));
 }
 
 static int
 _radio_write_session_update(struct dlep_extension *ext __attribute__((unused)), struct dlep_session *session,
   const struct oonf_layer2_neigh_key *neigh __attribute__((unused))) {
   struct _prefix_storage *storage, *storage_it;
-
+  struct dlep_radio_session *radio_session;
+  struct os_interface *os_if;
   struct netaddr_str nbuf;
 
-  avl_for_each_element(&session->_ip_prefix_modification, storage, _node) {
+  /* transmit modified IP network prefixes */
+  avl_for_each_element(&session->_ext_ip.prefix_modification, storage, _node) {
     OONF_INFO(session->log_source, "Add '%s' (%s) to session update", netaddr_to_string(&nbuf, &storage->prefix),
       storage->add ? "add" : "remove");
     if (dlep_writer_add_ip_tlv(&session->writer, &storage->prefix, storage->add)) {
@@ -255,9 +277,17 @@ _radio_write_session_update(struct dlep_extension *ext __attribute__((unused)), 
     }
   }
 
+  /* also transmit IP interface addresses */
+  radio_session = dlep_radio_get_session(session);
+  if (radio_session) {
+    os_if = radio_session->interface->interf.udp._if_listener.data;
+    _handle_if_ip(session, &session->_ext_ip.if_ip_v4, os_if->if_linklocal_v4, os_if->if_v4);
+    _handle_if_ip(session, &session->_ext_ip.if_ip_v6, os_if->if_linklocal_v6, os_if->if_v6);
+  }
+
   /* no error, now remove elements from temporary storage */
-  avl_for_each_element_safe(&session->_ip_prefix_modification, storage, _node, storage_it) {
-    avl_remove(&session->_ip_prefix_modification, &storage->_node);
+  avl_for_each_element_safe(&session->_ext_ip.prefix_modification, storage, _node, storage_it) {
+    avl_remove(&session->_ext_ip.prefix_modification, &storage->_node);
     oonf_class_free(&_prefix_class, storage);
   }
   return 0;
@@ -372,8 +402,20 @@ static void
 _process_destination_ip_tlv(
   const struct oonf_layer2_origin *origin, struct oonf_layer2_neigh *l2neigh, struct netaddr *ip, bool add) {
   struct oonf_layer2_neighbor_address *l2addr;
+  struct oonf_layer2_peer_address *peer_ip;
+  int af;
 
+  af = netaddr_get_address_family(ip);
   if (add) {
+    if (!oonf_layer2_neigh_has_nexthop(l2neigh, af)) {
+      avl_for_each_element(&l2neigh->network->local_peer_ips, peer_ip, _net_node) {
+        if (netaddr_get_address_family(&peer_ip->ip) == af
+            && netaddr_get_prefix_length(&peer_ip->ip) == netaddr_get_af_maxprefix(af)) {
+          oonf_layer2_neigh_set_nexthop(l2neigh, &peer_ip->ip);
+          break;
+        }
+      }
+    }
     oonf_layer2_neigh_add_ip(l2neigh, origin, ip);
   }
   else if ((l2addr = oonf_layer2_neigh_get_remote_ip(l2neigh, ip))) {
@@ -466,7 +508,7 @@ _modify_if_ip(const char *if_name, struct netaddr *prefix, bool add) {
   avl_for_each_element(dlep_if_get_tree(true), interf, interf._node) {
     if (strcmp(interf->interf.l2_ifname, if_name) == 0) {
       avl_for_each_element(&interf->interf.session_tree, radio_session, _node) {
-        _add_prefix(&radio_session->session._ip_prefix_modification, prefix, add);
+        _add_prefix(&radio_session->session._ext_ip.prefix_modification, prefix, add);
       }
     }
   }

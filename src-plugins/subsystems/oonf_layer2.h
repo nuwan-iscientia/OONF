@@ -487,6 +487,13 @@ union oonf_layer2_neigh_key_str {
   char buf[sizeof(struct netaddr_str) + 5 + 16*2];
 };
 
+enum oonf_layer2_neigh_mods {
+  OONF_LAYER2_NEIGH_MODIFY_NONE       = 0,
+  OONF_LAYER2_NEIGH_MODIFY_NEXTHOP_V4 = 1<<0,
+  OONF_LAYER2_NEIGH_MODIFY_NEXTHOP_V6 = 1<<1,
+  OONF_LAYER2_NEIGH_MODIFY_LASTSEEN   = 1<<2,
+};
+
 /**
  * representation of a remote layer2 neighbor
  */
@@ -497,6 +504,15 @@ struct oonf_layer2_neigh {
   /*! back pointer to layer2 network */
   struct oonf_layer2_net *network;
 
+  /*! fields modified since last commit */
+  enum oonf_layer2_neigh_mods modified;
+
+  /* (linklocal) ip address to read neighbor with IPv4 */
+  struct netaddr _next_hop_v4;
+
+  /* (linklocal) ip address to read neighbor with IPv6 */
+  struct netaddr _next_hop_v6;
+
   /*! tree of proxied destinations */
   struct avl_tree destinations;
 
@@ -504,7 +520,7 @@ struct oonf_layer2_neigh {
   struct avl_tree remote_neighbor_ips;
 
   /*! absolute timestamp when neighbor has been active last */
-  uint64_t last_seen;
+  uint64_t _last_seen;
 
   /*! neigbor layer 2 data */
   struct oonf_layer2_data data[OONF_LAYER2_NEIGH_COUNT];
@@ -593,6 +609,7 @@ EXPORT bool oonf_layer2_neigh_remove(struct oonf_layer2_neigh *l2neigh, const st
 EXPORT bool oonf_layer2_neigh_commit(struct oonf_layer2_neigh *l2neigh);
 EXPORT void oonf_layer2_neigh_relabel(struct oonf_layer2_neigh *l2neigh, const struct oonf_layer2_origin *new_origin,
   const struct oonf_layer2_origin *old_origin);
+EXPORT int oonf_layer2_neigh_set_nexthop(struct oonf_layer2_neigh *neigh, const struct netaddr *nexthop);
 EXPORT struct oonf_layer2_neighbor_address *oonf_layer2_neigh_add_ip(
   struct oonf_layer2_neigh *l2neigh, const struct oonf_layer2_origin *origin, const struct netaddr *ip);
 EXPORT int oonf_layer2_neigh_remove_ip(
@@ -703,6 +720,44 @@ static INLINE struct oonf_layer2_neigh *
 oonf_layer2_neigh_get_lid(const struct oonf_layer2_net *l2net, const struct oonf_layer2_neigh_key *key) {
   struct oonf_layer2_neigh *l2neigh;
   return avl_find_element(&l2net->neighbors, key, l2neigh, _node);
+}
+
+static INLINE bool
+oonf_layer2_neigh_is_modified(const struct oonf_layer2_neigh *neigh, enum oonf_layer2_neigh_mods mod_mask) {
+  return (neigh->modified & mod_mask) != 0;
+}
+
+static INLINE const struct netaddr *
+oonf_layer2_neigh_get_nexthop(const struct oonf_layer2_neigh *neigh, int af_type) {
+  switch (af_type) {
+    case AF_INET:
+      return &neigh->_next_hop_v4;
+    case AF_INET6:
+      return &neigh->_next_hop_v6;
+    default:
+      return NULL;
+  }
+}
+
+static INLINE bool
+oonf_layer2_neigh_has_nexthop(const struct oonf_layer2_neigh *neigh, int af_type) {
+  const struct netaddr *next_hop;
+
+  next_hop = oonf_layer2_neigh_get_nexthop(neigh, af_type);
+  return next_hop != NULL && netaddr_get_address_family(next_hop) == af_type;
+}
+
+static INLINE uint64_t
+oonf_layer2_neigh_get_lastseen(const struct oonf_layer2_neigh *neigh) {
+  return neigh->_last_seen;
+}
+
+static INLINE void
+oonf_layer2_neigh_set_lastseen(struct oonf_layer2_neigh *neigh, uint64_t lastseen) {
+  if (neigh->_last_seen != lastseen) {
+    neigh->_last_seen = lastseen;
+    neigh->modified |= OONF_LAYER2_NEIGH_MODIFY_LASTSEEN;
+  }
 }
 
 /**

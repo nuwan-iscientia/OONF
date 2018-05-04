@@ -93,7 +93,7 @@ static struct cfg_schema_entry _radio_entries[] = {
     DLEP_WELL_KNOWN_MULTICAST_ADDRESS_6, "IPv6 address to send discovery UDP packet to", false, false),
   CFG_MAP_INT32_MINMAX(dlep_radio_if, interf.udp_config.port, "discovery_port", DLEP_WELL_KNOWN_MULTICAST_PORT_TXT,
     "UDP port for discovery packets", 0, 1, 65535),
-  CFG_MAP_ACL_V46(dlep_radio_if, interf.udp_config.bindto, "discovery_bindto", "fe80::/10",
+  CFG_MAP_ACL_V46(dlep_radio_if, interf.udp_config.bindto, "discovery_bindto", "fe80::/64",
     "Filter to determine the binding of the UDP discovery socket"),
 
   CFG_MAP_INT32_MINMAX(dlep_radio_if, tcp_config.port, "session_port", DLEP_WELL_KNOWN_SESSION_PORT_TXT,

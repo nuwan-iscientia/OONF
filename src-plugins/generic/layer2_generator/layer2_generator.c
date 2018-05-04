@@ -245,7 +245,7 @@ _cb_l2gen_event(struct oonf_timer_instance *ptr __attribute((unused))) {
   memcpy(&neigh->key.addr, &_l2gen_config.neighbor, sizeof(neigh->key.addr));
   neigh->key.link_id[0] = event_counter & 0xff;
   neigh->key.link_id_length = 1;
-  neigh->last_seen = oonf_clock_getNow();
+  oonf_layer2_neigh_set_lastseen(neigh, oonf_clock_getNow());
 
   for (neigh_idx = 0; neigh_idx < OONF_LAYER2_NEIGH_COUNT; neigh_idx++) {
     _set_data(&neigh->data[neigh_idx], oonf_layer2_neigh_metadata_get(neigh_idx)->type, event_counter);

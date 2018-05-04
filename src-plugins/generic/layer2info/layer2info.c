@@ -133,11 +133,20 @@ static int _cb_create_text_dst(struct oonf_viewer_template *);
 /*! template key for neighbor link-id length */
 #define KEY_NEIGH_LID_LEN "neigh_lid_length"
 
+/*! template key for neighbor IPv4 next hop */
+#define KEY_NEIGH_NEXTHOP_V4 "neigh_nexthop_v4"
+
+/*! template key for neighbor IPv4 next hop */
+#define KEY_NEIGH_NEXTHOP_V6 "neigh_nexthop_v6"
+
 /*! template key for last time neighbor was active */
 #define KEY_NEIGH_LASTSEEN "neigh_lastseen"
 
 /*! template key for IP/prefixes of the neighbors remote router */
 #define KEY_NEIGH_REMOTE_IP "neigh_remote_ip"
+
+/*! template key for neighbors IP next hop */
+#define KEY_NEIGH_REMOTE_NEXTHOP "neigh_remote_ip_nexthop"
 
 /*! template key for IP/prefixes origin of the neighbors remote router */
 #define KEY_NEIGH_REMOTE_IP_ORIGIN "neigh_remote_ip_origin"
@@ -175,9 +184,12 @@ static char _value_if_data[OONF_LAYER2_NET_COUNT][64];
 static char _value_if_origin[OONF_LAYER2_NET_COUNT][IF_NAMESIZE];
 static struct netaddr_str _value_neigh_addr;
 static union oonf_layer2_neigh_key_str _value_neigh_key;
+static struct netaddr_str _value_neigh_nexthop_v4;
+static struct netaddr_str _value_neigh_nexthop_v6;
 static char _value_neigh_key_length[6];
 static struct isonumber_str _value_neigh_lastseen;
 static struct netaddr_str _value_neigh_remote_ip;
+static struct netaddr_str _value_neigh_remote_ip_nexthop;
 static char _value_neigh_remote_ip_origin[IF_NAMESIZE];
 static char _value_neigh_data[OONF_LAYER2_NEIGH_COUNT][64];
 static char _value_neigh_origin[OONF_LAYER2_NEIGH_COUNT][IF_NAMESIZE];
@@ -215,11 +227,14 @@ static struct abuf_template_data_entry _tde_neigh_key[] = {
 };
 
 static struct abuf_template_data_entry _tde_neigh[] = {
+  { KEY_NEIGH_NEXTHOP_V4, _value_neigh_nexthop_v4.buf, true },
+  { KEY_NEIGH_NEXTHOP_V6, _value_neigh_nexthop_v6.buf, true },
   { KEY_NEIGH_LASTSEEN, _value_neigh_lastseen.buf, false },
 };
 
 static struct abuf_template_data_entry _tde_neigh_remote_ip[] = {
   { KEY_NEIGH_REMOTE_IP, _value_neigh_remote_ip.buf, true },
+  { KEY_NEIGH_REMOTE_NEXTHOP, _value_neigh_remote_ip_nexthop.buf, true },
   { KEY_NEIGH_REMOTE_IP_ORIGIN, _value_neigh_remote_ip_origin, true },
 };
 
@@ -497,8 +512,11 @@ _initialize_neigh_values(struct oonf_layer2_neigh *neigh) {
   oonf_layer2_neigh_key_to_string(&_value_neigh_key, &neigh->key, false);
   snprintf(_value_neigh_key_length, sizeof(_value_neigh_key_length), "%u", neigh->key.link_id_length);
 
-  if (neigh->last_seen) {
-    oonf_clock_toIntervalString(&_value_neigh_lastseen, -oonf_clock_get_relative(neigh->last_seen));
+  netaddr_to_string(&_value_neigh_nexthop_v4, oonf_layer2_neigh_get_nexthop(neigh, AF_INET));
+  netaddr_to_string(&_value_neigh_nexthop_v6, oonf_layer2_neigh_get_nexthop(neigh, AF_INET6));
+
+  if (oonf_layer2_neigh_get_lastseen(neigh)) {
+    oonf_clock_toIntervalString(&_value_neigh_lastseen, -oonf_clock_get_relative(oonf_layer2_neigh_get_lastseen(neigh)));
   }
   else {
     _value_neigh_lastseen.buf[0] = 0;
@@ -512,6 +530,8 @@ _initialize_neigh_values(struct oonf_layer2_neigh *neigh) {
 static void
 _initialize_neigh_ip_values(struct oonf_layer2_neighbor_address *neigh_addr) {
   netaddr_to_string(&_value_neigh_remote_ip, &neigh_addr->ip);
+  netaddr_to_string(&_value_neigh_remote_ip_nexthop,
+      oonf_layer2_neigh_get_nexthop(neigh_addr->l2neigh, netaddr_get_address_family(&neigh_addr->ip)));
   strscpy(_value_neigh_remote_ip_origin, neigh_addr->origin->name, sizeof(_value_neigh_remote_ip_origin));
 }
 

@@ -878,12 +878,14 @@ oonf_layer2_neigh_commit(struct oonf_layer2_neigh *l2neigh) {
 
   if (l2neigh->destinations.count > 0 || l2neigh->remote_neighbor_ips.count > 0) {
     oonf_class_event(&_l2neighbor_class, l2neigh, OONF_OBJECT_CHANGED);
+    l2neigh->modified = OONF_LAYER2_NEIGH_MODIFY_NONE;
     return false;
   }
 
   for (i = 0; i < OONF_LAYER2_NEIGH_COUNT; i++) {
     if (oonf_layer2_data_has_value(&l2neigh->data[i])) {
       oonf_class_event(&_l2neighbor_class, l2neigh, OONF_OBJECT_CHANGED);
+      l2neigh->modified = OONF_LAYER2_NEIGH_MODIFY_NONE;
       return false;
     }
   }
@@ -923,6 +925,41 @@ oonf_layer2_neigh_relabel(struct oonf_layer2_neigh *l2neigh, const struct oonf_l
     }
   }
 }
+
+/**
+* Sets the (ip) next hop of a neighbor, you should call oonf_layer2_neigh_commit after a
+* successful change.
+* @param neigh layer2 neighbor
+* @param nexthop next hop, should be IPv4 or IPv6
+* @return -1 if nothing was changed, 0 if the next hop was updated.
+*/
+int
+oonf_layer2_neigh_set_nexthop(struct oonf_layer2_neigh *neigh, const struct netaddr *nexthop) {
+  enum oonf_layer2_neigh_mods mod;
+  struct netaddr *nh;
+
+  switch (netaddr_get_address_family(nexthop)) {
+    case AF_INET:
+      nh = &neigh->_next_hop_v4;
+      mod = OONF_LAYER2_NEIGH_MODIFY_NEXTHOP_V4;
+      break;
+    case AF_INET6:
+      nh = &neigh->_next_hop_v6;
+      mod = OONF_LAYER2_NEIGH_MODIFY_NEXTHOP_V6;
+      break;
+    default:
+      return -1;
+  }
+
+  if (memcmp(nh, nexthop, sizeof(*nexthop)) == 0) {
+    return -1;
+  }
+
+  memcpy(nh, nexthop, sizeof(*nexthop));
+  neigh->modified |= mod;
+  return 0;
+}
+
 
 /**
  * Add an IP address or prefix to a layer-2 interface. This represents

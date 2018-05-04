@@ -270,6 +270,17 @@ enum dlep_peer_state
   DLEP_PEER_TERMINATED,
 };
 
+struct dlep_session_ext_ip {
+  /*! tree of modifications which should be put into the next peer update */
+  struct avl_tree prefix_modification;
+
+  /*! last transmitted IPv4 DLEP interface IP */
+  struct netaddr if_ip_v4;
+
+  /*! last transmitted IPv6 DLEP interface IP */
+  struct netaddr if_ip_v6;
+};
+
 /**
  * Generic DLEP session, might be radio or router
  */
@@ -334,8 +345,8 @@ struct dlep_session {
   /*! true if we cannot send a peer update at the moment */
   enum dlep_peer_state _peer_state;
 
-  /*! tree of modifications which should be put into the next peer update */
-  struct avl_tree _ip_prefix_modification;
+  /*! session data for IP extension */
+  struct dlep_session_ext_ip _ext_ip;
 };
 
 void dlep_session_init(void);

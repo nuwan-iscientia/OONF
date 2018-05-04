@@ -513,7 +513,7 @@ netaddr_socket_get_port(const union netaddr_socket *sock) {
 /**
  * Converts a netaddr into a string
  * @param dst target string buffer
- * @param src netaddr source
+ * @param src netaddr source (can be NULL)
  * @param forceprefix true if a prefix should be appended even with maximum
  *   prefix length, false if only shorter prefixes should be appended
  * @return pointer to target buffer

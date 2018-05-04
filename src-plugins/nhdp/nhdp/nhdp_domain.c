@@ -919,6 +919,23 @@ nhdp_domain_set_incoming_metric(struct nhdp_domain_metric *metric, struct nhdp_l
 }
 
 /**
+ * Calculate the metric cost of a link defined by a layer2 neighbor.
+ * The function will not change or initialize the target buffer if the result
+ * is a NHDP_METRIC_NOT_AVAILABLE.
+ * @param domain nhdp domain the metric calculation should be based upon
+ * @param metric pointer to target buffer for metric result
+ * @param neigh layer2 neighbor
+ * @return status of metric calculation
+ */
+enum nhdp_metric_result
+nhdp_domain_get_metric(struct nhdp_domain *domain, uint32_t *metric, struct oonf_layer2_neigh *neigh) {
+  if (!domain->metric->cb_get_metric) {
+    return NHDP_METRIC_NOT_AVAILABLE;
+  }
+  return domain->metric->cb_get_metric(domain, metric, neigh);
+}
+
+/**
  * @return list of domains
  */
 struct list_entity *

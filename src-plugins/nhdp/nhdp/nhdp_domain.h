@@ -57,6 +57,8 @@
 /*! memory class for nhdp domain */
 #define NHDP_CLASS_DOMAIN "nhdp_domain"
 
+struct nhdp_domain;
+
 /**
  * NHDP domain constants
  */
@@ -67,6 +69,20 @@ enum
 
   /*! maximum length of mpr name */
   NHDP_DOMAIN_MPR_MAXLEN = 16,
+};
+
+/**
+ * Result of a metric calculation based on a layer2 neighbor
+ */
+enum nhdp_metric_result {
+  /*! metric has been calculated normally */
+  NHDP_METRIC_OKAY,
+
+  /*! metric has been calculated, but some data has been missing */
+  NHDP_METRIC_PARTIAL_DATA,
+
+  /*! metric could not be calculated */
+  NHDP_METRIC_NOT_AVAILABLE,
 };
 
 /**
@@ -153,14 +169,21 @@ struct nhdp_domain_metric {
    */
   void (*disable)(void);
 
+  /**
+   * Calculate the metric cost of a link defined by a layer2 neighbor
+   * @param domain nhdp domain the metric calculation should be based upon
+   * @param metric pointer to target buffer for metric result
+   * @param neigh layer2 neighbor
+   * @return status of metric calculation
+   */
+  enum nhdp_metric_result (*cb_get_metric)(struct nhdp_domain *domain, uint32_t *metric, struct oonf_layer2_neigh *neigh);
+
   /*! reference count */
   int _refcount;
 
   /*! node for tree of metrics */
   struct avl_node _node;
 };
-
-struct nhdp_domain;
 
 /**
  * MPR handler for a NHDP domain
@@ -319,6 +342,7 @@ EXPORT size_t nhdp_domain_encode_willingness_tlvvalue(uint8_t *tlvvalue, size_t 
 EXPORT bool nhdp_domain_set_incoming_metric(
   struct nhdp_domain_metric *metric, struct nhdp_link *lnk, uint32_t metric_in);
 EXPORT bool nhdp_domain_recalculate_metrics(struct nhdp_domain *domain, struct nhdp_neighbor *neigh);
+EXPORT enum nhdp_metric_result nhdp_domain_get_metric(struct nhdp_domain *domain, uint32_t *metric, struct oonf_layer2_neigh *neigh);
 
 EXPORT bool nhdp_domain_node_is_mpr(void);
 EXPORT void nhdp_domain_delayed_mpr_recalculation(struct nhdp_domain *domain, struct nhdp_neighbor *neigh);

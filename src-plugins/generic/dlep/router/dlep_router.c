@@ -90,7 +90,7 @@ static struct cfg_schema_entry _router_entries[] = {
   CFG_MAP_INT32_MINMAX(dlep_router_if, interf.udp_config.multicast_port, "discovery_port",
     DLEP_WELL_KNOWN_MULTICAST_PORT_TXT, "UDP port for discovery packets", 0, 1, 65535),
 
-  CFG_MAP_ACL_V46(dlep_router_if, interf.udp_config.bindto, "discovery_bindto", "224.0.0.1\0fe80::/10",
+  CFG_MAP_ACL_V46(dlep_router_if, interf.udp_config.bindto, "discovery_bindto", "fe80::/64",
     "Filter to determine the binding of the UDP discovery socket"),
 
   CFG_MAP_CLOCK_MIN(dlep_router_if, interf.session.cfg.discovery_interval, "discovery_interval", "1.000",

@@ -69,15 +69,9 @@ static const uint16_t _session_initack_tlvs[] = {
 static const uint16_t _dst_up_tlvs[] = {
   DLEP_LID_TLV,
 };
-static const uint16_t _dst_up_mandatory[] = {
-  DLEP_LID_TLV,
-};
 
 /* destination up ack */
 static const uint16_t _dst_up_ack_tlvs[] = {
-  DLEP_LID_TLV,
-};
-static const uint16_t _dst_up_ack_mandatory[] = {
   DLEP_LID_TLV,
 };
 
@@ -85,15 +79,9 @@ static const uint16_t _dst_up_ack_mandatory[] = {
 static const uint16_t _dst_down_tlvs[] = {
   DLEP_LID_TLV,
 };
-static const uint16_t _dst_down_mandatory[] = {
-  DLEP_LID_TLV,
-};
 
 /* destination down ack */
 static const uint16_t _dst_down_ack_tlvs[] = {
-  DLEP_LID_TLV,
-};
-static const uint16_t _dst_down_ack_mandatory[] = {
   DLEP_LID_TLV,
 };
 
@@ -101,23 +89,14 @@ static const uint16_t _dst_down_ack_mandatory[] = {
 static const uint16_t _dst_update_tlvs[] = {
   DLEP_LID_TLV,
 };
-static const uint16_t _dst_update_mandatory[] = {
-  DLEP_MAC_ADDRESS_TLV,
-};
 
 /* link characteristics request */
 static const uint16_t _linkchar_req_tlvs[] = {
   DLEP_LID_TLV,
 };
-static const uint16_t _linkchar_req_mandatory[] = {
-  DLEP_LID_TLV,
-};
 
 /* link characteristics ack */
 static const uint16_t _linkchar_ack_tlvs[] = {
-  DLEP_LID_TLV,
-};
-static const uint16_t _linkchar_ack_mandatory[] = {
   DLEP_LID_TLV,
 };
 
@@ -134,56 +113,42 @@ static struct dlep_extension_signal _signals[] = {
     .id = DLEP_DESTINATION_UP,
     .supported_tlvs = _dst_up_tlvs,
     .supported_tlv_count = ARRAYSIZE(_dst_up_tlvs),
-    .mandatory_tlvs = _dst_up_mandatory,
-    .mandatory_tlv_count = ARRAYSIZE(_dst_up_mandatory),
     .add_radio_tlvs = _write_lid_only,
   },
   {
     .id = DLEP_DESTINATION_UP_ACK,
     .supported_tlvs = _dst_up_ack_tlvs,
     .supported_tlv_count = ARRAYSIZE(_dst_up_ack_tlvs),
-    .mandatory_tlvs = _dst_up_ack_mandatory,
-    .mandatory_tlv_count = ARRAYSIZE(_dst_up_ack_mandatory),
     .add_router_tlvs = _write_lid_only,
   },
   {
     .id = DLEP_DESTINATION_DOWN,
     .supported_tlvs = _dst_down_tlvs,
     .supported_tlv_count = ARRAYSIZE(_dst_down_tlvs),
-    .mandatory_tlvs = _dst_down_mandatory,
-    .mandatory_tlv_count = ARRAYSIZE(_dst_down_mandatory),
     .add_radio_tlvs = _write_lid_only,
   },
   {
     .id = DLEP_DESTINATION_DOWN_ACK,
     .supported_tlvs = _dst_down_ack_tlvs,
     .supported_tlv_count = ARRAYSIZE(_dst_down_ack_tlvs),
-    .mandatory_tlvs = _dst_down_ack_mandatory,
-    .mandatory_tlv_count = ARRAYSIZE(_dst_down_ack_mandatory),
     .add_router_tlvs = _write_lid_only,
   },
   {
     .id = DLEP_DESTINATION_UPDATE,
     .supported_tlvs = _dst_update_tlvs,
     .supported_tlv_count = ARRAYSIZE(_dst_update_tlvs),
-    .mandatory_tlvs = _dst_update_mandatory,
-    .mandatory_tlv_count = ARRAYSIZE(_dst_update_mandatory),
     .add_radio_tlvs = _write_lid_only,
   },
   {
     .id = DLEP_LINK_CHARACTERISTICS_REQUEST,
     .supported_tlvs = _linkchar_req_tlvs,
     .supported_tlv_count = ARRAYSIZE(_linkchar_req_tlvs),
-    .mandatory_tlvs = _linkchar_req_mandatory,
-    .mandatory_tlv_count = ARRAYSIZE(_linkchar_req_mandatory),
     .add_router_tlvs = _write_lid_only,
   },
   {
     .id = DLEP_LINK_CHARACTERISTICS_ACK,
     .supported_tlvs = _linkchar_ack_tlvs,
     .supported_tlv_count = ARRAYSIZE(_linkchar_ack_tlvs),
-    .mandatory_tlvs = _linkchar_ack_mandatory,
-    .mandatory_tlv_count = ARRAYSIZE(_linkchar_ack_mandatory),
     .add_radio_tlvs = _write_lid_only,
   },
 };

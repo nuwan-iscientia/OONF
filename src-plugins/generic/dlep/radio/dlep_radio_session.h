@@ -79,4 +79,12 @@ void dlep_radio_session_cleanup(void);
 void dlep_radio_remove_session(struct dlep_radio_session *router_session);
 void dlep_radio_session_initialize_tcp_callbacks(struct oonf_stream_config *config);
 
+static INLINE struct dlep_radio_session *
+dlep_radio_get_session(struct dlep_session *session) {
+  if (!session->radio) {
+    return NULL;
+  }
+  return container_of(session, struct dlep_radio_session, session);
+}
+
 #endif /* DLEP_RADIO_SESSION_H_ */

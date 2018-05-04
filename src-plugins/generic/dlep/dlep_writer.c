@@ -194,14 +194,16 @@ dlep_writer_add_mac_tlv(struct dlep_writer *writer, const struct oonf_layer2_nei
 }
 
 /**
- * Write a DLEP Link-ID TLV
+ * Write a DLEP Link-ID TLV if length is greater than zero
  * @param writer dlep writer
  * @param mac_lid mac address/LID
  * @return -1 if address was wrong type, 0 otherwise
  */
 int
 dlep_writer_add_lid_tlv(struct dlep_writer *writer, const struct oonf_layer2_neigh_key *mac_lid) {
-  dlep_writer_add_tlv(writer, DLEP_LID_TLV, mac_lid->link_id, mac_lid->link_id_length);
+  if (mac_lid->link_id_length > 0) {
+    dlep_writer_add_tlv(writer, DLEP_LID_TLV, mac_lid->link_id, mac_lid->link_id_length);
+  }
   return 0;
 }
 

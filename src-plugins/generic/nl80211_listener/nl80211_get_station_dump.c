@@ -168,7 +168,8 @@ nl80211_process_get_station_dump_result(struct nl80211_if *interf, struct nlmsgh
   }
 
   if (sinfo[NL80211_STA_INFO_INACTIVE_TIME]) {
-    l2neigh->last_seen = oonf_clock_get_absolute(-((int64_t)(nla_get_u32(sinfo[NL80211_STA_INFO_INACTIVE_TIME]))));
+    oonf_layer2_neigh_set_lastseen(l2neigh,
+        oonf_clock_get_absolute(-((int64_t)(nla_get_u32(sinfo[NL80211_STA_INFO_INACTIVE_TIME])))));
   }
 
   /* byte data is 64 bit */

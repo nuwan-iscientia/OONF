@@ -168,7 +168,7 @@ dlep_session_add(struct dlep_session *session, const char *l2_ifname, const stru
     return -1;
   }
 
-  avl_init(&session->_ip_prefix_modification, avl_comp_netaddr, false);
+  avl_init(&session->_ext_ip.prefix_modification, avl_comp_netaddr, false);
 
   OONF_INFO(session->log_source, "Add session on %s", session->l2_listener.name);
   return 0;
