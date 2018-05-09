@@ -1,7 +1,7 @@
 #!/bin/cmake
 IF(EXISTS "${CMAKE_SOURCE_DIR}/version.cmake")
   # preconfigured version data
-  FILE (COPY ${CMAKE_SOURCE_DIR}/version.cmake DESTINATION ${PROJECT_BINARY_DIR})
+  FILE (COPY ${VERSION_CMAKE_DIR}/version.cmake DESTINATION ${PROJECT_BINARY_DIR})
 ELSEIF(NOT OONF_LIB_GIT OR NOT OONF_VERSION)
   # look for git executable
   SET(found_git false) 
@@ -12,12 +12,12 @@ ELSEIF(NOT OONF_LIB_GIT OR NOT OONF_VERSION)
   IF(NOT ${found_git} STREQUAL "found_git-NOTFOUND")
     # get git description WITH dirty flag
     execute_process(COMMAND git describe --always --long --tags --dirty --match "v[0-9]*"
-      WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+      WORKING_DIRECTORY ${VERSION_CMAKE_DIR}
       OUTPUT_VARIABLE LIB_GIT OUTPUT_STRIP_TRAILING_WHITESPACE)
 
     # get git description WITH dirty flag
     execute_process(COMMAND git describe --abbrev=0 --match "v[0-9]*"
-      WORKING_DIRECTORY ${CMAKE_SOURCE_DIR} RESULT_VARIABLE result
+      WORKING_DIRECTORY ${VERSION_CMAKE_DIR} RESULT_VARIABLE result
       OUTPUT_VARIABLE VERSION_TAG OUTPUT_STRIP_TRAILING_WHITESPACE)
 
     IF(NOT ${result} STREQUAL "0")
@@ -29,5 +29,5 @@ ELSEIF(NOT OONF_LIB_GIT OR NOT OONF_VERSION)
   ENDIF()
   
   message ("Git commit: ${LIB_GIT}, Git version: ${VERSION}")
-  configure_file (${CMAKE_SOURCE_DIR}/cmake/files/version.cmake.in ${PROJECT_BINARY_DIR}/version.cmake)
+  configure_file (${CMAKE_CURRENT_SOURCE_DIR}/cmake/files/version.cmake.in ${PROJECT_BINARY_DIR}/version.cmake)
 ENDIF()
