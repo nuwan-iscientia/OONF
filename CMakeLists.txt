@@ -23,6 +23,9 @@ include (./cmake/lib_config.cmake)
 # include compiler flags
 include (./cmake/cc_flags.cmake)
 
+# include global variables
+include (./CMakeListsGlobal.cmake)
+
 ########################################
 #### get repository tag and version ####
 ########################################
@@ -88,10 +91,6 @@ add_definitions(-DBASEPATH_LENGTH=${BASELENGTH})
 # include build helper
 include (cmake/declare_library.cmake)
 
-# include files
-include_directories(${PROJECT_BINARY_DIR})
-include_directories(src-api)
-
 if (NOT OONF_NO_TESTING)
     ENABLE_TESTING()
 endif (NOT OONF_NO_TESTING)
@@ -102,11 +101,5 @@ add_custom_target(dynamic)
 add_custom_target(build_tests)
 
 # start compiling core and plugins
-add_subdirectory(src-api)
-add_subdirectory(src-plugins)
-# add_subdirectory(examples)
 add_subdirectory(src)
-
-if (NOT OONF_NO_TESTING)
-    add_subdirectory(tests)
-endif (NOT OONF_NO_TESTING)
+add_subdirectory(apps)

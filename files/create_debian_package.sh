@@ -36,19 +36,19 @@ TARPREFIX=${TARGET}_${VERSION}
 TARBALL=${BUILDDIR}/${TARPREFIX}.orig.tar.gz
 
 # check if target is there and prepared for a debian package
-if [ ! -d ${SOURCE}/src/${TARGET} ]
+if [ ! -d ${SOURCE}/apps/${TARGET} ]
 then
     echo "Could not find target '${TARGET}'"
     exit 1
 fi
 
-if [ ! -f ${SOURCE}/src/${TARGET}/debian/changelog ]
+if [ ! -f ${SOURCE}/apps/${TARGET}/debian/changelog ]
 then
     echo "Could not find target '${TARGET}' debian changelog"
     exit 1
 fi
 
-if [ ! -f ${SOURCE}/src/${TARGET}/debian/control ]
+if [ ! -f ${SOURCE}/apps/${TARGET}/debian/control ]
 then
     echo "Could not find target '${TARGET}' debian control file"
     exit 1
@@ -81,7 +81,7 @@ tar xf ${TARBALL}
 # build debian directory from template
 cd ${TARPREFIX}
 
-cp -r ${SOURCE}/src/${TARGET}/debian ./
+cp -r ${SOURCE}/apps/${TARGET}/debian ./
 cp ${SOURCE}/files/default_licence.txt ./debian/copyright
 
 # adapt changelog template

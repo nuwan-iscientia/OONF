@@ -16,7 +16,7 @@ function (oonf_create_install_target name)
             ADD_DEPENDENCIES(install_${name} ${lib})
             ADD_DEPENDENCIES(install_${name} install_${lib})
         ENDIF(TARGET ${lib})
-    ENDFOREACH(lib)     
+    ENDFOREACH(lib)
 endfunction (oonf_create_install_target)
     
 function (oonf_create_app executable static_plugins optional_static_plugins)
@@ -36,7 +36,7 @@ function (oonf_create_app executable static_plugins optional_static_plugins)
     SET(STATIC_PLUGIN_LIST )
     
     # generate configuration file
-    configure_file(${CMAKE_SOURCE_DIR}/src/app_data.c.in ${PROJECT_BINARY_DIR}/${executable}_app_data.c)
+    configure_file(${APP_DATA_C_IN} ${PROJECT_BINARY_DIR}/${executable}_app_data.c)
 
     FOREACH(plugin ${optional_static_plugins})
         list(FIND static_plugins ${plugin} insanity)
@@ -78,24 +78,27 @@ function (oonf_create_app executable static_plugins optional_static_plugins)
     ENDFOREACH(plugin)
 
     # create executables
-    ADD_EXECUTABLE(${executable}_dynamic ${CMAKE_SOURCE_DIR}/src/main.c
+    ADD_EXECUTABLE(${executable}_dynamic ${MAIN_C}
                                          ${PROJECT_BINARY_DIR}/${executable}_app_data.c
                                          ${OBJECT_TARGETS})
-    ADD_EXECUTABLE(${executable}_static  ${CMAKE_SOURCE_DIR}/src/main.c
+    ADD_EXECUTABLE(${executable}_static  ${MAIN_C}
                                          ${PROJECT_BINARY_DIR}/${executable}_app_data.c
                                          ${OBJECT_TARGETS}
-                                         $<TARGET_OBJECTS:oonf_static_common>
-                                         $<TARGET_OBJECTS:oonf_static_config>
-                                         $<TARGET_OBJECTS:oonf_static_core>)
+                                         $<TARGET_OBJECTS:oonf_static_libcommon>
+                                         $<TARGET_OBJECTS:oonf_static_libconfig>
+                                         $<TARGET_OBJECTS:oonf_static_libcore>
+                                         $<TARGET_OBJECTS:oonf_static_librfc5444>
+					 )
 
     # Add executables to static/dynamic target
     ADD_DEPENDENCIES(dynamic ${executable}_dynamic)
     ADD_DEPENDENCIES(static  ${executable}_static)
     
     # link framework libraries to dynamic executable
-    TARGET_LINK_LIBRARIES(${executable}_dynamic PUBLIC oonf_core
-                                                       oonf_config
-                                                       oonf_common)
+    TARGET_LINK_LIBRARIES(${executable}_dynamic PUBLIC oonf_librfc5444
+                                                       oonf_libcore
+                                                       oonf_libconfig
+                                                       oonf_libcommon)
 
     # link external libraries directly to executable
     TARGET_LINK_LIBRARIES(${executable}_dynamic PUBLIC ${EXTERNAL_LIBRARIES})
