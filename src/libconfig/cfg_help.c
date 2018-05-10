@@ -274,7 +274,7 @@ void
 cfg_help_token(struct autobuf *out, bool preamble, const struct cfg_schema_entry *token_entry,
   const struct cfg_schema_entry *sub_entries, size_t entry_count,
   const struct cfg_schema_token_customizer *customizer) {
-  char enum_buffer[10];
+  char enum_buffer[20];
   size_t i;
 
   if (preamble) {
