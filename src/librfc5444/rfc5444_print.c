@@ -52,6 +52,7 @@
 #include <oonf/librfc5444/rfc5444_print.h>
 #include <oonf/librfc5444/rfc5444_reader.h>
 
+static void _print_hex(struct autobuf *out, uint8_t *ptr, size_t length, const uint8_t *end);
 static enum rfc5444_result _cb_print_pkt_start(struct rfc5444_reader_tlvblock_context *context);
 static enum rfc5444_result _cb_print_pkt_tlv(
   struct rfc5444_reader_tlvblock_entry *tlv, struct rfc5444_reader_tlvblock_context *context);
@@ -142,10 +143,13 @@ rfc5444_print_direct(struct autobuf *out, void *buffer, size_t length)
 }
 
 static void
-_print_hex(struct autobuf *out, uint8_t *ptr, size_t length) {
+_print_hex(struct autobuf *out, uint8_t *ptr, size_t length, const uint8_t *end) {
   size_t i;
 
   for (i = 0; i < length; i++) {
+    if (&ptr[i] >= end) {
+      return;
+    }
     abuf_appendf(out, "%s%02x", i == 0 ? "" : " ", ptr[i]);
   }
 }
@@ -275,14 +279,15 @@ _print_raw_tlvblock(struct autobuf *out, const char *prefix, uint8_t *blockptr, 
 int
 rfc5444_print_raw(struct autobuf *out, void *buffer, size_t length) {
   static uint8_t ZEROTAIL[] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
-  uint8_t *ptr;
+  uint8_t *ptr, *end;
   size_t idx, idx2, prefix_idx, i;
   uint8_t flags, head_len, tail_len, *head, *tail, num_addr;
   uint16_t msg_size, addr_length, mid_len;
 
   ptr = buffer;
   idx = 0;
-
+  end = &ptr[length];
+  
   if (idx + 1 > length) {
     return -1;
   }
@@ -342,7 +347,7 @@ rfc5444_print_raw(struct autobuf *out, void *buffer, size_t length) {
         return -1;
       }
       abuf_appendf(out, "\t|    | Originator address: ");
-      _print_hex(out, &ptr[idx2], addr_length);
+      _print_hex(out, &ptr[idx2], addr_length, end);
       idx2 += addr_length;
     }
     if (flags & RFC5444_MSG_FLAG_HOPLIMIT) {
@@ -406,7 +411,7 @@ rfc5444_print_raw(struct autobuf *out, void *buffer, size_t length) {
         head = &ptr[idx2];
 
         abuf_appendf(out, "\t|    |    | Head:     ");
-        _print_hex(out, head, head_len);
+        _print_hex(out, head, head_len, end);
         abuf_puts(out, "\n");
 
         idx2 += head_len;
@@ -424,7 +429,7 @@ rfc5444_print_raw(struct autobuf *out, void *buffer, size_t length) {
 
         tail = &ptr[idx2];
         abuf_appendf(out, "\t|    |    | Tail:     ");
-        _print_hex(out, tail, tail_len);
+        _print_hex(out, tail, tail_len, end);
         abuf_puts(out, "\n");
         idx2 += tail_len;
       }
@@ -437,7 +442,7 @@ rfc5444_print_raw(struct autobuf *out, void *buffer, size_t length) {
 
         tail = ZEROTAIL;
         abuf_appendf(out, "\t|    |    | ZeroTail: ");
-        _print_hex(out, tail, tail_len);
+        _print_hex(out, tail, tail_len, end);
         abuf_puts(out, "\n");
 
         idx2++;
@@ -475,17 +480,17 @@ rfc5444_print_raw(struct autobuf *out, void *buffer, size_t length) {
         abuf_appendf(out, "\t|    |    |    | Address: ");
 
         if (head_len) {
-          _print_hex(out, head, head_len);
+          _print_hex(out, head, head_len, end);
 
           abuf_puts(out, " | ");
         }
-        _print_hex(out, &ptr[idx2], addr_length - head_len - tail_len);
+        _print_hex(out, &ptr[idx2], addr_length - head_len - tail_len, end);
         idx2 += addr_length - head_len - tail_len;
 
         if (tail_len) {
           abuf_puts(out, " | ");
 
-          _print_hex(out, tail, tail_len);
+          _print_hex(out, tail, tail_len, end);
         }
 
         if (prefix_idx) {
