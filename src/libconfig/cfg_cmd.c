@@ -285,6 +285,62 @@ handle_get_cleanup:
 }
 
 /**
+ * Implements the 'query' command for the command line
+ * @param instance pointer to cfg_instance
+ * @param db pointer to cfg_db to be modified
+ * @param arg argument of command
+ * @param log pointer for logging
+ * @return 0 if succeeded, -1 otherwise
+ */
+int
+cfg_cmd_handle_query(
+  struct cfg_instance *instance __attribute__((unused)), struct cfg_db *db, const char *arg, struct autobuf *log) {
+  struct _parsed_argument pa;
+  const struct const_strarray *array;
+  const char *tmp;
+  char *arg_copy;
+  int result;
+
+  if (arg == NULL || *arg == 0) {
+    cfg_append_printable_line(log, "Query needs section and key, but no value: %s", arg);
+    return 0;
+  }
+
+  arg_copy = strdup(arg);
+  if (!arg_copy) {
+    return -1;
+  }
+
+  /* prepare for cleanup */
+  result = -1;
+
+  if (_do_parse_arg(arg_copy, &pa, log)) {
+    goto handle_get_cleanup;
+  }
+
+  if (pa.entry_key == NULL || pa.entry_value != NULL) {
+    cfg_append_printable_line(log, "Query needs section and key, but no value: %s", arg);
+    goto handle_get_cleanup;
+  }
+
+  array = cfg_db_get_entry_value(db, pa.section_type, pa.section_name, pa.entry_key);
+  if (array) {
+    cfg_append_printable_line(log, "Key '%s' has value:", arg);
+    strarray_for_each_element(array, tmp) {
+      cfg_append_printable_line(log, "%s", tmp);
+    }
+    result = 0;
+  }
+  else {
+    cfg_append_printable_line(log, "Key '%s' has no value:", arg);
+  }
+
+handle_get_cleanup:
+  free(arg_copy);
+  return result;
+}
+
+/**
  * Implements the 'load' command for the command line
  * @param instance pointer to cfg_instance
  * @param db pointer to cfg_db to be modified

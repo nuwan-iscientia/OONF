@@ -57,6 +57,7 @@ EXPORT int cfg_cmd_handle_set(struct cfg_instance *instance, struct cfg_db *db, 
 EXPORT int cfg_cmd_handle_remove(
   struct cfg_instance *instance, struct cfg_db *db, const char *arg, struct autobuf *log);
 EXPORT int cfg_cmd_handle_get(struct cfg_instance *instance, struct cfg_db *db, const char *arg, struct autobuf *log);
+EXPORT int cfg_cmd_handle_query(struct cfg_instance *instance, struct cfg_db *db, const char *arg, struct autobuf *log);
 EXPORT int cfg_cmd_handle_load(struct cfg_instance *instance, struct cfg_db *db, const char *arg, struct autobuf *log);
 EXPORT int cfg_cmd_handle_save(struct cfg_instance *instance, struct cfg_db *db, const char *arg, struct autobuf *log);
 EXPORT int cfg_cmd_handle_schema(struct cfg_db *db, const char *arg, struct autobuf *log);

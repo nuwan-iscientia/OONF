@@ -178,7 +178,9 @@ static struct oonf_telnet_command _telnet_cmds[] = {
     "\"config get\":                                      Show all section types in database\n"
     "\"config get <section_type>.\":                      Show all named sections of a certain type\n"
     "\"config get <section_type>.<key>\":                 Show the value(s) of a key in an unnamed section\n"
-    "\"config get <section_type>[<name>].<key>\":         Show the value(s) of a key in a named section\n",
+    "\"config get <section_type>[<name>].<key>\":         Show the value(s) of a key in a named section\n"
+    "\"config query <section_type>.<key>\":               Show the value(s) of a key in an unnamed section, show default value if no data available\n"
+    "\"config query <section_type>[<name>].<key>\":       Show the value(s) of a key in a named section, show default value if no data available\n",
     .acl = &_remotecontrol_config.acl),
   TELNET_CMD("route", _cb_handle_route,
     "\"route add [src-ip <src-ip>] [gw <gateway ip>] dst <destination prefix> [src-prefix <src-prefix]\n"
@@ -421,6 +423,9 @@ _cb_handle_config(struct oonf_telnet_data *data) {
   }
   else if ((next = str_hasnextword(data->parameter, "get"))) {
     result = cfg_cmd_handle_get(oonf_cfg_get_instance(), oonf_cfg_get_rawdb(), next, data->out);
+  }
+  else if ((next = str_hasnextword(data->parameter, "query"))) {
+    result = cfg_cmd_handle_query(oonf_cfg_get_instance(), oonf_cfg_get_rawdb(), next, data->out);
   }
   else if ((next = str_hasnextword(data->parameter, "load"))) {
     result = cfg_cmd_handle_load(oonf_cfg_get_instance(), oonf_cfg_get_rawdb(), next, data->out);
