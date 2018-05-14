@@ -1,5 +1,17 @@
-project (OONF C)
 cmake_minimum_required(VERSION 2.8.12 FATAL_ERROR)
+
+###########################
+#### API configuration ####
+###########################
+
+# set cached variables
+#include (./cmake/lib_config.cmake)
+
+# include compiler flags
+#include (./cmake/cc_flags.cmake)
+
+# include global variables
+include (./CMakeListsGlobal.cmake)
 
 ########################################################
 #### Set a default build type if none was specified ####
@@ -13,27 +25,14 @@ if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
     "MinSizeRel" "RelWithDebInfo")
 endif()
 
-###########################
-#### API configuration ####
-###########################
-
-# set cached variables
-include (./cmake/lib_config.cmake)
-
-# include compiler flags
-include (./cmake/cc_flags.cmake)
-
-# include global variables
-include (./CMakeListsGlobal.cmake)
-
 ########################################
 #### get repository tag and version ####
 ########################################
 
-include (cmake/get_version.cmake)
-IF(EXISTS "${PROJECT_BINARY_DIR}/version.cmake")
-  include (${PROJECT_BINARY_DIR}/version.cmake)
-ENDIF()
+#include (cmake/get_version.cmake)
+#IF(EXISTS "${PROJECT_BINARY_DIR}/version.cmake")
+#  include (${PROJECT_BINARY_DIR}/version.cmake)
+#ENDIF()
 
 ########################
 #### Doxygen target ####

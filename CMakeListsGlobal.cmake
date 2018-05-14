@@ -1,8 +1,41 @@
-# set path to source for apps
+cmake_minimum_required(VERSION 2.8.12 FATAL_ERROR)
+if(POLICY CMP0048)
+  cmake_policy(SET CMP0048 NEW)
+endif()
+
+project (OONF C)
+
+#####################################
+#### set path to source for apps ####
+#####################################
+
 SET(APP_DATA_C_IN ${CMAKE_CURRENT_LIST_DIR}/src/main/app_data.c.in)
 SET(MAIN_C ${CMAKE_CURRENT_LIST_DIR}/src/main/main.c)
+SET(VERSION_CMAKE_IN ${CMAKE_CURRENT_LIST_DIR}/cmake/files/version.cmake.in)
 SET(VERSION_CMAKE_DIR ${CMAKE_CURRENT_LIST_DIR})
 
-# add include directoy
+#################################
+#### add include directories ####
+#################################
+
 include_directories(${CMAKE_CURRENT_LIST_DIR}/include)
-include_directories(${PROJECT_BINARY_DIR})
+include_directories(${CMAKE_BINARY_DIR})
+
+###########################
+#### API configuration ####
+###########################
+
+# set cached variables
+include (${CMAKE_CURRENT_LIST_DIR}/cmake/lib_config.cmake)
+
+# include compiler flags
+include (${CMAKE_CURRENT_LIST_DIR}/cmake/cc_flags.cmake)
+
+########################################
+#### get repository tag and version ####
+########################################
+
+include (${CMAKE_CURRENT_LIST_DIR}/cmake/get_version.cmake)
+IF(EXISTS "${CMAKE_BINARY_DIR}/version.cmake")
+  include (${CMAKE_BINARY_DIR}/version.cmake)
+ENDIF()

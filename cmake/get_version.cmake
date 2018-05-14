@@ -29,5 +29,5 @@ ELSEIF(NOT OONF_LIB_GIT OR NOT OONF_VERSION)
   ENDIF()
   
   message ("Git commit: ${LIB_GIT}, Git version: ${VERSION}")
-  configure_file (${CMAKE_CURRENT_SOURCE_DIR}/cmake/files/version.cmake.in ${PROJECT_BINARY_DIR}/version.cmake)
+  configure_file (${VERSION_CMAKE_IN} ${PROJECT_BINARY_DIR}/version.cmake)
 ENDIF()
