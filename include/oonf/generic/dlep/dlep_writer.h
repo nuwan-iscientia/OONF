@@ -50,7 +50,7 @@
 #include <oonf/oonf.h>
 #include <oonf/libcommon/netaddr.h>
 
-#include <oonf/subsystems/oonf_layer2.h>
+#include <oonf/base/oonf_layer2.h>
 
 #include <oonf/generic/dlep/dlep_session.h>
 

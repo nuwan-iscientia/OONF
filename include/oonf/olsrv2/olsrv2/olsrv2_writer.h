@@ -47,7 +47,7 @@
 #define OLSRV2_WRITER_H_
 
 #include <oonf/oonf.h>
-#include <oonf/subsystems/oonf_rfc5444.h>
+#include <oonf/base/oonf_rfc5444.h>
 
 int olsrv2_writer_init(struct oonf_rfc5444_protocol *) __attribute__((warn_unused_result));
 void olsrv2_writer_cleanup(void);

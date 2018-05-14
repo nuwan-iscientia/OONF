@@ -54,9 +54,9 @@
 #include <oonf/libcore/oonf_logging.h>
 #include <oonf/libcore/oonf_subsystem.h>
 #include <oonf/libcore/os_core.h>
-#include <oonf/subsystems/oonf_class.h>
-#include <oonf/subsystems/oonf_timer.h>
-#include <oonf/subsystems/os_interface.h>
+#include <oonf/base/oonf_class.h>
+#include <oonf/base/oonf_timer.h>
+#include <oonf/base/os_interface.h>
 
 #include <oonf/nhdp/nhdp/nhdp.h>
 #include <oonf/nhdp/nhdp/nhdp_domain.h>

@@ -52,7 +52,7 @@
 
 #include <oonf/nhdp/nhdp/nhdp.h>
 #include <oonf/olsrv2/olsrv2/olsrv2.h>
-#include <oonf/subsystems/os_routing.h>
+#include <oonf/base/os_routing.h>
 
 /**
  * per-domain data for locally attached networks

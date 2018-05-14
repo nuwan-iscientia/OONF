@@ -47,7 +47,7 @@
 #include <oonf/libcommon/avl_comp.h>
 #include <oonf/oonf.h>
 #include <oonf/libcore/oonf_subsystem.h>
-#include <oonf/subsystems/oonf_class.h>
+#include <oonf/base/oonf_class.h>
 #include <oonf/librfc5444/rfc5444_iana.h>
 
 #include <oonf/crypto/rfc7182_provider/rfc7182_provider.h>

@@ -58,10 +58,10 @@
 #include <oonf/libcore/oonf_cfg.h>
 #include <oonf/libcore/oonf_logging.h>
 #include <oonf/libcore/oonf_subsystem.h>
-#include <oonf/subsystems/oonf_class.h>
-#include <oonf/subsystems/oonf_telnet.h>
-#include <oonf/subsystems/oonf_timer.h>
-#include <oonf/subsystems/os_routing.h>
+#include <oonf/base/oonf_class.h>
+#include <oonf/base/oonf_telnet.h>
+#include <oonf/base/oonf_timer.h>
+#include <oonf/base/os_routing.h>
 
 #include <oonf/generic/remotecontrol/remotecontrol.h>
 

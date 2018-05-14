@@ -53,7 +53,7 @@
 
 #include <oonf/libcore/oonf_logging.h>
 #include <oonf/libcore/oonf_subsystem.h>
-#include <oonf/subsystems/oonf_class.h>
+#include <oonf/base/oonf_class.h>
 
 #include <oonf/olsrv2/olsrv2/olsrv2.h>
 #include <oonf/olsrv2/olsrv2/olsrv2_routing.h>

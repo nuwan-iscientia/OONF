@@ -49,7 +49,7 @@
 #include <oonf/libcommon/avl_comp.h>
 #include <oonf/oonf.h>
 
-#include <oonf/subsystems/oonf_layer2.h>
+#include <oonf/base/oonf_layer2.h>
 
 #include <oonf/generic/dlep/dlep_extension.h>
 #include <oonf/generic/dlep/dlep_reader.h>

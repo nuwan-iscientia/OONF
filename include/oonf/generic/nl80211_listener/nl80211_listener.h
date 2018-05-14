@@ -48,8 +48,8 @@
 
 #include <oonf/oonf.h>
 #include <oonf/libcore/oonf_subsystem.h>
-#include <oonf/subsystems/oonf_layer2.h>
-#include <oonf/subsystems/os_interface.h>
+#include <oonf/base/oonf_layer2.h>
+#include <oonf/base/os_interface.h>
 
 /*! subsystem identifier */
 #define OONF_NL80211_LISTENER_SUBSYSTEM "nl80211_listener"

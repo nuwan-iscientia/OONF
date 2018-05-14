@@ -48,7 +48,7 @@
 
 #include <oonf/oonf.h>
 #include <oonf/libcommon/netaddr.h>
-#include <oonf/subsystems/oonf_timer.h>
+#include <oonf/base/oonf_timer.h>
 
 #include <oonf/generic/dlep/dlep_interface.h>
 #include <oonf/generic/dlep/dlep_session.h>

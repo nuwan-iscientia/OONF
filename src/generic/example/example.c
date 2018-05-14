@@ -46,7 +46,7 @@
 #include <oonf/oonf.h>
 #include <oonf/libconfig/cfg_schema.h>
 #include <oonf/libcore/oonf_subsystem.h>
-#include <oonf/subsystems/oonf_timer.h>
+#include <oonf/base/oonf_timer.h>
 
 #include <oonf/generic/example/example.h>
 

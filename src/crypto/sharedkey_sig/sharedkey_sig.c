@@ -50,8 +50,8 @@
 #include <oonf/libconfig/cfg_schema.h>
 #include <oonf/libcore/oonf_subsystem.h>
 #include <oonf/crypto/rfc5444_signature/rfc5444_signature.h>
-#include <oonf/subsystems/oonf_class.h>
-#include <oonf/subsystems/oonf_rfc5444.h>
+#include <oonf/base/oonf_class.h>
+#include <oonf/base/oonf_rfc5444.h>
 #include <oonf/librfc5444/rfc5444_iana.h>
 
 #include <oonf/crypto/sharedkey_sig/sharedkey_sig.h>

@@ -48,8 +48,8 @@
 #include <oonf/oonf.h>
 #include <oonf/libcore/oonf_logging.h>
 
-#include <oonf/subsystems/oonf_class.h>
-#include <oonf/subsystems/oonf_layer2.h>
+#include <oonf/base/oonf_class.h>
+#include <oonf/base/oonf_layer2.h>
 
 #include <oonf/generic/dlep/dlep_extension.h>
 #include <oonf/generic/dlep/dlep_iana.h>

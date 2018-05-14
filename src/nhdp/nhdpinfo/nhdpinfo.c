@@ -49,9 +49,9 @@
 
 #include <oonf/libcore/oonf_logging.h>
 #include <oonf/libcore/oonf_subsystem.h>
-#include <oonf/subsystems/oonf_clock.h>
-#include <oonf/subsystems/oonf_telnet.h>
-#include <oonf/subsystems/oonf_viewer.h>
+#include <oonf/base/oonf_clock.h>
+#include <oonf/base/oonf_telnet.h>
+#include <oonf/base/oonf_viewer.h>
 
 #include <oonf/nhdp/nhdp/nhdp_db.h>
 #include <oonf/nhdp/nhdp/nhdp_domain.h>

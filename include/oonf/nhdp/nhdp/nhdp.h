@@ -50,7 +50,7 @@
 #include <oonf/libcommon/netaddr.h>
 #include <oonf/libconfig/cfg_schema.h>
 #include <oonf/libcore/oonf_subsystem.h>
-#include <oonf/subsystems/oonf_rfc5444.h>
+#include <oonf/base/oonf_rfc5444.h>
 
 /*! subsystem identifier */
 #define OONF_NHDP_SUBSYSTEM "nhdp"

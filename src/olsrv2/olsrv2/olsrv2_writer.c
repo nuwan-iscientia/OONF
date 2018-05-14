@@ -48,8 +48,8 @@
 #include <oonf/libcommon/list.h>
 #include <oonf/libcommon/netaddr.h>
 #include <oonf/libcore/oonf_logging.h>
-#include <oonf/subsystems/oonf_class.h>
-#include <oonf/subsystems/oonf_rfc5444.h>
+#include <oonf/base/oonf_class.h>
+#include <oonf/base/oonf_rfc5444.h>
 
 #include <oonf/nhdp/nhdp/nhdp_db.h>
 #include <oonf/nhdp/nhdp/nhdp_domain.h>

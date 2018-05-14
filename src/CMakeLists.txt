@@ -7,7 +7,7 @@ add_subdirectory(librfc5444)
 add_subdirectory(generic)
 add_subdirectory(nhdp)
 add_subdirectory(olsrv2)
-add_subdirectory(subsystems)
+add_subdirectory(base)
 
 if (NOT OONF_NO_TESTING)
     add_subdirectory(tests)

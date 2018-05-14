@@ -51,9 +51,9 @@
 #include <oonf/libconfig/cfg_validate.h>
 #include <oonf/libcore/oonf_logging.h>
 #include <oonf/libcore/oonf_subsystem.h>
-#include <oonf/subsystems/oonf_class.h>
-#include <oonf/subsystems/oonf_layer2.h>
-#include <oonf/subsystems/oonf_timer.h>
+#include <oonf/base/oonf_class.h>
+#include <oonf/base/oonf_layer2.h>
+#include <oonf/base/oonf_timer.h>
 
 #include <oonf/generic/layer2_config/layer2_config.h>
 

@@ -55,9 +55,9 @@ struct nhdp_interface_domaindata;
 #include <oonf/libcommon/list.h>
 #include <oonf/libcommon/netaddr.h>
 #include <oonf/libcommon/netaddr_acl.h>
-#include <oonf/subsystems/oonf_rfc5444.h>
-#include <oonf/subsystems/oonf_timer.h>
-#include <oonf/subsystems/os_interface.h>
+#include <oonf/base/oonf_rfc5444.h>
+#include <oonf/base/oonf_timer.h>
+#include <oonf/base/os_interface.h>
 
 #include <oonf/nhdp/nhdp/nhdp_db.h>
 

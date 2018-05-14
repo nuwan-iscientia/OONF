@@ -55,10 +55,10 @@
 #include <oonf/libcore/oonf_cfg.h>
 #include <oonf/libcore/oonf_logging.h>
 #include <oonf/libcore/oonf_subsystem.h>
-#include <oonf/subsystems/oonf_class.h>
-#include <oonf/subsystems/oonf_layer2.h>
-#include <oonf/subsystems/oonf_rfc5444.h>
-#include <oonf/subsystems/oonf_timer.h>
+#include <oonf/base/oonf_class.h>
+#include <oonf/base/oonf_layer2.h>
+#include <oonf/base/oonf_rfc5444.h>
+#include <oonf/base/oonf_timer.h>
 
 #include <oonf/nhdp/nhdp/nhdp.h>
 #include <oonf/nhdp/nhdp/nhdp_domain.h>

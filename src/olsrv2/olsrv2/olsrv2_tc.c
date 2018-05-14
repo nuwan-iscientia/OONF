@@ -47,9 +47,9 @@
 #include <oonf/libcommon/avl_comp.h>
 #include <oonf/oonf.h>
 #include <oonf/libcommon/netaddr.h>
-#include <oonf/subsystems/oonf_class.h>
-#include <oonf/subsystems/oonf_rfc5444.h>
-#include <oonf/subsystems/oonf_timer.h>
+#include <oonf/base/oonf_class.h>
+#include <oonf/base/oonf_rfc5444.h>
+#include <oonf/base/oonf_timer.h>
 
 #include <oonf/nhdp/nhdp/nhdp.h>
 #include <oonf/nhdp/nhdp/nhdp_domain.h>

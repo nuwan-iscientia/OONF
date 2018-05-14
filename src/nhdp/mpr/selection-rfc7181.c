@@ -55,8 +55,8 @@
 #include <oonf/libcommon/container_of.h>
 #include <oonf/libconfig/cfg_schema.h>
 #include <oonf/libcore/oonf_logging.h>
-#include <oonf/subsystems/oonf_class.h>
-#include <oonf/subsystems/oonf_rfc5444.h>
+#include <oonf/base/oonf_class.h>
+#include <oonf/base/oonf_rfc5444.h>
 
 #include <oonf/nhdp/mpr/mpr.h>
 #include <oonf/nhdp/mpr/mpr_internal.h>

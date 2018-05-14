@@ -49,9 +49,9 @@
 #include <oonf/libcommon/avl.h>
 #include <oonf/oonf.h>
 #include <oonf/libcommon/netaddr.h>
-#include <oonf/subsystems/oonf_stream_socket.h>
-#include <oonf/subsystems/oonf_timer.h>
-#include <oonf/subsystems/os_interface.h>
+#include <oonf/base/oonf_stream_socket.h>
+#include <oonf/base/oonf_timer.h>
+#include <oonf/base/os_interface.h>
 
 #include <oonf/generic/dlep/router/dlep_router_interface.h>
 

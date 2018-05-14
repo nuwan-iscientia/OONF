@@ -49,12 +49,12 @@
 #include <oonf/libconfig/cfg_schema.h>
 #include <oonf/libcore/oonf_logging.h>
 #include <oonf/libcore/oonf_subsystem.h>
-#include <oonf/subsystems/oonf_class.h>
-#include <oonf/subsystems/oonf_clock.h>
-#include <oonf/subsystems/oonf_layer2.h>
-#include <oonf/subsystems/oonf_rfc5444.h>
-#include <oonf/subsystems/oonf_timer.h>
-#include <oonf/subsystems/os_interface.h>
+#include <oonf/base/oonf_class.h>
+#include <oonf/base/oonf_clock.h>
+#include <oonf/base/oonf_layer2.h>
+#include <oonf/base/oonf_rfc5444.h>
+#include <oonf/base/oonf_timer.h>
+#include <oonf/base/os_interface.h>
 
 #include <oonf/nhdp/nhdp/nhdp_db.h>
 #include <oonf/nhdp/nhdp/nhdp_interfaces.h>

@@ -49,9 +49,9 @@
 #include <oonf/libcommon/avl.h>
 #include <oonf/oonf.h>
 #include <oonf/libcore/oonf_subsystem.h>
-#include <oonf/subsystems/oonf_packet_socket.h>
-#include <oonf/subsystems/oonf_stream_socket.h>
-#include <oonf/subsystems/oonf_timer.h>
+#include <oonf/base/oonf_packet_socket.h>
+#include <oonf/base/oonf_stream_socket.h>
+#include <oonf/base/oonf_timer.h>
 
 #include <oonf/generic/dlep/dlep_session.h>
 #include <oonf/generic/dlep/radio/dlep_radio_session.h>

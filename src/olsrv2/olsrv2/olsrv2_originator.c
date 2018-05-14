@@ -49,9 +49,9 @@
 #include <oonf/libcommon/netaddr.h>
 #include <oonf/libcommon/netaddr_acl.h>
 #include <oonf/libcore/oonf_logging.h>
-#include <oonf/subsystems/oonf_class.h>
-#include <oonf/subsystems/oonf_timer.h>
-#include <oonf/subsystems/os_interface.h>
+#include <oonf/base/oonf_class.h>
+#include <oonf/base/oonf_timer.h>
+#include <oonf/base/os_interface.h>
 
 #include <oonf/nhdp/nhdp/nhdp.h>
 

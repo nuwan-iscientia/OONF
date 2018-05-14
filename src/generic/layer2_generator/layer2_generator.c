@@ -54,9 +54,9 @@
 #include <oonf/libconfig/cfg_schema.h>
 #include <oonf/libcore/oonf_logging.h>
 #include <oonf/libcore/oonf_subsystem.h>
-#include <oonf/subsystems/oonf_clock.h>
-#include <oonf/subsystems/oonf_layer2.h>
-#include <oonf/subsystems/oonf_timer.h>
+#include <oonf/base/oonf_clock.h>
+#include <oonf/base/oonf_layer2.h>
+#include <oonf/base/oonf_timer.h>
 
 #include <oonf/generic/layer2_generator/layer2_generator.h>
 

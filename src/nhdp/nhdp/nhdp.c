@@ -53,9 +53,9 @@
 #include <oonf/nhdp/nhdp/nhdp_interfaces.h>
 #include <oonf/nhdp/nhdp/nhdp_reader.h>
 #include <oonf/nhdp/nhdp/nhdp_writer.h>
-#include <oonf/subsystems/oonf_class.h>
-#include <oonf/subsystems/oonf_rfc5444.h>
-#include <oonf/subsystems/os_interface.h>
+#include <oonf/base/oonf_class.h>
+#include <oonf/base/oonf_rfc5444.h>
+#include <oonf/base/os_interface.h>
 
 /* definitions */
 

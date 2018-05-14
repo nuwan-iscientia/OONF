@@ -54,10 +54,10 @@
 #include <oonf/oonf.h>
 #include <oonf/libconfig/cfg_schema.h>
 #include <oonf/libcore/oonf_subsystem.h>
-#include <oonf/subsystems/oonf_clock.h>
-#include <oonf/subsystems/oonf_layer2.h>
-#include <oonf/subsystems/oonf_timer.h>
-#include <oonf/subsystems/os_interface.h>
+#include <oonf/base/oonf_clock.h>
+#include <oonf/base/oonf_layer2.h>
+#include <oonf/base/oonf_timer.h>
+#include <oonf/base/os_interface.h>
 
 #include <oonf/generic/eth_listener/eth_listener.h>
 #include <oonf/generic/eth_listener/ethtool-copy.h>

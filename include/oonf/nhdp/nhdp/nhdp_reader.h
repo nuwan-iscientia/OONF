@@ -47,7 +47,7 @@
 #define NHDP_INCOMING_H_
 
 #include <oonf/oonf.h>
-#include <oonf/subsystems/oonf_rfc5444.h>
+#include <oonf/base/oonf_rfc5444.h>
 
 void nhdp_reader_init(struct oonf_rfc5444_protocol *);
 void nhdp_reader_cleanup(void);

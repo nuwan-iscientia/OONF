@@ -50,7 +50,7 @@
 #include <oonf/oonf.h>
 #include <oonf/libcommon/netaddr.h>
 
-#include <oonf/subsystems/oonf_timer.h>
+#include <oonf/base/oonf_timer.h>
 
 #include <oonf/nhdp/nhdp/nhdp.h>
 #include <oonf/nhdp/nhdp/nhdp_domain.h>

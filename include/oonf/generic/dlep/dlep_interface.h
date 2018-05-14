@@ -49,7 +49,7 @@
 #include <oonf/libcommon/avl.h>
 #include <oonf/oonf.h>
 #include <oonf/libcore/oonf_logging.h>
-#include <oonf/subsystems/oonf_packet_socket.h>
+#include <oonf/base/oonf_packet_socket.h>
 
 #define DLEP_IF_UDP_NONE_STR           "none"
 #define DLEP_IF_UDP_SINGLE_SESSION_STR "single_session"

@@ -53,10 +53,10 @@ struct dlep_writer;
 #include <oonf/libcommon/avl.h>
 #include <oonf/oonf.h>
 #include <oonf/libcommon/netaddr.h>
-#include <oonf/subsystems/oonf_layer2.h>
-#include <oonf/subsystems/oonf_stream_socket.h>
-#include <oonf/subsystems/oonf_timer.h>
-#include <oonf/subsystems/os_interface.h>
+#include <oonf/base/oonf_layer2.h>
+#include <oonf/base/oonf_stream_socket.h>
+#include <oonf/base/oonf_timer.h>
+#include <oonf/base/os_interface.h>
 
 #include <oonf/generic/dlep/dlep_extension.h>
 #include <oonf/generic/dlep/dlep_iana.h>

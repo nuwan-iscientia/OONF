@@ -47,10 +47,10 @@
 #include <oonf/libcommon/avl_comp.h>
 #include <oonf/libcommon/netaddr.h>
 
-#include <oonf/subsystems/oonf_class.h>
-#include <oonf/subsystems/oonf_packet_socket.h>
-#include <oonf/subsystems/oonf_stream_socket.h>
-#include <oonf/subsystems/oonf_timer.h>
+#include <oonf/base/oonf_class.h>
+#include <oonf/base/oonf_packet_socket.h>
+#include <oonf/base/oonf_stream_socket.h>
+#include <oonf/base/oonf_timer.h>
 
 #include <oonf/generic/dlep/dlep_extension.h>
 #include <oonf/generic/dlep/dlep_iana.h>

@@ -51,7 +51,7 @@
 #include <oonf/libcommon/list.h>
 #include <oonf/libcommon/netaddr.h>
 
-#include <oonf/subsystems/os_routing.h>
+#include <oonf/base/os_routing.h>
 
 #include <oonf/nhdp/nhdp/nhdp.h>
 #include <oonf/nhdp/nhdp/nhdp_db.h>

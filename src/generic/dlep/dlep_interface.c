@@ -46,7 +46,7 @@
 #include <oonf/libcommon/avl.h>
 #include <oonf/libcommon/avl_comp.h>
 #include <oonf/oonf.h>
-#include <oonf/subsystems/oonf_packet_socket.h>
+#include <oonf/base/oonf_packet_socket.h>
 
 #include <oonf/generic/dlep/dlep_extension.h>
 #include <oonf/generic/dlep/dlep_iana.h>

@@ -48,8 +48,8 @@
 
 #include <oonf/oonf.h>
 #include <oonf/libcommon/list.h>
-#include <oonf/subsystems/oonf_layer2.h>
-#include <oonf/subsystems/oonf_rfc5444.h>
+#include <oonf/base/oonf_layer2.h>
+#include <oonf/base/oonf_rfc5444.h>
 
 #include <oonf/nhdp/nhdp/nhdp_db.h>
 #include <oonf/nhdp/nhdp/nhdp_interfaces.h>

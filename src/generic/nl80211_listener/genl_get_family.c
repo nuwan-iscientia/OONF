@@ -79,7 +79,7 @@
 #include <netlink/msg.h>
 
 #include <oonf/oonf.h>
-#include <oonf/subsystems/os_system.h>
+#include <oonf/base/os_system.h>
 
 #include <oonf/generic/nl80211_listener/nl80211.h>
 #include <oonf/generic/nl80211_listener/genl_get_family.h>

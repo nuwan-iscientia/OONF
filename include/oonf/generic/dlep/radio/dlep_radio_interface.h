@@ -48,8 +48,8 @@
 
 #include <oonf/libcommon/avl.h>
 #include <oonf/oonf.h>
-#include <oonf/subsystems/oonf_packet_socket.h>
-#include <oonf/subsystems/oonf_stream_socket.h>
+#include <oonf/base/oonf_packet_socket.h>
+#include <oonf/base/oonf_stream_socket.h>
 
 #include <oonf/generic/dlep/dlep_interface.h>
 #include <oonf/generic/dlep/dlep_session.h>

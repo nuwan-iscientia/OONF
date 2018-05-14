@@ -54,10 +54,10 @@
 
 #include <oonf/libcore/oonf_logging.h>
 #include <oonf/libcore/oonf_subsystem.h>
-#include <oonf/subsystems/oonf_clock.h>
-#include <oonf/subsystems/oonf_layer2.h>
-#include <oonf/subsystems/oonf_telnet.h>
-#include <oonf/subsystems/oonf_viewer.h>
+#include <oonf/base/oonf_clock.h>
+#include <oonf/base/oonf_layer2.h>
+#include <oonf/base/oonf_telnet.h>
+#include <oonf/base/oonf_viewer.h>
 
 #include <oonf/generic/layer2info/layer2info.h>
 

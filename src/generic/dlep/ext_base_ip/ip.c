@@ -46,8 +46,8 @@
 #include <oonf/libcommon/autobuf.h>
 #include <oonf/libcommon/avl.h>
 #include <oonf/oonf.h>
-#include <oonf/subsystems/oonf_layer2.h>
-#include <oonf/subsystems/oonf_timer.h>
+#include <oonf/base/oonf_layer2.h>
+#include <oonf/base/oonf_timer.h>
 
 #include <oonf/generic/dlep/dlep_extension.h>
 #include <oonf/generic/dlep/dlep_iana.h>
