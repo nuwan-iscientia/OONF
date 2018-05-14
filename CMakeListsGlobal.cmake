@@ -12,7 +12,8 @@ project (OONF C)
 SET(APP_DATA_C_IN ${CMAKE_CURRENT_LIST_DIR}/src/main/app_data.c.in)
 SET(MAIN_C ${CMAKE_CURRENT_LIST_DIR}/src/main/main.c)
 SET(VERSION_CMAKE_IN ${CMAKE_CURRENT_LIST_DIR}/cmake/files/version.cmake.in)
-SET(VERSION_CMAKE_DIR ${CMAKE_CURRENT_LIST_DIR})
+SET(VERSION_SOURCE_DIR ${CMAKE_SOURCE_DIR})
+SET(VERSION_SOURCE_SUB_DIR ${CMAKE_CURRENT_LIST_DIR})
 
 #################################
 #### add include directories ####

@@ -53,6 +53,14 @@ endif(DOXYGEN_FOUND)
 #### add tarball targets ####
 #############################
 
+ADD_CUSTOM_TARGET(tar    COMMAND ${CMAKE_COMMAND}
+                                 -D SOURCE:STRING=${CMAKE_SOURCE_DIR}
+                                 -D BINARY:STRING=${PROJECT_BINARY_DIR}
+                                 -D VERSION:STRING=${VERSION}
+                                 -D FORMAT:STRING=tar
+                                 -D TARBALL:STRING=${TARBALL}
+                                 -D TARPREFIX:STRING=${TARPREFIX}
+                                 -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/generate_archive.cmake)
 ADD_CUSTOM_TARGET(targz  COMMAND ${CMAKE_COMMAND}
                                  -D SOURCE:STRING=${CMAKE_SOURCE_DIR}
                                  -D BINARY:STRING=${PROJECT_BINARY_DIR}
@@ -61,7 +69,6 @@ ADD_CUSTOM_TARGET(targz  COMMAND ${CMAKE_COMMAND}
                                  -D TARBALL:STRING=${TARBALL}
                                  -D TARPREFIX:STRING=${TARPREFIX}
                                  -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/generate_archive.cmake)
-                                
 ADD_CUSTOM_TARGET(tarbz2 COMMAND ${CMAKE_COMMAND}
                                  -D SOURCE:STRING=${CMAKE_SOURCE_DIR}
                                  -D BINARY:STRING=${PROJECT_BINARY_DIR}
