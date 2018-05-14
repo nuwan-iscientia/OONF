@@ -32,7 +32,7 @@ set (OONF_SANITIZE false CACHE BOOL
 
 set (INSTALL_LIB_DIR        lib/oonf)
 set (INSTALL_PKGCONFIG_DIR  lib/pkgconfig)
-set (INSTALL_INCLUDE_DIR    include/oonf)
+set (INSTALL_INCLUDE_DIR    include)
 set (INSTALL_CMAKE_DIR      ${DEF_INSTALL_CMAKE_DIR})
 
 ####################################

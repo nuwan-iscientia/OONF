@@ -24,7 +24,7 @@ function (oonf_create_library libname source include link_internal linkto_extern
     endif (linkto_external)
     
     install(TARGETS oonf_${libname} LIBRARY
-                                    DESTINATION lib
+                                    DESTINATION ${INSTALL_LIB_DIR}
                                     COMPONENT component_oonf_${libname})
     
     ADD_CUSTOM_TARGET(install_oonf_${libname}
