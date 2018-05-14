@@ -60,7 +60,7 @@ ADD_CUSTOM_TARGET(targz  COMMAND ${CMAKE_COMMAND}
                                  -D FORMAT:STRING=tar.gz
                                  -D TARBALL:STRING=${TARBALL}
                                  -D TARPREFIX:STRING=${TARPREFIX}
-                                 -P ${CMAKE_SOURCE_DIR}/cmake/generate_archive.cmake)
+                                 -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/generate_archive.cmake)
                                 
 ADD_CUSTOM_TARGET(tarbz2 COMMAND ${CMAKE_COMMAND}
                                  -D SOURCE:STRING=${CMAKE_SOURCE_DIR}
@@ -69,7 +69,7 @@ ADD_CUSTOM_TARGET(tarbz2 COMMAND ${CMAKE_COMMAND}
                                  -D FORMAT:STRING=tar.bz2
                                  -D TARBALL:STRING=${TARBALL}
                                  -D TARPREFIX:STRING=${TARPREFIX}
-                                 -P ${CMAKE_SOURCE_DIR}/cmake/generate_archive.cmake)
+                                 -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/generate_archive.cmake)
 ADD_CUSTOM_TARGET(zip    COMMAND ${CMAKE_COMMAND}
                                  -D SOURCE:STRING=${CMAKE_SOURCE_DIR}
                                  -D BINARY:STRING=${PROJECT_BINARY_DIR}
@@ -77,7 +77,7 @@ ADD_CUSTOM_TARGET(zip    COMMAND ${CMAKE_COMMAND}
                                  -D FORMAT:STRING=zip
                                  -D TARBALL:STRING=${TARBALL}
                                  -D TARPREFIX:STRING=${TARPREFIX}
-                                 -P ${CMAKE_SOURCE_DIR}/cmake/generate_archive.cmake)
+                                 -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/generate_archive.cmake)
 
 #########################
 #### Compile targets ####
