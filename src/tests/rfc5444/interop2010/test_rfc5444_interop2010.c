@@ -50,7 +50,7 @@
 #include <oonf/libcommon/avl.h>
 #include <oonf/libcommon/avl_comp.h>
 #include <oonf/librfc5444/rfc5444_reader.h>
-#include "test_rfc5444_interop.h"
+#include <oonf/tests/rfc5444/interop2010/test_rfc5444_interop.h>
 
 #include <oonf/cunit/cunit.h>
 

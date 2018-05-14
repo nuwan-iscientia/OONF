@@ -48,7 +48,7 @@
 #include <stdio.h>
 
 #include <oonf/oonf.h>
-#include "test_rfc5444_interop.h"
+#include <oonf/tests/rfc5444/interop2010/test_rfc5444_interop.h>
 
 static uint8_t _binary[] = { 0x08, 0x00, 0x02 };
 
