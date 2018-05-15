@@ -102,6 +102,9 @@ struct _import_entry {
   /*! helper to keep track of MAC of 'fixed' interface */
   struct os_interface_listener fixed_if_listener;
 
+  /*! layer2 interface name for all imported entries, might be empty string */
+  char fixed_l2if_name[IF_NAMESIZE];
+
   /*! tree of all configured lan import */
   struct avl_node _node;
 };
@@ -143,6 +146,8 @@ static struct cfg_schema_entry _l2_entries[] = {
     _import_entry, distance, "metric", "-1", "Metric of matching routes, 0 for all metrics", 0, -1, INT32_MAX),
   CFG_MAP_STRING_ARRAY(_import_entry, fixed_mac_if, "fixed_mac_if", "",
     "Name of interface that will be used to fill in layer2 entry MAC addresses", IF_NAMESIZE),
+  CFG_MAP_STRING_ARRAY(_import_entry, fixed_l2if_name, "fixed_l2if_name", "",
+    "Name of interface that will be used to fill in layer2 interface name", IF_NAMESIZE),
 };
 
 static struct cfg_schema_entry _lan_entries[] = {
@@ -161,8 +166,6 @@ static struct cfg_schema_entry _lan_entries[] = {
     _import_entry, protocol, "protocol", "-1", "Routing protocol of matching routes, 0 for all protocols", 0, -1, 255),
   CFG_MAP_INT32_MINMAX(
     _import_entry, distance, "metric", "-1", "Metric of matching routes, 0 for all metrics", 0, -1, INT32_MAX),
-  CFG_MAP_STRING_ARRAY(_import_entry, fixed_mac_if, "fixed_mac_if", "",
-    "Name of interface that will be used to fill in layer2 entry MAC addresses", IF_NAMESIZE),
 };
 
 static struct cfg_schema_section _lan_import_section = {
@@ -318,6 +321,7 @@ _cb_rt_event(const struct os_route *route, bool set) {
   struct oonf_layer2_neighbor_address *l2neigh_ip;
   struct oonf_layer2_neigh_key nb_key;
   const struct netaddr *gw, *dst, *mac;
+  const char *l2ifname, *macifname;
 
 #ifdef OONF_LOG_DEBUG_INFO
   struct os_route_str rbuf;
@@ -395,29 +399,41 @@ _cb_rt_event(const struct os_route *route, bool set) {
       }
     }
 
-    /* get layer2 network */
-    if (set) {
-      l2net = oonf_layer2_net_add(ifname);
+    /* see if user wants to overwrite layer2 network name */
+    if (import->fixed_l2if_name[0]) {
+      l2ifname = import->fixed_l2if_name;
     }
     else {
-      l2net = oonf_layer2_net_get(ifname);
+      l2ifname = ifname;
+    }
+
+    OONF_DEBUG(LOG_L2_IMPORT, "Write imported route to l2 interface %s (%s)", l2ifname, import->fixed_l2if_name);
+    /* get layer2 network */
+    if (set) {
+      l2net = oonf_layer2_net_add(l2ifname);
+    }
+    else {
+      l2net = oonf_layer2_net_get(l2ifname);
     }
     if (!l2net) {
-      OONF_DEBUG(LOG_L2_IMPORT, "No l2 network found");
+      OONF_DEBUG(LOG_L2_IMPORT, "No l2 network '%s' found", l2ifname);
       return;
     }
 
     mac = NULL;
+    macifname = "";
     if (import->fixed_mac_if[0]) {
       if (import->fixed_if_listener.data) {
         mac = &import->fixed_if_listener.data->mac;
+        macifname = import->fixed_if_listener.data->name;
       }
     }
     else {
       mac = &l2net->if_listener.data->mac;
+      macifname = l2net->if_listener.data->name;
     }
     if (netaddr_is_unspec(mac)) {
-      OONF_DEBUG(LOG_L2_IMPORT, "Wait for interface data to be initialized");
+      OONF_DEBUG(LOG_L2_IMPORT, "Wait for interface (%s) data to be initialized", macifname);
       if (!oonf_timer_is_active(&_route_reload_instance)) {
         oonf_timer_set(&_route_reload_instance, 1000);
       }
@@ -446,11 +462,6 @@ _cb_rt_event(const struct os_route *route, bool set) {
       return;
     }
 
-    /* make sure next hop is initialized */
-    if (!oonf_layer2_neigh_set_nexthop(l2neigh, gw)) {
-      oonf_layer2_neigh_commit(l2neigh);
-    }
-
     if (set) {
       OONF_DEBUG(LOG_L2_IMPORT, "Add lan...");
 
@@ -465,6 +476,10 @@ _cb_rt_event(const struct os_route *route, bool set) {
       if (l2neigh_ip) {
         oonf_layer2_neigh_remove_ip(l2neigh_ip, &import->l2origin);
       }
+    }
+    /* make sure next hop is initialized */
+    if (!oonf_layer2_neigh_set_nexthop(l2neigh, gw)) {
+      oonf_layer2_neigh_commit(l2neigh);
     }
   }
 }
@@ -489,7 +504,7 @@ _get_import(const char *name) {
   }
 
   /* copy key and add to tree */
-  snprintf(import->name, sizeof(import->name), LAN_ORIGIN_PREFIX "%s", name);
+  strscpy(import->name, name, sizeof(import->name));
   import->_node.key = import->name;
   avl_insert(&_import_tree, &import->_node);
 
@@ -580,6 +595,7 @@ _cb_cfg_changed(struct cfg_schema_section *section, char *section_name) {
 
   cfg_get_phy_if(import->ifname, import->ifname);
   cfg_get_phy_if(import->fixed_mac_if, import->fixed_mac_if);
+  cfg_get_phy_if(import->fixed_l2if_name, import->fixed_l2if_name);
 
   if (!import->fixed_mac_if[0]) {
     strscpy(import->fixed_mac_if, import->ifname, IF_NAMESIZE);

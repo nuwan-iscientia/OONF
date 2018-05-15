@@ -749,6 +749,8 @@ oonf_layer2_neigh_generate_lid(struct oonf_layer2_neigh_key *key,
     lid->next_id = 1;
   }
 
+  memset(key, 0, sizeof(*key));
+
   /* copy mac */
   memcpy(&key->addr, mac, sizeof(*mac));
 

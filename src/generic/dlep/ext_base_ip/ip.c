@@ -91,12 +91,21 @@ static const uint16_t _ip_tlvs[] = {
   DLEP_IPV6_SUBNET_TLV,
 };
 
+static const uint16_t _ip_duplicate_tlvs[] = {
+  DLEP_IPV4_ADDRESS_TLV,
+  DLEP_IPV4_SUBNET_TLV,
+  DLEP_IPV6_ADDRESS_TLV,
+  DLEP_IPV6_SUBNET_TLV,
+};
+
 /* supported signals of this extension */
 static struct dlep_extension_signal _signals[] = {
   {
     .id = DLEP_SESSION_INITIALIZATION_ACK,
     .supported_tlvs = _ip_tlvs,
     .supported_tlv_count = ARRAYSIZE(_ip_tlvs),
+    .duplicate_tlvs = _ip_duplicate_tlvs,
+    .duplicate_tlv_count = ARRAYSIZE(_ip_duplicate_tlvs),
     .add_radio_tlvs = _radio_write_session_update,
     .process_router = _router_process_session_update,
   },
@@ -104,6 +113,8 @@ static struct dlep_extension_signal _signals[] = {
     .id = DLEP_SESSION_UPDATE,
     .supported_tlvs = _ip_tlvs,
     .supported_tlv_count = ARRAYSIZE(_ip_tlvs),
+    .duplicate_tlvs = _ip_duplicate_tlvs,
+    .duplicate_tlv_count = ARRAYSIZE(_ip_duplicate_tlvs),
     .add_radio_tlvs = _radio_write_session_update,
     .process_router = _router_process_session_update,
   },
@@ -111,6 +122,8 @@ static struct dlep_extension_signal _signals[] = {
     .id = DLEP_DESTINATION_UP,
     .supported_tlvs = _ip_tlvs,
     .supported_tlv_count = ARRAYSIZE(_ip_tlvs),
+    .duplicate_tlvs = _ip_duplicate_tlvs,
+    .duplicate_tlv_count = ARRAYSIZE(_ip_duplicate_tlvs),
     .add_radio_tlvs = _radio_write_destination_update,
     .process_router = _router_process_destination_update,
   },
@@ -118,6 +131,8 @@ static struct dlep_extension_signal _signals[] = {
     .id = DLEP_DESTINATION_UPDATE,
     .supported_tlvs = _ip_tlvs,
     .supported_tlv_count = ARRAYSIZE(_ip_tlvs),
+    .duplicate_tlvs = _ip_duplicate_tlvs,
+    .duplicate_tlv_count = ARRAYSIZE(_ip_duplicate_tlvs),
     .add_radio_tlvs = _radio_write_destination_update,
     .process_router = _router_process_destination_update,
   },
