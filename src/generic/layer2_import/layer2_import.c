@@ -375,8 +375,8 @@ _cb_rt_event(const struct os_route *route, bool set) {
       continue;
     }
 
-    /* check protocol */
-    if (import->protocol != -1 && import->protocol != route->p.protocol) {
+    /* check protocol only for setting routes, its not reported for removing ones */
+    if (set && import->protocol != -1 && import->protocol != route->p.protocol) {
       OONF_DEBUG(LOG_L2_IMPORT, "Bad protocol %u (filter was %d)", route->p.protocol, import->protocol);
       continue;
     }
