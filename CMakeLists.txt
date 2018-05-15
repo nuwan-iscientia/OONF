@@ -1,5 +1,17 @@
-project (OONF C)
 cmake_minimum_required(VERSION 2.8.12 FATAL_ERROR)
+
+###########################
+#### API configuration ####
+###########################
+
+# set cached variables
+#include (./cmake/lib_config.cmake)
+
+# include compiler flags
+#include (./cmake/cc_flags.cmake)
+
+# include global variables
+include (./CMakeListsGlobal.cmake)
 
 ########################################################
 #### Set a default build type if none was specified ####
@@ -13,24 +25,14 @@ if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
     "MinSizeRel" "RelWithDebInfo")
 endif()
 
-###########################
-#### API configuration ####
-###########################
-
-# set cached variables
-include (./cmake/lib_config.cmake)
-
-# include compiler flags
-include (./cmake/cc_flags.cmake)
-
 ########################################
 #### get repository tag and version ####
 ########################################
 
-include (cmake/get_version.cmake)
-IF(EXISTS "${PROJECT_BINARY_DIR}/version.cmake")
-  include (${PROJECT_BINARY_DIR}/version.cmake)
-ENDIF()
+#include (cmake/get_version.cmake)
+#IF(EXISTS "${PROJECT_BINARY_DIR}/version.cmake")
+#  include (${PROJECT_BINARY_DIR}/version.cmake)
+#ENDIF()
 
 ########################
 #### Doxygen target ####
@@ -51,6 +53,14 @@ endif(DOXYGEN_FOUND)
 #### add tarball targets ####
 #############################
 
+ADD_CUSTOM_TARGET(tar    COMMAND ${CMAKE_COMMAND}
+                                 -D SOURCE:STRING=${CMAKE_SOURCE_DIR}
+                                 -D BINARY:STRING=${PROJECT_BINARY_DIR}
+                                 -D VERSION:STRING=${VERSION}
+                                 -D FORMAT:STRING=tar
+                                 -D TARBALL:STRING=${TARBALL}
+                                 -D TARPREFIX:STRING=${TARPREFIX}
+                                 -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/generate_archive.cmake)
 ADD_CUSTOM_TARGET(targz  COMMAND ${CMAKE_COMMAND}
                                  -D SOURCE:STRING=${CMAKE_SOURCE_DIR}
                                  -D BINARY:STRING=${PROJECT_BINARY_DIR}
@@ -58,8 +68,7 @@ ADD_CUSTOM_TARGET(targz  COMMAND ${CMAKE_COMMAND}
                                  -D FORMAT:STRING=tar.gz
                                  -D TARBALL:STRING=${TARBALL}
                                  -D TARPREFIX:STRING=${TARPREFIX}
-                                 -P ${CMAKE_SOURCE_DIR}/cmake/generate_archive.cmake)
-                                
+                                 -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/generate_archive.cmake)
 ADD_CUSTOM_TARGET(tarbz2 COMMAND ${CMAKE_COMMAND}
                                  -D SOURCE:STRING=${CMAKE_SOURCE_DIR}
                                  -D BINARY:STRING=${PROJECT_BINARY_DIR}
@@ -67,7 +76,7 @@ ADD_CUSTOM_TARGET(tarbz2 COMMAND ${CMAKE_COMMAND}
                                  -D FORMAT:STRING=tar.bz2
                                  -D TARBALL:STRING=${TARBALL}
                                  -D TARPREFIX:STRING=${TARPREFIX}
-                                 -P ${CMAKE_SOURCE_DIR}/cmake/generate_archive.cmake)
+                                 -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/generate_archive.cmake)
 ADD_CUSTOM_TARGET(zip    COMMAND ${CMAKE_COMMAND}
                                  -D SOURCE:STRING=${CMAKE_SOURCE_DIR}
                                  -D BINARY:STRING=${PROJECT_BINARY_DIR}
@@ -75,7 +84,7 @@ ADD_CUSTOM_TARGET(zip    COMMAND ${CMAKE_COMMAND}
                                  -D FORMAT:STRING=zip
                                  -D TARBALL:STRING=${TARBALL}
                                  -D TARPREFIX:STRING=${TARPREFIX}
-                                 -P ${CMAKE_SOURCE_DIR}/cmake/generate_archive.cmake)
+                                 -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/generate_archive.cmake)
 
 #########################
 #### Compile targets ####
@@ -88,10 +97,6 @@ add_definitions(-DBASEPATH_LENGTH=${BASELENGTH})
 # include build helper
 include (cmake/declare_library.cmake)
 
-# include files
-include_directories(${PROJECT_BINARY_DIR})
-include_directories(src-api)
-
 if (NOT OONF_NO_TESTING)
     ENABLE_TESTING()
 endif (NOT OONF_NO_TESTING)
@@ -102,11 +107,5 @@ add_custom_target(dynamic)
 add_custom_target(build_tests)
 
 # start compiling core and plugins
-add_subdirectory(src-api)
-add_subdirectory(src-plugins)
-# add_subdirectory(examples)
 add_subdirectory(src)
-
-if (NOT OONF_NO_TESTING)
-    add_subdirectory(tests)
-endif (NOT OONF_NO_TESTING)
+add_subdirectory(apps)

@@ -24,7 +24,7 @@ function (oonf_create_library libname source include link_internal linkto_extern
     endif (linkto_external)
     
     install(TARGETS oonf_${libname} LIBRARY
-                                    DESTINATION lib
+                                    DESTINATION ${INSTALL_LIB_DIR}
                                     COMPONENT component_oonf_${libname})
     
     ADD_CUSTOM_TARGET(install_oonf_${libname}
@@ -43,7 +43,7 @@ function (oonf_create_library libname source include link_internal linkto_extern
 endfunction (oonf_create_library)
 
 function (oonf_create_plugin libname source include linkto_external)
-    SET (linkto_internal oonf_core oonf_config oonf_common)
+    SET (linkto_internal oonf_libcore oonf_libconfig oonf_libcommon)
     
     oonf_create_library("${libname}" "${source}" "${include}" "${linkto_internal}" "${linkto_external}")
 endfunction (oonf_create_plugin)
