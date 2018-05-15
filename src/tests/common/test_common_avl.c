@@ -627,7 +627,7 @@ static void test_remove_all_macro(bool do_random) {
   END_TEST();
 }
 
-static void test_for_each_key_macros(void) {
+static void test_for_each_key_macro(void) {
   struct tree_element *e, *p;
   uint32_t key;
   uint32_t i;
@@ -781,6 +781,160 @@ static void test_for_each_key_macros(void) {
   END_TEST();
 }
 
+static void test_for_each_key_safe_macro1(void) {
+  struct tree_element *e, *p, *it;
+  uint32_t key;
+  uint32_t i;
+  uint32_t result[4];
+
+  START_TEST();
+  avl_init(&head, avl_comp_uint32, true);
+
+  key = 3;
+  i = 0;
+  avl_for_each_elements_with_key_safe(&head, e, node, p, it, &key) {
+    CHECK_TRUE(false, "elements returned by loop over empty tree");
+  }
+
+  /* add node with value 4 (4,4,4) */
+  nodes[3].node.key = &nodes[3].value;
+  avl_insert(&head, &nodes[3].node);
+
+  /* add first duplicate with value 4 */
+  additional_node1.value = 4;
+  additional_node1.node.key = &additional_node1.value;
+  avl_insert(&head, &additional_node1.node);
+
+  /* add second duplicate with value 4 */
+  additional_node2.value = 4;
+  additional_node2.node.key = &additional_node2.value;
+  avl_insert(&head, &additional_node2.node);
+
+  key = 4;
+  result[0] = 0;
+  result[1] = 0;
+  result[2] = 0;
+  result[3] = 0;
+
+  avl_for_each_elements_with_key_safe(&head, e, node, p, it, &key) {
+    if (e == &nodes[3]) {
+      result[0]++;
+    }
+    else if (e == &additional_node1) {
+      result[1]++;
+    }
+    else if (e == &additional_node2) {
+      result[2]++;
+    }
+    else {
+      result[3]++;
+    }
+  }
+
+  CHECK_TRUE(result[0] >= 1, "First node with key=4 not returned");
+  CHECK_TRUE(result[0] <= 1, "First node with key=4 returned multiple times");
+  CHECK_TRUE(result[1] >= 1, "First node with key=4 not returned");
+  CHECK_TRUE(result[1] <= 1, "First node with key=4 returned multiple times");
+  CHECK_TRUE(result[2] >= 1, "First node with key=4 not returned");
+  CHECK_TRUE(result[2] <= 1, "First node with key=4 returned multiple times");
+
+  CHECK_TRUE(result[3] == 0, "Unknown node returned");
+
+  /* add node with value 3 (3,4,4,4) */
+  nodes[2].node.key = &nodes[2].value;
+  avl_insert(&head, &nodes[2].node);
+
+  key = 4;
+  i = 0;
+  result[0] = 0;
+  result[1] = 0;
+  result[2] = 0;
+  result[3] = 0;
+
+  avl_for_each_elements_with_key_safe(&head, e, node, p, it, &key) {
+    if (e == &nodes[3]) {
+      result[0]++;
+    }
+    else if (e == &additional_node1) {
+      result[1]++;
+    }
+    else if (e == &additional_node2) {
+      result[2]++;
+    }
+    else {
+      result[3]++;
+    }
+  }
+
+  CHECK_TRUE(result[0] >= 1, "First node with key=4 not returned");
+  CHECK_TRUE(result[0] <= 1, "First node with key=4 returned multiple times");
+  CHECK_TRUE(result[1] >= 1, "First node with key=4 not returned");
+  CHECK_TRUE(result[1] <= 1, "First node with key=4 returned multiple times");
+  CHECK_TRUE(result[2] >= 1, "First node with key=4 not returned");
+  CHECK_TRUE(result[2] <= 1, "First node with key=4 returned multiple times");
+
+  CHECK_TRUE(result[3] == 0, "Unknown node returned");
+
+  /* add node with value 5 (3,4,4,4,5) */
+  nodes[4].node.key = &nodes[4].value;
+  avl_insert(&head, &nodes[4].node);
+
+  key = 4;
+  i = 0;
+  result[0] = 0;
+  result[1] = 0;
+  result[2] = 0;
+  result[3] = 0;
+
+  avl_for_each_elements_with_key_safe(&head, e, node, p, it, &key) {
+    if (e == &nodes[3]) {
+      result[0]++;
+    }
+    else if (e == &additional_node1) {
+      result[1]++;
+    }
+    else if (e == &additional_node2) {
+      result[2]++;
+    }
+    else {
+      result[3]++;
+    }
+  }
+
+  CHECK_TRUE(result[0] >= 1, "First node with key=4 not returned");
+  CHECK_TRUE(result[0] <= 1, "First node with key=4 returned multiple times");
+  CHECK_TRUE(result[1] >= 1, "First node with key=4 not returned");
+  CHECK_TRUE(result[1] <= 1, "First node with key=4 returned multiple times");
+  CHECK_TRUE(result[2] >= 1, "First node with key=4 not returned");
+  CHECK_TRUE(result[2] <= 1, "First node with key=4 returned multiple times");
+
+  CHECK_TRUE(result[3] == 0, "Unknown node returned");
+
+  key = 3;
+  i = 0;
+  avl_for_each_elements_with_key_safe(&head, e, node, p, it, &key) {
+    i++;
+
+    switch (i) {
+      case 1:
+        CHECK_TRUE(e == &nodes[2], "First node with key=3 not returned first");
+        break;
+      default:
+        CHECK_TRUE(false, "More than one element with key=3 returned");
+        break;
+    }
+  }
+
+  CHECK_TRUE(i>0, "Less than one nodes returned");
+
+  key = 6;
+  avl_for_each_elements_with_key_safe(&head, e, node, p, it, &key) {
+    CHECK_TRUE(false, "Element returned by loop over non-existing key");
+  }
+
+  END_TEST();
+}
+
 static int
 compare_ints (const void *a, const void *b)
 {
@@ -886,7 +1040,10 @@ int main(int argc __attribute__ ((unused)), char **argv __attribute__ ((unused))
   do_tests(false);
   do_tests(true);
   test_random_insert();
-  test_for_each_key_macros();
+  test_for_each_key_macro();
+  test_for_each_key_safe_macro1();
+
+  //TODO: test removal in for_each_key_safe
 
   return FINISH_TESTING();
 }
