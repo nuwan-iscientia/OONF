@@ -542,7 +542,7 @@ _l2_neigh_added(struct oonf_layer2_neigh *l2neigh, struct oonf_layer2_destinatio
     if (!l2dest && !radio_session->session.cfg.send_neighbors) {
       continue;
     }
-    _l2_neigh_added_to_session(&radio_if->interf.session, l2neigh, mac);
+    _l2_neigh_added_to_session(&radio_session->session, l2neigh, mac);
   }
 }
 
@@ -550,7 +550,7 @@ _l2_neigh_added(struct oonf_layer2_neigh *l2neigh, struct oonf_layer2_destinatio
  * Helper function triggered when a layer2 neighbor changed
  * @param l2neigh layer2 neighbor
  * @param l2dest layer2 destination (might be NULL)
- * @param mac MAC address of other endpoint
+ * @param mac MAC address of other endpoint (can be the key from neighbor or destination)
  */
 static void
 _l2_neigh_changed(
@@ -575,7 +575,7 @@ _l2_neigh_changed(
     local = dlep_session_add_local_neighbor(&radio_session->session, mac);
 
     if (local) {
-      memcpy(&local->neigh_key, &l2neigh->key, sizeof(local->neigh_key));
+      memcpy(&local->neigh_key, mac, sizeof(*mac));
 
       switch (local->state) {
         case DLEP_NEIGHBOR_UP_SENT:
@@ -630,13 +630,14 @@ _l2_neigh_removed(
     if (!local) {
       continue;
     }
-
+/*
     if ((l2dest && memcmp(&l2neigh->key, &local->neigh_key, sizeof(l2neigh->key)) == 0) ||
         (!l2dest && netaddr_is_unspec(&local->neigh_key.addr))) {
+*/
       dlep_session_generate_signal(&radio_session->session, DLEP_DESTINATION_DOWN, mac);
       local->state = DLEP_NEIGHBOR_DOWN_SENT;
       oonf_timer_set(&local->_ack_timeout, radio_session->session.cfg.heartbeat_interval * 2);
-    }
+//    }
   }
 }
 

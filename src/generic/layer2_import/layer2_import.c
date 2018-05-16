@@ -307,6 +307,30 @@ _cb_query(struct os_route *filter __attribute__((unused)), struct os_route *rout
 static void
 _cb_query_finished(struct os_route *route __attribute__((unused)), int error __attribute__((unused))) {}
 
+static struct oonf_layer2_neighbor_address *
+_remove_old_entries(struct oonf_layer2_net *l2net, struct _import_entry *import,
+                    const struct netaddr *route_gw, const struct netaddr *route_dst) {
+  struct oonf_layer2_neighbor_address *match, *l2n_it1, *l2n_start, *l2n_it2;
+  const struct netaddr *gw;
+  struct netaddr_str nbuf;
+
+  match = NULL;
+  OONF_DEBUG(LOG_L2_IMPORT, "route-DST: %s", netaddr_to_string(&nbuf, route_dst));
+  avl_for_each_elements_with_key_safe(&l2net->remote_neighbor_ips, l2n_it1, _net_node, l2n_start, l2n_it2, route_dst) {
+    OONF_DEBUG(LOG_L2_IMPORT, "l2n-remote: %s", netaddr_to_string(&nbuf, &l2n_it1->ip));
+    if (l2n_it1->origin == &import->l2origin) {
+      gw = oonf_layer2_neigh_get_nexthop(l2n_it1->l2neigh, netaddr_get_address_family(route_dst));
+      if (netaddr_cmp(gw, route_gw) == 0) {
+        match = l2n_it1;
+      }
+      else {
+        oonf_layer2_neigh_remove_ip(l2n_it1, &import->l2origin);
+      }
+    }
+  }
+  return match;
+}
+
 /**
  * Callback for route listener
  * @param route routing data
@@ -443,42 +467,35 @@ _cb_rt_event(const struct os_route *route, bool set) {
     dst = &route->p.key.dst;
     gw = &route->p.gw;
 
-    /* generate l2 key including LID */
-    if (oonf_layer2_neigh_generate_lid(&nb_key, &import->l2origin, mac)) {
-      OONF_DEBUG(LOG_L2_IMPORT, "Could not generate LID for MAC %s",
-          netaddr_to_string(&nbuf, mac));
-      continue;
-    }
-
+    l2neigh_ip = _remove_old_entries(l2net, import, gw, dst);
+    l2neigh = NULL;
     /* get layer2 neighbor */
-    if (set) {
+    if (set && !l2neigh_ip) {
+      /* generate l2 key including LID */
+      if (oonf_layer2_neigh_generate_lid(&nb_key, &import->l2origin, mac)) {
+        OONF_DEBUG(LOG_L2_IMPORT, "Could not generate LID for MAC %s",
+            netaddr_to_string(&nbuf, mac));
+        continue;
+      }
+
       l2neigh = oonf_layer2_neigh_add_lid(l2net, &nb_key);
-    }
-    else {
-      l2neigh = oonf_layer2_neigh_get_lid(l2net, &nb_key);
-    }
-    if (!l2neigh) {
-      OONF_DEBUG(LOG_L2_IMPORT, "No l2 neighbor found");
-      return;
-    }
+      if (!l2neigh) {
+        OONF_DEBUG(LOG_L2_IMPORT, "No l2 neighbor found");
+        return;
+      }
 
-    if (set) {
-      OONF_DEBUG(LOG_L2_IMPORT, "Add lan...");
+      OONF_DEBUG(LOG_L2_IMPORT, "Import layer2 neighbor...");
 
+      /* make sure next hop is initialized */
+      oonf_layer2_neigh_set_nexthop(l2neigh, gw);
       if (!oonf_layer2_neigh_get_remote_ip(l2neigh, dst)) {
         oonf_layer2_neigh_add_ip(l2neigh, &import->l2origin, dst);
       }
+      oonf_layer2_neigh_commit(l2neigh);
     }
-    else {
-      OONF_DEBUG(LOG_L2_IMPORT, "Remove lan...");
-
-      l2neigh_ip = oonf_layer2_neigh_get_remote_ip(l2neigh, dst);
-      if (l2neigh_ip) {
-        oonf_layer2_neigh_remove_ip(l2neigh_ip, &import->l2origin);
-      }
-    }
-    /* make sure next hop is initialized */
-    if (!oonf_layer2_neigh_set_nexthop(l2neigh, gw)) {
+    else if (!set && l2neigh_ip) {
+      l2neigh = l2neigh_ip->l2neigh;
+      oonf_layer2_neigh_remove_ip(l2neigh_ip, &import->l2origin);
       oonf_layer2_neigh_commit(l2neigh);
     }
   }
