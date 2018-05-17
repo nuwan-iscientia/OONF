@@ -321,7 +321,9 @@ _remove_old_entries(struct oonf_layer2_net *l2net, struct _import_entry *import,
                     const struct netaddr *route_gw, const struct netaddr *route_dst) {
   struct oonf_layer2_neighbor_address *match, *l2n_it1, *l2n_start, *l2n_it2;
   const struct netaddr *gw;
+#ifdef OONF_LOG_DEBUG_INFO
   struct netaddr_str nbuf;
+#endif
 
   match = NULL;
   OONF_DEBUG(LOG_L2_IMPORT, "route-DST: %s", netaddr_to_string(&nbuf, route_dst));
@@ -356,9 +358,9 @@ _cb_rt_event(const struct os_route *route, bool set) {
   const struct netaddr *gw, *dst, *mac;
   const char *l2ifname, *macifname;
 
+  struct netaddr_str nbuf;
 #ifdef OONF_LOG_DEBUG_INFO
   struct os_route_str rbuf;
-  struct netaddr_str nbuf;
 #endif
 
   if (netaddr_is_in_subnet(&NETADDR_IPV4_MULTICAST, &route->p.key.dst) ||
@@ -482,8 +484,8 @@ _cb_rt_event(const struct os_route *route, bool set) {
     if (set && !l2neigh_ip) {
       /* generate l2 key including LID */
       if (oonf_layer2_neigh_generate_lid(&nb_key, &import->l2origin, mac)) {
-        OONF_DEBUG(LOG_L2_IMPORT, "Could not generate LID for MAC %s",
-            netaddr_to_string(&nbuf, mac));
+        OONF_WARN(LOG_L2_IMPORT, "Could not generate LID for MAC %s (if %s)",
+            netaddr_to_string(&nbuf, mac), macifname);
         continue;
       }
 

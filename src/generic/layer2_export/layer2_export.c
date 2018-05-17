@@ -338,7 +338,9 @@ _get_route(struct _l2export_data *data, struct os_route_key *key) {
 */
 static void
 _destroy_route(struct _l2export_route *l2route) {
+#ifdef OONF_LOG_DEBUG_INFO
   struct os_route_str rbuf;
+#endif
 
   switch (l2route->status) {
     case ROUTE_NOTHING:
@@ -380,7 +382,9 @@ _destroy_route(struct _l2export_route *l2route) {
 static void
 _cb_route_finished(struct os_route *os_route, int error) {
   struct _l2export_route *l2route;
+#ifdef OONF_LOG_DEBUG_INFO
   struct os_route_str rbuf;
+#endif
 
   l2route = container_of(os_route, struct _l2export_route, os);
 
@@ -415,9 +419,10 @@ _cb_l2neigh_ip_added(void *ptr) {
   struct _l2export_route *l2route;
   struct os_route_key rt_key;
   int8_t af;
+#ifdef OONF_LOG_DEBUG_INFO
   struct os_route_str rbuf;
   struct netaddr_str nbuf;
-
+#endif
   os_routing_init_sourcespec_prefix(&rt_key, &nip->ip);
 
   avl_for_each_element(&_l2export_tree, l2export, _node) {
