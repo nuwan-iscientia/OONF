@@ -722,6 +722,7 @@ netaddr_from_string(struct netaddr *dst, const char *src) {
 const char *
 netaddr_socket_to_string(struct netaddr_str *dst, const union netaddr_socket *src) {
   struct netaddr_str buf;
+  static const char NONE[] = "-";
 
   if (src->std.sa_family == AF_INET) {
     snprintf(dst->buf, sizeof(*dst), "%s:%d", inet_ntop(AF_INET, &src->v4.sin_addr, buf.buf, sizeof(buf)),
@@ -738,6 +739,9 @@ netaddr_socket_to_string(struct netaddr_str *dst, const union netaddr_socket *sr
       snprintf(dst->buf, sizeof(*dst), "[%s]:%d", inet_ntop(AF_INET6, &src->v6.sin6_addr, buf.buf, sizeof(buf)),
         ntohs(src->v6.sin6_port));
     }
+  }
+  else if (src->std.sa_family == 0) {
+    strscpy(dst->buf, NONE, sizeof(*dst));
   }
   else {
     snprintf(dst->buf, sizeof(*dst), "\"Unknown socket type: %d\"", src->std.sa_family);

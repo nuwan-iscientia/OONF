@@ -128,7 +128,7 @@ dlep_session_add(struct dlep_session *session, const char *l2_ifname, const stru
   parser = &session->parser;
 
   avl_init(&parser->allowed_tlvs, avl_comp_uint16, false);
-  avl_init(&session->local_neighbor_tree, avl_comp_netaddr, false);
+  avl_init(&session->local_neighbor_tree, oonf_layer2_avlcmp_neigh_key, false);
 
   session->log_source = log_source;
   session->l2_origin = l2_origin;
@@ -578,9 +578,9 @@ _generate_signal(struct dlep_session *session, int32_t signal, const struct oonf
   struct netaddr_str nbuf2;
 #endif
 
-  OONF_DEBUG(session->log_source, "Generate signal %u for %s on %s (%s)", signal,
+  OONF_DEBUG(session->log_source, "Generate signal %u for %s on %s (0x%zx %s)", signal,
              oonf_layer2_neigh_key_to_string(&nkbuf, neighbor, true),
-             session->l2_listener.name, netaddr_socket_to_string(&nbuf2, &session->remote_socket));
+             session->l2_listener.name, (size_t)session, netaddr_socket_to_string(&nbuf2, &session->remote_socket));
 
   len = abuf_getlen(session->writer.out);
 

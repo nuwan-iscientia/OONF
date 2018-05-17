@@ -555,6 +555,29 @@ avl_is_node_added(const struct avl_node *node) {
     avl_last_element(tree, element, node_member), element, node_member, ptr)
 
 /**
+ * Loop over a block of elements of a tree with a certain key, used similar
+ * to a for() command.
+ * This loop can be used if the current element might be removed from
+ * the tree during the loop. Other elements should not be removed during
+ * the loop.
+ *
+ * @param tree pointer to avl-tree
+ * @param element pointer to a node of the tree, this element will
+ *    contain the current node of the list during the loop
+ * @param node_member name of the avl_node element inside the
+ *    larger struct
+ * @param start helper pointer to remember start of iteration
+ * @param iterator helper pointer to safe loop from element removal.
+ * @param key pointer to key
+ */
+#define avl_for_each_elements_with_key_safe(tree, element, node_member, start, iterator, key)                          \
+  for (start = element = avl_find_element(tree, key, element, node_member),                                            \
+       iterator = avl_next_element_safe(tree, element, node_member);                                                              \
+       element != NULL && &element->node_member.list != &(tree)->list_head &&                                          \
+       (element == start || element->node_member.follower);                                                            \
+       element = iterator, iterator = avl_next_element(iterator, node_member))
+
+/**
  * A special loop that removes all elements of the tree and cleans up the tree
  * root. The loop body is responsible to free the node elements of the tree.
  *

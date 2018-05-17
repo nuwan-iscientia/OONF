@@ -447,7 +447,7 @@ _cb_l2neigh_ip_added(void *ptr) {
       OONF_DEBUG(LOG_L2EXPORT, "Add route %s to fib (gw was %s)",
           os_routing_to_string(&rbuf, &l2route->os.p),
           netaddr_to_string(&nbuf, oonf_layer2_neigh_get_nexthop(nip->l2neigh, af)));
-      if (!os_routing_set(&l2route->os, true, false)) {
+      if (!os_routing_set(&l2route->os, true, true)) {
         l2route->status = ROUTE_ADDING;
       }
     }
