@@ -307,6 +307,15 @@ _cb_query(struct os_route *filter __attribute__((unused)), struct os_route *rout
 static void
 _cb_query_finished(struct os_route *route __attribute__((unused)), int error __attribute__((unused))) {}
 
+/**
+* Remove old IP entries going to the same destination but different gateway
+* and remember (if available) the one with the same gateway
+* @param l2net layer2 network to iterate over
+* @param import import data
+* @param route_gw gateway address
+* @param route_dst destination prefix
+* @return address to layer2 network address with same gateway and destination, NULL if not found
+*/
 static struct oonf_layer2_neighbor_address *
 _remove_old_entries(struct oonf_layer2_net *l2net, struct _import_entry *import,
                     const struct netaddr *route_gw, const struct netaddr *route_dst) {
@@ -551,6 +560,10 @@ _remove_import(struct _import_entry *import) {
   oonf_class_free(&_import_class, import);
 }
 
+/**
+ * Timer for reloading routes when interface data is not finished
+ * @param timer timer instance
+ */
 static void
 _cb_reload_routes(struct oonf_timer_instance *timer __attribute__((unused))) {
   /* trigger wildcard query */
@@ -560,7 +573,7 @@ _cb_reload_routes(struct oonf_timer_instance *timer __attribute__((unused))) {
 }
 
 /**
- * Configuration changed
+ * lan Configuration changed
  */
 static void
 _cb_lan_cfg_changed(void) {
@@ -570,6 +583,9 @@ _cb_lan_cfg_changed(void) {
   _cb_cfg_changed(&_lan_import_section, name);
 }
 
+/**
+ * l2import Configuration changed
+ */
 static void
 _cb_l2_cfg_changed(void) {
   char name[20];
@@ -579,7 +595,7 @@ _cb_l2_cfg_changed(void) {
 }
 
 /**
- * Configuration changed
+ * (one of two) Configuration changed
  */
 static void
 _cb_cfg_changed(struct cfg_schema_section *section, char *section_name) {
