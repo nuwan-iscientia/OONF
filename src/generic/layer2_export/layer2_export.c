@@ -219,6 +219,9 @@ _cleanup(void) {
   oonf_class_extension_remove(&_l2neighip_ext);
 }
 
+/**
+ * Initiate shutdown by clean up all routes
+ */
 static void
 _initiate_shutdown(void) {
   struct _l2export_data *mod, *mod_it;
