@@ -5,6 +5,10 @@ endif()
 
 project (OONF C)
 
+if (NOT OONF_NO_TESTING)
+    ENABLE_TESTING()
+endif (NOT OONF_NO_TESTING)
+
 #####################################
 #### set path to source for apps ####
 #####################################

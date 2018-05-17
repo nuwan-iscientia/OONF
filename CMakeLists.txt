@@ -97,10 +97,6 @@ add_definitions(-DBASEPATH_LENGTH=${BASELENGTH})
 # include build helper
 include (cmake/declare_library.cmake)
 
-if (NOT OONF_NO_TESTING)
-    ENABLE_TESTING()
-endif (NOT OONF_NO_TESTING)
-
 # define static and dynamic target
 add_custom_target(static)
 add_custom_target(dynamic)
