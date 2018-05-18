@@ -80,7 +80,7 @@ enum vif_type
  */
 struct os_vif {
   /*! name of virtual interface */
-  const char *if_name;
+  char if_name[IF_NAMESIZE];
 
   /*! type of virtual interface */
   enum vif_type type;
