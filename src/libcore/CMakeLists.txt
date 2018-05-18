@@ -34,7 +34,7 @@ ENDIF(LINUX)
 
 SET(linkto_internal oonf_libcommon oonf_libconfig)
 
-oonf_create_library("libcore" "${OONF_CORE_SRCS}" "${OONF_CORE_INCLUDES}" "${linkto_internal}" "rt")
+oonf_create_library("libcore" "${OONF_CORE_SRCS}" "${OONF_CORE_INCLUDES}" "${linkto_internal}" "${CMAKE_DL_LIBS}")
 
 # remove git commit cache entry
 UNSET (OONF_LIB_GIT CACHE)

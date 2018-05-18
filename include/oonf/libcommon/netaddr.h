@@ -270,6 +270,15 @@ netaddr_is_host(const struct netaddr *addr) {
 }
 
 /**
+ * @param addr network address
+ * @return true if address is a MAC48 multicast
+ */
+static INLINE bool
+netaddr_is_mac48_multicast(const struct netaddr *addr) {
+  return addr->_type == AF_MAC48 && ((addr->_addr[0] & 0x01) == 0x01);
+}
+
+/**
  * Converts a netaddr object into a string.
  * Prefix will be added if necessary.
  * @param dst target buffer
