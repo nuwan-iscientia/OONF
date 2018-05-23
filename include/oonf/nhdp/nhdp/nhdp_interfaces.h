@@ -79,6 +79,9 @@ struct nhdp_interface {
   struct os_interface_listener os_if_listener;
 
   /*! interval between two hellos sent through this interface */
+  uint64_t hello_interval;
+
+  /*! 'corrected' hello interval */
   uint64_t refresh_interval;
 
   /*! interval until a hello is considered lost */

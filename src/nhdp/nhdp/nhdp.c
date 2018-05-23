@@ -122,7 +122,7 @@ static struct cfg_schema_entry _interface_entries[] = {
   CFG_MAP_CLOCK_MIN(
     nhdp_interface, validity_time, "hello_validity", "20.0", "Validity time for NHDP Hello Messages", 100),
   CFG_MAP_CLOCK_MIN(
-    nhdp_interface, refresh_interval, "hello_interval", "2.0", "Time interval between two NHDP Hello Messages", 100),
+    nhdp_interface, hello_interval, "hello_interval", "2.0", "Time interval between two NHDP Hello Messages", 100),
 };
 
 static struct cfg_schema_section _interface_section = {
