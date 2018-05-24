@@ -331,6 +331,12 @@ enum oonf_layer2_neighbor_index
   /*! incoming signal in milli dBm */
   OONF_LAYER2_NEIGH_RX_SIGNAL,
 
+  /*! outgoing signal in milli dB */
+  OONF_LAYER2_NEIGH_TX_SNR,
+
+  /*! incoming signal in milli dB */
+  OONF_LAYER2_NEIGH_RX_SNR,
+
   /*! outgoing bitrate in bit/s */
   OONF_LAYER2_NEIGH_TX_BITRATE,
 

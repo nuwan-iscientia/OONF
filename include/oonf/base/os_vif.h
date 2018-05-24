@@ -80,7 +80,7 @@ enum vif_type
  */
 struct os_vif {
   /*! name of virtual interface */
-  const char *if_name;
+  char if_name[IF_NAMESIZE];
 
   /*! type of virtual interface */
   enum vif_type type;
@@ -109,6 +109,16 @@ static INLINE struct os_vif *
 os_vif_get(const char *name) {
   struct os_vif *vif;
   return avl_find_element(os_vif_get_tree(), name, vif, _vif_node);
+}
+
+/**
+ * Tests if a virtual interface has been initialized
+ * @param vif pointer to virtual interface state
+ * @return true if initialized, false otherwise
+ */
+static INLINE bool
+os_vif_is_active(struct os_vif *vif) {
+  return avl_is_node_added(&vif->_vif_node);
 }
 
 #endif /* OS_VIF_H_ */

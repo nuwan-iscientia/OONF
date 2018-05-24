@@ -90,10 +90,6 @@ ADD_CUSTOM_TARGET(zip    COMMAND ${CMAKE_COMMAND}
 #### Compile targets ####
 #########################
 
-# add define for length of base path
-string(LENGTH "${CMAKE_SOURCE_DIR}/" BASELENGTH)
-add_definitions(-DBASEPATH_LENGTH=${BASELENGTH})
-
 # include build helper
 include (cmake/declare_library.cmake)
 

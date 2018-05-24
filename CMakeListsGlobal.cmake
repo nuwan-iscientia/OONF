@@ -30,11 +30,18 @@ include_directories(${CMAKE_BINARY_DIR})
 #### API configuration ####
 ###########################
 
+# add define for length of base path
+string(LENGTH "${CMAKE_SOURCE_DIR}/" BASELENGTH)
+add_definitions(-DBASEPATH_LENGTH=${BASELENGTH})
+
 # set cached variables
 include (${CMAKE_CURRENT_LIST_DIR}/cmake/lib_config.cmake)
 
 # include compiler flags
 include (${CMAKE_CURRENT_LIST_DIR}/cmake/cc_flags.cmake)
+
+# helper for test case creation
+include (${CMAKE_CURRENT_LIST_DIR}/cmake/create_test.cmake)
 
 ########################################
 #### get repository tag and version ####

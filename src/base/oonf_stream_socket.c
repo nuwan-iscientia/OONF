@@ -536,7 +536,7 @@ _apply_managed_socket(
     return -1;
   }
 
-  if (list_is_node_added(&stream->scheduler_entry._node)) {
+  if (list_is_node_added(&stream->_node)) {
     if (memcmp(&sock, &stream->local_socket, sizeof(sock)) == 0) {
       /* nothing changed, just copy configuration */
       memcpy(&stream->config, &managed->config, sizeof(stream->config));

@@ -324,7 +324,7 @@ nhdp_interface_apply_settings(struct nhdp_interface *interf) {
   /* calculate interval and validity time */
   itime = interf->overwrite_hello_interval;
   if (!itime) {
-    itime = interf->refresh_interval;
+    itime = interf->hello_interval;
   }
   vtime = interf->overwrite_hello_validity;
   if (!vtime) {
@@ -333,6 +333,8 @@ nhdp_interface_apply_settings(struct nhdp_interface *interf) {
 
   /* reset hello generation frequency */
   oonf_timer_set(&interf->_hello_timer, itime);
+
+  interf->refresh_interval = itime;
 
   /* just copy validity_time for now */
   interf->h_hold_time = vtime;
