@@ -106,8 +106,8 @@ struct link_datff_bucket {
   /*! sum of received and lost RFC5444 packets in time interval */
   uint32_t total;
 
-  /*! link speed scaled to "minimum speed = 1" */
-  uint32_t scaled_speed;
+  /*! link speed in bit/s */
+  int64_t raw_speed;
 };
 
 /**
@@ -167,13 +167,13 @@ static void _cb_dat_sampling(struct oonf_timer_instance *);
 static void _calculate_link_neighborhood(struct nhdp_link *lnk, struct link_datff_data *ldata);
 static int _calculate_dynamic_loss_exponent(int link_neigborhood);
 
-static int _get_scaled_rx_linkspeed(struct ff_dat_if_config *ifconfig, struct nhdp_link *lnk);
-static int64_t _get_raw_rx_linkspeed(const char *ifname, struct nhdp_link *lnk);
+static int64_t _get_raw_rx_linkspeed(struct nhdp_link *lnk);
 static int _get_median_rx_linkspeed(struct link_datff_data *ldata);
 
 static int64_t _get_bitrate_cost_factor(struct link_datff_data *ldata, const char *ifname, struct netaddr *link_id);
 static int64_t _get_lossrate_cost_factor(struct ff_dat_if_config *ifconfig, struct nhdp_link *lnk,
   struct link_datff_data *ldata, uint32_t received, uint32_t total);
+static int64_t _get_throughput_cost_factor(struct nhdp_link *lnk);
 static int64_t _get_mic_cost_factor(struct ff_dat_if_config *ifconfig, struct nhdp_link *lnk,
   struct link_datff_data *ldata);
 
@@ -588,8 +588,8 @@ _get_median_rx_linkspeed(struct link_datff_data *ldata) {
 
   zero_count = 0;
   for (i = 0; i < ARRAYSIZE(ldata->buckets); i++) {
-    _rx_sort_array[i] = ldata->buckets[i].scaled_speed;
-    if (_rx_sort_array[i] == 0) {
+    _rx_sort_array[i] = ldata->buckets[i].raw_speed;
+    if (_rx_sort_array[i] <= 0) {
       zero_count++;
     }
   }
@@ -607,25 +607,28 @@ _get_median_rx_linkspeed(struct link_datff_data *ldata) {
 /**
  * Get the rx bitrate from the l2 database. Lookup by MAC address of neighbor,
  * if this fails, look up by IP address.
- * @param ifname name of interface for neighbor
  * @param lnk NHDP link instance
- * @return -1 if no data was available, rx_bitrate otherwise
+ * @return 0 if no data was available, rx_bitrate otherwise
  */
 static int64_t
-_get_raw_rx_linkspeed(const char *ifname, struct nhdp_link *lnk) {
+_get_raw_rx_linkspeed(struct nhdp_link *lnk) {
+  struct os_interface *os_if;
   struct oonf_layer2_net *l2net;
   struct oonf_layer2_neigh *l2neigh;
   const struct oonf_layer2_data *rx_bitrate_entry;
 
-  rx_bitrate_entry = oonf_layer2_neigh_query(ifname, &lnk->remote_mac, OONF_LAYER2_NEIGH_RX_BITRATE, true);
+    /* get local interface data  */
+  os_if = nhdp_interface_get_if_listener(lnk->local_if)->data;
+
+  rx_bitrate_entry = oonf_layer2_neigh_query(os_if->name, &lnk->remote_mac, OONF_LAYER2_NEIGH_RX_BITRATE, true);
   if (rx_bitrate_entry) {
     return oonf_layer2_data_get_int64(rx_bitrate_entry, 1, 0);
   }
 
-  l2net = oonf_layer2_net_get(ifname);
+  l2net = oonf_layer2_net_get(os_if->name);
   if (!l2net) {
     /* no layer2 data available for this interface */
-    return -1;
+    return 0;
   }
 
   /* search for an entry in the l2 database which reports the remote link IP */
@@ -633,43 +636,21 @@ _get_raw_rx_linkspeed(const char *ifname, struct nhdp_link *lnk) {
     if (oonf_layer2_neigh_get_remote_ip(l2neigh, &lnk->if_addr)) {
       rx_bitrate_entry = &l2neigh->data[OONF_LAYER2_NEIGH_RX_BITRATE];
       if (oonf_layer2_data_has_value(rx_bitrate_entry)) {
-        return oonf_layer2_data_get_int64(rx_bitrate_entry, 1, 0);
+        return oonf_layer2_data_get_int64(rx_bitrate_entry, 1, 1);
       }
     }
   }
 
   /* no data available */
-  return -1;
+  return 0;
 }
 
-/**
- * Retrieves the speed of a nhdp link, scaled to the minimum link speed
- * of this metric.
- * @param lnk nhdp link
- * @return scaled link speed, 1 if could not be retrieved.
- */
-static int
-_get_scaled_rx_linkspeed(struct ff_dat_if_config *ifconfig, struct nhdp_link *lnk) {
-  struct os_interface *os_if;
-  int64_t raw_rx_rate, rx_rate;
+static int64_t
+_scale_linkspeed(struct nhdp_link *lnk, int64_t raw_rx_rate) {
 #ifdef OONF_LOG_INFO
   struct netaddr_str nbuf;
 #endif
-
-  if (!ifconfig->ett) {
-    /* ETT feature is switched off */
-    return 1;
-  }
-
-  /* get local interface data  */
-  os_if = nhdp_interface_get_if_listener(lnk->local_if)->data;
-
-  raw_rx_rate = _get_raw_rx_linkspeed(os_if->name, lnk);
-  if (raw_rx_rate < 0) {
-    OONF_INFO(LOG_FF_DAT, "Datarate for link %s (%s) not available", netaddr_to_string(&nbuf, &lnk->if_addr),
-      nhdp_interface_get_name(lnk->local_if));
-    return 1;
-  }
+  int64_t rx_rate;
 
   /* round up */
   rx_rate = raw_rx_rate / DATFF_LINKSPEED_MINIMUM;
@@ -696,7 +677,7 @@ _get_bitrate_cost_factor(struct link_datff_data *ldata, const char *ifname, stru
   struct netaddr_str nbuf;
 
   /* get median scaled link speed and apply it to metric */
-  rx_bitrate = _get_median_rx_linkspeed(ldata);
+  rx_bitrate = _scale_linkspeed(ldata->nhdp_link, _get_median_rx_linkspeed(ldata));
   if (rx_bitrate > DATFF_LINKSPEED_RANGE) {
     OONF_WARN(LOG_FF_DAT, "Metric overflow for link %s (if %s): %d", netaddr_to_string(&nbuf, link_id),
       ifname, rx_bitrate);
@@ -813,6 +794,27 @@ _get_lossrate_cost_factor(struct ff_dat_if_config *ifconfig, struct nhdp_link *l
 }
 
 static int64_t
+_get_throughput_cost_factor(struct nhdp_link *lnk) {
+  struct oonf_layer2_data *rx_throughput_entry;
+  int64_t scaled_rx_throughput;
+
+  rx_throughput_entry = oonf_layer2_neigh_query(nhdp_interface_get_name(lnk->local_if),
+    &lnk->remote_mac, OONF_LAYER2_NEIGH_RX_THROUGHPUT, false);
+  if (rx_throughput_entry && oonf_layer2_data_get_origin(rx_throughput_entry) != &_ffdat_origin) {
+    scaled_rx_throughput = _scale_linkspeed(lnk, oonf_layer2_data_get_int64(rx_throughput_entry, 1, 0));
+    return (1000ll * DATFF_LINKSPEED_RANGE) / scaled_rx_throughput;
+  }
+  else {
+    rx_throughput_entry = oonf_layer2_neigh_add_path(nhdp_interface_get_name(lnk->local_if),
+        &lnk->remote_mac, OONF_LAYER2_NEIGH_RX_THROUGHPUT);
+    if (rx_throughput_entry) {
+      // TODO: combine loss_cost? and bitrate for calculating throughput
+    }
+    return 0;
+  }
+}
+
+static int64_t
 _get_mic_cost_factor(struct ff_dat_if_config *ifconfig, struct nhdp_link *lnk,
   struct link_datff_data *ldata) {
   if (ifconfig->mic && ldata->link_neigborhood > 1) {
@@ -862,7 +864,7 @@ _cb_dat_sampling(struct oonf_timer_instance *ptr) {
   struct nhdp_interface *nhdp_if;
   struct nhdp_link *lnk;
   uint32_t total, received;
-  uint64_t bitrate_cost, loss_cost, mic_cost, dat_metric;
+  uint64_t bitrate_cost, loss_cost, mic_cost, throughput_cost, dat_metric;
   uint32_t metric_value;
   uint32_t missing_intervals;
   size_t i;
@@ -903,17 +905,25 @@ _cb_dat_sampling(struct oonf_timer_instance *ptr) {
     }
 
     /* update link speed */
-    ldata->buckets[ldata->activePtr].scaled_speed = _get_scaled_rx_linkspeed(ifconfig, lnk);
+    ldata->buckets[ldata->activePtr].raw_speed = _get_raw_rx_linkspeed(lnk);
 
-    OONF_DEBUG(LOG_FF_DAT, "Query incoming linkspeed for link %s: %" PRIu64, netaddr_to_string(&nbuf, &lnk->if_addr),
-      (uint64_t)(ldata->buckets[ldata->activePtr].scaled_speed) * DATFF_LINKSPEED_MINIMUM);
+    OONF_DEBUG(LOG_FF_DAT, "Query incoming linkspeed for link %s: %" PRId64, netaddr_to_string(&nbuf, &lnk->if_addr),
+      ldata->buckets[ldata->activePtr].raw_speed);
 
     /* calculate cost components of metric */
     bitrate_cost = _get_bitrate_cost_factor(ldata, nhdp_interface_get_name(lnk->local_if), &lnk->if_addr);
     loss_cost = _get_lossrate_cost_factor(ifconfig, lnk, ldata, received, total);
+    throughput_cost = _get_throughput_cost_factor(lnk);
+    if (throughput_cost) {
+      throughput_cost += (bitrate_cost * loss_cost / 1000ll);
+      throughput_cost /= 2;
+    }
+    else {
+      throughput_cost = (bitrate_cost * loss_cost / 1000ll);
+    }
     mic_cost = _get_mic_cost_factor(ifconfig, lnk, ldata);
 
-    dat_metric = (bitrate_cost * loss_cost * mic_cost) / 1000000000ll;
+    dat_metric = (throughput_cost * mic_cost) / 1000000ll;
 
     /* shape metric into transmittable format */
     metric_value = _shape_metric(dat_metric, nhdp_interface_get_name(lnk->local_if), &lnk->if_addr);
@@ -1084,8 +1094,10 @@ _cb_process_packet(struct rfc5444_reader_tlvblock_context *context) {
   }
 
   /* log raw metric data */
-  OONF_DEBUG(LOG_FF_DAT_RAW, "%s %s %u %d\n", oonf_clock_toIntervalString(&timebuf, oonf_clock_getNow()),
-    netaddr_to_string(&nbuf, &laddr->link_addr), context->pkt_seqno, _get_scaled_rx_linkspeed(ifconfig, laddr->link));
+  OONF_DEBUG(LOG_FF_DAT_RAW, "%s %s %u %"PRId64"\n",
+             oonf_clock_toIntervalString(&timebuf, oonf_clock_getNow()),
+              netaddr_to_string(&nbuf, &laddr->link_addr), context->pkt_seqno,
+             _get_raw_rx_linkspeed(laddr->link));
 
   /* get link and its dat data */
   lnk = laddr->link;
@@ -1201,8 +1213,8 @@ _int_link_to_string(struct nhdp_metric_str *buf, struct nhdp_link *lnk) {
 
   snprintf(buf->buf, sizeof(*buf),
     "p_recv=%" PRId64 ",p_total=%" PRId64 ","
-    "speed=%" PRId64 ",success=%" PRId64 ",missed_hello=%d,lastseq=%u,lneigh=%d",
-    received, total, (int64_t)_get_median_rx_linkspeed(ldata) * (int64_t)1024, ldata->last_packet_loss_rate,
+    "speed=%d,success=%" PRId64 ",missed_hello=%d,lastseq=%u,lneigh=%d",
+    received, total, _get_median_rx_linkspeed(ldata), ldata->last_packet_loss_rate,
     ldata->missed_hellos, ldata->last_seq_nr, ldata->link_neigborhood);
   return buf->buf;
 }
