@@ -1316,6 +1316,9 @@ struct cfg_schema_token_customizer {
    * @param out buffer for help text output
    */
   void (*cb_valhelp)(const struct cfg_schema_entry *entry, struct autobuf *out);
+
+  /*! number of optional arguments at the end of the chain of tokens */
+  uint32_t optional;
 };
 
 /*! List of strings that are considered valid boolean options */

@@ -156,9 +156,11 @@ enum {
 enum oonf_layer2_origin_priority
 {
   OONF_LAYER2_ORIGIN_UNKNOWN = 0,
-  OONF_LAYER2_ORIGIN_UNRELIABLE = 10,
-  OONF_LAYER2_ORIGIN_CONFIGURED = 20,
-  OONF_LAYER2_ORIGIN_RELIABLE = 30,
+  OONF_LAYER2_ORIGIN_DEFAULT = 10,
+  OONF_LAYER2_ORIGIN_UNRELIABLE = 20,
+  OONF_LAYER2_ORIGIN_CONFIGURED = 30,
+  OONF_LAYER2_ORIGIN_RELIABLE = 40,
+  OONF_LAYER2_ORIGIN_OVERWRITE = 50,
 };
 
 /**
@@ -185,7 +187,6 @@ struct oonf_layer2_origin {
 
 enum oonf_layer2_data_type
 {
-  OONF_LAYER2_NO_DATA,
   OONF_LAYER2_INTEGER_DATA,
   OONF_LAYER2_BOOLEAN_DATA,
   OONF_LAYER2_NETWORK_DATA,
@@ -197,20 +198,6 @@ union oonf_layer2_value {
   int64_t integer;
   bool boolean;
   struct netaddr addr;
-};
-
-/**
- * Single data entry of layer2 network or neighbor
- */
-struct oonf_layer2_data {
-  /*! data value */
-  union oonf_layer2_value _value;
-
-  /*! type of data contained in this element */
-  enum oonf_layer2_data_type _type;
-
-  /*! layer2 originator id */
-  const struct oonf_layer2_origin *_origin;
 };
 
 /**
@@ -226,8 +213,22 @@ struct oonf_layer2_metadata {
   /*! unit (bit/s, byte, ...) */
   const char unit[8];
 
-  /*! number of fractional digits of the data */
-  const int fraction;
+  /*! scaling factor for  */
+  const uint64_t scaling;
+};
+
+/**
+ * Single data entry of layer2 network or neighbor
+ */
+struct oonf_layer2_data {
+  /*! data value */
+  union oonf_layer2_value _value;
+
+  /*! metadata corresponding to this data */
+  const struct oonf_layer2_metadata *_meta;
+
+  /*! layer2 originator id */
+  const struct oonf_layer2_origin *_origin;
 };
 
 /**
@@ -588,12 +589,14 @@ EXPORT int oonf_layer2_data_parse_string(
 EXPORT const char *oonf_layer2_data_to_string(
   char *buffer, size_t length, const struct oonf_layer2_data *data, const struct oonf_layer2_metadata *meta, bool raw);
 EXPORT bool oonf_layer2_data_set(struct oonf_layer2_data *data, const struct oonf_layer2_origin *origin,
-  enum oonf_layer2_data_type type, const union oonf_layer2_value *input);
+  const struct oonf_layer2_metadata *meta, const union oonf_layer2_value *input);
+EXPORT bool oonf_layer2_data_set_int64(struct oonf_layer2_data *l2data, const struct oonf_layer2_origin *origin,
+  const struct oonf_layer2_metadata *meta, int64_t integer, uint64_t scaling);
 EXPORT bool oonf_layer2_data_compare(const union oonf_layer2_value *left, const union oonf_layer2_value *right,
   enum oonf_layer2_data_comparator_type comparator, enum oonf_layer2_data_type data_type);
 EXPORT enum oonf_layer2_data_comparator_type oonf_layer2_data_get_comparator(const char *);
 EXPORT const char *oonf_layer2_data_get_comparator_string(enum oonf_layer2_data_comparator_type type);
-EXPORT const char *oonf_layer2_data_get_type_string(enum oonf_layer2_data_type type);
+EXPORT const char *oonf_layer2_data_get_type_string(const struct oonf_layer2_metadata *meta);
 
 EXPORT struct oonf_layer2_net *oonf_layer2_net_add(const char *ifname);
 EXPORT bool oonf_layer2_net_remove(struct oonf_layer2_net *, const struct oonf_layer2_origin *origin);
@@ -796,7 +799,7 @@ oonf_layer2_destination_get(const struct oonf_layer2_neigh *l2neigh, const struc
  */
 static INLINE bool
 oonf_layer2_data_has_value(const struct oonf_layer2_data *l2data) {
-  return l2data->_type != OONF_LAYER2_NO_DATA;
+  return l2data->_origin != NULL && l2data->_meta != NULL;
 }
 
 /**
@@ -805,47 +808,45 @@ oonf_layer2_data_has_value(const struct oonf_layer2_data *l2data) {
  */
 static INLINE enum oonf_layer2_data_type
 oonf_layer2_data_get_type(const struct oonf_layer2_data *l2data) {
-  return l2data->_type;
-}
-
-/**
- * @param l2data layer-2 data object
- * @param def default value to return
- * @return value of data object, default value if not net
- */
-static INLINE int64_t
-oonf_layer2_data_get_int64(const struct oonf_layer2_data *l2data, int64_t def) {
-  if (l2data->_type != OONF_LAYER2_INTEGER_DATA) {
-    return def;
-  }
-  return l2data->_value.integer;
-}
-
-/**
- * @param l2data layer-2 data object
- * @param def default value to return
- * @return value of data object, default value if not net
- */
-static INLINE bool
-oonf_layer2_data_get_boolean(const struct oonf_layer2_data *l2data, bool def) {
-  if (l2data->_type != OONF_LAYER2_BOOLEAN_DATA) {
-    return def;
-  }
-  return l2data->_value.boolean;
+  return l2data->_meta->type;
 }
 
 /**
  * @param buffer pointer to int64 data storage
  * @param l2data layer-2 data object
+ * @param scale scaling factor of the decimal point, 0 to keep data scaling
  * @return 0 if value was read, -1 if it was the wrong type
  */
 static INLINE int
-oonf_layer2_data_read_int64(int64_t *buffer, const struct oonf_layer2_data *l2data) {
-  if (l2data->_type != OONF_LAYER2_INTEGER_DATA) {
+oonf_layer2_data_read_int64(int64_t *buffer, const struct oonf_layer2_data *l2data, uint64_t scale) {
+  if (!oonf_layer2_data_has_value(l2data)
+      || oonf_layer2_data_get_type(l2data) != OONF_LAYER2_INTEGER_DATA) {
     return -1;
   }
-  *buffer = l2data->_value.integer;
+  if (!scale) {
+    scale = l2data->_meta->scaling;
+  }
+  if (scale > l2data->_meta->scaling) {
+    *buffer =  l2data->_value.integer * (scale / l2data->_meta->scaling);
+  }
+  else {
+    *buffer = l2data->_value.integer / (l2data->_meta->scaling / scale);
+  }
   return 0;
+}
+
+/**
+ * @param l2data layer-2 data object
+ * @param scale scaling factor of the decimal point
+ * @param def default value to return
+ * @return value of data object, default value if not net
+ */
+static INLINE int64_t
+oonf_layer2_data_get_int64(const struct oonf_layer2_data *l2data, uint64_t scale, int64_t def) {
+  int64_t result = def;
+
+  oonf_layer2_data_read_int64(&result, l2data, scale);
+  return result;
 }
 
 /**
@@ -855,11 +856,24 @@ oonf_layer2_data_read_int64(int64_t *buffer, const struct oonf_layer2_data *l2da
  */
 static INLINE int
 oonf_layer2_data_read_boolean(bool *buffer, const struct oonf_layer2_data *l2data) {
-  if (l2data->_type != OONF_LAYER2_BOOLEAN_DATA) {
+  if (!l2data->_meta ||  oonf_layer2_data_get_type(l2data) != OONF_LAYER2_BOOLEAN_DATA) {
     return -1;
   }
   *buffer = l2data->_value.boolean;
   return 0;
+}
+
+/**
+ * @param l2data layer-2 data object
+ * @param def default value to return
+ * @return value of data object, default value if not net
+ */
+static INLINE bool
+oonf_layer2_data_get_boolean(const struct oonf_layer2_data *l2data, bool def) {
+  bool result = def;
+
+  oonf_layer2_data_read_boolean(&result, l2data);
+  return result;
 }
 
 /**
@@ -889,7 +903,7 @@ oonf_layer2_data_from_string(struct oonf_layer2_data *data, const struct oonf_la
   if (oonf_layer2_data_parse_string(&value, meta, input)) {
     return false;
   }
-  return oonf_layer2_data_set(data, origin, meta->type, &value);
+  return oonf_layer2_data_set(data, origin, meta, &value);
 }
 
 static INLINE const char *
@@ -908,29 +922,16 @@ oonf_layer2_neigh_data_to_string(
  * Set the value of a layer-2 data object
  * @param l2data layer-2 data object
  * @param origin originator of value
- * @param integer new value for data object
- * @return true if value was overwrite, false otherwise
- */
-static INLINE bool
-oonf_layer2_data_set_int64(struct oonf_layer2_data *l2data, const struct oonf_layer2_origin *origin, int64_t integer) {
-  union oonf_layer2_value value = { 0 };
-  value.integer = integer;
-
-  return oonf_layer2_data_set(l2data, origin, OONF_LAYER2_INTEGER_DATA, &value);
-}
-
-/**
- * Set the value of a layer-2 data object
- * @param l2data layer-2 data object
- * @param origin originator of value
+ * @param meta layer2 metadata, NULL for same metadata as l2data object
  * @param boolean new value for data object
  * @return true if value was overwrite, false otherwise
  */
 static INLINE bool
-oonf_layer2_data_set_bool(struct oonf_layer2_data *l2data, const struct oonf_layer2_origin *origin, bool boolean) {
+oonf_layer2_data_set_bool(struct oonf_layer2_data *l2data, const struct oonf_layer2_origin *origin,
+    const struct oonf_layer2_metadata *meta, bool boolean) {
   union oonf_layer2_value value = { 0 };
   value.boolean = boolean;
-  return oonf_layer2_data_set(l2data, origin, OONF_LAYER2_BOOLEAN_DATA, &value);
+  return oonf_layer2_data_set(l2data, origin, meta, &value);
 }
 
 static INLINE int
@@ -951,7 +952,7 @@ oonf_layer2_neigh_data_from_string(struct oonf_layer2_data *data, enum oonf_laye
  */
 static INLINE void
 oonf_layer2_data_reset(struct oonf_layer2_data *l2data) {
-  l2data->_type = OONF_LAYER2_NO_DATA;
+  l2data->_meta = NULL;
   l2data->_origin = NULL;
 }
 

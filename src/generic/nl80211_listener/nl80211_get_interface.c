@@ -168,10 +168,10 @@ nl80211_process_get_interface_result(struct nl80211_if *interf, struct nlmsghdr 
     freq[0] *= 1000000ull;
     freq[1] *= 1000000ull;
 
-    interf->ifdata_changed |= nl80211_change_l2net_data(interf->l2net, OONF_LAYER2_NET_FREQUENCY_1, freq[0]);
-    interf->ifdata_changed |= nl80211_change_l2net_data(interf->l2net, OONF_LAYER2_NET_FREQUENCY_2, freq[1]);
-    interf->ifdata_changed |= nl80211_change_l2net_data(interf->l2net, OONF_LAYER2_NET_BANDWIDTH_1, bandwidth[0]);
-    interf->ifdata_changed |= nl80211_change_l2net_data(interf->l2net, OONF_LAYER2_NET_BANDWIDTH_2, bandwidth[1]);
+    interf->ifdata_changed |= nl80211_change_l2net_data(interf->l2net, OONF_LAYER2_NET_FREQUENCY_1, freq[0], 1);
+    interf->ifdata_changed |= nl80211_change_l2net_data(interf->l2net, OONF_LAYER2_NET_FREQUENCY_2, freq[1], 1);
+    interf->ifdata_changed |= nl80211_change_l2net_data(interf->l2net, OONF_LAYER2_NET_BANDWIDTH_1, bandwidth[0], 1);
+    interf->ifdata_changed |= nl80211_change_l2net_data(interf->l2net, OONF_LAYER2_NET_BANDWIDTH_2, bandwidth[1], 1);
 
     if (bandwidth[0] > 0 && nl80211_create_broadcast_neighbor()) {
       /* calculate multicast rate */
@@ -179,7 +179,7 @@ nl80211_process_get_interface_result(struct nl80211_if *interf, struct nlmsghdr 
 
       l2neigh = oonf_layer2_neigh_add(interf->l2net, &NETADDR_MAC48_BROADCAST);
       if (l2neigh) {
-        nl80211_change_l2neigh_data(l2neigh, OONF_LAYER2_NEIGH_TX_BITRATE, mc_rate);
+        nl80211_change_l2neigh_data(l2neigh, OONF_LAYER2_NEIGH_TX_BITRATE, mc_rate, 1);
       }
     }
   }

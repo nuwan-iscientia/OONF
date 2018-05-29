@@ -171,6 +171,9 @@ struct dlep_neighbor_mapping {
   /*! binary length of tlv */
   uint16_t length;
 
+  /* fixed integer arithmetics scaling factor */
+  uint64_t scaling;
+
   /*! layer2 neighbor id */
   enum oonf_layer2_neighbor_index layer2;
 
@@ -186,10 +189,11 @@ struct dlep_neighbor_mapping {
    * @param meta metadata description for data
    * @param session dlep session
    * @param tlv tlv id
+   * @param scaling fixed integer arithmetics scaling factor
    * @return -1 if an error happened, 0 otherwise
    */
   int (*from_tlv)(struct oonf_layer2_data *l2data, const struct oonf_layer2_metadata *meta,
-    struct dlep_session *session, uint16_t tlv);
+    struct dlep_session *session, uint16_t tlv, uint64_t scaling);
 
   /**
    * callback to transform layer2 data into a DLEP tlv
@@ -198,10 +202,11 @@ struct dlep_neighbor_mapping {
    * @param meta metadata description for data
    * @param tlv tlv id
    * @param length tlv length
+   * @param scaling fixed integer arithmetics scaling factor
    * @return -1 if an error happened, 0 otherwise
    */
   int (*to_tlv)(struct dlep_writer *writer, struct oonf_layer2_data *l2data, const struct oonf_layer2_metadata *meta,
-    uint16_t tlv, uint16_t length);
+    uint16_t tlv, uint16_t length, uint64_t scaling);
 };
 
 /**
@@ -214,6 +219,9 @@ struct dlep_network_mapping {
 
   /*! binary length of tlv */
   uint16_t length;
+
+  /* fixed integer arithmetics scaling factor */
+  uint64_t scaling;
 
   /*! layer2 network index */
   enum oonf_layer2_network_index layer2;
@@ -230,10 +238,11 @@ struct dlep_network_mapping {
    * @param meta metadata description for data
    * @param session dlep session
    * @param tlv tlv id
+   * @param scaling fixed integer arithmetics scaling factor
    * @return -1 if an error happened, 0 otherwise
    */
   int (*from_tlv)(struct oonf_layer2_data *l2data, const struct oonf_layer2_metadata *meta,
-    struct dlep_session *session, uint16_t tlv);
+    struct dlep_session *session, uint16_t tlv, uint64_t scaling);
 
   /**
    * callback to transform layer2 data into a DLEP tlv
@@ -242,10 +251,11 @@ struct dlep_network_mapping {
    * @param meta metadata description for data
    * @param tlv tlv id
    * @param length tlv length
+   * @param scaling fixed integer arithmetics scaling factor
    * @return -1 if an error happened, 0 otherwise
    */
   int (*to_tlv)(struct dlep_writer *writer, struct oonf_layer2_data *l2data, const struct oonf_layer2_metadata *meta,
-    uint16_t tlv, uint16_t length);
+    uint16_t tlv, uint16_t length, uint64_t scaling);
 };
 
 /**

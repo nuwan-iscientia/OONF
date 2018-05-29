@@ -305,8 +305,9 @@ static struct oonf_timer_class _hello_lost_info = {
 
 /* layer2 originator for BC loss */
 static struct oonf_layer2_origin _ffdat_origin = {
-  .name = "ffdat bc loss",
+  .name = "ffdat measured data",
   .proactive = true,
+  /* not as reliable as we would like because we are measuring the broadcast loss */
   .priority = OONF_LAYER2_ORIGIN_RELIABLE - 1,
 };
 
@@ -614,7 +615,7 @@ _get_raw_rx_linkspeed(const char *ifname, struct nhdp_link *lnk) {
 
   rx_bitrate_entry = oonf_layer2_neigh_query(ifname, &lnk->remote_mac, OONF_LAYER2_NEIGH_RX_BITRATE, true);
   if (rx_bitrate_entry) {
-    return oonf_layer2_data_get_int64(rx_bitrate_entry, 0);
+    return oonf_layer2_data_get_int64(rx_bitrate_entry, 1, 0);
   }
 
   l2net = oonf_layer2_net_get(ifname);
@@ -628,7 +629,7 @@ _get_raw_rx_linkspeed(const char *ifname, struct nhdp_link *lnk) {
     if (oonf_layer2_neigh_get_remote_ip(l2neigh, &lnk->if_addr)) {
       rx_bitrate_entry = &l2neigh->data[OONF_LAYER2_NEIGH_RX_BITRATE];
       if (oonf_layer2_data_has_value(rx_bitrate_entry)) {
-        return oonf_layer2_data_get_int64(rx_bitrate_entry, 0);
+        return oonf_layer2_data_get_int64(rx_bitrate_entry, 1, 0);
       }
     }
   }
@@ -869,56 +870,69 @@ _calculate_dynamic_loss_exponent(int link_neigborhood) {
 static uint32_t
 _apply_packet_loss(struct ff_dat_if_config *ifconfig, struct nhdp_link *lnk, struct link_datff_data *ldata,
     uint32_t metric, uint32_t received, uint32_t total) {
-  struct oonf_layer2_data *rx_bc_loss_entry;
-  int64_t success1_scaled_by_1000, success2_scaled_by_1000, success_scaled_by_1000;
-  int loss_exponent;
+  struct oonf_layer2_data *rx_bc_loss_entry, *rx_rlq_entry;
+  int64_t success_scaled_by_8000, probed_bc_loss_by_8000;
+  int loss_exponent, success_datapoint_count;
   int64_t tmp_metric;
 
+  success_datapoint_count = 0;
+  success_scaled_by_8000 = 0ll;
+  probed_bc_loss_by_8000 = 0ll;
+
   /* success based on received multicast frames */
-  if (total == 0 || received * DATFF_FRAME_SUCCESS_RANGE <= total) {
-    success1_scaled_by_1000 = 0ll;
-  }
-  else {
-    success1_scaled_by_1000 = (((int64_t)DATFF_FRAME_SUCCESS_RANGE * 1000ll) * received) / total;
+  if (total != 0 && received * DATFF_FRAME_SUCCESS_RANGE > total) {
+    probed_bc_loss_by_8000 = (((int64_t)DATFF_FRAME_SUCCESS_RANGE * 1000ll) * received) / total;
+    success_scaled_by_8000 += probed_bc_loss_by_8000;
+    success_datapoint_count++;
   }
 
   /* success based on layer2 broadcast loss */
   rx_bc_loss_entry = oonf_layer2_neigh_query(nhdp_interface_get_name(lnk->local_if),
     &lnk->remote_mac, OONF_LAYER2_NEIGH_RX_BC_LOSS, false);
   if (rx_bc_loss_entry && oonf_layer2_data_get_origin(rx_bc_loss_entry) != &_ffdat_origin) {
-    success2_scaled_by_1000 = 1000 - oonf_layer2_data_get_int64(rx_bc_loss_entry, 0);
+    success_scaled_by_8000 += (8000ll - oonf_layer2_data_get_int64(rx_bc_loss_entry, 8000, 0));
+    success_datapoint_count++;
   }
-  else {
-    if (success1_scaled_by_1000 > 0) {
-      rx_bc_loss_entry = oonf_layer2_neigh_add_path(nhdp_interface_get_name(lnk->local_if),
-          &lnk->remote_mac, OONF_LAYER2_NEIGH_RX_BC_LOSS);
-      if (rx_bc_loss_entry) {
-        oonf_layer2_data_set_int64(rx_bc_loss_entry, &_ffdat_origin, 1000 - success1_scaled_by_1000);
-      }
+  else if (probed_bc_loss_by_8000 > 0) {
+    rx_bc_loss_entry = oonf_layer2_neigh_add_path(nhdp_interface_get_name(lnk->local_if),
+        &lnk->remote_mac, OONF_LAYER2_NEIGH_RX_BC_LOSS);
+    if (rx_bc_loss_entry) {
+      oonf_layer2_data_set_int64(rx_bc_loss_entry, &_ffdat_origin, NULL, 8000ll - probed_bc_loss_by_8000, 8000);
     }
-    success2_scaled_by_1000 = 0ll;
   }
 
-  /* calculate mean success if necessary */
-  success_scaled_by_1000 = success1_scaled_by_1000 + success2_scaled_by_1000;
-  if (success1_scaled_by_1000 > 0 && success2_scaled_by_1000 > 0) {
-    success_scaled_by_1000 = success_scaled_by_1000 / 2;
+  /* RLQ handling */
+  rx_rlq_entry = oonf_layer2_neigh_query(nhdp_interface_get_name(lnk->local_if),
+    &lnk->remote_mac, OONF_LAYER2_NEIGH_RX_RLQ, false);
+  if (rx_rlq_entry && oonf_layer2_data_get_origin(rx_rlq_entry) != &_ffdat_origin) {
+    success_scaled_by_8000 += 80ll * oonf_layer2_data_get_int64(rx_rlq_entry, 8000, 0);
+    success_datapoint_count++;
+  }
+  else if (probed_bc_loss_by_8000 > 0) {
+    rx_rlq_entry = oonf_layer2_neigh_add_path(nhdp_interface_get_name(lnk->local_if),
+        &lnk->remote_mac, OONF_LAYER2_NEIGH_RX_RLQ);
+    if (rx_rlq_entry) {
+      oonf_layer2_data_set_int64(rx_rlq_entry, &_ffdat_origin, NULL, probed_bc_loss_by_8000, 8000);
+    }
   }
 
   /* make sure we have someone meaningful */
-  if (success_scaled_by_1000 == 0) {
+  if (success_datapoint_count == 0) {
     return metric * DATFF_FRAME_SUCCESS_RANGE;
   }
 
+  /* calculate mean success if necessary */
+  success_scaled_by_8000 /= success_datapoint_count;
+
   /* hysteresis */
-  if (success_scaled_by_1000 >= ldata->last_packet_success_rate - 750 &&
-      success_scaled_by_1000 <= ldata->last_packet_success_rate + 750) {
+  if (success_scaled_by_8000 >= ldata->last_packet_success_rate - 750 &&
+      success_scaled_by_8000 <= ldata->last_packet_success_rate + 750) {
     /* keep old loss rate */
-    success_scaled_by_1000 = ldata->last_packet_success_rate;
+    success_scaled_by_8000 = ldata->last_packet_success_rate;
   }
   else {
     /* remember new loss rate */
-    ldata->last_packet_success_rate = success_scaled_by_1000;
+    ldata->last_packet_success_rate = success_scaled_by_8000;
   }
 
   _calculate_link_neighborhood(lnk, ldata);
@@ -943,7 +957,7 @@ _apply_packet_loss(struct ff_dat_if_config *ifconfig, struct nhdp_link *lnk, str
 
   tmp_metric = metric;
   while (loss_exponent) {
-    tmp_metric = (tmp_metric * (int64_t)DATFF_FRAME_SUCCESS_RANGE * 1000ll + 500ll) / success_scaled_by_1000;
+    tmp_metric = (tmp_metric * (int64_t)DATFF_FRAME_SUCCESS_RANGE * 1000ll + 500ll) / success_scaled_by_8000;
     loss_exponent--;
   }
 

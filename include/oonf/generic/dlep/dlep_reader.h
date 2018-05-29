@@ -78,7 +78,7 @@ int dlep_reader_status(enum dlep_status *status, char *text, size_t text_length,
   struct dlep_parser_value *value);
 
 int dlep_reader_map_identity(struct oonf_layer2_data *data, const struct oonf_layer2_metadata *meta,
-  struct dlep_session *session, uint16_t dlep_tlv);
+  struct dlep_session *session, uint16_t dlep_tlv, uint64_t scaling);
 int dlep_reader_map_l2neigh_data(
   struct oonf_layer2_data *data, struct dlep_session *session, struct dlep_extension *ext);
 int dlep_reader_map_l2net_data(struct oonf_layer2_data *data, struct dlep_session *session, struct dlep_extension *ext);

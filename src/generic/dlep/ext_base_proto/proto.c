@@ -341,6 +341,8 @@ static struct dlep_neighbor_mapping _neigh_mappings[] = {
     .dlep = DLEP_MDRR_TLV,
     .layer2 = OONF_LAYER2_NEIGH_RX_MAX_BITRATE,
     .length = 8,
+    .scaling = 1,
+
     .from_tlv = dlep_reader_map_identity,
     .to_tlv = dlep_writer_map_identity,
   },
@@ -348,6 +350,8 @@ static struct dlep_neighbor_mapping _neigh_mappings[] = {
     .dlep = DLEP_MDRT_TLV,
     .layer2 = OONF_LAYER2_NEIGH_TX_MAX_BITRATE,
     .length = 8,
+    .scaling = 1,
+
     .from_tlv = dlep_reader_map_identity,
     .to_tlv = dlep_writer_map_identity,
   },
@@ -362,6 +366,8 @@ static struct dlep_neighbor_mapping _neigh_mappings[] = {
     .dlep = DLEP_CDRT_TLV,
     .layer2 = OONF_LAYER2_NEIGH_TX_BITRATE,
     .length = 8,
+    .scaling = 1,
+
     .from_tlv = dlep_reader_map_identity,
     .to_tlv = dlep_writer_map_identity,
   },
@@ -369,6 +375,8 @@ static struct dlep_neighbor_mapping _neigh_mappings[] = {
     .dlep = DLEP_LATENCY_TLV,
     .layer2 = OONF_LAYER2_NEIGH_LATENCY,
     .length = 8,
+    .scaling = 1000000,
+
     .from_tlv = dlep_reader_map_identity,
     .to_tlv = dlep_writer_map_identity,
   },
@@ -376,6 +384,8 @@ static struct dlep_neighbor_mapping _neigh_mappings[] = {
     .dlep = DLEP_RESOURCES_TLV,
     .layer2 = OONF_LAYER2_NEIGH_RESOURCES,
     .length = 1,
+    .scaling = 1,
+
     .from_tlv = dlep_reader_map_identity,
     .to_tlv = dlep_writer_map_identity,
   },
@@ -383,6 +393,8 @@ static struct dlep_neighbor_mapping _neigh_mappings[] = {
     .dlep = DLEP_RLQR_TLV,
     .layer2 = OONF_LAYER2_NEIGH_RX_RLQ,
     .length = 1,
+    .scaling = 1,
+
     .from_tlv = dlep_reader_map_identity,
     .to_tlv = dlep_writer_map_identity,
   },

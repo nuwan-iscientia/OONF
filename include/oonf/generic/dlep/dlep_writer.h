@@ -73,7 +73,7 @@ int dlep_writer_add_status(struct dlep_writer *writer, enum dlep_status status, 
 void dlep_writer_add_supported_extensions(struct dlep_writer *writer, const uint16_t *extensions, uint16_t ext_count);
 
 int dlep_writer_map_identity(struct dlep_writer *writer, struct oonf_layer2_data *data,
-  const struct oonf_layer2_metadata *meta, uint16_t tlv, uint16_t length);
+  const struct oonf_layer2_metadata *meta, uint16_t tlv, uint16_t length, uint64_t scaling);
 int dlep_writer_map_l2neigh_data(
   struct dlep_writer *writer, struct dlep_extension *ext, struct oonf_layer2_data *data, struct oonf_layer2_data *def);
 int dlep_writer_map_l2net_data(struct dlep_writer *writer, struct dlep_extension *ext, struct oonf_layer2_data *data);

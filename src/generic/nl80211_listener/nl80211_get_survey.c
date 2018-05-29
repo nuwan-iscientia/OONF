@@ -146,16 +146,16 @@ nl80211_process_get_survey_result(struct nl80211_if *interf, struct nlmsghdr *hd
 
   if (sinfo[NL80211_SURVEY_INFO_NOISE]) {
     interf->ifdata_changed |= nl80211_change_l2net_data(
-      interf->l2net, OONF_LAYER2_NET_NOISE, 1000ll * (int8_t)nla_get_u8(sinfo[NL80211_SURVEY_INFO_NOISE]));
+      interf->l2net, OONF_LAYER2_NET_NOISE, (int8_t)nla_get_u8(sinfo[NL80211_SURVEY_INFO_NOISE]), 1);
   }
 
   if (sinfo[NL80211_SURVEY_INFO_CHANNEL_TIME]) {
     interf->ifdata_changed |= nl80211_change_l2net_data(interf->l2net, OONF_LAYER2_NET_CHANNEL_ACTIVE,
-      1000000ll * (int64_t)nla_get_u64(sinfo[NL80211_SURVEY_INFO_CHANNEL_TIME]));
+      (int64_t)nla_get_u64(sinfo[NL80211_SURVEY_INFO_CHANNEL_TIME]), 1000);
   }
   if (sinfo[NL80211_SURVEY_INFO_CHANNEL_TIME_BUSY]) {
     interf->ifdata_changed |= nl80211_change_l2net_data(interf->l2net, OONF_LAYER2_NET_CHANNEL_BUSY,
-      1000000ll * (int64_t)nla_get_u64(sinfo[NL80211_SURVEY_INFO_CHANNEL_TIME_BUSY]));
+      (int64_t)nla_get_u64(sinfo[NL80211_SURVEY_INFO_CHANNEL_TIME_BUSY]), 1000);
   }
 #if 0
   /* I have no clue what this is */
@@ -167,10 +167,10 @@ nl80211_process_get_survey_result(struct nl80211_if *interf, struct nlmsghdr *hd
 #endif
   if (sinfo[NL80211_SURVEY_INFO_CHANNEL_TIME_RX]) {
     interf->ifdata_changed |= nl80211_change_l2net_data(interf->l2net, OONF_LAYER2_NET_CHANNEL_RX,
-      1000000ll * (int64_t)nla_get_u64(sinfo[NL80211_SURVEY_INFO_CHANNEL_TIME_RX]));
+      (int64_t)nla_get_u64(sinfo[NL80211_SURVEY_INFO_CHANNEL_TIME_RX]), 1000);
   }
   if (sinfo[NL80211_SURVEY_INFO_CHANNEL_TIME_TX]) {
     interf->ifdata_changed |= nl80211_change_l2net_data(interf->l2net, OONF_LAYER2_NET_CHANNEL_TX,
-      1000000ll * (int64_t)nla_get_u64(sinfo[NL80211_SURVEY_INFO_CHANNEL_TIME_TX]));
+      (int64_t)nla_get_u64(sinfo[NL80211_SURVEY_INFO_CHANNEL_TIME_TX]), 1000);
   }
 }

@@ -385,11 +385,14 @@ nl80211_add_dst(struct oonf_layer2_neigh *l2neigh, const struct netaddr *dstmac)
  * @param l2net pointer to layer2 network
  * @param idx index of setting
  * @param value new value
+ * @param scaling fixpoint integer arithmetics scaling
  * @return true if value changed, false otherwise
  */
 bool
-nl80211_change_l2net_data(struct oonf_layer2_net *l2net, enum oonf_layer2_network_index idx, uint64_t value) {
-  return oonf_layer2_data_set_int64(&l2net->data[idx], &_layer2_updated_origin, value);
+nl80211_change_l2net_data(struct oonf_layer2_net *l2net, enum oonf_layer2_network_index idx,
+    int64_t value, int64_t scaling) {
+  return oonf_layer2_data_set_int64(&l2net->data[idx], &_layer2_updated_origin,
+      oonf_layer2_net_metadata_get(idx), value, scaling);
 }
 
 /**
@@ -401,8 +404,9 @@ nl80211_change_l2net_data(struct oonf_layer2_net *l2net, enum oonf_layer2_networ
  */
 bool
 nl80211_change_l2net_neighbor_default(
-  struct oonf_layer2_net *l2net, enum oonf_layer2_neighbor_index idx, uint64_t value) {
-  return oonf_layer2_data_set_int64(&l2net->neighdata[idx], &_layer2_updated_origin, value);
+  struct oonf_layer2_net *l2net, enum oonf_layer2_neighbor_index idx, int64_t value, int64_t scaling) {
+  return oonf_layer2_data_set_int64(&l2net->neighdata[idx], &_layer2_updated_origin,
+      oonf_layer2_neigh_metadata_get(idx), value, scaling);
 }
 
 /**
@@ -423,8 +427,10 @@ nl80211_cleanup_l2neigh_data(struct oonf_layer2_neigh *l2neigh) {
  * @return true if value changed, false otherwise
  */
 bool
-nl80211_change_l2neigh_data(struct oonf_layer2_neigh *l2neigh, enum oonf_layer2_neighbor_index idx, uint64_t value) {
-  return oonf_layer2_data_set_int64(&l2neigh->data[idx], &_layer2_updated_origin, value);
+nl80211_change_l2neigh_data(struct oonf_layer2_neigh *l2neigh, enum oonf_layer2_neighbor_index idx,
+    int64_t value, int64_t scaling) {
+  return oonf_layer2_data_set_int64(&l2neigh->data[idx], &_layer2_updated_origin,
+      oonf_layer2_neigh_metadata_get(idx), value, scaling);
 }
 
 /**
@@ -615,7 +621,7 @@ _get_next_query(void) {
       if (_current_query_if->ifdata_changed) {
         /* set fixed flags for nl80211 data */
         oonf_layer2_data_set_bool(
-          &_current_query_if->l2net->data[OONF_LAYER2_NET_MCS_BY_PROBING], &_layer2_updated_origin, true);
+          &_current_query_if->l2net->data[OONF_LAYER2_NET_MCS_BY_PROBING], &_layer2_updated_origin, NULL, true);
 
         /* cleanup old data and relable new one, then commit everything */
         oonf_layer2_net_cleanup(_current_query_if->l2net, &_layer2_data_origin, true);

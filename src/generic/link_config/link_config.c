@@ -249,7 +249,7 @@ _cb_validate_linkdata(
   /* test if first word is a human readable number */
   ptr = str_cpynextword(sbuf.buf, value, sizeof(sbuf));
   if (cfg_validate_int(out, section_name, entry->key.entry, sbuf.buf, INT64_MIN, INT64_MAX, 8,
-        oonf_layer2_neigh_metadata_get(idx)->fraction)) {
+        oonf_layer2_neigh_metadata_get(idx)->scaling)) {
     return -1;
   }
 
@@ -274,6 +274,7 @@ _cb_validate_linkdata(
  */
 static void
 _parse_strarray(struct strarray *array, const char *ifname, enum oonf_layer2_neighbor_index idx) {
+  const struct oonf_layer2_metadata *meta;
   struct oonf_layer2_neigh *l2neigh;
   struct oonf_layer2_net *l2net;
   struct netaddr_str nbuf;
@@ -288,16 +289,18 @@ _parse_strarray(struct strarray *array, const char *ifname, enum oonf_layer2_nei
     return;
   }
 
+  meta = oonf_layer2_neigh_metadata_get(idx);
+
   strarray_for_each_element(array, entry) {
     ptr = str_cpynextword(hbuf.buf, entry, sizeof(hbuf));
-    if (isonumber_to_s64(&value, hbuf.buf, oonf_layer2_neigh_metadata_get(idx)->fraction)) {
+    if (isonumber_to_s64(&value, hbuf.buf, meta->scaling)) {
       continue;
     }
 
     if (ptr == NULL) {
       /* add network wide data entry */
-      if (!oonf_layer2_data_set_int64(&l2net->neighdata[idx], &_l2_origin_current, value)) {
-        OONF_INFO(LOG_LINK_CONFIG, "if-wide %s for %s: %s", oonf_layer2_neigh_metadata_get(idx)->key, ifname, hbuf.buf);
+      if (!oonf_layer2_data_set_int64(&l2net->neighdata[idx], &_l2_origin_current, meta, value, meta->scaling)) {
+        OONF_INFO(LOG_LINK_CONFIG, "if-wide %s for %s: %s", meta->key, ifname, hbuf.buf);
       }
       continue;
     }
@@ -314,8 +317,8 @@ _parse_strarray(struct strarray *array, const char *ifname, enum oonf_layer2_nei
         continue;
       }
 
-      if (!oonf_layer2_data_set_int64(&l2neigh->data[idx], &_l2_origin_current, value)) {
-        OONF_INFO(LOG_LINK_CONFIG, "%s to neighbor %s on %s: %s", oonf_layer2_neigh_metadata_get(idx)->key, nbuf.buf,
+      if (!oonf_layer2_data_set_int64(&l2neigh->data[idx], &_l2_origin_current, meta, value, meta->scaling)) {
+        OONF_INFO(LOG_LINK_CONFIG, "%s to neighbor %s on %s: %s", meta->key, nbuf.buf,
           ifname, hbuf.buf);
       }
     }
