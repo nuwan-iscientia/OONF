@@ -186,10 +186,9 @@ isonumber_to_u64(uint64_t *dst, const char *iso, uint64_t scaling) {
       next++;
     }
   }
-  while (fraction_scale < scaling && (scaling % 10) == 0) {
+  while (fraction_scale < scaling) {
     num *= 10;
     fraction_scale *= 10;
-    scaling /= 10;
   }
 
   /* handle spaces */
@@ -215,7 +214,7 @@ isonumber_to_u64(uint64_t *dst, const char *iso, uint64_t scaling) {
     }
   }
 
-  while (fraction_scale > scaling) {
+  while (fraction_scale > scaling && fraction_scale >= 1000) {
     fraction_scale /= 1000;
     if (factor > 1) {
       factor /= 1000;
@@ -225,12 +224,12 @@ isonumber_to_u64(uint64_t *dst, const char *iso, uint64_t scaling) {
     }
   }
 
-  if (num > UINT64_MAX / (factor*scaling)) {
+  if (num > UINT64_MAX / factor) {
     /* this would be an integer overflow */
     return -1;
   }
 
-  *dst = num * factor * scaling;
+  *dst = num * factor * scaling / fraction_scale;
   return 0;
 }
 

@@ -93,9 +93,9 @@ test_str_from_isonumber_u64(void) {
 static void
 test_isonumber_to_u64_to_string(void) {
   static const char *tests[] = {
-      "1k", "1.024k", "1M", "1.024M", "1.023k"
+      "1.0", "1k", "1.024k", "1M", "1.024M", "1.023k"
   };
-  static uint64_t results[] = { 1000, 1024, 1000*1000, 1000*1024, 1023 };
+  static uint64_t results[] = { 1, 1000, 1024, 1000*1000, 1000*1024, 1023 };
 
   size_t i;
   int64_t scaling;

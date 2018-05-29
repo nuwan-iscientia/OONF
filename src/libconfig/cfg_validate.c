@@ -147,10 +147,10 @@ int
 cfg_validate_int(struct autobuf *out, const char *section_name, const char *entry_name, const char *value, int64_t min,
   int64_t max, uint16_t bytelen, uint16_t fraction) {
   int64_t i, min64, max64;
-  uint64_t scaling;
+  uint64_t j, scaling;
   struct isonumber_str hbuf;
 
-  for (scaling = 1; fraction > 0; fraction--, scaling*=10);
+  for (j = 0, scaling = 1; j < fraction; j++, scaling*=10);
   if (isonumber_to_s64(&i, value, scaling)) {
     if (fraction) {
       cfg_append_printable_line(out,

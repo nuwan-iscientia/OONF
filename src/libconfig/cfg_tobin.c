@@ -100,21 +100,22 @@ cfg_tobin_choice(void *reference, size_t bin_size, const struct const_strarray *
  * @param reference pointer to binary output buffer.
  * @param bin_size size of reference memory
  * @param value pointer to value of configuration entry.
- * @param fractions number of fractional digits
+ * @param fraction number of fractional digits
  * @param int_size size of signed integer to read
  * @return 0 if conversion succeeded, -1 otherwise.
  */
 int
-cfg_tobin_int(void *reference, size_t bin_size, const struct const_strarray *value, int fractions, size_t int_size) {
+cfg_tobin_int(void *reference, size_t bin_size, const struct const_strarray *value, uint16_t fraction, size_t int_size) {
   int64_t i;
   int result;
-  uint64_t scaling;
+  uint64_t j, scaling;
 
   if (bin_size != int_size) {
     return -1;
   }
 
-  for (scaling = 1; fractions > 0; fractions--, scaling*=10);
+  for (j = 0, scaling = 1; j < fraction; j++, scaling*=10);
+
   result = isonumber_to_s64(&i, strarray_get_first_c(value), scaling);
   if (result == 0) {
     switch (int_size) {
