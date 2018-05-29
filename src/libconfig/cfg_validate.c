@@ -343,7 +343,7 @@ cfg_validate_tokens(struct autobuf *out, const char *section_name, const char *e
 
   /* check each token */
   ptr = value;
-  for (i = 0; i < parameter_count; i++) {
+  for (i = 0; i < parameter_count-1; i++) {
     ptr = str_cpynextword(buffer, ptr, sizeof(buffer));
 
     /* see if token is valid */
