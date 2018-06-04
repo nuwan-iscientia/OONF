@@ -644,8 +644,8 @@ _get_raw_rx_linkspeed(struct nhdp_link *lnk) {
 }
 
 static int64_t
-_scale_linkspeed(struct nhdp_link *lnk, int64_t raw_rx_rate) {
-#ifdef OONF_LOG_INFO
+_scale_linkspeed(struct nhdp_link *lnk __attribute__((unused)), int64_t raw_rx_rate) {
+#ifdef OONF_LOG_DEBUG_INFO
   struct netaddr_str nbuf;
 #endif
   int64_t rx_rate;
