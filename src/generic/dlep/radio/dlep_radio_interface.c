@@ -89,7 +89,7 @@ static struct oonf_layer2_origin _l2_origin = {
 static struct oonf_layer2_origin _l2_default_origin = {
   .name = "dlep radio defaults",
   .proactive = false,
-  .priority = OONF_LAYER2_ORIGIN_UNRELIABLE,
+  .priority = OONF_LAYER2_ORIGIN_DEFAULT,
 };
 
 /**

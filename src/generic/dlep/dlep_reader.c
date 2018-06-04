@@ -487,11 +487,12 @@ dlep_reader_status(enum dlep_status *status, char *text, size_t text_length, str
  * @param meta metadata description for data
  * @param session dlep session
  * @param dlep_tlv DLEP TLV id
+ * @param scaling fixed integer arithmetics scaling factor
  * @return -1 if an error happened, 0 otherwise
  */
 int
 dlep_reader_map_identity(struct oonf_layer2_data *data, const struct oonf_layer2_metadata *meta,
-  struct dlep_session *session, uint16_t dlep_tlv) {
+  struct dlep_session *session, uint16_t dlep_tlv, uint64_t scaling) {
   struct dlep_parser_value *value;
   int64_t l2value;
   uint64_t tmp64;
@@ -527,10 +528,10 @@ dlep_reader_map_identity(struct oonf_layer2_data *data, const struct oonf_layer2
 
     switch (meta->type) {
       case OONF_LAYER2_INTEGER_DATA:
-        oonf_layer2_data_set_int64(data, session->l2_origin, l2value);
+        oonf_layer2_data_set_int64(data, session->l2_origin, meta, l2value, scaling);
         break;
       case OONF_LAYER2_BOOLEAN_DATA:
-        oonf_layer2_data_set_bool(data, session->l2_origin, l2value != 0);
+        oonf_layer2_data_set_bool(data, session->l2_origin, meta, l2value != 0);
         break;
       default:
         return -1;
@@ -550,14 +551,16 @@ dlep_reader_map_identity(struct oonf_layer2_data *data, const struct oonf_layer2
  *   (minus 1) of the conversion that failed.
  */
 int
-dlep_reader_map_l2neigh_data(struct oonf_layer2_data *data, struct dlep_session *session, struct dlep_extension *ext) {
+dlep_reader_map_l2neigh_data(struct oonf_layer2_data *data, struct dlep_session *session,
+    struct dlep_extension *ext) {
   struct dlep_neighbor_mapping *map;
   size_t i;
 
   for (i = 0; i < ext->neigh_mapping_count; i++) {
     map = &ext->neigh_mapping[i];
 
-    if (map->from_tlv(&data[map->layer2], oonf_layer2_neigh_metadata_get(map->layer2), session, map->dlep)) {
+    if (map->from_tlv(&data[map->layer2], oonf_layer2_neigh_metadata_get(map->layer2), session,
+        map->dlep, map->scaling)) {
       return -(i + 1);
     }
   }
@@ -582,7 +585,8 @@ dlep_reader_map_l2net_data(struct oonf_layer2_data *data, struct dlep_session *s
   for (i = 0; i < ext->if_mapping_count; i++) {
     map = &ext->if_mapping[i];
 
-    if (map->from_tlv(&data[map->layer2], oonf_layer2_net_metadata_get(map->layer2), session, map->dlep)) {
+    if (map->from_tlv(&data[map->layer2], oonf_layer2_net_metadata_get(map->layer2), session,
+        map->dlep, map->scaling)) {
       return -(i + 1);
     }
   }

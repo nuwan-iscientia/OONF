@@ -117,26 +117,29 @@ void
 cfg_help_int(struct autobuf *out, int64_t min, int64_t max, uint16_t bytelen, uint16_t fraction) {
   struct isonumber_str hbuf1, hbuf2;
   int64_t min64, max64;
+  uint64_t j, scaling;
 
   min64 = INT64_MIN >> (8 * (8 - bytelen));
   max64 = INT64_MAX >> (8 * (8 - bytelen));
 
+  for (j = 0, scaling = 1; j < fraction; j++, scaling*=10);
+
   /* get string representation of min/max */
-  isonumber_from_s64(&hbuf1, min, "", fraction, true);
-  isonumber_from_s64(&hbuf2, max, "", fraction, true);
+  isonumber_from_s64(&hbuf1, min, "", scaling, true);
+  isonumber_from_s64(&hbuf2, max, "", scaling, true);
 
   if (min > min64) {
     if (max < max64) {
       cfg_append_printable_line(out,
         CFG_HELP_INDENT_PREFIX "Parameter must be a %d-byte fractional integer"
                                " between %s and %s with a maximum of %d fractional digits",
-        bytelen, hbuf1.buf, hbuf2.buf, fraction);
+        bytelen, hbuf1.buf, hbuf2.buf, fraction );
     }
     else {
       cfg_append_printable_line(out,
         CFG_HELP_INDENT_PREFIX "Parameter must be a %d-byte fractional integer"
                                " larger or equal than %s with a maximum of %d fractional digits",
-        bytelen, hbuf1.buf, fraction);
+        bytelen, hbuf1.buf, fraction );
     }
   }
   else {
@@ -144,13 +147,13 @@ cfg_help_int(struct autobuf *out, int64_t min, int64_t max, uint16_t bytelen, ui
       cfg_append_printable_line(out,
         CFG_HELP_INDENT_PREFIX "Parameter must be a %d-byte fractional integer"
                                " smaller or equal than %s with a maximum of %d fractional digits",
-        bytelen, hbuf2.buf, fraction);
+        bytelen, hbuf2.buf, fraction );
     }
     else {
       cfg_append_printable_line(out,
         CFG_HELP_INDENT_PREFIX "Parameter must be a %d-byte signed integer"
                                " with a maximum of %d fractional digits",
-        bytelen, fraction);
+        bytelen, fraction );
     }
   }
 }

@@ -320,7 +320,7 @@ _cb_probe_link(struct oonf_timer_instance *ptr __attribute__((unused))) {
 
       /* fix tx-packets */
       last_tx_packets = ldata->last_tx_traffic;
-      ldata->last_tx_traffic = oonf_layer2_data_get_int64(&l2neigh->data[OONF_LAYER2_NEIGH_TX_FRAMES], 0);
+      ldata->last_tx_traffic = oonf_layer2_data_get_int64(&l2neigh->data[OONF_LAYER2_NEIGH_TX_FRAMES], 1, 0);
 
       /* check if link had traffic since last probe check */
       if (last_tx_packets != ldata->last_tx_traffic) {

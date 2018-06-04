@@ -385,7 +385,7 @@ dlep_writer_add_supported_extensions(struct dlep_writer *writer, const uint16_t 
  */
 int
 dlep_writer_map_identity(struct dlep_writer *writer, struct oonf_layer2_data *data,
-  const struct oonf_layer2_metadata *meta, uint16_t tlv, uint16_t length) {
+  const struct oonf_layer2_metadata *meta, uint16_t tlv, uint16_t length, uint64_t scaling) {
   int64_t l2value64;
   uint64_t tmp64;
   uint32_t tmp32;
@@ -404,7 +404,7 @@ dlep_writer_map_identity(struct dlep_writer *writer, struct oonf_layer2_data *da
 
   switch (oonf_layer2_data_get_type(data)) {
     case OONF_LAYER2_INTEGER_DATA:
-      l2value64 = oonf_layer2_data_get_int64(data, 0);
+      l2value64 = oonf_layer2_data_get_int64(data, scaling, 0);
       break;
     case OONF_LAYER2_BOOLEAN_DATA:
       l2value64 = oonf_layer2_data_get_boolean(data, false) ? 1 : 0;
@@ -464,7 +464,7 @@ dlep_writer_map_l2neigh_data(
       ptr = &def[map->layer2];
     }
 
-    if (map->to_tlv(writer, ptr, oonf_layer2_neigh_metadata_get(map->layer2), map->dlep, map->length)) {
+    if (map->to_tlv(writer, ptr, oonf_layer2_neigh_metadata_get(map->layer2), map->dlep, map->length, map->scaling)) {
       return -(i + 1);
     }
   }
@@ -489,7 +489,7 @@ dlep_writer_map_l2net_data(struct dlep_writer *writer, struct dlep_extension *ex
   for (i = 0; i < ext->if_mapping_count; i++) {
     map = &ext->if_mapping[i];
 
-    if (map->to_tlv(writer, &data[map->layer2], oonf_layer2_net_metadata_get(map->layer2), map->dlep, map->length)) {
+    if (map->to_tlv(writer, &data[map->layer2], oonf_layer2_net_metadata_get(map->layer2), map->dlep, map->length, map->scaling)) {
       return -(i + 1);
     }
   }

@@ -174,10 +174,10 @@ nl80211_process_get_station_dump_result(struct nl80211_if *interf, struct nlmsgh
 
   /* byte data is 64 bit */
   if (sinfo[NL80211_STA_INFO_RX_BYTES64]) {
-    nl80211_change_l2neigh_data(l2neigh, OONF_LAYER2_NEIGH_RX_BYTES, nla_get_u64(sinfo[NL80211_STA_INFO_RX_BYTES64]));
+    nl80211_change_l2neigh_data(l2neigh, OONF_LAYER2_NEIGH_RX_BYTES, nla_get_u64(sinfo[NL80211_STA_INFO_RX_BYTES64]),1 );
   }
   if (sinfo[NL80211_STA_INFO_TX_BYTES64]) {
-    nl80211_change_l2neigh_data(l2neigh, OONF_LAYER2_NEIGH_TX_BYTES, nla_get_u64(sinfo[NL80211_STA_INFO_TX_BYTES64]));
+    nl80211_change_l2neigh_data(l2neigh, OONF_LAYER2_NEIGH_TX_BYTES, nla_get_u64(sinfo[NL80211_STA_INFO_TX_BYTES64]), 1);
   }
 
   /* packet data is only 32 bit */
@@ -198,13 +198,13 @@ nl80211_process_get_station_dump_result(struct nl80211_if *interf, struct nlmsgh
   if (sinfo[NL80211_STA_INFO_TX_BITRATE]) {
     int64_t rate = _get_bitrate(sinfo[NL80211_STA_INFO_TX_BITRATE]);
     if (rate) {
-      nl80211_change_l2neigh_data(l2neigh, OONF_LAYER2_NEIGH_TX_BITRATE, rate);
+      nl80211_change_l2neigh_data(l2neigh, OONF_LAYER2_NEIGH_TX_BITRATE, rate, 1);
     }
   }
   if (sinfo[NL80211_STA_INFO_RX_BITRATE]) {
     int64_t rate = _get_bitrate(sinfo[NL80211_STA_INFO_RX_BITRATE]);
     if (rate) {
-      nl80211_change_l2neigh_data(l2neigh, OONF_LAYER2_NEIGH_RX_BITRATE, rate);
+      nl80211_change_l2neigh_data(l2neigh, OONF_LAYER2_NEIGH_RX_BITRATE, rate, 1);
     }
   }
 
@@ -215,7 +215,7 @@ nl80211_process_get_station_dump_result(struct nl80211_if *interf, struct nlmsgh
     rate = nla_get_u32(sinfo[NL80211_STA_INFO_EXPECTED_THROUGHPUT]);
 
     /* convert in bps */
-    nl80211_change_l2neigh_data(l2neigh, OONF_LAYER2_NEIGH_TX_THROUGHPUT, rate * 1024ll);
+    nl80211_change_l2neigh_data(l2neigh, OONF_LAYER2_NEIGH_TX_THROUGHPUT, rate * 1024ll, 1);
   }
 
   /* signal strength is special too */
@@ -223,7 +223,7 @@ nl80211_process_get_station_dump_result(struct nl80211_if *interf, struct nlmsgh
     int8_t signal;
 
     signal = nla_get_u8(sinfo[NL80211_STA_INFO_SIGNAL]);
-    nl80211_change_l2neigh_data(l2neigh, OONF_LAYER2_NEIGH_RX_SIGNAL, signal * 1000ll);
+    nl80211_change_l2neigh_data(l2neigh, OONF_LAYER2_NEIGH_RX_SIGNAL, signal, 1);
   }
 
   /* remove old data */
@@ -244,7 +244,7 @@ _handle_traffic(struct oonf_layer2_neigh *l2neigh, enum oonf_layer2_neighbor_ind
   old_value = 0;
 
   data = &l2neigh->data[idx];
-  oonf_layer2_data_read_int64(&old_value, data);
+  oonf_layer2_data_read_int64(&old_value, data, 0);
 
   new_value = old_value & UPPER_32_MASK;
   new_value |= (new_32bit & LOWER_32_MASK);
@@ -257,7 +257,7 @@ _handle_traffic(struct oonf_layer2_neigh *l2neigh, enum oonf_layer2_neighbor_ind
     OONF_DEBUG(LOG_NL80211, "Overflow, new: %016" PRIx64, new_value);
   }
 
-  return nl80211_change_l2neigh_data(l2neigh, idx, new_value);
+  return nl80211_change_l2neigh_data(l2neigh, idx, new_value, 1);
 }
 
 static int64_t

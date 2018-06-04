@@ -147,9 +147,11 @@ int
 cfg_validate_int(struct autobuf *out, const char *section_name, const char *entry_name, const char *value, int64_t min,
   int64_t max, uint16_t bytelen, uint16_t fraction) {
   int64_t i, min64, max64;
+  uint64_t j, scaling;
   struct isonumber_str hbuf;
 
-  if (isonumber_to_s64(&i, value, fraction)) {
+  for (j = 0, scaling = 1; j < fraction; j++, scaling*=10);
+  if (isonumber_to_s64(&i, value, scaling)) {
     if (fraction) {
       cfg_append_printable_line(out,
         "Value '%s' for entry '%s'"
@@ -180,14 +182,14 @@ cfg_validate_int(struct autobuf *out, const char *section_name, const char *entr
     cfg_append_printable_line(out,
       "Value '%s' for entry '%s' in section %s is "
       "smaller than %s",
-      value, entry_name, section_name, isonumber_from_s64(&hbuf, min, "", fraction, true));
+      value, entry_name, section_name, isonumber_from_s64(&hbuf, min, "", scaling, true));
     return -1;
   }
   if (i > max) {
     cfg_append_printable_line(out,
       "Value '%s' for entry '%s' in section %s is "
       "larger than %s",
-      value, entry_name, section_name, isonumber_from_s64(&hbuf, min, "", fraction, true));
+      value, entry_name, section_name, isonumber_from_s64(&hbuf, min, "", scaling, true));
     return -1;
   }
   return 0;
@@ -325,9 +327,11 @@ cfg_validate_tokens(struct autobuf *out, const char *section_name, const char *e
   char buffer[256];
   char section_name_entry[32];
   const char *ptr;
+  uint32_t parameter_count;
   size_t i;
 
-  if (str_countwords(value) < entry_count) {
+  parameter_count = str_countwords(value);
+  if (parameter_count < entry_count - custom->optional) {
     cfg_append_printable_line(out,
       "Missing token for entry '%s'"
       " in section %s. At least %" PRINTF_SIZE_T_SPECIFIER " tokens"
@@ -339,7 +343,7 @@ cfg_validate_tokens(struct autobuf *out, const char *section_name, const char *e
 
   /* check each token */
   ptr = value;
-  for (i = 0; i < entry_count - 1; i++) {
+  for (i = 0; i < parameter_count-1; i++) {
     ptr = str_cpynextword(buffer, ptr, sizeof(buffer));
 
     /* see if token is valid */

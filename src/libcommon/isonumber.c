@@ -51,7 +51,7 @@
 #include <oonf/libcommon/string.h>
 
 static const char *_isonumber_u64_to_string(
-  char *out, size_t out_len, uint64_t number, const char *unit, size_t fraction, bool raw);
+  char *out, size_t out_len, uint64_t number, const char *unit, uint64_t scaling, bool raw);
 
 /**
  * Converts an unsigned 64 bit integer into a human readable number
@@ -62,14 +62,14 @@ static const char *_isonumber_u64_to_string(
  * @param out pointer to output buffer
  * @param number number to convert.
  * @param unit unit to be appended at the end, can be NULL
- * @param fraction number of fractional digits
+ * @param scaling fixed point integer arithmetics scaling factor
  * @param raw true if the whole text conversion should be bypassed
  *   and only the raw number shall be written, false otherwise
  * @return pointer to converted string
  */
 const char *
-isonumber_from_u64(struct isonumber_str *out, uint64_t number, const char *unit, int fraction, bool raw) {
-  return _isonumber_u64_to_string(out->buf, sizeof(*out), number, unit, fraction, raw);
+isonumber_from_u64(struct isonumber_str *out, uint64_t number, const char *unit, uint64_t scaling, bool raw) {
+  return _isonumber_u64_to_string(out->buf, sizeof(*out), number, unit, scaling, raw);
 }
 
 /**
@@ -81,13 +81,13 @@ isonumber_from_u64(struct isonumber_str *out, uint64_t number, const char *unit,
  * @param out pointer to output buffer
  * @param number number to convert.
  * @param unit unit to be appended at the end, can be NULL
- * @param fraction number of fractional digits of fractional digits
+ * @param scaling fixed point integer arithmetics scaling factor
  * @param raw true if the whole text conversion should be bypassed
  *   and only the raw number shall be written, false otherwise
  * @return pointer to converted string
  */
 const char *
-isonumber_from_s64(struct isonumber_str *out, int64_t number, const char *unit, int fraction, bool raw) {
+isonumber_from_s64(struct isonumber_str *out, int64_t number, const char *unit, uint64_t scaling, bool raw) {
   char *outbuf = out->buf;
   uint64_t num;
   size_t len;
@@ -107,7 +107,7 @@ isonumber_from_s64(struct isonumber_str *out, int64_t number, const char *unit, 
     num = (uint64_t)number;
   }
 
-  if (_isonumber_u64_to_string(outbuf, len, num, unit, fraction, raw)) {
+  if (_isonumber_u64_to_string(outbuf, len, num, unit, scaling, raw)) {
     return out->buf;
   }
   return NULL;
@@ -118,11 +118,11 @@ isonumber_from_s64(struct isonumber_str *out, int64_t number, const char *unit, 
  * to a signed 64bit integer.
  * @param dst pointer to destination variable
  * @param iso pointer to string source
- * @param fractions number of fractional digits, might be zero
+ * @param scaling fixed point integer arithmetics scaling factor
  * @return -1 if an error happened, 0 otherwise
  */
 int
-isonumber_to_s64(int64_t *dst, const char *iso, int fractions) {
+isonumber_to_s64(int64_t *dst, const char *iso, uint64_t scaling) {
   const char *ptr;
   int result;
   uint64_t u64;
@@ -132,7 +132,7 @@ isonumber_to_s64(int64_t *dst, const char *iso, int fractions) {
     ptr++;
   }
 
-  result = isonumber_to_u64(&u64, ptr, fractions);
+  result = isonumber_to_u64(&u64, ptr, scaling);
   if (!result) {
     if (*iso == '-') {
       *dst = -((int64_t)u64);
@@ -149,16 +149,14 @@ isonumber_to_s64(int64_t *dst, const char *iso, int fractions) {
  * to an unsigned 64bit integer.
  * @param dst pointer to destination variable
  * @param iso pointer to string source
- * @param fraction number of fractional digits, might be zero
+ * @param scaling fixed point integer arithmetics scaling factor
  * @return -1 if an error happened, 0 otherwise
  */
 int
-isonumber_to_u64(uint64_t *dst, const char *iso, int fraction) {
+isonumber_to_u64(uint64_t *dst, const char *iso, uint64_t scaling) {
   static const char symbol_large[] = " kMGTPE";
 
-  uint64_t num;
-  uint64_t factor;
-  int frac;
+  uint64_t num, fraction_scale, factor;
   char *next = NULL, *prefix;
 
   errno = 0;
@@ -168,27 +166,29 @@ isonumber_to_u64(uint64_t *dst, const char *iso, int fraction) {
   }
 
   if (*next == 0) {
-    for (frac = 0; frac < fraction; frac++) {
-      num *= 10;
+    if (num > UINT64_MAX / scaling) {
+      /* this would be an integer overflow */
+      return -1;
     }
-    *dst = num;
+
+    *dst = num * scaling;
     return 0;
   }
 
   /* Handle fractional part */
-  frac = 0;
+  fraction_scale = 1;
   if (*next == '.') {
     next++;
     while (*next >= '0' && *next <= '9') {
       num *= 10;
       num += (*next - '0');
-      frac++;
+      fraction_scale *= 10;
       next++;
     }
   }
-  while (frac < fraction) {
+  while (fraction_scale < scaling) {
     num *= 10;
-    frac++;
+    fraction_scale *= 10;
   }
 
   /* handle spaces */
@@ -214,8 +214,8 @@ isonumber_to_u64(uint64_t *dst, const char *iso, int fraction) {
     }
   }
 
-  while (frac > fraction) {
-    frac -= 3;
+  while (fraction_scale > scaling && fraction_scale >= 1000) {
+    fraction_scale /= 1000;
     if (factor > 1) {
       factor /= 1000;
     }
@@ -223,12 +223,13 @@ isonumber_to_u64(uint64_t *dst, const char *iso, int fraction) {
       num /= 1000;
     }
   }
+
   if (num > UINT64_MAX / factor) {
     /* this would be an integer overflow */
     return -1;
   }
 
-  *dst = num * factor;
+  *dst = num * factor * scaling / fraction_scale;
   return 0;
 }
 
@@ -240,43 +241,36 @@ isonumber_to_u64(uint64_t *dst, const char *iso, int fraction) {
  * @param out_len length of output buffer
  * @param number number to convert
  * @param unit unit that should be appended on result
- * @param fraction number of fractional digits
+ * @param scaling fixed point integer arithmetics scaling factor
  * @param raw true to suppress iso prefixes and unit, false otherwise
  * @return pointer to output buffer, NULL if an error happened
  */
 static const char *
-_isonumber_u64_to_string(char *out, size_t out_len, uint64_t number, const char *unit, size_t fraction, bool raw) {
+_isonumber_u64_to_string(char *out, size_t out_len, uint64_t number, const char *unit, uint64_t scaling, bool raw) {
   static const char symbol_large[] = " kMGTPE";
   static const char symbol_small[] = " munpfa";
-  uint64_t multiplier, print, n;
+  uint64_t print, n;
   const char *unit_modifier;
   size_t idx, len;
-  int result;
+  int result, fraction;
 
-  multiplier = 1;
-
-  while (fraction > 0) {
-    multiplier *= 10;
-    fraction--;
-  }
-
-  if (number >= multiplier) {
+  if (number >= scaling) {
     unit_modifier = symbol_large;
-    while (!raw && *unit_modifier != 0 && number / 1000 >= multiplier) {
-      multiplier *= 1000;
+    while (!raw && *unit_modifier != 0 && number / 1000 >= scaling) {
+      scaling *= 1000;
       unit_modifier++;
     }
   }
   else {
     unit_modifier = symbol_small;
-    while (!raw && *unit_modifier != 0 && number < multiplier && multiplier >= 1000) {
-      multiplier /= 1000;
+    while (!raw && *unit_modifier != 0 && number < scaling && scaling >= 1000) {
+      scaling /= 1000;
       unit_modifier++;
     }
   }
 
   /* print whole */
-  if ((result = snprintf(out, out_len, "%" PRIu64, number / multiplier)) < 0) {
+  if ((result = snprintf(out, out_len, "%" PRIu64, number / scaling)) < 0) {
     return NULL;
   }
 
@@ -288,16 +282,14 @@ _isonumber_u64_to_string(char *out, size_t out_len, uint64_t number, const char 
 
   /* show three fractional digits */
   fraction = 3;
-
   while (true) {
-    n = n % multiplier;
+    n = n % scaling;
     if (n == 0 || fraction == 0) {
       break;
     }
     fraction--;
     n *= 10;
-
-    print = n / multiplier;
+    print = n / scaling;
 
     if (print >= 10) {
       return NULL;
