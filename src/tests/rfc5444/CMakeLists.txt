@@ -5,7 +5,7 @@ set(TESTS test_rfc5444_reader_blockcb
           test_rfc5444_writer_mandatory
           test_rfc5444
           )
-set (LIBS oonf_libcommon oonf_librfc5444)
+set (LIBS oonf_librfc5444 oonf_libcommon)
 
 #include_directories(${CMAKE_SOURCE_DIR}/src-plugins/subsystems)
 foreach(TEST ${TESTS})
