@@ -173,13 +173,13 @@ _cleanup(void) {
 }
 
 static void
-_set_data(struct oonf_layer2_data *data, enum oonf_layer2_data_type type, int64_t value) {
-  switch (type) {
+_set_data(struct oonf_layer2_data *data, const struct oonf_layer2_metadata *meta, int64_t value) {
+  switch (meta->type) {
     case OONF_LAYER2_INTEGER_DATA:
-      oonf_layer2_data_set_int64(data, &_origin, value);
+      oonf_layer2_data_set_int64(data, &_origin, meta, value, meta->scaling);
       break;
     case OONF_LAYER2_BOOLEAN_DATA:
-      oonf_layer2_data_set_bool(data, &_origin, (value & 1) != 0);
+      oonf_layer2_data_set_bool(data, &_origin, meta, (value & 1) != 0);
       break;
     default:
       break;
@@ -221,10 +221,10 @@ _cb_l2gen_event(struct oonf_timer_instance *ptr __attribute((unused))) {
   net->last_seen = oonf_clock_getNow();
 
   for (net_idx = 0; net_idx < OONF_LAYER2_NET_COUNT; net_idx++) {
-    _set_data(&net->data[net_idx], oonf_layer2_net_metadata_get(net_idx)->type, event_counter);
+    _set_data(&net->data[net_idx], oonf_layer2_net_metadata_get(net_idx), event_counter);
   }
   for (neigh_idx = 0; neigh_idx < OONF_LAYER2_NEIGH_COUNT; neigh_idx++) {
-    _set_data(&net->neighdata[neigh_idx], oonf_layer2_neigh_metadata_get(neigh_idx)->type, event_counter);
+    _set_data(&net->neighdata[neigh_idx], oonf_layer2_neigh_metadata_get(neigh_idx), event_counter);
   }
 
   if (oonf_layer2_net_commit(net)) {
@@ -248,7 +248,7 @@ _cb_l2gen_event(struct oonf_timer_instance *ptr __attribute((unused))) {
   oonf_layer2_neigh_set_lastseen(neigh, oonf_clock_getNow());
 
   for (neigh_idx = 0; neigh_idx < OONF_LAYER2_NEIGH_COUNT; neigh_idx++) {
-    _set_data(&neigh->data[neigh_idx], oonf_layer2_neigh_metadata_get(neigh_idx)->type, event_counter);
+    _set_data(&neigh->data[neigh_idx], oonf_layer2_neigh_metadata_get(neigh_idx), event_counter);
   }
   oonf_layer2_neigh_commit(neigh);
 }

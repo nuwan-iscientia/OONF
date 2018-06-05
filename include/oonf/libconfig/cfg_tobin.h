@@ -16,7 +16,7 @@ EXPORT int cfg_tobin_strarray(void *reference, size_t bin_size, const struct con
 EXPORT int cfg_tobin_choice(void *reference, size_t bin_size, const struct const_strarray *value,
   const char *(*callback)(size_t idx, const void *ptr), size_t choices_count, const void *ptr);
 EXPORT int cfg_tobin_int(
-  void *reference, size_t bin_size, const struct const_strarray *value, int fractions, size_t int_size);
+  void *reference, size_t bin_size, const struct const_strarray *value, uint16_t fractions, size_t int_size);
 EXPORT int cfg_tobin_netaddr(void *reference, size_t bin_size, const struct const_strarray *value);
 EXPORT int cfg_tobin_acl(void *reference, size_t bin_size, const struct const_strarray *value);
 EXPORT int cfg_tobin_bitmap256(void *reference, size_t bin_size, const struct const_strarray *value);

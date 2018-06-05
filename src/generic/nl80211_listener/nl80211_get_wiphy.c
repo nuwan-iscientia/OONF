@@ -358,12 +358,12 @@ nl80211_finalize_get_wiphy(struct nl80211_if *interf) {
   if (interf->max_rx) {
     OONF_DEBUG(LOG_NL80211, "Maximum rx rate for %s: %" PRId64, interf->name, interf->max_rx);
     interf->ifdata_changed |=
-      nl80211_change_l2net_neighbor_default(interf->l2net, OONF_LAYER2_NEIGH_RX_MAX_BITRATE, interf->max_rx);
+      nl80211_change_l2net_neighbor_default(interf->l2net, OONF_LAYER2_NEIGH_RX_MAX_BITRATE, interf->max_rx, 1);
   }
   if (interf->max_tx) {
     OONF_DEBUG(LOG_NL80211, "Maximum tx rate for %s: %" PRId64, interf->name, interf->max_tx);
     interf->ifdata_changed |=
-      nl80211_change_l2net_neighbor_default(interf->l2net, OONF_LAYER2_NEIGH_TX_MAX_BITRATE, interf->max_tx);
+      nl80211_change_l2net_neighbor_default(interf->l2net, OONF_LAYER2_NEIGH_TX_MAX_BITRATE, interf->max_tx, 1);
   }
 }
 
@@ -390,10 +390,10 @@ _get_max_bitrate(struct nl80211_if *interf, uint8_t *mcs, bool ht20_sgi, bool ht
     /* we don't know the bandwidth of the channel */
     return 0;
   }
-  bandwidth = oonf_layer2_data_get_int64(data, 0);
+  bandwidth = oonf_layer2_data_get_int64(data, 1, 0);
 
   data = &interf->l2net->data[OONF_LAYER2_NET_BANDWIDTH_2];
-  bandwidth += oonf_layer2_data_get_int64(data, 0);
+  bandwidth += oonf_layer2_data_get_int64(data, 1, 0);
 
   if (bandwidth == 20000000) {
     /* is 20 MHz */

@@ -100,20 +100,23 @@ cfg_tobin_choice(void *reference, size_t bin_size, const struct const_strarray *
  * @param reference pointer to binary output buffer.
  * @param bin_size size of reference memory
  * @param value pointer to value of configuration entry.
- * @param fractions number of fractional digits
+ * @param fraction number of fractional digits
  * @param int_size size of signed integer to read
  * @return 0 if conversion succeeded, -1 otherwise.
  */
 int
-cfg_tobin_int(void *reference, size_t bin_size, const struct const_strarray *value, int fractions, size_t int_size) {
+cfg_tobin_int(void *reference, size_t bin_size, const struct const_strarray *value, uint16_t fraction, size_t int_size) {
   int64_t i;
   int result;
+  uint64_t j, scaling;
 
   if (bin_size != int_size) {
     return -1;
   }
 
-  result = isonumber_to_s64(&i, strarray_get_first_c(value), fractions);
+  for (j = 0, scaling = 1; j < fraction; j++, scaling*=10);
+
+  result = isonumber_to_s64(&i, strarray_get_first_c(value), scaling);
   if (result == 0) {
     switch (int_size) {
       case 4:
@@ -277,7 +280,7 @@ cfg_tobin_stringlist(void *reference, size_t bin_size, const struct const_strarr
 int
 cfg_tobin_tokens(void *reference, const char *value, struct cfg_schema_entry *entries, size_t entry_count,
   struct cfg_schema_token_customizer *custom) {
-  struct const_strarray parameter;
+  struct const_strarray parameter, *parameter_ptr;
   const char *next_token;
   char buffer[256];
   char *dst;
@@ -289,13 +292,16 @@ cfg_tobin_tokens(void *reference, const char *value, struct cfg_schema_entry *en
   parameter.value = buffer;
   for (i = 0; i < entry_count - 1; i++) {
     if (!next_token) {
-      return -1;
+      parameter_ptr = &entries[i].def;
     }
-    next_token = str_cpynextword(buffer, next_token, sizeof(buffer));
-    parameter.length = strlen(parameter.value) + 1;
+    else {
+      next_token = str_cpynextword(buffer, next_token, sizeof(buffer));
+      parameter.length = strlen(parameter.value) + 1;
+      parameter_ptr = &parameter;
+    }
 
     if (entries[i].cb_to_binary) {
-      if (entries[i].cb_to_binary(&entries[i], &parameter, dst + entries[i].bin_offset)) {
+      if (entries[i].cb_to_binary(&entries[i], parameter_ptr, dst + entries[i].bin_offset)) {
         return -1;
       }
     }

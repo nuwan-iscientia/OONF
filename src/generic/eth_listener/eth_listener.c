@@ -223,8 +223,8 @@ _cb_transmission_event(struct oonf_timer_instance *ptr __attribute((unused))) {
     OONF_DEBUG(LOG_ETH, "Set default link speed of interface %s to %s", os_if->name,
       isonumber_from_s64(&ibuf, ethspeed, "bit/s", 0, false));
 
-    oonf_layer2_data_set_int64(&l2net->neighdata[OONF_LAYER2_NEIGH_RX_BITRATE], &_l2_origin, ethspeed);
-    oonf_layer2_data_set_int64(&l2net->neighdata[OONF_LAYER2_NEIGH_TX_BITRATE], &_l2_origin, ethspeed);
+    oonf_layer2_data_set_int64(&l2net->neighdata[OONF_LAYER2_NEIGH_RX_BITRATE], &_l2_origin, NULL, ethspeed, 1);
+    oonf_layer2_data_set_int64(&l2net->neighdata[OONF_LAYER2_NEIGH_TX_BITRATE], &_l2_origin, NULL, ethspeed, 1);
   }
 }
 

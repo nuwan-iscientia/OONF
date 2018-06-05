@@ -58,10 +58,10 @@ struct isonumber_str {
 };
 
 EXPORT const char *isonumber_from_u64(
-  struct isonumber_str *out, uint64_t number, const char *unit, int fraction, bool raw);
+  struct isonumber_str *out, uint64_t number, const char *unit, uint64_t scaling, bool raw);
 EXPORT const char *isonumber_from_s64(
-  struct isonumber_str *out, int64_t number, const char *unit, int fraction, bool raw);
-EXPORT int isonumber_to_u64(uint64_t *dst, const char *iso, int fractions);
-EXPORT int isonumber_to_s64(int64_t *dst, const char *iso, int fractions);
+  struct isonumber_str *out, int64_t number, const char *unit, uint64_t scaling, bool raw);
+EXPORT int isonumber_to_u64(uint64_t *dst, const char *iso, uint64_t scaling);
+EXPORT int isonumber_to_s64(int64_t *dst, const char *iso, uint64_t scaling);
 
 #endif /* ISONUMBER_H_ */

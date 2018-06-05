@@ -146,6 +146,8 @@ static struct dlep_neighbor_mapping _neigh_mappings[] = {
     .dlep = DLEP_FRAMES_R_TLV,
     .layer2 = OONF_LAYER2_NEIGH_RX_FRAMES,
     .length = 8,
+    .scaling = 1,
+
     .from_tlv = dlep_reader_map_identity,
     .to_tlv = dlep_writer_map_identity,
   },
@@ -153,6 +155,8 @@ static struct dlep_neighbor_mapping _neigh_mappings[] = {
     .dlep = DLEP_FRAMES_T_TLV,
     .layer2 = OONF_LAYER2_NEIGH_TX_FRAMES,
     .length = 8,
+    .scaling = 1,
+
     .from_tlv = dlep_reader_map_identity,
     .to_tlv = dlep_writer_map_identity,
   },
@@ -160,6 +164,8 @@ static struct dlep_neighbor_mapping _neigh_mappings[] = {
     .dlep = DLEP_FRAMES_RETRIES_TLV,
     .layer2 = OONF_LAYER2_NEIGH_TX_RETRIES,
     .length = 8,
+    .scaling = 1,
+
     .from_tlv = dlep_reader_map_identity,
     .to_tlv = dlep_writer_map_identity,
   },
@@ -167,6 +173,8 @@ static struct dlep_neighbor_mapping _neigh_mappings[] = {
     .dlep = DLEP_FRAMES_FAILED_TLV,
     .layer2 = OONF_LAYER2_NEIGH_TX_FAILED,
     .length = 8,
+    .scaling = 1,
+
     .from_tlv = dlep_reader_map_identity,
     .to_tlv = dlep_writer_map_identity,
   },
@@ -174,6 +182,8 @@ static struct dlep_neighbor_mapping _neigh_mappings[] = {
     .dlep = DLEP_BYTES_R_TLV,
     .layer2 = OONF_LAYER2_NEIGH_RX_BYTES,
     .length = 8,
+    .scaling = 1,
+
     .from_tlv = dlep_reader_map_identity,
     .to_tlv = dlep_writer_map_identity,
   },
@@ -181,6 +191,8 @@ static struct dlep_neighbor_mapping _neigh_mappings[] = {
     .dlep = DLEP_BYTES_T_TLV,
     .layer2 = OONF_LAYER2_NEIGH_TX_BYTES,
     .length = 8,
+    .scaling = 1,
+
     .from_tlv = dlep_reader_map_identity,
     .to_tlv = dlep_writer_map_identity,
   },
@@ -188,6 +200,8 @@ static struct dlep_neighbor_mapping _neigh_mappings[] = {
     .dlep = DLEP_THROUGHPUT_T_TLV,
     .layer2 = OONF_LAYER2_NEIGH_TX_THROUGHPUT,
     .length = 8,
+    .scaling = 1,
+
     .from_tlv = dlep_reader_map_identity,
     .to_tlv = dlep_writer_map_identity,
   },
@@ -195,6 +209,8 @@ static struct dlep_neighbor_mapping _neigh_mappings[] = {
     .dlep = DLEP_CDRR_BC_TLV,
     .layer2 = OONF_LAYER2_NEIGH_RX_BC_BITRATE,
     .length = 8,
+    .scaling = 1,
+
     .from_tlv = dlep_reader_map_identity,
     .to_tlv = dlep_writer_map_identity,
   },

@@ -87,6 +87,7 @@ struct l2_config_data {
   enum oonf_layer2_data_type data_type;
   union oonf_layer2_value data;
   char txt_value[_MAX_L2_VALUE_LEN];
+  bool overwrite;
 };
 
 /* all configuration options for an interface */
@@ -127,35 +128,42 @@ static void _cb_config_changed(void);
 static struct cfg_schema_entry _l2net_entries[] = {
   CFG_MAP_CHOICE_L2NET(l2_config_data, data_idx, "l2net_key", "", "Layer2 network key for configuration"),
   CFG_MAP_STRING_ARRAY(l2_config_data, txt_value, "l2net_value", "", "Layer2 network value", _MAX_L2_VALUE_LEN),
+  CFG_MAP_BOOL(l2_config_data, overwrite, "l2net_overwrite", "false", "Layer2 overwrite priority"),
 };
 static struct cfg_schema_entry _l2net_def_entries[] = {
   CFG_MAP_CHOICE_L2NEIGH(l2_config_data, data_idx, "l2neigh_key", "", "Layer2 neighbor key for configuration"),
   CFG_MAP_STRING_ARRAY(
     l2_config_data, txt_value, "l2neigh_value", "", "Layer2 neighbor value for default neighbor data", _MAX_L2_VALUE_LEN),
+  CFG_MAP_BOOL(l2_config_data, overwrite, "l2net_overwrite", "false", "Layer2 overwrite priority"),
 };
 static struct cfg_schema_entry _l2neigh_entries[] = {
   CFG_MAP_CHOICE_L2NEIGH(l2_config_data, data_idx, "l2neigh_key", "", "Layer2 neighbor key for configuration"),
   CFG_MAP_STRING_ARRAY(l2_config_data, txt_value, "l2neigh_value", "", "Layer2 neighbor value", _MAX_L2_VALUE_LEN),
   CFG_MAP_NETADDR_MAC48(l2_config_data, mac, "l2neigh_mac", "", "MAC address of neighbor", false, false),
+  CFG_MAP_BOOL(l2_config_data, overwrite, "l2net_overwrite", "false", "Layer2 overwrite priority"),
 };
 static struct cfg_schema_entry _l2neigh_ip_entries[] = {
   CFG_MAP_NETADDR_MAC48(l2_config_data, mac, "l2neigh_mac", "", "MAC address of neighbor", false, false),
   CFG_MAP_NETADDR_V46(l2_config_data, data.addr, "l2neigh_ip", "", "IP address to neighbor", false, false),
+  CFG_MAP_BOOL(l2_config_data, overwrite, "l2net_overwrite", "false", "Layer2 overwrite priority"),
 };
 static struct cfg_schema_entry _l2neigh_dst_entries[] = {
   CFG_MAP_NETADDR_MAC48(l2_config_data, mac, "l2neigh_mac", "", "MAC address of neighbor", false, false),
   CFG_MAP_NETADDR_MAC48(
     l2_config_data, data.addr, "l2neigh_dst", "", "Secondary MAC address of neighbor", false, false),
+  CFG_MAP_BOOL(l2_config_data, overwrite, "l2net_overwrite", "false", "Layer2 overwrite priority"),
 };
 
 static struct cfg_schema_token_customizer _if_value_customizer = {
   .cb_validator = _cb_if_value_validator,
   .cb_tobin = _cb_if_value_tobin,
+  .optional = 1,
 };
 
 static struct cfg_schema_token_customizer _neigh_value_customizer = {
   .cb_validator = _cb_neigh_value_validator,
   .cb_tobin = _cb_neigh_value_tobin,
+  .optional = 1,
 };
 
 static struct cfg_schema_entry _l2_config_if_entries[] = {
@@ -208,13 +216,17 @@ static struct oonf_subsystem _oonf_layer2_config_subsystem = {
 DECLARE_OONF_PLUGIN(_oonf_layer2_config_subsystem);
 
 /* originator for smooth set/remove of configured layer2 values */
-static struct oonf_layer2_origin _l2_origin_current = {
+static struct oonf_layer2_origin _l2_origin_current_configured = {
   .name = "layer2 config",
   .priority = OONF_LAYER2_ORIGIN_CONFIGURED,
 };
+static struct oonf_layer2_origin _l2_origin_current_overwrite = {
+  .name = "layer2 config overwrite",
+  .priority = OONF_LAYER2_ORIGIN_OVERWRITE,
+};
 static struct oonf_layer2_origin _l2_origin_old = {
   .name = "layer2 config old",
-  .priority = OONF_LAYER2_ORIGIN_CONFIGURED,
+  .priority = OONF_LAYER2_ORIGIN_UNKNOWN,
 };
 
 /* listener for removal of layer2 data */
@@ -248,7 +260,8 @@ static struct oonf_timer_class _reconfigure_timer = {
  */
 static int
 _init(void) {
-  oonf_layer2_origin_add(&_l2_origin_current);
+  oonf_layer2_origin_add(&_l2_origin_current_configured);
+  oonf_layer2_origin_add(&_l2_origin_current_overwrite);
   oonf_layer2_origin_add(&_l2_origin_old);
 
   oonf_class_extension_add(&_l2net_listener);
@@ -275,7 +288,8 @@ _cleanup(void) {
   oonf_class_extension_remove(&_l2net_listener);
   oonf_class_extension_remove(&_l2neigh_listener);
 
-  oonf_layer2_origin_remove(&_l2_origin_current);
+  oonf_layer2_origin_remove(&_l2_origin_current_overwrite);
+  oonf_layer2_origin_remove(&_l2_origin_current_configured);
   oonf_layer2_origin_remove(&_l2_origin_old);
 }
 
@@ -355,7 +369,7 @@ _cb_if_value_validator(struct autobuf *out, const char *section_name, const char
     cfg_append_printable_line(out,
       "Value '%s' for entry '%s' in section %s does not use the data"
       " type %s for layer2 network key %s",
-      value, entry_name, section_name, oonf_layer2_data_get_type_string(meta->type), meta->key);
+      value, entry_name, section_name, oonf_layer2_data_get_type_string(meta), meta->key);
   }
   return 0;
 }
@@ -411,7 +425,7 @@ _cb_neigh_value_validator(struct autobuf *out, const char *section_name, const c
     cfg_append_printable_line(out,
       "Value '%s' for entry '%s' in section %s does not use the data"
       " type %s for layer2 neighbor key %s",
-      value, entry_name, section_name, oonf_layer2_data_get_type_string(meta->type), meta->key);
+      value, entry_name, section_name, oonf_layer2_data_get_type_string(meta), meta->key);
   }
   return 0;
 }
@@ -498,6 +512,7 @@ _configure_if_data(struct l2_config_if_data *if_data) {
   struct oonf_layer2_net *l2net;
   struct l2_config_data *entry;
   struct oonf_layer2_neigh_key key;
+  struct oonf_layer2_origin *origin;
   size_t i;
 
   l2net = oonf_layer2_net_get(if_data->interf);
@@ -510,39 +525,44 @@ _configure_if_data(struct l2_config_if_data *if_data) {
 
   /* relabel old entries */
   if (l2net) {
-    oonf_layer2_net_relabel(l2net, &_l2_origin_old, &_l2_origin_current);
+    oonf_layer2_net_relabel(l2net, &_l2_origin_old, &_l2_origin_current_configured);
+    oonf_layer2_net_relabel(l2net, &_l2_origin_old, &_l2_origin_current_overwrite);
 
     for (i = 0; i < if_data->count; i++) {
       entry = &if_data->d[i];
 
+      origin = entry->overwrite ? &_l2_origin_current_overwrite : &_l2_origin_current_configured;
       switch (entry->config_type) {
         case L2_NET:
-          oonf_layer2_data_set(&l2net->data[entry->data_idx], &_l2_origin_current, entry->data_type, &entry->data);
+          oonf_layer2_data_set(&l2net->data[entry->data_idx], origin,
+                               oonf_layer2_net_metadata_get(entry->data_idx), &entry->data);
           break;
         case L2_NET_IP:
-          oonf_layer2_net_add_ip(l2net, &_l2_origin_current, &entry->data.addr);
+          oonf_layer2_net_add_ip(l2net, origin, &entry->data.addr);
           break;
         case L2_DEF:
-          oonf_layer2_data_set(&l2net->neighdata[entry->data_idx], &_l2_origin_current, entry->data_type, &entry->data);
+          oonf_layer2_data_set(&l2net->neighdata[entry->data_idx], origin,
+                               oonf_layer2_neigh_metadata_get(entry->data_idx), &entry->data);
           break;
         case L2_NEIGH:
           memset(&key, 0, sizeof(key));
           memcpy(&key.addr, &entry->mac, sizeof(key.addr));
           l2neigh = oonf_layer2_neigh_add_lid(l2net, &key);
           if (l2neigh) {
-            oonf_layer2_data_set(&l2neigh->data[entry->data_idx], &_l2_origin_current, entry->data_type, &entry->data);
+            oonf_layer2_data_set(&l2neigh->data[entry->data_idx], origin,
+                                 oonf_layer2_neigh_metadata_get(entry->data_idx), &entry->data);
           }
           break;
         case L2_NEIGH_IP:
           l2neigh = oonf_layer2_neigh_add(l2net, &entry->mac);
           if (l2neigh) {
-            oonf_layer2_neigh_add_ip(l2neigh, &_l2_origin_current, &entry->data.addr);
+            oonf_layer2_neigh_add_ip(l2neigh, origin, &entry->data.addr);
           }
           break;
         case L2_DST:
           l2neigh = oonf_layer2_neigh_add(l2net, &entry->mac);
           if (l2neigh) {
-            oonf_layer2_destination_add(l2neigh, &entry->data.addr, &_l2_origin_current);
+            oonf_layer2_destination_add(l2neigh, &entry->data.addr, origin);
           }
           break;
         default:

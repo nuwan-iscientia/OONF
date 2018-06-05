@@ -860,6 +860,7 @@ _create_domain_json(struct json_session *session) {
   const struct netaddr *originator_v4, *originator_v6;
   struct nhdp_domain *domain;
   struct domain_id_str dbuf;
+  struct _node_id_str idbuf;
 
   originator_v4 = olsrv2_originator_get(AF_INET);
   originator_v6 = olsrv2_originator_get(AF_INET6);
@@ -879,7 +880,10 @@ _create_domain_json(struct json_session *session) {
 
       _print_json_string(session, "id", _create_domain_id(&dbuf, domain, AF_INET));
       _print_json_number(session, "number", domain->ext);
-      _print_json_netaddr(session, "router_id", originator_v4);
+
+      _get_node_id_me(&idbuf, AF_INET);
+      _print_json_string(session, "router_id", idbuf.buf);
+      _print_json_netaddr(session, "router_addr", originator_v4);
       _print_json_string(session, "metric", domain->metric->name);
       _print_json_string(session, "mpr", domain->mpr->name);
 
@@ -891,7 +895,10 @@ _create_domain_json(struct json_session *session) {
 
       _print_json_string(session, "id", _create_domain_id(&dbuf, domain, AF_INET6));
       _print_json_number(session, "number", domain->ext);
-      _print_json_netaddr(session, "router_id", originator_v6);
+
+      _get_node_id_me(&idbuf, AF_INET6);
+      _print_json_string(session, "router_id", idbuf.buf);
+      _print_json_netaddr(session, "router_addr", originator_v6);
       _print_json_string(session, "metric", domain->metric->name);
       _print_json_string(session, "mpr", domain->mpr->name);
 
