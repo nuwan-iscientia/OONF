@@ -143,10 +143,12 @@ os_vif_linux_open(struct os_fd *sock, struct os_vif *vif) {
     return -1;
   }
 
-  /* initialize vif memory */
+  /* initialize OONF file descriptor */
   os_fd_init(sock, fd);
-  vif->_vif_node.key = vif->if_name;
+  os_fd_set_nonblocking(sock);
 
+  /* initialize vif memory */
+  vif->_vif_node.key = vif->if_name;
   avl_insert(&_vif_tree, &vif->_vif_node);
 
   return 0;
