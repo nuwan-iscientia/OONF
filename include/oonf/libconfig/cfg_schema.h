@@ -1336,7 +1336,7 @@ EXPORT void cfg_schema_add(struct cfg_schema *schema);
 EXPORT void cfg_schema_add_section(struct cfg_schema *schema, struct cfg_schema_section *section);
 EXPORT void cfg_schema_remove_section(struct cfg_schema *schema, struct cfg_schema_section *section);
 
-EXPORT int cfg_schema_validate(struct cfg_db *db, bool cleanup, bool ignore_unknown_sections, struct autobuf *out);
+EXPORT int cfg_schema_validate(struct cfg_db *db, bool cleanup, bool ignore_unknown_elements, struct autobuf *out);
 
 EXPORT int cfg_schema_tobin(
   void *target, struct cfg_named_section *named, const struct cfg_schema_entry *entries, size_t count);

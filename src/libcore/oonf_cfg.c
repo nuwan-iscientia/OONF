@@ -85,8 +85,8 @@ static int _argc;
 /* define global configuration template */
 static struct cfg_schema_entry _global_entries[] = {
   [IDX_FORK] = CFG_MAP_BOOL(oonf_config_global, fork, "fork", "no", "Set to true to fork daemon into background."),
-  [IDX_FAILFAST] = CFG_MAP_BOOL(oonf_config_global, failfast, "failfast", "no",
-    "Set to true to stop daemon startup if at least one plugin doesn't load."),
+  [IDX_FAILFAST] = CFG_MAP_BOOL(oonf_config_global, failfast, "failfast", "yes",
+    "Set to true to stop daemon startup if at least one plugin doesn't load or a configuration entry is unknown."),
   [IDX_PIDFILE] =
     CFG_MAP_STRING(oonf_config_global, pidfile, "pidfile", "", "Write the process id of the forced child into a file"),
   [IDX_LOCKFILE] = CFG_MAP_STRING(oonf_config_global, lockfile, "lockfile", "",
@@ -364,7 +364,7 @@ oonf_cfg_apply(void) {
 
   /*** phase 2: check configuration and apply it ***/
   /* validate configuration data */
-  if (cfg_schema_validate(_oonf_raw_db, false, true, &log)) {
+  if (cfg_schema_validate(_oonf_raw_db, false, !config_global.failfast, &log)) {
     OONF_WARN(LOG_CONFIG, "Configuration validation failed: %s", abuf_getptr(&log));
     goto apply_failed;
   }
