@@ -66,7 +66,7 @@
 #include <oonf/libconfig/cfg_validate.h>
 
 static bool _validate_cfg_entry(struct cfg_db *db, struct cfg_section_type *section, struct cfg_named_section *named,
-  struct cfg_entry *entry, const char *section_name, bool cleanup, struct autobuf *out);
+  struct cfg_entry *entry, const char *section_name, bool cleanup, bool ignore_unknown, struct autobuf *out);
 static bool _section_needs_default_named_one(struct cfg_section_type *type);
 static void _handle_named_section_change(struct cfg_schema_section *s_section, struct cfg_db *pre_change,
   struct cfg_db *post_change, const char *section_name, bool startup, struct cfg_named_section *pre_defnamed,
@@ -184,13 +184,12 @@ cfg_schema_remove_section(struct cfg_schema *schema, struct cfg_schema_section *
  * Validates a database with a schema
  * @param db pointer to configuration database
  * @param cleanup if true, bad values will be removed from the database
- * @param ignore_unknown_sections true if the validation should skip sections
- *   in the database that have no schema.
+ * @param ignore_unknown false to throw an error for sections or keys without schema.
  * @param out autobuffer for validation output
  * @return 0 if validation found no problems, -1 otherwise
  */
 int
-cfg_schema_validate(struct cfg_db *db, bool cleanup, bool ignore_unknown_sections, struct autobuf *out) {
+cfg_schema_validate(struct cfg_db *db, bool cleanup, bool ignore_unknown, struct autobuf *out) {
   char section_name[256];
   struct cfg_section_type *section, *section_it;
   struct cfg_named_section *named, *named_it;
@@ -214,7 +213,7 @@ cfg_schema_validate(struct cfg_db *db, bool cleanup, bool ignore_unknown_section
     schema_section_first = avl_find_element(&db->schema->sections, section->type, schema_section_first, _section_node);
 
     if (schema_section_first == NULL) {
-      if (ignore_unknown_sections) {
+      if (ignore_unknown) {
         continue;
       }
 
@@ -275,7 +274,7 @@ cfg_schema_validate(struct cfg_db *db, bool cleanup, bool ignore_unknown_section
 
         /* check for bad values */
         CFG_FOR_ALL_ENTRIES(named, entry, entry_it) {
-          warning = _validate_cfg_entry(db, section, named, entry, section_name, cleanup, out);
+          warning = _validate_cfg_entry(db, section, named, entry, section_name, cleanup, ignore_unknown, out);
           error |= warning;
         }
 
@@ -975,24 +974,27 @@ _handle_db_changes(struct cfg_db *pre_change, struct cfg_db *post_change, bool s
  * @param entry pointer to configuration entry
  * @param section_name name of section including type (for debug output)
  * @param cleanup true if bad _entries should be removed
+ * @param ignore_unknown true to throw an error for keys without a schema
  * @param out error output buffer
  * @return true if an error happened, false otherwise
  */
 static bool
 _validate_cfg_entry(struct cfg_db *db, struct cfg_section_type *section, struct cfg_named_section *named,
-  struct cfg_entry *entry, const char *section_name, bool cleanup, struct autobuf *out) {
+  struct cfg_entry *entry, const char *section_name, bool cleanup, bool ignore_unknown, struct autobuf *out) {
   struct cfg_schema_entry *schema_entry, *s_entry_it;
   struct cfg_schema_entry_key key;
-  bool warning, do_remove;
+  bool warning, do_remove, not_found;
   char *ptr1;
 
   warning = false;
+  not_found = true;
   ptr1 = NULL;
 
   key.type = section->type;
   key.entry = entry->name;
 
   avl_for_each_elements_with_key(&db->schema->entries, schema_entry, _node, s_entry_it, &key) {
+    not_found = false;
     if (schema_entry->cb_validate == NULL) {
       continue;
     }
@@ -1024,6 +1026,12 @@ _validate_cfg_entry(struct cfg_db *db, struct cfg_section_type *section, struct 
       /* remove entry */
       cfg_db_remove_entry(db, section->type, named->name, entry->name);
     }
+  }
+
+  if (not_found && !ignore_unknown) {
+    cfg_append_printable_line(out,
+      "Entry '%s' in section %s is unknown", entry->name, section_name);
+    return true;
   }
   return warning;
 }
