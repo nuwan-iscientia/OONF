@@ -49,6 +49,8 @@
 #include <oonf/libcommon/json.h>
 #include <oonf/libcommon/netaddr.h>
 #include <oonf/libconfig/cfg_schema.h>
+#include <oonf/libconfig/cfg_validate.h>
+#include <oonf/libconfig/cfg_help.h>
 #include <oonf/libcore/oonf_subsystem.h>
 #include <oonf/base/oonf_class.h>
 #include <oonf/base/os_interface.h>
@@ -1274,6 +1276,75 @@ oonf_layer2_cfg_get_l2comp(size_t idx, const void *unused __attribute__((unused)
 }
 
 /**
+ * Schema entry validator for network addresses and prefixes.
+ * See CFG_VALIDATE_LAYER2_NEIGH_MAC_LID() macros in oonf_layer2.h
+ * @param entry pointer to schema entry
+ * @param section_name name of section type and name
+ * @param value value of schema entry
+ * @param out pointer to autobuffer for validator output
+ * @return 0 if validation found no problems, -1 otherwise
+ */
+int
+oonf_layer2_validate_mac_lid(const struct cfg_schema_entry *entry,
+    const char *section_name, const char *value, struct autobuf *out) {
+  struct oonf_layer2_neigh_key key;
+  int result;
+
+  result = oonf_layer2_neigh_key_from_string(&key, value);
+  switch (result) {
+    case -1:
+      cfg_append_printable_line(out,
+          "Address '%s' for entry '%s' in section %s is too long",
+          value, entry->key.entry, section_name);
+      break;
+    case -2:
+      cfg_append_printable_line(out,
+          "Link-id '%s' for entry '%s' in section %s is not hexadecimal or too long",
+          value, entry->key.entry, section_name);
+      break;
+    case -3:
+      cfg_append_printable_line(out,
+          "Address '%s' for entry '%s' in section %s is not a valid address",
+          value, entry->key.entry, section_name);
+      break;
+    case -4:
+      cfg_append_printable_line(out,
+          "Address '%s' for entry '%s' in section %s is not MAC48 or EUI64",
+          value, entry->key.entry, section_name);
+      break;
+    default:
+      return 0;
+  }
+  return -1;
+}
+
+
+void
+oonf_layer2_help_mac_lid(const struct cfg_schema_entry *entry __attribute__((unused)), struct autobuf *out) {
+  static const int8_t AF_TYPES[] = { AF_MAC48, AF_EUI64 };
+  cfg_help_netaddr(out, true, false, AF_TYPES, ARRAYSIZE(AF_TYPES));
+  abuf_puts(out, CFG_HELP_INDENT_PREFIX "The parameter can also have an optional link id at the end,\n"
+                 CFG_HELP_INDENT_PREFIX "a hexadecimal string separated by a ',' from the address in front of it.\n");
+}
+/**
+ * Binary converter for layer2 neighbor keys including lid.
+ * See CFG_MAP_LAYER2_NEIGH_MAC_LID() macro in oonf_layer2.h
+ * @param s_entry pointer to configuration entry schema.
+ * @param value pointer to value of configuration entry.
+ * @param reference pointer to binary output buffer.
+ * @return 0 if conversion succeeded, -1 otherwise.
+ */
+int
+oonf_layer2_tobin_mac_lid(const struct cfg_schema_entry *s_entry, const struct const_strarray *value, void *reference) {
+  if (s_entry->list) {
+    /* we don't support direct list conversion to binary */
+    return -1;
+  }
+  return oonf_layer2_neigh_key_from_string(reference, strarray_get_first_c(value));
+}
+
+
+/**
  * get text representation of network type
  * @param type network type
  * @return text representation
@@ -1325,9 +1396,8 @@ oonf_layer2_avlcmp_neigh_key(const void *p1, const void *p2) {
 const char *
 oonf_layer2_neigh_key_to_string(union oonf_layer2_neigh_key_str *buf,
     const struct oonf_layer2_neigh_key *key, bool show_mac) {
-  static const char HEX[17] = "0123456789ABCDEF";
   static const char NONE[] = "-";
-  size_t str_idx, lid_idx;
+  size_t str_idx;
   uint8_t af;
 
   if (key == NULL) {
@@ -1351,26 +1421,60 @@ oonf_layer2_neigh_key_to_string(union oonf_layer2_neigh_key_str *buf,
   }
 
   str_idx = strlen(buf->buf);
-  lid_idx = 0;
 
   if (show_mac) {
-    buf->buf[str_idx++] = ' ';
-    buf->buf[str_idx++] = '[';
-    buf->buf[str_idx++] = '0';
-    buf->buf[str_idx++] = 'x';
+    buf->buf[str_idx++] = ',';
   }
 
-  while (str_idx + 4 < sizeof(*buf) && lid_idx < key->link_id_length) {
-    buf->buf[str_idx++] = HEX[key->link_id[lid_idx] >> 4];
-    buf->buf[str_idx++] = HEX[key->link_id[lid_idx] & 15];
-    lid_idx++;
-  }
-
-  if (show_mac) {
-    buf->buf[str_idx++] = ']';
-    buf->buf[str_idx++] = 0;
-  }
+  strhex_from_bin(&buf->buf[str_idx], sizeof(*buf) - str_idx, key->link_id, key->link_id_length);
   return buf->buf;
+}
+
+/**
+ * Creates a layer2 neighbor key from a string.
+ * @param key neighbor key
+ * @param string string representation of neighbor key
+ * @return negative if an error happened, 0 if everything is fine
+ */
+int
+oonf_layer2_neigh_key_from_string(struct oonf_layer2_neigh_key *key, const char *string) {
+  struct netaddr_str nbuf;
+  const char *split, *addr;
+  ssize_t len;
+
+  memset(key, 0, sizeof(*key));
+  split = strchr(string, ',');
+
+  if (!split) {
+    addr = string;
+  }
+  else {
+    len = split - string;
+    if (len > (ssize_t)(sizeof(nbuf))) {
+      return -1;
+    }
+
+    strscpy(nbuf.buf, string, len+1);
+    addr = nbuf.buf;
+
+    split++;
+    len = strhex_to_bin(key->link_id, sizeof(key->link_id), split);
+    if (len < 0) {
+      return -2;
+    }
+    key->link_id_length = len;
+  }
+
+  if (netaddr_from_string(&key->addr, addr)) {
+    netaddr_invalidate(&key->addr);
+    return -3;
+  }
+  if (netaddr_get_address_family(&key->addr) != AF_MAC48
+      && netaddr_get_address_family(&key->addr) != AF_EUI64) {
+    netaddr_invalidate(&key->addr);
+    return -4;
+  }
+  return 0;
 }
 
 /**

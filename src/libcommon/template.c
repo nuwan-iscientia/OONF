@@ -46,8 +46,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include <oonf/libcommon/autobuf.h>
 #include <oonf/oonf.h>
+#include <oonf/libcommon/autobuf.h>
 #include <oonf/libcommon/string.h>
 #include <oonf/libcommon/template.h>
 

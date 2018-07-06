@@ -51,6 +51,7 @@
 
 #include <oonf/libcommon/string.h>
 
+static int8_t _hexchar_to_value(char hexchar);
 /**
  * @param size minimum size of block
  * @return rounded up block size of STRARRAY_BLOCKSIZE
@@ -301,6 +302,58 @@ str_is_printable(const char *value) {
 }
 
 /**
+ * Converts a binary array to a zero terminated hexadecimal text
+ * @param buffer target buffer
+ * @param buffer_len length of target buffer
+ * @param src binary source
+ * @param src_len length of binary source
+ * @return -1 if an error happened, length of string otherwise
+ */
+ssize_t
+strhex_from_bin(char *buffer, size_t buffer_len, const uint8_t *src, size_t src_len) {
+  static char HEX[] = "0123456789abcdef";
+  size_t i, j;
+  if (buffer_len < src_len*2+1) {
+    return -1;
+  }
+
+  for (i=0, j=0; i<src_len; i++) {
+    buffer[j++] = HEX[src[i] >> 4];
+    buffer[j++] = HEX[src[i] & 0x0f];
+  }
+  buffer[j] = 0;
+  return j;
+}
+
+/**
+ * Converts a hexadecimal text without any whitespaces to a binary representation
+ * @param buffer target binary buffer
+ * @param buffer_len length of binary buffer
+ * @param src hexadecimal text input
+ * @return -1 if an error happened, length of binary buffer otherwise
+ */
+ssize_t
+strhex_to_bin(uint8_t *buffer, size_t buffer_len, const char *src) {
+  size_t srclen, i, j;
+  int8_t v1, v2;
+  srclen = strlen(src);
+  if ((srclen & 1) != 0 || buffer_len < srclen/2) {
+    return -1;
+  }
+
+  for (i=0, j=0; i<srclen; j++) {
+    v1 = _hexchar_to_value(src[i++]);
+    v2 = _hexchar_to_value(src[i++]);
+
+    if (v1 < 0 || v2 < 0) {
+      return -1;
+    }
+    buffer[j] = (v1 << 4) | v2;
+  }
+  return j;
+}
+
+/**
  * Copy a string array into another array. This overwrites
  * all data in the original array.
  * @param dst destination array
@@ -493,4 +546,27 @@ strarray_cmp(const struct strarray *a1, const struct strarray *a2) {
     }
   }
   return result;
+}
+
+/**
+* convert a hexadecimal character (0-9, a-f, A-F) to its decimal value
+* @param hexchar hexadecimal character
+* @return decimal value, -1 if not hexadecimal
+*/
+static int8_t
+_hexchar_to_value(char hexchar) {
+  static char HEX[] = "0123456789abcdefABCDEF";
+  const char *ptr;
+  int8_t value;
+
+  ptr = strchr(HEX, hexchar);
+  if (!ptr) {
+    return -1;
+  }
+
+  value = ptr - HEX;
+  if (value >= 16) {
+    value -= 6;
+  }
+  return value;
 }
