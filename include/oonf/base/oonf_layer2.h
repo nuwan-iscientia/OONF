@@ -87,20 +87,32 @@ enum {
  * @param p_help help text for configuration entry
  * @param args variable list of additional arguments
  */
-#define CFG_VALIDATE_LAYER2_NET_KEY(p_name, p_def, p_help, args...)                                                    \
+#define CFG_VALIDATE_LAYER2_NET_DATA_KEY(p_name, p_def, p_help, args...)                                                    \
   CFG_VALIDATE_CHOICE_CB_ARG(p_name, p_def, p_help, oonf_layer2_cfg_get_l2net_key, OONF_LAYER2_NET_COUNT, NULL, ##args)
 
 /**
  * Creates a cfg_schema_entry for a parameter that can be choosen
- * from the layer2 interface keys
+ * from the layer2 neighbor keys
  * @param p_name parameter name
  * @param p_def parameter default value
  * @param p_help help text for configuration entry
  * @param args variable list of additional arguments
  */
-#define CFG_VALIDATE_LAYER2_NEIGH_KEY(p_name, p_def, p_help, args...)                                                  \
-  CFG_VALIDATE_CHOICE_CB_ARG(                                                                                          \
+#define CFG_VALIDATE_LAYER2_NEIGH_DATA_KEY(p_name, p_def, p_help, args...)                                                  \
+  CFG_VALIDATE_CHOICE_CB_ARG(                                                                                               \
     p_name, p_def, p_help, oonf_layer2_cfg_get_l2neigh_key, OONF_LAYER2_NEIGH_COUNT, NULL, ##args)
+
+/**
+ * Creates a cfg_schema_entry for a parameter that is a MAC address with optional
+ * link id string
+ * @param p_name parameter name
+ * @param p_def parameter default value
+ * @param p_help help text for configuration entry
+ * @param args variable list of additional arguments
+ */
+#define CFG_VALIDATE_LAYER2_NEIGH_MAC_LID(p_name, p_def, p_help, args...)                                                  \
+  _CFG_VALIDATE(p_name, p_def, p_help, .cb_validate = oonf_layer2_validate_mac_lid,                                        \
+    .cb_valhelp = oonf_layer2_help_mac_lid, ##args)
 
 /**
  * Creates a cfg_schema_entry for a parameter that can be choosen
@@ -114,6 +126,7 @@ enum {
   CFG_VALIDATE_CHOICE_CB_ARG(                                                                                          \
     p_name, p_def, p_help, oonf_layer2_cfg_get_l2comp, OONF_LAYER2_DATA_CMP_COUNT, NULL, ##args)
 
+
 /**
  * Creates a cfg_schema_entry for a parameter that can be choosen
  * from the layer2 interface keys
@@ -122,7 +135,7 @@ enum {
  * @param p_help help text for configuration entry
  * @param args variable list of additional arguments
  */
-#define CFG_MAP_CHOICE_L2NET(p_reference, p_field, p_name, p_def, p_help, args...)                                     \
+#define CFG_MAP_CHOICE_L2NET_DATA_KEY(p_reference, p_field, p_name, p_def, p_help, args...)                            \
   CFG_MAP_CHOICE_CB_ARG(                                                                                               \
     p_reference, p_field, p_name, p_def, p_help, oonf_layer2_cfg_get_l2net_key, OONF_LAYER2_NET_COUNT, NULL, ##args)
 
@@ -134,7 +147,7 @@ enum {
  * @param p_help help text for configuration entry
  * @param args variable list of additional arguments
  */
-#define CFG_MAP_CHOICE_L2NEIGH(p_reference, p_field, p_name, p_def, p_help, args...)                                   \
+#define CFG_MAP_CHOICE_L2NEIGH_DATA_KEY(p_reference, p_field, p_name, p_def, p_help, args...)                          \
   CFG_MAP_CHOICE_CB_ARG(p_reference, p_field, p_name, p_def, p_help, oonf_layer2_cfg_get_l2neigh_key,                  \
     OONF_LAYER2_NEIGH_COUNT, NULL, ##args)
 
@@ -149,6 +162,19 @@ enum {
 #define CFG_MAP_CHOICE_L2COMP(p_reference, p_field, p_name, p_def, p_help, args...)                                    \
   CFG_MAP_CHOICE_CB_ARG(                                                                                               \
     p_reference, p_field, p_name, p_def, p_help, oonf_layer2_cfg_get_l2comp, OONF_LAYER2_DATA_CMP_COUNT, NULL, ##args)
+
+/**
+ * Creates a cfg_schema_entry for a parameter that is a MAC address with optional
+ * link id string
+ * @param p_name parameter name
+ * @param p_def parameter default value
+ * @param p_help help text for configuration entry
+ * @param args variable list of additional arguments
+ */
+#define CFG_MAP_LAYER2_NEIGH_MAC_LID(p_reference, p_field, p_name, p_def, p_help, args...)                            \
+  CFG_VALIDATE_LAYER2_NEIGH_MAC_LID(p_name, p_def, p_help, .cb_to_binary = oonf_layer2_tobin_mac_lid,                 \
+    .bin_size = calculate_size(p_reference, p_field), .bin_offset = offsetof(struct p_reference, p_field), ##args)
+
 
 /**
  * priorities of layer2 originators
@@ -640,6 +666,10 @@ EXPORT const struct oonf_layer2_metadata *oonf_layer2_net_metadata_get(enum oonf
 EXPORT const char *oonf_layer2_cfg_get_l2net_key(size_t index, const void *unused);
 EXPORT const char *oonf_layer2_cfg_get_l2neigh_key(size_t index, const void *unused);
 EXPORT const char *oonf_layer2_cfg_get_l2comp(size_t index, const void *unused);
+EXPORT int oonf_layer2_validate_mac_lid(
+  const struct cfg_schema_entry *entry, const char *section_name, const char *value, struct autobuf *out);
+EXPORT void oonf_layer2_help_mac_lid(const struct cfg_schema_entry *entry, struct autobuf *out);
+EXPORT int oonf_layer2_tobin_mac_lid(const struct cfg_schema_entry *s_entry, const struct const_strarray *value, void *reference);
 
 EXPORT const char *oonf_layer2_net_get_type_name(enum oonf_layer2_network_type);
 
@@ -648,6 +678,7 @@ EXPORT struct avl_tree *oonf_layer2_get_origin_tree(void);
 EXPORT int oonf_layer2_avlcmp_neigh_key(const void *p1, const void *p2);
 EXPORT const char *oonf_layer2_neigh_key_to_string(union oonf_layer2_neigh_key_str *buf,
     const struct oonf_layer2_neigh_key *key, bool show_mac);
+EXPORT int oonf_layer2_neigh_key_from_string(struct oonf_layer2_neigh_key *key, const char *string);
 
 /**
  * Checks if a layer2 originator is registered
