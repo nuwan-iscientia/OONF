@@ -681,7 +681,7 @@ cfg_schema_help_token(const struct cfg_schema_entry *entry, struct autobuf *out)
  */
 int
 cfg_schema_tobin_strptr(const struct cfg_schema_entry *s_entry, const struct const_strarray *value, void *reference) {
-  if (s_entry->list) {
+  if (s_entry->list && strlen(value->value) < value->length) {
     /* we don't support direct list conversion to binary */
     return -1;
   }
@@ -698,7 +698,7 @@ cfg_schema_tobin_strptr(const struct cfg_schema_entry *s_entry, const struct con
  */
 int
 cfg_schema_tobin_strarray(const struct cfg_schema_entry *s_entry, const struct const_strarray *value, void *reference) {
-  if (s_entry->list) {
+  if (s_entry->list && strlen(value->value) < value->length) {
     /* we don't support direct list conversion to binary */
     return -1;
   }
@@ -716,7 +716,7 @@ cfg_schema_tobin_strarray(const struct cfg_schema_entry *s_entry, const struct c
  */
 int
 cfg_schema_tobin_choice(const struct cfg_schema_entry *s_entry, const struct const_strarray *value, void *reference) {
-  if (s_entry->list) {
+  if (s_entry->list && strlen(value->value) < value->length) {
     /* we don't support direct list conversion to binary */
     return -1;
   }
@@ -734,7 +734,7 @@ cfg_schema_tobin_choice(const struct cfg_schema_entry *s_entry, const struct con
  */
 int
 cfg_schema_tobin_int(const struct cfg_schema_entry *s_entry, const struct const_strarray *value, void *reference) {
-  if (s_entry->list) {
+  if (s_entry->list && strlen(value->value) < value->length) {
     /* we don't support direct list conversion to binary */
     return -1;
   }
@@ -752,7 +752,7 @@ cfg_schema_tobin_int(const struct cfg_schema_entry *s_entry, const struct const_
  */
 int
 cfg_schema_tobin_netaddr(const struct cfg_schema_entry *s_entry, const struct const_strarray *value, void *reference) {
-  if (s_entry->list) {
+  if (s_entry->list && strlen(value->value) < value->length) {
     /* we don't support direct list conversion to binary */
     return -1;
   }
@@ -796,7 +796,7 @@ cfg_schema_tobin_bitmap256(
  */
 int
 cfg_schema_tobin_bool(const struct cfg_schema_entry *s_entry, const struct const_strarray *value, void *reference) {
-  if (s_entry->list) {
+  if (s_entry->list && strlen(value->value) < value->length) {
     /* we don't support direct list conversion to binary */
     return -1;
   }
@@ -827,7 +827,7 @@ cfg_schema_tobin_stringlist(
  */
 int
 cfg_schema_tobin_tokens(const struct cfg_schema_entry *s_entry, const struct const_strarray *value, void *reference) {
-  if (s_entry->list) {
+  if (s_entry->list && strlen(value->value) < value->length) {
     /* we don't support direct list conversion to binary */
     return -1;
   }

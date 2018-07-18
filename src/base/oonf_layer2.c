@@ -1318,7 +1318,12 @@ oonf_layer2_validate_mac_lid(const struct cfg_schema_entry *entry,
   return -1;
 }
 
-
+/**
+ * Help generator for layer2 neighbor lid parameter
+ * See CFG_MAP_LAYER2_NEIGH_MAC_LID*() macros in oonf_layer2.h
+ * @param entry pointer to schema entry
+ * @param out pointer to autobuffer for validator output
+ */
 void
 oonf_layer2_help_mac_lid(const struct cfg_schema_entry *entry __attribute__((unused)), struct autobuf *out) {
   static const int8_t AF_TYPES[] = { AF_MAC48, AF_EUI64 };
@@ -1326,6 +1331,7 @@ oonf_layer2_help_mac_lid(const struct cfg_schema_entry *entry __attribute__((unu
   abuf_puts(out, CFG_HELP_INDENT_PREFIX "The parameter can also have an optional link id at the end,\n"
                  CFG_HELP_INDENT_PREFIX "a hexadecimal string separated by a ',' from the address in front of it.\n");
 }
+
 /**
  * Binary converter for layer2 neighbor keys including lid.
  * See CFG_MAP_LAYER2_NEIGH_MAC_LID() macro in oonf_layer2.h
