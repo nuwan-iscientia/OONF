@@ -118,6 +118,7 @@ static int _cb_neigh_value_validator(struct autobuf *out, const char *section_na
 static int _cb_neigh_value_tobin(struct cfg_schema_entry *entries, size_t entry_count, const char *value, void *ptr);
 
 static enum oonf_telnet_result _cb_telnet_cmd(struct oonf_telnet_data *con);
+static enum oonf_telnet_result _cb_telnet_help(struct oonf_telnet_data *con);
 
 static void _set_if_data(struct oonf_layer2_net *l2net, struct l2_config_data *entry, struct oonf_layer2_origin *origin);
 static void _reset_if_data(struct oonf_layer2_net *l2net, struct l2_config_data *entry, struct oonf_layer2_origin *origin);
@@ -137,6 +138,11 @@ static struct cfg_schema_entry _l2net_entries[] = {
   CFG_MAP_STRING_ARRAY(l2_config_data, txt_value, "l2net_value", "", "Layer2 network value", _MAX_L2_VALUE_LEN),
   CFG_MAP_BOOL(l2_config_data, overwrite, "l2net_overwrite", "false", "Layer2 overwrite priority"),
 };
+static struct cfg_schema_entry _l2net_ip_entries[] = {
+  CFG_MAP_NETADDR_V46(l2_config_data, data.addr,
+    "l2net_ip", "", "Sets an ip address/prefix for the local radio in the database", true, false),
+  CFG_MAP_BOOL(l2_config_data, overwrite, "l2net_overwrite", "false", "Layer2 overwrite priority"),
+};
 static struct cfg_schema_entry _l2net_def_entries[] = {
   CFG_MAP_CHOICE_L2NEIGH_DATA_KEY(l2_config_data, data_idx, "l2neigh_key", "", "Layer2 neighbor key for configuration"),
   CFG_MAP_STRING_ARRAY(
@@ -152,13 +158,17 @@ static struct cfg_schema_entry _l2neigh_entries[] = {
 static struct cfg_schema_entry _l2neigh_ip_entries[] = {
   CFG_MAP_LAYER2_NEIGH_MAC_LID (l2_config_data, key, "l2neigh_mac", "", "MAC address of neighbor including LID"),
   CFG_MAP_NETADDR_V46(l2_config_data, data.addr, "l2neigh_ip", "", "IP address to neighbor", false, false),
-  CFG_MAP_BOOL(l2_config_data, overwrite, "l2net_overwrite", "false", "Layer2 overwrite priority"),
+  CFG_MAP_BOOL(l2_config_data, overwrite, "l2neigh_overwrite", "false", "Layer2 overwrite priority"),
 };
 static struct cfg_schema_entry _l2neigh_dst_entries[] = {
   CFG_MAP_LAYER2_NEIGH_MAC_LID (l2_config_data, key, "l2neigh_mac", "", "MAC address of neighbor including LID"),
   CFG_MAP_NETADDR_MAC48(
     l2_config_data, data.addr, "l2neigh_dst", "", "Secondary MAC address of neighbor", false, false),
   CFG_MAP_BOOL(l2_config_data, overwrite, "l2net_overwrite", "false", "Layer2 overwrite priority"),
+};
+
+static struct cfg_schema_token_customizer _overwrite_customizer = {
+  .optional = 1,
 };
 
 static struct cfg_schema_token_customizer _if_value_customizer = {
@@ -178,8 +188,10 @@ static struct cfg_schema_entry _l2_config_if_entries[] = {
     "Sets an interface wide layer2 entry into the database."
     " Parameters are the key of the interface data followed by the data.",
     _l2net_entries, _if_value_customizer, .list = true),
-  [L2_NET_IP] = CFG_MAP_NETADDR_V46(l2_config_data, data.addr,
-    "l2net_ip", "", "Sets an ip address/prefix for the local radio in the database", true, false, .list = true),
+  [L2_NET_IP] = CFG_VALIDATE_TOKENS_CUSTOM("l2net_ip", "",
+    "Sets a network specific ip address/prefix into the database."
+    " Parameters is th the ip address/prefix.",
+    _l2net_ip_entries, _overwrite_customizer, .list = true),
   [L2_DEF] = CFG_VALIDATE_TOKENS_CUSTOM("l2default", "",
     "Sets an interface wide default neighbor layer2 entry into the database."
     " Parameters are the key of the neighbor data followed by the data.",
@@ -188,14 +200,14 @@ static struct cfg_schema_entry _l2_config_if_entries[] = {
     "Sets an neighbor specific layer2 entry into the database."
     " Parameters are the key of the neighbor data followed by the data and the mac address of the neighbor.",
     _l2neigh_entries, _neigh_value_customizer, .list = true),
-  [L2_NEIGH_IP] = CFG_VALIDATE_TOKENS("l2neighbor_ip", "",
+  [L2_NEIGH_IP] = CFG_VALIDATE_TOKENS_CUSTOM("l2neighbor_ip", "",
     "Sets an neighbor specific ip address/prefix into the database."
     " Parameters are the mac address and then the ip address/prefix.",
-    _l2neigh_ip_entries, .list = true),
-  [L2_DST] = CFG_VALIDATE_TOKENS("l2destination", "",
+    _l2neigh_ip_entries, _overwrite_customizer, .list = true),
+  [L2_DST] = CFG_VALIDATE_TOKENS_CUSTOM("l2destination", "",
     "Sets an neighbor specific bridged MAC destination into the database."
     " Parameters are the mac address of the neighbor and then the proxied mac address.",
-    _l2neigh_dst_entries, .list = true),
+    _l2neigh_dst_entries, _overwrite_customizer, .list = true),
 };
 
 static struct cfg_schema_section _l2_config_section = {
@@ -224,15 +236,15 @@ DECLARE_OONF_PLUGIN(_oonf_layer2_config_subsystem);
 
 /* originator for smooth set/remove of configured layer2 values */
 static struct oonf_layer2_origin _l2_origin_current_configured = {
-  .name = "layer2 config",
+  .name = "l2config",
   .priority = OONF_LAYER2_ORIGIN_CONFIGURED,
 };
 static struct oonf_layer2_origin _l2_origin_current_overwrite = {
-  .name = "layer2 config overwrite",
+  .name = "l2config overwrite",
   .priority = OONF_LAYER2_ORIGIN_OVERWRITE,
 };
 static struct oonf_layer2_origin _l2_origin_old = {
-  .name = "layer2 config old",
+  .name = "l2config old",
   .priority = OONF_LAYER2_ORIGIN_UNKNOWN,
 };
 
@@ -263,14 +275,7 @@ static struct oonf_timer_class _reconfigure_timer = {
 
 /* telnet command */
 static struct oonf_telnet_command _telnet_l2config[] = {
-  TELNET_CMD("l2config", _cb_telnet_cmd,
-             "l2config add/remove l2net <if> <l2net_key> <l2net_value> <l2net_overwrite>\n"
-             "l2config add/remove l2net_ip <if> <ip>\n"
-             "l2config add/remove l2default <if> <l2neigh_key> <l2neigh_value> <l2net_overwrite>\n"
-             "l2config add/remove l2neighbor <if> l2neigh_key> <l2neigh_value> <l2neigh_mac> <l2net_overwrite>\n"
-             "l2config add/remove l2neighbor_ip <l2neigh_mac> <l2neigh_ip> <l2net_overwrite>\n"
-             "l2config add/remove l2destination <l2neigh_mac> <l2neigh_dst> <l2net_overwrite>\n"
-  ),
+  TELNET_CMD("l2config", _cb_telnet_cmd, "", .help_handler = _cb_telnet_help),
 };
 
 /**
@@ -533,42 +538,27 @@ _cb_telnet_cmd(struct oonf_telnet_data *con) {
     data.config_type = L2_DST;
   }
   else {
-    abuf_puts(con->out, "Second parameter must be 'l2net', 'l2default', 'l2neighbor', 'l2neighbor_ip' or 'l2destination'");
+    abuf_puts(con->out, "Second parameter must be 'l2net', 'l2net_ip', 'l2default', 'l2neighbor', 'l2neighbor_ip' or 'l2destination'");
     return TELNET_RESULT_ACTIVE;
   }
 
   param = next;
   if (!(next = str_cpynextword(ifname, param, IF_NAMESIZE))) {
-    abuf_puts(con->out, "Not enough parameters");
+    abuf_puts(con->out, "Missing interface parameter");
     return TELNET_RESULT_ACTIVE;
   }
   abuf_puts(con->out, "1\n");
 
-  if (data.config_type == L2_NET_IP) {
-    if (cfg_schema_validate_netaddr(&_l2_config_if_entries[data.config_type], "telnet", next, con->out)) {
-      return TELNET_RESULT_ACTIVE;
-    }
-  }
-  else {
-    if (cfg_schema_validate_tokens(&_l2_config_if_entries[data.config_type], "telnet", next, con->out)) {
-      return TELNET_RESULT_ACTIVE;
-    }
+  if (cfg_schema_validate_tokens(&_l2_config_if_entries[data.config_type], "telnet", next, con->out)) {
+    return TELNET_RESULT_ACTIVE;
   }
 
   abuf_appendf(con->out, "2: '%s'\n", next);
   strvalue.length = strlen(next);
   strvalue.value = next;
-  if (data.config_type == L2_NET_IP) {
-    if (cfg_schema_tobin_netaddr(&_l2_config_if_entries[data.config_type], &strvalue, &data)) {
-      abuf_puts(con->out, "Could not convert input data to binary address\n");
-      return TELNET_RESULT_ACTIVE;
-    }
-  }
-  else {
-    if (cfg_schema_tobin_tokens(&_l2_config_if_entries[data.config_type], &strvalue, &data)) {
-      abuf_puts(con->out, "Could not convert input data to binary\n");
-      return TELNET_RESULT_ACTIVE;
-    }
+  if (cfg_schema_tobin_tokens(&_l2_config_if_entries[data.config_type], &strvalue, &data)) {
+    abuf_puts(con->out, "Could not convert input data to binary\n");
+    return TELNET_RESULT_ACTIVE;
   }
   abuf_puts(con->out, "3\n");
 
@@ -591,6 +581,31 @@ _cb_telnet_cmd(struct oonf_telnet_data *con) {
   return TELNET_RESULT_ACTIVE;
 }
 
+
+static enum oonf_telnet_result
+_cb_telnet_help(struct oonf_telnet_data *con) {
+  size_t i;
+
+  if (con->parameter != NULL) {
+    for (i=0; i<ARRAYSIZE(_l2_config_if_entries); i++) {
+      if (strcmp(_l2_config_if_entries[i].key.entry, con->parameter) == 0) {
+        _l2_config_if_entries[i].cb_valhelp(&_l2_config_if_entries[i], con->out);
+        return TELNET_RESULT_ACTIVE;
+      }
+    }
+    abuf_appendf(con->out, "Unknown parameter '%s' for command l2config\n", con->parameter);
+  }
+
+  abuf_puts(con->out,
+             "l2config add/remove l2net <if> <l2net_key> <l2net_value> <l2net_overwrite>\n"
+             "l2config add/remove l2net_ip <if> <ip> <l2net_overwrite>\n"
+             "l2config add/remove l2default <if> <l2neigh_key> <l2neigh_value> <l2net_overwrite>\n"
+             "l2config add/remove l2neighbor <if> l2neigh_key> <l2neigh_value> <l2neigh_mac> <l2net_overwrite>\n"
+             "l2config add/remove l2neighbor_ip <if> <l2neigh_mac> <l2neigh_ip> <l2net_overwrite>\n"
+             "l2config add/remove l2destination <if> <l2neigh_mac> <l2neigh_dst> <l2net_overwrite>\n"
+  );
+  return TELNET_RESULT_ACTIVE;
+}
 
 /**
  * Callback when a layer2 network entry is changed/removed
