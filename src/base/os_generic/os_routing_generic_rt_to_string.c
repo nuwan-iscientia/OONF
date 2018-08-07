@@ -83,3 +83,18 @@ os_routing_generic_rt_to_string(struct os_route_str *buf, const struct os_route_
   }
   return buf->buf;
 }
+
+/**
+ * Returns the text name of a routing type. Used for configuration parameter
+ * @param idx index of routing type
+ * @param unused unused for this selector
+ * @return text name of routing type
+ */
+const char *
+os_routing_cfg_get_rttype(size_t idx, const void *unused __attribute__((unused))) {
+  static const char *UNKNOWN = "UNKNOWN";
+  if (idx >= OS_ROUTE_COUNT) {
+    return UNKNOWN;
+  }
+  return _route_types[idx];
+}

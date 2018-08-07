@@ -52,6 +52,8 @@
 #include <oonf/oonf.h>
 #include <oonf/libcommon/list.h>
 #include <oonf/libcommon/netaddr.h>
+#include <oonf/libconfig/cfg.h>
+#include <oonf/libconfig/cfg_schema.h>
 #include <oonf/libcore/oonf_logging.h>
 #include <oonf/base/os_interface.h>
 #include <oonf/base/os_system.h>
@@ -72,6 +74,7 @@ struct os_route_str;
 /*! unspecified routing table */
 #define RT_TABLE_UNSPEC 0
 #endif
+
 
 /**
  * Struct for text representation of a route
@@ -118,7 +121,32 @@ enum os_route_type
   OS_ROUTE_PROHIBIT,
   OS_ROUTE_BLACKHOLE,
   OS_ROUTE_NAT,
+  OS_ROUTE_COUNT
 };
+
+/**
+ * Creates a cfg_schema_entry for a parameter that can be choosen
+ * from the os routing types
+ * @param p_name parameter name
+ * @param p_def parameter default value
+ * @param p_help help text for configuration entry
+ * @param args variable list of additional arguments
+ */
+#define CFG_VALIDATE_OS_ROUTING_TYPE_KEY(p_name, p_def, p_help, args...)                                                    \
+  CFG_VALIDATE_CHOICE_CB_ARG(p_name, p_def, p_help, os_routing_cfg_get_rttype, OS_ROUTE_COUNT, NULL, ##args)
+
+/**
+ * Creates a cfg_schema_entry for a parameter that can be choosen
+ * from the os routing types and be mapped to an os_route_type
+ * @param p_reference reference to instance of struct
+ * @param p_field name of field in the struct for the parameter,
+ * @param p_name parameter name
+ * @param p_def parameter default value
+ * @param p_help help text for configuration entry
+ * @param args variable list of additional arguments
+ */
+#define CFG_MAP_OS_ROUTING_TYPE_KEY(p_reference, p_field, p_name, p_def, p_help, args...)                                                    \
+  CFG_MAP_CHOICE_CB_ARG(p_reference, p_field, p_name, p_def, p_help, os_routing_cfg_get_rttype, OS_ROUTE_COUNT, NULL, ##args)
 
 /**
  * key of a route, both source and destination prefix
@@ -232,5 +260,7 @@ static INLINE void os_routing_init_sourcespec_src_prefix(struct os_route_key *pr
 
 /* AVL comparators are a special case so we don't do the INLINE trick here */
 EXPORT int os_routing_avl_cmp_route_key(const void *, const void *);
+
+EXPORT const char *os_routing_cfg_get_rttype(size_t index, const void *unused);
 
 #endif /* OS_ROUTING_H_ */
