@@ -222,6 +222,7 @@ static struct cfg_schema_section _l2_config_section = {
 static const char *_dependencies[] = {
   OONF_LAYER2_SUBSYSTEM,
   OONF_TIMER_SUBSYSTEM,
+  OONF_TELNET_SUBSYSTEM,
 };
 static struct oonf_subsystem _oonf_layer2_config_subsystem = {
   .name = OONF_LAYER2_CONFIG_SUBSYSTEM,
