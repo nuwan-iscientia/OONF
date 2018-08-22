@@ -185,7 +185,7 @@ EXPORT const char *oonf_clock_toClockString(struct isonumber_str *, uint64_t);
  */
 static INLINE const char *
 oonf_clock_toIntervalString(struct isonumber_str *buf, int64_t i) {
-  return isonumber_from_s64(buf, i, "", 3, true);
+  return isonumber_from_s64(buf, i, "", 1000, true);
 }
 
 /**
@@ -200,7 +200,7 @@ oonf_clock_fromIntervalString(uint64_t *result, const char *string) {
   int64_t t;
   int r;
 
-  r = isonumber_to_s64(&t, string, 3);
+  r = isonumber_to_s64(&t, string, 1000);
   if (r == 0) {
     *result = t;
   }
