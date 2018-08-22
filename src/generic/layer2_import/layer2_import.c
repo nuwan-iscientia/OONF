@@ -338,7 +338,11 @@ _remove_old_entries(struct oonf_layer2_net *l2net, struct _import_entry *import,
 
   match = NULL;
   OONF_DEBUG(LOG_L2_IMPORT, "route-DST: %s", netaddr_to_string(&nbuf, route_dst));
-  avl_for_each_elements_with_key_safe(&l2net->remote_neighbor_ips, l2n_it1, _net_node, l2n_start, l2n_it2, route_dst) {
+  l2n_start = avl_find_element(&l2net->remote_neighbor_ips, route_dst, l2n_it1, _net_node);
+  l2n_it1 = l2n_start;
+  while (l2n_it1 != NULL && (l2n_it1 == l2n_start || l2n_it1->_net_node.follower)) {
+    l2n_it2 = avl_next_element_safe(&l2net->remote_neighbor_ips, l2n_it1, _net_node);
+      
     OONF_DEBUG(LOG_L2_IMPORT, "l2n-remote: %s", netaddr_to_string(&nbuf, &l2n_it1->ip));
     if (l2n_it1->origin == &import->l2origin) {
       gw = oonf_layer2_neigh_get_nexthop(l2n_it1->l2neigh, netaddr_get_address_family(route_dst));
@@ -349,6 +353,7 @@ _remove_old_entries(struct oonf_layer2_net *l2net, struct _import_entry *import,
         oonf_layer2_neigh_remove_ip(l2n_it1, &import->l2origin);
       }
     }
+    l2n_it1 = l2n_it2;
   }
   return match;
 }
