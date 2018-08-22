@@ -937,13 +937,14 @@ _nhdp_db_link_calculate_status(struct nhdp_link *lnk) {
   }
 
   /* check for MAC collision */
-  if (netaddr_cmp(&localif->mac, &lnk->remote_mac) == 0) {
+  if (!netaddr_is_unspec(&lnk->remote_mac) && netaddr_cmp(&localif->mac, &lnk->remote_mac) == 0) {
     return NHDP_LINK_PENDING;
   }
 
   /* calculate link status as described in RFC 6130 */
-  if (nhdp_hysteresis_is_pending(lnk))
+  if (nhdp_hysteresis_is_pending(lnk)) {
     return NHDP_LINK_PENDING;
+  }
   if (nhdp_hysteresis_is_lost(lnk))
     return RFC6130_LINKSTATUS_LOST;
   if (oonf_timer_is_active(&lnk->sym_time))
