@@ -782,6 +782,10 @@ _get_lossrate_cost_factor(struct ff_dat_if_config *ifconfig, struct nhdp_link *l
     loss_exponent--;
   }
 
+  if (success_scaled_by_1000 == 0) {
+    return 1000ll * DATFF_FRAME_SUCCESS_RANGE;
+  }
+
   loss_by_1000 =  (1000ll * 1000ll) / success_scaled_by_1000;
 
   /* hysteresis */
