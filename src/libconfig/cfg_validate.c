@@ -327,11 +327,13 @@ cfg_validate_tokens(struct autobuf *out, const char *section_name, const char *e
   char buffer[256];
   char section_name_entry[32];
   const char *ptr;
-  uint32_t parameter_count;
+  uint32_t parameter_count, optional;
   size_t i;
 
+  optional = custom != NULL ? custom->optional : 0;
+
   parameter_count = str_countwords(value);
-  if (parameter_count < entry_count - custom->optional) {
+  if (parameter_count < entry_count - optional) {
     cfg_append_printable_line(out,
       "Missing token for entry '%s'"
       " in section %s. At least %" PRINTF_SIZE_T_SPECIFIER " tokens"
@@ -353,7 +355,7 @@ cfg_validate_tokens(struct autobuf *out, const char *section_name, const char *e
   }
 
   /* see if the rest of the value is a valid "last" token */
-  if (entries[i].cb_validate(&entries[entry_count - 1], section_name_entry, ptr, out)) {
+  if (entries[parameter_count - 1].cb_validate(&entries[parameter_count - 1], section_name_entry, ptr, out)) {
     return -1;
   }
 

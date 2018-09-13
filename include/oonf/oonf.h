@@ -104,6 +104,7 @@
 #if defined __STDC_VERSION__ && __STDC_VERSION__ >= 199901L
 #include <inttypes.h>
 #include <stdbool.h>
+#include <unistd.h>
 #else
 #error "OONF needs C99"
 #endif /* __STDC_VERSION__ && __STDC_VERSION__ >= 199901L */

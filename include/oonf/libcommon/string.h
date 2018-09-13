@@ -104,6 +104,9 @@ EXPORT size_t str_countwords(const char *src);
 
 EXPORT bool str_is_printable(const char *value);
 
+EXPORT ssize_t strhex_from_bin(char *buffer, size_t buffer_len, const uint8_t *src, size_t srclen);
+EXPORT ssize_t strhex_to_bin(uint8_t *buffer, size_t buffer_len, const char *src);
+
 EXPORT int strarray_copy(struct strarray *dst, const struct strarray *src);
 EXPORT int strarray_append(struct strarray *, const char *);
 EXPORT int strarray_prepend(struct strarray *array, const char *string);

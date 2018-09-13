@@ -96,6 +96,9 @@ struct _import_entry {
   /*! filter by routing metric, 0 to ignore */
   int32_t distance;
 
+  /*! routing type to be imported, nearly always unicast */
+  enum os_route_type rttype;
+
   /*! set MAC address of imported entries to this interface */
   char fixed_mac_if[IF_NAMESIZE];
 
@@ -144,6 +147,8 @@ static struct cfg_schema_entry _l2_entries[] = {
     _import_entry, protocol, "protocol", "-1", "Routing protocol of matching routes, 0 for all protocols", 0, -1, 255),
   CFG_MAP_INT32_MINMAX(
     _import_entry, distance, "metric", "-1", "Metric of matching routes, 0 for all metrics", 0, -1, INT32_MAX),
+  CFG_MAP_OS_ROUTING_TYPE_KEY(
+    _import_entry, rttype, "rttype", "unicast", "Type of routing metric to be imported"),
   CFG_MAP_STRING_ARRAY(_import_entry, fixed_mac_if, "fixed_mac_if", "",
     "Name of interface that will be used to fill in layer2 entry MAC addresses", IF_NAMESIZE),
   CFG_MAP_STRING_ARRAY(_import_entry, fixed_l2if_name, "fixed_l2if_name", "",
@@ -166,6 +171,12 @@ static struct cfg_schema_entry _lan_entries[] = {
     _import_entry, protocol, "protocol", "-1", "Routing protocol of matching routes, 0 for all protocols", 0, -1, 255),
   CFG_MAP_INT32_MINMAX(
     _import_entry, distance, "metric", "-1", "Metric of matching routes, 0 for all metrics", 0, -1, INT32_MAX),
+  CFG_MAP_OS_ROUTING_TYPE_KEY(
+    _import_entry, rttype, "rttype", "unicast", "Type of routing metric to be imported"),
+  CFG_MAP_STRING_ARRAY(_import_entry, fixed_mac_if, "fixed_mac_if", "",
+    "Name of interface that will be used to fill in layer2 entry MAC addresses", IF_NAMESIZE),
+  CFG_MAP_STRING_ARRAY(_import_entry, fixed_l2if_name, "fixed_l2if_name", "",
+    "Name of interface that will be used to fill in layer2 interface name", IF_NAMESIZE),
 };
 
 static struct cfg_schema_section _lan_import_section = {
@@ -264,7 +275,7 @@ _init(void) {
   os_routing_init_wildcard_route(&_unicast_query);
   _unicast_query.cb_get = _cb_query;
   _unicast_query.cb_finished = _cb_query_finished;
-  _unicast_query.p.type = OS_ROUTE_UNICAST;
+  _unicast_query.p.type = OS_ROUTE_UNDEFINED;
   return 0;
 }
 
@@ -327,7 +338,11 @@ _remove_old_entries(struct oonf_layer2_net *l2net, struct _import_entry *import,
 
   match = NULL;
   OONF_DEBUG(LOG_L2_IMPORT, "route-DST: %s", netaddr_to_string(&nbuf, route_dst));
-  avl_for_each_elements_with_key_safe(&l2net->remote_neighbor_ips, l2n_it1, _net_node, l2n_start, l2n_it2, route_dst) {
+  l2n_start = avl_find_element(&l2net->remote_neighbor_ips, route_dst, l2n_it1, _net_node);
+  l2n_it1 = l2n_start;
+  while (l2n_it1 != NULL && (l2n_it1 == l2n_start || l2n_it1->_net_node.follower)) {
+    l2n_it2 = avl_next_element_safe(&l2net->remote_neighbor_ips, l2n_it1, _net_node);
+      
     OONF_DEBUG(LOG_L2_IMPORT, "l2n-remote: %s", netaddr_to_string(&nbuf, &l2n_it1->ip));
     if (l2n_it1->origin == &import->l2origin) {
       gw = oonf_layer2_neigh_get_nexthop(l2n_it1->l2neigh, netaddr_get_address_family(route_dst));
@@ -338,6 +353,7 @@ _remove_old_entries(struct oonf_layer2_net *l2net, struct _import_entry *import,
         oonf_layer2_neigh_remove_ip(l2n_it1, &import->l2origin);
       }
     }
+    l2n_it1 = l2n_it2;
   }
   return match;
 }
@@ -372,24 +388,21 @@ _cb_rt_event(const struct os_route *route, bool set) {
     /* ignore multicast, linklocal and loopback */
     return;
   }
-  if (route->p.type != OS_ROUTE_UNICAST) {
-    /* return all non-unicast type routes */
-    return;
-  }
-
   OONF_DEBUG(
     LOG_L2_IMPORT, "Received route event (%s): %s", set ? "set" : "remove", os_routing_to_string(&rbuf, &route->p));
 
   /* get interface name for route */
-  if (!route->p.if_index) {
-    /* should not happen for unicast routes */
-    return;
+  if (route->p.if_index) {
+    if_indextoname(route->p.if_index, ifname);
   }
-
-  if_indextoname(route->p.if_index, ifname);
-
   avl_for_each_element(&_import_tree, import, _node) {
     OONF_DEBUG(LOG_L2_IMPORT, "Check for import: %s", import->name);
+
+    if (import->rttype != route->p.type) {
+      OONF_DEBUG(LOG_L2_IMPORT, "Bad routing type %u (filter was %d)",
+                 route->p.type, import->rttype);
+      return;
+    }
 
     /* check prefix length */
     if (import->prefix_length != -1 && import->prefix_length != netaddr_get_prefix_length(&route->p.key.dst)) {
@@ -424,8 +437,8 @@ _cb_rt_event(const struct os_route *route, bool set) {
 
     /* check interface name */
     if (import->ifname[0]) {
-      if (route->p.if_index == 0) {
-        OONF_DEBUG(LOG_L2_IMPORT, "Route has no interface");
+      if (!route->p.if_index) {
+        OONF_DEBUG(LOG_L2_IMPORT, "No interface set (filter was '%s')", import->ifname);
         continue;
       }
       if (strcmp(import->ifname, ifname) != 0) {
