@@ -417,11 +417,35 @@ _init_plugin(struct oonf_subsystem *plugin) {
 
   plugin->_dependency_missing = false;
 
-  if (plugin->_dlhandle &&
-      !_open_plugin_template(plugin->name, plugin->_dlpath_index, RTLD_LAZY | RTLD_NOLOAD | RTLD_GLOBAL)) {
-    OONF_WARN(LOG_PLUGINS, "Could not reload plugin '%s' into global namespace", plugin->name);
-    return -1;
-  }
+
+
+/*  if (plugin->_dlhandle)
+  {
+    bool r = false;
+    void *result = NULL;
+    for (i = 0; i < ARRAYSIZE(DLOPEN_PATTERNS); i++) 
+    {
+      result = _open_plugin_template(plugin->name, i, RTLD_LAZY | RTLD_LOCAL | RTLD_GLOBAL);
+    
+      if (result) 
+      {
+        r = true;
+        break;
+      }
+    }
+
+      if (r == false)
+      {
+
+      OONF_WARN(LOG_PLUGINS, "Could not reload plugin '%s' into global namespace", plugin->name);
+      return -1;
+      }
+
+   }
+   */
+  
+
+ 
 
   if (plugin->init) {
     if (plugin->init()) {

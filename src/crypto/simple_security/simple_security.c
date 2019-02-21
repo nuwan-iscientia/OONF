@@ -79,7 +79,7 @@ struct sise_config {
   uint64_t trigger_delay;
 
   /*! maximum amount of sequence number increase we accept */
-  uint32_t window_size;
+  int32_t window_size;
 };
 
 /**
@@ -129,8 +129,10 @@ static const void *_cb_getCryptoKey(struct rfc5444_signature *sig, size_t *lengt
 static const void *_cb_getKeyId(struct rfc5444_signature *sig, size_t *length);
 
 static struct neighbor_node *_add_neighbor_node(struct neighbor_key *);
-static void _cb_neighbor_node_timeout(void *);
-static void _cb_query_trigger(void *);
+//static void _cb_neighbor_node_timeout(void *);
+static void _cb_neighbor_node_timeout1(struct oonf_timer_instance *ptr);
+//static void _cb_query_trigger(void *);
+static void _cb_query_trigger1(struct oonf_timer_instance *ptr);
 
 static enum rfc5444_result _cb_timestamp_tlv(struct rfc5444_reader_tlvblock_context *context);
 static enum rfc5444_result _cb_timestamp_failed(struct rfc5444_reader_tlvblock_context *context);
@@ -148,7 +150,7 @@ static struct cfg_schema_entry _sise_entries[] = {
   CFG_MAP_CLOCK_MIN(
     sise_config, trigger_delay, "trigger_delay", "10000", "Time until a query/response will be generated ", 1000),
   CFG_MAP_INT32_MINMAX(sise_config, window_size, "window", "100",
-    "What amount of counter increase we accept from a neighbor node", 0, false, 1, INT32_MAX),
+    "What amount of counter increase we accept from a neighbor node", 0, 1, INT32_MAX),
 };
 
 static struct cfg_schema_section _sise_section = {
@@ -258,12 +260,12 @@ static struct oonf_class _timestamp_class = {
 
 static struct oonf_timer_class _timeout_class = {
   .name = "signature timestamp timeout",
-  .callback = _cb_neighbor_node_timeout,
+  .callback = _cb_neighbor_node_timeout1,
 };
 
 static struct oonf_timer_class _query_trigger_class = {
   .name = "signature query trigger",
-  .callback = _cb_query_trigger,
+  .callback = _cb_query_trigger1,
 };
 
 /* global "timestamp" for replay protection */
@@ -275,7 +277,7 @@ static uint32_t _local_timestamp = 1;
  */
 static int
 _init(void) {
-  _protocol = oonf_rfc5444_add_protocol(RFC5444_PROTOCOL, true);
+  _protocol = oonf_rfc5444_add_protocol("rfc5444_iana", true);
   if (_protocol == NULL) {
     return -1;
   }
@@ -283,7 +285,7 @@ _init(void) {
   rfc5444_reader_add_packet_consumer(&_protocol->reader, &_pkt_consumer, _pkt_tlvs, ARRAYSIZE(_pkt_tlvs));
   rfc5444_writer_register_pkthandler(&_protocol->writer, &_pkt_handler);
 
-  rfc5444_sig_add(&_signature);
+  //rfc5444_sig_add(&_signature);
 
   oonf_class_add(&_timestamp_class);
   oonf_timer_add(&_timeout_class);
@@ -366,11 +368,11 @@ _add_neighbor_node(struct neighbor_key *key) {
 
   /* initialize timer */
   node->_vtime.class = &_timeout_class;
-  node->_vtime.cb_context = node;
+  //node->_vtime.cb_context = node;
   oonf_timer_set(&node->_vtime, _config.vtime);
 
   node->_trigger.class = &_query_trigger_class;
-  node->_trigger.cb_context = node;
+  //node->_trigger.cb_context = node;
 
   return node;
 }
@@ -379,9 +381,12 @@ _add_neighbor_node(struct neighbor_key *key) {
  * Callback to remove a neighbor node from memory
  * @param ptr neighbor node
  */
+
 static void
-_cb_neighbor_node_timeout(void *ptr) {
-  struct neighbor_node *node = ptr;
+_cb_neighbor_node_timeout1(struct oonf_timer_instance *ptr) {
+    struct neighbor_node *node;
+
+  node = container_of(ptr, struct neighbor_node, _vtime);
 
   oonf_timer_stop(&node->_vtime);
   oonf_rfc5444_remove_target(node->_target);
@@ -389,16 +394,41 @@ _cb_neighbor_node_timeout(void *ptr) {
   oonf_class_free(&_timestamp_class, node);
 }
 
+/*static void
+_cb_neighbor_node_timeout(void *ptr) {
+  struct neighbor_node *node = ptr;
+
+  oonf_timer_stop(&node->_vtime);
+  oonf_rfc5444_remove_target(node->_target);
+  avl_remove(&_timestamp_tree, &node->_node);
+  oonf_class_free(&_timestamp_class, node);
+}*/
+
 /**
  * Callback to generate new query/response
  * @param ptr neighbor node
  */
 static void
+_cb_query_trigger1(struct oonf_timer_instance *ptr) {
+
+   struct neighbor_node *node;
+
+  node = container_of(ptr, struct neighbor_node, _vtime);
+
+
+  //struct oonf_timer_instance *t = ptr;
+ // struct neighbor_node *node = ptr;
+  //struct neighbor_node *node = ptr;
+
+   rfc5444_writer_flush(&_protocol->writer, &node->_target->rfc5444_target, true);
+
+}
+/*static void
 _cb_query_trigger(void *ptr) {
   struct neighbor_node *node = ptr;
 
   rfc5444_writer_flush(&_protocol->writer, &node->_target->rfc5444_target, true);
-}
+}*/
 
 /**
  * Callback to parse incoming timestamp TLV. This code will assume that the packet
@@ -420,12 +450,12 @@ _cb_timestamp_tlv(struct rfc5444_reader_tlvblock_context *context __attribute__(
 
   struct neighbor_key key;
 
-  core_if = oonf_rfc5444_get_core_if_listener(_protocol->input_interface);
+  core_if = oonf_rfc5444_get_core_if_listener(_protocol->input.interface);
 
   /* get input-addr/interface combination */
   memset(&key, 0, sizeof(key));
-  memcpy(&key.src, _protocol->input_address, sizeof(key.src));
-  key.if_index = core_if->data.index;
+  memcpy(&key.src, _protocol->input.src_address, sizeof(key.src));
+  key.if_index = core_if->data->index;
 
   /* get timestamp packet TLV */
   memcpy(&timestamp, _pkt_tlvs[IDX_PKTTLV_SEND].tlv->single_value, sizeof(timestamp));
@@ -452,7 +482,7 @@ _cb_timestamp_tlv(struct rfc5444_reader_tlvblock_context *context __attribute__(
   /* get or create timestamp node */
   node = avl_find_element(&_timestamp_tree, &key, node, _node);
   if (!node) {
-    target = oonf_rfc5444_add_target(_protocol->input_interface, _protocol->input_address);
+    target = oonf_rfc5444_add_target(_protocol->input.interface, _protocol->input.src_address);
     if (!target) {
       return RFC5444_DROP_PACKET;
     }
@@ -471,7 +501,7 @@ _cb_timestamp_tlv(struct rfc5444_reader_tlvblock_context *context __attribute__(
   }
 
   OONF_DEBUG(LOG_SIMPLE_SECURITY, "Received new packet from %s/%s(%u): timestamp=%u (was %u), query=%u response=%u",
-    netaddr_to_string(&nbuf, &key.src), core_if->data.name, key.if_index, timestamp, node->last_counter, query,
+    netaddr_to_string(&nbuf, &key.src), core_if->data->name, key.if_index, timestamp, node->last_counter, query,
     response);
 
   /* remember querry */
@@ -481,7 +511,7 @@ _cb_timestamp_tlv(struct rfc5444_reader_tlvblock_context *context __attribute__(
   if ((node->send_query > 0 && response == node->send_query) ||
       (node->last_counter < timestamp && node->last_counter + _config.window_size > timestamp)) {
     OONF_INFO(LOG_SIMPLE_SECURITY, "Received valid timestamp %u from %s/%s", timestamp,
-      netaddr_to_string(&nbuf, &key.src), core_if->data.name);
+      netaddr_to_string(&nbuf, &key.src), core_if->data->name);
 
     /* we got a valid query/response or a valid timestamp */
     node->last_counter = timestamp;
@@ -562,7 +592,7 @@ _cb_addPacketTLVs(struct rfc5444_writer *writer, struct rfc5444_writer_target *r
   /* get input-addr/interface combination */
   memset(&key, 0, sizeof(key));
   memcpy(&key.src, &target->dst, sizeof(key.src));
-  key.if_index = core_if->data.index;
+  key.if_index = core_if->data->index;
 
   /* Challenge query and response are only valid for unicasts */
   node = avl_find_element(&_timestamp_tree, &key, node, _node);
@@ -582,7 +612,7 @@ _cb_addPacketTLVs(struct rfc5444_writer *writer, struct rfc5444_writer_target *r
         writer, rfc5444_target, RFC5444_PKTTLV_CHALLENGE, RFC5444_CHALLENGE_RESPONSE, &response, sizeof(response));
     }
     OONF_DEBUG(LOG_SIMPLE_SECURITY, "Add packettvs to %s/%s(%u): query=%u response=%u",
-      netaddr_to_string(&nbuf, &key.src), core_if->data.name, key.if_index, node->send_query, node->send_response);
+      netaddr_to_string(&nbuf, &key.src), core_if->data->name, key.if_index, node->send_query, node->send_response);
 
     /* clear response */
     node->send_response = 0;

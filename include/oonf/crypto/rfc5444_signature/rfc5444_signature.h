@@ -153,7 +153,7 @@ struct rfc5444_signature {
 };
 
 /*! subsystem identifier */
-#define OONF_RFC5444_SIG_SUBSYSTEM "rfc5444_sig"
+#define OONF_RFC5444_SIG_SUBSYSTEM "rfc5444_signature"
 
 EXPORT void rfc5444_sig_add(struct rfc5444_signature *sig);
 EXPORT void rfc5444_sig_remove(struct rfc5444_signature *sig);

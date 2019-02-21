@@ -146,7 +146,7 @@ static struct oonf_class_extension _crypt_listener = {
  */
 static int
 _init(void) {
-  _protocol = oonf_rfc5444_add_protocol(RFC5444_PROTOCOL, true);
+  _protocol = oonf_rfc5444_add_protocol("rfc5444_iana", true);
   if (_protocol == NULL) {
     return -1;
   }
@@ -295,11 +295,11 @@ _cb_signature_tlv(struct rfc5444_reader_tlvblock_context *context) {
 
     /* assemble static message buffer */
     if (tlv->type_ext == RFC7182_ICV_EXT_SRCSPEC_CRYPTHASH) {
-      OONF_DEBUG(LOG_RFC5444_SIG, "incoming src IP: %s", netaddr_to_string(&nbuf, _protocol->input_address));
+      OONF_DEBUG(LOG_RFC5444_SIG, "incoming src IP: %s", netaddr_to_string(&nbuf, _protocol->input.src_address));
 
       /* copy source address into buffer */
-      netaddr_to_binary(_static_message_buffer, _protocol->input_address, sizeof(_static_message_buffer));
-      static_length = netaddr_get_binlength(_protocol->input_address);
+      netaddr_to_binary(_static_message_buffer, _protocol->input.src_address, sizeof(_static_message_buffer));
+      static_length = netaddr_get_binlength(_protocol->input.src_address);
     }
     else {
       static_length = 0;
@@ -335,7 +335,7 @@ _cb_signature_tlv(struct rfc5444_reader_tlvblock_context *context) {
       }
 
       /* remember source IP */
-      sig->source = _protocol->input_address;
+      sig->source = _protocol->input.src_address;
 
       /* check signature */
       key = sig->getCryptoKey(sig, &key_length);
